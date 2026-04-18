@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\DeduplicateLeadJob;
+use App\Jobs\EnrichLeadContactsJob;
 use App\Jobs\EnrichLeadJob;
 use App\Jobs\ScoreLeadJob;
 use App\Models\Lead;
@@ -136,7 +137,13 @@ class LeadController extends Controller
         $aiMode = $data['ai_mode'] ?? 'manual';
 
         if ($lead->external_place_id) {
+            // Maps lead: EnrichLeadJob chains to EnrichLeadContactsJob automatically
             EnrichLeadJob::dispatch($lead->id)->onQueue('enrichment');
+        } elseif ($lead->website_domain) {
+            // Non-maps lead with known domain: go straight to contact enrichment
+            EnrichLeadContactsJob::dispatch($lead->id)
+                ->delay(now()->addSeconds(3))
+                ->onQueue('enrichment');
         }
 
         if (in_array($aiMode, ['full_ai', 'hybrid'])) {
@@ -421,6 +428,10 @@ class LeadController extends Controller
 
             if ($lead->external_place_id) {
                 EnrichLeadJob::dispatch($lead->id)->onQueue('enrichment');
+            } elseif ($lead->website_domain) {
+                EnrichLeadContactsJob::dispatch($lead->id)
+                    ->delay(now()->addSeconds(3))
+                    ->onQueue('enrichment');
             }
 
             if (in_array($aiMode, ['full_ai', 'hybrid'])) {
@@ -718,5 +729,40 @@ class LeadController extends Controller
             ->paginate(50);
 
         return response()->json($followUps);
+    }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /*  MODULE C: Contact Enrichment Engine (Tier 2.5)             */
+    /* ═══════════════════════════════════════════════════════════ */
+
+    /** DELETE /api/leads/{lead}/contacts/{contact} */
+    public function deleteContact(Lead $lead, \App\Models\LeadContact $contact): JsonResponse
+    {
+        if ($contact->lead_id !== $lead->id) {
+            abort(403, 'Contact does not belong to this lead');
+        }
+
+        AuditService::log('delete_contact', 'lead_contacts', $contact->id, $contact->toArray());
+
+        $contact->payloads()->delete();
+        $contact->delete();
+
+        return response()->json(['message' => 'Contact deleted']);
+    }
+
+    /** POST /api/leads/{lead}/enrich-contacts — Manually trigger contact enrichment */
+    public function triggerContactEnrichment(Lead $lead): JsonResponse
+    {
+        if (empty($lead->company_name) && empty($lead->website_domain)) {
+            return response()->json(['message' => 'Lead must have company name or domain to enrich contacts'], 422);
+        }
+
+        EnrichLeadContactsJob::dispatch($lead->id)->onQueue('enrichment');
+
+        AuditService::log('trigger_contact_enrichment', 'leads', $lead->id, null, [
+            'triggered_by' => request()->user()?->id,
+        ]);
+
+        return response()->json(['message' => 'Contact enrichment queued']);
     }
 }

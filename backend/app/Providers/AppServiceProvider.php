@@ -3,17 +3,20 @@
 namespace App\Providers;
 
 use App\Http\Middleware\CheckPermission;
+use App\Services\Enrichment\ContactEnrichmentOrchestrator;
+use App\Services\Enrichment\Providers\LushaProvider;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->singleton(ContactEnrichmentOrchestrator::class, function () {
+            return new ContactEnrichmentOrchestrator([
+                new LushaProvider(),
+            ]);
+        });
     }
 
     /**

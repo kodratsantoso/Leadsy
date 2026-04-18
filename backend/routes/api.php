@@ -76,7 +76,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/meetings', [LeadController::class, 'logMeeting'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts', [LeadController::class, 'addContact'])->middleware('permission:leads.edit');
     Route::put('leads/{lead}/contacts/{contact}', [LeadController::class, 'updateContact'])->middleware('permission:leads.edit');
+    Route::delete('leads/{lead}/contacts/{contact}', [LeadController::class, 'deleteContact'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts/{contact}/set-primary', [LeadController::class, 'setPrimaryContact'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/enrich-contacts', [LeadController::class, 'triggerContactEnrichment'])->middleware('permission:leads.edit');
 
     // Lead Intelligence Routes (Module A — Lead Scoring, Qualification, Product Matching, AI Analysis)
     Route::post('leads/{lead}/qualify', [LeadController::class, 'qualify'])->middleware('permission:leads.edit');
