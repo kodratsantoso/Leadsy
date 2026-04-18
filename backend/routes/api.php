@@ -36,6 +36,7 @@ Route::get('health', function () {
 // ── Auth (public) ──
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('send-otp', [AuthController::class, 'sendOtp']);
     Route::post('register', [AuthController::class, 'register']);
 });
 
