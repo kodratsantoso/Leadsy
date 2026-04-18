@@ -15,6 +15,7 @@ use App\Services\LeadDiscoveryService;
 use App\Services\Revenue\ConversionPredictionService;
 use App\Services\Revenue\ICPMatchingService;
 use App\Services\Revenue\PrescriptiveEngineService;
+use App\Services\Revenue\RevenueIntelligenceAnalysisService;
 use App\Services\Revenue\RevenueRuleEngineService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -843,6 +844,28 @@ class LeadController extends Controller
         return response()->json(['data' => $outcome], 201);
     }
 
+    /** POST /api/leads/{lead}/revenue-analysis — Run Revenue Intelligence Analyst AI */
+    public function runRevenueAnalysis(Lead $lead, RevenueIntelligenceAnalysisService $service): JsonResponse
+    {
+        $analysis = $service->analyze($lead);
+
+        AuditService::log('revenue_analysis', 'leads', $lead, null, [
+            'intent_level'         => $analysis->intent_level,
+            'probability_to_close' => $analysis->probability_to_close,
+            'confidence'           => $analysis->confidence,
+            'status'               => $analysis->status,
+        ]);
+
+        return response()->json(['data' => $analysis], 201);
+    }
+
+    /** GET /api/leads/{lead}/revenue-analysis — Latest revenue analysis */
+    public function getRevenueAnalysis(Lead $lead): JsonResponse
+    {
+        $analysis = $lead->revenueAnalyses()->latest()->first();
+        return response()->json(['data' => $analysis]);
+    }
+
     /** GET /api/leads/{lead}/revenue-intelligence — Full Revenue Intel snapshot */
     public function revenueIntelligence(
         Lead $lead,
@@ -860,6 +883,7 @@ class LeadController extends Controller
             'latest_prescription'  => $lead->prescriptions()->with('recommendedOwner')->latest()->first(),
             'revenue_check'        => $ruleService->evaluate($lead),
             'latest_outcome'       => $lead->outcomes()->latest()->first(),
+            'latest_analysis'      => $lead->revenueAnalyses()->latest()->first(),
         ]]);
     }
 }

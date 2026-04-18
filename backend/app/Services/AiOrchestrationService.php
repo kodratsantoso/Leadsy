@@ -156,7 +156,7 @@ class AiOrchestrationService
             $decoded   = json_decode($response, true);
 
             if ($httpStatus < 200 || $httpStatus >= 300) {
-                $this->logRequest($model, $functionName, null, null, 0, $latencyMs, 'error', $response, $isFallback);
+                $this->logRequest($model, $functionName, null, null, 0, $latencyMs, 'failure', $response, $isFallback);
                 return $this->fail("HTTP {$httpStatus}: " . ($decoded['error']['message'] ?? 'Unknown'));
             }
 
@@ -176,7 +176,7 @@ class AiOrchestrationService
             ];
         } catch (\Throwable $e) {
             $latencyMs = (int) ((hrtime(true) - $startMs) / 1_000_000);
-            $this->logRequest($model, $functionName, null, null, 0, $latencyMs, 'error', $e->getMessage(), $isFallback);
+            $this->logRequest($model, $functionName, null, null, 0, $latencyMs, 'failure', $e->getMessage(), $isFallback);
 
             return $this->fail($e->getMessage());
         }

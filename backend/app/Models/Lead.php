@@ -159,4 +159,9 @@ class Lead extends Model
     {
         return $this->hasMany(LeadOutcome::class);
     }
+
+    public function revenueAnalyses(): HasMany
+    {
+        return $this->hasMany(LeadRevenueAnalysis::class);
+    }
 }

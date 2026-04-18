@@ -98,6 +98,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/{lead}/revenue-check', [LeadController::class, 'revenueCheck'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/outcome', [LeadController::class, 'recordOutcome'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/revenue-intelligence', [LeadController::class, 'revenueIntelligence'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/revenue-analysis', [LeadController::class, 'runRevenueAnalysis'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/revenue-analysis', [LeadController::class, 'getRevenueAnalysis'])->middleware('permission:leads.view');
 
     // Lead Activity & Evaluation Routes (Module B — Activities, Meetings, Transcripts, Evaluations)
     Route::delete('leads/{lead}/activities/{activity}', [LeadController::class, 'deleteActivity'])->middleware('permission:leads.edit');
