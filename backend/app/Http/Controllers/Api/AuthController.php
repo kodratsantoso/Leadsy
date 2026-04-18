@@ -79,9 +79,9 @@ class AuthController extends Controller
         ]);
 
         Mail::raw(
-            "Your Prasetia Leads verification code is: {$otp}\n\nThis code expires in 10 minutes.\nDo not share it with anyone.",
+            "Your Leadsy verification code is: {$otp}\n\nThis code expires in 10 minutes.\nDo not share it with anyone.",
             function ($message) use ($email) {
-                $message->to($email)->subject('Prasetia Leads — Email Verification Code');
+                $message->to($email)->subject('Leadsy — Email Verification Code');
             }
         );
 
