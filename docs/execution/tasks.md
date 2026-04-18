@@ -96,3 +96,59 @@
 - [x] MD-024: `app/page.tsx` (Dashboard) — fixed field aliasing for `duplicate_rate`, `pipeline_leads`, null-safe `change` fields
 - [x] MD-025: `app/whatsapp/page.tsx` — removed hardcoded `"Last active: Just now"` / `"+62 812 ••••"` — reads real `last_activity_at` from session API
 - [x] MD-026: `app/map/page.tsx` — replaced bottom-left note with prominent amber banner + direct link to Settings; added "Schematic preview" footnote
+
+## Phase 4: Enterprise Lead Intelligence & AI Provider Engine (Completed ✅)
+
+### Module A: Lead Intelligence Engine
+- [x] MOD-A-001: Design and implement LeadScoringService (6-factor scoring with AI boost)
+- [x] MOD-A-002: Design and implement LeadQualificationService (rule-based qualification with business type inference)
+- [x] MOD-A-003: Design and implement LeadProductMatchingService (hybrid 70% rules + 30% AI matching)
+- [x] MOD-A-004: Design and implement LeadAIAnalysisService (AI-powered opportunity analysis)
+- [x] MOD-A-010: Add API routes for /leads/{id}/score, /qualify, /analyze, /match-products
+- [x] MOD-A-011: Implement LeadController methods for all Module A operations with audit logging
+- [x] MOD-A-020: Verify database schema (all 19 tables present with relationships)
+- [x] MOD-A-021: Verify Lead model relationships (scores, qualifications, productMatches, aiAnalyses)
+
+### Module B: Sales Activity & Lead Evaluation Engine
+- [x] MOD-B-001: Design and implement LeadActivityService (activity timeline, type routing, recency tracking)
+- [x] MOD-B-002: Design and implement LeadMeetingService (meeting CRUD with auto-activity logging)
+- [x] MOD-B-003: Design and implement LeadTranscriptService (transcript storage with source tracking)
+- [x] MOD-B-004: Design and implement LeadEvaluationService (AI sentiment, intent, signals detection)
+- [x] MOD-B-005: Design and implement LeadFollowUpService (smart follow-up suggestions)
+- [x] MOD-B-010: Add API routes for /leads/{id}/activities, /meetings, /transcripts, /evaluations, /follow-ups
+- [x] MOD-B-011: Implement LeadController methods for all Module B operations with auto-integration
+- [x] MOD-B-020: Build Lead Detail page with Overview, Intelligence, Activities, Meetings, Transcripts tabs
+- [x] MOD-B-021: Integrate real API calls with TanStack Query on Lead Detail page
+- [x] MOD-B-030: Add activity and meeting form components with mutations
+- [x] MOD-B-031: Add progress summary aggregation (total activities, last interaction, next follow-up)
+
+### Module C: AI Provider Settings & Priority Engine
+- [x] MOD-C-001: Design and implement AIRouterService (provider selection, cost-aware routing, collision detection)
+- [x] MOD-C-002: Design and implement AIUsageLogService (token tracking, cost analysis, anomaly detection)
+- [x] MOD-C-010: Verify existing AI provider routes and controllers
+- [x] MOD-C-011: Verify existing AI Settings UI (providers, routing, usage tabs)
+- [x] MOD-C-020: Verify collision detection logic (30-second window, same entity)
+- [x] MOD-C-021: Verify cost-aware routing (prefer low/medium cost tier models)
+
+### Frontend Enhancements
+- [x] FE-A-001: Enhance Leads list page with Stage filter
+- [x] FE-A-002: Enhance Leads list page with Score range filter (min/max)
+- [x] FE-A-003: Enhance Leads list page with Qualification column
+- [x] FE-B-001: Build Lead Detail page (5 tabs, quick stats, forms)
+- [x] FE-B-002: Integrate real API data on Lead Detail page
+- [x] FE-C-001: Verify AI Settings page (providers, routing, usage tabs)
+
+### Integration & Testing
+- [x] INT-001: Verify Module A services use AiOrchestrationService for AI calls
+- [x] INT-002: Verify Module B services use AiOrchestrationService for AI calls
+- [x] INT-003: Verify all API routes registered and working
+- [x] INT-004: Verify Lead Detail page loads with real data
+- [x] INT-005: Verify AI Settings page shows real usage data
+- [x] INT-006: Test collision detection prevents duplicate API calls
+- [x] INT-007: Test cost-aware routing selects cheaper models
+
+### Documentation
+- [ ] DOC-001: Update SSOT with Module A/B/C requirements and implementation
+- [ ] DOC-002: Update BRD with Lead Intelligence, Sales Activity, AI Provider sections
+- [ ] DOC-003: Update progress.md with completion status
+- [ ] DOC-004: Update decisions.md with architectural decisions

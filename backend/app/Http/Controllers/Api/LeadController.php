@@ -484,3 +484,239 @@ class LeadController extends Controller
         }, 200, $headers);
     }
 }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /*  MODULE A: Lead Intelligence Engine                         */
+    /* ═══════════════════════════════════════════════════════════ */
+
+    /** POST /api/leads/{lead}/qualify — Qualify lead */
+    public function qualify(Lead $lead): JsonResponse
+    {
+        $service = app(\App\Services\Lead\LeadQualificationService::class);
+        $result = $service->qualifyLead($lead, useAi: true);
+
+        AuditService::log('qualify', 'leads', $lead->id, $lead->toArray(), [
+            'qualified' => $result->qualified,
+            'business_type' => $result->business_type,
+        ]);
+
+        return response()->json(['data' => $result], 201);
+    }
+
+    /** POST /api/leads/{lead}/analyze — Analyze lead with AI */
+    public function analyze(Lead $lead): JsonResponse
+    {
+        $service = app(\App\Services\Lead\LeadAIAnalysisService::class);
+        $result = $service->analyzeLead($lead);
+
+        AuditService::log('analyze', 'leads', $lead->id, null, [
+            'relevance_score' => $result->relevance_score,
+            'urgency_level' => $result->urgency_level,
+        ]);
+
+        return response()->json(['data' => $result], 201);
+    }
+
+    /** POST /api/leads/{lead}/match-products — Match lead to products */
+    public function matchProducts(Lead $lead): JsonResponse
+    {
+        $service = app(\App\Services\Lead\LeadProductMatchingService::class);
+        $matches = $service->matchLeadToProducts($lead);
+
+        AuditService::log('match_products', 'leads', $lead->id, null, [
+            'matches_count' => count($matches),
+        ]);
+
+        return response()->json(['data' => $matches], 201);
+    }
+
+    /** GET /api/leads/{lead}/intelligence — Get all lead intelligence */
+    public function intelligence(Lead $lead): JsonResponse
+    {
+        $lead->load([
+            'scores' => fn($q) => $q->latest()->limit(1),
+            'qualifications' => fn($q) => $q->latest()->limit(1),
+            'productMatches' => fn($q) => $q->where('is_recommended', true)->orderByDesc('match_score')->limit(3),
+            'aiAnalyses' => fn($q) => $q->latest()->limit(1),
+        ]);
+
+        return response()->json([
+            'lead_id' => $lead->id,
+            'latest_score' => $lead->scores->first(),
+            'latest_qualification' => $lead->qualifications->first(),
+            'recommended_products' => $lead->productMatches->with('product'),
+            'latest_analysis' => $lead->aiAnalyses->first(),
+        ]);
+    }
+
+    /** GET /api/leads/{lead}/activities — Get lead activities */
+    public function getActivities(Lead $lead): JsonResponse
+    {
+        $activities = $lead->activities()
+            ->orderByDesc('activity_date')
+            ->paginate(50);
+
+        return response()->json($activities);
+    }
+
+    /** GET /api/leads/{lead}/progress — Get lead progress summary */
+    public function getProgress(Lead $lead): JsonResponse
+    {
+        $latestActivity = $lead->activities()->latest('activity_date')->first();
+        $latestMeeting = $lead->meetings()->latest('meeting_date')->first();
+        $latestEvaluation = $lead->aiEvaluations()->latest()->first();
+        $nextFollowUp = $lead->followUps()->where('status', 'pending')->orderBy('due_date')->first();
+        $latestScore = $lead->scores()->latest()->first();
+        $latestQualification = $lead->qualifications()->latest()->first();
+
+        return response()->json([
+            'lead_id' => $lead->id,
+            'total_activities' => $lead->activities()->count(),
+            'activity_breakdown' => $lead->activities()
+                ->select('activity_type')
+                ->selectRaw('COUNT(*) as count')
+                ->groupBy('activity_type')
+                ->get(),
+            'last_interaction' => $latestActivity ? [
+                'date' => $latestActivity->activity_date,
+                'type' => $latestActivity->activity_type,
+                'description' => $latestActivity->description,
+            ] : null,
+            'last_meeting' => $latestMeeting ? [
+                'date' => $latestMeeting->meeting_date,
+                'type' => $latestMeeting->meeting_type,
+                'summary' => $latestMeeting->summary,
+            ] : null,
+            'latest_evaluation' => $latestEvaluation ? [
+                'sentiment' => $latestEvaluation->sentiment,
+                'intent_level' => $latestEvaluation->intent_level,
+                'interest_level' => $latestEvaluation->interest_level,
+                'buying_signals' => $latestEvaluation->buying_signals,
+            ] : null,
+            'next_follow_up' => $nextFollowUp ? [
+                'due_date' => $nextFollowUp->due_date,
+                'purpose' => $nextFollowUp->purpose,
+                'assigned_to' => $nextFollowUp->assigned_to,
+            ] : null,
+            'current_stage' => $lead->funnelStage?->name,
+            'current_score' => $latestScore?->score ?? $lead->lead_score,
+            'current_grade' => $latestScore?->grade,
+            'current_qualification' => $latestQualification?->qualified,
+        ]);
+    }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /*  MODULE B: Sales Activity & Evaluation                      */
+    /* ═══════════════════════════════════════════════════════════ */
+
+    /** DELETE /api/leads/{lead}/activities/{activity} */
+    public function deleteActivity(Lead $lead, $activityId): JsonResponse
+    {
+        $activity = $lead->activities()->findOrFail($activityId);
+        $activity->delete();
+
+        AuditService::log('delete_activity', 'lead_activities', $activity->id, $activity->toArray());
+
+        return response()->json(['message' => 'Activity deleted']);
+    }
+
+    /** GET /api/leads/{lead}/meetings */
+    public function getMeetings(Lead $lead): JsonResponse
+    {
+        $meetings = $lead->meetings()
+            ->orderByDesc('meeting_date')
+            ->paginate(50);
+
+        return response()->json($meetings);
+    }
+
+    /** DELETE /api/leads/{lead}/meetings/{meeting} */
+    public function deleteMeeting(Lead $lead, $meetingId): JsonResponse
+    {
+        $meeting = $lead->meetings()->findOrFail($meetingId);
+        $meeting->delete();
+
+        AuditService::log('delete_meeting', 'lead_meetings', $meeting->id, $meeting->toArray());
+
+        return response()->json(['message' => 'Meeting deleted']);
+    }
+
+    /** GET /api/leads/{lead}/transcripts */
+    public function getTranscripts(Lead $lead): JsonResponse
+    {
+        $transcripts = $lead->transcripts()
+            ->orderByDesc('recorded_at')
+            ->paginate(50);
+
+        return response()->json($transcripts);
+    }
+
+    /** POST /api/leads/{lead}/transcripts */
+    public function storeTranscript(Request $request, Lead $lead): JsonResponse
+    {
+        $data = $request->validate([
+            'source_type' => 'required|in:whatsapp,meeting,manual,call',
+            'transcript_text' => 'required|string',
+            'source_id' => 'nullable|integer',
+            'recorded_at' => 'nullable|date',
+        ]);
+
+        $transcript = $lead->transcripts()->create([
+            'source_type' => $data['source_type'],
+            'transcript_text' => $data['transcript_text'],
+            'source_id' => $data['source_id'],
+            'recorded_at' => $data['recorded_at'] ?? now(),
+            'evaluation_status' => 'pending',
+        ]);
+
+        AuditService::log('create_transcript', 'lead_transcripts', $transcript->id, null, [
+            'source_type' => $data['source_type'],
+        ]);
+
+        return response()->json(['data' => $transcript], 201);
+    }
+
+    /** DELETE /api/leads/{lead}/transcripts/{transcript} */
+    public function deleteTranscript(Lead $lead, $transcriptId): JsonResponse
+    {
+        $transcript = $lead->transcripts()->findOrFail($transcriptId);
+        $transcript->delete();
+
+        AuditService::log('delete_transcript', 'lead_transcripts', $transcript->id, $transcript->toArray());
+
+        return response()->json(['message' => 'Transcript deleted']);
+    }
+
+    /** POST /api/leads/{lead}/transcripts/{transcript}/evaluate */
+    public function evaluateTranscript(Lead $lead, $transcriptId): JsonResponse
+    {
+        $transcript = $lead->transcripts()->findOrFail($transcriptId);
+
+        $service = app(\App\Services\Sales\LeadEvaluationService::class);
+        $evaluation = $service->evaluateTranscript($lead, $transcript);
+
+        $transcript->update(['evaluation_status' => 'evaluated']);
+
+        return response()->json(['data' => $evaluation], 201);
+    }
+
+    /** GET /api/leads/{lead}/evaluations */
+    public function getEvaluations(Lead $lead): JsonResponse
+    {
+        $evaluations = $lead->aiEvaluations()
+            ->orderByDesc('evaluated_at')
+            ->paginate(50);
+
+        return response()->json($evaluations);
+    }
+
+    /** GET /api/leads/{lead}/follow-ups */
+    public function getFollowUps(Lead $lead): JsonResponse
+    {
+        $followUps = $lead->followUps()
+            ->orderBy('due_date')
+            ->paginate(50);
+
+        return response()->json($followUps);
+    }
+}
