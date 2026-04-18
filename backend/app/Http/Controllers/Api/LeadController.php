@@ -123,6 +123,14 @@ class LeadController extends Controller
 
         $data['created_by'] = $request->user()?->id;
 
+        // Auto-assign to first funnel stage ("New Lead") when none is provided
+        if (empty($data['funnel_stage_id'])) {
+            $firstStage = \App\Models\FunnelStage::orderBy('sequence')->first();
+            if ($firstStage) {
+                $data['funnel_stage_id'] = $firstStage->id;
+            }
+        }
+
         // Synchronous dedup check before creation
         $dedupResult = $this->dedup->check($data);
         if ($dedupResult->status === 'exact_duplicate') {
@@ -407,6 +415,8 @@ class LeadController extends Controller
         $skipped  = [];
         $aiMode   = $data['ai_mode'] ?? 'manual';
 
+        $defaultStageId = \App\Models\FunnelStage::orderBy('sequence')->value('id');
+
         foreach ($data['leads'] as $leadData) {
             // Domain extraction
             if (! empty($leadData['website'])) {
@@ -429,6 +439,7 @@ class LeadController extends Controller
             $leadData['duplicate_status'] = $dedupResult->status;
             $leadData['duplicate_of_id']  = $dedupResult->matchedLeadId;
             $leadData['created_by']       = $request->user()?->id;
+            $leadData['funnel_stage_id']  = $leadData['funnel_stage_id'] ?? $defaultStageId;
 
             $lead = Lead::create($leadData);
 
