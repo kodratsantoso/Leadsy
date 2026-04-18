@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Prasetia Leads — Lead Intelligence Platform",
+  title: "Leadsy — Lead Intelligence Platform",
   description:
     "Geo-intelligence, AI-assisted lead qualification, and funnel orchestration platform",
 };

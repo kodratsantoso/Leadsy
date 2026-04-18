@@ -15,7 +15,7 @@ export default function EnvironmentPage() {
   });
 
   const envItems = [
-    { label: "App Name",       value: publicData?.APP_NAME ?? "Prasetia Leads",  icon: Globe },
+    { label: "App Name",       value: publicData?.APP_NAME ?? "Leadsy",  icon: Globe },
     { label: "Environment",    value: publicData?.APP_ENV ?? process.env.NODE_ENV ?? "—", icon: Server },
     { label: "API Base URL",   value: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001", icon: Database },
     { label: "Frontend Port",  value: "3000",  icon: Server,   note: "Config" },

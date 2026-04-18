@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Map, Building2, Package, Layers,
-  FileText, MessageSquare, Settings, Shield,
-  ChevronLeft, ChevronRight, Search, LogOut, User, ChevronDown
+  FileText, MessageSquare, Settings,
+  ChevronLeft, ChevronRight, Search, LogOut, ChevronDown
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -53,24 +54,28 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Logo area */}
         <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-3">
           {!collapsed && (
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-                <Shield className="h-4 w-4 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
-                  Prasetia Leads
-                </span>
-                <span className="text-[10px] text-sidebar-foreground/60">
-                  Lead Intelligence Platform
-                </span>
-              </div>
+            <Link href="/" className="flex items-center gap-2 min-w-0">
+              <Image
+                src="/leadsy_logo.png"
+                alt="Leadsy"
+                width={120}
+                height={32}
+                className="h-8 w-auto object-contain"
+                priority
+              />
             </Link>
           )}
           {collapsed && (
-            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-              <Shield className="h-4 w-4 text-white" />
-            </div>
+            <Link href="/" className="mx-auto">
+              <Image
+                src="/leadsy_logo.png"
+                alt="Leadsy"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+                priority
+              />
+            </Link>
           )}
         </div>
 

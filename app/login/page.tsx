@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, Loader2, AlertCircle, CheckCircle2, Mail, ArrowLeft, RefreshCw } from "lucide-react";
+import Image from "next/image";
+import { Loader2, AlertCircle, CheckCircle2, Mail, ArrowLeft, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/apiFetch";
 
@@ -200,10 +201,14 @@ export default function LoginPage() {
 
         {/* Header */}
         <div className="mb-7 flex flex-col items-center">
-          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
-            <Shield className="h-6 w-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Prasetia Leads</h1>
+          <Image
+            src="/leadsy_logo.png"
+            alt="Leadsy"
+            width={140}
+            height={48}
+            className="mb-4 h-12 w-auto object-contain"
+            priority
+          />
           <p className="mt-1 text-sm text-zinc-400">
             {mode === "login"
               ? "Sign in to your account"
