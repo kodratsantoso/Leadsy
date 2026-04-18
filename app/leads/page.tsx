@@ -23,8 +23,10 @@ export default function LeadsPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [stageFilter, setStageFilter] = useState("");
   const [qualificationFilter, setQualificationFilter] = useState("");
   const [minScore, setMinScore] = useState("");
+  const [maxScore, setMaxScore] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
@@ -33,12 +35,14 @@ export default function LeadsPage() {
   const [formIndustry, setFormIndustry] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, search],
+    queryKey: ["leads", page, search, stageFilter, qualificationFilter, minScore, maxScore],
     queryFn: async () => {
       let url = `/leads?page=${page}`;
       if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (stageFilter) url += `&stage=${stageFilter}`;
       if (qualificationFilter) url += `&qualification_status=${qualificationFilter}`;
       if (minScore) url += `&min_score=${minScore}`;
+      if (maxScore) url += `&max_score=${maxScore}`;
       const r = await apiFetch(url);
       return r.json();
     },
@@ -99,6 +103,18 @@ export default function LeadsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name, industry, email..." className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
         </div>
+        <select value={stageFilter} onChange={(e) => { setStageFilter(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+          <option value="">All Stages</option>
+          <option value="new">New</option>
+          <option value="discovered">Discovered</option>
+          <option value="qualified">Qualified</option>
+          <option value="contacted">Contacted</option>
+          <option value="interested">Interested</option>
+          <option value="meeting_scheduled">Meeting Scheduled</option>
+          <option value="negotiation">Negotiation</option>
+          <option value="won">Won</option>
+          <option value="lost">Lost</option>
+        </select>
         <select value={qualificationFilter} onChange={(e) => { setQualificationFilter(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
           <option value="">All Qualifications</option>
           <option value="pending">Pending</option>
@@ -106,12 +122,11 @@ export default function LeadsPage() {
           <option value="potential">Potential</option>
           <option value="not_eligible">Not Eligible</option>
         </select>
-        <select value={minScore} onChange={(e) => { setMinScore(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-          <option value="">Any Score</option>
-          <option value="50">Score 50+</option>
-          <option value="70">Score 70+</option>
-          <option value="90">Score 90+</option>
-        </select>
+        <div className="flex gap-2 items-center">
+          <input type="number" min="0" max="100" value={minScore} onChange={(e) => { setMinScore(e.target.value); setPage(1); }} placeholder="Min score" className="h-9 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-24" />
+          <span className="text-muted-foreground">–</span>
+          <input type="number" min="0" max="100" value={maxScore} onChange={(e) => { setMaxScore(e.target.value); setPage(1); }} placeholder="Max" className="h-9 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-24" />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -123,7 +138,7 @@ export default function LeadsPage() {
                 <th className="px-4 py-3 font-medium">Industry</th>
                 <th className="px-4 py-3 font-medium">Contact</th>
                 <th className="px-4 py-3 font-medium">Score</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Qualification</th>
                 <th className="px-4 py-3 font-medium">Stage</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
               </tr>

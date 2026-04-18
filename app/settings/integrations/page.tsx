@@ -31,6 +31,8 @@ const DEFAULT_LUSHA: Record<string, IntegrationConfig> = {
   LUSHA_ENABLED:              { category: "lusha", key: "LUSHA_ENABLED",              value: "false", is_secret: false, is_active: true, value_type: "boolean" },
   LUSHA_API_KEY:              { category: "lusha", key: "LUSHA_API_KEY",              value: "",      is_secret: true,  is_active: true, value_type: "string"  },
   LUSHA_MAX_DAILY_REQUESTS:   { category: "lusha", key: "LUSHA_MAX_DAILY_REQUESTS",   value: "50",    is_secret: false, is_active: true, value_type: "number"  },
+  LUSHA_MAX_PER_BATCH:        { category: "lusha", key: "LUSHA_MAX_PER_BATCH",        value: "10",    is_secret: false, is_active: true, value_type: "number"  },
+  LUSHA_ENRICHMENT_PRIORITY:  { category: "lusha", key: "LUSHA_ENRICHMENT_PRIORITY",  value: "1",     is_secret: false, is_active: true, value_type: "number"  },
 };
 
 export default function IntegrationsSettingsPage() {
@@ -395,13 +397,44 @@ export default function IntegrationsSettingsPage() {
 
               <div>
                 <label className="text-sm font-medium">Max Daily Requests</label>
-                <p className="text-xs text-muted-foreground mt-0.5">Throttle engine batches to prevent exceeding limits.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Total Lusha API calls allowed per calendar day across all batches.</p>
                 <input
                   type="number"
+                  min="1"
                   value={lushaConfig.LUSHA_MAX_DAILY_REQUESTS.value}
                   onChange={(e) => setLushaConfig({
                     ...lushaConfig,
                     LUSHA_MAX_DAILY_REQUESTS: { ...lushaConfig.LUSHA_MAX_DAILY_REQUESTS, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Max Enrichments per Batch</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Maximum number of leads to enrich in a single queue batch run.</p>
+                <input
+                  type="number"
+                  min="1"
+                  value={lushaConfig.LUSHA_MAX_PER_BATCH.value}
+                  onChange={(e) => setLushaConfig({
+                    ...lushaConfig,
+                    LUSHA_MAX_PER_BATCH: { ...lushaConfig.LUSHA_MAX_PER_BATCH, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Enrichment Priority</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Provider order when multiple enrichment sources are configured (lower = higher priority).</p>
+                <input
+                  type="number"
+                  min="1"
+                  value={lushaConfig.LUSHA_ENRICHMENT_PRIORITY.value}
+                  onChange={(e) => setLushaConfig({
+                    ...lushaConfig,
+                    LUSHA_ENRICHMENT_PRIORITY: { ...lushaConfig.LUSHA_ENRICHMENT_PRIORITY, value: e.target.value },
                   })}
                   className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />

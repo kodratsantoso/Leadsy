@@ -61,6 +61,18 @@ export const deleteLead = (id: number) => api.del(`/api/leads/${id}`);
 export const pushLeadToFunnel = (id: number, stageId: number) =>
   api.post<{ data: Lead }>(`/api/leads/${id}/push-to-funnel`, { funnel_stage_id: stageId });
 
+// Contacts
+export const addLeadContact = (leadId: number, data: Partial<LeadContact>) =>
+  api.post<{ data: LeadContact }>(`/api/leads/${leadId}/contacts`, data);
+export const updateLeadContact = (leadId: number, contactId: number, data: Partial<LeadContact>) =>
+  api.put<{ data: LeadContact }>(`/api/leads/${leadId}/contacts/${contactId}`, data);
+export const deleteLeadContact = (leadId: number, contactId: number) =>
+  api.del(`/api/leads/${leadId}/contacts/${contactId}`);
+export const setLeadContactPrimary = (leadId: number, contactId: number) =>
+  api.post<{ data: LeadContact }>(`/api/leads/${leadId}/contacts/${contactId}/set-primary`);
+export const triggerContactEnrichment = (leadId: number) =>
+  api.post<{ message: string }>(`/api/leads/${leadId}/enrich-contacts`);
+
 // Territories
 export const fetchTerritories = () => api.get<{ data: Territory[] }>("/api/territories");
 export const createTerritory = (data: Partial<Territory>) =>
@@ -144,7 +156,12 @@ export type LeadContact = {
   email?: string | null;
   phone?: string | null;
   linkedin_url?: string | null;
-  confidence?: string | null;
+  confidence?: "high" | "medium" | "low" | null;
+  confidence_score?: number | null;
+  is_primary?: boolean;
+  source?: string | null;
+  do_not_contact?: boolean;
+  created_at?: string | null;
 };
 
 export type LeadSource = {
