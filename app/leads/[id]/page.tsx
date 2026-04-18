@@ -8,6 +8,7 @@ import {
   ArrowLeft, Plus, Zap, TrendingUp, MessageSquare, Calendar,
   AlertCircle, CheckCircle, Clock, User, FileText, Loader2,
   Phone, Mail, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
+  Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -224,6 +225,41 @@ export default function LeadDetailPage() {
     onSuccess: () => alert('Contact enrichment queued. Results will appear shortly.'),
   });
 
+  /* ── Revenue Intelligence queries & mutations ── */
+  const { data: revenueIntel, isLoading: revenueLoading, refetch: refetchRevenue } = useQuery({
+    queryKey: ['revenue-intelligence', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/revenue-intelligence`).then((r) => r.json()),
+    enabled: activeTab === 'revenue',
+  });
+
+  const icpMatchMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/icp-match`, { method: 'POST' }),
+    onSuccess: () => refetchRevenue(),
+  });
+
+  const predictMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/predict-conversion`, { method: 'POST' }),
+    onSuccess: () => refetchRevenue(),
+  });
+
+  const prescribeMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/prescribe`, { method: 'POST' }),
+    onSuccess: () => refetchRevenue(),
+  });
+
+  const outcomeMutation = useMutation({
+    mutationFn: (data: { outcome: string; deal_size?: number; loss_reason?: string; feedback_notes?: string }) =>
+      apiFetch(`/leads/${leadId}/outcome`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => { refetchRevenue(); invalidateLead(); },
+  });
+
+  const [showOutcomeModal, setShowOutcomeModal] = useState(false);
+  const [outcomeForm, setOutcomeForm] = useState({ outcome: 'won', deal_size: '', feedback_notes: '' });
+
   /* ── Render ── */
   if (leadLoading) {
     return (
@@ -320,7 +356,7 @@ export default function LeadDetailPage() {
       {/* Tabs */}
       <div className="border-b border-border">
         <div className="flex gap-0 overflow-x-auto">
-          {['Overview', 'Contacts', 'Intelligence', 'Activities', 'Meetings', 'Transcripts'].map((tab) => (
+          {['Overview', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Meetings', 'Transcripts'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
@@ -589,6 +625,241 @@ export default function LeadDetailPage() {
         </div>
       )}
 
+      {/* ── REVENUE INTELLIGENCE TAB ── */}
+      {activeTab === 'revenue' && (
+        <div className="space-y-4">
+          {revenueLoading ? (
+            <div className="flex h-40 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <>
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => icpMatchMutation.mutate()}
+                  disabled={icpMatchMutation.isPending}
+                  className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50"
+                >
+                  {icpMatchMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Target className="h-3 w-3" />}
+                  Run ICP Match
+                </button>
+                <button
+                  onClick={() => predictMutation.mutate()}
+                  disabled={predictMutation.isPending}
+                  className="flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50"
+                >
+                  {predictMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <TrendingUp className="h-3 w-3" />}
+                  Predict Conversion
+                </button>
+                <button
+                  onClick={() => prescribeMutation.mutate()}
+                  disabled={prescribeMutation.isPending}
+                  className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-500/20 disabled:opacity-50"
+                >
+                  {prescribeMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <BrainCircuit className="h-3 w-3" />}
+                  Get Prescription
+                </button>
+                <button
+                  onClick={() => setShowOutcomeModal(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50"
+                >
+                  <ThumbsUp className="h-3 w-3" />
+                  Record Outcome
+                </button>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                {/* ICP Match */}
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Target className="h-4 w-4 text-indigo-400" />
+                    <h3 className="font-semibold text-sm">ICP Match</h3>
+                  </div>
+                  {revenueIntel?.data?.icp_match ? (
+                    <div>
+                      {revenueIntel.data.icp_match.matched === false ? (
+                        <p className="text-xs text-muted-foreground">{revenueIntel.data.icp_match.reason}</p>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-2xl font-bold">{revenueIntel.data.icp_match.match_score?.toFixed(1)}</span>
+                            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
+                              revenueIntel.data.icp_match.match_level === 'excellent' ? 'bg-emerald-500/15 text-emerald-500 border-emerald-400/40'
+                              : revenueIntel.data.icp_match.match_level === 'good' ? 'bg-blue-500/15 text-blue-400 border-blue-400/40'
+                              : revenueIntel.data.icp_match.match_level === 'fair' ? 'bg-amber-500/15 text-amber-400 border-amber-400/40'
+                              : 'bg-red-500/15 text-red-400 border-red-400/40'
+                            }`}>
+                              {revenueIntel.data.icp_match.match_level?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden mb-2">
+                            <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${revenueIntel.data.icp_match.match_score ?? 0}%` }} />
+                          </div>
+                          <p className="text-xs text-muted-foreground">Profile: {revenueIntel.data.icp_match.icp_profile}</p>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No ICP match yet. Click "Run ICP Match" to evaluate.</p>
+                  )}
+                </div>
+
+                {/* Conversion Prediction */}
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="h-4 w-4 text-emerald-400" />
+                    <h3 className="font-semibold text-sm">Conversion Prediction</h3>
+                  </div>
+                  {revenueIntel?.data?.latest_prediction ? (
+                    <div>
+                      <div className="flex items-end gap-2 mb-2">
+                        <span className="text-3xl font-bold">{revenueIntel.data.latest_prediction.probability_to_close}%</span>
+                        <span className="text-xs text-muted-foreground mb-1">probability to close</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden mb-3">
+                        <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${revenueIntel.data.latest_prediction.probability_to_close}%` }} />
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-lg bg-muted/30 p-2">
+                          <p className="text-xs text-muted-foreground">Effort</p>
+                          <p className="text-xs font-semibold capitalize">{revenueIntel.data.latest_prediction.estimated_sales_effort?.replace('_', ' ')}</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/30 p-2">
+                          <p className="text-xs text-muted-foreground">Confidence</p>
+                          <p className="text-xs font-semibold">{revenueIntel.data.latest_prediction.confidence_score}%</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/30 p-2">
+                          <p className="text-xs text-muted-foreground">Est. Deal</p>
+                          <p className="text-xs font-semibold">
+                            {revenueIntel.data.latest_prediction.expected_deal_size
+                              ? `$${revenueIntel.data.latest_prediction.expected_deal_size.toLocaleString()}`
+                              : '—'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No prediction yet. Click "Predict Conversion" to generate.</p>
+                  )}
+                </div>
+
+                {/* Prescriptive Recommendations */}
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <BrainCircuit className="h-4 w-4 text-amber-400" />
+                    <h3 className="font-semibold text-sm">AI Prescription</h3>
+                  </div>
+                  {revenueIntel?.data?.latest_prescription ? (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Recommended Approach</p>
+                        <p className="text-sm">{revenueIntel.data.latest_prescription.recommended_approach}</p>
+                      </div>
+                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 mb-1">Next Best Action</p>
+                        <p className="text-sm font-medium">{revenueIntel.data.latest_prescription.next_best_action}</p>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Follow-up timing</span>
+                        <span className="font-medium">{revenueIntel.data.latest_prescription.follow_up_timing}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Priority</span>
+                        <span className="font-bold text-indigo-400">{revenueIntel.data.latest_prescription.priority_score}/10</span>
+                      </div>
+                      {revenueIntel.data.latest_prescription.recommended_owner && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Recommended Owner</span>
+                          <span className="font-medium">{revenueIntel.data.latest_prescription.recommended_owner.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No prescription yet. Click "Get Prescription" to generate AI-guided recommendations.</p>
+                  )}
+                </div>
+
+                {/* Revenue Check / Rules */}
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldCheck className="h-4 w-4 text-blue-400" />
+                    <h3 className="font-semibold text-sm">Revenue Gate Check</h3>
+                  </div>
+                  {revenueIntel?.data?.revenue_check ? (
+                    <div className="space-y-3">
+                      <div className={`rounded-lg border p-3 ${
+                        revenueIntel.data.revenue_check.blocked
+                          ? 'bg-red-500/10 border-red-500/30'
+                          : 'bg-emerald-500/10 border-emerald-500/30'
+                      }`}>
+                        <p className={`text-sm font-semibold ${revenueIntel.data.revenue_check.blocked ? 'text-red-400' : 'text-emerald-400'}`}>
+                          {revenueIntel.data.revenue_check.summary}
+                        </p>
+                      </div>
+                      {revenueIntel.data.revenue_check.rules_triggered.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Triggered Rules</p>
+                          <div className="space-y-1.5">
+                            {revenueIntel.data.revenue_check.rules_triggered.map((r: any, i: number) => (
+                              <div key={i} className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-xs ${
+                                r.severity === 'critical' ? 'bg-red-500/10 text-red-400'
+                                : r.severity === 'warning' ? 'bg-amber-500/10 text-amber-400'
+                                : 'bg-blue-500/10 text-blue-400'
+                              }`}>
+                                <span>{r.rule}</span>
+                                <span className="font-semibold uppercase">{r.action}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {revenueIntel.data.revenue_check.flags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {revenueIntel.data.revenue_check.flags.map((f: string) => (
+                            <span key={f} className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">{f}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Revenue rules evaluation will appear here.</p>
+                  )}
+                </div>
+
+                {/* Latest Outcome */}
+                {revenueIntel?.data?.latest_outcome && (
+                  <div className="col-span-full rounded-xl border border-border bg-card p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      {revenueIntel.data.latest_outcome.outcome === 'won'
+                        ? <ThumbsUp className="h-4 w-4 text-emerald-400" />
+                        : <ThumbsDown className="h-4 w-4 text-red-400" />}
+                      <h3 className="font-semibold text-sm">Deal Outcome</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Result</p>
+                        <p className="font-semibold capitalize">{revenueIntel.data.latest_outcome.outcome}</p>
+                      </div>
+                      {revenueIntel.data.latest_outcome.deal_size && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Deal Size</p>
+                          <p className="font-semibold">${revenueIntel.data.latest_outcome.deal_size.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {revenueIntel.data.latest_outcome.feedback_notes && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground mb-1">Notes</p>
+                          <p className="text-sm">{revenueIntel.data.latest_outcome.feedback_notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── ACTIVITIES TAB ── */}
       {activeTab === 'activities' && (
         <div className="space-y-4">
@@ -729,6 +1000,71 @@ export default function LeadDetailPage() {
             updateContactMutation.mutate({ contactId: editingContact.id, data })
           }
         />
+      )}
+
+      {/* ── Record Outcome Modal ── */}
+      {showOutcomeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Record Deal Outcome</h2>
+              <button onClick={() => setShowOutcomeModal(false)} className="rounded-lg p-1.5 hover:bg-muted"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Outcome</label>
+                <select
+                  value={outcomeForm.outcome}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, outcome: e.target.value })}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="won">Won</option>
+                  <option value="lost">Lost</option>
+                  <option value="churned">Churned</option>
+                  <option value="disqualified">Disqualified</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Size (optional)</label>
+                <input
+                  type="number"
+                  value={outcomeForm.deal_size}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, deal_size: e.target.value })}
+                  placeholder="e.g. 50000"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Notes</label>
+                <textarea
+                  value={outcomeForm.feedback_notes}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, feedback_notes: e.target.value })}
+                  rows={3}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  placeholder="What happened? What did you learn?"
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setShowOutcomeModal(false)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button
+                disabled={outcomeMutation.isPending}
+                onClick={() => {
+                  outcomeMutation.mutate({
+                    outcome: outcomeForm.outcome as any,
+                    deal_size: outcomeForm.deal_size ? parseFloat(outcomeForm.deal_size) : undefined,
+                    feedback_notes: outcomeForm.feedback_notes || undefined,
+                  });
+                  setShowOutcomeModal(false);
+                }}
+                className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+              >
+                {outcomeMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                Save Outcome
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Delete Contact Confirmation ── */}

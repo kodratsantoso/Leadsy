@@ -1,9 +1,31 @@
 "use client";
 
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2 } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import Link from "next/link";
+
+function PipelineHealthBadge({ health }: { health?: string }) {
+  const cfg = {
+    healthy: "bg-emerald-500/15 text-emerald-600 border-emerald-300",
+    warning: "bg-amber-500/15 text-amber-600 border-amber-300",
+    critical: "bg-red-500/15 text-red-600 border-red-300",
+  }[health ?? "critical"] ?? "bg-muted text-muted-foreground border-border";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold uppercase ${cfg}`}>
+      <ShieldCheck className="h-3 w-3" />{health ?? "—"}
+    </span>
+  );
+}
+
+function ScoreMeter({ value, max = 100, color }: { value: number; max?: number; color: string }) {
+  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  return (
+    <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden">
+      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { data, isLoading } = useQuery({
@@ -15,6 +37,20 @@ export default function DashboardPage() {
     queryKey: ["funnel-dashboard"],
     queryFn: async () => { const r = await apiFetch("/funnel/dashboard"); return r.json(); },
   });
+
+  const { data: pqData } = useQuery({
+    queryKey: ["pipeline-quality"],
+    queryFn: async () => { const r = await apiFetch("/analytics/pipeline-quality"); return r.json(); },
+  });
+
+  const { data: sqData } = useQuery({
+    queryKey: ["source-quality"],
+    queryFn: async () => { const r = await apiFetch("/analytics/source-quality"); return r.json(); },
+  });
+
+  const pq = pqData?.data;
+  const sources: { source_type: string; total_leads: number; avg_score: number; conversion_rate: number }[] =
+    sqData?.data ?? [];
 
   const dashboard = data?.data || data || {};
   const funnelStages = funnelData?.data?.stages || funnelData?.stages || [];
@@ -88,6 +124,83 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+
+          {/* Pipeline Quality Dashboard */}
+          {pq && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="col-span-full lg:col-span-2 rounded-xl border border-border bg-card p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-indigo-500" />
+                      <p className="text-sm font-semibold">Pipeline Quality Score</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">Revenue Intelligence — Pipeline Health</p>
+                  </div>
+                  <PipelineHealthBadge health={pq.health} />
+                </div>
+                <div className="flex items-end gap-3 mb-3">
+                  <span className="text-4xl font-bold tabular-nums">{pq.pipeline_quality_score}</span>
+                  <span className="text-muted-foreground text-sm mb-1">/ 100</span>
+                </div>
+                <ScoreMeter
+                  value={pq.pipeline_quality_score}
+                  color={pq.health === "healthy" ? "#10b981" : pq.health === "warning" ? "#f59e0b" : "#ef4444"}
+                />
+                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <p className="text-lg font-bold text-emerald-600">{pq.qualified_ratio}%</p>
+                    <p className="text-xs text-muted-foreground">Qualified</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <p className="text-lg font-bold text-red-500">{pq.ghost_lead_ratio}%</p>
+                    <p className="text-xs text-muted-foreground">Ghost Leads</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-2">
+                    <p className="text-lg font-bold">{pq.average_score}</p>
+                    <p className="text-xs text-muted-foreground">Avg Score</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div>
+                    <span className="font-semibold text-red-500">{pq.by_score_band?.hot ?? 0}</span>
+                    <span className="text-muted-foreground ml-1">Hot</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-amber-500">{pq.by_score_band?.warm ?? 0}</span>
+                    <span className="text-muted-foreground ml-1">Warm</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-blue-400">{pq.by_score_band?.cold ?? 0}</span>
+                    <span className="text-muted-foreground ml-1">Cold</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Source Quality */}
+              <div className="col-span-full lg:col-span-2 rounded-xl border border-border bg-card p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <Zap className="h-4 w-4 text-amber-500" />
+                  <p className="text-sm font-semibold">Source Quality</p>
+                </div>
+                {sources.length > 0 ? (
+                  <div className="space-y-3">
+                    {sources.slice(0, 5).map((s) => (
+                      <div key={s.source_type}>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-medium capitalize">{s.source_type.replace(/_/g, " ")}</span>
+                          <span className="text-muted-foreground">{s.conversion_rate}% conv · {s.total_leads} leads · avg {s.avg_score}</span>
+                        </div>
+                        <ScoreMeter value={s.conversion_rate} color="#6366f1" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-6 text-center">No source data yet — leads with sources will appear here.</p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Funnel chart */}
