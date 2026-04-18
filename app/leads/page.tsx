@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Filter, Download, Plus, ExternalLink, ChevronLeft, ChevronRight, ArrowUpDown, MessageSquare, ArrowRight, X, Loader2 } from "lucide-react";
+import { Search, Download, Plus, ExternalLink, ChevronLeft, ChevronRight, MessageSquare, ArrowRight, X, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 
@@ -13,20 +14,18 @@ const statusColors: Record<string, string> = {
   pending: "bg-gray-500/10 text-gray-400",
 };
 
-const dupColors: Record<string, string> = {
-  new: "bg-emerald-500/10 text-emerald-500",
-  probable_duplicate: "bg-amber-500/10 text-amber-500",
-  exact_duplicate: "bg-red-500/10 text-red-500",
-};
-
 export default function LeadsPage() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [page, setPage] = useState(1);
-  const [stageFilter, setStageFilter] = useState("");
-  const [qualificationFilter, setQualificationFilter] = useState("");
-  const [minScore, setMinScore] = useState("");
-  const [maxScore, setMaxScore] = useState("");
+  const [funnelStageId, setFunnelStageId] = useState(searchParams.get("funnel_stage_id") ?? "");
+  const [qualificationFilter, setQualificationFilter] = useState(searchParams.get("qualification_status") ?? "");
+  const [duplicateFilter, setDuplicateFilter] = useState(searchParams.get("duplicate_status") ?? "");
+  const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
+  const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
   const [showCreate, setShowCreate] = useState(false);
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
@@ -34,31 +33,41 @@ export default function LeadsPage() {
   const [formEmail, setFormEmail] = useState("");
   const [formIndustry, setFormIndustry] = useState("");
 
+  // Fetch funnel stages for the stage dropdown
+  const { data: stagesData } = useQuery({
+    queryKey: ["funnel-stages"],
+    queryFn: async () => { const r = await apiFetch("/funnel/stages"); return r.json(); },
+  });
+  const funnelStages: { id: number; name: string }[] = stagesData?.data ?? stagesData ?? [];
+
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, search, stageFilter, qualificationFilter, minScore, maxScore],
+    queryKey: ["leads", page, search, funnelStageId, qualificationFilter, duplicateFilter, minScore, maxScore],
     queryFn: async () => {
-      let url = `/leads?page=${page}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
-      if (stageFilter) url += `&stage=${stageFilter}`;
-      if (qualificationFilter) url += `&qualification_status=${qualificationFilter}`;
-      if (minScore) url += `&min_score=${minScore}`;
-      if (maxScore) url += `&max_score=${maxScore}`;
-      const r = await apiFetch(url);
+      const params = new URLSearchParams({ page: String(page) });
+      if (search) params.set("search", search);
+      if (funnelStageId) params.set("funnel_stage_id", funnelStageId);
+      if (qualificationFilter) params.set("qualification_status", qualificationFilter);
+      if (duplicateFilter) params.set("duplicate_status", duplicateFilter);
+      if (minScore) params.set("min_score", minScore);
+      if (maxScore) params.set("max_score", maxScore);
+      const r = await apiFetch(`/leads?${params.toString()}`);
       return r.json();
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      return apiFetch("/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    mutationFn: async (payload: any) =>
+      apiFetch("/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      setShowCreate(false);
+      setFormName(""); setFormAddress(""); setFormPhone(""); setFormEmail(""); setFormIndustry("");
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["leads"] }); setShowCreate(false); setFormName(""); setFormAddress(""); setFormPhone(""); setFormEmail(""); setFormIndustry(""); },
   });
 
   const pushToFunnel = useMutation({
-    mutationFn: async (id: number) => {
-      return apiFetch(`/leads/${id}/push-to-funnel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage: "qualified" }) });
-    },
+    mutationFn: async (id: number) =>
+      apiFetch(`/leads/${id}/push-to-funnel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage: "qualified" }) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
   });
 
@@ -77,9 +86,29 @@ export default function LeadsPage() {
     window.open(`https://wa.me/${phone.replace(/[^0-9]/g, "")}`, "_blank");
   };
 
+  const resetFilters = () => {
+    setSearch(""); setFunnelStageId(""); setQualificationFilter("");
+    setDuplicateFilter(""); setMinScore(""); setMaxScore(""); setPage(1);
+    router.replace("/leads");
+  };
+
+  const hasActiveFilter = !!(search || funnelStageId || qualificationFilter || duplicateFilter || minScore || maxScore);
+
   const leads = data?.data || [];
   const total = data?.total || 0;
   const lastPage = data?.last_page || 1;
+
+  // Active filter label for UI banner
+  const filterLabel = (() => {
+    if (qualificationFilter) return `Qualification: ${qualificationFilter.replace("_", " ")}`;
+    if (funnelStageId) {
+      const stage = funnelStages.find((s) => String(s.id) === funnelStageId);
+      return `Stage: ${stage?.name ?? funnelStageId}`;
+    }
+    if (duplicateFilter) return `Duplicate: ${duplicateFilter.replace("_", " ")}`;
+    if (minScore) return `Score ≥ ${minScore}`;
+    return null;
+  })();
 
   return (
     <div className="space-y-6 p-6">
@@ -98,22 +127,26 @@ export default function LeadsPage() {
         </div>
       </div>
 
+      {/* Active filter banner */}
+      {filterLabel && (
+        <div className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/5 px-4 py-2 text-xs font-medium text-indigo-400">
+          <span>Filtered by: {filterLabel}</span>
+          <button onClick={resetFilters} className="ml-auto rounded p-0.5 hover:text-indigo-200">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name, industry, email..." className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
         </div>
-        <select value={stageFilter} onChange={(e) => { setStageFilter(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+        <select value={funnelStageId} onChange={(e) => { setFunnelStageId(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
           <option value="">All Stages</option>
-          <option value="new">New</option>
-          <option value="discovered">Discovered</option>
-          <option value="qualified">Qualified</option>
-          <option value="contacted">Contacted</option>
-          <option value="interested">Interested</option>
-          <option value="meeting_scheduled">Meeting Scheduled</option>
-          <option value="negotiation">Negotiation</option>
-          <option value="won">Won</option>
-          <option value="lost">Lost</option>
+          {funnelStages.map((s) => (
+            <option key={s.id} value={String(s.id)}>{s.name}</option>
+          ))}
         </select>
         <select value={qualificationFilter} onChange={(e) => { setQualificationFilter(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
           <option value="">All Qualifications</option>
@@ -122,11 +155,22 @@ export default function LeadsPage() {
           <option value="potential">Potential</option>
           <option value="not_eligible">Not Eligible</option>
         </select>
+        <select value={duplicateFilter} onChange={(e) => { setDuplicateFilter(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+          <option value="">All Statuses</option>
+          <option value="new">New</option>
+          <option value="probable_duplicate">Probable Duplicate</option>
+          <option value="exact_duplicate">Exact Duplicate</option>
+        </select>
         <div className="flex gap-2 items-center">
           <input type="number" min="0" max="100" value={minScore} onChange={(e) => { setMinScore(e.target.value); setPage(1); }} placeholder="Min score" className="h-9 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-24" />
           <span className="text-muted-foreground">–</span>
           <input type="number" min="0" max="100" value={maxScore} onChange={(e) => { setMaxScore(e.target.value); setPage(1); }} placeholder="Max" className="h-9 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-24" />
         </div>
+        {hasActiveFilter && (
+          <button onClick={resetFilters} className="h-9 rounded-lg border border-border px-3 text-xs text-muted-foreground hover:text-foreground">
+            Clear filters
+          </button>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -156,7 +200,7 @@ export default function LeadsPage() {
                       <p className="text-xs text-muted-foreground truncate max-w-[200px]">{lead.address}</p>
                     </Link>
                   </td>
-                  <td className="px-4 py-3"><span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">{lead.industry || "—"}</span></td>
+                  <td className="px-4 py-3"><span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">{lead.industry?.name ?? lead.business_category ?? "—"}</span></td>
                   <td className="px-4 py-3"><p className="text-xs">{lead.email || "—"}</p><p className="text-xs text-muted-foreground">{lead.phone || ""}</p></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -165,7 +209,15 @@ export default function LeadsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColors[lead.qualification_status] ?? ""}`}>{(lead.qualification_status || "pending").replace("_", " ")}</span></td>
-                  <td className="px-4 py-3"><span className="text-xs">{lead.current_funnel_stage?.name || "—"}</span></td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => { setFunnelStageId(String(lead.funnel_stage_id ?? "")); setPage(1); }}
+                      className="text-xs hover:text-indigo-400 transition-colors"
+                      title="Filter by this stage"
+                    >
+                      {lead.funnel_stage?.name ?? lead.current_funnel_stage?.name ?? "—"}
+                    </button>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button onClick={() => pushToFunnel.mutate(lead.id)} title="Push to Funnel" className="rounded-md p-1.5 text-muted-foreground hover:bg-indigo-500/10 hover:text-indigo-500"><ArrowRight className="h-3.5 w-3.5" /></button>
