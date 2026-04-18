@@ -1,14 +1,17 @@
 <?php
 
 use App\Http\Controllers\Api\AiProviderController;
+use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FunnelController;
+use App\Http\Controllers\Api\IcpProfileController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\IntegrationConfigController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\RevenueRuleController;
 use App\Http\Controllers\Api\TerritoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -88,6 +91,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/{lead}/activities', [LeadController::class, 'getActivities'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/progress', [LeadController::class, 'getProgress'])->middleware('permission:leads.view');
 
+    // Revenue Intelligence Routes (Module D — ICP, Conversion, Prescriptive, Rules, Feedback)
+    Route::post('leads/{lead}/icp-match', [LeadController::class, 'icpMatch'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/predict-conversion', [LeadController::class, 'predictConversion'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/prescribe', [LeadController::class, 'prescribe'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/revenue-check', [LeadController::class, 'revenueCheck'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/outcome', [LeadController::class, 'recordOutcome'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/revenue-intelligence', [LeadController::class, 'revenueIntelligence'])->middleware('permission:leads.view');
+
     // Lead Activity & Evaluation Routes (Module B — Activities, Meetings, Transcripts, Evaluations)
     Route::delete('leads/{lead}/activities/{activity}', [LeadController::class, 'deleteActivity'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/meetings', [LeadController::class, 'getMeetings'])->middleware('permission:leads.view');
@@ -165,4 +176,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // Audit Logs — restricted
     Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit.view');
     Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->middleware('permission:audit.view');
+
+    // Revenue Intelligence — ICP Profiles
+    Route::apiResource('icp-profiles', IcpProfileController::class);
+    Route::post('icp-profiles/{icpProfile}/batch-match', [IcpProfileController::class, 'batchMatch'])->middleware('permission:leads.edit');
+
+    // Revenue Intelligence — Revenue Rules
+    Route::get('revenue-rules', [RevenueRuleController::class, 'index']);
+    Route::post('revenue-rules', [RevenueRuleController::class, 'store'])->middleware('permission:leads.edit');
+    Route::put('revenue-rules/{revenueRule}', [RevenueRuleController::class, 'update'])->middleware('permission:leads.edit');
+    Route::delete('revenue-rules/{revenueRule}', [RevenueRuleController::class, 'destroy'])->middleware('permission:leads.edit');
+
+    // Revenue Intelligence — Analytics
+    Route::get('analytics/pipeline-quality', [AnalyticsController::class, 'pipelineQuality'])->middleware('permission:leads.view');
+    Route::get('analytics/source-quality', [AnalyticsController::class, 'sourceQuality'])->middleware('permission:leads.view');
 });

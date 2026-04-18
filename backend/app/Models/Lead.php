@@ -137,4 +137,26 @@ class Lead extends Model
     {
         return $this->hasMany(LeadFollowUp::class);
     }
+
+    /* ── Revenue Intelligence Engine ── */
+
+    public function icpMatches(): HasMany
+    {
+        return $this->hasMany(LeadIcpMatch::class);
+    }
+
+    public function conversionPredictions(): HasMany
+    {
+        return $this->hasMany(LeadConversionPrediction::class);
+    }
+
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(LeadPrescription::class);
+    }
+
+    public function outcomes(): HasMany
+    {
+        return $this->hasMany(LeadOutcome::class);
+    }
 }

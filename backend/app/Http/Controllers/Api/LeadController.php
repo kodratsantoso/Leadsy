@@ -8,9 +8,14 @@ use App\Jobs\EnrichLeadContactsJob;
 use App\Jobs\EnrichLeadJob;
 use App\Jobs\ScoreLeadJob;
 use App\Models\Lead;
+use App\Models\LeadOutcome;
 use App\Services\AuditService;
 use App\Services\DeduplicationService;
 use App\Services\LeadDiscoveryService;
+use App\Services\Revenue\ConversionPredictionService;
+use App\Services\Revenue\ICPMatchingService;
+use App\Services\Revenue\PrescriptiveEngineService;
+use App\Services\Revenue\RevenueRuleEngineService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -763,5 +768,98 @@ class LeadController extends Controller
         ]);
 
         return response()->json(['message' => 'Contact enrichment queued']);
+    }
+
+    /* ═══════════════════════════════════════════════════════════ */
+    /*  MODULE D: Revenue Intelligence Engine                      */
+    /* ═══════════════════════════════════════════════════════════ */
+
+    /** POST /api/leads/{lead}/icp-match */
+    public function icpMatch(Lead $lead, ICPMatchingService $service): JsonResponse
+    {
+        $result = $service->matchLead($lead);
+        AuditService::log('icp_match', 'leads', $lead, null, $result);
+        return response()->json(['data' => $result]);
+    }
+
+    /** POST /api/leads/{lead}/predict-conversion */
+    public function predictConversion(Lead $lead, ConversionPredictionService $service): JsonResponse
+    {
+        $result = $service->predict($lead);
+        AuditService::log('predict_conversion', 'leads', $lead, null, [
+            'probability' => $result['probability_to_close'],
+        ]);
+        return response()->json(['data' => $result]);
+    }
+
+    /** POST /api/leads/{lead}/prescribe */
+    public function prescribe(Lead $lead, PrescriptiveEngineService $service): JsonResponse
+    {
+        $result = $service->prescribe($lead);
+        AuditService::log('prescribe', 'leads', $lead, null, [
+            'next_action'  => $result['next_best_action'],
+            'priority'     => $result['priority_score'],
+        ]);
+        return response()->json(['data' => $result]);
+    }
+
+    /** GET /api/leads/{lead}/revenue-check */
+    public function revenueCheck(Lead $lead, RevenueRuleEngineService $service): JsonResponse
+    {
+        $result = $service->evaluate($lead);
+        return response()->json(['data' => $result]);
+    }
+
+    /** POST /api/leads/{lead}/outcome — Record won/lost feedback */
+    public function recordOutcome(Request $request, Lead $lead): JsonResponse
+    {
+        $data = $request->validate([
+            'outcome'        => 'required|in:won,lost,churned,disqualified',
+            'deal_size'      => 'nullable|numeric|min:0',
+            'loss_reason'    => 'nullable|string|max:255',
+            'loss_category'  => 'nullable|in:price,timing,competition,no_budget,no_need,other',
+            'feedback_notes' => 'nullable|string',
+            'closed_at'      => 'nullable|date',
+        ]);
+
+        $data['lead_id']   = $lead->id;
+        $data['closed_by'] = $request->user()->id;
+        $data['closed_at'] = $data['closed_at'] ?? now();
+
+        $outcome = LeadOutcome::create($data);
+
+        // Update lead qualification status to reflect outcome
+        if ($data['outcome'] === 'won') {
+            $lead->update(['qualification_status' => 'eligible']);
+        } elseif (in_array($data['outcome'], ['lost', 'disqualified'])) {
+            $lead->update(['qualification_status' => 'not_eligible']);
+        }
+
+        AuditService::log('record_outcome', 'leads', $lead, null, [
+            'outcome'   => $data['outcome'],
+            'deal_size' => $data['deal_size'] ?? null,
+        ]);
+
+        return response()->json(['data' => $outcome], 201);
+    }
+
+    /** GET /api/leads/{lead}/revenue-intelligence — Full Revenue Intel snapshot */
+    public function revenueIntelligence(
+        Lead $lead,
+        ICPMatchingService $icpService,
+        ConversionPredictionService $convService,
+        PrescriptiveEngineService $prescService,
+        RevenueRuleEngineService $ruleService
+    ): JsonResponse {
+        $lead->loadMissing('contacts', 'activities', 'funnelStage', 'industry', 'product', 'owner');
+
+        return response()->json(['data' => [
+            'lead_id'              => $lead->id,
+            'icp_match'            => $lead->icpMatches()->with('icpProfile')->latest()->first(),
+            'latest_prediction'    => $lead->conversionPredictions()->latest()->first(),
+            'latest_prescription'  => $lead->prescriptions()->with('recommendedOwner')->latest()->first(),
+            'revenue_check'        => $ruleService->evaluate($lead),
+            'latest_outcome'       => $lead->outcomes()->latest()->first(),
+        ]]);
     }
 }
