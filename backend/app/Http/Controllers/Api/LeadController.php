@@ -494,7 +494,6 @@ class LeadController extends Controller
             fclose($out);
         }, 200, $headers);
     }
-}
 
     /* ═══════════════════════════════════════════════════════════ */
     /*  MODULE A: Lead Intelligence Engine                         */
@@ -506,7 +505,7 @@ class LeadController extends Controller
         $service = app(\App\Services\Lead\LeadQualificationService::class);
         $result = $service->qualifyLead($lead, useAi: true);
 
-        AuditService::log('qualify', 'leads', $lead->id, $lead->toArray(), [
+        AuditService::log('qualify', 'leads', $lead, $lead->toArray(), [
             'qualified' => $result->qualified,
             'business_type' => $result->business_type,
         ]);
@@ -520,7 +519,7 @@ class LeadController extends Controller
         $service = app(\App\Services\Lead\LeadAIAnalysisService::class);
         $result = $service->analyzeLead($lead);
 
-        AuditService::log('analyze', 'leads', $lead->id, null, [
+        AuditService::log('analyze', 'leads', $lead, null, [
             'relevance_score' => $result->relevance_score,
             'urgency_level' => $result->urgency_level,
         ]);
@@ -534,7 +533,7 @@ class LeadController extends Controller
         $service = app(\App\Services\Lead\LeadProductMatchingService::class);
         $matches = $service->matchLeadToProducts($lead);
 
-        AuditService::log('match_products', 'leads', $lead->id, null, [
+        AuditService::log('match_products', 'leads', $lead, null, [
             'matches_count' => count($matches),
         ]);
 
@@ -547,7 +546,7 @@ class LeadController extends Controller
         $lead->load([
             'scores' => fn($q) => $q->latest()->limit(1),
             'qualifications' => fn($q) => $q->latest()->limit(1),
-            'productMatches' => fn($q) => $q->where('is_recommended', true)->orderByDesc('match_score')->limit(3),
+            'productMatches' => fn($q) => $q->with('product')->where('is_recommended', true)->orderByDesc('match_score')->limit(3),
             'aiAnalyses' => fn($q) => $q->latest()->limit(1),
         ]);
 
@@ -555,7 +554,7 @@ class LeadController extends Controller
             'lead_id' => $lead->id,
             'latest_score' => $lead->scores->first(),
             'latest_qualification' => $lead->qualifications->first(),
-            'recommended_products' => $lead->productMatches->with('product'),
+            'recommended_products' => $lead->productMatches,
             'latest_analysis' => $lead->aiAnalyses->first(),
         ]);
     }
@@ -626,7 +625,7 @@ class LeadController extends Controller
         $activity = $lead->activities()->findOrFail($activityId);
         $activity->delete();
 
-        AuditService::log('delete_activity', 'lead_activities', $activity->id, $activity->toArray());
+        AuditService::log('delete_activity', 'lead_activities', $activity, $activity->toArray());
 
         return response()->json(['message' => 'Activity deleted']);
     }
@@ -647,7 +646,7 @@ class LeadController extends Controller
         $meeting = $lead->meetings()->findOrFail($meetingId);
         $meeting->delete();
 
-        AuditService::log('delete_meeting', 'lead_meetings', $meeting->id, $meeting->toArray());
+        AuditService::log('delete_meeting', 'lead_meetings', $meeting, $meeting->toArray());
 
         return response()->json(['message' => 'Meeting deleted']);
     }
@@ -680,7 +679,7 @@ class LeadController extends Controller
             'evaluation_status' => 'pending',
         ]);
 
-        AuditService::log('create_transcript', 'lead_transcripts', $transcript->id, null, [
+        AuditService::log('create_transcript', 'lead_transcripts', $transcript, null, [
             'source_type' => $data['source_type'],
         ]);
 
@@ -693,7 +692,7 @@ class LeadController extends Controller
         $transcript = $lead->transcripts()->findOrFail($transcriptId);
         $transcript->delete();
 
-        AuditService::log('delete_transcript', 'lead_transcripts', $transcript->id, $transcript->toArray());
+        AuditService::log('delete_transcript', 'lead_transcripts', $transcript, $transcript->toArray());
 
         return response()->json(['message' => 'Transcript deleted']);
     }
@@ -742,7 +741,7 @@ class LeadController extends Controller
             abort(403, 'Contact does not belong to this lead');
         }
 
-        AuditService::log('delete_contact', 'lead_contacts', $contact->id, $contact->toArray());
+        AuditService::log('delete_contact', 'lead_contacts', $contact, $contact->toArray());
 
         $contact->payloads()->delete();
         $contact->delete();
@@ -759,7 +758,7 @@ class LeadController extends Controller
 
         EnrichLeadContactsJob::dispatch($lead->id)->onQueue('enrichment');
 
-        AuditService::log('trigger_contact_enrichment', 'leads', $lead->id, null, [
+        AuditService::log('trigger_contact_enrichment', 'leads', $lead, null, [
             'triggered_by' => request()->user()?->id,
         ]);
 

@@ -27,6 +27,7 @@ class AiOrchestrationService
      * @param  string  $promptContent  The user/system prompt body
      * @param  array   $context        Additional metadata
      * @return array{success: bool, content: string|null, tokens: array, cost: float, model: string}
+     */
     public function call(string $functionName, string $promptContent, array $context = []): array
     {
         $routes = \App\Models\AiFeatureRoute::where('feature_name', $functionName)
