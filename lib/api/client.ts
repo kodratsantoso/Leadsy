@@ -150,6 +150,10 @@ export const recordLeadOutcome = (leadId: number, data: Partial<LeadOutcome>) =>
   api.post<{ data: LeadOutcome }>(`/api/leads/${leadId}/outcome`, data);
 export const fetchRevenueIntelligence = (leadId: number) =>
   api.get<{ data: RevenueIntelligence }>(`/api/leads/${leadId}/revenue-intelligence`);
+export const runRevenueAnalysis = (leadId: number) =>
+  api.post<{ data: RevenueAnalysis }>(`/api/leads/${leadId}/revenue-analysis`);
+export const fetchRevenueAnalysis = (leadId: number) =>
+  api.get<{ data: RevenueAnalysis | null }>(`/api/leads/${leadId}/revenue-analysis`);
 
 /* ── Types ── */
 
@@ -446,6 +450,28 @@ export type LeadOutcome = {
   created_at?: string;
 };
 
+export type RevenueAnalysis = {
+  id: number;
+  lead_id: number;
+  business_type?: string | null;
+  use_case?: string | null;
+  intent_level?: "high" | "medium" | "low" | null;
+  urgency?: "high" | "medium" | "low" | null;
+  probability_to_close?: number | null;
+  buying_signals?: string[] | null;
+  objections?: string[] | null;
+  recommended_action?: string | null;
+  recommended_approach?: string | null;
+  confidence?: number | null;           // 0–1
+  reasoning?: string[] | null;
+  ai_model?: string | null;
+  prompt_tokens?: number | null;
+  completion_tokens?: number | null;
+  cost_usd?: number | null;
+  status?: "success" | "failed" | "partial";
+  created_at?: string;
+};
+
 export type RevenueIntelligence = {
   lead_id: number;
   icp_match?: (IcpMatchResult & { icp_profile?: IcpProfile }) | null;
@@ -453,4 +479,5 @@ export type RevenueIntelligence = {
   latest_prescription?: LeadPrescription | null;
   revenue_check?: RevenueCheck | null;
   latest_outcome?: LeadOutcome | null;
+  latest_analysis?: RevenueAnalysis | null;
 };

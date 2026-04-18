@@ -44,6 +44,161 @@ function ConfidenceDot({ score }: { score?: number | null }) {
   );
 }
 
+/* ── Revenue Analysis Panel ────────────────────────────────────────── */
+
+const INTENT_CFG = {
+  high:   { cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-400/40', label: 'HIGH' },
+  medium: { cls: 'bg-amber-500/15 text-amber-400 border-amber-400/40',       label: 'MEDIUM' },
+  low:    { cls: 'bg-slate-500/15 text-slate-400 border-slate-400/40',        label: 'LOW' },
+};
+
+function IntentBadge({ level }: { level?: string | null }) {
+  const cfg = INTENT_CFG[level as keyof typeof INTENT_CFG] ?? INTENT_CFG.low;
+  return (
+    <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${cfg.cls}`}>{cfg.label}</span>
+  );
+}
+
+function ConfidenceBar({ value }: { value?: number | null }) {
+  const pct = ((value ?? 0) * 100);
+  const color = pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 flex-1 rounded-full bg-muted/50 overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+      <span className="w-10 text-right text-xs font-medium tabular-nums text-muted-foreground">{pct.toFixed(0)}%</span>
+    </div>
+  );
+}
+
+function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
+  const date = analysis.created_at ? new Date(analysis.created_at).toLocaleString() : '';
+  const model = analysis.ai_model ? analysis.ai_model.split('-').slice(0, 3).join('-') : 'AI';
+
+  return (
+    <div className="rounded-xl border border-purple-500/25 bg-gradient-to-br from-purple-950/30 to-card p-5 space-y-5">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-purple-400" />
+            <h3 className="font-semibold text-sm">Revenue Intelligence Analysis</h3>
+            {analysis.status === 'failed' && (
+              <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-400">FAILED</span>
+            )}
+            {analysis.status === 'partial' && (
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">PARTIAL</span>
+            )}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{model} · {date}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-bold tabular-nums">{analysis.probability_to_close?.toFixed(0) ?? '—'}<span className="text-xs font-normal text-muted-foreground">%</span></p>
+          <p className="text-[10px] text-muted-foreground">prob. to close</p>
+        </div>
+      </div>
+
+      {/* Intent + Urgency badges */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Intent</span>
+          <IntentBadge level={analysis.intent_level} />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Urgency</span>
+          <IntentBadge level={analysis.urgency} />
+        </div>
+        <div className="flex-1 min-w-[120px]">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1">Confidence</p>
+          <ConfidenceBar value={analysis.confidence} />
+        </div>
+      </div>
+
+      {/* Business type + use case */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Business Type</p>
+          <p className="text-sm font-medium">{analysis.business_type ?? '—'}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Use Case</p>
+          <p className="text-sm">{analysis.use_case ?? '—'}</p>
+        </div>
+      </div>
+
+      {/* Buying signals + Objections */}
+      <div className="grid grid-cols-2 gap-4">
+        {analysis.buying_signals?.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-400 mb-2">Buying Signals</p>
+            <ul className="space-y-1">
+              {analysis.buying_signals.map((s: string, i: number) => (
+                <li key={i} className="flex items-start gap-1.5 text-xs">
+                  <CheckCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-emerald-400" />
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {analysis.objections?.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-red-400 mb-2">Objections</p>
+            <ul className="space-y-1">
+              {analysis.objections.map((o: string, i: number) => (
+                <li key={i} className="flex items-start gap-1.5 text-xs">
+                  <AlertCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-red-400" />
+                  {o}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Recommended action */}
+      {analysis.recommended_action && (
+        <div className="rounded-lg border border-purple-500/20 bg-purple-500/10 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-purple-400 mb-1">Recommended Action</p>
+          <p className="text-sm font-medium">{analysis.recommended_action}</p>
+        </div>
+      )}
+
+      {/* Recommended approach */}
+      {analysis.recommended_approach && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Recommended Approach</p>
+          <p className="text-sm text-muted-foreground">{analysis.recommended_approach}</p>
+        </div>
+      )}
+
+      {/* Reasoning */}
+      {analysis.reasoning?.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Reasoning</p>
+          <ol className="space-y-1 list-none">
+            {analysis.reasoning.map((r: string, i: number) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                <span className="flex-shrink-0 w-4 h-4 rounded-full bg-muted/50 flex items-center justify-center text-[9px] font-bold">{i + 1}</span>
+                {r}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* Token usage footer */}
+      {(analysis.prompt_tokens || analysis.cost_usd) && (
+        <div className="flex items-center gap-4 text-[10px] text-muted-foreground border-t border-border/50 pt-3">
+          {analysis.prompt_tokens && <span>{(analysis.prompt_tokens + (analysis.completion_tokens ?? 0)).toLocaleString()} tokens</span>}
+          {analysis.cost_usd && <span>${analysis.cost_usd.toFixed(4)}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Contact form modal ────────────────────────────────────────────── */
 
 type ContactFormData = { name: string; title: string; email: string; phone: string };
@@ -259,6 +414,11 @@ export default function LeadDetailPage() {
 
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [outcomeForm, setOutcomeForm] = useState({ outcome: 'won', deal_size: '', feedback_notes: '' });
+
+  const analysisMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/revenue-analysis`, { method: 'POST' }),
+    onSuccess: () => refetchRevenue(),
+  });
 
   /* ── Render ── */
   if (leadLoading) {
@@ -659,6 +819,14 @@ export default function LeadDetailPage() {
                   Get Prescription
                 </button>
                 <button
+                  onClick={() => analysisMutation.mutate()}
+                  disabled={analysisMutation.isPending}
+                  className="flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-500/20 disabled:opacity-50"
+                >
+                  {analysisMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                  Run AI Analysis
+                </button>
+                <button
                   onClick={() => setShowOutcomeModal(true)}
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50"
                 >
@@ -666,6 +834,17 @@ export default function LeadDetailPage() {
                   Record Outcome
                 </button>
               </div>
+
+              {/* ── Revenue Intelligence Analyst AI Panel ── */}
+              {revenueIntel?.data?.latest_analysis && (
+                <RevenueAnalysisPanel analysis={revenueIntel.data.latest_analysis} />
+              )}
+              {analysisMutation.isPending && (
+                <div className="flex items-center gap-3 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 text-sm text-purple-400">
+                  <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                  Revenue Intelligence AI is analysing this lead — this may take 15–30 seconds…
+                </div>
+              )}
 
               <div className="grid gap-4 lg:grid-cols-2">
                 {/* ICP Match */}
