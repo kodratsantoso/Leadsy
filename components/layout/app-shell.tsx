@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTheme } from "@/lib/theme-context";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navItems = [
   { href: "/",                icon: LayoutDashboard, label: "Dashboard" },
@@ -23,6 +25,39 @@ const navItems = [
   { href: "/settings",        icon: Settings,        label: "Settings" },
 ];
 
+function ThemedLogo({ collapsed }: { collapsed: boolean }) {
+  const { resolved } = useTheme();
+  const src = resolved === "dark" ? "/Leadsy_logo_dark.png" : "/Leadsy_logo_light.png";
+
+  if (collapsed) {
+    return (
+      <Link href="/" className="mx-auto">
+        <Image
+          src={src}
+          alt="Leadsy"
+          width={32}
+          height={32}
+          className="h-8 w-8 object-contain"
+          priority
+        />
+      </Link>
+    );
+  }
+
+  return (
+    <Link href="/" className="flex items-center min-w-0">
+      <Image
+        src={src}
+        alt="Leadsy"
+        width={120}
+        height={32}
+        className="h-8 w-auto object-contain"
+        priority
+      />
+    </Link>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -31,7 +66,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
 
-  // Close user menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -53,30 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         {/* Logo area */}
         <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-3">
-          {!collapsed && (
-            <Link href="/" className="flex items-center gap-2 min-w-0">
-              <Image
-                src="/leadsy_logo.png"
-                alt="Leadsy"
-                width={120}
-                height={32}
-                className="h-8 w-auto object-contain"
-                priority
-              />
-            </Link>
-          )}
-          {collapsed && (
-            <Link href="/" className="mx-auto">
-              <Image
-                src="/leadsy_logo.png"
-                alt="Leadsy"
-                width={32}
-                height={32}
-                className="h-8 w-8 object-contain"
-                priority
-              />
-            </Link>
-          )}
+          <ThemedLogo collapsed={collapsed} />
         </div>
 
         {/* Nav */}
@@ -129,44 +140,46 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {/* User dropdown */}
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white">
-                {user?.name?.charAt(0)?.toUpperCase() ?? "?"}
-              </div>
-              {user && (
-                <div className="hidden sm:block text-left">
-                  <p className="text-xs font-medium leading-none">{user.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{user.role?.name ?? "User"}</p>
+          <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <ThemeToggle />
+
+            {/* User dropdown */}
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white">
+                  {user?.name?.charAt(0)?.toUpperCase() ?? "?"}
+                </div>
+                {user && (
+                  <div className="hidden sm:block text-left">
+                    <p className="text-xs font-medium leading-none">{user.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{user.role?.name ?? "User"}</p>
+                  </div>
+                )}
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-card shadow-xl z-50">
+                  <div className="border-b border-border px-3 py-2.5">
+                    <p className="text-xs font-medium">{user?.name ?? "User"}</p>
+                    <p className="text-[10px] text-muted-foreground">{user?.email}</p>
+                  </div>
+                  <div className="p-1">
+                    <button
+                      onClick={() => { setUserMenuOpen(false); logout(); }}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/10"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      Sign Out
+                    </button>
+                  </div>
                 </div>
               )}
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            </button>
-
-            {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-card shadow-xl z-50">
-                <div className="border-b border-border px-3 py-2.5">
-                  <p className="text-xs font-medium">{user?.name ?? "User"}</p>
-                  <p className="text-[10px] text-muted-foreground">{user?.email}</p>
-                </div>
-                <div className="p-1">
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      logout();
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/10"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </header>
 
