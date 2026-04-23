@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RevenueRule extends Model
 {
     protected $fillable = [
-        'name', 'description', 'condition_type', 'condition_value',
+        'tenant_id', 'name', 'description', 'condition_type', 'condition_value',
         'action', 'severity', 'is_active', 'priority', 'created_by',
     ];
 
@@ -21,5 +21,10 @@ class RevenueRule extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

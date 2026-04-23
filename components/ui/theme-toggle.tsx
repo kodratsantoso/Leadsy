@@ -45,7 +45,7 @@ export function ThemeToggle() {
             >
               <Icon className="h-3.5 w-3.5 shrink-0" />
               <span className="flex-1 text-left">{label}</span>
-              {theme === value && <Check className="h-3 w-3 text-indigo-500" />}
+              {theme === value && <Check className="h-3 w-3 text-[var(--brand)]" />}
             </button>
           ))}
         </div>

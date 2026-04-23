@@ -11,7 +11,7 @@ class AiRequest extends Model
         'ai_model_id', 'user_id', 'function_name',
         'prompt_metadata', 'response_metadata',
         'prompt_tokens', 'completion_tokens',
-        'estimated_cost_usd', 'latency_ms', 'status', 'error_message',
+        'estimated_cost_usd', 'latency_ms', 'status', 'error_message', 'fallback_used',
     ];
 
     protected $casts = [
@@ -21,9 +21,15 @@ class AiRequest extends Model
         'completion_tokens'  => 'integer',
         'estimated_cost_usd' => 'float',
         'latency_ms'         => 'integer',
+        'fallback_used'      => 'boolean',
     ];
 
     public function model(): BelongsTo
+    {
+        return $this->belongsTo(AiModel::class, 'ai_model_id');
+    }
+
+    public function aiModel(): BelongsTo
     {
         return $this->belongsTo(AiModel::class, 'ai_model_id');
     }

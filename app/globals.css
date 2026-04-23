@@ -7,7 +7,6 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Inter is applied via `next/font` variables on `<body>` in `app/layout.tsx` */
   --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-heading: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -46,75 +45,174 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ── Leadsy Brand ─────────────────────────────────────────── */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-light: var(--brand-light);
+  --color-brand-foreground: var(--brand-foreground);
+
+  /* ── Semantic Status ─────────────────────────────────────── */
+  --color-status-success: var(--status-success);
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-success-border: var(--status-success-border);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-warning-border: var(--status-warning-border);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-bg: var(--status-danger-bg);
+  --color-status-danger-border: var(--status-danger-border);
+  --color-status-info: var(--status-info);
+  --color-status-info-bg: var(--status-info-bg);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-neutral-bg: var(--status-neutral-bg);
 }
 
 :root {
+  /* ── Base surfaces ───────────────────────────────────────── */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+
+  /* ── Primary → Leadsy Indigo ─────────────────────────────── */
+  --primary: oklch(0.585 0.233 264.376);       /* #6366F1 indigo-500 */
+  --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0.585 0.233 264.376 / 50%);
+
+  /* ── Secondary / Muted ───────────────────────────────────── */
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+
+  /* ── Destructive ─────────────────────────────────────────── */
+  --destructive: oklch(0.637 0.237 25.331);
+
+  /* ── Borders & Inputs ────────────────────────────────────── */
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+
+  /* ── Charts (semantic palette) ───────────────────────────── */
+  --chart-1: oklch(0.585 0.233 264.376);       /* indigo  */
+  --chart-2: oklch(0.696 0.170 162.480);       /* emerald */
+  --chart-3: oklch(0.769 0.188 70.080);        /* amber   */
+  --chart-4: oklch(0.623 0.214 259.815);       /* blue    */
+  --chart-5: oklch(0.637 0.237 25.331);        /* red     */
+
+  /* ── Border radius ───────────────────────────────────────── */
   --radius: 0.625rem;
+
+  /* ── Sidebar ─────────────────────────────────────────────── */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.585 0.233 264.376);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.585 0.233 264.376 / 10%);
+  --sidebar-accent-foreground: oklch(0.585 0.233 264.376);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: oklch(0.585 0.233 264.376 / 50%);
+
+  /* ── Leadsy Brand tokens ─────────────────────────────────── */
+  --brand: oklch(0.585 0.233 264.376);         /* #6366F1 */
+  --brand-hover: oklch(0.511 0.262 276.966);   /* #4F46E5 */
+  --brand-light: oklch(0.673 0.182 264.376);   /* #818CF8 */
+  --brand-foreground: oklch(1 0 0);
+
+  /* ── Semantic Status tokens ──────────────────────────────── */
+  --status-success: oklch(0.696 0.170 162.480);
+  --status-success-bg: oklch(0.696 0.170 162.480 / 12%);
+  --status-success-border: oklch(0.696 0.170 162.480 / 30%);
+
+  --status-warning: oklch(0.769 0.188 70.080);
+  --status-warning-bg: oklch(0.769 0.188 70.080 / 12%);
+  --status-warning-border: oklch(0.769 0.188 70.080 / 30%);
+
+  --status-danger: oklch(0.637 0.237 25.331);
+  --status-danger-bg: oklch(0.637 0.237 25.331 / 12%);
+  --status-danger-border: oklch(0.637 0.237 25.331 / 30%);
+
+  --status-info: oklch(0.623 0.214 259.815);
+  --status-info-bg: oklch(0.623 0.214 259.815 / 12%);
+
+  --status-neutral: oklch(0.556 0 0);
+  --status-neutral-bg: oklch(0.556 0 0 / 10%);
 }
 
 .dark {
+  /* ── Base surfaces ───────────────────────────────────────── */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+
+  /* ── Primary → Leadsy Indigo (brighter in dark) ──────────── */
+  --primary: oklch(0.673 0.182 264.376);       /* indigo-400, readable on dark bg */
+  --primary-foreground: oklch(1 0 0);
+  --ring: oklch(0.673 0.182 264.376 / 50%);
+
+  /* ── Secondary / Muted ───────────────────────────────────── */
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
+
+  /* ── Destructive ─────────────────────────────────────────── */
   --destructive: oklch(0.704 0.191 22.216);
+
+  /* ── Borders & Inputs ────────────────────────────────────── */
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+
+  /* ── Charts ──────────────────────────────────────────────── */
+  --chart-1: oklch(0.673 0.182 264.376);       /* indigo-400  */
+  --chart-2: oklch(0.793 0.191 149.000);       /* emerald-400 */
+  --chart-3: oklch(0.828 0.164 70.080);        /* amber-400   */
+  --chart-4: oklch(0.707 0.165 254.624);       /* blue-400    */
+  --chart-5: oklch(0.704 0.191 22.216);        /* red-400     */
+
+  /* ── Sidebar ─────────────────────────────────────────────── */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.673 0.182 264.376);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.673 0.182 264.376 / 15%);
+  --sidebar-accent-foreground: oklch(0.673 0.182 264.376);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.673 0.182 264.376 / 50%);
+
+  /* ── Leadsy Brand tokens ─────────────────────────────────── */
+  --brand: oklch(0.673 0.182 264.376);
+  --brand-hover: oklch(0.585 0.233 264.376);
+  --brand-light: oklch(0.752 0.128 264.376);
+  --brand-foreground: oklch(1 0 0);
+
+  /* ── Semantic Status tokens (slightly brighter for dark mode) */
+  --status-success: oklch(0.793 0.191 149.000);
+  --status-success-bg: oklch(0.793 0.191 149.000 / 12%);
+  --status-success-border: oklch(0.793 0.191 149.000 / 25%);
+
+  --status-warning: oklch(0.828 0.164 70.080);
+  --status-warning-bg: oklch(0.828 0.164 70.080 / 12%);
+  --status-warning-border: oklch(0.828 0.164 70.080 / 25%);
+
+  --status-danger: oklch(0.704 0.191 22.216);
+  --status-danger-bg: oklch(0.704 0.191 22.216 / 12%);
+  --status-danger-border: oklch(0.704 0.191 22.216 / 25%);
+
+  --status-info: oklch(0.707 0.165 254.624);
+  --status-info-bg: oklch(0.707 0.165 254.624 / 12%);
+
+  --status-neutral: oklch(0.708 0 0);
+  --status-neutral-bg: oklch(0.708 0 0 / 10%);
 }
 
 @layer base {
@@ -127,5 +225,137 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ── Leadsy Design System Utilities ─────────────────────────── */
+@layer components {
+  /* Score bars */
+  .score-bar-track {
+    @apply h-1.5 w-full overflow-hidden rounded-full bg-muted/50;
+  }
+  .score-bar-fill {
+    @apply h-full rounded-full transition-all duration-700;
+    background-color: var(--brand);
+  }
+
+  /* Status badges — use these everywhere instead of hardcoded colors */
+  .badge-success {
+    background-color: var(--status-success-bg);
+    color: var(--status-success);
+  }
+  .badge-warning {
+    background-color: var(--status-warning-bg);
+    color: var(--status-warning);
+  }
+  .badge-danger {
+    background-color: var(--status-danger-bg);
+    color: var(--status-danger);
+  }
+  .badge-info {
+    background-color: var(--status-info-bg);
+    color: var(--status-info);
+  }
+  .badge-neutral {
+    background-color: var(--status-neutral-bg);
+    color: var(--status-neutral);
+  }
+  .badge-brand {
+    background-color: var(--brand);
+    color: var(--brand-foreground);
+  }
+  .badge-brand-soft {
+    background-color: color-mix(in oklch, var(--brand) 12%, transparent);
+    color: var(--brand);
+  }
+
+  /* Avatar gradient — brand consistent */
+  .avatar-brand {
+    background: linear-gradient(135deg, var(--brand), oklch(0.558 0.288 302.321));
+  }
+
+  /* Primary button gradient */
+  .btn-brand {
+    background: linear-gradient(135deg, var(--brand), oklch(0.558 0.288 302.321));
+    color: var(--brand-foreground);
+  }
+  .btn-brand:hover {
+    background: linear-gradient(135deg, var(--brand-hover), oklch(0.513 0.254 277));
+  }
+
+  /* Card hover — brand accent border */
+  .card-interactive:hover {
+    border-color: color-mix(in oklch, var(--brand) 40%, transparent);
+  }
+
+  /* Filter banner */
+  .filter-banner {
+    background-color: color-mix(in oklch, var(--brand) 6%, transparent);
+    border-color: color-mix(in oklch, var(--brand) 25%, transparent);
+    color: var(--brand);
+  }
+
+  /* ── Table ─────────────────────────────────────────────────── */
+  .table-root {
+    @apply w-full text-sm;
+  }
+  .table-header {
+    @apply border-b border-border bg-muted/50;
+  }
+  .table-header-cell {
+    @apply h-10 px-4 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+  .table-header-cell-right {
+    @apply h-10 px-4 text-right text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+  .table-row {
+    @apply border-b border-border transition-colors hover:bg-muted/30;
+  }
+  .table-cell {
+    @apply px-4 py-3 align-middle text-sm text-foreground;
+  }
+  .table-cell-muted {
+    @apply px-4 py-3 align-middle text-sm text-muted-foreground;
+  }
+  .table-cell-right {
+    @apply px-4 py-3 align-middle text-right text-sm text-foreground;
+  }
+
+  /* ── Modal ─────────────────────────────────────────────────── */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm;
+  }
+  .modal-content {
+    @apply relative w-full rounded-xl border border-border bg-card shadow-xl;
+  }
+  .modal-sm  { @apply max-w-sm  p-5; }
+  .modal-md  { @apply max-w-lg  p-6; }
+  .modal-lg  { @apply max-w-2xl p-6; }
+  .modal-xl  { @apply max-w-4xl p-6; }
+  .modal-header {
+    @apply mb-4 flex items-start justify-between gap-4;
+  }
+  .modal-title {
+    @apply text-base font-semibold text-foreground;
+  }
+  .modal-description {
+    @apply mt-0.5 text-sm text-muted-foreground;
+  }
+  .modal-body {
+    @apply space-y-4;
+  }
+  .modal-footer {
+    @apply mt-6 flex items-center justify-end gap-2;
+  }
+
+  /* ── Section / Page layout helpers ─────────────────────────── */
+  .page-header {
+    @apply flex items-center justify-between gap-4 pb-4;
+  }
+  .page-title {
+    @apply text-xl font-semibold text-foreground;
+  }
+  .section-card {
+    @apply rounded-xl border border-border bg-card shadow-sm;
   }
 }

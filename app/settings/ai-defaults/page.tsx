@@ -1,50 +1,126 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Bot, Plus, Zap, Activity, DollarSign,
-  Check, X, Loader2, Settings, ChevronDown, ChevronUp, ArrowLeft, AlertCircle
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Activity,
+  AlertCircle,
+  ArrowLeft,
+  Bot,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Clipboard,
+  Eye,
+  EyeOff,
+  FileText,
+  GitBranch,
+  Loader2,
+  Pencil,
+  Plus,
+  Save,
+  Shield,
+  Sparkles,
+  TestTube2,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input, Select, Textarea } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
+
+type ProviderModel = {
+  id: number;
+  name: string;
+  cost_tier?: string;
+  status?: string;
+};
 
 type Provider = {
   id: number;
   name: string;
   slug: string;
-  base_url: string;
-  is_active: boolean;
+  provider_type: string;
+  base_url?: string | null;
+  organization_id?: string | null;
+  project_id?: string | null;
+  default_model?: string | null;
+  status: "active" | "inactive";
+  enabled: boolean;
+  last_tested_at?: string | null;
+  last_test_status?: string | null;
+  last_test_message?: string | null;
+  last_used_at?: string | null;
+  last_used_model?: string | null;
+  api_key_masked: string;
+  api_key_visibility_mode: string;
+  can_reveal_key: boolean;
   has_key: boolean;
-  models: Model[];
+  timeout_seconds?: number | null;
+  retry_limit?: number | null;
+  max_tokens_default?: number | null;
+  cache_ttl_minutes?: number | null;
+  cost_sensitivity?: string | null;
+  models: ProviderModel[];
 };
 
-type Model = {
+type FeatureCatalogItem = { key: string; label: string };
+
+type FeatureRoute = {
+  id?: number;
+  feature_name: string;
+  priority: number;
+  ai_model_id: number;
+  provider_name?: string | null;
+  model_name?: string | null;
+  timeout_seconds?: number | null;
+  max_retries?: number | null;
+  cache_ttl_minutes?: number | null;
+  max_tokens?: number | null;
+  complexity_mode?: string | null;
+  cost_sensitivity?: string | null;
+  is_active?: boolean;
+};
+
+type FeatureRouteGroup = {
+  feature_name: string;
+  feature_label: string;
+  routes: FeatureRoute[];
+};
+
+type PromptVersion = {
   id: number;
-  name: string;
-  cost_tier: "low" | "medium" | "high";
+  feature_name?: string | null;
+  version: number;
+  content: string;
   is_active: boolean;
+  created_at?: string | null;
+  activated_at?: string | null;
 };
 
-type RouteConfig = {
+type PromptTemplate = {
   id: number;
   feature_name: string;
-  ai_model: {
-    name: string;
-    provider: { name: string; slug: string; };
-  };
-  priority: number;
-  is_active: boolean;
+  template_name: string;
+  description?: string | null;
+  active_version?: PromptVersion | null;
+  versions: PromptVersion[];
 };
 
-type UsageSummary = {
+type UsageOverview = {
   summary: {
     total_calls: number;
     total_cost_usd: number;
     success_rate: number | null;
     avg_latency_ms: number | null;
+    fallback_count: number;
     has_data: boolean;
+    last_used_provider?: string | null;
+    last_used_model?: string | null;
+    last_used_at?: string | null;
   };
   per_provider: {
     provider_id: number;
@@ -54,329 +130,986 @@ type UsageSummary = {
     total_cost_usd: number;
     avg_latency_ms: number | null;
     success_rate: number | null;
+    fallback_count: number;
+    last_used_at?: string | null;
   }[];
 };
 
-const costTierColors: Record<string, string> = {
-  low: "bg-emerald-500/10 text-emerald-500",
-  medium: "bg-amber-500/10 text-amber-500",
-  high: "bg-red-500/10 text-red-500",
+type HealthItem = {
+  provider_id: number;
+  provider_name: string;
+  enabled: boolean;
+  last_test_status?: string | null;
+  last_tested_at?: string | null;
+  last_used_at?: string | null;
+  last_used_model?: string | null;
 };
 
-const providerColors: Record<string, string> = {
-  openai: "from-emerald-400 to-teal-600",
-  anthropic: "from-amber-400 to-orange-600",
-  google: "from-blue-400 to-indigo-600",
+type AiSettingsResponse = {
+  data: {
+    providers: Provider[];
+    feature_catalog: FeatureCatalogItem[];
+    feature_routes: FeatureRouteGroup[];
+    prompt_templates: PromptTemplate[];
+    usage_overview: UsageOverview;
+    provider_health: HealthItem[];
+    permissions: {
+      can_manage_ai: boolean;
+      can_reveal_secrets: boolean;
+    };
+  };
 };
 
-export default function AiProvidersPage() {
-  const qc = useQueryClient();
-  const [tab, setTab] = useState<"providers" | "routing" | "usage">("providers");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [testingId, setTestingId] = useState<number | null>(null);
+type ProviderFormState = {
+  id?: number;
+  name: string;
+  slug: string;
+  provider_type: string;
+  base_url: string;
+  api_key: string;
+  organization_id: string;
+  project_id: string;
+  default_model: string;
+  status: "active" | "inactive";
+  timeout_seconds: string;
+  retry_limit: string;
+  max_tokens_default: string;
+  cache_ttl_minutes: string;
+  cost_sensitivity: string;
+};
 
-  // ── Providers — real API via apiFetch (Bearer token injected) ──
-  const { data: providersData, isLoading: providersLoading } = useQuery({
-    queryKey: ["ai-providers"],
+type RouteDraftState = Record<
+  string,
+  {
+    priority: number;
+    ai_model_id: string;
+    timeout_seconds: string;
+    max_retries: string;
+    cache_ttl_minutes: string;
+    max_tokens: string;
+    complexity_mode: string;
+    cost_sensitivity: string;
+    is_active: boolean;
+  }[]
+>;
+
+const tabs = [
+  { key: "providers", label: "Providers", icon: Bot },
+  { key: "routing", label: "Feature Routing", icon: GitBranch },
+  { key: "prompts", label: "Prompt Templates", icon: FileText },
+  { key: "usage", label: "Usage & Health", icon: Activity },
+] as const;
+
+const SECTION = "rounded-3xl border border-border bg-card/90 shadow-sm";
+
+const emptyProviderForm: ProviderFormState = {
+  name: "",
+  slug: "",
+  provider_type: "openai",
+  base_url: "",
+  api_key: "",
+  organization_id: "",
+  project_id: "",
+  default_model: "",
+  status: "inactive",
+  timeout_seconds: "30",
+  retry_limit: "1",
+  max_tokens_default: "",
+  cache_ttl_minutes: "",
+  cost_sensitivity: "balanced",
+};
+
+function fmtDate(value?: string | null) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function providerBadge(status?: string | null) {
+  if (status === "success") return "bg-[var(--status-success)]/10 text-[var(--status-success)]";
+  if (status === "failed") return "bg-[var(--status-danger)]/10 text-[var(--status-danger)]";
+  return "bg-muted text-muted-foreground";
+}
+
+export default function AiDefaultsPage() {
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("providers");
+  const [expandedProviderId, setExpandedProviderId] = useState<number | null>(null);
+  const [providerForm, setProviderForm] = useState<ProviderFormState>(emptyProviderForm);
+  const [providerModalOpen, setProviderModalOpen] = useState(false);
+  const [providerError, setProviderError] = useState("");
+  const [revealedKeys, setRevealedKeys] = useState<Record<number, string>>({});
+  const [routeDrafts, setRouteDrafts] = useState<RouteDraftState>({});
+  const [activePromptFeature, setActivePromptFeature] = useState("");
+  const [promptEditor, setPromptEditor] = useState("");
+  const [promptDescription, setPromptDescription] = useState("");
+  const [sampleInput, setSampleInput] = useState("Sample lead data:\n- Company: PT Nusantara Digital\n- Industry: Manufacturing\n- Need: CRM modernization");
+  const [compiledPrompt, setCompiledPrompt] = useState("");
+  const [addingModelFor, setAddingModelFor] = useState<number | null>(null);
+  const [newModelName, setNewModelName] = useState("");
+  const [newModelTier, setNewModelTier] = useState("medium");
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["settings-ai-default"],
     queryFn: async () => {
-      const r = await apiFetch("/ai-providers");
-      return r.json();
+      const response = await apiFetch("/settings/ai-default");
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || "Unable to load AI settings");
+      }
+      return (await response.json()) as AiSettingsResponse;
     },
   });
 
-  // ── Feature Routes (Priority Engine) ──
-  const { data: routesData, isLoading: routesLoading } = useQuery({
-    queryKey: ["ai-feature-routes"],
-    queryFn: async () => {
-      const r = await apiFetch("/ai-feature-routes");
-      return r.json();
+  const providers = data?.data.providers ?? [];
+  const featureCatalog = data?.data.feature_catalog ?? [];
+  const featureRoutes = data?.data.feature_routes ?? [];
+  const promptTemplates = data?.data.prompt_templates ?? [];
+  const usageOverview = data?.data.usage_overview;
+  const providerHealth = data?.data.provider_health ?? [];
+  const permissions = data?.data.permissions;
+
+  const modelOptions = useMemo(
+    () =>
+      providers.flatMap((provider) =>
+        provider.models
+          .filter((model) => model.status !== "deprecated")
+          .map((model) => ({
+            value: String(model.id),
+            label: `${provider.name} — ${model.name}`,
+          }))
+      ),
+    [providers]
+  );
+
+  useEffect(() => {
+    if (!featureCatalog.length) return;
+
+    setRouteDrafts(() => {
+      const next: RouteDraftState = {};
+
+      for (const feature of featureCatalog) {
+        const existing = featureRoutes.find((item) => item.feature_name === feature.key)?.routes ?? [];
+        next[feature.key] = Array.from({ length: 4 }, (_, index) => {
+          const route = existing.find((item) => item.priority === index + 1);
+          return {
+            priority: index + 1,
+            ai_model_id: route?.ai_model_id ? String(route.ai_model_id) : "",
+            timeout_seconds: String(route?.timeout_seconds ?? 30),
+            max_retries: String(route?.max_retries ?? 1),
+            cache_ttl_minutes: route?.cache_ttl_minutes ? String(route.cache_ttl_minutes) : "",
+            max_tokens: route?.max_tokens ? String(route.max_tokens) : "",
+            complexity_mode: route?.complexity_mode ?? "standard",
+            cost_sensitivity: route?.cost_sensitivity ?? "balanced",
+            is_active: route?.is_active ?? true,
+          };
+        });
+      }
+
+      return next;
+    });
+  }, [featureCatalog, featureRoutes]);
+
+  useEffect(() => {
+    if (!promptTemplates.length) return;
+    if (!activePromptFeature) {
+      const firstFeature = promptTemplates[0]?.feature_name ?? "";
+      setActivePromptFeature(firstFeature);
+    }
+  }, [promptTemplates, activePromptFeature]);
+
+  const selectedPromptTemplate = promptTemplates.find((item) => item.feature_name === activePromptFeature);
+
+  useEffect(() => {
+    if (!selectedPromptTemplate) return;
+    setPromptEditor(selectedPromptTemplate.active_version?.content ?? "");
+    setPromptDescription(selectedPromptTemplate.description ?? "");
+  }, [selectedPromptTemplate?.id]);
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["settings-ai-default"] });
+
+  const saveProviderMutation = useMutation({
+    mutationFn: async (payload: ProviderFormState) => {
+      const isEdit = Boolean(payload.id);
+      const url = isEdit ? `/settings/ai-default/providers/${payload.id}` : "/settings/ai-default/providers";
+      const method = isEdit ? "PUT" : "POST";
+      const response = await apiFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: payload.name,
+          slug: payload.slug,
+          provider_type: payload.provider_type,
+          base_url: payload.base_url || null,
+          api_key: payload.api_key || undefined,
+          organization_id: payload.organization_id || null,
+          project_id: payload.project_id || null,
+          default_model: payload.default_model || null,
+          status: payload.status,
+          timeout_seconds: Number(payload.timeout_seconds || 30),
+          retry_limit: Number(payload.retry_limit || 1),
+          max_tokens_default: payload.max_tokens_default ? Number(payload.max_tokens_default) : null,
+          cache_ttl_minutes: payload.cache_ttl_minutes ? Number(payload.cache_ttl_minutes) : null,
+          cost_sensitivity: payload.cost_sensitivity,
+        }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || "Unable to save provider");
+      }
+      return response.json();
     },
+    onSuccess: async () => {
+      await invalidate();
+      setProviderModalOpen(false);
+      setProviderForm(emptyProviderForm);
+      setProviderError("");
+    },
+    onError: (err: Error) => setProviderError(err.message),
   });
 
-  // ── Usage Summary — real ai_requests aggregation ──
-  const { data: usageData, isLoading: usageLoading } = useQuery({
-    queryKey: ["ai-usage-summary"],
-    queryFn: async () => {
-      const r = await apiFetch("/ai-providers/usage-summary");
-      return r.json() as Promise<{ data: UsageSummary }>;
-    },
-    enabled: tab === "usage",
-  });
-
-  const testMutation = useMutation({
+  const deleteProviderMutation = useMutation({
     mutationFn: async (id: number) => {
-      setTestingId(id);
-      const r = await apiFetch(`/ai-providers/${id}/test`, { method: "POST" });
-      return r.json();
+      const response = await apiFetch(`/settings/ai-default/providers/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Unable to delete provider");
     },
-    onSettled: () => setTestingId(null),
+    onSuccess: invalidate,
   });
 
-  // Map API response to local type
-  const providers: Provider[] = (providersData?.data || []).map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    slug: p.slug,
-    base_url: p.base_url || "",
-    is_active: p.status === "active",
-    has_key: !!p.api_key_masked && !p.api_key_masked?.includes("PLACEHOLDER"),
-    models: (p.models || []).map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      cost_tier: m.cost_tier || "medium",
-      is_active: m.status !== "deprecated",
-    })),
-  }));
+  const testProviderMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiFetch(`/settings/ai-default/providers/${id}/test`, { method: "POST" });
+      if (!response.ok) throw new Error("Connection test failed");
+      return response.json();
+    },
+    onSuccess: invalidate,
+  });
 
-  const routes: RouteConfig[] = (routesData?.data || []).map((rt: any) => ({
-    id: rt.id,
-    feature_name: rt.feature_name,
-    ai_model: rt.ai_model || { name: "—", provider: { name: "—", slug: "openai" } },
-    priority: rt.priority || 1,
-    is_active: rt.is_active ?? true,
-  }));
+  const revealKeyMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiFetch(`/settings/ai-default/providers/${id}/reveal-key`, { method: "POST" });
+      if (!response.ok) throw new Error("Unable to reveal key");
+      return response.json() as Promise<{ data: { provider_id: number; api_key: string } }>;
+    },
+    onSuccess: (payload) => {
+      setRevealedKeys((current) => ({ ...current, [payload.data.provider_id]: payload.data.api_key }));
+    },
+  });
 
-  // Group routes by feature name to display priority sequences
-  const routesByFeature = routes.reduce((acc: Record<string, RouteConfig[]>, route) => {
-      if (!acc[route.feature_name]) acc[route.feature_name] = [];
-      acc[route.feature_name].push(route);
-      return acc;
-  }, {});
+  const addModelMutation = useMutation({
+    mutationFn: async ({ providerId, name, cost_tier }: { providerId: number; name: string; cost_tier: string }) => {
+      const response = await apiFetch(`/settings/ai-default/providers/${providerId}/models`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, cost_tier, status: "active" }),
+      });
+      if (!response.ok) throw new Error("Unable to add model");
+      return response.json();
+    },
+    onSuccess: async () => {
+      await invalidate();
+      setAddingModelFor(null);
+      setNewModelName("");
+      setNewModelTier("medium");
+    },
+  });
 
-  const usage: UsageSummary | null = usageData?.data ?? null;
-  const maxProviderCost = Math.max(...(usage?.per_provider.map((p) => p.total_cost_usd) || [0]), 0.001);
+  const deleteModelMutation = useMutation({
+    mutationFn: async ({ providerId, modelId }: { providerId: number; modelId: number }) => {
+      const response = await apiFetch(`/settings/ai-default/providers/${providerId}/models/${modelId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Unable to delete model");
+    },
+    onSuccess: invalidate,
+  });
+
+  const saveRoutesMutation = useMutation({
+    mutationFn: async ({ featureName, routes }: { featureName: string; routes: RouteDraftState[string] }) => {
+      const payloadRoutes = routes
+        .filter((route) => route.ai_model_id)
+        .map((route) => ({
+          priority: route.priority,
+          ai_model_id: Number(route.ai_model_id),
+          timeout_seconds: Number(route.timeout_seconds || 30),
+          max_retries: Number(route.max_retries || 1),
+          cache_ttl_minutes: route.cache_ttl_minutes ? Number(route.cache_ttl_minutes) : null,
+          max_tokens: route.max_tokens ? Number(route.max_tokens) : null,
+          complexity_mode: route.complexity_mode,
+          cost_sensitivity: route.cost_sensitivity,
+          is_active: route.is_active,
+        }));
+
+      const response = await apiFetch(`/settings/ai-default/feature-routes/${featureName}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routes: payloadRoutes }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || "Unable to save routing");
+      }
+      return response.json();
+    },
+    onSuccess: invalidate,
+  });
+
+  const savePromptVersionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiFetch("/settings/ai-default/prompt-templates/versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feature_name: activePromptFeature,
+          template_name: selectedPromptTemplate?.template_name ?? "Default",
+          description: promptDescription,
+          content: promptEditor,
+        }),
+      });
+      if (!response.ok) throw new Error("Unable to save prompt version");
+      return response.json();
+    },
+    onSuccess: invalidate,
+  });
+
+  const activatePromptMutation = useMutation({
+    mutationFn: async (versionId: number) => {
+      const response = await apiFetch(`/settings/ai-default/prompt-templates/versions/${versionId}/activate`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Unable to activate prompt version");
+      return response.json();
+    },
+    onSuccess: invalidate,
+  });
+
+  const previewPromptMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiFetch("/settings/ai-default/prompt-templates/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feature_name: activePromptFeature,
+          sample_input: sampleInput,
+          content: promptEditor,
+        }),
+      });
+      if (!response.ok) throw new Error("Unable to preview prompt");
+      return response.json() as Promise<{ data: { compiled_prompt: string } }>;
+    },
+    onSuccess: (payload) => setCompiledPrompt(payload.data.compiled_prompt),
+  });
+
+  const openCreateProvider = () => {
+    setProviderForm(emptyProviderForm);
+    setProviderError("");
+    setProviderModalOpen(true);
+  };
+
+  const openEditProvider = (provider: Provider) => {
+    setProviderForm({
+      id: provider.id,
+      name: provider.name,
+      slug: provider.slug,
+      provider_type: provider.provider_type,
+      base_url: provider.base_url ?? "",
+      api_key: "",
+      organization_id: provider.organization_id ?? "",
+      project_id: provider.project_id ?? "",
+      default_model: provider.default_model ?? "",
+      status: provider.status,
+      timeout_seconds: String(provider.timeout_seconds ?? 30),
+      retry_limit: String(provider.retry_limit ?? 1),
+      max_tokens_default: provider.max_tokens_default ? String(provider.max_tokens_default) : "",
+      cache_ttl_minutes: provider.cache_ttl_minutes ? String(provider.cache_ttl_minutes) : "",
+      cost_sensitivity: provider.cost_sensitivity ?? "balanced",
+    });
+    setProviderError("");
+    setProviderModalOpen(true);
+  };
+
+  const copyKey = async (providerId: number) => {
+    const value = revealedKeys[providerId];
+    if (!value) return;
+    await apiFetch(`/settings/ai-default/providers/${providerId}/copy-key-audit`, { method: "POST" });
+    await navigator.clipboard.writeText(value);
+  };
+
+  const updateRouteDraft = (featureName: string, priority: number, field: string, value: string | boolean) => {
+    setRouteDrafts((current) => ({
+      ...current,
+      [featureName]: (current[featureName] ?? []).map((route) =>
+        route.priority === priority ? { ...route, [field]: value } : route
+      ),
+    }));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="space-y-4 p-6">
+        <Link href="/settings" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Back to Settings
+        </Link>
+        <div className="rounded-3xl border border-[var(--status-danger)]/20 bg-[var(--status-danger)]/5 p-6">
+          <p className="font-semibold text-[var(--status-danger)]">Unable to load AI Defaults</p>
+          <p className="mt-2 text-sm text-muted-foreground">{(error as Error)?.message ?? "Unknown error"}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/settings" className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"><ArrowLeft className="h-4 w-4" /></Link>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">AI Defaults</h1>
-            <p className="text-sm text-muted-foreground">Multi-provider AI orchestration — BRD §3.10, §11</p>
+      <div className="rounded-[2rem] border border-border bg-[radial-gradient(circle_at_top_left,rgba(15,118,110,0.18),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,245,0.96))] p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Link href="/settings" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" /> Settings
+            </Link>
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-[var(--brand)] shadow-sm">
+                <Shield className="h-3.5 w-3.5" />
+                Centralized AI control center
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight">AI Default</h1>
+              <p className="max-w-3xl text-sm text-muted-foreground">
+                One place for providers, API keys, feature routing, prompt control, and health oversight. Existing AI features keep using the same runtime, but the settings now live here.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm">
+              <p className="text-xs font-medium text-muted-foreground">Providers Configured</p>
+              <p className="mt-2 text-2xl font-semibold">{providers.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm">
+              <p className="text-xs font-medium text-muted-foreground">Fallback Events</p>
+              <p className="mt-2 text-2xl font-semibold">{usageOverview?.summary.fallback_count ?? 0}</p>
+            </div>
+            <div className="rounded-2xl border border-white/70 bg-white/80 p-4 shadow-sm">
+              <p className="text-xs font-medium text-muted-foreground">Last Used Route</p>
+              <p className="mt-2 text-sm font-semibold">
+                {usageOverview?.summary.last_used_provider ?? "—"}
+                {usageOverview?.summary.last_used_model ? ` / ${usageOverview.summary.last_used_model}` : ""}
+              </p>
+            </div>
           </div>
         </div>
-        <button
-          onClick={() => alert("Add Provider: Configure via Settings → Integrations (API key required)")}
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-3 py-2 text-xs font-medium text-white shadow-lg shadow-indigo-500/25"
-        >
-          <Plus className="h-3.5 w-3.5" /> Add Provider
-        </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-4 border-b border-border">
-        {(["providers", "routing", "usage"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`border-b-2 px-1 pb-2.5 text-sm font-medium capitalize transition-colors ${
-              tab === t ? "border-indigo-500 text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        {tabs.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.key}
+              onClick={() => setTab(item.key)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition",
+                tab === item.key
+                  ? "bg-[var(--brand)] text-white shadow-lg shadow-[var(--brand)]/20"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── Providers Tab ── */}
       {tab === "providers" && (
-        <div className="space-y-3">
-          {providersLoading ? (
-            <div className="py-16 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
-          ) : providers.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-12 text-center">
-              <Bot className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-              <p className="text-sm font-medium text-muted-foreground">No AI providers configured</p>
-              <p className="mt-1 text-xs text-muted-foreground">Seed the database or add providers via Settings → AI Defaults</p>
+        <div className="space-y-4">
+          <div className={cn(SECTION, "p-5")}>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Provider Registry</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Add providers, manage credentials, reveal masked keys when authorized, and test connection health.
+                </p>
+              </div>
+              <Button variant="brand" size="compact" onClick={openCreateProvider}>
+                <Plus className="h-4 w-4" /> Add Provider
+              </Button>
             </div>
-          ) : (
-            providers.map((provider) => {
-              const expanded = expandedId === provider.id;
-              return (
-                <div key={provider.id} className="rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md">
-                  <div className="flex items-center gap-4 px-5 py-4 cursor-pointer" onClick={() => setExpandedId(expanded ? null : provider.id)}>
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${providerColors[provider.slug] ?? "from-gray-400 to-gray-600"} shadow-lg`}>
-                      <Bot className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-semibold">{provider.name}</h3>
-                        <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", provider.is_active ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground")}>
-                          {provider.is_active ? "Active" : "Inactive"}
-                        </span>
-                        {!provider.has_key && (
-                          <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-500">
-                            <AlertCircle className="h-3 w-3" /> No API Key
-                          </span>
-                        )}
+          </div>
+
+          {providers.map((provider) => {
+            const expanded = expandedProviderId === provider.id;
+            const revealed = revealedKeys[provider.id];
+            return (
+              <div key={provider.id} className={cn(SECTION, "overflow-hidden")}>
+                <button
+                  onClick={() => setExpandedProviderId(expanded ? null : provider.id)}
+                  className="flex w-full items-start justify-between gap-4 p-5 text-left"
+                >
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(15,118,110,0.18),rgba(193,255,114,0.28))] text-[var(--brand)]">
+                        <Bot className="h-5 w-5" />
                       </div>
-                      <p className="text-xs text-muted-foreground font-mono">{provider.base_url || "—"}</p>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-semibold">{provider.name}</h3>
+                          <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", provider.enabled ? "bg-[var(--status-success)]/10 text-[var(--status-success)]" : "bg-muted text-muted-foreground")}>
+                            {provider.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                          <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", providerBadge(provider.last_test_status))}>
+                            {provider.last_test_status ? `Last test: ${provider.last_test_status}` : "Not tested"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                          {provider.provider_type} • Default model: {provider.default_model || "—"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">{provider.models.length} models</span>
-                      {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 xl:grid-cols-4">
+                      <div>Masked key: <span className="font-mono text-foreground">{revealed ? `${revealed.slice(0, 6)}...` : provider.api_key_masked}</span></div>
+                      <div>Last used: <span className="text-foreground">{fmtDate(provider.last_used_at)}</span></div>
+                      <div>Last used model: <span className="text-foreground">{provider.last_used_model || "—"}</span></div>
+                      <div>Base URL: <span className="text-foreground">{provider.base_url || "—"}</span></div>
                     </div>
                   </div>
+                  {expanded ? <ChevronUp className="mt-1 h-5 w-5 text-muted-foreground" /> : <ChevronDown className="mt-1 h-5 w-5 text-muted-foreground" />}
+                </button>
 
-                  {expanded && (
-                    <div className="border-t border-border px-5 py-4 space-y-4">
-                      {/* Models */}
-                      <div>
-                        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Registered Models</h4>
-                        <div className="space-y-1.5">
-                          {provider.models.map((model) => (
-                            <div key={model.id} className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2">
-                              <div className="flex items-center gap-2">
-                                <div className={cn("h-1.5 w-1.5 rounded-full", model.is_active ? "bg-emerald-500" : "bg-muted-foreground")} />
-                                <span className="text-xs font-medium font-mono">{model.name}</span>
+                {expanded && (
+                  <div className="border-t border-border/70 bg-muted/15 p-5">
+                    <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                      <div className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="rounded-2xl border border-border bg-background/80 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Credential Management</p>
+                            <div className="mt-3 space-y-2 text-sm">
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-muted-foreground">Visibility</span>
+                                <span>{provider.api_key_visibility_mode === "masked_with_reveal" ? "Masked + reveal" : "Masked only"}</span>
                               </div>
-                              <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", costTierColors[model.cost_tier])}>
-                                {model.cost_tier}
-                              </span>
+                              <div className="flex items-center justify-between gap-4">
+                                <span className="text-muted-foreground">API key</span>
+                                <span className="font-mono">{revealed || provider.api_key_masked}</span>
+                              </div>
+                              <div className="flex flex-wrap gap-2 pt-2">
+                                {provider.can_reveal_key && (
+                                  <button
+                                    onClick={() =>
+                                      revealed
+                                        ? setRevealedKeys((current) => ({ ...current, [provider.id]: "" }))
+                                        : revealKeyMutation.mutate(provider.id)
+                                    }
+                                    className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                                  >
+                                    {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                    {revealed ? "Hide key" : "Reveal key"}
+                                  </button>
+                                )}
+                                {provider.can_reveal_key && revealed && (
+                                  <button
+                                    onClick={() => copyKey(provider.id)}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                                  >
+                                    <Clipboard className="h-3.5 w-3.5" />
+                                    Copy key
+                                  </button>
+                                )}
+                              </div>
+                              {!provider.can_reveal_key && (
+                                <p className="rounded-xl bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] p-3 text-xs text-[var(--status-warning)]">
+                                  Full reveal is limited to admin-authorized roles and every reveal or copy is audit logged.
+                                </p>
+                              )}
                             </div>
-                          ))}
+                          </div>
+
+                          <div className="rounded-2xl border border-border bg-background/80 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Execution Controls</p>
+                            <div className="mt-3 space-y-2 text-sm">
+                              <div className="flex items-center justify-between"><span className="text-muted-foreground">Timeout</span><span>{provider.timeout_seconds ?? 30}s</span></div>
+                              <div className="flex items-center justify-between"><span className="text-muted-foreground">Retry limit</span><span>{provider.retry_limit ?? 1}</span></div>
+                              <div className="flex items-center justify-between"><span className="text-muted-foreground">Cache TTL</span><span>{provider.cache_ttl_minutes ? `${provider.cache_ttl_minutes} min` : "—"}</span></div>
+                              <div className="flex items-center justify-between"><span className="text-muted-foreground">Cost sensitivity</span><span>{provider.cost_sensitivity ?? "balanced"}</span></div>
+                              <div className="flex items-center justify-between"><span className="text-muted-foreground">Last tested</span><span>{fmtDate(provider.last_tested_at)}</span></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-border bg-background/80 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Models</p>
+                              <p className="mt-1 text-sm text-muted-foreground">Default model, available routing targets, and cost profile.</p>
+                            </div>
+                            <button
+                              onClick={() => setAddingModelFor(addingModelFor === provider.id ? null : provider.id)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Add Model
+                            </button>
+                          </div>
+                          <div className="mt-4 space-y-2">
+                            {provider.models.map((model) => (
+                              <div key={model.id} className="flex items-center justify-between rounded-2xl border border-border/70 px-4 py-3 text-sm">
+                                <div>
+                                  <p className="font-medium">{model.name}</p>
+                                  <p className="text-xs text-muted-foreground">{model.cost_tier ?? "medium"} tier</p>
+                                </div>
+                                <button
+                                  onClick={() => deleteModelMutation.mutate({ providerId: provider.id, modelId: model.id })}
+                                  className="rounded-xl border border-[var(--status-danger)]/20 px-3 py-2 text-xs font-medium text-[var(--status-danger)] hover:bg-[var(--status-danger)]/10"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {addingModelFor === provider.id && (
+                            <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-muted/20 p-4 md:grid-cols-[1fr_180px_auto]">
+                              <Input value={newModelName} onChange={(e) => setNewModelName(e.target.value)} placeholder="e.g. gpt-4.1-mini" />
+                              <Select value={newModelTier} onChange={(e) => setNewModelTier(e.target.value)}>
+                                <option value="low">Low cost</option>
+                                <option value="medium">Medium cost</option>
+                                <option value="high">High cost</option>
+                              </Select>
+                              <Button variant="brand" size="compact" disabled={!newModelName || addModelMutation.isPending}
+                                onClick={() => addModelMutation.mutate({ providerId: provider.id, name: newModelName, cost_tier: newModelTier })}>
+                                {addModelMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                Save
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => testMutation.mutate(provider.id)}
-                          disabled={testingId === provider.id || !provider.has_key}
-                          className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-40"
-                        >
-                          {testingId === provider.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
-                          Test Connection
-                        </button>
-                        {!provider.has_key && (
-                          <p className="text-xs text-amber-500">Configure API key in Settings → Integrations to enable</p>
-                        )}
+                      <div className="space-y-4">
+                        <div className="rounded-2xl border border-border bg-background/80 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Provider Actions</p>
+                          <div className="mt-4 grid gap-2">
+                            <Button variant="outline" size="sm" className="justify-center" onClick={() => testProviderMutation.mutate(provider.id)}>
+                              {testProviderMutation.isPending && testProviderMutation.variables === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube2 className="h-4 w-4" />}
+                              Test connection
+                            </Button>
+                            <Button variant="outline" size="sm" className="justify-center" onClick={() => openEditProvider(provider)}>
+                              <Pencil className="h-4 w-4" /> Edit provider
+                            </Button>
+                            <Button variant="danger" size="sm" className="justify-center" onClick={() => deleteProviderMutation.mutate(provider.id)}>
+                              <Trash2 className="h-4 w-4" /> Delete provider
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-border bg-background/80 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Audit Notes</p>
+                          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                            <li>API keys are masked by default in every list and detail view.</li>
+                            <li>Reveal and copy actions are permission checked and audit logged.</li>
+                            <li>Connection tests store status, latency, and timestamp for provider health.</li>
+                          </ul>
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              );
-            })
-          )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* ── Routing Tab ── */}
       {tab === "routing" && (
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">Configure which model handles each AI function, with automatic fallback</p>
-          {routesLoading ? (
-            <div className="py-16 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
-          ) : routes.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-12 text-center">
-              <Zap className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">No routing rules configured yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">Routing rules map AI functions to specific models</p>
-            </div>
-          ) : (
-            Object.entries(routesByFeature).map(([featureName, featureRoutes]) => (
-              <div key={featureName} className="flex flex-col gap-3 rounded-xl border border-border bg-card px-5 py-4 shadow-sm">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/10">
-                      <Zap className="h-4 w-4 text-indigo-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold font-mono">{featureName}</p>
-                      <p className="text-xs text-muted-foreground">Priority Engine Fallback Sequence</p>
-                    </div>
+        <div className="space-y-4">
+          <div className={cn(SECTION, "p-5")}>
+            <h2 className="text-xl font-semibold">Feature Routing</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Each feature can define up to four ordered providers/models. Only one executes per request, and lower priorities are used only when higher priorities fail.
+            </p>
+          </div>
+
+          {featureCatalog.map((feature) => {
+            const draft = routeDrafts[feature.key] ?? [];
+            return (
+              <div key={feature.key} className={cn(SECTION, "p-5")}>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{feature.label}</h3>
+                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">{feature.key}</p>
                   </div>
+                  <Button variant="brand" size="compact" onClick={() => saveRoutesMutation.mutate({ featureName: feature.key, routes: draft })}>
+                    {saveRoutesMutation.isPending && saveRoutesMutation.variables?.featureName === feature.key ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    Save routing
+                  </Button>
                 </div>
-                <div className="space-y-2 mt-1">
-                  {featureRoutes.sort((a, b) => a.priority - b.priority).map((route) => (
-                    <div key={route.id} className="flex items-center justify-between rounded-md border border-border/50 bg-muted/20 px-3 py-2">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-500">
-                          {route.priority}
-                        </span>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-medium text-foreground">{route.ai_model.provider.name} — {route.ai_model.name}</span>
-                        </div>
+
+                <div className="mt-4 grid gap-4">
+                  {draft.map((route) => (
+                    <div key={`${feature.key}-${route.priority}`} className="grid gap-3 rounded-2xl border border-border bg-background/80 p-4 lg:grid-cols-[90px_1.2fr_repeat(5,140px)_110px]">
+                      <div className="rounded-2xl bg-muted px-3 py-2 text-center">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Priority</p>
+                        <p className="mt-1 text-xl font-semibold">{route.priority}</p>
                       </div>
-                      <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide", route.is_active ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground")}>
-                        {route.is_active ? "ACTIVE" : "DISABLED"}
-                      </span>
+                      <Select value={route.ai_model_id} onChange={(e) => updateRouteDraft(feature.key, route.priority, "ai_model_id", e.target.value)}>
+                        <option value="">Unassigned</option>
+                        {modelOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </Select>
+                      <Input value={route.timeout_seconds} onChange={(e) => updateRouteDraft(feature.key, route.priority, "timeout_seconds", e.target.value)} placeholder="Timeout" />
+                      <Input value={route.max_retries} onChange={(e) => updateRouteDraft(feature.key, route.priority, "max_retries", e.target.value)} placeholder="Retry" />
+                      <Input value={route.cache_ttl_minutes} onChange={(e) => updateRouteDraft(feature.key, route.priority, "cache_ttl_minutes", e.target.value)} placeholder="Cache TTL" />
+                      <Input value={route.max_tokens} onChange={(e) => updateRouteDraft(feature.key, route.priority, "max_tokens", e.target.value)} placeholder="Max tokens" />
+                      <Select value={route.complexity_mode} onChange={(e) => updateRouteDraft(feature.key, route.priority, "complexity_mode", e.target.value)}>
+                        <option value="standard">Standard</option>
+                        <option value="lightweight">Lightweight</option>
+                        <option value="deep_reasoning">Deep reasoning</option>
+                      </Select>
+                      <label className="flex items-center justify-center gap-2 rounded-2xl border border-border px-3 py-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={route.is_active}
+                          onChange={(e) => updateRouteDraft(feature.key, route.priority, "is_active", e.target.checked)}
+                        />
+                        Enabled
+                      </label>
                     </div>
                   ))}
                 </div>
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
       )}
 
-      {/* ── Usage Tab — Real ai_requests data ── */}
+      {tab === "prompts" && (
+        <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
+          <div className={cn(SECTION, "p-4")}>
+            <h2 className="text-lg font-semibold">Prompt Templates</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Versioned prompt control per feature with activation history.</p>
+            <div className="mt-4 space-y-2">
+              {promptTemplates.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => setActivePromptFeature(template.feature_name)}
+                  className={cn(
+                    "w-full rounded-2xl border px-4 py-3 text-left transition",
+                    activePromptFeature === template.feature_name
+                      ? "border-[var(--brand)] bg-[var(--brand)]/5"
+                      : "border-border bg-background/70 hover:border-[var(--brand)]/30"
+                  )}
+                >
+                  <p className="font-medium">{featureCatalog.find((item) => item.key === template.feature_name)?.label ?? template.feature_name}</p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Active v{template.active_version?.version ?? "—"}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className={cn(SECTION, "p-5")}>
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    {featureCatalog.find((item) => item.key === activePromptFeature)?.label ?? "Prompt Template"}
+                  </h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Prompt edits create a new version. Nothing is overwritten silently, and activation is explicit.
+                  </p>
+                </div>
+                <div className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                  Active version: {selectedPromptTemplate?.active_version?.version ?? "—"}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4">
+                <Input value={promptDescription} onChange={(e) => setPromptDescription(e.target.value)} placeholder="Template description" />
+                <Textarea rows={18} value={promptEditor} onChange={(e) => setPromptEditor(e.target.value)} />
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="brand" size="compact" onClick={() => savePromptVersionMutation.mutate()}>
+                    {savePromptVersionMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save as new version
+                  </Button>
+                  <Button variant="soft" size="compact" onClick={() => previewPromptMutation.mutate()}>
+                    {previewPromptMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    Preview compiled prompt
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+              <div className={cn(SECTION, "p-5")}>
+                <h4 className="text-lg font-semibold">Version History</h4>
+                <div className="mt-4 space-y-3">
+                  {selectedPromptTemplate?.versions.map((version) => (
+                    <div key={version.id} className="rounded-2xl border border-border bg-background/80 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium">Version {version.version}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Created {fmtDate(version.created_at)}{version.activated_at ? ` • Activated ${fmtDate(version.activated_at)}` : ""}
+                          </p>
+                        </div>
+                        {version.is_active ? (
+                          <span className="rounded-full bg-[var(--status-success)]/10 px-2.5 py-1 text-xs font-semibold text-[var(--status-success)]">Active</span>
+                        ) : (
+                          <Button variant="soft" size="compact" onClick={() => activatePromptMutation.mutate(version.id)}>
+                            Activate
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={cn(SECTION, "p-5")}>
+                <h4 className="text-lg font-semibold">Prompt Preview</h4>
+                <Textarea rows={6} value={sampleInput} onChange={(e) => setSampleInput(e.target.value)} />
+                <Textarea rows={14} className="mt-4 font-mono text-xs" value={compiledPrompt} readOnly placeholder="Compiled prompt preview will appear here." />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {tab === "usage" && (
         <div className="space-y-4">
-          {usageLoading ? (
-            <div className="py-16 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
-          ) : !usage?.summary.has_data ? (
-            <div className="rounded-xl border border-border bg-card p-12 text-center">
-              <Activity className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-              <p className="text-sm font-medium text-muted-foreground">No AI requests logged yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Usage statistics will appear here once the system starts processing leads with AI scoring.
-              </p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className={cn(SECTION, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Calls</p>
+              <p className="mt-3 text-3xl font-semibold">{usageOverview?.summary.total_calls ?? 0}</p>
             </div>
-          ) : (
-            <>
-              {/* Summary cards — real data from ai_requests */}
-              <div className="grid gap-3 sm:grid-cols-4">
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <p className="text-xs font-medium text-muted-foreground">Total Calls</p>
-                  <p className="mt-1 text-xl font-bold">{usage.summary.total_calls.toLocaleString()}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <p className="text-xs font-medium text-muted-foreground">Total Cost</p>
-                  <p className="mt-1 text-xl font-bold text-emerald-500">${usage.summary.total_cost_usd.toFixed(4)}</p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <p className="text-xs font-medium text-muted-foreground">Success Rate</p>
-                  <p className="mt-1 text-xl font-bold">
-                    {usage.summary.success_rate !== null ? `${usage.summary.success_rate}%` : "—"}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                  <p className="text-xs font-medium text-muted-foreground">Avg Latency</p>
-                  <p className="mt-1 text-xl font-bold">
-                    {usage.summary.avg_latency_ms !== null ? `${usage.summary.avg_latency_ms}ms` : "—"}
-                  </p>
-                </div>
-              </div>
+            <div className={cn(SECTION, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Cost</p>
+              <p className="mt-3 text-3xl font-semibold">${usageOverview?.summary.total_cost_usd.toFixed(4) ?? "0.0000"}</p>
+            </div>
+            <div className={cn(SECTION, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Success Rate</p>
+              <p className="mt-3 text-3xl font-semibold">{usageOverview?.summary.success_rate ?? 0}%</p>
+            </div>
+            <div className={cn(SECTION, "p-5")}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Fallback Count</p>
+              <p className="mt-3 text-3xl font-semibold">{usageOverview?.summary.fallback_count ?? 0}</p>
+            </div>
+          </div>
 
-              {/* Cost breakdown by provider */}
-              <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                <h3 className="mb-3 text-xl font-semibold">Cost Breakdown by Provider</h3>
-                <div className="space-y-3">
-                  {usage.per_provider.map((p) => {
-                    const pct = maxProviderCost > 0 ? (p.total_cost_usd / maxProviderCost) * 100 : 0;
-                    return (
-                      <div key={p.provider_id}>
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="font-medium">{p.provider_name}</span>
-                          <span className="text-muted-foreground">${p.total_cost_usd.toFixed(4)} · {p.total_calls.toLocaleString()} calls</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full bg-gradient-to-r ${providerColors[p.provider_slug] ?? "from-gray-400 to-gray-600"}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
+          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className={cn(SECTION, "p-5")}>
+              <h2 className="text-xl font-semibold">Usage Overview</h2>
+              <div className="mt-4 space-y-3">
+                {usageOverview?.per_provider.map((item) => (
+                  <div key={item.provider_id} className="rounded-2xl border border-border bg-background/80 p-4">
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="font-medium">{item.provider_name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.total_calls} calls • {item.fallback_count} fallbacks • Last used {fmtDate(item.last_used_at)}
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="text-sm text-muted-foreground">
+                        ${(item.total_cost_usd ?? 0).toFixed(4)} • {item.success_rate ?? 0}% success • {item.avg_latency_ms ?? 0}ms avg
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </>
-          )}
+            </div>
+
+            <div className={cn(SECTION, "p-5")}>
+              <h2 className="text-xl font-semibold">Health Snapshot</h2>
+              <div className="mt-4 space-y-3">
+                {providerHealth.map((item) => (
+                  <div key={item.provider_id} className="rounded-2xl border border-border bg-background/80 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{item.provider_name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Last tested {fmtDate(item.last_tested_at)} • Last used {fmtDate(item.last_used_at)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", item.enabled ? "bg-[var(--status-success)]/10 text-[var(--status-success)]" : "bg-muted text-muted-foreground")}>
+                          {item.enabled ? "Enabled" : "Disabled"}
+                        </span>
+                        <p className="mt-2 text-xs text-muted-foreground">{item.last_test_status ?? "No test recorded"}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
+
+      <Modal
+        open={providerModalOpen}
+        onClose={() => setProviderModalOpen(false)}
+        title={providerForm.id ? "Edit Provider" : "Add Provider"}
+        description="This form centralizes credential management under Settings → AI Default."
+        size="lg"
+        scrollable
+        footer={
+          <>
+            <Button variant="soft" size="compact" onClick={() => setProviderModalOpen(false)}>Cancel</Button>
+            <Button variant="brand" size="compact" onClick={() => saveProviderMutation.mutate(providerForm)}>
+              {saveProviderMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Save provider
+            </Button>
+          </>
+        }
+      >
+        {providerError && (
+          <div className="rounded-2xl border border-[var(--status-danger)]/20 bg-[var(--status-danger)]/5 px-4 py-3 text-sm text-[var(--status-danger)]">
+            {providerError}
+          </div>
+        )}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Input placeholder="Provider name" value={providerForm.name} onChange={(e) => setProviderForm((current) => ({ ...current, name: e.target.value }))} />
+          <Input placeholder="Slug" value={providerForm.slug} onChange={(e) => setProviderForm((current) => ({ ...current, slug: e.target.value }))} disabled={Boolean(providerForm.id)} />
+          <Select value={providerForm.provider_type} onChange={(e) => setProviderForm((current) => ({ ...current, provider_type: e.target.value }))}>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic / Claude</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="custom">Custom / Local</option>
+          </Select>
+          <Select value={providerForm.status} onChange={(e) => setProviderForm((current) => ({ ...current, status: e.target.value as "active" | "inactive" }))}>
+            <option value="active">Enabled</option>
+            <option value="inactive">Disabled</option>
+          </Select>
+          <Input placeholder="Base URL" value={providerForm.base_url} onChange={(e) => setProviderForm((current) => ({ ...current, base_url: e.target.value }))} />
+          <Input placeholder={providerForm.id ? "New API key (leave blank to keep current)" : "API key"} value={providerForm.api_key} onChange={(e) => setProviderForm((current) => ({ ...current, api_key: e.target.value }))} />
+          <Input placeholder="Organization ID" value={providerForm.organization_id} onChange={(e) => setProviderForm((current) => ({ ...current, organization_id: e.target.value }))} />
+          <Input placeholder="Project ID" value={providerForm.project_id} onChange={(e) => setProviderForm((current) => ({ ...current, project_id: e.target.value }))} />
+          <Input placeholder="Default model" value={providerForm.default_model} onChange={(e) => setProviderForm((current) => ({ ...current, default_model: e.target.value }))} />
+          <Select value={providerForm.cost_sensitivity} onChange={(e) => setProviderForm((current) => ({ ...current, cost_sensitivity: e.target.value }))}>
+            <option value="balanced">Balanced</option>
+            <option value="cost_first">Cost first</option>
+            <option value="quality_first">Quality first</option>
+          </Select>
+          <Input placeholder="Timeout seconds" value={providerForm.timeout_seconds} onChange={(e) => setProviderForm((current) => ({ ...current, timeout_seconds: e.target.value }))} />
+          <Input placeholder="Retry limit" value={providerForm.retry_limit} onChange={(e) => setProviderForm((current) => ({ ...current, retry_limit: e.target.value }))} />
+          <Input placeholder="Max tokens default" value={providerForm.max_tokens_default} onChange={(e) => setProviderForm((current) => ({ ...current, max_tokens_default: e.target.value }))} />
+          <Input placeholder="Cache TTL minutes" value={providerForm.cache_ttl_minutes} onChange={(e) => setProviderForm((current) => ({ ...current, cache_ttl_minutes: e.target.value }))} />
+        </div>
+      </Modal>
     </div>
   );
 }

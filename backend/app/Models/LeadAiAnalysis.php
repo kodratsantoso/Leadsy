@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class LeadAiAnalysis extends Model
 {
     protected $fillable = [
-        'lead_id', 'relevance_score', 'business_opportunity_summary',
-        'probable_needs', 'suggested_approach', 'urgency_level',
+        'lead_id', 'relevance_score', 'company_summary', 'business_opportunity_summary',
+        'potential_use_case', 'probable_needs', 'suggested_approach', 'risk_insight', 'urgency_level',
         'confidence_score',
     ];
 

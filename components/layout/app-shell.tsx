@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Map, Building2, Package, Layers,
-  FileText, MessageSquare, Settings,
-  ChevronLeft, ChevronRight, Search, LogOut, ChevronDown
+  FileText, MessageSquare, Settings, ClipboardCheck,
+  ChevronLeft, ChevronRight, Search, LogOut, ChevronDown,
+  MapPin, Target
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -18,6 +19,9 @@ const navItems = [
   { href: "/",                icon: LayoutDashboard, label: "Dashboard" },
   { href: "/map",             icon: Map,             label: "Map & Territory" },
   { href: "/leads",           icon: Building2,       label: "Leads" },
+  { href: "/qualification",   icon: ClipboardCheck,  label: "Qualification" },
+  { href: "/territories",     icon: MapPin,          label: "Territories" },
+  { href: "/icp-profiles",    icon: Target,          label: "ICP Profiles" },
   { href: "/products",        icon: Package,         label: "Products" },
   { href: "/industries",      icon: Layers,          label: "Industries" },
   { href: "/whatsapp",        icon: MessageSquare,   label: "WhatsApp" },
@@ -35,9 +39,9 @@ function ThemedLogo({ collapsed }: { collapsed: boolean }) {
         <Image
           src={src}
           alt="Leadsy"
-          width={32}
-          height={32}
-          className="h-8 w-8 object-contain"
+          width={40}
+          height={40}
+          className="h-10 w-10 object-contain"
           priority
         />
       </Link>
@@ -49,9 +53,9 @@ function ThemedLogo({ collapsed }: { collapsed: boolean }) {
       <Image
         src={src}
         alt="Leadsy"
-        width={120}
-        height={32}
-        className="h-8 w-auto object-contain"
+        width={320}
+        height={80}
+        className="h-20 w-auto object-contain"
         priority
       />
     </Link>
@@ -86,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       >
         {/* Logo area */}
-        <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-3">
+        <div className="flex h-20 items-center justify-between border-b border-sidebar-border px-3">
           <ThemedLogo collapsed={collapsed} />
         </div>
 
@@ -150,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full avatar-brand text-xs font-bold text-white">
                   {user?.name?.charAt(0)?.toUpperCase() ?? "?"}
                 </div>
                 {user && (
@@ -171,7 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <div className="p-1">
                     <button
                       onClick={() => { setUserMenuOpen(false); logout(); }}
-                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/10"
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
                     >
                       <LogOut className="h-3.5 w-3.5" />
                       Sign Out

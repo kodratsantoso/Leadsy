@@ -81,7 +81,7 @@ export default function NotificationsPage() {
                   disabled={isSaving}
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
                     enabled
-                      ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                      ? "bg-[var(--status-success)]/10 text-[var(--status-success)] hover:bg-[var(--status-success)]/20"
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >

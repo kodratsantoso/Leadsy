@@ -35,6 +35,7 @@ class ProductController extends Controller
         ]);
 
         $data['created_by'] = $request->user()?->id;
+        $data['tenant_id'] = $request->user()?->tenant_id;
         $product = Product::create($data);
 
         AuditService::logCreated('products', $product);

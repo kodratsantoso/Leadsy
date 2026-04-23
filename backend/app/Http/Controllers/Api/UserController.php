@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Permission;
 use App\Models\User;
 use App\Models\Role;
 use App\Services\AuditService;
@@ -79,6 +80,13 @@ class UserController extends Controller
         ]);
     }
 
+    public function permissions(): JsonResponse
+    {
+        return response()->json([
+            'data' => Permission::orderBy('module')->orderBy('display_name')->get(),
+        ]);
+    }
+
     public function storeRole(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -121,5 +129,17 @@ class UserController extends Controller
         AuditService::logUpdated('roles', $role, $original);
 
         return response()->json(['data' => $role->load('permissions')]);
+    }
+
+    public function destroyRole(Role $role): JsonResponse
+    {
+        if ($role->users()->exists()) {
+            return response()->json(['message' => 'Cannot delete role: users are assigned to it.'], 422);
+        }
+
+        AuditService::logDeleted('roles', $role);
+        $role->delete();
+
+        return response()->json(null, 204);
     }
 }

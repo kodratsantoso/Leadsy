@@ -4,7 +4,7 @@ namespace App\Services\Lead;
 
 use App\Models\Lead;
 use App\Models\LeadQualification;
-use App\Services\AiOrchestrationService;
+use App\Services\AI\AiOrchestrationService;
 use Carbon\Carbon;
 
 /**
@@ -20,7 +20,10 @@ use Carbon\Carbon;
  */
 class LeadQualificationService
 {
-    public function __construct(private AiOrchestrationService $ai)
+    public function __construct(
+        private AiOrchestrationService $ai,
+        private QualificationRuleEngineService $engine,
+    )
     {
     }
 
@@ -45,9 +48,16 @@ class LeadQualificationService
         // Step 3: Persist qualification
         $qualification = $lead->qualifications()->create([
             'qualified' => $finalQualification['qualified'],
+            'classification' => $finalQualification['classification'],
+            'score' => $ruleQualification['evaluation']['score'] ?? null,
             'business_type' => $finalQualification['business_type'],
             'company_size_band' => $finalQualification['company_size_band'],
             'qualification_reason' => $finalQualification['reason'],
+            'dimension_breakdown' => $ruleQualification['evaluation']['dimension_breakdown'] ?? null,
+            'risk_flags' => $ruleQualification['evaluation']['risk_flags'] ?? null,
+            'hard_stops' => $ruleQualification['evaluation']['hard_stops'] ?? null,
+            'recommendation' => $ruleQualification['evaluation']['recommendation'] ?? null,
+            'evaluation_snapshot' => $ruleQualification['evaluation']['input_snapshot'] ?? null,
             'last_qualified_at' => Carbon::now(),
         ]);
 
@@ -59,7 +69,9 @@ class LeadQualificationService
         ];
 
         $lead->update([
-            'qualification_status' => $statusMap[$finalQualification['qualified']] ?? 'pending',
+            'qualification_status' => $finalQualification['classification'] === 'need_review'
+                ? 'pending'
+                : ($statusMap[$finalQualification['qualified']] ?? 'pending'),
         ]);
 
         return $qualification;
@@ -71,80 +83,22 @@ class LeadQualificationService
      */
     private function applyQualificationRules(Lead $lead): array
     {
-        $qualificationScore = 0;
-        $reasons = [];
-
-        // Rule 1: Contact information (5 points)
-        if (!empty($lead->email)) {
-            $qualificationScore += 2;
-            $reasons[] = 'Email provided';
-        }
-        if (!empty($lead->phone)) {
-            $qualificationScore += 2;
-            $reasons[] = 'Phone provided';
-        }
-        if ($lead->contacts()->count() > 0) {
-            $qualificationScore += 1;
-            $reasons[] = 'Contact person(s) available';
-        }
-
-        // Rule 2: Industry alignment (5 points)
-        if (!empty($lead->industry_id)) {
-            $qualificationScore += 3;
-            $reasons[] = "Industry categorized: {$lead->industry?->name}";
-
-            // Product match bonus
-            if ($lead->product_id) {
-                $productMatch = $lead->productMatches()
-                    ->where('product_id', $lead->product_id)
-                    ->where('is_recommended', true)
-                    ->first();
-
-                if ($productMatch && $productMatch->match_score > 60) {
-                    $qualificationScore += 2;
-                    $reasons[] = 'Strong product match';
-                }
-            }
-        }
-
-        // Rule 3: Company size information (3 points)
-        if (!empty($lead->company_size_estimate)) {
-            $qualificationScore += 3;
-            $reasons[] = "Company size: {$lead->company_size_estimate}";
-        }
-
-        // Rule 4: Recent activity (3 points)
-        $latestActivity = $lead->activities()->latest('activity_date')->first();
-        if ($latestActivity) {
-            $daysSinceActivity = Carbon::now()->diffInDays($latestActivity->activity_date);
-            if ($daysSinceActivity < 30) {
-                $qualificationScore += 3;
-                $reasons[] = 'Recent activity within 30 days';
-            } elseif ($daysSinceActivity < 90) {
-                $qualificationScore += 1;
-                $reasons[] = 'Activity within 90 days';
-            }
-        }
-
-        // Determine qualification status
-        $qualified = match (true) {
-            $qualificationScore >= 12 => 'yes',
-            $qualificationScore >= 6 => 'maybe',
+        $evaluation = $this->engine->evaluateLead($lead);
+        $snapshot = $evaluation['input_snapshot'];
+        $qualified = match ($evaluation['status']) {
+            'eligible' => 'yes',
+            'potential', 'need_review' => 'maybe',
             default => 'no',
         };
 
-        // Determine business type
-        $businessType = $this->inferBusinessType($lead);
-
-        // Determine company size band
-        $companySizeBand = $this->inferCompanySizeBand($lead);
-
         return [
             'qualified' => $qualified,
-            'business_type' => $businessType,
-            'company_size_band' => $companySizeBand,
-            'reason' => implode('; ', $reasons) ?: 'Insufficient data for qualification',
-            'score' => $qualificationScore,
+            'classification' => $evaluation['status'],
+            'business_type' => $this->inferBusinessType($lead),
+            'company_size_band' => $snapshot['company_size_band'] ?? $this->inferCompanySizeBand($lead),
+            'reason' => implode('; ', $evaluation['reasoning']) ?: 'Insufficient data for qualification',
+            'score' => $evaluation['score'],
+            'evaluation' => $evaluation,
         ];
     }
 
@@ -275,8 +229,19 @@ class LeadQualificationService
      */
     private function mergeQualifications(array $rule, array $ai): array
     {
+        $classification = $rule['classification'] ?? match ($ai['qualified'] ?? $rule['qualified']) {
+            'yes' => 'eligible',
+            'maybe' => 'potential',
+            default => 'not_eligible',
+        };
+
         return [
             'qualified' => $ai['qualified'] ?? $rule['qualified'],
+            'classification' => $classification === 'need_review' && ($ai['qualified'] ?? null) === 'yes'
+                ? 'eligible'
+                : ($classification === 'need_review' && ($ai['qualified'] ?? null) === 'no'
+                    ? 'not_eligible'
+                    : $classification),
             'business_type' => $ai['business_type'] ?? $rule['business_type'],
             'company_size_band' => $ai['company_size_band'] ?? $rule['company_size_band'],
             'reason' => "{$rule['reason']}; AI: {$ai['reason']}",

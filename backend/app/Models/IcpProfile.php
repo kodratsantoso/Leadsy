@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class IcpProfile extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'name', 'description',
         'target_industries', 'target_company_sizes', 'target_territories',
         'min_lead_score', 'required_fields',
@@ -34,6 +35,11 @@ class IcpProfile extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function leadMatches(): HasMany

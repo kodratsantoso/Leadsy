@@ -158,7 +158,7 @@ class AiProviderController extends Controller
                 'ai_providers.name as provider_name',
                 'ai_providers.slug as provider_slug',
                 DB::raw('COUNT(*) as total_calls'),
-                DB::raw('SUM(estimated_cost_usd) as total_cost_usd'),
+                DB::raw('COALESCE(SUM(estimated_cost_usd), 0) as total_cost_usd'),
                 DB::raw('AVG(latency_ms) as avg_latency_ms'),
                 DB::raw("SUM(CASE WHEN ai_requests.status = 'success' THEN 1 ELSE 0 END) as success_count")
             )

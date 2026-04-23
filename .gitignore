@@ -3,10 +3,16 @@ node_modules/
 vendor/
 frontend/node_modules/
 backend/vendor/
+whatsapp-service/node_modules/
 
 # Build / cache
 .next/
 frontend/.next/
+dist/
+build/
+tmp/
+*.tsbuildinfo
+*.log
 backend/storage/*.key
 backend/bootstrap/cache/*
 !backend/bootstrap/cache/.gitignore

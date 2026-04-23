@@ -72,6 +72,22 @@ class IndustryController extends Controller
         return response()->json(['data' => $sub], 201);
     }
 
+    public function updateSub(Request $request, Industry $industry, SubIndustry $sub): JsonResponse
+    {
+        $original = $sub->getAttributes();
+
+        $data = $request->validate([
+            'name'          => 'sometimes|string|max:255',
+            'synonyms'      => 'nullable|array',
+            'scoring_hints' => 'nullable|string',
+        ]);
+
+        $sub->update($data);
+        AuditService::logUpdated('sub_industries', $sub, $original);
+
+        return response()->json(['data' => $sub]);
+    }
+
     public function destroySub(Industry $industry, SubIndustry $sub): JsonResponse
     {
         AuditService::logDeleted('sub_industries', $sub);

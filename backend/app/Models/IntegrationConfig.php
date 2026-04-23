@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
 
 class IntegrationConfig extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'category',
         'key',
         'value',           // virtual — triggers setValueAttribute mutator → encrypts into value_encrypted
@@ -21,6 +23,11 @@ class IntegrationConfig extends Model
         'is_secret' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
 
     /**
      * Set the unencrypted value into the encrypted column.

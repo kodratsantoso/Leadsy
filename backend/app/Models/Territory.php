@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Territory extends Model
 {
     protected $fillable = [
-        'name', 'center_lat', 'center_lng', 'radius_meters', 'metadata', 'created_by',
+        'tenant_id', 'name', 'center_lat', 'center_lng', 'radius_meters', 'metadata', 'created_by',
     ];
 
     protected $casts = [
@@ -21,5 +21,10 @@ class Territory extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

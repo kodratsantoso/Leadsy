@@ -11,6 +11,10 @@ use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\IntegrationConfigController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\QualificationController;
+use App\Http\Controllers\Api\QualificationParameterSetController;
+use App\Http\Controllers\Api\QualificationWorkflowController;
+use App\Http\Controllers\Api\QualificationWorkflowReviewController;
 use App\Http\Controllers\Api\RevenueRuleController;
 use App\Http\Controllers\Api\TerritoryController;
 use App\Http\Controllers\Api\UserController;
@@ -18,6 +22,7 @@ use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\MapDiscoveryController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
 use App\Http\Controllers\Api\AiFeatureRouteController;
+use App\Http\Controllers\Api\AiSettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -85,10 +90,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/enrich-contacts', [LeadController::class, 'triggerContactEnrichment'])->middleware('permission:leads.edit');
 
     // Lead Intelligence Routes (Module A — Lead Scoring, Qualification, Product Matching, AI Analysis)
+    Route::post('qualification/evaluate', [QualificationController::class, 'evaluate'])->middleware('permission:leads.view');
+    Route::apiResource('qualification/parameter-sets', QualificationParameterSetController::class)->middleware('permission:leads.edit');
+    Route::post('qualification/parameter-sets/{qualificationParameterSet}/activate', [QualificationParameterSetController::class, 'activate'])->middleware('permission:leads.edit');
+    Route::apiResource('qualification/workflows', QualificationWorkflowController::class)->middleware('permission:leads.edit');
+    Route::get('qualification/reviews', [QualificationWorkflowReviewController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('qualification/reviews', [QualificationWorkflowReviewController::class, 'store'])->middleware('permission:leads.edit');
+    Route::put('qualification/reviews/{qualificationWorkflowReview}', [QualificationWorkflowReviewController::class, 'update'])->middleware('permission:leads.edit');
+    Route::post('qualification/reviews/{qualificationWorkflowReview}/decision', [QualificationWorkflowReviewController::class, 'decide'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/qualify', [LeadController::class, 'qualify'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/analyze', [LeadController::class, 'analyze'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/match-products', [LeadController::class, 'matchProducts'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/intelligence', [LeadController::class, 'intelligence'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/verification', [LeadController::class, 'verificationStatus'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/verification/request', [LeadController::class, 'requestVerificationReview'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/activities', [LeadController::class, 'getActivities'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/progress', [LeadController::class, 'getProgress'])->middleware('permission:leads.view');
 
@@ -103,8 +118,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/{lead}/revenue-analysis', [LeadController::class, 'getRevenueAnalysis'])->middleware('permission:leads.view');
 
     // Lead Activity & Evaluation Routes (Module B — Activities, Meetings, Transcripts, Evaluations)
+    Route::put('leads/{lead}/activities/{activity}', [LeadController::class, 'updateActivity'])->middleware('permission:leads.edit');
     Route::delete('leads/{lead}/activities/{activity}', [LeadController::class, 'deleteActivity'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/meetings', [LeadController::class, 'getMeetings'])->middleware('permission:leads.view');
+    Route::put('leads/{lead}/meetings/{meeting}', [LeadController::class, 'updateMeeting'])->middleware('permission:leads.edit');
     Route::delete('leads/{lead}/meetings/{meeting}', [LeadController::class, 'deleteMeeting'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/transcripts', [LeadController::class, 'getTranscripts'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/transcripts', [LeadController::class, 'storeTranscript'])->middleware('permission:leads.edit');
@@ -122,30 +139,50 @@ Route::middleware('auth:sanctum')->group(function () {
     // Industries
     Route::apiResource('industries', IndustryController::class)->except(['show']);
     Route::post('industries/{industry}/sub-industries', [IndustryController::class, 'storeSub']);
+    Route::put('industries/{industry}/sub-industries/{sub}', [IndustryController::class, 'updateSub']);
     Route::delete('industries/{industry}/sub-industries/{sub}', [IndustryController::class, 'destroySub']);
 
     // Funnel
     Route::get('funnel/stages', [FunnelController::class, 'stages']);
     Route::post('funnel/stages', [FunnelController::class, 'storeStage']);
     Route::put('funnel/stages/{stage}', [FunnelController::class, 'updateStage']);
+    Route::delete('funnel/stages/{stage}', [FunnelController::class, 'destroyStage']);
     Route::get('funnel/dashboard', [FunnelController::class, 'dashboard']);
 
     // AI Providers — must register usage-summary BEFORE apiResource to avoid route collision
-    Route::get('ai-providers/usage-summary', [AiProviderController::class, 'usageSummary']);
-    Route::apiResource('ai-providers', AiProviderController::class)->except(['show']);
-    Route::post('ai-providers/{aiProvider}/test', [AiProviderController::class, 'testConnection']);
-    Route::post('ai-providers/{aiProvider}/models', [AiProviderController::class, 'storeModel']);
-    Route::delete('ai-providers/{aiProvider}/models/{model}', [AiProviderController::class, 'destroyModel']);
-    Route::get('ai-model-routes', [AiProviderController::class, 'routes']);
-    Route::post('ai-model-routes', [AiProviderController::class, 'storeRoute']);
+    Route::get('ai-providers/usage-summary', [AiProviderController::class, 'usageSummary'])->middleware('permission:ai.manage');
+    Route::apiResource('ai-providers', AiProviderController::class)->except(['show'])->middleware('permission:ai.manage');
+    Route::post('ai-providers/{aiProvider}/test', [AiProviderController::class, 'testConnection'])->middleware('permission:ai.manage');
+    Route::post('ai-providers/{aiProvider}/models', [AiProviderController::class, 'storeModel'])->middleware('permission:ai.manage');
+    Route::delete('ai-providers/{aiProvider}/models/{model}', [AiProviderController::class, 'destroyModel'])->middleware('permission:ai.manage');
+    Route::get('ai-model-routes', [AiProviderController::class, 'routes'])->middleware('permission:ai.manage');
+    Route::post('ai-model-routes', [AiProviderController::class, 'storeRoute'])->middleware('permission:ai.manage');
     
     // AI Feature Routing (Priority Engine)
-    Route::apiResource('ai-feature-routes', AiFeatureRouteController::class)->except(['show', 'update']);
+    Route::apiResource('ai-feature-routes', AiFeatureRouteController::class)->except(['show', 'update'])->middleware('permission:ai.manage');
+
+    // Consolidated AI Settings Control Center
+    Route::prefix('settings/ai-default')->middleware('permission:ai.manage')->group(function () {
+        Route::get('/', [AiSettingsController::class, 'index']);
+        Route::post('providers', [AiSettingsController::class, 'storeProvider']);
+        Route::put('providers/{aiProvider}', [AiSettingsController::class, 'updateProvider']);
+        Route::delete('providers/{aiProvider}', [AiSettingsController::class, 'destroyProvider']);
+        Route::post('providers/{aiProvider}/test', [AiSettingsController::class, 'testProvider']);
+        Route::post('providers/{aiProvider}/reveal-key', [AiSettingsController::class, 'revealKey']);
+        Route::post('providers/{aiProvider}/copy-key-audit', [AiSettingsController::class, 'auditCopyKey']);
+        Route::post('providers/{aiProvider}/models', [AiSettingsController::class, 'storeModel']);
+        Route::delete('providers/{aiProvider}/models/{model}', [AiSettingsController::class, 'destroyModel']);
+        Route::put('feature-routes/{featureName}', [AiSettingsController::class, 'saveFeatureRoutes']);
+        Route::get('prompt-templates', [AiSettingsController::class, 'promptTemplates']);
+        Route::post('prompt-templates/versions', [AiSettingsController::class, 'createPromptVersion']);
+        Route::post('prompt-templates/versions/{version}/activate', [AiSettingsController::class, 'activatePromptVersion']);
+        Route::post('prompt-templates/preview', [AiSettingsController::class, 'previewPrompt']);
+    });
 
     // Integration Configurations (settings)
-    Route::get('settings/integrations', [IntegrationConfigController::class, 'index'])->middleware('permission:audit.view');
-    Route::post('settings/integrations', [IntegrationConfigController::class, 'store'])->middleware('permission:audit.view');
-    Route::delete('settings/integrations/{integrationConfig}', [IntegrationConfigController::class, 'destroy'])->middleware('permission:audit.view');
+    Route::get('settings/integrations', [IntegrationConfigController::class, 'index'])->middleware('permission:integrations.manage');
+    Route::post('settings/integrations', [IntegrationConfigController::class, 'store'])->middleware('permission:integrations.manage');
+    Route::delete('settings/integrations/{integrationConfig}', [IntegrationConfigController::class, 'destroy'])->middleware('permission:integrations.manage');
 
     // WhatsApp — Session
     Route::post('whatsapp/session/init', [WhatsAppController::class, 'initSession']);
@@ -165,6 +202,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('whatsapp/campaigns', [WhatsAppController::class, 'listCampaigns']);
     Route::post('whatsapp/campaigns', [WhatsAppController::class, 'createCampaign']);
     Route::post('whatsapp/campaigns/{campaign}/execute', [WhatsAppController::class, 'executeCampaign']);
+    Route::put('whatsapp/campaigns/{campaign}', [WhatsAppController::class, 'updateCampaign']);
+    Route::delete('whatsapp/campaigns/{campaign}', [WhatsAppController::class, 'destroyCampaign']);
 
     // WhatsApp — Sync Rules
     Route::get('whatsapp/sync-rules', [WhatsAppController::class, 'getSyncRules']);
@@ -173,8 +212,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Users & Roles — restricted to admin
     Route::apiResource('users', UserController::class)->middleware('permission:users.manage');
     Route::get('roles', [UserController::class, 'roles']);
+    Route::get('permissions', [UserController::class, 'permissions'])->middleware('permission:users.manage');
     Route::post('roles', [UserController::class, 'storeRole'])->middleware('permission:users.manage');
     Route::put('roles/{role}', [UserController::class, 'updateRole'])->middleware('permission:users.manage');
+    Route::delete('roles/{role}', [UserController::class, 'destroyRole'])->middleware('permission:users.manage');
 
     // Audit Logs — restricted
     Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit.view');

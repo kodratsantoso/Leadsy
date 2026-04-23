@@ -29,6 +29,7 @@ class RevenueRuleController extends Controller
         ]);
 
         $data['created_by'] = $request->user()->id;
+        $data['tenant_id'] = $request->user()->tenant_id;
         $rule = RevenueRule::create($data);
         return response()->json(['data' => $rule], 201);
     }

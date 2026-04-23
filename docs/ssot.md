@@ -1,0 +1,111 @@
+# Single Source of Truth (SSOT)
+
+## Enterprise SSOT Pack
+
+- `docs/SSOT/requirements.md` — product definition, ICP, eligibility criteria, explainability contract.
+- `docs/SSOT/qualification_framework.md` — scoring dimensions, thresholds, hard-stop rules, recommendations.
+- `docs/SSOT/architecture.md` — target module architecture and current-stack execution decision.
+- `docs/SSOT/database_schema.md` — target schema, ERD, and current-to-target mapping.
+- `docs/SSOT/governance.md` — governance, override, testing, and release controls.
+- `docs/architecture/ADR-0001-architecture.md` — architecture decision to preserve Laravel + Next.js as the enterprise baseline for this repo.
+
+## Current file modifications
+
+- `docs/SSOT/requirements.md` — added enterprise requirements SSOT for the pre-CRM qualification layer.
+- `docs/SSOT/qualification_framework.md` — added enterprise scoring framework, thresholds, and hard-stop rules.
+- `docs/SSOT/architecture.md` — documented the target module architecture and current-stack implementation strategy.
+- `docs/SSOT/database_schema.md` — documented the normalized target schema, ERD, and current-to-target table mapping.
+- `docs/SSOT/governance.md` — documented governance, override, and testing rules for qualification decisions.
+- `docs/architecture/ADR-0001-architecture.md` — recorded the decision to evolve the current Laravel + Next.js codebase instead of replatforming now.
+- `backend/config/qualification.php` — added the enterprise qualification policy definition: weights, thresholds, critical fields, hard-stops, and recommendation map.
+- `backend/app/Models/QualificationParameterSet.php` — added governed qualification policy-set model.
+- `backend/app/Models/QualificationParameter.php` — added normalized qualification parameter model.
+- `backend/app/Models/QualificationParameterOption.php` — added normalized parameter-option model.
+- `backend/app/Models/QualificationWorkflow.php` — added review workflow model.
+- `backend/app/Models/QualificationWorkflowStage.php` — added workflow-stage model.
+- `backend/app/Models/QualificationWorkflowReview.php` — added persisted review/approval record model.
+- `backend/app/Models/Tenant.php` — added tenant/workspace model for multi-tenant-ready schema foundation.
+- `backend/app/Models/RecordOriginMapping.php` — added durable lineage model for tracking imported legacy records against current records.
+- `backend/database/migrations/2026_04_18_150000_create_qualification_architecture_tables.php` — added Phase 2 policy and workflow architecture tables and seeded the default active policy/workflow.
+- `backend/database/migrations/2026_04_18_160000_add_multi_tenant_foundation.php` — added tenants table and nullable tenant links across core qualification-ready entities, with default-tenant backfill.
+- `backend/database/migrations/2026_04_18_170000_harden_core_business_schema.php` — extended tenant coverage to core master/config entities, added legacy lineage mapping, and enforced high-value uniqueness/index rules at the database layer.
+- `scripts/db/migrate_legacy_management_into_generator.sql` — added the operational SQL mapping script that imports legacy management rows into the current generator schema.
+- `backend/app/Services/Lead/QualificationPolicyRepository.php` — compiles the active database-backed parameter set into the runtime scoring policy, with config fallback.
+- `backend/app/Http/Controllers/Api/QualificationParameterSetController.php` — added CRUD and activation APIs for governed qualification parameter sets.
+- `backend/app/Http/Controllers/Api/QualificationWorkflowController.php` — added CRUD APIs for qualification workflows and stages.
+- `backend/app/Http/Controllers/Api/QualificationWorkflowReviewController.php` — added review request and decision APIs.
+- `backend/app/Http/Controllers/Api/ProductController.php` — aligned product writes with tenant-aware schema.
+- `backend/app/Http/Controllers/Api/TerritoryController.php` — aligned territory writes with tenant-aware schema.
+- `backend/app/Http/Controllers/Api/IcpProfileController.php` — aligned ICP profile writes with tenant-aware schema.
+- `backend/app/Http/Controllers/Api/IntegrationConfigController.php` — aligned integration config reads/writes with tenant-aware uniqueness and fallback behavior.
+- `backend/app/Http/Controllers/Api/RevenueRuleController.php` — aligned revenue rule writes with tenant-aware schema.
+- `backend/app/Services/Lead/QualificationRuleEngineService.php` — added the explainable rule engine for manual and lead-based qualification evaluation.
+- `backend/app/Http/Controllers/Api/QualificationController.php` — added the authenticated evaluation endpoint for the qualification workspace.
+- `backend/database/migrations/2026_04_18_140000_expand_lead_qualifications_for_enterprise_rules.php` — expanded persisted qualification records with classification, score, breakdown, risks, hard-stops, recommendation, and snapshot.
+- `backend/app/Models/LeadQualification.php` — updated casts/fillables for the richer enterprise qualification payload.
+- `backend/app/Services/Lead/LeadQualificationService.php` — upgraded persisted lead qualification to use the enterprise rule engine while preserving optional AI augmentation.
+- `backend/routes/api.php` — registered qualification evaluation, parameter-set, workflow, and review APIs.
+- `app/qualification/page.tsx` — added the Qualification Workspace UI for manual scoring and lead-ID preview.
+- `components/layout/app-shell.tsx` — added Qualification navigation entry.
+- `backend/tests/Unit/QualificationRuleEngineServiceTest.php` — added unit coverage for eligible, need-review, and hard-stop scenarios.
+- `backend/tests/Feature/QualificationEvaluateApiTest.php` — added API contract coverage for explainable qualification responses.
+- `backend/tests/Feature/QualificationArchitectureApiTest.php` — added feature coverage for policy activation and review workflow APIs.
+- `backend/tests/Feature/TenantDatabaseFoundationTest.php` — added Phase 3 coverage for default tenant seeding and tenant backfill on qualification tables.
+- `backend/tests/Feature/DatabaseHardeningTest.php` — added coverage for primary-contact uniqueness, lead-source uniqueness, tenant-safe active policy/workflow rules, and tenant-scoped integration config keys.
+- `backend/database/seeders/DatabaseSeeder.php` — aligned seeded products and notification configs with the tenant-aware schema foundation.
+- `components/ui/button.tsx` — added `tooltip` support and native browser title fallback for icon-only buttons.
+- `frontend/components/ui/button.tsx` — added `tooltip` support and native browser title fallback for icon-only buttons.
+- `app/page.tsx` — corrected dashboard funnel data extraction.
+- `frontend/app/page.tsx` — corrected dashboard funnel data extraction.
+- `frontend/app/leads/page.tsx` — added create/edit/delete lead CRUD and lead management tooltips.
+- `components/layout/app-shell.tsx` — increased logo size in app shell header.
+- `frontend/components/layout/app-shell.tsx` — increased logo size in app shell header.
+- `app/login/page.tsx` — enlarged login logo.
+- `frontend/app/login/page.tsx` — enlarged login logo.
+- `backend/app/Http/Controllers/Api/LeadController.php` — normalized `revenue-intelligence` ICP snapshot payload so `icp_profile` is always a display label and the full relation is exposed separately as `icp_profile_detail`.
+- `lib/api/client.ts` — updated Revenue Intelligence types to match the normalized ICP payload and tolerate legacy object-shaped `icp_profile` values.
+- `app/leads/[id]/page.tsx` — fixed the lead detail runtime error by rendering a safe ICP profile label instead of passing the raw profile object into React.
+- `backend/app/Services/LeadDiscoveryService.php` — fixed Google Place Details enrichment to request `place_id`, preventing map result identity loss during detail fetch.
+- `app/map/page.tsx` — preserved `external_place_id` when merging enriched place details back into discovery results.
+- `lib/hooks/use-map-discovery.ts` — added a client-side guard so “Add to Leads Pipeline” fails with a clear message if a place ID is unexpectedly missing.
+- `components/map/map-markers-layer.tsx` — replaced null marker keys with stable fallback keys and prevented hover/select handlers from forcing null place IDs.
+- `components/map/map-results-panel.tsx` — replaced null list keys with stable fallback keys and marked non-selectable map results that are missing a place ID.
+- `backend/database/migrations/2026_04_19_100000_consolidate_ai_settings_module.php` — consolidated AI settings schema with provider metadata, connection tests, prompt templates, prompt versions, and enriched feature-route controls while safely backfilling legacy routes.
+- `backend/app/Http/Controllers/Api/AiSettingsController.php` — added the centralized `Settings → AI Default` backend API for provider registry, secure key reveal, routing, prompt versioning, and usage overview.
+- `backend/app/Services/AI/AIProviderService.php` — added provider CRUD normalization, masked-key serialization, secure reveal logging, and copy audit support.
+- `backend/app/Services/AI/AIPriorityResolverService.php` — added active-provider/active-model priority resolution for runtime AI routing.
+- `backend/app/Services/AI/AIRoutingService.php` — added centralized feature-route catalog and priority save flow for AI-driven features.
+- `backend/app/Services/AI/AIPromptTemplateService.php` — added feature prompt defaults, version history, activation, and compiled prompt preview support.
+- `backend/app/Services/AI/AIConnectionTestService.php` — added provider health checks with latency/status persistence.
+- `backend/app/Services/AI/AIUsageLogService.php` — normalized AI usage overview aggregation for provider health, fallback counts, and latest-provider telemetry.
+- `backend/app/Services/AI/AiOrchestrationService.php` — updated runtime orchestration to resolve routes from the consolidated priority engine and wrap feature prompts through the prompt template service.
+- `backend/app/Models/AiProvider.php` — extended provider metadata, safe API-key masking helpers, connection-test relation, and encrypted last4 handling.
+- `backend/app/Models/AiConnectionTest.php` — added persisted provider connection-test model.
+- `backend/app/Models/AiPromptTemplate.php` — added prompt template model with active-version linkage.
+- `backend/app/Models/AiPromptTemplateVersion.php` — added prompt template version model with activation history.
+- `backend/routes/api.php` — registered the centralized `settings/ai-default` API surface and applied `ai.manage` protection to AI configuration endpoints.
+- `backend/routes/api.php` — corrected `/settings/integrations` authorization to use `integrations.manage`, aligning route protection with the intended settings permission model.
+- `app/settings/ai-defaults/page.tsx` — rebuilt the deprecated root AI Defaults page into one control center with Providers, Feature Routing, Prompt Templates, and Usage & Health sections.
+- `frontend/app/settings/ai-defaults/page.tsx` — moved the consolidated AI Defaults control center into the active frontend so the running app now matches the centralized provider, routing, prompt, and usage design.
+- `frontend/app/settings/page.tsx` — updated Settings card copy so AI credentials and routing point to `Settings → AI Default` instead of Integrations.
+- `frontend/app/settings/integrations/page.tsx` — added a deprecation notice clarifying that AI providers and AI API keys are managed under `Settings → AI Default`.
+- `backend/bootstrap/app.php` — added centralized API error rendering for `/api/*` requests with a consistent failure envelope for validation, auth, authorization, not-found, and server errors.
+- `backend/app/Http/Middleware/CheckPermission.php` — aligned permission-denied responses with the standardized API error envelope while preserving audit logging of access denials.
+- `frontend/lib/permissions.ts` — tightened route-level permission mapping for settings sub-pages so frontend visibility better reflects backend RBAC.
+- `backend/tests/Feature/AiDefaultSettingsApiTest.php` — added coverage for masked key display, admin-only reveal, route priority persistence, and prompt version activation.
+- `backend/app/Http/Controllers/Api/WhatsAppController.php` — switched WhatsApp sidecar connection from hardcoded Docker hostname to env-driven resolution and live sidecar status synchronization for QR/session state.
+- `backend/app/Http/Controllers/Api/WhatsAppController.php` — auto-resets stale saved WhatsApp auth during `Connect` so expired Baileys sessions request a fresh QR instead of staying disconnected.
+- `backend/app/Http/Controllers/Api/WhatsAppController.php` — added multi-URL sidecar fallback (`WHATSAPP_SIDECAR_URL`, `whatsapp-service`, `127.0.0.1`) so direct message, broadcast, and other action routes work even when container env is stale.
+- `whatsapp-service/index.js` — exposed connected number in the sidecar session status response and hardened Baileys `401`/logged-out recovery to clear stale auth and reconnect for a fresh QR.
+- `whatsapp-service/package.json` — pinned Baileys from unstable `latest` (`7.0.0-rc.9`) to stable `6.7.18` to avoid QR/auth regressions.
+- `lib/hooks/use-whatsapp.ts` — now clears stale errors on successful status fetches and surfaces load errors for conversations, campaigns, and sync rules instead of failing silently.
+- `backend/.env.example` — documented local WhatsApp sidecar URL and session name settings.
+- `docker-compose.yml` — wired the backend container to the internal WhatsApp sidecar URL explicitly.
+- `docs/execution/diff.md` — logged the revenue intelligence contract fix and lead detail regression repair.
+- `docs/execution/progress.md` — recorded the April 18 stability/spec-alignment pass.
+
+## Notes
+
+- Use this file as the authoritative list of recent UI and behavior changes.
+- Update this list whenever a new file or script is modified.
+- The active UI source of truth is `frontend/`. Root-level `app/`, `components/`, `lib/`, and `store/` are deprecated compatibility mirrors and should not receive new feature work.

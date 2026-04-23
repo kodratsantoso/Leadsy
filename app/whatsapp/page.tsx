@@ -4,9 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import {
   MessageSquare, QrCode, Wifi, WifiOff, Send, Loader2,
   Radio, Users, Shield, RefreshCw, Phone, ChevronRight,
-  Sparkles, CheckCircle2, XCircle, AlertCircle, Plus, Trash2
+  Sparkles, CheckCircle2, XCircle, AlertCircle, Plus, Trash2, Pencil
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input, Select, Textarea } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import {
   useWhatsApp,
   type WaSessionState, type WaConversation, type WaMessage,
@@ -34,6 +37,10 @@ export default function WhatsAppPage() {
   const [bcName, setBcName] = useState("");
   const [bcMessage, setBcMessage] = useState("");
   const [bcLeadIds, setBcLeadIds] = useState("");
+  const [editCampaign, setEditCampaign] = useState<WaCampaign | null>(null);
+  const [editCampaignName, setEditCampaignName] = useState("");
+  const [editCampaignMsg, setEditCampaignMsg] = useState("");
+  const [deleteCampaignConfirm, setDeleteCampaignConfirm] = useState<WaCampaign | null>(null);
 
   // ── Conversations State ──
   const [conversations, setConversations] = useState<WaConversation[]>([]);
@@ -110,6 +117,23 @@ export default function WhatsAppPage() {
     wa.getCampaigns().then(setCampaigns);
   };
 
+  const handleDeleteCampaign = async (id: number) => {
+    const ok = await wa.deleteCampaign(id);
+    if (ok) { wa.getCampaigns().then(setCampaigns); setDeleteCampaignConfirm(null); }
+  };
+
+  const handleUpdateCampaign = async () => {
+    if (!editCampaign) return;
+    const { apiFetch } = await import("@/lib/apiFetch");
+    await apiFetch(`/whatsapp/campaigns/${editCampaign.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ campaign_name: editCampaignName, message_template: editCampaignMsg }),
+    });
+    wa.getCampaigns().then(setCampaigns);
+    setEditCampaign(null);
+  };
+
   const handleViewConv = async (conv: WaConversation) => {
     setActiveConv(conv);
     const msgs = await wa.getMessages(conv.id);
@@ -164,8 +188,8 @@ export default function WhatsAppPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg",
-              session.status === "connected" ? "bg-emerald-500/10" : "bg-red-500/10")}>
-              {session.status === "connected" ? <Wifi className="h-5 w-5 text-emerald-500" /> : <WifiOff className="h-5 w-5 text-red-500" />}
+              session.status === "connected" ? "bg-[var(--status-success)]/10" : "bg-[var(--status-danger)]/10")}>
+              {session.status === "connected" ? <Wifi className="h-5 w-5 text-[var(--status-success)]" /> : <WifiOff className="h-5 w-5 text-[var(--status-danger)]" />}
             </div>
             <div>
               <p className="text-sm font-semibold capitalize">{session.status === "qr_ready" ? "Awaiting QR Scan" : session.status}</p>
@@ -177,16 +201,15 @@ export default function WhatsAppPage() {
           <div className="flex gap-2">
             {session.status === "connected" && (
               <button onClick={handleDisconnect} disabled={wa.loading}
-                className="flex items-center gap-1.5 rounded-lg border border-red-500/20 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-500/10 disabled:opacity-50">
+                className="flex items-center gap-1.5 rounded-lg border border-[var(--status-danger)]/20 px-3 py-1.5 text-xs font-medium text-[var(--status-danger)] hover:bg-[var(--status-danger)]/10 disabled:opacity-50">
                 Disconnect
               </button>
             )}
             {session.status === "disconnected" && (
-              <button onClick={handleConnect} disabled={wa.loading}
-                className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-1.5 text-xs font-medium text-white shadow-lg disabled:opacity-50">
+              <Button variant="brand" size="compact" disabled={wa.loading} onClick={handleConnect}>
                 {wa.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wifi className="h-3.5 w-3.5" />}
                 Connect
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -197,7 +220,7 @@ export default function WhatsAppPage() {
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={cn("flex items-center gap-1.5 border-b-2 px-3 pb-2.5 pt-1 text-xs font-medium transition-colors",
-              tab === t.id ? "border-indigo-500 text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+              tab === t.id ? "border-[var(--brand)] text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
             <t.icon className="h-3.5 w-3.5" /> {t.label}
           </button>
         ))}
@@ -228,7 +251,7 @@ export default function WhatsAppPage() {
                     className="h-full w-full object-contain"
                   />
                 </div>
-                <div className="flex items-center gap-2 text-indigo-500">
+                <div className="flex items-center gap-2 text-[var(--brand)]">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <p className="text-xs font-medium">Waiting for scan on mobile device...</p>
                 </div>
@@ -240,10 +263,10 @@ export default function WhatsAppPage() {
             )}
             {session.status === "connected" && (
               <div className="flex flex-col items-center gap-4 py-8">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10">
-                  <MessageSquare className="h-10 w-10 text-emerald-500" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--status-success)]/10">
+                  <MessageSquare className="h-10 w-10 text-[var(--status-success)]" />
                 </div>
-                <p className="text-sm font-medium text-emerald-500">Session Active</p>
+                <p className="text-sm font-medium text-[var(--status-success)]">Session Active</p>
                 <p className="text-xs text-muted-foreground text-center">
                   {session.number && <>Connected as {session.number}<br /></>}
                   {session.connected_at ? `Since ${new Date(session.connected_at).toLocaleString()}` : "Session established"}
@@ -254,14 +277,14 @@ export default function WhatsAppPage() {
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold">Connection Instructions</h2>
             <ol className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">1</span> Click &quot;Connect&quot; to start a real Baileys session</li>
-              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">2</span> Open WhatsApp on your phone</li>
-              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">3</span> Go to Settings → Linked Devices → Link a Device</li>
-              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">4</span> Scan the QR code displayed here</li>
-              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-bold text-emerald-400">5</span> Status will change to &quot;Connected&quot; automatically</li>
+              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand)]/10 text-xs font-bold text-[var(--brand)]">1</span> Click &quot;Connect&quot; to start a real Baileys session</li>
+              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand)]/10 text-xs font-bold text-[var(--brand)]">2</span> Open WhatsApp on your phone</li>
+              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand)]/10 text-xs font-bold text-[var(--brand)]">3</span> Go to Settings → Linked Devices → Link a Device</li>
+              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--brand)]/10 text-xs font-bold text-[var(--brand)]">4</span> Scan the QR code displayed here</li>
+              <li className="flex gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--status-success)]/10 text-xs font-bold text-[var(--status-success)]">5</span> Status will change to &quot;Connected&quot; automatically</li>
             </ol>
-            <div className="mt-6 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
-              <p className="text-xs text-amber-600 dark:text-amber-400">
+            <div className="mt-6 rounded-lg border border-[var(--status-warning)]/20 bg-[var(--status-warning)]/5 p-3">
+              <p className="text-xs text-[var(--status-warning)]">
                 <strong>Privacy Note:</strong> Only conversations matching your sync rules will be stored. Personal chats are never ingested.
               </p>
             </div>
@@ -273,7 +296,7 @@ export default function WhatsAppPage() {
       {tab === "direct" && (
         <div className="max-w-lg">
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold flex items-center gap-2"><Send className="h-5 w-5 text-emerald-500" /> Send Direct Message</h2>
+            <h2 className="mb-4 text-lg font-semibold flex items-center gap-2"><Send className="h-5 w-5 text-[var(--status-success)]" /> Send Direct Message</h2>
             {session.status !== "connected" ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
                 <WifiOff className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
@@ -285,24 +308,18 @@ export default function WhatsAppPage() {
                   <label className="text-xs font-medium text-muted-foreground">Recipient Phone Number</label>
                   <div className="relative mt-1">
                     <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input value={dmPhone} onChange={e => setDmPhone(e.target.value)}
-                      placeholder="e.g. 6281234567890"
-                      className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm font-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <Input value={dmPhone} onChange={e => setDmPhone(e.target.value)} placeholder="e.g. 6281234567890" className="pl-9 font-mono" />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Message</label>
-                  <textarea value={dmText} onChange={e => setDmText(e.target.value)}
-                    placeholder="Type your message..."
-                    rows={4}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <Textarea value={dmText} onChange={e => setDmText(e.target.value)} placeholder="Type your message..." rows={4} className="mt-1" />
                 </div>
-                <button onClick={handleSendDm} disabled={wa.loading || !dmPhone || !dmText}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white shadow-lg hover:bg-emerald-600 disabled:opacity-50 transition-colors">
+                <Button variant="brand" className="w-full" disabled={wa.loading || !dmPhone || !dmText} onClick={handleSendDm}>
                   {wa.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Send Message
-                </button>
+                </Button>
                 {dmSent && (
-                  <p className="flex items-center gap-1 text-xs text-emerald-500 font-medium"><CheckCircle2 className="h-3.5 w-3.5" /> Message sent successfully!</p>
+                  <p className="flex items-center gap-1 text-xs text-[var(--status-success)] font-medium"><CheckCircle2 className="h-3.5 w-3.5" /> Message sent successfully!</p>
                 )}
               </div>
             )}
@@ -314,7 +331,7 @@ export default function WhatsAppPage() {
       {tab === "broadcast" && (
         <div className="space-y-6">
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold flex items-center gap-2"><Radio className="h-5 w-5 text-indigo-500" /> Create Broadcast Campaign</h2>
+            <h2 className="mb-4 text-lg font-semibold flex items-center gap-2"><Radio className="h-5 w-5 text-[var(--brand)]" /> Create Broadcast Campaign</h2>
             {session.status !== "connected" ? (
               <p className="text-sm text-muted-foreground py-4">Connect your WhatsApp session first.</p>
             ) : (
@@ -322,28 +339,20 @@ export default function WhatsAppPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Campaign Name</label>
-                    <input value={bcName} onChange={e => setBcName(e.target.value)}
-                      placeholder="Q2 Outreach"
-                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <Input value={bcName} onChange={e => setBcName(e.target.value)} placeholder="Q2 Outreach" className="mt-1" />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Lead IDs (comma-separated)</label>
-                    <input value={bcLeadIds} onChange={e => setBcLeadIds(e.target.value)}
-                      placeholder="1, 2, 3"
-                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <Input value={bcLeadIds} onChange={e => setBcLeadIds(e.target.value)} placeholder="1, 2, 3" className="mt-1 font-mono" />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Message Template</label>
-                  <textarea value={bcMessage} onChange={e => setBcMessage(e.target.value)}
-                    placeholder="Hello! We'd like to introduce..."
-                    rows={3}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  <Textarea value={bcMessage} onChange={e => setBcMessage(e.target.value)} placeholder="Hello! We'd like to introduce..." rows={3} className="mt-1" />
                 </div>
-                <button onClick={handleCreateCampaign} disabled={wa.loading || !bcName || !bcMessage || !bcLeadIds}
-                  className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">
+                <Button variant="brand" size="compact" disabled={wa.loading || !bcName || !bcMessage || !bcLeadIds} onClick={handleCreateCampaign}>
                   {wa.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Create Campaign
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -358,25 +367,40 @@ export default function WhatsAppPage() {
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-sm">{c.campaign_name}</h4>
                       <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
-                        c.status === "sent" ? "bg-emerald-500/10 text-emerald-500" :
-                        c.status === "sending" ? "bg-amber-500/10 text-amber-500" :
+                        c.status === "sent" ? "bg-[var(--status-success)]/10 text-[var(--status-success)]" :
+                        c.status === "sending" ? "bg-[var(--status-warning)]/10 text-[var(--status-warning)]" :
                         "bg-muted text-muted-foreground")}>{c.status}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2 line-clamp-1">{c.message_template}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{c.total_targets} recipients</span>
-                      {c.status === "draft" && (
-                        <button onClick={() => handleExecuteCampaign(c.id)} disabled={wa.loading || session.status !== "connected"}
-                          className="flex items-center gap-1 rounded bg-emerald-500 px-2.5 py-1 text-[10px] font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
-                          <Send className="h-3 w-3" /> Execute
-                        </button>
-                      )}
-                      {c.status === "sent" && c.recipients && (
-                        <div className="flex gap-2 text-[10px]">
-                          <span className="text-emerald-500">{c.recipients.filter(r => r.send_status === "sent").length} sent</span>
-                          <span className="text-red-500">{c.recipients.filter(r => r.send_status === "failed").length} failed</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {c.status === "draft" && (
+                          <button onClick={() => handleExecuteCampaign(c.id)} disabled={wa.loading || session.status !== "connected"}
+                            className="flex items-center gap-1 rounded bg-[var(--status-success)] px-2.5 py-1 text-[10px] font-medium text-white hover:opacity-80 disabled:opacity-50">
+                            <Send className="h-3 w-3" /> Execute
+                          </button>
+                        )}
+                        {c.status === "sent" && c.recipients && (
+                          <div className="flex gap-2 text-[10px]">
+                            <span className="text-[var(--status-success)]">{c.recipients.filter(r => r.send_status === "sent").length} sent</span>
+                            <span className="text-[var(--status-danger)]">{c.recipients.filter(r => r.send_status === "failed").length} failed</span>
+                          </div>
+                        )}
+                        {!["running", "scheduled", "sent"].includes(c.status) && (
+                          <button
+                            onClick={() => { setEditCampaign(c); setEditCampaignName(c.campaign_name); setEditCampaignMsg(c.message_template || ""); }}
+                            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground" title="Edit">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {!["running", "scheduled"].includes(c.status) && (
+                          <button onClick={() => setDeleteCampaignConfirm(c)} disabled={wa.loading}
+                            className="rounded p-1 text-muted-foreground hover:bg-[var(--status-danger)]/10 hover:text-[var(--status-danger)]" title="Delete">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -405,14 +429,14 @@ export default function WhatsAppPage() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium truncate max-w-[180px]">{conv.contact?.name || conv.external_chat_id}</span>
                     <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase",
-                      conv.relevance_status === "high" ? "bg-emerald-500/10 text-emerald-500" :
-                      conv.relevance_status === "medium" ? "bg-amber-500/10 text-amber-500" :
+                      conv.relevance_status === "high" ? "bg-[var(--status-success)]/10 text-[var(--status-success)]" :
+                      conv.relevance_status === "medium" ? "bg-[var(--status-warning)]/10 text-[var(--status-warning)]" :
                       "bg-muted text-muted-foreground")}>{conv.relevance_status}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">{conv.contact?.phone_number}</span>
                     {conv.ai_analysis && (
-                      <span className="flex items-center gap-0.5 text-[9px] text-indigo-400">
+                      <span className="flex items-center gap-0.5 text-[9px] text-[var(--brand)]">
                         <Sparkles className="h-2.5 w-2.5" /> {conv.ai_analysis.analysis_result}
                       </span>
                     )}
@@ -433,21 +457,21 @@ export default function WhatsAppPage() {
                     <p className="text-[10px] text-muted-foreground">{activeConv.contact?.phone_number}</p>
                   </div>
                   <button onClick={() => handleAnalyze(activeConv.id)}
-                    className="flex items-center gap-1 rounded-md bg-indigo-500/10 px-2 py-1 text-[10px] font-medium text-indigo-400 hover:bg-indigo-500/20">
+                    className="flex items-center gap-1 rounded-md bg-[var(--brand)]/10 px-2 py-1 text-[10px] font-medium text-[var(--brand)] hover:bg-[var(--brand)]/20">
                     <Sparkles className="h-3 w-3" /> Analyze
                   </button>
                 </div>
 
                 {/* AI Analysis Card */}
                 {activeConv.ai_analysis && (
-                  <div className="mx-3 mt-3 rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3">
+                  <div className="mx-3 mt-3 rounded-lg border border-[var(--brand)]/20 bg-[var(--brand)]/5 p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-                      <span className="text-xs font-semibold text-indigo-400">AI Analysis</span>
+                      <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
+                      <span className="text-xs font-semibold text-[var(--brand)]">AI Analysis</span>
                       <span className={cn("ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold uppercase",
-                        activeConv.ai_analysis.analysis_result === "yes" ? "bg-emerald-500/10 text-emerald-500" :
-                        activeConv.ai_analysis.analysis_result === "maybe" ? "bg-amber-500/10 text-amber-500" :
-                        "bg-red-500/10 text-red-500")}>
+                        activeConv.ai_analysis.analysis_result === "yes" ? "bg-[var(--status-success)]/10 text-[var(--status-success)]" :
+                        activeConv.ai_analysis.analysis_result === "maybe" ? "bg-[var(--status-warning)]/10 text-[var(--status-warning)]" :
+                        "bg-[var(--status-danger)]/10 text-[var(--status-danger)]")}>
                         {activeConv.ai_analysis.analysis_result === "yes" ? "Lead Potential" :
                          activeConv.ai_analysis.analysis_result === "maybe" ? "Maybe" : "No Lead"}
                       </span>
@@ -465,7 +489,7 @@ export default function WhatsAppPage() {
                   {activeMessages.map(msg => (
                     <div key={msg.id} className={cn("flex", msg.direction === "outbound" ? "justify-end" : "justify-start")}>
                       <div className={cn("max-w-[85%] rounded-lg px-3 py-2 text-xs",
-                        msg.direction === "outbound" ? "bg-emerald-500/10 text-foreground" : "bg-muted text-foreground")}>
+                        msg.direction === "outbound" ? "bg-[var(--status-success)]/10 text-foreground" : "bg-muted text-foreground")}>
                         <p className="whitespace-pre-wrap">{msg.body}</p>
                         <p className="text-[9px] opacity-50 mt-1 text-right">{new Date(msg.sent_at).toLocaleTimeString()}</p>
                       </div>
@@ -487,7 +511,7 @@ export default function WhatsAppPage() {
       {tab === "settings" && (
         <div className="max-w-2xl space-y-6">
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="mb-1 text-lg font-semibold flex items-center gap-2"><Shield className="h-5 w-5 text-indigo-500" /> Privacy & Sync Rules</h2>
+            <h2 className="mb-1 text-lg font-semibold flex items-center gap-2"><Shield className="h-5 w-5 text-[var(--brand)]" /> Privacy & Sync Rules</h2>
             <p className="text-xs text-muted-foreground mb-6">
               Configure which WhatsApp conversations are allowed for sync. Only matching conversations will be stored and analyzed.
             </p>
@@ -495,24 +519,24 @@ export default function WhatsAppPage() {
             <div className="space-y-3">
               {syncRules.map((rule, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-lg border border-border/50 p-3 bg-muted/10">
-                  <select value={rule.rule_type}
+                  <Select value={rule.rule_type}
                     onChange={e => { const n = [...syncRules]; n[i] = {...n[i], rule_type: e.target.value}; setSyncRules(n); }}
-                    className="h-8 rounded-md border border-input bg-background px-2 text-xs">
+                    className="w-auto">
                     <option value="include_keyword">Include Keyword</option>
                     <option value="exclude_keyword">Exclude Keyword</option>
                     <option value="strict_allowlist">Strict Allowlist</option>
-                  </select>
-                  <input value={rule.rule_value || ""}
+                  </Select>
+                  <Input value={rule.rule_value || ""}
                     onChange={e => { const n = [...syncRules]; n[i] = {...n[i], rule_value: e.target.value}; setSyncRules(n); }}
                     placeholder="Keyword or value..."
-                    className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs" />
+                    className="flex-1" />
                   <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
                     <input type="checkbox" checked={rule.enabled}
                       onChange={e => { const n = [...syncRules]; n[i] = {...n[i], enabled: e.target.checked}; setSyncRules(n); }}
-                      className="h-3.5 w-3.5 accent-indigo-500" />
+                      className="h-3.5 w-3.5 accent-[var(--brand)]" />
                     On
                   </label>
-                  <button onClick={() => removeRule(i)} className="text-red-500/60 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => removeRule(i)} className="text-[var(--status-danger)]/60 hover:text-[var(--status-danger)]"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               ))}
 
@@ -523,31 +547,71 @@ export default function WhatsAppPage() {
               )}
 
               <div className="flex items-center gap-3 pt-2">
-                <button onClick={addRule}
-                  className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
+                <Button variant="soft" size="compact" onClick={addRule}>
                   <Plus className="h-3 w-3" /> Add Rule
-                </button>
-                <button onClick={handleSaveRules} disabled={wa.loading}
-                  className="flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+                </Button>
+                <Button variant="brand" size="compact" disabled={wa.loading} onClick={handleSaveRules}>
                   {wa.loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />} Save Rules
-                </button>
-                {rulesSaved && <span className="text-xs text-emerald-500 font-medium">Saved!</span>}
+                </Button>
+                {rulesSaved && <span className="text-xs text-[var(--status-success)] font-medium">Saved!</span>}
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-            <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-2">How Privacy Filtering Works</h3>
+          <div className="rounded-xl border border-[var(--status-warning)]/20 bg-[var(--status-warning)]/5 p-4">
+            <h3 className="text-sm font-semibold text-[var(--status-warning)] mb-2">How Privacy Filtering Works</h3>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
-              <li className="flex items-start gap-2"><CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-500" /> Messages from phone numbers matching existing leads are <strong>always</strong> synced</li>
-              <li className="flex items-start gap-2"><CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-500" /> <strong>Include keywords</strong> in sender name or message body trigger sync</li>
-              <li className="flex items-start gap-2"><XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-red-500" /> <strong>Exclude keywords</strong> always block sync (takes priority over includes)</li>
-              <li className="flex items-start gap-2"><Shield className="h-3.5 w-3.5 mt-0.5 shrink-0 text-indigo-400" /> <strong>Strict Allowlist</strong> mode: ONLY explicitly matched contacts are synced</li>
-              <li className="flex items-start gap-2"><XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-red-500" /> Personal/irrelevant chats are <strong>never</strong> stored or sent to AI</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[var(--status-success)]" /> Messages from phone numbers matching existing leads are <strong>always</strong> synced</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[var(--status-success)]" /> <strong>Include keywords</strong> in sender name or message body trigger sync</li>
+              <li className="flex items-start gap-2"><XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[var(--status-danger)]" /> <strong>Exclude keywords</strong> always block sync (takes priority over includes)</li>
+              <li className="flex items-start gap-2"><Shield className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[var(--brand)]" /> <strong>Strict Allowlist</strong> mode: ONLY explicitly matched contacts are synced</li>
+              <li className="flex items-start gap-2"><XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-[var(--status-danger)]" /> Personal/irrelevant chats are <strong>never</strong> stored or sent to AI</li>
             </ul>
           </div>
         </div>
       )}
+
+      {/* Edit Campaign Modal */}
+      <Modal
+        open={!!editCampaign}
+        onClose={() => setEditCampaign(null)}
+        title="Edit Campaign"
+        size="md"
+        footer={
+          <>
+            <Button variant="soft" size="compact" onClick={() => setEditCampaign(null)}>Cancel</Button>
+            <Button variant="brand" size="compact" disabled={!editCampaignName} onClick={handleUpdateCampaign}>Save Changes</Button>
+          </>
+        }
+      >
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Campaign Name</label>
+          <Input value={editCampaignName} onChange={e => setEditCampaignName(e.target.value)} className="mt-1" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Message Template</label>
+          <Textarea value={editCampaignMsg} onChange={e => setEditCampaignMsg(e.target.value)} rows={4} className="mt-1" />
+        </div>
+      </Modal>
+
+      {/* Delete Campaign Confirmation */}
+      <Modal
+        open={!!deleteCampaignConfirm}
+        onClose={() => setDeleteCampaignConfirm(null)}
+        title="Delete Campaign"
+        size="sm"
+        footer={
+          <>
+            <Button variant="soft" size="compact" onClick={() => setDeleteCampaignConfirm(null)}>Cancel</Button>
+            <Button variant="danger" size="compact" disabled={wa.loading} onClick={() => handleDeleteCampaign(deleteCampaignConfirm!.id)}>
+              {wa.loading && <Loader2 className="h-3 w-3 animate-spin" />} Delete
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">Delete <span className="font-semibold text-foreground">{deleteCampaignConfirm?.campaign_name}</span>?</p>
+        <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
+      </Modal>
     </div>
   );
 }

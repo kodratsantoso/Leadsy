@@ -158,6 +158,34 @@ Implemented complete Module A (Lead Intelligence), Module B (Sales Activity & Le
 | **Lead Detail Page** (NEW) | 5 tabs: Overview (company info), Intelligence (scores, products, AI analysis), Activities (add form + timeline), Meetings (add form + timeline), Transcripts. Quick stats cards. Real API integration |
 | **AI Settings Page** | Verified: Providers tab (add/edit/test), Feature routing tab, Usage tab with real analytics |
 
+## Phase 8: AI Default Consolidation (Completed ✅)
+**Date completed**: 2026-04-19
+
+### What was done
+Consolidated all AI configuration into `Settings → AI Default` as the single control center for provider registry, secure credential visibility, feature routing, prompt management, and usage/health insight without rewriting the existing AI execution flows.
+
+### Delivered in this pass
+- Added centralized backend API surface at `/api/settings/ai-default` for providers, model management, feature routes, prompt templates, prompt versions, compiled prompt previews, connection tests, secure key reveal, and usage overview.
+- Extended the AI schema with provider metadata (`provider_type`, `api_key_last4`, `default_model`, retry/timeout/cost controls, last-tested/last-used timestamps), plus new `ai_connection_tests`, `ai_prompt_templates`, and `ai_prompt_template_versions` tables.
+- Rebuilt `app/settings/ai-defaults/page.tsx` into a four-section control center: Providers, Feature Routing, Prompt Templates, and Usage & Health.
+- Rebuilt the active live page at `frontend/app/settings/ai-defaults/page.tsx` to match the consolidated backend so the running UI now exposes provider registry, secure key reveal/copy, priority routing, prompt versioning, and usage/health in one place.
+- Updated `frontend/app/settings/page.tsx` and `frontend/app/settings/integrations/page.tsx` so Integrations no longer claims ownership of AI credentials and instead points users back to `Settings → AI Default`.
+- Added admin-only reveal/copy flow for API keys with audit logging while keeping masked display as the default.
+- Updated `AiOrchestrationService` to resolve provider priority from the consolidated feature routes and wrap feature prompts through the versioned prompt-template service.
+- Added automated coverage for masked key behavior, admin-only reveal, route persistence, and prompt version activation.
+
+### Current status
+- `Settings → AI Default`: ✅ centralized and production-facing
+- Active `frontend/` AI Default page: ✅ aligned with the consolidated backend
+- Provider registry and credential masking: ✅
+- Feature routing with ordered priorities 1–4: ✅
+- Prompt versioning and activation: ✅
+- Usage / health overview and connection tests: ✅
+- Legacy split AI settings dependence on Integrations: ✅ removed from the AI Defaults workflow
+- Frontend workspace TypeScript blocker (`google.maps`): ✅ resolved
+- Focused AI settings feature tests on SQLite fallback: ✅ running
+- Cache TTL controls now affect runtime reuse for successful AI responses: ✅ enabled
+
 ### Database Integration
 | Table | Verified |
 |-------|---|
@@ -233,6 +261,42 @@ GET    /api/leads/{id}/progress           — Get aggregated progress summary
 - [x] Lead Detail page real data integration (TanStack Query)
 - [x] AI Settings page real usage analytics
 - [x] Collision detection logic (prevents duplicates)
+
+## Phase 9: Frontend Tree Consolidation (Completed ✅)
+**Date completed**: 2026-04-19
+
+### What was done
+- Confirmed the active UI is the `frontend/` app served by Docker.
+- Marked the root Next.js tree as deprecated with explicit README markers in `app/`, `components/`, `lib/`, `store/`, and `types/`.
+- Turned the root `package.json` UI scripts into compatibility wrappers that delegate to `frontend/`.
+- Added repository documentation clarifying that all new UI work must land in `frontend/`.
+
+### Current status
+- Active frontend source of truth: `frontend/` ✅
+- Root duplicate UI tree: deprecated and clearly marked ✅
+- Accidental root-level UI runs: redirected through script wrappers ✅
+
+## Phase 10: Stabilization & Consistency (In Progress 🔧)
+**Date started**: 2026-04-19
+
+### What was done in this pass
+- Audited the declared SSOT/tasks/progress/decisions set against the active `frontend/` runtime and Laravel API routes.
+- Fixed a production-facing PostgreSQL mismatch in AI usage aggregation where `fallback_used` was compared as an integer instead of a boolean.
+- Corrected integration settings authorization so `/api/settings/integrations` now requires `integrations.manage` instead of the unrelated `audit.view` permission.
+- Added a centralized API error envelope in `backend/bootstrap/app.php` for validation, auth, authorization, not-found, and generic API failures while preserving current success payloads to avoid frontend breakage.
+- Tightened frontend permission gating so `Settings` sub-pages now reflect module-specific permissions instead of relying only on broad `/settings` access.
+- Verified the active runtime frontend (`frontend/`) passes both `npm run typecheck` and `npm run build`.
+- Added `docs/execution/database-mismatch-report.md` for tenant-scope and qualification integrity drift.
+- Added `docs/execution/api-contract-report.md` for runtime-vs-root contract drift and frontend normalization backlog.
+- Added `docs/execution/master-data-audit.md` to isolate the highest-risk remaining hardcoded business lists.
+
+### Current stabilization findings
+- API success responses are still not fully normalized to one envelope shape; the new standardization currently covers error responses and permission failures.
+- Several feature pages exist only in the deprecated root UI tree and are not available in the shipped `frontend/` runtime: `icp-profiles`, `qualification`, `territories`, `settings/funnel-stages`, and `settings/revenue-rules`.
+- Several active frontend screens still rely on hardcoded runtime domain lists, especially for qualification/rule metadata, notification channels, and workflow enums.
+- Some settings pages remain largely static (`Security`, `Backup`) and are not yet DB-backed, so the settings architecture is only partially stabilized.
+- Documentation still contains some legacy root-path references and historical notes that no longer reflect the active runtime paths.
+- Qualification parameter-set activation is not yet tenant-scoped even though the database constraints now assume tenant isolation.
 - [x] Cost-aware routing (prefers cheap models)
 - [x] Activity/meeting auto-integration (side effects working)
 
@@ -249,3 +313,193 @@ GET    /api/leads/{id}/progress           — Get aggregated progress summary
 **Module C**: ✅ Complete (production-ready)
 **Frontend**: ✅ 95% Complete (Lead Detail + Settings integrated, Leads list enhanced)
 **Documentation**: ⏳ 60% Complete (tasks updated, progress updated, BRD/SSOT/decisions pending)
+
+## 2026-04-18 Enterprise-Grade Project Structure Refactor (Phase 1–3 Complete)
+
+### Phase 1 — File Cleanup & Docs Organization ✅
+- Removed `package.json.bak` (orphaned backup)
+- Removed `docs/progress.md` (stale duplicate — `docs/execution/progress.md` is canonical)
+- Created `docs/architecture/` — moved `docs/ADR/ADR-0001-architecture.md` there
+- Moved `docs/diff.md` → `docs/execution/diff.md`
+- Moved `docs/risks.md` → `docs/execution/risks.md`
+- Moved `routes.txt` → `docs/routes.txt`
+- Updated `docs/ssot.md` path references
+
+### Phase 2 — Backend Service Domain Organization ✅
+Moved 4 root-level services to their correct domain subdirectories. Updated namespaces and all 14 dependent PHP files:
+
+| Service | Old Location | New Location |
+|---|---|---|
+| `AiOrchestrationService` | `Services/` | `Services/AI/` |
+| `WhatsAppSyncEngine` | `Services/` | `Services/WhatsApp/` (new dir) |
+| `LeadDiscoveryService` | `Services/` | `Services/Lead/` |
+| `MapSearchHistoryService` | `Services/` | `Services/Maps/` (new dir) |
+
+Cross-cutting services (`AuditService`, `DeduplicationService`) intentionally kept at `Services/` root.
+
+### Phase 3 — Frontend Module-Based Structure ✅
+Created `modules/` directory. Moved feature components out of `components/` into domain modules:
+
+| Component | Old Path | New Path |
+|---|---|---|
+| `ai-mode-selector.tsx` | `components/ai/` | `modules/ai/components/` |
+| `lead-drawer.tsx` | `components/leads/` | `modules/leads/components/` |
+| `map-markers-layer.tsx` | `components/map/` | `modules/maps/components/` |
+| `map-results-panel.tsx` | `components/map/` | `modules/maps/components/` |
+| `map-search-panel.tsx` | `components/map/` | `modules/maps/components/` |
+| `territory-map-view.tsx` | `components/map/` | `modules/maps/components/` |
+
+`components/` now contains only shared components (`ui/`, `layout/`). All imports updated.
+
+### Phase 4 — apps/ Monorepo Restructure ⏳ PENDING CONFIRMATION
+Moving `backend/` → `apps/backend/` and root Next.js → `apps/frontend/` requires changes to Docker build contexts, Dockerfile paths, `docker-compose.yml`, and resolution of the `frontend/` git submodule. Awaiting explicit user confirmation before proceeding.
+
+## Phase 8: Enterprise CRUD Audit & Completion (Completed ✅)
+**Date completed**: 2026-04-19
+
+### Objective
+Full CRUD coverage audit across all 20 modules. Every entity must support Create, Read, Update, Delete with both backend routes and frontend UI.
+
+### CRUD Matrix (Final State)
+
+| Module | C | R | U | D | SoftDel | Status |
+|---|---|---|---|---|---|---|
+| Leads | ✅ | ✅ | ✅ | ✅ | YES | Complete |
+| Users | ✅ | ✅ | ✅ | ✅ | NO | Complete |
+| Roles | ✅ | ✅ | ✅ | ✅ | NO | **Fixed** |
+| Products | ✅ | ✅ | ✅ | ✅ | NO | Complete |
+| Industries | ✅ | ✅ | ✅ | ✅ | NO | Complete |
+| Territories | ✅ | ✅ | ✅ | ✅ | NO | **New UI** |
+| AI Providers | ✅ | ✅ | ✅ | ✅ | NO | Complete |
+| Funnel Stages | ✅ | ✅ | ✅ | ✅ | NO | **Fixed** |
+| ICP Profiles | ✅ | ✅ | ✅ | ✅ | NO | **New UI** |
+| Revenue Rules | ✅ | ✅ | ✅ | ✅ | NO | **New UI** |
+| Qual. Param Sets | ✅ | ✅ | ✅ | ✅ | YES | **New UI** |
+| Qual. Workflows | ✅ | ✅ | ✅ | ✅ | YES | Backend only |
+| Activities | ✅ | ✅ | ✅ | ✅ | NO | **Fixed** |
+| Meetings | ✅ | ✅ | ✅ | ✅ | NO | **Fixed** |
+| Transcripts | ✅ | ✅ | — | ✅ | NO | Partial |
+| Audit Logs | — | ✅ | — | — | NO | Read-only by design |
+| WhatsApp Campaigns | ✅ | ✅ | — | ✅ | NO | **Fixed** |
+| Integration Config | ✅ | ✅ | ✅ | ✅ | NO | Complete |
+
+### Backend Changes
+
+| File | Change |
+|---|---|
+| `UserController.php` | Added `destroyRole()` — guards against roles with active users |
+| `FunnelController.php` | Added `destroyStage()` — guards against stages with assigned leads |
+| `WhatsAppController.php` | Added `destroyCampaign()` — guards against running/scheduled campaigns |
+| `LeadController.php` | Added `updateActivity()` and `updateMeeting()` |
+| `routes/api.php` | Registered: `DELETE /roles/{role}`, `DELETE /funnel/stages/{stage}`, `DELETE /whatsapp/campaigns/{campaign}`, `PUT /leads/{lead}/activities/{activity}`, `PUT /leads/{lead}/meetings/{meeting}` |
+
+### New Frontend Pages
+
+| Page | Route | CRUD |
+|---|---|---|
+| `app/territories/page.tsx` | `/territories` | Full CRUD + confirmation modal |
+| `app/icp-profiles/page.tsx` | `/icp-profiles` | Full CRUD + batch-match trigger |
+| `app/settings/revenue-rules/page.tsx` | `/settings/revenue-rules` | Full CRUD + toggle active/inactive |
+
+### Enhanced Frontend Pages
+
+| Page | Enhancement |
+|---|---|
+| `app/qualification/page.tsx` | Added "Parameter Sets" tab — full CRUD with nested parameter/option editor, activate action |
+| `app/settings/users/page.tsx` | Added role Create/Edit/Delete modals; added user deactivate; fixed tab active indicator |
+| `app/whatsapp/page.tsx` | Added campaign delete button (blocked for running/scheduled) |
+
+### Navigation
+- Added **Territories** (`/territories`) and **ICP Profiles** (`/icp-profiles`) to app sidebar.
+
+### lib/hooks/use-whatsapp.ts
+- Added `deleteCampaign()` method calling `DELETE /whatsapp/campaigns/{id}`.
+
+### Design Patterns Applied
+- All delete actions use confirmation modal (soft-delete entities labeled "Archive", hard-delete labeled "Delete")
+- All destructive backend endpoints guard against referential integrity violations with 422 + human-readable message
+- All new pages use `lib/design.ts` semantic classes (BTN_PRIMARY, BTN_SECONDARY, INPUT_CLASS, etc.)
+
+## Phase 4: Full CRUD Completion Audit (2026-04-19 ✅)
+
+### CRUD Matrix — Final State
+
+| Module | Create | Read | Update | Delete | Status |
+|--------|--------|------|--------|--------|--------|
+| Leads | ✅ | ✅ | ✅ (added) | ✅ (added soft) | **FULL** |
+| Lead Activities | ✅ | ✅ | ✅ (added) | ✅ (added) | **FULL** |
+| Lead Meetings | ✅ | ✅ | ✅ (added) | ✅ (added) | **FULL** |
+| Lead Transcripts | ✅ (added) | ✅ (added) | N/A | ✅ (added) | **FULL** |
+| Lead Contacts | ✅ | ✅ | ✅ | ✅ | **FULL** |
+| Users | ✅ | ✅ | ✅ | ✅ (soft via is_active) | **FULL** |
+| Roles | ✅ | ✅ | ✅ | ✅ | **FULL** |
+| Products | ✅ | ✅ | ✅ | ✅ | **FULL** |
+| Industries | ✅ | ✅ | ✅ | ✅ | **FULL** |
+| Sub-Industries | ✅ | ✅ | ✅ (added) | ✅ | **FULL** |
+| Funnel Stages | ✅ | ✅ (added page) | ✅ (added page) | ✅ (added page) | **FULL** |
+| Territories | ✅ | ✅ | ✅ | ✅ | **FULL** |
+| ICP Profiles | ✅ | ✅ | ✅ | ✅ | **FULL** |
+| Revenue Rules | ✅ | ✅ | ✅ | ✅ | **FULL** |
+| AI Providers | ✅ (added) | ✅ | ✅ (added) | ✅ (added) | **FULL** |
+| AI Models | ✅ (added) | ✅ | N/A | ✅ (added) | **FULL** |
+| Qualification Param Sets | ✅ | ✅ | ✅ | ✅ | **FULL** |
+| Integrations | ✅ | ✅ | ✅ (upsert POST) | ✅ | **FULL** |
+| WhatsApp Campaigns | ✅ | ✅ | ✅ (added) | ✅ (modal) | **FULL** |
+| Audit Logs | N/A | ✅ | N/A | N/A | **READ-ONLY ✅** |
+
+### Files Changed
+
+#### Backend
+- `backend/app/Http/Controllers/Api/IndustryController.php` — added `updateSub()`
+- `backend/app/Http/Controllers/Api/WhatsAppController.php` — added `updateCampaign()`
+- `backend/routes/api.php` — added `PUT industries/{industry}/sub-industries/{sub}`, `PUT whatsapp/campaigns/{campaign}`
+
+#### Frontend
+- `app/leads/page.tsx` — added delete lead button + soft-delete confirmation modal
+- `app/leads/[id]/page.tsx` — added Edit Lead modal, Delete Lead modal, Activity edit/delete, Meeting edit/delete, Transcript list/create/delete UI
+- `app/settings/funnel-stages/page.tsx` — **NEW PAGE** full CRUD for funnel stages
+- `app/settings/page.tsx` — added Funnel Stages card
+- `app/settings/ai-defaults/page.tsx` — replaced fake alert with real Create/Edit/Delete Provider modals + Add/Delete Model UI
+- `app/industries/page.tsx` — added sub-industry edit button + modal
+- `app/whatsapp/page.tsx` — added Campaign Edit modal + Delete confirmation modal
+
+## Phase 10: UI System Unification (2026-04-19 🔄)
+
+### Shared UI Foundation
+- Added reusable primitives under `frontend/components/ui`:
+  - `input.tsx`
+  - `select.tsx`
+  - `badge.tsx`
+  - `card.tsx`
+  - `modal.tsx`
+  - `tabs.tsx`
+  - `filter-bar.tsx`
+  - `table.tsx`
+- Expanded `frontend/app/globals.css` with shared semantic UI tokens for brand, success, warning, danger, info, and neutral surface usage.
+
+### Admin Surface Unification
+- `frontend/app/leads/page.tsx`
+  - Rebuilt on shared `Card`, `FilterBar`, `Table`, `Modal`, `Input`, `Select`, `Badge`, and `Button`.
+  - Removed browser `alert()` / `window.confirm()` flows in favor of shared feedback + confirmation modal patterns.
+- `frontend/app/settings/users/page.tsx`
+  - Rebuilt users and roles views on the same standardized admin structure as Leads.
+  - Replaced local style constants with shared primitives.
+- `frontend/app/audit-logs/page.tsx`
+  - Rebuilt with the same header, filter, table, badge, and pagination system used by other admin pages.
+
+### Maps + AI Normalization
+- `frontend/app/map/page.tsx`
+  - Reworked around shared `Card`, `Badge`, and `Button` usage.
+  - Replaced alert-driven feedback with page-level standardized feedback.
+- `frontend/components/map/map-search-panel.tsx`
+  - Rebuilt search controls, filters, and history UI on shared primitives.
+- `frontend/components/map/map-results-panel.tsx`
+  - Rebuilt result list and detail panel with shared cards, badges, and actions.
+- `frontend/components/ai/ai-mode-selector.tsx`
+  - Removed gradient-heavy custom treatment and aligned it with shared badge/card patterns.
+- `frontend/app/settings/ai-defaults/page.tsx`
+  - Replaced the over-branded hero treatment with the same settings/admin card system.
+  - Replaced local field/button/modal styling with shared primitives.
+
+### Verification
+- `cd frontend && ./node_modules/.bin/tsc --noEmit` ✅

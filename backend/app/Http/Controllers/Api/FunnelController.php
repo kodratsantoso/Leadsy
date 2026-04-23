@@ -54,6 +54,19 @@ class FunnelController extends Controller
         return response()->json(['data' => $stage]);
     }
 
+    /** DELETE /api/funnel/stages/{stage} */
+    public function destroyStage(FunnelStage $stage): JsonResponse
+    {
+        if (Lead::where('funnel_stage_id', $stage->id)->exists()) {
+            return response()->json(['message' => 'Cannot delete stage: leads are assigned to it.'], 422);
+        }
+
+        AuditService::logDeleted('funnel_stages', $stage);
+        $stage->delete();
+
+        return response()->json(null, 204);
+    }
+
     /** GET /api/funnel/dashboard – conversion metrics */
     public function dashboard(): JsonResponse
     {

@@ -9,7 +9,7 @@ use App\Models\WhatsappSession;
 use App\Models\WhatsappContact;
 use App\Models\WhatsappConversation;
 use App\Models\WhatsappMessage;
-use App\Services\WhatsAppSyncEngine;
+use App\Services\WhatsApp\WhatsAppSyncEngine;
 use App\Jobs\AnalyzeWhatsAppConversationJob;
 
 class WhatsAppWebhookController extends Controller

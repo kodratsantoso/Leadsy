@@ -13,7 +13,7 @@ type Mode = "login" | "register";
 type RegisterStep = "form" | "otp";
 
 const inputCls =
-  "w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
+  "w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -208,9 +208,9 @@ export default function LoginPage() {
           <Image
             src={logoSrc}
             alt="Leadsy"
-            width={140}
-            height={48}
-            className="mb-4 h-12 w-auto object-contain"
+            width={360}
+            height={128}
+            className="mb-4 h-32 w-auto object-contain"
             priority
           />
           <p className="mt-1 text-sm text-muted-foreground">
@@ -230,7 +230,7 @@ export default function LoginPage() {
           </div>
         )}
         {success && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-600 dark:text-emerald-400">
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-[var(--status-success)]/20 bg-[var(--status-success)]/10 p-3 text-sm text-[var(--status-success)]">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{success}</span>
           </div>
@@ -248,14 +248,14 @@ export default function LoginPage() {
               <input type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className={inputCls} placeholder="••••••••" />
             </div>
             <div className="pt-2">
-              <button type="submit" disabled={loginLoading} className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50">
+              <button type="submit" disabled={loginLoading} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--brand)] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--brand-hover)] disabled:opacity-50">
                 {loginLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loginLoading ? "Signing in..." : "Sign In"}
               </button>
             </div>
             <p className="text-center text-xs text-muted-foreground pt-1">
               Don&apos;t have an account?{" "}
-              <button type="button" onClick={() => switchMode("register")} className="text-indigo-500 hover:text-indigo-400 font-medium">
+              <button type="button" onClick={() => switchMode("register")} className="text-[var(--brand)] hover:text-[var(--brand)] font-medium">
                 Create one
               </button>
             </p>
@@ -282,13 +282,13 @@ export default function LoginPage() {
               <input type="password" required value={regConfirm} onChange={(e) => setRegConfirm(e.target.value)} className={inputCls} placeholder="Repeat password" />
             </div>
             <div className="pt-2">
-              <button type="submit" disabled={sendingOtp} className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50">
+              <button type="submit" disabled={sendingOtp} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--brand)] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--brand-hover)] disabled:opacity-50">
                 {sendingOtp ? <><Loader2 className="h-4 w-4 animate-spin" /> Sending code...</> : <><Mail className="h-4 w-4" /> Send Verification Code</>}
               </button>
             </div>
             <p className="text-center text-xs text-muted-foreground pt-1">
               Already have an account?{" "}
-              <button type="button" onClick={() => switchMode("login")} className="text-indigo-500 hover:text-indigo-400 font-medium">
+              <button type="button" onClick={() => switchMode("login")} className="text-[var(--brand)] hover:text-[var(--brand)] font-medium">
                 Sign in
               </button>
             </p>
@@ -299,8 +299,8 @@ export default function LoginPage() {
         {mode === "register" && registerStep === "otp" && (
           <form onSubmit={handleRegister} className="space-y-6">
             <div className="text-center">
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/15">
-                <Mail className="h-5 w-5 text-indigo-500" />
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand)]/15">
+                <Mail className="h-5 w-5 text-[var(--brand)]" />
               </div>
               <p className="text-sm text-muted-foreground">We sent a 6-digit code to</p>
               <p className="mt-0.5 text-sm font-semibold text-foreground">{regEmail}</p>
@@ -318,7 +318,7 @@ export default function LoginPage() {
                   value={digit}
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="h-12 w-11 rounded-lg border border-input bg-background text-center text-xl font-bold text-foreground caret-indigo-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="h-12 w-11 rounded-lg border border-input bg-background text-center text-xl font-bold text-foreground caret-[var(--brand)] focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               ))}
             </div>
@@ -327,7 +327,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={registerLoading || otpDigits.join("").length < 6}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--brand)] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--brand-hover)] disabled:opacity-50"
               >
                 {registerLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {registerLoading ? "Creating account..." : "Create Account"}
@@ -345,7 +345,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleResendOtp}
                   disabled={countdown > 0 || sendingOtp}
-                  className="flex items-center gap-1 text-muted-foreground hover:text-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 text-muted-foreground hover:text-[var(--brand)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <RefreshCw className={`h-3 w-3 ${sendingOtp ? "animate-spin" : ""}`} />
                   {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}

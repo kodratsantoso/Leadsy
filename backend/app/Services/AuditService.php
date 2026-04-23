@@ -23,6 +23,7 @@ class AuditService
         ?int $userId = null
     ): AuditLog {
         return AuditLog::create([
+            'tenant_id'      => Auth::user()?->tenant_id,
             'user_id'        => $userId ?? Auth::id(),
             'action'         => $action,
             'module'         => $module,

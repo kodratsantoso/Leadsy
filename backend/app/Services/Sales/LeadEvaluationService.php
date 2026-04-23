@@ -6,7 +6,7 @@ use App\Models\Lead;
 use App\Models\LeadMeeting;
 use App\Models\LeadTranscript;
 use App\Models\LeadAiEvaluation;
-use App\Services\AiOrchestrationService;
+use App\Services\AI\AiOrchestrationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 

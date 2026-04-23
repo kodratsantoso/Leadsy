@@ -16,6 +16,16 @@ class RevenueRuleEngineService
         $blocked = false;
         $flags   = [];
 
+        foreach ($this->baselinePipelineChecks($lead) as $check) {
+            $results[] = $check;
+            if ($check['action'] === 'block') {
+                $blocked = true;
+            }
+            if ($check['action'] === 'flag') {
+                $flags[] = $check['rule'];
+            }
+        }
+
         foreach ($rules as $rule) {
             if ($this->evaluateRule($rule, $lead)) {
                 $results[] = [
@@ -35,6 +45,41 @@ class RevenueRuleEngineService
             'can_enter_pipeline'=> !$blocked,
             'summary'           => $this->summary($blocked, $flags),
         ];
+    }
+
+    private function baselinePipelineChecks(Lead $lead): array
+    {
+        $checks = [];
+
+        if ($lead->lead_score === null) {
+            $checks[] = [
+                'rule' => 'Lead score is required before pipeline entry',
+                'action' => 'block',
+                'severity' => 'critical',
+            ];
+        } elseif ($lead->lead_score < 60) {
+            $checks[] = [
+                'rule' => 'Lead score is below the minimum pipeline threshold',
+                'action' => 'block',
+                'severity' => 'critical',
+            ];
+        }
+
+        if (! in_array($lead->qualification_status, ['eligible', 'potential'], true)) {
+            $checks[] = [
+                'rule' => 'Lead qualification is not ready for pipeline entry',
+                'action' => 'block',
+                'severity' => 'critical',
+            ];
+        } elseif ($lead->qualification_status === 'potential') {
+            $checks[] = [
+                'rule' => 'Potential leads require extra reviewer attention',
+                'action' => 'flag',
+                'severity' => 'warning',
+            ];
+        }
+
+        return $checks;
     }
 
     private function evaluateRule(RevenueRule $rule, Lead $lead): bool
@@ -61,7 +106,7 @@ class RevenueRuleEngineService
 
     private function summary(bool $blocked, array $flags): string
     {
-        if ($blocked) return 'Lead is blocked from pipeline entry';
+        if ($blocked) return 'Lead is blocked from pipeline entry until quality gates are cleared';
         if (!empty($flags)) return 'Lead flagged: ' . implode(', ', $flags);
         return 'Lead cleared for pipeline entry';
     }

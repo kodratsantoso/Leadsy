@@ -68,6 +68,7 @@ export function useWhatsApp() {
     try {
       const res = await apiFetch('/whatsapp/session/status');
       const data = await res.json();
+      if (res.ok) setError(null);
       return {
         status: data.status || 'disconnected',
         number: data.number || null,
@@ -147,8 +148,11 @@ export function useWhatsApp() {
     try {
       const res = await apiFetch('/whatsapp/conversations');
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load conversations');
+      setError(null);
       return data.data || [];
-    } catch {
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load conversations');
       return [];
     }
   }, []);
@@ -177,8 +181,11 @@ export function useWhatsApp() {
     try {
       const res = await apiFetch('/whatsapp/campaigns');
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load campaigns');
+      setError(null);
       return data.data || [];
-    } catch {
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load campaigns');
       return [];
     }
   }, []);
@@ -221,13 +228,31 @@ export function useWhatsApp() {
     }
   }, []);
 
+  const deleteCampaign = useCallback(async (campaignId: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`/whatsapp/campaigns/${campaignId}`, { method: 'DELETE' });
+      if (!res.ok) { const data = await res.json(); throw new Error(data.message || 'Delete failed'); }
+      return true;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // ── Sync Rules ──
   const getSyncRules = useCallback(async (): Promise<WaSyncRule[]> => {
     try {
       const res = await apiFetch('/whatsapp/sync-rules');
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load sync rules');
+      setError(null);
       return data.data || [];
-    } catch {
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load sync rules');
       return [];
     }
   }, []);
@@ -258,7 +283,7 @@ export function useWhatsApp() {
     // Conversations
     getConversations, getMessages, analyzeConversation,
     // Campaigns
-    getCampaigns, createCampaign, executeCampaign,
+    getCampaigns, createCampaign, executeCampaign, deleteCampaign,
     // Sync Rules
     getSyncRules, updateSyncRules,
   };

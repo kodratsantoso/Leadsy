@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Download, Plus, ExternalLink, ChevronLeft, ChevronRight, MessageSquare, ArrowRight, X, Loader2 } from "lucide-react";
+import { Search, Download, Plus, ExternalLink, ChevronLeft, ChevronRight, MessageSquare, ArrowRight, X, Loader2, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
-
-const statusColors: Record<string, string> = {
-  eligible: "bg-emerald-500/10 text-emerald-500",
-  potential: "bg-amber-500/10 text-amber-500",
-  not_eligible: "bg-red-500/10 text-red-500",
-  pending: "bg-gray-500/10 text-gray-400",
-};
+import { QUALIFICATION_BADGE, FILTER_BANNER } from "@/lib/design";
+import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
+import { TableWrapper, Table, TableHead, TableHeaderCell, TableBody, TableRow, TableCell } from "@/components/ui/table";
 
 export default function LeadsPage() {
   const qc = useQueryClient();
@@ -27,13 +25,13 @@ export default function LeadsPage() {
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formIndustry, setFormIndustry] = useState("");
 
-  // Fetch funnel stages for the stage dropdown
   const { data: stagesData } = useQuery({
     queryKey: ["funnel-stages"],
     queryFn: async () => { const r = await apiFetch("/funnel/stages"); return r.json(); },
@@ -63,6 +61,14 @@ export default function LeadsPage() {
       setShowCreate(false);
       setFormName(""); setFormAddress(""); setFormPhone(""); setFormEmail(""); setFormIndustry("");
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const r = await apiFetch(`/leads/${id}`, { method: "DELETE" });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message || "Delete failed"); }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["leads"] }); setDeleteConfirm(null); },
   });
 
   const pushToFunnel = useMutation({
@@ -98,7 +104,6 @@ export default function LeadsPage() {
   const total = data?.total || 0;
   const lastPage = data?.last_page || 1;
 
-  // Active filter label for UI banner
   const filterLabel = (() => {
     if (qualificationFilter) return `Qualification: ${qualificationFilter.replace("_", " ")}`;
     if (funnelStageId) {
@@ -118,20 +123,19 @@ export default function LeadsPage() {
           <p className="text-sm text-muted-foreground">Discovered & enriched leads — BRD §3.5</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleExport} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+          <Button variant="soft" size="compact" onClick={handleExport}>
             <Download className="h-3.5 w-3.5" /> Export
-          </button>
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-3 py-2 text-xs font-medium text-white shadow-lg shadow-indigo-500/25">
+          </Button>
+          <Button variant="brand" size="compact" onClick={() => setShowCreate(true)}>
             <Plus className="h-3.5 w-3.5" /> New Lead
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Active filter banner */}
       {filterLabel && (
-        <div className="flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/5 px-4 py-2 text-xs font-medium text-indigo-400">
+        <div className={FILTER_BANNER}>
           <span>Filtered by: {filterLabel}</span>
-          <button onClick={resetFilters} className="ml-auto rounded p-0.5 hover:text-indigo-200">
+          <button onClick={resetFilters} className="ml-auto rounded p-0.5 hover:opacity-70">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -140,31 +144,31 @@ export default function LeadsPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name, industry, email..." className="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+          <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name, industry, email..." className="pl-9" />
         </div>
-        <select value={funnelStageId} onChange={(e) => { setFunnelStageId(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+        <Select value={funnelStageId} onChange={(e) => { setFunnelStageId(e.target.value); setPage(1); }}>
           <option value="">All Stages</option>
           {funnelStages.map((s) => (
             <option key={s.id} value={String(s.id)}>{s.name}</option>
           ))}
-        </select>
-        <select value={qualificationFilter} onChange={(e) => { setQualificationFilter(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+        </Select>
+        <Select value={qualificationFilter} onChange={(e) => { setQualificationFilter(e.target.value); setPage(1); }}>
           <option value="">All Qualifications</option>
           <option value="pending">Pending</option>
           <option value="eligible">Eligible</option>
           <option value="potential">Potential</option>
           <option value="not_eligible">Not Eligible</option>
-        </select>
-        <select value={duplicateFilter} onChange={(e) => { setDuplicateFilter(e.target.value); setPage(1); }} className="h-9 rounded-lg border border-input bg-background px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+        </Select>
+        <Select value={duplicateFilter} onChange={(e) => { setDuplicateFilter(e.target.value); setPage(1); }}>
           <option value="">All Statuses</option>
           <option value="new">New</option>
           <option value="probable_duplicate">Probable Duplicate</option>
           <option value="exact_duplicate">Exact Duplicate</option>
-        </select>
+        </Select>
         <div className="flex gap-2 items-center">
-          <input type="number" min="0" max="100" value={minScore} onChange={(e) => { setMinScore(e.target.value); setPage(1); }} placeholder="Min score" className="h-9 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-24" />
+          <Input type="number" min="0" max="100" value={minScore} onChange={(e) => { setMinScore(e.target.value); setPage(1); }} placeholder="Min score" className="w-24" />
           <span className="text-muted-foreground">–</span>
-          <input type="number" min="0" max="100" value={maxScore} onChange={(e) => { setMaxScore(e.target.value); setPage(1); }} placeholder="Max" className="h-9 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-24" />
+          <Input type="number" min="0" max="100" value={maxScore} onChange={(e) => { setMaxScore(e.target.value); setPage(1); }} placeholder="Max" className="w-24" />
         </div>
         {hasActiveFilter && (
           <button onClick={resetFilters} className="h-9 rounded-lg border border-border px-3 text-xs text-muted-foreground hover:text-foreground">
@@ -173,64 +177,73 @@ export default function LeadsPage() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30 text-left text-xs text-muted-foreground">
-                <th className="px-4 py-3 font-medium">Company</th>
-                <th className="px-4 py-3 font-medium">Industry</th>
-                <th className="px-4 py-3 font-medium">Contact</th>
-                <th className="px-4 py-3 font-medium">Score</th>
-                <th className="px-4 py-3 font-medium">Qualification</th>
-                <th className="px-4 py-3 font-medium">Stage</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {isLoading ? (
-                <tr><td colSpan={7} className="py-16 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></td></tr>
-              ) : leads.length === 0 ? (
-                <tr><td colSpan={7} className="py-16 text-center text-muted-foreground text-xs">No leads found. Discover or create leads to populate.</td></tr>
-              ) : leads.map((lead: any) => (
-                <tr key={lead.id} className="transition-colors hover:bg-accent/20">
-                  <td className="px-4 py-3">
-                    <Link href={`/leads/${lead.id}`} className="group">
-                      <p className="text-sm font-medium group-hover:text-indigo-400 transition-colors">{lead.company_name}</p>
-                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">{lead.address}</p>
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3"><span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">{lead.industry?.name ?? lead.business_category ?? "—"}</span></td>
-                  <td className="px-4 py-3"><p className="text-xs">{lead.email || "—"}</p><p className="text-xs text-muted-foreground">{lead.phone || ""}</p></td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-600" style={{ width: `${lead.lead_score || 0}%` }} /></div>
-                      <span className="text-xs font-bold tabular-nums">{lead.lead_score ?? "—"}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${statusColors[lead.qualification_status] ?? ""}`}>{(lead.qualification_status || "pending").replace("_", " ")}</span></td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => { setFunnelStageId(String(lead.funnel_stage_id ?? "")); setPage(1); }}
-                      className="text-xs hover:text-indigo-400 transition-colors"
-                      title="Filter by this stage"
-                    >
-                      {lead.funnel_stage?.name ?? lead.current_funnel_stage?.name ?? "—"}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => pushToFunnel.mutate(lead.id)} title="Push to Funnel" className="rounded-md p-1.5 text-muted-foreground hover:bg-indigo-500/10 hover:text-indigo-500"><ArrowRight className="h-3.5 w-3.5" /></button>
-                      <button onClick={() => handleWhatsApp(lead.phone)} title="WhatsApp" className="rounded-md p-1.5 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500"><MessageSquare className="h-3.5 w-3.5" /></button>
-                      <Link href={`/leads/${lead.id}`} className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"><ExternalLink className="h-3.5 w-3.5" /></Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
+      <TableWrapper>
+        <Table>
+          <TableHead>
+            <tr>
+              <TableHeaderCell>Company</TableHeaderCell>
+              <TableHeaderCell>Industry</TableHeaderCell>
+              <TableHeaderCell>Contact</TableHeaderCell>
+              <TableHeaderCell>Score</TableHeaderCell>
+              <TableHeaderCell>Qualification</TableHeaderCell>
+              <TableHeaderCell>Stage</TableHeaderCell>
+              <TableHeaderCell>Actions</TableHeaderCell>
+            </tr>
+          </TableHead>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-16 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></TableCell>
+              </TableRow>
+            ) : leads.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-16 text-center text-xs text-muted-foreground">No leads found. Discover or create leads to populate.</TableCell>
+              </TableRow>
+            ) : leads.map((lead: any) => (
+              <TableRow key={lead.id}>
+                <TableCell>
+                  <Link href={`/leads/${lead.id}`} className="group">
+                    <p className="text-sm font-medium group-hover:text-[var(--brand)] transition-colors">{lead.company_name}</p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">{lead.address}</p>
+                  </Link>
+                </TableCell>
+                <TableCell><span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">{lead.industry?.name ?? lead.business_category ?? "—"}</span></TableCell>
+                <TableCell muted>
+                  <p className="text-xs">{lead.email || "—"}</p>
+                  <p className="text-xs text-muted-foreground">{lead.phone || ""}</p>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="score-bar-track w-12"><div className="score-bar-fill" style={{ width: `${Math.max(0, Math.min(100, lead.lead_score || 0))}%` }} /></div>
+                    <span className="text-xs font-bold tabular-nums">{lead.lead_score ?? "—"}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className={`capitalize ${QUALIFICATION_BADGE[lead.qualification_status] ?? QUALIFICATION_BADGE.pending}`}>
+                    {(lead.qualification_status || "pending").replace("_", " ")}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <button
+                    onClick={() => { setFunnelStageId(String(lead.funnel_stage_id ?? "")); setPage(1); }}
+                    className="text-xs hover:text-[var(--brand)] transition-colors"
+                    title="Filter by this stage"
+                  >
+                    {lead.funnel_stage?.name ?? lead.current_funnel_stage?.name ?? "—"}
+                  </button>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => pushToFunnel.mutate(lead.id)} title="Push to Funnel" className="rounded-md p-1.5 text-muted-foreground hover:bg-[var(--brand)]/10 hover:text-[var(--brand)]"><ArrowRight className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => handleWhatsApp(lead.phone)} title="WhatsApp" className="rounded-md p-1.5 text-muted-foreground hover:bg-[var(--status-success)]/10 hover:text-[var(--status-success)]"><MessageSquare className="h-3.5 w-3.5" /></button>
+                    <Link href={`/leads/${lead.id}`} className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" title="View details"><ExternalLink className="h-3.5 w-3.5" /></Link>
+                    <button onClick={() => setDeleteConfirm(lead)} title="Delete lead" className="rounded-md p-1.5 text-muted-foreground hover:bg-[var(--status-danger)]/10 hover:text-[var(--status-danger)]"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
         <div className="flex items-center justify-between border-t border-border px-5 py-3">
           <p className="text-xs text-muted-foreground">Showing page {page} of {lastPage} ({total} total)</p>
           <div className="flex items-center gap-1">
@@ -239,32 +252,56 @@ export default function LeadsPage() {
             <button onClick={() => setPage(p => Math.min(lastPage, p + 1))} disabled={page >= lastPage} className="rounded-md border border-border p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-50"><ChevronRight className="h-3.5 w-3.5" /></button>
           </div>
         </div>
-      </div>
+      </TableWrapper>
+
+      {/* Delete Lead Confirmation */}
+      <Modal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete Lead"
+        size="sm"
+        footer={
+          <>
+            <Button variant="soft" size="compact" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="danger" size="compact" disabled={deleteMutation.isPending} onClick={() => deleteMutation.mutate(deleteConfirm.id)}>
+              {deleteMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Delete
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Are you sure you want to delete <span className="font-semibold text-foreground">{deleteConfirm?.company_name}</span>?
+        </p>
+        <p className="text-xs text-muted-foreground">The lead will be soft-deleted and can be restored by an admin.</p>
+        {deleteMutation.isError && <p className="text-xs text-[var(--status-danger)]">{(deleteMutation.error as Error)?.message}</p>}
+      </Modal>
 
       {/* Create Lead Modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Create Lead</h2>
-              <button onClick={() => setShowCreate(false)} className="rounded-md p-1 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="space-y-3">
-              <div><label className="text-xs font-medium text-muted-foreground">Company Name *</label><input value={formName} onChange={e => setFormName(e.target.value)} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Address</label><input value={formAddress} onChange={e => setFormAddress(e.target.value)} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Industry</label><input value={formIndustry} onChange={e => setFormIndustry(e.target.value)} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Email</label><input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Phone</label><input value={formPhone} onChange={e => setFormPhone(e.target.value)} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setShowCreate(false)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
-              <button onClick={() => createMutation.mutate({ company_name: formName, address: formAddress, business_category: formIndustry, email: formEmail, phone: formPhone })} disabled={createMutation.isPending || !formName} className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white disabled:opacity-50">
-                {createMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Create Lead"
+        size="md"
+        footer={
+          <>
+            <Button variant="soft" size="compact" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button
+              variant="brand"
+              size="compact"
+              disabled={createMutation.isPending || !formName}
+              onClick={() => createMutation.mutate({ company_name: formName, address: formAddress, business_category: formIndustry, email: formEmail, phone: formPhone })}
+            >
+              {createMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Create
+            </Button>
+          </>
+        }
+      >
+        <div><label className="text-xs font-medium text-muted-foreground">Company Name *</label><Input value={formName} onChange={e => setFormName(e.target.value)} className="mt-1" /></div>
+        <div><label className="text-xs font-medium text-muted-foreground">Address</label><Input value={formAddress} onChange={e => setFormAddress(e.target.value)} className="mt-1" /></div>
+        <div><label className="text-xs font-medium text-muted-foreground">Industry</label><Input value={formIndustry} onChange={e => setFormIndustry(e.target.value)} className="mt-1" /></div>
+        <div><label className="text-xs font-medium text-muted-foreground">Email</label><Input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} className="mt-1" /></div>
+        <div><label className="text-xs font-medium text-muted-foreground">Phone</label><Input value={formPhone} onChange={e => setFormPhone(e.target.value)} className="mt-1" /></div>
+      </Modal>
     </div>
   );
 }

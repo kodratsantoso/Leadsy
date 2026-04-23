@@ -9,13 +9,16 @@ class AiFeatureRoute extends Model
 {
     protected $fillable = [
         'feature_name', 'ai_model_id', 'priority', 'max_retries',
-        'timeout_seconds', 'cost_sensitivity', 'is_active',
+        'timeout_seconds', 'cache_ttl_minutes', 'max_tokens', 'complexity_mode',
+        'cost_sensitivity', 'is_active',
     ];
 
     protected $casts = [
         'priority' => 'integer',
         'max_retries' => 'integer',
         'timeout_seconds' => 'integer',
+        'cache_ttl_minutes' => 'integer',
+        'max_tokens' => 'integer',
         'is_active' => 'boolean',
     ];
 

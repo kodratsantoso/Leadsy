@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Save, Loader2, Key, MapPin, MessageSquare, CheckCircle2, AlertCircle } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { Button } from "@/components/ui/button";
 
 type IntegrationConfig = {
   id?: number;
@@ -13,6 +14,9 @@ type IntegrationConfig = {
   is_active: boolean;
   value_type: "string" | "boolean" | "number" | "json";
 };
+
+const asBooleanString = (value: unknown) => (value === true || value === "true" || value === 1 || value === "1" ? "true" : "false");
+const asStringValue = (value: unknown) => (value == null ? "" : String(value));
 
 const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_MAPS_ENABLED:            { category: "maps", key: "GOOGLE_MAPS_ENABLED",            value: "true",    is_secret: false, is_active: true, value_type: "boolean" },
@@ -58,19 +62,34 @@ export default function IntegrationsSettingsPage() {
 
         if (json.data.maps) {
           const next = { ...DEFAULT_MAPS };
-          (json.data.maps as IntegrationConfig[]).forEach((c) => { next[c.key] = c; });
+          (json.data.maps as IntegrationConfig[]).forEach((c) => {
+            next[c.key] = {
+              ...c,
+              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
+            };
+          });
           setMapsConfig(next);
         }
 
         if (json.data.whatsapp) {
           const next = { ...DEFAULT_WHATSAPP };
-          (json.data.whatsapp as IntegrationConfig[]).forEach((c) => { next[c.key] = c; });
+          (json.data.whatsapp as IntegrationConfig[]).forEach((c) => {
+            next[c.key] = {
+              ...c,
+              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
+            };
+          });
           setWhatsappConfig(next);
         }
 
         if (json.data.lusha) {
           const next = { ...DEFAULT_LUSHA };
-          (json.data.lusha as IntegrationConfig[]).forEach((c) => { next[c.key] = c; });
+          (json.data.lusha as IntegrationConfig[]).forEach((c) => {
+            next[c.key] = {
+              ...c,
+              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
+            };
+          });
           setLushaConfig(next);
         }
       })
@@ -148,7 +167,7 @@ export default function IntegrationsSettingsPage() {
             onClick={() => setTab(t.id as any)}
             className={`flex items-center gap-2 border-b-2 px-1 pb-2.5 text-sm font-medium capitalize transition-colors ${
               tab === t.id
-                ? "border-indigo-500 text-foreground"
+                ? "border-[var(--brand)] text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -166,7 +185,7 @@ export default function IntegrationsSettingsPage() {
             <p className="text-xs text-muted-foreground mb-6">
               Configure the Google Maps API key for the Map & Territory page.
               Get a key from{" "}
-              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-indigo-400 underline">
+              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-[var(--brand)] underline">
                 Google Cloud Console
               </a>
               .
@@ -186,7 +205,7 @@ export default function IntegrationsSettingsPage() {
                     ...mapsConfig,
                     GOOGLE_MAPS_ENABLED: { ...mapsConfig.GOOGLE_MAPS_ENABLED, value: e.target.checked ? "true" : "false" },
                   })}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                  className="h-4 w-4 rounded border-border text-[var(--brand-hover)] focus:ring-[var(--brand)]"
                 />
               </div>
 
@@ -209,12 +228,12 @@ export default function IntegrationsSettingsPage() {
                   spellCheck={false}
                 />
                 {mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value && (
-                  <p className="mt-1 flex items-center gap-1 text-xs text-emerald-500">
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[var(--status-success)]">
                     <CheckCircle2 className="h-3 w-3" /> API key entered — save to apply
                   </p>
                 )}
                 {!mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value && (
-                  <p className="mt-1 flex items-center gap-1 text-xs text-amber-500">
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[var(--status-warning)]">
                     <AlertCircle className="h-3 w-3" /> No key configured — map runs in preview mode
                   </p>
                 )}
@@ -252,21 +271,17 @@ export default function IntegrationsSettingsPage() {
             </div>
 
             <div className="mt-6 flex items-center gap-3">
-              <button
-                onClick={() => handleSave("maps", mapsConfig)}
-                disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-              >
+              <Button variant="brand" size="compact" disabled={saving} onClick={() => handleSave("maps", mapsConfig)}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Maps Config
-              </button>
+              </Button>
               {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-success)]">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
                 </span>
               )}
               {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-danger)]">
                   <AlertCircle className="h-4 w-4" /> {errorMsg}
                 </span>
               )}
@@ -297,7 +312,7 @@ export default function IntegrationsSettingsPage() {
                     ...whatsappConfig,
                     WHATSAPP_ENABLED: { ...whatsappConfig.WHATSAPP_ENABLED, value: e.target.checked ? "true" : "false" },
                   })}
-                  className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600"
+                  className="h-4 w-4 rounded border-border text-[var(--status-success)] focus:ring-[var(--status-success)]"
                 />
               </div>
 
@@ -332,21 +347,17 @@ export default function IntegrationsSettingsPage() {
             </div>
 
             <div className="mt-6 flex items-center gap-3">
-              <button
-                onClick={() => handleSave("whatsapp", whatsappConfig)}
-                disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-              >
+              <Button variant="brand" size="compact" disabled={saving} onClick={() => handleSave("whatsapp", whatsappConfig)}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save WhatsApp Config
-              </button>
+              </Button>
               {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-success)]">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
                 </span>
               )}
               {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-danger)]">
                   <AlertCircle className="h-4 w-4" /> {errorMsg}
                 </span>
               )}
@@ -377,7 +388,7 @@ export default function IntegrationsSettingsPage() {
                     ...lushaConfig,
                     LUSHA_ENABLED: { ...lushaConfig.LUSHA_ENABLED, value: e.target.checked ? "true" : "false" },
                   })}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                  className="h-4 w-4 rounded border-border text-[var(--brand-hover)] focus:ring-[var(--brand)]"
                 />
               </div>
 
@@ -442,21 +453,17 @@ export default function IntegrationsSettingsPage() {
             </div>
 
             <div className="mt-6 flex items-center gap-3">
-              <button
-                onClick={() => handleSave("lusha", lushaConfig)}
-                disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-              >
+              <Button variant="brand" size="compact" disabled={saving} onClick={() => handleSave("lusha", lushaConfig)}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Lusha Config
-              </button>
+              </Button>
               {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-success)]">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
                 </span>
               )}
               {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-danger)]">
                   <AlertCircle className="h-4 w-4" /> {errorMsg}
                 </span>
               )}
@@ -470,7 +477,7 @@ export default function IntegrationsSettingsPage() {
         <div className="rounded-xl border border-border bg-card p-10 text-center shadow-sm">
           <Key className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
           <p className="text-sm font-medium text-muted-foreground">Webhook URLs are managed in</p>
-          <a href="/settings/webhooks" className="mt-1 inline-block text-sm text-indigo-400 underline underline-offset-2 hover:text-indigo-300">
+          <a href="/settings/webhooks" className="mt-1 inline-block text-sm text-[var(--brand)] underline underline-offset-2 hover:text-[var(--brand-light)]">
             Settings → Webhooks →
           </a>
         </div>

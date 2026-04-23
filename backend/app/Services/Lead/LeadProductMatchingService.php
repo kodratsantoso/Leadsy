@@ -5,7 +5,7 @@ namespace App\Services\Lead;
 use App\Models\Lead;
 use App\Models\Product;
 use App\Models\LeadProductMatch;
-use App\Services\AiOrchestrationService;
+use App\Services\AI\AiOrchestrationService;
 use Carbon\Carbon;
 
 /**

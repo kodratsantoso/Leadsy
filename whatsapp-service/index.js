@@ -20,12 +20,28 @@ let currentQr = null;
 let currentStatus = 'disconnected'; // 'disconnected', 'qr_ready', 'connected', 'connecting'
 let connectionAttemptInProgress = false;
 
+function clearAuthState() {
+    try {
+        if (!fs.existsSync(AUTH_DIR)) {
+            fs.mkdirSync(AUTH_DIR, { recursive: true });
+            return;
+        }
+
+        for (const entry of fs.readdirSync(AUTH_DIR)) {
+            fs.rmSync(path.join(AUTH_DIR, entry), { recursive: true, force: true });
+        }
+    } catch (e) {
+        console.error('Error removing auth dir:', e.message);
+    }
+}
+
 async function connectToWhatsApp() {
     if (connectionAttemptInProgress) {
         console.log('Connection attempt already in progress, skipping...');
         return;
     }
     connectionAttemptInProgress = true;
+    currentStatus = 'connecting';
 
     try {
         const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
@@ -61,12 +77,17 @@ async function connectToWhatsApp() {
             }
 
             if (connection === 'close') {
-                const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
-                console.log('Connection closed, status code:', statusCode, ', reconnecting:', shouldReconnect);
+                const authExpired = statusCode === DisconnectReason.loggedOut || statusCode === 401;
+                const shouldReconnect = true;
+                console.log('Connection closed, status code:', statusCode, ', reconnecting:', shouldReconnect, ', authExpired:', authExpired);
                 currentStatus = 'disconnected';
                 currentQr = null;
                 connectionAttemptInProgress = false;
                 await sendWebhook({ action: 'status', status: 'disconnected' });
+
+                if (authExpired) {
+                    clearAuthState();
+                }
 
                 if (shouldReconnect) {
                     console.log('RECONNECTING...');
@@ -167,6 +188,7 @@ app.get('/api/session/status', (req, res) => {
     res.json({
         status: currentStatus,
         qr: currentQr,
+        number: sock?.user?.id || null,
         has_auth: fs.existsSync(path.join(AUTH_DIR, 'creds.json')),
     });
 });
@@ -175,9 +197,9 @@ app.post('/api/session/refresh-qr', async (req, res) => {
     // To refresh QR: disconnect and reconnect
     if (sock) {
         try {
-            await sock.logout();
+            sock.end(new Error('QR refresh requested'));
         } catch (e) {
-            // Ignore logout errors
+            // Ignore socket teardown errors
         }
         sock = null;
     }
@@ -186,13 +208,7 @@ app.post('/api/session/refresh-qr', async (req, res) => {
     connectionAttemptInProgress = false;
 
     // Remove saved auth to force new QR
-    try {
-        if (fs.existsSync(AUTH_DIR)) {
-            fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-        }
-    } catch (e) {
-        console.error('Error removing auth dir:', e.message);
-    }
+    clearAuthState();
 
     // Start fresh connection
     setTimeout(connectToWhatsApp, 500);

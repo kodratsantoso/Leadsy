@@ -383,12 +383,13 @@ export type IcpProfile = {
 
 export type IcpMatchResult = {
   matched: boolean;
-  icp_profile?: string;
+  icp_profile?: string | IcpProfile | null;
   icp_profile_id?: number;
   match_score?: number;
   match_level?: "excellent" | "good" | "fair" | "poor";
   score_breakdown?: Record<string, { score: number; weight: number }>;
   reason?: string;
+  evaluated_at?: string;
 };
 
 export type ConversionPrediction = {
@@ -474,7 +475,7 @@ export type RevenueAnalysis = {
 
 export type RevenueIntelligence = {
   lead_id: number;
-  icp_match?: (IcpMatchResult & { icp_profile?: IcpProfile }) | null;
+  icp_match?: (IcpMatchResult & { icp_profile_detail?: IcpProfile | null }) | null;
   latest_prediction?: ConversionPrediction | null;
   latest_prescription?: LeadPrescription | null;
   revenue_check?: RevenueCheck | null;

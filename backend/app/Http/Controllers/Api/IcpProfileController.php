@@ -35,6 +35,7 @@ class IcpProfileController extends Controller
         ]);
 
         $data['created_by'] = $request->user()->id;
+        $data['tenant_id'] = $request->user()->tenant_id;
         $profile = IcpProfile::create($data);
         return response()->json(['data' => $profile], 201);
     }

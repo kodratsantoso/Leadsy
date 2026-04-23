@@ -4,7 +4,7 @@ namespace App\Services\Lead;
 
 use App\Models\Lead;
 use App\Models\LeadAiAnalysis;
-use App\Services\AiOrchestrationService;
+use App\Services\AI\AiOrchestrationService;
 
 /**
  * Lead AI Analysis Service — Module A (Lead Intelligence Engine)
@@ -35,6 +35,9 @@ class LeadAIAnalysisService
 
         if ($result['success'] && $result['content']) {
             $analysis = json_decode($result['content'], true);
+            if (! is_array($analysis)) {
+                $analysis = $this->defaultAnalysis();
+            }
         } else {
             $analysis = $this->defaultAnalysis();
         }
@@ -42,9 +45,12 @@ class LeadAIAnalysisService
         // Persist analysis
         $aiAnalysis = $lead->aiAnalyses()->create([
             'relevance_score' => (int) ($analysis['relevance_score'] ?? 50),
+            'company_summary' => $analysis['company_summary'] ?? 'Company summary unavailable.',
             'business_opportunity_summary' => $analysis['opportunity_summary'] ?? 'Analysis pending',
+            'potential_use_case' => $analysis['potential_use_case'] ?? 'Primary use case not identified yet.',
             'probable_needs' => $analysis['probable_needs'] ?? [],
             'suggested_approach' => $analysis['suggested_approach'] ?? '',
+            'risk_insight' => $analysis['risk_insight'] ?? 'No major advisory risk identified.',
             'urgency_level' => $analysis['urgency_level'] ?? 'medium',
             'confidence_score' => (int) ($analysis['confidence'] ?? 50),
         ]);
@@ -82,15 +88,19 @@ class LeadAIAnalysisService
         }
 
         return <<<PROMPT
-        You are a B2B business analyst. Analyze this company and provide strategic insights for sales engagement.
+        You are a B2B business analyst. Analyze this company and provide advisory insights for sales engagement.
+        This analysis is advisory only. It must not replace or influence deterministic lead scoring.
         
         Company Information:{$leadJson}{$productInfo}
         
         Provide a JSON response with:
         - relevance_score: 0-100 (how relevant this lead is for the product)
+        - company_summary: 2-3 sentence company summary
         - opportunity_summary: 2-3 sentence description of business opportunity
+        - potential_use_case: 1-2 sentence likely use case for this company
         - probable_needs: array of 3-4 likely pain points or needs
-        - suggested_approach: recommended sales opening/angle
+        - suggested_approach: recommended outreach or sales opening angle
+        - risk_insight: 1-2 sentence advisory risk to watch for
         - urgency_level: "high", "medium", or "low" (when to prioritize contact)
         - confidence: 0-100 (confidence in this analysis)
         
@@ -105,9 +115,12 @@ class LeadAIAnalysisService
     {
         return [
             'relevance_score' => 50,
+            'company_summary' => 'Basic company profile is available, but AI enrichment did not complete.',
             'opportunity_summary' => 'Analysis pending. This lead requires AI processing to generate insights.',
+            'potential_use_case' => 'Use case needs manual discovery from the available company profile.',
             'probable_needs' => ['General business inquiry', 'Product evaluation', 'Market exploration'],
             'suggested_approach' => 'Start with needs discovery call to understand requirements.',
+            'risk_insight' => 'Advisory confidence is low because AI analysis is unavailable.',
             'urgency_level' => 'medium',
             'confidence' => 30,
         ];

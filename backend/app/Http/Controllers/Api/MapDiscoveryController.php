@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Lead;
 use App\Services\DeduplicationService;
-use App\Services\LeadDiscoveryService;
-use App\Services\MapSearchHistoryService;
+use App\Services\Lead\LeadDiscoveryService;
+use App\Services\Maps\MapSearchHistoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

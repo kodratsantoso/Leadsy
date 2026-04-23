@@ -11,7 +11,8 @@ use App\Models\Lead;
 use App\Models\LeadOutcome;
 use App\Services\AuditService;
 use App\Services\DeduplicationService;
-use App\Services\LeadDiscoveryService;
+use App\Services\Lead\LeadDiscoveryService;
+use App\Services\Lead\HumanVerificationWorkflowService;
 use App\Services\Revenue\ConversionPredictionService;
 use App\Services\Revenue\ICPMatchingService;
 use App\Services\Revenue\PrescriptiveEngineService;
@@ -87,7 +88,10 @@ class LeadController extends Controller
             'sources', 'funnelHistory.fromStage', 'funnelHistory.toStage',
             'funnelHistory.movedBy', 'creator',
             'scores', 'qualifications', 'productMatches', 'aiAnalyses',
-            'activities', 'meetings', 'transcripts', 'aiEvaluations', 'followUps'
+            'activities', 'meetings', 'transcripts', 'aiEvaluations', 'followUps',
+            'qualificationWorkflowReviews.workflow.stages',
+            'qualificationWorkflowReviews.requester',
+            'qualificationWorkflowReviews.reviewer',
         ]);
 
         return response()->json(['data' => $lead]);
@@ -122,6 +126,7 @@ class LeadController extends Controller
         }
 
         $data['created_by'] = $request->user()?->id;
+        $data['tenant_id'] = $request->user()?->tenant_id;
 
         // Auto-assign to first funnel stage ("New Lead") when none is provided
         if (empty($data['funnel_stage_id'])) {
@@ -198,6 +203,13 @@ class LeadController extends Controller
             $data['website_domain'] = parse_url($data['website'], PHP_URL_HOST);
         }
 
+        if (
+            isset($data['funnel_stage_id']) &&
+            $data['funnel_stage_id'] != $lead->funnel_stage_id
+        ) {
+            $this->ensureLeadReadyForPipeline($request, $lead);
+        }
+
         // Track funnel stage change
         if (isset($data['funnel_stage_id']) && $data['funnel_stage_id'] != $lead->funnel_stage_id) {
             $lead->funnelHistory()->create([
@@ -230,6 +242,8 @@ class LeadController extends Controller
         $data = $request->validate([
             'funnel_stage_id' => 'required|exists:funnel_stages,id',
         ]);
+
+        $this->ensureLeadReadyForPipeline($request, $lead);
 
         $lead->funnelHistory()->create([
             'from_stage_id' => $lead->funnel_stage_id,
@@ -522,6 +536,13 @@ class LeadController extends Controller
         $service = app(\App\Services\Lead\LeadQualificationService::class);
         $result = $service->qualifyLead($lead, useAi: true);
 
+        if ($result->classification === 'need_review' && $request = request()) {
+            app(HumanVerificationWorkflowService::class)->requestReview($lead->fresh('funnelStage'), $request->user(), [
+                'justification' => $result->qualification_reason,
+                'recommended_status' => 'pending',
+            ]);
+        }
+
         AuditService::log('qualify', 'leads', $lead, $lead->toArray(), [
             'qualified' => $result->qualified,
             'business_type' => $result->business_type,
@@ -539,6 +560,7 @@ class LeadController extends Controller
         AuditService::log('analyze', 'leads', $lead, null, [
             'relevance_score' => $result->relevance_score,
             'urgency_level' => $result->urgency_level,
+            'risk_insight' => $result->risk_insight,
         ]);
 
         return response()->json(['data' => $result], 201);
@@ -565,6 +587,7 @@ class LeadController extends Controller
             'qualifications' => fn($q) => $q->latest()->limit(1),
             'productMatches' => fn($q) => $q->with('product')->where('is_recommended', true)->orderByDesc('match_score')->limit(3),
             'aiAnalyses' => fn($q) => $q->latest()->limit(1),
+            'qualificationWorkflowReviews' => fn($q) => $q->with(['workflow.stages', 'requester', 'reviewer'])->latest()->limit(1),
         ]);
 
         return response()->json([
@@ -573,7 +596,27 @@ class LeadController extends Controller
             'latest_qualification' => $lead->qualifications->first(),
             'recommended_products' => $lead->productMatches,
             'latest_analysis' => $lead->aiAnalyses->first(),
+            'latest_verification_review' => $lead->qualificationWorkflowReviews->first(),
         ]);
+    }
+
+    public function requestVerificationReview(Request $request, Lead $lead): JsonResponse
+    {
+        $data = $request->validate([
+            'justification' => 'nullable|string',
+            'recommended_status' => 'nullable|in:pending,eligible,potential,not_eligible',
+        ]);
+
+        $review = app(HumanVerificationWorkflowService::class)->requestReview($lead, $request->user(), $data);
+
+        return response()->json(['data' => $review], 201);
+    }
+
+    public function verificationStatus(Lead $lead): JsonResponse
+    {
+        $snapshot = app(HumanVerificationWorkflowService::class)->verificationSnapshot($lead);
+
+        return response()->json(['data' => $snapshot]);
     }
 
     /** GET /api/leads/{lead}/activities — Get lead activities */
@@ -636,6 +679,18 @@ class LeadController extends Controller
     /*  MODULE B: Sales Activity & Evaluation                      */
     /* ═══════════════════════════════════════════════════════════ */
 
+    /** PUT /api/leads/{lead}/activities/{activity} */
+    public function updateActivity(Request $request, Lead $lead, $activityId): JsonResponse
+    {
+        $activity = $lead->activities()->findOrFail($activityId);
+        $data = $request->validate([
+            'activity_type' => 'sometimes|string',
+            'description'   => 'nullable|string',
+        ]);
+        $activity->update($data);
+        return response()->json(['data' => $activity]);
+    }
+
     /** DELETE /api/leads/{lead}/activities/{activity} */
     public function deleteActivity(Lead $lead, $activityId): JsonResponse
     {
@@ -655,6 +710,24 @@ class LeadController extends Controller
             ->paginate(50);
 
         return response()->json($meetings);
+    }
+
+    /** PUT /api/leads/{lead}/meetings/{meeting} */
+    public function updateMeeting(Request $request, Lead $lead, $meetingId): JsonResponse
+    {
+        $meeting = $lead->meetings()->findOrFail($meetingId);
+        $data = $request->validate([
+            'meeting_date'  => 'sometimes|date',
+            'meeting_type'  => 'nullable|string',
+            'summary'       => 'nullable|string',
+            'participants'  => 'nullable|array',
+            'key_points'    => 'nullable|array',
+            'objections'    => 'nullable|array',
+            'next_steps'    => 'nullable|array',
+            'follow_up_date'=> 'nullable|date',
+        ]);
+        $meeting->update($data);
+        return response()->json(['data' => $meeting]);
     }
 
     /** DELETE /api/leads/{lead}/meetings/{meeting} */
@@ -886,15 +959,58 @@ class LeadController extends Controller
         RevenueRuleEngineService $ruleService
     ): JsonResponse {
         $lead->loadMissing('contacts', 'activities', 'funnelStage', 'industry', 'product', 'owner');
+        $latestIcpMatch = $lead->icpMatches()->with('icpProfile')->latest()->first();
 
         return response()->json(['data' => [
             'lead_id'              => $lead->id,
-            'icp_match'            => $lead->icpMatches()->with('icpProfile')->latest()->first(),
+            'icp_match'            => $latestIcpMatch ? [
+                'id'                 => $latestIcpMatch->id,
+                'matched'            => true,
+                'icp_profile'        => $latestIcpMatch->icpProfile?->name,
+                'icp_profile_id'     => $latestIcpMatch->icp_profile_id,
+                'icp_profile_detail' => $latestIcpMatch->icpProfile,
+                'match_score'        => $latestIcpMatch->match_score,
+                'match_level'        => $latestIcpMatch->match_level,
+                'score_breakdown'    => $latestIcpMatch->score_breakdown,
+                'evaluated_at'       => $latestIcpMatch->evaluated_at,
+            ] : null,
             'latest_prediction'    => $lead->conversionPredictions()->latest()->first(),
             'latest_prescription'  => $lead->prescriptions()->with('recommendedOwner')->latest()->first(),
             'revenue_check'        => $ruleService->evaluate($lead),
             'latest_outcome'       => $lead->outcomes()->latest()->first(),
             'latest_analysis'      => $lead->revenueAnalyses()->latest()->first(),
         ]]);
+    }
+
+    private function ensureLeadReadyForPipeline(Request $request, Lead $lead): void
+    {
+        $verification = app(HumanVerificationWorkflowService::class)->verificationSnapshot($lead);
+        $revenueCheck = app(RevenueRuleEngineService::class)->evaluate($lead);
+        $errors = [];
+
+        $latestReview = $verification['latest_review'];
+        if ($verification['blocked_from_pipeline']) {
+            $errors[] = 'Lead must be human-verified before entering the pipeline.';
+        }
+
+        if ($revenueCheck['blocked']) {
+            $errors[] = $revenueCheck['summary'];
+        }
+
+        if ($errors === []) {
+            return;
+        }
+
+        abort(response()->json([
+            'message' => implode(' ', $errors),
+            'verification' => [
+                'requires_verification' => $verification['requires_verification'],
+                'verified_for_pipeline' => $verification['verified_for_pipeline'],
+                'latest_review_status' => $latestReview?->status,
+                'latest_review_decision' => $latestReview?->decision,
+                'latest_review_reason' => $latestReview?->decision_reason ?? $latestReview?->justification,
+            ],
+            'revenue_check' => $revenueCheck,
+        ], 422));
     }
 }

@@ -1,4 +1,11 @@
 # Leads Generator — local stack (PostgreSQL + Redis + Next.js + Laravel API).
+# Host URL/port contract:
+# - Frontend: http://localhost:3000
+# - Backend API: http://localhost:3001
+# - WhatsApp sidecar: http://localhost:3002
+# - PostgreSQL: localhost:5435
+# - Redis: localhost:6382
+# Do not change these bindings unless there is an explicit, intentional infrastructure change.
 
 services:
   postgres:
@@ -45,6 +52,7 @@ services:
     ports:
       - "3001:8000"
     environment:
+      # Keep host-facing URLs stable across restarts.
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
@@ -54,6 +62,8 @@ services:
       REDIS_HOST: redis
       APP_URL: http://localhost:3001
       FRONTEND_URL: http://localhost:3000
+      WHATSAPP_SIDECAR_URL: http://whatsapp-service:3002
+      WHATSAPP_SESSION_NAME: leads_platform_session
     volumes:
       - ./backend:/var/www/html
     networks:
@@ -72,6 +82,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      # Keep browser-facing API URL pinned to localhost:3001.
       # Browser-side env — used by client JS bundle (must match host-accessible URL)
       NEXT_PUBLIC_API_BASE_URL: http://localhost:3001
       # Server-side env — used by Next.js rewrite proxy inside Docker container

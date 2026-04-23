@@ -20,7 +20,16 @@ class CheckPermission
         $user = $request->user();
 
         if (! $user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'meta' => [],
+                'error' => [
+                    'code' => 'UNAUTHENTICATED',
+                    'message' => 'Unauthenticated',
+                ],
+                'message' => 'Unauthenticated',
+            ], 401);
         }
 
         // Super admins bypass
@@ -40,8 +49,18 @@ class CheckPermission
         \App\Services\AuditService::logAccessDenied($module, $permissions);
 
         return response()->json([
-            'message'     => 'Forbidden: insufficient permissions',
-            'required'    => $permissions,
+            'success' => false,
+            'data' => null,
+            'meta' => [],
+            'error' => [
+                'code' => 'FORBIDDEN',
+                'message' => 'Forbidden: insufficient permissions',
+                'details' => [
+                    'required' => $permissions,
+                ],
+            ],
+            'message' => 'Forbidden: insufficient permissions',
+            'required' => $permissions,
         ], 403);
     }
 }

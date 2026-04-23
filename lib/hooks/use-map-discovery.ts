@@ -125,6 +125,9 @@ export function useMapDiscovery() {
   ) => {
     try {
       setIsSearching(true);
+      if (!place.external_place_id) {
+        throw new Error("This map result is missing its Google Place ID. Re-open the result and try again.");
+      }
       const res = await apiFetch(`/maps/add-to-leads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

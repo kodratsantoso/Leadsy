@@ -1,9 +1,13 @@
 "use client";
+
 import { Webhook, ArrowLeft, Plus, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { Button } from "@/components/ui/button";
+import { Input, Label } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 
 export default function WebhooksPage() {
   const qc = useQueryClient();
@@ -16,7 +20,6 @@ export default function WebhooksPage() {
     queryFn: async () => {
       const r = await apiFetch("/settings/integrations");
       const json = await r.json();
-      // integrations returns data grouped by category
       const flat = Object.values(json?.data || {}).flat() as any[];
       return flat.filter((c: any) => c.category === "webhook");
     },
@@ -65,55 +68,36 @@ export default function WebhooksPage() {
             <p className="text-sm text-muted-foreground">Webhook URL configuration and event management</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-3 py-2 text-xs font-medium text-white shadow-lg shadow-indigo-500/25"
-        >
+        <Button variant="brand" size="compact" onClick={() => setShowAdd(!showAdd)}>
           <Plus className="h-3.5 w-3.5" /> Add Webhook
-        </button>
+        </Button>
       </div>
 
       {showAdd && (
-        <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-5">
+        <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand)]/5 p-5">
           <h3 className="text-sm font-semibold mb-3">New Webhook</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Endpoint URL</label>
-              <input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com/webhook"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              <Label>Endpoint URL</Label>
+              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/webhook" />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Events (comma-separated)</label>
-              <input
-                value={events}
-                onChange={(e) => setEvents(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              <Label>Events (comma-separated)</Label>
+              <Input value={events} onChange={(e) => setEvents(e.target.value)} />
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending || !url}
-                className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
-              >
+              <Button variant="brand" size="compact" disabled={saveMutation.isPending || !url} onClick={() => saveMutation.mutate()}>
                 {saveMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Save
-              </button>
-              <button
-                onClick={() => { setShowAdd(false); setUrl(""); }}
-                className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground"
-              >
+              </Button>
+              <Button variant="soft" size="compact" onClick={() => { setShowAdd(false); setUrl(""); }}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <Card>
         {isLoading ? (
           <div className="py-16 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : list.length === 0 ? (
@@ -130,11 +114,9 @@ export default function WebhooksPage() {
                   <p className="text-xs text-muted-foreground mt-0.5">{wh.key}</p>
                 </div>
                 <button
-                  onClick={() => {
-                    if (confirm("Delete this webhook?")) deleteMutation.mutate(wh.id);
-                  }}
+                  onClick={() => { if (confirm("Delete this webhook?")) deleteMutation.mutate(wh.id); }}
                   disabled={deleteMutation.isPending && deleteMutation.variables === wh.id}
-                  className="rounded-md p-1.5 text-muted-foreground hover:text-red-500 transition-colors disabled:opacity-50"
+                  className="rounded-md p-1.5 text-muted-foreground hover:text-[var(--status-danger)] transition-colors disabled:opacity-50"
                 >
                   {deleteMutation.isPending && deleteMutation.variables === wh.id
                     ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -145,7 +127,7 @@ export default function WebhooksPage() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

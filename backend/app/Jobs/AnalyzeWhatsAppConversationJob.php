@@ -9,7 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\WhatsappConversation;
 use App\Models\WhatsappAiAnalysis;
-use App\Services\AiOrchestrationService;
+use App\Services\AI\AiOrchestrationService;
 use Illuminate\Support\Facades\Log;
 
 class AnalyzeWhatsAppConversationJob implements ShouldQueue

@@ -22,6 +22,11 @@ class AiModel extends Model
         return $this->belongsTo(AiProvider::class, 'ai_provider_id');
     }
 
+    public function aiProvider(): BelongsTo
+    {
+        return $this->belongsTo(AiProvider::class, 'ai_provider_id');
+    }
+
     public function featureRoutes()
     {
         return $this->hasMany(AiFeatureRoute::class, 'ai_model_id');

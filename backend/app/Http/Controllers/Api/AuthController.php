@@ -41,7 +41,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => $user->load('role'),
+            'user'  => $user->load('role.permissions'),
         ]);
     }
 
@@ -132,7 +132,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => $user->load('role'),
+            'user'  => $user->load('role.permissions'),
         ], 201);
     }
 

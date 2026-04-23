@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Leadsy — Lead Intelligence Platform",
+  title: "Leadsy — Deprecated Root UI Tree",
   description:
-    "Geo-intelligence, AI-assisted lead qualification, and funnel orchestration platform",
+    "Deprecated root Next.js tree. The active frontend source of truth lives under frontend/.",
 };
 
 // Runs synchronously before React hydration to prevent flash of wrong theme
@@ -29,7 +29,12 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Deprecated root UI tree. The live app is served from <code>frontend/</code>. Make UI changes in <code>frontend/app</code>, <code>frontend/components</code>, and <code>frontend/lib</code>.
+          </div>
+          {children}
+        </Providers>
       </body>
     </html>
   );

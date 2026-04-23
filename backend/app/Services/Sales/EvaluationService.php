@@ -4,7 +4,7 @@ namespace App\Services\Sales;
 
 use App\Models\Lead;
 use App\Models\LeadAiEvaluation;
-use App\Services\AiOrchestrationService;
+use App\Services\AI\AiOrchestrationService;
 use Illuminate\Database\Eloquent\Model;
 
 class EvaluationService

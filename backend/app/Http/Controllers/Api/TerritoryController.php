@@ -32,6 +32,7 @@ class TerritoryController extends Controller
         ]);
 
         $data['created_by'] = $request->user()?->id;
+        $data['tenant_id'] = $request->user()?->tenant_id;
         $territory = Territory::create($data);
 
         AuditService::logCreated('territories', $territory);

@@ -23,6 +23,7 @@ class Lead extends Model
         'ai_reference_id', 'ai_processing_status',
         'funnel_stage_id', 'owner_id',
         'territory_id', 'product_id', 'created_by',
+        'tenant_id',
     ];
 
     protected $casts = [
@@ -91,11 +92,21 @@ class Lead extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     /* ── Intelligence & Activity Engine ── */
 
     public function scores(): HasMany
     {
         return $this->hasMany(LeadScore::class);
+    }
+
+    public function scoreBreakdowns(): HasMany
+    {
+        return $this->hasMany(LeadScoreBreakdown::class);
     }
 
     public function qualifications(): HasMany
@@ -111,6 +122,11 @@ class Lead extends Model
     public function aiAnalyses(): HasMany
     {
         return $this->hasMany(LeadAiAnalysis::class);
+    }
+
+    public function analysisLogs(): HasMany
+    {
+        return $this->hasMany(LeadAnalysisLog::class);
     }
 
     public function activities(): HasMany
@@ -163,5 +179,10 @@ class Lead extends Model
     public function revenueAnalyses(): HasMany
     {
         return $this->hasMany(LeadRevenueAnalysis::class);
+    }
+
+    public function qualificationWorkflowReviews(): HasMany
+    {
+        return $this->hasMany(QualificationWorkflowReview::class);
     }
 }

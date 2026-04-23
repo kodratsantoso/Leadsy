@@ -10,13 +10,32 @@ use Illuminate\Http\Request;
 
 class IntegrationConfigController extends Controller
 {
+    private function currentTenantId(Request $request): ?int
+    {
+        return $request->user()?->tenant_id
+            ?? auth('sanctum')->user()?->tenant_id;
+    }
+
     /**
      * Return all active settings securely (masked if secret).
      * Grouped by category for easier frontend ingestion.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $configs = IntegrationConfig::all()->map(function ($config) {
+        $tenantId = $this->currentTenantId($request);
+
+        $configs = IntegrationConfig::query()
+            ->where(function ($query) use ($tenantId) {
+                $query->whereNull('tenant_id');
+
+                if ($tenantId !== null) {
+                    $query->orWhere('tenant_id', $tenantId);
+                }
+            })
+            ->orderBy('category')
+            ->orderBy('key')
+            ->get()
+            ->map(function ($config) {
             return [
                 'id'         => $config->id,
                 'category'   => $config->category,
@@ -37,18 +56,30 @@ class IntegrationConfigController extends Controller
      * Public endpoint to grab safe/browser-facing keys (e.g., Google Maps Browser Key).
      * Also returns APP_NAME and APP_ENV for the environment page.
      */
-    public function publicSettings(): JsonResponse
+    public function publicSettings(Request $request): JsonResponse
     {
         $publicKeys = [
+            'GOOGLE_MAPS_ENABLED',
             'GOOGLE_MAPS_BROWSER_API_KEY',
             'GOOGLE_MAPS_DEFAULT_CENTER_LAT',
             'GOOGLE_MAPS_DEFAULT_CENTER_LNG',
         ];
 
+        $tenantId = $this->currentTenantId($request);
+
         $configs = IntegrationConfig::whereIn('key', $publicKeys)
+            ->where(function ($query) use ($tenantId) {
+                $query->whereNull('tenant_id');
+
+                if ($tenantId !== null) {
+                    $query->orWhere('tenant_id', $tenantId);
+                }
+            })
             ->where('is_active', true)
             ->get()
-            ->pluck('value', 'key');
+            ->sortBy(fn ($config) => $config->tenant_id === $tenantId ? 0 : 1)
+            ->groupBy('key')
+            ->map(fn ($rows) => $rows->first()->value);
 
         // Augment with runtime environment values (not stored in DB)
         $configs['APP_NAME'] = config('app.name', 'Prasetia Leads');
@@ -74,7 +105,10 @@ class IntegrationConfigController extends Controller
                 'is_active'  => 'nullable|boolean',
             ]);
 
-            $existing = IntegrationConfig::where('key', $data['key'])->first();
+            $tenantId = $this->currentTenantId($request);
+            $existing = IntegrationConfig::where('key', $data['key'])
+                ->where('tenant_id', $tenantId)
+                ->first();
 
             // Skip secret if masked value passed back
             if ($existing && $existing->is_secret) {
@@ -89,8 +123,9 @@ class IntegrationConfigController extends Controller
             $originalValues = $existing ? $existing->getAttributes() : [];
 
             $model = IntegrationConfig::updateOrCreate(
-                ['key' => $data['key']],
+                ['tenant_id' => $tenantId, 'key' => $data['key']],
                 [
+                    'tenant_id'   => $tenantId,
                     'category'   => $data['category'],
                     'value'      => $data['value'],
                     'is_secret'  => $data['is_secret'] ?? ($existing->is_secret ?? false),
@@ -121,7 +156,10 @@ class IntegrationConfigController extends Controller
         $updated  = [];
 
         foreach ($data['configs'] as $conf) {
-            $existing = IntegrationConfig::where('key', $conf['key'])->first();
+            $tenantId = $this->currentTenantId($request);
+            $existing = IntegrationConfig::where('key', $conf['key'])
+                ->where('tenant_id', $tenantId)
+                ->first();
 
             if ($existing && $existing->is_secret) {
                 if (empty($conf['value']) || str_starts_with((string) $conf['value'], '••••')) {
@@ -136,8 +174,9 @@ class IntegrationConfigController extends Controller
             $originalValues = $existing ? $existing->getAttributes() : [];
 
             $model = IntegrationConfig::updateOrCreate(
-                ['key' => $conf['key']],
+                ['tenant_id' => $tenantId, 'key' => $conf['key']],
                 [
+                    'tenant_id'   => $tenantId,
                     'category'   => $category,
                     'value'      => $conf['value'],
                     'is_secret'  => $conf['is_secret'] ?? ($existing->is_secret ?? false),

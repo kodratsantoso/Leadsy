@@ -15,10 +15,10 @@ import Link from 'next/link';
 /* ── Source badge ──────────────────────────────────────────────────── */
 
 const SOURCE_STYLES: Record<string, string> = {
-  LUSHA:   'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
-  manual:  'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  website: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
-  other:   'bg-gray-500/15 text-gray-400 border-gray-500/30',
+  LUSHA:   'bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[color-mix(in_oklch,var(--brand)_30%,transparent)]',
+  manual:  'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[color-mix(in_oklch,var(--status-success)_30%,transparent)]',
+  website: 'bg-[var(--status-info)]/15 text-[var(--status-info)] border-[var(--status-info)]/30',
+  other:   'bg-muted text-muted-foreground border-border',
 };
 
 function SourceBadge({ source }: { source?: string | null }) {
@@ -33,7 +33,7 @@ function SourceBadge({ source }: { source?: string | null }) {
 
 function ConfidenceDot({ score }: { score?: number | null }) {
   const pct = score ?? 0;
-  const color = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500';
+  const color = pct >= 80 ? 'bg-[var(--status-success)]' : pct >= 50 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-danger)]';
   return (
     <div className="flex items-center gap-1.5">
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
@@ -47,9 +47,9 @@ function ConfidenceDot({ score }: { score?: number | null }) {
 /* ── Revenue Analysis Panel ────────────────────────────────────────── */
 
 const INTENT_CFG = {
-  high:   { cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-400/40', label: 'HIGH' },
-  medium: { cls: 'bg-amber-500/15 text-amber-400 border-amber-400/40',       label: 'MEDIUM' },
-  low:    { cls: 'bg-slate-500/15 text-slate-400 border-slate-400/40',        label: 'LOW' },
+  high:   { cls: 'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[color-mix(in_oklch,var(--status-success)_40%,transparent)]', label: 'HIGH' },
+  medium: { cls: 'bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] text-[var(--status-warning)] border-[color-mix(in_oklch,var(--status-warning)_40%,transparent)]',       label: 'MEDIUM' },
+  low:    { cls: 'bg-muted text-muted-foreground border-border',              label: 'LOW' },
 };
 
 function IntentBadge({ level }: { level?: string | null }) {
@@ -61,7 +61,7 @@ function IntentBadge({ level }: { level?: string | null }) {
 
 function ConfidenceBar({ value }: { value?: number | null }) {
   const pct = ((value ?? 0) * 100);
-  const color = pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444';
+  const color = pct >= 70 ? 'var(--status-success)' : pct >= 40 ? 'var(--status-warning)' : 'var(--status-danger)';
   return (
     <div className="flex items-center gap-2">
       <div className="h-1.5 flex-1 rounded-full bg-muted/50 overflow-hidden">
@@ -77,18 +77,18 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
   const model = analysis.ai_model ? analysis.ai_model.split('-').slice(0, 3).join('-') : 'AI';
 
   return (
-    <div className="rounded-xl border border-purple-500/25 bg-gradient-to-br from-purple-950/30 to-card p-5 space-y-5">
+    <div className="rounded-xl border border-[var(--brand)]/25 bg-gradient-to-br from-[color-mix(in_oklch,var(--brand)_8%,transparent)] to-card p-5 space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-purple-400" />
+            <Zap className="h-4 w-4 text-[var(--brand)]" />
             <h3 className="font-semibold text-sm">Revenue Intelligence Analysis</h3>
             {analysis.status === 'failed' && (
-              <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-400">FAILED</span>
+              <span className="rounded-full bg-[color-mix(in_oklch,var(--status-danger)_15%,transparent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--status-danger)]">FAILED</span>
             )}
             {analysis.status === 'partial' && (
-              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">PARTIAL</span>
+              <span className="rounded-full bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--status-warning)]">PARTIAL</span>
             )}
           </div>
           <p className="text-[10px] text-muted-foreground mt-0.5">{model} · {date}</p>
@@ -131,11 +131,11 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
       <div className="grid grid-cols-2 gap-4">
         {analysis.buying_signals?.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-400 mb-2">Buying Signals</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--status-success)] mb-2">Buying Signals</p>
             <ul className="space-y-1">
               {analysis.buying_signals.map((s: string, i: number) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs">
-                  <CheckCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-emerald-400" />
+                  <CheckCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-[var(--status-success)]" />
                   {s}
                 </li>
               ))}
@@ -144,11 +144,11 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
         )}
         {analysis.objections?.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-red-400 mb-2">Objections</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger)] mb-2">Objections</p>
             <ul className="space-y-1">
               {analysis.objections.map((o: string, i: number) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs">
-                  <AlertCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-red-400" />
+                  <AlertCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-[var(--status-danger)]" />
                   {o}
                 </li>
               ))}
@@ -159,8 +159,8 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
 
       {/* Recommended action */}
       {analysis.recommended_action && (
-        <div className="rounded-lg border border-purple-500/20 bg-purple-500/10 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-purple-400 mb-1">Recommended Action</p>
+        <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-1">Recommended Action</p>
           <p className="text-sm font-medium">{analysis.recommended_action}</p>
         </div>
       )}
@@ -197,6 +197,16 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
       )}
     </div>
   );
+}
+
+function getIcpProfileLabel(icpMatch: { icp_profile?: string | { name?: string | null } | null; icp_profile_detail?: { name?: string | null } | null } | null | undefined) {
+  if (!icpMatch) return "—";
+  if (typeof icpMatch.icp_profile === "string" && icpMatch.icp_profile.trim()) return icpMatch.icp_profile;
+  if (icpMatch.icp_profile && typeof icpMatch.icp_profile === "object" && icpMatch.icp_profile.name) {
+    return icpMatch.icp_profile.name;
+  }
+  if (icpMatch.icp_profile_detail?.name) return icpMatch.icp_profile_detail.name;
+  return "—";
 }
 
 /* ── Contact form modal ────────────────────────────────────────────── */
@@ -255,7 +265,7 @@ function ContactFormModal({
           <button
             onClick={() => onSave(form)}
             disabled={saving || !form.name}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+            className="flex items-center gap-1.5 btn-brand rounded-lg px-4 py-2 text-xs font-medium disabled:opacity-50"
           >
             {saving && <Loader2 className="h-3 w-3 animate-spin" />}
             Save
@@ -275,6 +285,26 @@ export default function LeadDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [showMeetingForm, setShowMeetingForm] = useState(false);
+
+  // Lead-level edit state
+  const [showEditLead, setShowEditLead] = useState(false);
+  const [showDeleteLead, setShowDeleteLead] = useState(false);
+  const [editLeadForm, setEditLeadForm] = useState({ company_name: '', address: '', email: '', phone: '', website: '', company_size_estimate: '' });
+
+  // Activity edit/delete state
+  const [editingActivity, setEditingActivity] = useState<any | null>(null);
+  const [deletingActivityId, setDeletingActivityId] = useState<number | null>(null);
+  const [activityEditForm, setActivityEditForm] = useState({ activity_type: '', description: '' });
+
+  // Meeting edit/delete state
+  const [editingMeeting, setEditingMeeting] = useState<any | null>(null);
+  const [deletingMeetingId, setDeletingMeetingId] = useState<number | null>(null);
+  const [meetingEditForm, setMeetingEditForm] = useState({ meeting_date: '', meeting_type: '', summary: '' });
+
+  // Transcript state
+  const [showTranscriptForm, setShowTranscriptForm] = useState(false);
+  const [deletingTranscriptId, setDeletingTranscriptId] = useState<number | null>(null);
+  const [transcriptForm, setTranscriptForm] = useState({ source_type: 'manual', transcript_text: '' });
 
   // Contact UI state
   const [showAddContact, setShowAddContact]       = useState(false);
@@ -328,6 +358,18 @@ export default function LeadDetailPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] }),
   });
 
+  /* ── Lead update / delete mutations ── */
+  const updateLeadMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiFetch(`/leads/${leadId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    onSuccess: () => { invalidateLead(); setShowEditLead(false); },
+  });
+
+  const deleteLeadMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}`, { method: 'DELETE' }),
+    onSuccess: () => { window.location.href = '/leads'; },
+  });
+
   /* ── Activity / meeting mutations ── */
   const activityMutation = useMutation({
     mutationFn: (data: any) =>
@@ -335,10 +377,50 @@ export default function LeadDetailPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-activities', leadId] }),
   });
 
+  const updateActivityMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiFetch(`/leads/${leadId}/activities/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lead-activities', leadId] }); setEditingActivity(null); },
+  });
+
+  const deleteActivityMutation = useMutation({
+    mutationFn: (id: number) => apiFetch(`/leads/${leadId}/activities/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lead-activities', leadId] }); setDeletingActivityId(null); },
+  });
+
   const meetingMutation = useMutation({
     mutationFn: (data: any) =>
       apiFetch(`/leads/${leadId}/meetings`, { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-meetings', leadId] }),
+  });
+
+  const updateMeetingMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiFetch(`/leads/${leadId}/meetings/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lead-meetings', leadId] }); setEditingMeeting(null); },
+  });
+
+  const deleteMeetingMutation = useMutation({
+    mutationFn: (id: number) => apiFetch(`/leads/${leadId}/meetings/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lead-meetings', leadId] }); setDeletingMeetingId(null); },
+  });
+
+  /* ── Transcript mutations ── */
+  const { data: transcripts } = useQuery({
+    queryKey: ['lead-transcripts', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/transcripts`).then((r) => r.json()),
+    enabled: !!lead,
+  });
+
+  const createTranscriptMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiFetch(`/leads/${leadId}/transcripts`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lead-transcripts', leadId] }); setShowTranscriptForm(false); setTranscriptForm({ source_type: 'manual', transcript_text: '' }); },
+  });
+
+  const deleteTranscriptMutation = useMutation({
+    mutationFn: (id: number) => apiFetch(`/leads/${leadId}/transcripts/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lead-transcripts', leadId] }); setDeletingTranscriptId(null); },
   });
 
   /* ── Contact mutations ── */
@@ -436,8 +518,9 @@ export default function LeadDetailPage() {
   const topProducts   = intelligence?.recommended_products || [];
   const latestAnalysis = intelligence?.latest_analysis;
   const progressData  = progress || {};
-  const activitiesList = activities?.data || [];
-  const meetingsList  = meetings?.data || [];
+  const activitiesList  = activities?.data || [];
+  const meetingsList    = meetings?.data || [];
+  const transcriptsList = transcripts?.data || [];
 
   return (
     <div className="space-y-6 p-6">
@@ -448,9 +531,33 @@ export default function LeadDetailPage() {
             <ArrowLeft className="h-4 w-4" />
           </button>
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-bold">{leadData.company_name}</h1>
           <p className="text-sm text-muted-foreground">{leadData.address}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setEditLeadForm({
+                company_name: leadData.company_name || '',
+                address: leadData.address || '',
+                email: leadData.email || '',
+                phone: leadData.phone || '',
+                website: leadData.website || '',
+                company_size_estimate: leadData.company_size_estimate || '',
+              });
+              setShowEditLead(true);
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </button>
+          <button
+            onClick={() => setShowDeleteLead(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--status-danger)]/30 px-3 py-2 text-xs font-medium text-[var(--status-danger)] hover:bg-[var(--status-danger)]/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </button>
         </div>
       </div>
 
@@ -475,7 +582,7 @@ export default function LeadDetailPage() {
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">QUALIFICATION</span>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-[var(--status-success)]" />
           </div>
           <div className="text-2xl font-bold capitalize">{latestQual?.qualified ?? '—'}</div>
           <p className="mt-1 text-xs text-muted-foreground">{latestQual?.business_type || 'Unknown'}</p>
@@ -491,7 +598,7 @@ export default function LeadDetailPage() {
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">ACTIVITIES</span>
-            <MessageSquare className="h-4 w-4 text-blue-500" />
+            <MessageSquare className="h-4 w-4 text-[var(--status-info)]" />
           </div>
           <div className="text-2xl font-bold">{progressData.total_activities ?? 0}</div>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -522,13 +629,13 @@ export default function LeadDetailPage() {
               onClick={() => setActiveTab(tab.toLowerCase())}
               className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.toLowerCase()
-                  ? 'border-indigo-500 text-foreground'
+                  ? 'border-[var(--brand)] text-foreground'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               {tab}
               {tab === 'Contacts' && contacts.length > 0 && (
-                <span className="ml-1.5 rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-bold text-indigo-400">
+                <span className="ml-1.5 rounded-full bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--brand)]">
                   {contacts.length}
                 </span>
               )}
@@ -549,7 +656,7 @@ export default function LeadDetailPage() {
               <div>
                 <span className="text-muted-foreground">Website:</span>{' '}
                 {leadData.website ? (
-                  <a href={leadData.website} target="_blank" className="text-indigo-400 hover:underline">
+                  <a href={leadData.website} target="_blank" className="text-[var(--brand)] hover:underline">
                     {leadData.website}
                   </a>
                 ) : '—'}
@@ -564,7 +671,7 @@ export default function LeadDetailPage() {
               <h3 className="font-semibold">Key Contacts</h3>
               <button
                 onClick={() => setActiveTab('contacts')}
-                className="text-xs text-indigo-400 hover:underline"
+                className="text-xs text-[var(--brand)] hover:underline"
               >
                 Manage all →
               </button>
@@ -577,7 +684,7 @@ export default function LeadDetailPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="font-medium">{c.name}</p>
-                        {c.is_primary && <Star className="h-3 w-3 fill-amber-400 text-amber-400" />}
+                        {c.is_primary && <Star className="h-3 w-3 fill-[var(--status-warning)] text-[var(--status-warning)]" />}
                       </div>
                       {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
                       {c.email && <p className="truncate text-xs text-muted-foreground">{c.email}</p>}
@@ -602,14 +709,14 @@ export default function LeadDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowAddContact(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-600"
+              className="flex items-center gap-1.5 btn-brand rounded-lg px-3 py-2 text-xs font-medium"
             >
               <Plus className="h-3.5 w-3.5" /> Add Contact
             </button>
             <button
               onClick={() => enrichMutation.mutate()}
               disabled={enrichMutation.isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-medium text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-[color-mix(in_oklch,var(--brand)_40%,transparent)] bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-2 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] disabled:opacity-50"
             >
               {enrichMutation.isPending
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -633,12 +740,12 @@ export default function LeadDetailPage() {
                 <div
                   key={contact.id}
                   className={`rounded-xl border bg-card p-4 shadow-sm transition-colors ${
-                    contact.is_primary ? 'border-amber-500/40' : 'border-border'
+                    contact.is_primary ? 'border-[color-mix(in_oklch,var(--status-warning)_40%,transparent)]' : 'border-border'
                   }`}
                 >
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-indigo-400">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)]">
                       <User className="h-5 w-5" />
                     </div>
 
@@ -647,8 +754,8 @@ export default function LeadDetailPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold">{contact.name}</p>
                         {contact.is_primary && (
-                          <span className="flex items-center gap-0.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-400">
-                            <Star className="h-2.5 w-2.5 fill-amber-400" /> Primary
+                          <span className="flex items-center gap-0.5 rounded-full bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-warning)]">
+                            <Star className="h-2.5 w-2.5 fill-[var(--status-warning)]" /> Primary
                           </span>
                         )}
                         <SourceBadge source={contact.source} />
@@ -688,7 +795,7 @@ export default function LeadDetailPage() {
                           onClick={() => setPrimaryMutation.mutate(contact.id)}
                           disabled={setPrimaryMutation.isPending}
                           title="Set as primary"
-                          className="rounded-md p-1.5 text-muted-foreground hover:bg-amber-500/10 hover:text-amber-400 disabled:opacity-50"
+                          className="rounded-md p-1.5 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] hover:text-[var(--status-warning)] disabled:opacity-50"
                         >
                           <Star className="h-3.5 w-3.5" />
                         </button>
@@ -703,7 +810,7 @@ export default function LeadDetailPage() {
                       <button
                         onClick={() => setDeletingContactId(contact.id)}
                         title="Delete contact"
-                        className="rounded-md p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
+                        className="rounded-md p-1.5 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] hover:text-[var(--status-danger)]"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -744,7 +851,7 @@ export default function LeadDetailPage() {
                   <span className="text-muted-foreground">Relevance:</span>
                   <div className="mt-1 flex items-center gap-2">
                     <div className="h-2 w-24 rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-indigo-500" style={{ width: `${latestAnalysis.relevance_score}%` }} />
+                      <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${Math.max(0, Math.min(100, latestAnalysis.relevance_score ?? 0))}%` }} />
                     </div>
                     {latestAnalysis.relevance_score}%
                   </div>
@@ -797,7 +904,7 @@ export default function LeadDetailPage() {
                 <button
                   onClick={() => icpMatchMutation.mutate()}
                   disabled={icpMatchMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-[color-mix(in_oklch,var(--brand)_40%,transparent)] bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] disabled:opacity-50"
                 >
                   {icpMatchMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Target className="h-3 w-3" />}
                   Run ICP Match
@@ -805,7 +912,7 @@ export default function LeadDetailPage() {
                 <button
                   onClick={() => predictMutation.mutate()}
                   disabled={predictMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-[color-mix(in_oklch,var(--status-success)_40%,transparent)] bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--status-success)] hover:bg-[color-mix(in_oklch,var(--status-success)_20%,transparent)] disabled:opacity-50"
                 >
                   {predictMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <TrendingUp className="h-3 w-3" />}
                   Predict Conversion
@@ -813,7 +920,7 @@ export default function LeadDetailPage() {
                 <button
                   onClick={() => prescribeMutation.mutate()}
                   disabled={prescribeMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-400 hover:bg-amber-500/20 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-[color-mix(in_oklch,var(--status-warning)_40%,transparent)] bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--status-warning)] hover:bg-[color-mix(in_oklch,var(--status-warning)_20%,transparent)] disabled:opacity-50"
                 >
                   {prescribeMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <BrainCircuit className="h-3 w-3" />}
                   Get Prescription
@@ -821,7 +928,7 @@ export default function LeadDetailPage() {
                 <button
                   onClick={() => analysisMutation.mutate()}
                   disabled={analysisMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-500/20 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-[var(--brand)]/40 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] disabled:opacity-50"
                 >
                   {analysisMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
                   Run AI Analysis
@@ -840,7 +947,7 @@ export default function LeadDetailPage() {
                 <RevenueAnalysisPanel analysis={revenueIntel.data.latest_analysis} />
               )}
               {analysisMutation.isPending && (
-                <div className="flex items-center gap-3 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 text-sm text-purple-400">
+                <div className="flex items-center gap-3 rounded-xl border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] p-4 text-sm text-[var(--brand)]">
                   <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                   Revenue Intelligence AI is analysing this lead — this may take 15–30 seconds…
                 </div>
@@ -850,7 +957,7 @@ export default function LeadDetailPage() {
                 {/* ICP Match */}
                 <div className="rounded-xl border border-border bg-card p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <Target className="h-4 w-4 text-indigo-400" />
+                    <Target className="h-4 w-4 text-[var(--brand)]" />
                     <h3 className="font-semibold text-sm">ICP Match</h3>
                   </div>
                   {revenueIntel?.data?.icp_match ? (
@@ -862,18 +969,20 @@ export default function LeadDetailPage() {
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-2xl font-bold">{revenueIntel.data.icp_match.match_score?.toFixed(1)}</span>
                             <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${
-                              revenueIntel.data.icp_match.match_level === 'excellent' ? 'bg-emerald-500/15 text-emerald-500 border-emerald-400/40'
-                              : revenueIntel.data.icp_match.match_level === 'good' ? 'bg-blue-500/15 text-blue-400 border-blue-400/40'
-                              : revenueIntel.data.icp_match.match_level === 'fair' ? 'bg-amber-500/15 text-amber-400 border-amber-400/40'
-                              : 'bg-red-500/15 text-red-400 border-red-400/40'
+                              revenueIntel.data.icp_match.match_level === 'excellent' ? 'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[color-mix(in_oklch,var(--status-success)_40%,transparent)]'
+                              : revenueIntel.data.icp_match.match_level === 'good' ? 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[color-mix(in_oklch,var(--status-info)_40%,transparent)]'
+                              : revenueIntel.data.icp_match.match_level === 'fair' ? 'bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] text-[var(--status-warning)] border-[color-mix(in_oklch,var(--status-warning)_40%,transparent)]'
+                              : 'bg-[color-mix(in_oklch,var(--status-danger)_15%,transparent)] text-[var(--status-danger)] border-[color-mix(in_oklch,var(--status-danger)_40%,transparent)]'
                             }`}>
                               {revenueIntel.data.icp_match.match_level?.toUpperCase()}
                             </span>
                           </div>
                           <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden mb-2">
-                            <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${revenueIntel.data.icp_match.match_score ?? 0}%` }} />
+                            <div className="h-full rounded-full bg-[var(--brand)] transition-all" style={{ width: `${Math.max(0, Math.min(100, revenueIntel.data.icp_match.match_score ?? 0))}%` }} />
                           </div>
-                          <p className="text-xs text-muted-foreground">Profile: {revenueIntel.data.icp_match.icp_profile}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Profile: {getIcpProfileLabel(revenueIntel.data.icp_match)}
+                          </p>
                         </>
                       )}
                     </div>
@@ -885,7 +994,7 @@ export default function LeadDetailPage() {
                 {/* Conversion Prediction */}
                 <div className="rounded-xl border border-border bg-card p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <TrendingUp className="h-4 w-4 text-emerald-400" />
+                    <TrendingUp className="h-4 w-4 text-[var(--status-success)]" />
                     <h3 className="font-semibold text-sm">Conversion Prediction</h3>
                   </div>
                   {revenueIntel?.data?.latest_prediction ? (
@@ -895,7 +1004,7 @@ export default function LeadDetailPage() {
                         <span className="text-xs text-muted-foreground mb-1">probability to close</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-muted/50 overflow-hidden mb-3">
-                        <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${revenueIntel.data.latest_prediction.probability_to_close}%` }} />
+                        <div className="h-full rounded-full bg-[var(--status-success)] transition-all" style={{ width: `${Math.max(0, Math.min(100, revenueIntel.data.latest_prediction.probability_to_close ?? 0))}%` }} />
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="rounded-lg bg-muted/30 p-2">
@@ -924,7 +1033,7 @@ export default function LeadDetailPage() {
                 {/* Prescriptive Recommendations */}
                 <div className="rounded-xl border border-border bg-card p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <BrainCircuit className="h-4 w-4 text-amber-400" />
+                    <BrainCircuit className="h-4 w-4 text-[var(--status-warning)]" />
                     <h3 className="font-semibold text-sm">AI Prescription</h3>
                   </div>
                   {revenueIntel?.data?.latest_prescription ? (
@@ -933,8 +1042,8 @@ export default function LeadDetailPage() {
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Recommended Approach</p>
                         <p className="text-sm">{revenueIntel.data.latest_prescription.recommended_approach}</p>
                       </div>
-                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 mb-1">Next Best Action</p>
+                      <div className="rounded-lg bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] border border-[color-mix(in_oklch,var(--status-warning)_20%,transparent)] p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--status-warning)] mb-1">Next Best Action</p>
                         <p className="text-sm font-medium">{revenueIntel.data.latest_prescription.next_best_action}</p>
                       </div>
                       <div className="flex items-center justify-between text-xs">
@@ -943,7 +1052,7 @@ export default function LeadDetailPage() {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-muted-foreground">Priority</span>
-                        <span className="font-bold text-indigo-400">{revenueIntel.data.latest_prescription.priority_score}/10</span>
+                        <span className="font-bold text-[var(--brand)]">{revenueIntel.data.latest_prescription.priority_score}/10</span>
                       </div>
                       {revenueIntel.data.latest_prescription.recommended_owner && (
                         <div className="flex items-center justify-between text-xs">
@@ -960,17 +1069,17 @@ export default function LeadDetailPage() {
                 {/* Revenue Check / Rules */}
                 <div className="rounded-xl border border-border bg-card p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <ShieldCheck className="h-4 w-4 text-blue-400" />
+                    <ShieldCheck className="h-4 w-4 text-[var(--status-info)]" />
                     <h3 className="font-semibold text-sm">Revenue Gate Check</h3>
                   </div>
                   {revenueIntel?.data?.revenue_check ? (
                     <div className="space-y-3">
                       <div className={`rounded-lg border p-3 ${
                         revenueIntel.data.revenue_check.blocked
-                          ? 'bg-red-500/10 border-red-500/30'
-                          : 'bg-emerald-500/10 border-emerald-500/30'
+                          ? 'bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] border-[color-mix(in_oklch,var(--status-danger)_30%,transparent)]'
+                          : 'bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] border-[color-mix(in_oklch,var(--status-success)_30%,transparent)]'
                       }`}>
-                        <p className={`text-sm font-semibold ${revenueIntel.data.revenue_check.blocked ? 'text-red-400' : 'text-emerald-400'}`}>
+                        <p className={`text-sm font-semibold ${revenueIntel.data.revenue_check.blocked ? 'text-[var(--status-danger)]' : 'text-[var(--status-success)]'}`}>
                           {revenueIntel.data.revenue_check.summary}
                         </p>
                       </div>
@@ -980,9 +1089,9 @@ export default function LeadDetailPage() {
                           <div className="space-y-1.5">
                             {revenueIntel.data.revenue_check.rules_triggered.map((r: any, i: number) => (
                               <div key={i} className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-xs ${
-                                r.severity === 'critical' ? 'bg-red-500/10 text-red-400'
-                                : r.severity === 'warning' ? 'bg-amber-500/10 text-amber-400'
-                                : 'bg-blue-500/10 text-blue-400'
+                                r.severity === 'critical' ? 'bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
+                                : r.severity === 'warning' ? 'bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] text-[var(--status-warning)]'
+                                : 'bg-[color-mix(in_oklch,var(--status-info)_10%,transparent)] text-[var(--status-info)]'
                               }`}>
                                 <span>{r.rule}</span>
                                 <span className="font-semibold uppercase">{r.action}</span>
@@ -994,7 +1103,7 @@ export default function LeadDetailPage() {
                       {revenueIntel.data.revenue_check.flags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {revenueIntel.data.revenue_check.flags.map((f: string) => (
-                            <span key={f} className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">{f}</span>
+                            <span key={f} className="rounded-full bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--status-warning)]">{f}</span>
                           ))}
                         </div>
                       )}
@@ -1009,8 +1118,8 @@ export default function LeadDetailPage() {
                   <div className="col-span-full rounded-xl border border-border bg-card p-5">
                     <div className="flex items-center gap-2 mb-3">
                       {revenueIntel.data.latest_outcome.outcome === 'won'
-                        ? <ThumbsUp className="h-4 w-4 text-emerald-400" />
-                        : <ThumbsDown className="h-4 w-4 text-red-400" />}
+                        ? <ThumbsUp className="h-4 w-4 text-[var(--status-success)]" />
+                        : <ThumbsDown className="h-4 w-4 text-[var(--status-danger)]" />}
                       <h3 className="font-semibold text-sm">Deal Outcome</h3>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1044,7 +1153,7 @@ export default function LeadDetailPage() {
         <div className="space-y-4">
           <button
             onClick={() => setShowActivityForm(!showActivityForm)}
-            className="flex items-center gap-2 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-600"
+            className="flex items-center gap-2 btn-brand rounded-lg px-3 py-2 text-sm font-medium"
           >
             <Plus className="h-4 w-4" /> Add Activity
           </button>
@@ -1060,7 +1169,7 @@ export default function LeadDetailPage() {
                   activityMutation.mutate({ activity_type: typeEl.value, description: descEl.value });
                   setShowActivityForm(false);
                 }}
-                className="rounded bg-indigo-500 px-3 py-2 text-sm font-medium text-white"
+                className="btn-brand rounded px-3 py-2 text-sm font-medium"
               >
                 Save Activity
               </button>
@@ -1078,6 +1187,16 @@ export default function LeadDetailPage() {
                       {new Date(activity.activity_date).toLocaleDateString()}
                     </p>
                   </div>
+                  <div className="flex shrink-0 items-start gap-1">
+                    <button
+                      onClick={() => { setActivityEditForm({ activity_type: activity.activity_type || '', description: activity.description || '' }); setEditingActivity(activity); }}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" title="Edit"
+                    ><Pencil className="h-3.5 w-3.5" /></button>
+                    <button
+                      onClick={() => setDeletingActivityId(activity.id)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-[var(--status-danger)]/10 hover:text-[var(--status-danger)]" title="Delete"
+                    ><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -1092,7 +1211,7 @@ export default function LeadDetailPage() {
         <div className="space-y-4">
           <button
             onClick={() => setShowMeetingForm(!showMeetingForm)}
-            className="flex items-center gap-2 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-600"
+            className="flex items-center gap-2 btn-brand rounded-lg px-3 py-2 text-sm font-medium"
           >
             <Plus className="h-4 w-4" /> Add Meeting
           </button>
@@ -1119,7 +1238,7 @@ export default function LeadDetailPage() {
                   });
                   setShowMeetingForm(false);
                 }}
-                className="rounded bg-indigo-500 px-3 py-2 text-sm font-medium text-white"
+                className="btn-brand rounded px-3 py-2 text-sm font-medium"
               >
                 Save Meeting
               </button>
@@ -1136,6 +1255,16 @@ export default function LeadDetailPage() {
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">{meeting.summary}</p>
                   </div>
+                  <div className="flex shrink-0 items-start gap-1">
+                    <button
+                      onClick={() => { setMeetingEditForm({ meeting_date: meeting.meeting_date?.split('T')[0] || '', meeting_type: meeting.meeting_type || '', summary: meeting.summary || '' }); setEditingMeeting(meeting); }}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" title="Edit"
+                    ><Pencil className="h-3.5 w-3.5" /></button>
+                    <button
+                      onClick={() => setDeletingMeetingId(meeting.id)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-[var(--status-danger)]/10 hover:text-[var(--status-danger)]" title="Delete"
+                    ><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -1147,8 +1276,79 @@ export default function LeadDetailPage() {
 
       {/* ── TRANSCRIPTS TAB ── */}
       {activeTab === 'transcripts' && (
-        <div className="text-sm text-muted-foreground">
-          Transcript feature coming soon. Evaluations will appear here.
+        <div className="space-y-4">
+          <button
+            onClick={() => setShowTranscriptForm(!showTranscriptForm)}
+            className="flex items-center gap-2 btn-brand rounded-lg px-3 py-2 text-sm font-medium"
+          >
+            <Plus className="h-4 w-4" /> Add Transcript
+          </button>
+
+          {showTranscriptForm && (
+            <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Source Type</label>
+                <select
+                  value={transcriptForm.source_type}
+                  onChange={e => setTranscriptForm(f => ({ ...f, source_type: e.target.value }))}
+                  className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="manual">Manual</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="call">Call</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Transcript Text *</label>
+                <textarea
+                  value={transcriptForm.transcript_text}
+                  onChange={e => setTranscriptForm(f => ({ ...f, transcript_text: e.target.value }))}
+                  rows={6}
+                  placeholder="Paste or type the transcript content..."
+                  className="mt-1 w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowTranscriptForm(false); setTranscriptForm({ source_type: 'manual', transcript_text: '' }); }}
+                  className="rounded border border-border px-3 py-2 text-xs font-medium text-muted-foreground"
+                >Cancel</button>
+                <button
+                  onClick={() => createTranscriptMutation.mutate(transcriptForm)}
+                  disabled={createTranscriptMutation.isPending || !transcriptForm.transcript_text}
+                  className="flex items-center gap-1.5 btn-brand rounded px-3 py-2 text-xs font-medium disabled:opacity-50"
+                >
+                  {createTranscriptMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Save Transcript
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {transcriptsList.length > 0 ? (
+              transcriptsList.map((t: any) => (
+                <div key={t.id} className="rounded border border-border bg-card p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium capitalize">{t.source_type}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${t.evaluation_status === 'completed' ? 'bg-[var(--status-success)]/10 text-[var(--status-success)]' : 'bg-[var(--status-warning)]/10 text-[var(--status-warning)]'}`}>
+                        {t.evaluation_status}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{t.recorded_at ? new Date(t.recorded_at).toLocaleDateString() : ''}</span>
+                    </div>
+                    <button
+                      onClick={() => setDeletingTranscriptId(t.id)}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-[var(--status-danger)]/10 hover:text-[var(--status-danger)]" title="Delete"
+                    ><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">{t.transcript_text}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No transcripts recorded</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -1236,10 +1436,152 @@ export default function LeadDetailPage() {
                   });
                   setShowOutcomeModal(false);
                 }}
-                className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+                className="flex items-center gap-1.5 btn-brand rounded-lg px-4 py-2 text-xs font-medium disabled:opacity-50"
               >
                 {outcomeMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
                 Save Outcome
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Lead Modal ── */}
+      {showEditLead && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Edit Lead</h2>
+              <button onClick={() => setShowEditLead(false)} className="rounded-md p-1 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-3">
+              <div><label className="text-xs font-medium text-muted-foreground">Company Name *</label><input value={editLeadForm.company_name} onChange={e => setEditLeadForm(f => ({ ...f, company_name: e.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Address</label><input value={editLeadForm.address} onChange={e => setEditLeadForm(f => ({ ...f, address: e.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Email</label><input type="email" value={editLeadForm.email} onChange={e => setEditLeadForm(f => ({ ...f, email: e.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Phone</label><input value={editLeadForm.phone} onChange={e => setEditLeadForm(f => ({ ...f, phone: e.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Website</label><input value={editLeadForm.website} onChange={e => setEditLeadForm(f => ({ ...f, website: e.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Company Size</label><input value={editLeadForm.company_size_estimate} onChange={e => setEditLeadForm(f => ({ ...f, company_size_estimate: e.target.value }))} placeholder="e.g. small, medium, enterprise" className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setShowEditLead(false)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button onClick={() => updateLeadMutation.mutate(editLeadForm)} disabled={updateLeadMutation.isPending || !editLeadForm.company_name} className="flex items-center gap-1.5 btn-brand rounded-lg px-4 py-2 text-xs font-medium disabled:opacity-50">
+                {updateLeadMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Lead Confirmation ── */}
+      {showDeleteLead && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h2 className="mb-2 text-lg font-semibold">Delete Lead</h2>
+            <p className="mb-1 text-sm text-muted-foreground">Delete <span className="font-semibold text-foreground">{leadData.company_name}</span>?</p>
+            <p className="mb-5 text-xs text-muted-foreground">The lead will be soft-deleted and can be restored by an admin.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowDeleteLead(false)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button onClick={() => deleteLeadMutation.mutate()} disabled={deleteLeadMutation.isPending} className="flex items-center gap-1.5 rounded-lg bg-[var(--status-danger)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50">
+                {deleteLeadMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Activity Modal ── */}
+      {editingActivity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Edit Activity</h2>
+              <button onClick={() => setEditingActivity(null)} className="rounded-md p-1 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-3">
+              <div><label className="text-xs font-medium text-muted-foreground">Activity Type</label><input value={activityEditForm.activity_type} onChange={e => setActivityEditForm(f => ({ ...f, activity_type: e.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Description</label><textarea value={activityEditForm.description} onChange={e => setActivityEditForm(f => ({ ...f, description: e.target.value }))} rows={3} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setEditingActivity(null)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button onClick={() => updateActivityMutation.mutate({ id: editingActivity.id, data: activityEditForm })} disabled={updateActivityMutation.isPending} className="flex items-center gap-1.5 btn-brand rounded-lg px-4 py-2 text-xs font-medium disabled:opacity-50">
+                {updateActivityMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Activity Confirmation ── */}
+      {deletingActivityId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h2 className="mb-2 text-lg font-semibold">Delete Activity?</h2>
+            <p className="mb-5 text-sm text-muted-foreground">This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeletingActivityId(null)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button onClick={() => deleteActivityMutation.mutate(deletingActivityId)} disabled={deleteActivityMutation.isPending} className="flex items-center gap-1.5 rounded-lg bg-[var(--status-danger)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50">
+                {deleteActivityMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Meeting Modal ── */}
+      {editingMeeting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Edit Meeting</h2>
+              <button onClick={() => setEditingMeeting(null)} className="rounded-md p-1 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-3">
+              <div><label className="text-xs font-medium text-muted-foreground">Date</label><input type="date" value={meetingEditForm.meeting_date} onChange={e => setMeetingEditForm(f => ({ ...f, meeting_date: e.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Type</label>
+                <select value={meetingEditForm.meeting_type} onChange={e => setMeetingEditForm(f => ({ ...f, meeting_type: e.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                  <option value="Virtual">Virtual</option>
+                  <option value="In-Person">In-Person</option>
+                  <option value="Phone Call">Phone Call</option>
+                </select>
+              </div>
+              <div><label className="text-xs font-medium text-muted-foreground">Summary</label><textarea value={meetingEditForm.summary} onChange={e => setMeetingEditForm(f => ({ ...f, summary: e.target.value }))} rows={3} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" /></div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button onClick={() => setEditingMeeting(null)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button onClick={() => updateMeetingMutation.mutate({ id: editingMeeting.id, data: meetingEditForm })} disabled={updateMeetingMutation.isPending} className="flex items-center gap-1.5 btn-brand rounded-lg px-4 py-2 text-xs font-medium disabled:opacity-50">
+                {updateMeetingMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Meeting Confirmation ── */}
+      {deletingMeetingId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h2 className="mb-2 text-lg font-semibold">Delete Meeting?</h2>
+            <p className="mb-5 text-sm text-muted-foreground">This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeletingMeetingId(null)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button onClick={() => deleteMeetingMutation.mutate(deletingMeetingId)} disabled={deleteMeetingMutation.isPending} className="flex items-center gap-1.5 rounded-lg bg-[var(--status-danger)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50">
+                {deleteMeetingMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Transcript Confirmation ── */}
+      {deletingTranscriptId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h2 className="mb-2 text-lg font-semibold">Delete Transcript?</h2>
+            <p className="mb-5 text-sm text-muted-foreground">This action cannot be undone.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeletingTranscriptId(null)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button onClick={() => deleteTranscriptMutation.mutate(deletingTranscriptId)} disabled={deleteTranscriptMutation.isPending} className="flex items-center gap-1.5 rounded-lg bg-[var(--status-danger)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50">
+                {deleteTranscriptMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />} Delete
               </button>
             </div>
           </div>
@@ -1264,7 +1606,7 @@ export default function LeadDetailPage() {
               <button
                 onClick={() => deleteContactMutation.mutate(deletingContactId)}
                 disabled={deleteContactMutation.isPending}
-                className="flex items-center gap-1.5 rounded-lg bg-red-500 px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg bg-[var(--status-danger)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
               >
                 {deleteContactMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
                 Delete

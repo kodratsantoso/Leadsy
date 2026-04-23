@@ -129,6 +129,11 @@
 - [x] MOD-C-011: Verify existing AI Settings UI (providers, routing, usage tabs)
 - [x] MOD-C-020: Verify collision detection logic (30-second window, same entity)
 - [x] MOD-C-021: Verify cost-aware routing (prefer low/medium cost tier models)
+- [x] MOD-C-030: Consolidate all AI settings under `Settings → AI Default`
+- [x] MOD-C-031: Add secure API-key masking/reveal flow with audit logging
+- [x] MOD-C-032: Add consolidated feature routing controls with priorities 1–4
+- [x] MOD-C-033: Add prompt template versioning, activation, and preview plumbing
+- [x] MOD-C-034: Add provider health / connection test persistence and usage overview
 
 ### Frontend Enhancements
 - [x] FE-A-001: Enhance Leads list page with Stage filter
@@ -137,6 +142,8 @@
 - [x] FE-B-001: Build Lead Detail page (5 tabs, quick stats, forms)
 - [x] FE-B-002: Integrate real API data on Lead Detail page
 - [x] FE-C-001: Verify AI Settings page (providers, routing, usage tabs)
+- [x] FE-C-002: Replace active `frontend/` AI Defaults page with consolidated control center (providers, routing, prompts, usage/health)
+- [x] FE-C-003: Remove AI credential messaging from Integrations and point operators to `Settings → AI Default`
 
 ### Integration & Testing
 - [x] INT-001: Verify Module A services use AiOrchestrationService for AI calls
@@ -148,7 +155,48 @@
 - [x] INT-007: Test cost-aware routing selects cheaper models
 
 ### Documentation
-- [ ] DOC-001: Update SSOT with Module A/B/C requirements and implementation
+- [x] DOC-001: Update SSOT with Module A/B/C requirements and implementation
 - [ ] DOC-002: Update BRD with Lead Intelligence, Sales Activity, AI Provider sections
-- [ ] DOC-003: Update progress.md with completion status
-- [ ] DOC-004: Update decisions.md with architectural decisions
+- [x] DOC-003: Update progress.md with completion status
+- [x] DOC-004: Update decisions.md with architectural decisions
+
+## Phase 9: Stabilization & Consistency (In Progress 🔧)
+
+- [x] STAB-001: Audit active UI tree vs deprecated root tree and keep `frontend/` as the runtime source of truth
+- [x] STAB-002: Fix PostgreSQL-safe AI usage aggregation for `fallback_used` boolean handling
+- [x] STAB-003: Correct integration settings permission guard from `audit.view` to `integrations.manage`
+- [x] STAB-004: Standardize API error envelopes for API routes in Laravel bootstrap exception handling
+- [x] STAB-005: Tighten frontend route gating for settings sub-pages by permission
+- [x] STAB-006: Produce database mismatch report and data integrity findings
+- [x] STAB-007: Produce API contract mismatch report and remaining normalization backlog
+- [ ] STAB-008: Audit master-data hardcoding and convert highest-risk runtime lists to DB/API-backed sources
+- [ ] STAB-009: Migrate root-only runtime pages (`icp-profiles`, `qualification`, `territories`, `settings/funnel-stages`, `settings/revenue-rules`) into `frontend/`
+- [ ] STAB-010: Unify frontend HTTP access patterns around one auth/base-URL contract
+
+## Phase 10: UI System Unification (In Progress 🎨)
+
+- [x] UI-001: Create shared UI primitives in `frontend/components/ui` for `Input`, `Select`, `Badge`, `Card`, `Modal`, `Tabs`, `FilterBar`, and `Table`
+- [x] UI-002: Migrate `frontend/app/leads/page.tsx` to shared admin primitives
+- [x] UI-003: Migrate `frontend/app/settings/users/page.tsx` to shared admin primitives
+- [x] UI-004: Migrate `frontend/app/audit-logs/page.tsx` to shared admin primitives
+- [x] UI-005: Normalize `frontend/app/map/page.tsx` and map side panels to shared buttons, cards, and feedback patterns
+- [x] UI-006: Normalize `frontend/app/settings/ai-defaults/page.tsx` to the same settings/admin visual language
+- [ ] UI-007: Extend the shared UI system to remaining runtime pages outside this pass
+
+## Phase 4: Full CRUD Completion (2026-04-19)
+
+### CRUD Gaps — All Resolved
+- [x] CRUD-001: Add Edit Lead + Delete Lead to leads list and detail pages
+- [x] CRUD-002: Add Edit + Delete buttons to Lead Activities
+- [x] CRUD-003: Add Edit + Delete buttons to Lead Meetings
+- [x] CRUD-004: Implement Transcript UI (replace "coming soon")
+- [x] CRUD-005: Create Funnel Stages management page (/settings/funnel-stages)
+- [x] CRUD-006: Add Funnel Stages to Settings nav
+- [x] CRUD-007: Replace fake AI Provider "Add" alert with real Create/Edit/Delete modals
+- [x] CRUD-008: Add per-model Delete button in AI Defaults provider card
+- [x] CRUD-009: Add Add Model inline form in AI Defaults provider card
+- [x] CRUD-010: Add Sub-Industry edit modal in Industries page
+- [x] CRUD-011: Add sub-industry updateSub backend endpoint
+- [x] CRUD-012: Add WhatsApp Campaign Edit modal
+- [x] CRUD-013: Replace inline confirm() on campaign delete with proper modal
+- [x] CRUD-014: Add updateCampaign backend endpoint

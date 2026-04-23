@@ -4,14 +4,22 @@ import { useState, useEffect } from "react";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
 import { MapPin, Loader2 } from "lucide-react";
 
+import { apiFetch } from "@/lib/apiFetch";
 import { useMapDiscovery, type DiscoveredLead, type GeocodeResult } from "@/lib/hooks/use-map-discovery";
-import { MapSearchPanel } from "@/components/map/map-search-panel";
-import { MapResultsPanel } from "@/components/map/map-results-panel";
-import { MapMarkersLayer } from "@/components/map/map-markers-layer";
-import type { AiMode } from "@/components/ai/ai-mode-selector";
+import { MapSearchPanel } from "@/modules/maps/components/map-search-panel";
+import { MapResultsPanel } from "@/modules/maps/components/map-results-panel";
+import { MapMarkersLayer } from "@/modules/maps/components/map-markers-layer";
+import type { AiMode } from "@/modules/ai/components/ai-mode-selector";
+
+const DEFAULT_CENTER = { lat: -6.2088, lng: 106.8456 };
+
+function isEnabledFlag(value: unknown) {
+  return value === true || value === "true" || value === 1 || value === "1";
+}
 
 export default function MapPage() {
   const [apiKey, setApiKey] = useState("");
+  const [isMapsEnabled, setIsMapsEnabled] = useState(true);
   const [loadingKey, setLoadingKey] = useState(true);
 
   const { isSearching, error, searchPlaces, addToLeads, getPlaceDetails } = useMapDiscovery();
@@ -23,7 +31,7 @@ export default function MapPage() {
   const [isDetailFetching, setIsDetailFetching] = useState(false);
   
   // Map State
-  const [center, setCenter] = useState({ lat: -6.2088, lng: 106.8456 });
+  const [center, setCenter] = useState(DEFAULT_CENTER);
   const [zoom, setZoom] = useState(13);
   
   // Filter State
@@ -31,13 +39,26 @@ export default function MapPage() {
 
   // Load API Key
   useEffect(() => {
-    fetch('/api/settings/public')
+    apiFetch("/settings/public")
       .then(res => res.json())
       .then(json => {
-        if (json?.data?.GOOGLE_MAPS_BROWSER_API_KEY) setApiKey(json.data.GOOGLE_MAPS_BROWSER_API_KEY);
-        else setApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "");
+        const settings = json?.data ?? {};
+        const publicApiKey = settings.GOOGLE_MAPS_BROWSER_API_KEY;
+        const fallbackApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+        const lat = Number(settings.GOOGLE_MAPS_DEFAULT_CENTER_LAT);
+        const lng = Number(settings.GOOGLE_MAPS_DEFAULT_CENTER_LNG);
+
+        setApiKey(typeof publicApiKey === "string" && publicApiKey.trim() ? publicApiKey : fallbackApiKey);
+        setIsMapsEnabled(settings.GOOGLE_MAPS_ENABLED === undefined ? true : isEnabledFlag(settings.GOOGLE_MAPS_ENABLED));
+
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          setCenter({ lat, lng });
+        }
       })
-      .catch(() => setApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""))
+      .catch(() => {
+        setApiKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "");
+        setIsMapsEnabled(true);
+      })
       .finally(() => setLoadingKey(false));
   }, []);
 
@@ -91,7 +112,11 @@ export default function MapPage() {
         if (detail) {
             setResults(prev => prev.map(r => 
                 r.external_place_id === placeId 
-                  ? { ...r, ...detail } // merge fully enriched payload
+                  ? {
+                      ...r,
+                      ...detail,
+                      external_place_id: detail.external_place_id ?? r.external_place_id,
+                    }
                   : r
             ));
         }
@@ -141,7 +166,7 @@ export default function MapPage() {
 
       {/* 2. CENTER - Map */}
       <div className="flex-1 relative bg-muted">
-        {apiKey ? (
+        {isMapsEnabled && apiKey ? (
           <APIProvider apiKey={apiKey}>
             <Map
               mapId="prasetia-leads-map-id"
@@ -171,9 +196,15 @@ export default function MapPage() {
             ) : (
               <>
                 <MapPin className="mb-4 h-12 w-12 text-muted-foreground/30" />
-                <h3 className="mb-2 text-lg font-semibold text-foreground">Google Maps Configuration Required</h3>
-                <p className="max-w-md text-sm">Please insert your Google Maps Browser API Key in the settings page to render the map.</p>
-                <a href="/settings/integrations" className="mt-4 rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                <h3 className="mb-2 text-lg font-semibold text-foreground">
+                  {isMapsEnabled ? "Google Maps Configuration Required" : "Google Maps Integration Disabled"}
+                </h3>
+                <p className="max-w-md text-sm">
+                  {isMapsEnabled
+                    ? "Please insert your Google Maps Browser API Key in the settings page to render the map."
+                    : "Enable Google Maps integration in settings to render the map interface on this page."}
+                </p>
+                <a href="/settings/integrations" className="mt-4 rounded bg-[var(--brand-hover)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)]">
                   Configure Settings
                 </a>
               </>

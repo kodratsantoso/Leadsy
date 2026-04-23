@@ -112,3 +112,139 @@
 - **Decision**: All authenticated API calls in the frontend MUST use `apiFetch` from `@/lib/apiFetch.ts`, not the raw `fetch()` Web API or the `api` client from `@/lib/api/client.ts`. `useQuery` hooks wrapping `apiFetch` are the approved pattern.
 - **Rationale**: `apiFetch` injects the Sanctum Bearer token from `useAuthStore`, handles 401 auto-redirect to `/login`, and normalizes paths through the Next.js proxy. The `settings/ai-defaults/page.tsx` was found using raw `fetch()` without token injection, causing auth failures for protected endpoints.
 - **Impact**: All future components must use `useQuery(() => apiFetch('/endpoint').then(r => r.json()))`. The `api` client in `lib/api/client.ts` uses `credentials: 'include'` (cookie-based) and may be deprecated in favor of `apiFetch` in a future cleanup pass.
+
+## ADR-017: Incremental Monorepo Structure Refactor
+- **Date**: 2026-04-18
+- **Status**: Active
+- **Decision**: Adopt a staged project structure refactor. Phases 1–3 executed immediately (safe, non-breaking). Phase 4 (`apps/` monorepo restructure) deferred pending explicit confirmation — it requires changes to Docker build contexts, Dockerfile paths, and resolution of the `frontend/` submodule situation.
+- **Rationale**: Full monorepo restructure (`apps/frontend`, `apps/backend`) is the target architecture but carries high risk of breaking the Docker build pipeline, Next.js config, and CI. Incremental approach ensures the app stays functional throughout.
+- **Impact**:
+  - Phase 1 ✅: Removed `package.json.bak`, reorganized `docs/` (execution/, architecture/ subdirs), moved `routes.txt` into docs/.
+  - Phase 2 ✅: Moved 4 root-level Laravel services to proper domain subdirectories (`Services/AI/AiOrchestrationService`, `Services/WhatsApp/WhatsAppSyncEngine`, `Services/Lead/LeadDiscoveryService`, `Services/Maps/MapSearchHistoryService`). Updated all 14 affected PHP files.
+  - Phase 3 ✅: Created `modules/` directory. Moved feature components (`ai/`, `leads/`, `map/`) from `components/` into `modules/{feature}/components/`. Updated all import paths. `components/` now contains only shared UI (`ui/`, `layout/`).
+  - Phase 4 ⏳: Pending confirmation — monorepo `apps/` restructure.
+
+## ADR-018: Enterprise CRUD Audit & Full Coverage Implementation
+- **Date**: 2026-04-18
+- **Status**: Active
+- **Decision**: All platform modules must have full CRUD coverage — every applicable entity requires backend routes (GET/POST/PUT/DELETE), frontend list/detail/form/delete UI, input validation, and confirmation dialogs for destructive actions.
+- **Rationale**: Audit of all ~133 controller methods and 19 frontend pages revealed significant gaps: Territories (read-only UI), ICP Profiles (read-only UI), Revenue Rules (backend only, no UI), Roles (create/read only, no edit/delete), WhatsApp Campaigns (no delete), Funnel Stages (no delete). Incomplete CRUD creates orphaned data and forces manual DB intervention.
+- **Impact**:
+  - New pages: `app/territories/page.tsx`, `app/icp-profiles/page.tsx`, `app/settings/revenue-rules/page.tsx`
+  - Enhanced pages: `app/qualification/page.tsx` (Parameter Sets tab), `app/settings/users/page.tsx` (Role CRUD, User deactivate)
+  - Backend endpoints added: `PUT leads/{lead}/activities/{activity}`, `PUT leads/{lead}/meetings/{meeting}`, `DELETE funnel/stages/{stage}`, `DELETE roles/{role}`, `DELETE whatsapp/campaigns/{campaign}`
+  - Navigation: Territories and ICP Profiles added to sidebar
+
+## ADR-019: Referential Integrity Guard Pattern on Destroy Endpoints
+- **Date**: 2026-04-18
+- **Status**: Active
+- **Decision**: All `destroy()` controller methods MUST check for dependent records and return HTTP 422 with a human-readable message before deleting. Hard cascade deletes are only allowed for owned child records (e.g., campaign recipients).
+- **Rationale**: Laravel's DB-level cascade errors surface as 500s with opaque messages. A 422 with a message like "Cannot delete role: users are assigned to it" gives the frontend something actionable to display. This prevents broken FK state and data loss by accident.
+- **Impact**: Pattern codified for: Role (users assigned check), FunnelStage (leads assigned check), WhatsAppCampaign (running/scheduled status check). All future destroy endpoints must follow this pattern.
+
+## ADR-020: Soft-Delete Preference for Business-Critical Entities
+- **Date**: 2026-04-18
+- **Status**: Active
+- **Decision**: Entities that represent historical business records (Leads, QualificationParameterSets, QualificationWorkflows, Tenants) use Laravel SoftDeletes. Entities that are pure configuration (Roles, FunnelStages, Territories, IcpProfiles) use hard delete.
+- **Rationale**: Leads and qualification records have audit trail requirements — permanent deletion destroys historical analytics. Configuration entities are reference data with no audit history requirement; soft-deleting them adds query complexity (`withTrashed`) for no business benefit.
+- **Impact**: Frontend confirmation modals for soft-delete entities mention "soft-delete" and "can be restored". Hard-delete modals use "permanently delete" language. QualificationParameterSet modal explicitly states this.
+
+## ADR-021: Transcript UI Implemented Without Update Endpoint
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: Transcripts support Create, Read, Delete but not Update. The backend `storeTranscript` endpoint exists; no `updateTranscript` was added.
+- **Rationale**: Transcripts are verbatim records (call recordings, meeting notes). Editing the text post-facto would destroy audit integrity. Delete + re-create is the correct workflow if a transcript needs correction.
+- **Impact**: Frontend shows Create (form) + Read (list) + Delete (confirm modal). No edit button rendered.
+
+## ADR-022: WhatsApp Campaign Update Restricted to Pending/Draft Status
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: `PUT /whatsapp/campaigns/{campaign}` returns 422 if campaign status is `sent`.
+- **Rationale**: Editing a campaign that has already been broadcast would create a mismatch between what was sent and what the record shows. Only `draft` and `pending` campaigns may be edited (name + message_template).
+- **Impact**: Frontend only shows Edit button for campaigns not in `sent`, `running`, or `scheduled` status.
+
+## ADR-023: Sub-Industry Update via PUT Endpoint
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: Added `PUT /industries/{industry}/sub-industries/{sub}` route and `updateSub()` controller method.
+- **Rationale**: Sub-industries were the only nested resource without an update path — creating them with a typo required delete + recreate.
+- **Impact**: Frontend industries page now shows an Edit button (pencil icon) per sub-industry row on hover.
+
+## ADR-024: Funnel Stage Management Page Added to Settings
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: Created `/settings/funnel-stages` as a dedicated CRUD page for pipeline stage management.
+- **Rationale**: The backend already had full CRUD for funnel stages (`GET/POST/PUT/DELETE /funnel/stages`) but there was no frontend management UI. Users had no way to add, rename, or reorder stages without DB access.
+- **Impact**: New page `app/settings/funnel-stages/page.tsx`. Settings index card added.
+
+## ADR-025: AI Provider Management via UI (Replacing Seed-Only Workflow)
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: AI Defaults page now has real Create/Edit/Delete modals for providers and inline Add/Delete for models. The previous "Add Provider" button showed an `alert()` telling users to configure via Integrations.
+- **Rationale**: Provider lifecycle should be fully manageable through the UI without DB seeds or manual config. API key is accepted in the create/edit form (password field).
+- **Impact**: `app/settings/ai-defaults/page.tsx` significantly enhanced. Providers can be created, edited (name/URL/key/status), deleted with confirmation.
+
+## ADR-026: AI Configuration Consolidated into Settings → AI Default
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: All AI provider credentials, feature routing, fallback order, prompt templates, and AI health/usage visibility are consolidated into `Settings → AI Default`. Older split responsibilities are deprecated in favor of this single control center.
+- **Rationale**: AI configuration had grown across provider CRUD, routing, and runtime assumptions. Centralizing it reduces operator confusion, avoids provider collisions, supports governed prompt changes, and gives admins one source of truth for secrets and fallback behavior.
+- **Impact**:
+  - Added `/api/settings/ai-default` endpoints for provider registry, secure key reveal, route management, prompt versioning, connection tests, and usage overview.
+  - Added `ai_connection_tests`, `ai_prompt_templates`, and `ai_prompt_template_versions` tables plus enriched `ai_providers` metadata fields.
+  - API keys remain masked by default; full reveal and copy are limited to admin-authorized roles and are audit logged.
+  - `AiOrchestrationService` now resolves priority routes from the consolidated feature-route source and prepends active prompt-template instructions per feature at runtime.
+
+## ADR-027: SQLite-Safe Test Fallback for Enterprise Schema Hardening
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: The migration `2026_04_18_170000_harden_core_business_schema.php` now branches by driver so PostgreSQL-only DDL is only used on PostgreSQL, while SQLite test runs receive equivalent compatible indexes.
+- **Rationale**: The focused AI settings tests should be able to run in fallback SQLite mode without being blocked by production-only Postgres syntax such as `DROP CONSTRAINT IF EXISTS`, `COALESCE(... )` partial indexes, and `pg_tables` checks.
+- **Impact**: Feature tests for the consolidated AI settings API now run with `DB_CONNECTION=sqlite DB_DATABASE=:memory:`. PostgreSQL remains the production source of truth.
+
+## ADR-028: `frontend/` Is the Only Active UI Source of Truth
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: The repository standardizes `frontend/` as the only active UI source of truth. The root Next.js tree (`app/`, `components/`, `lib/`, `store/`, related config) is deprecated and retained only as a compatibility layer until a later removal pass.
+- **Rationale**: Docker and local runtime already mount and serve `./frontend`, while the duplicate root tree caused fixes to land in the wrong place and never reach the live app.
+- **Impact**:
+  - Root `package.json` now delegates UI scripts to `frontend/`.
+  - Root duplicate UI directories are explicitly marked deprecated.
+  - Future frontend feature work must land in `frontend/` only.
+
+## ADR-029: Live AI Default UI Moved Fully Into `frontend/`
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: The consolidated `Settings → AI Default` control center is implemented in `frontend/app/settings/ai-defaults/page.tsx`, and Integrations no longer presents AI credentials as an alternative management surface.
+- **Rationale**: The original enterprise AI consolidation work had landed in the deprecated root UI tree, while the running app still showed the legacy 3-tab AI screen. Operators need the live UI to match the consolidated backend and governance model.
+- **Impact**:
+  - The running frontend now exposes Providers, Feature Routing, Prompt Templates, and Usage & Health from the `/api/settings/ai-default` backend.
+  - The settings index and integrations messaging now reinforce `Settings → AI Default` as the single AI control center.
+
+## ADR-030: API Failures Use a Standard Error Envelope
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: API failures are now rendered centrally in `backend/bootstrap/app.php` with a consistent envelope: `success`, `data`, `meta`, `error`, and a compatibility `message` field.
+- **Rationale**: Controller-by-controller error payload drift made failures harder to audit, harder for the frontend to handle uniformly, and easier to miss during stabilization.
+- **Impact**:
+  - Validation, authentication, authorization, not-found, and generic API exceptions now return a shared JSON structure for `/api/*` requests.
+  - Existing successful responses remain unchanged for now to avoid breaking the current frontend during stabilization.
+
+## ADR-031: Integration Settings Permission Bound to Integrations Module
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: `/api/settings/integrations` is protected by `integrations.manage` instead of `audit.view`, and frontend settings sub-route gating now reflects module-specific permissions.
+- **Rationale**: Integration configuration is a settings concern, not an audit-log concern. Using `audit.view` created hidden authorization drift where the wrong roles could modify operational settings.
+- **Impact**:
+  - Backend integration settings routes now match the permission seed and intended RBAC model.
+  - Frontend access checks distinguish AI, user, and integration settings more clearly.
+
+## ADR-032: Runtime Admin UI Must Use Shared Primitives
+- **Date**: 2026-04-19
+- **Status**: Active
+- **Decision**: Active runtime admin pages must use shared primitives from `frontend/components/ui` instead of page-local button, input, table, modal, badge, or tab implementations.
+- **Rationale**: The UI audit showed the same CRUD/admin patterns being reimplemented separately across Leads, Users, Audit Logs, Maps, and AI Defaults, creating drift in spacing, button behavior, feedback patterns, and visual hierarchy.
+- **Impact**:
+  - Shared primitives now exist for `Input`, `Select`, `Badge`, `Card`, `Modal`, `Tabs`, `FilterBar`, and `Table`.
+  - `frontend/app/leads/page.tsx`, `frontend/app/settings/users/page.tsx`, and `frontend/app/audit-logs/page.tsx` now share one admin interaction pattern.
+  - `frontend/app/map/page.tsx` and `frontend/app/settings/ai-defaults/page.tsx` were normalized to the same runtime design language.

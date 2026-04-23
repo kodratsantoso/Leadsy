@@ -20,10 +20,16 @@ use App\Jobs\AnalyzeWhatsAppConversationJob;
 class WhatsAppController extends Controller
 {
     /**
-     * Baileys sidecar URL — Docker service name, NOT localhost.
+     * Baileys sidecar URL.
+     * Uses env override first, then prefers Docker hostname in containers
+     * and localhost for host-based local development.
      */
-    private string $engineUrl = 'http://whatsapp-service:3002/api';
-    private string $defaultSession = 'leads_platform_session';
+    private string $defaultSession;
+
+    public function __construct()
+    {
+        $this->defaultSession = (string) env('WHATSAPP_SESSION_NAME', 'leads_platform_session');
+    }
 
     /* ──────────────────────────────────────────────────────────────
      *  SESSION / QR
@@ -37,19 +43,39 @@ class WhatsAppController extends Controller
         );
 
         try {
-            $res = Http::timeout(5)->post("{$this->engineUrl}/session/start");
-            Log::info('[WhatsApp] Init session', ['sidecar_response' => $res->json()]);
+            [$res, $engineUrl] = $this->requestEngine('post', 'session/start');
+            Log::info('[WhatsApp] Init session', [
+                'engine_url' => $engineUrl,
+                'sidecar_response' => $res->json(),
+            ]);
         } catch (\Exception $e) {
             Log::error('[WhatsApp] Engine unreachable on init', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Failed to reach WhatsApp Engine. Ensure the sidecar is running.'], 500);
         }
 
-        // Re-read session to get the latest QR from webhook
+        // Try a live status pull immediately so the UI does not depend solely on webhook timing.
+        usleep(750000);
+        $snapshot = $this->pullSidecarStatus($session);
+
+        // If the sidecar is disconnected but still has saved auth, it is usually stale/expired
+        // and Baileys will not emit a fresh QR until we reset the auth store.
+        if (($snapshot['status'] ?? $session->status) === 'disconnected' && ($snapshot['has_auth'] ?? false)) {
+            try {
+                $this->requestEngine('post', 'session/refresh-qr');
+                usleep(1250000);
+                $snapshot = $this->pullSidecarStatus($session) ?? $snapshot;
+            } catch (\Throwable $e) {
+                Log::warning('[WhatsApp] Failed to auto-refresh stale auth on init', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
         $session->refresh();
 
         return response()->json([
-            'status'     => $session->status,
-            'qr_payload' => $session->qr_payload,
+            'status'     => $snapshot['status'] ?? $session->status,
+            'qr_payload' => $snapshot['qr_payload'] ?? $session->qr_payload,
         ]);
     }
 
@@ -57,21 +83,26 @@ class WhatsAppController extends Controller
     {
         $session = WhatsappSession::where('session_name', $this->defaultSession)->first();
         if (!$session) {
-            return response()->json(['status' => 'disconnected', 'number' => null, 'qr_payload' => null]);
+            $session = WhatsappSession::create([
+                'session_name' => $this->defaultSession,
+                'status' => 'disconnected',
+            ]);
         }
 
+        $snapshot = $this->pullSidecarStatus($session);
+
         return response()->json([
-            'status'     => $session->status,
-            'number'     => $session->metadata_json['number'] ?? null,
-            'qr_payload' => $session->status === 'qr_ready' ? $session->qr_payload : null,
-            'connected_at' => $session->connected_at?->toIso8601String(),
+            'status'       => $snapshot['status'] ?? $session->status,
+            'number'       => $snapshot['number'] ?? ($session->metadata_json['number'] ?? null),
+            'qr_payload'   => $snapshot['qr_payload'] ?? ($session->status === 'qr_ready' ? $session->qr_payload : null),
+            'connected_at' => ($snapshot['connected_at'] ?? $session->connected_at)?->toIso8601String(),
         ]);
     }
 
     public function refreshQr(): JsonResponse
     {
         try {
-            Http::timeout(5)->post("{$this->engineUrl}/session/refresh-qr");
+            $this->requestEngine('post', 'session/refresh-qr');
         } catch (\Exception $e) {
             return response()->json(['error' => 'Engine unreachable.'], 500);
         }
@@ -91,12 +122,64 @@ class WhatsAppController extends Controller
         }
 
         try {
-            Http::timeout(5)->post("{$this->engineUrl}/session/disconnect");
+            $this->requestEngine('post', 'session/disconnect');
         } catch (\Exception $e) {
             // Ignore — sidecar may already be down
         }
 
         return response()->json(['success' => true]);
+    }
+
+    private function pullSidecarStatus(WhatsappSession $session): ?array
+    {
+        try {
+            [$res, $engineUrl] = $this->requestEngine('get', 'session/status');
+
+            $data = $res->json();
+            $status = $data['status'] ?? $session->status ?? 'disconnected';
+            $qrPayload = $status === 'qr_ready' ? ($data['qr'] ?? null) : null;
+            $number = $status === 'connected' ? ($data['number'] ?? ($session->metadata_json['number'] ?? null)) : null;
+
+            $metadata = $session->metadata_json ?? [];
+            if ($number) {
+                $metadata['number'] = $number;
+            }
+
+            $updates = [
+                'status' => $status,
+                'qr_payload' => $qrPayload,
+                'metadata_json' => $metadata,
+            ];
+
+            if ($status === 'qr_ready') {
+                $updates['last_qr_generated_at'] = now();
+                $updates['disconnected_at'] = null;
+            }
+            if ($status === 'connected') {
+                $updates['connected_at'] = $session->connected_at ?? now();
+                $updates['disconnected_at'] = null;
+            }
+            if ($status === 'disconnected') {
+                $updates['disconnected_at'] = now();
+            }
+
+            $session->update($updates);
+            $session->refresh();
+
+            return [
+                'status' => $session->status,
+                'number' => $session->metadata_json['number'] ?? null,
+                'qr_payload' => $session->status === 'qr_ready' ? $session->qr_payload : null,
+                'connected_at' => $session->connected_at,
+                'has_auth' => (bool) ($data['has_auth'] ?? false),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('[WhatsApp] Sidecar status pull failed', [
+                'engine_urls' => $this->engineUrls(),
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     /* ──────────────────────────────────────────────────────────────
@@ -115,10 +198,10 @@ class WhatsAppController extends Controller
         $jid = "{$phone}@s.whatsapp.net";
 
         try {
-            $res = Http::timeout(10)->post("{$this->engineUrl}/messages/send", [
+            [$res, $engineUrl] = $this->requestEngine('post', 'messages/send', [
                 'jid'  => $jid,
                 'text' => $data['text'],
-            ]);
+            ], 10);
 
             if (!$res->successful()) {
                 return response()->json(['error' => $res->json('error', 'Send failed')], $res->status());
@@ -237,10 +320,10 @@ class WhatsAppController extends Controller
         foreach ($recipients as $recipient) {
             $jid = "{$recipient->phone_number}@s.whatsapp.net";
             try {
-                $res = Http::timeout(10)->post("{$this->engineUrl}/messages/send", [
+                [$res, $engineUrl] = $this->requestEngine('post', 'messages/send', [
                     'jid'  => $jid,
                     'text' => $campaign->message_template,
-                ]);
+                ], 10);
 
                 if ($res->successful()) {
                     $recipient->update([
@@ -296,6 +379,34 @@ class WhatsAppController extends Controller
             'failed' => $failCount,
             'total' => $recipients->count(),
         ]);
+    }
+
+    public function updateCampaign(Request $request, WhatsappCampaign $campaign): JsonResponse
+    {
+        if ($campaign->status === 'sent') {
+            return response()->json(['message' => 'Cannot edit a campaign that has already been sent.'], 422);
+        }
+
+        $data = $request->validate([
+            'campaign_name'    => 'sometimes|string|max:255',
+            'message_template' => 'sometimes|string',
+        ]);
+
+        $campaign->update($data);
+
+        return response()->json(['data' => $campaign->load('recipients')]);
+    }
+
+    public function destroyCampaign(WhatsappCampaign $campaign): JsonResponse
+    {
+        if (in_array($campaign->status, ['running', 'scheduled'])) {
+            return response()->json(['message' => 'Cannot delete a running or scheduled campaign.'], 422);
+        }
+
+        $campaign->recipients()->delete();
+        $campaign->delete();
+
+        return response()->json(null, 204);
     }
 
     /* ──────────────────────────────────────────────────────────────
@@ -361,5 +472,58 @@ class WhatsAppController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Sync rules updated.']);
+    }
+
+    private function engineUrls(): array
+    {
+        $configured = (string) env('WHATSAPP_SIDECAR_URL', '');
+        $candidates = [
+            $configured,
+            'http://whatsapp-service:3002',
+            'http://127.0.0.1:3002',
+        ];
+
+        $urls = [];
+        foreach ($candidates as $candidate) {
+            $candidate = rtrim($candidate, '/');
+            if ($candidate === '') {
+                continue;
+            }
+            $urls[] = str_ends_with($candidate, '/api') ? $candidate : "{$candidate}/api";
+        }
+
+        return array_values(array_unique($urls));
+    }
+
+    /**
+     * Returns the first HTTP response from a reachable engine URL.
+     * If an engine responds with a 4xx/5xx, that still counts as reachable and is returned.
+     *
+     * @return array{0:\Illuminate\Http\Client\Response,1:string}
+     */
+    private function requestEngine(string $method, string $path, array $payload = [], int $timeout = 5): array
+    {
+        $lastError = null;
+
+        foreach ($this->engineUrls() as $engineUrl) {
+            try {
+                $client = Http::timeout($timeout);
+                $url = "{$engineUrl}/{$path}";
+                $response = strtolower($method) === 'get'
+                    ? $client->get($url, $payload)
+                    : $client->post($url, $payload);
+
+                return [$response, $engineUrl];
+            } catch (\Throwable $e) {
+                $lastError = $e;
+                Log::warning('[WhatsApp] Sidecar request failed', [
+                    'engine_url' => $engineUrl,
+                    'path' => $path,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        throw new \RuntimeException($lastError?->getMessage() ?? 'No reachable WhatsApp engine URL');
     }
 }

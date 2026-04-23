@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Product extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'name', 'category', 'description', 'target_industry',
         'target_pain_points', 'target_buyer_persona',
         'ideal_company_profile', 'ai_reference_material',
@@ -17,5 +18,10 @@ class Product extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

@@ -12,6 +12,7 @@ use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\SubIndustry;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -115,6 +116,10 @@ class DatabaseSeeder extends Seeder
     private function seedSuperAdmin(): void
     {
         $adminRole = Role::where('name', 'super_admin')->first();
+        $tenant = Tenant::firstOrCreate(
+            ['slug' => 'default-workspace'],
+            ['name' => 'Default Workspace', 'status' => 'active']
+        );
 
         User::firstOrCreate(
             ['email' => 'admin@prasetia.com'],
@@ -122,6 +127,7 @@ class DatabaseSeeder extends Seeder
                 'name'     => 'Rizub',
                 'password' => 'admin123!',
                 'role_id'  => $adminRole?->id,
+                'tenant_id' => $tenant->id,
             ],
         );
     }
@@ -222,6 +228,8 @@ class DatabaseSeeder extends Seeder
      */
     private function seedProducts(): void
     {
+        $tenantId = Tenant::query()->orderBy('id')->value('id');
+
         $products = [
             [
                 'name'                 => 'Enterprise ERP Solution',
@@ -257,8 +265,8 @@ class DatabaseSeeder extends Seeder
 
         foreach ($products as $product) {
             Product::firstOrCreate(
-                ['name' => $product['name']],
-                $product
+                ['tenant_id' => $tenantId, 'name' => $product['name']],
+                array_merge($product, ['tenant_id' => $tenantId])
             );
         }
     }
@@ -331,6 +339,8 @@ class DatabaseSeeder extends Seeder
      */
     private function seedNotificationPreferences(): void
     {
+        $tenantId = Tenant::query()->orderBy('id')->value('id');
+
         $defaults = [
             ['key' => 'notify_inapp_enabled',    'value' => '1', 'category' => 'notifications', 'is_secret' => false, 'value_type' => 'boolean'],
             ['key' => 'notify_email_enabled',    'value' => '0', 'category' => 'notifications', 'is_secret' => false, 'value_type' => 'boolean'],
@@ -339,8 +349,8 @@ class DatabaseSeeder extends Seeder
 
         foreach ($defaults as $config) {
             IntegrationConfig::firstOrCreate(
-                ['key' => $config['key']],
-                $config
+                ['tenant_id' => $tenantId, 'key' => $config['key']],
+                array_merge($config, ['tenant_id' => $tenantId])
             );
         }
     }

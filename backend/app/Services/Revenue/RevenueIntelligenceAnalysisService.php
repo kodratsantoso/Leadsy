@@ -4,7 +4,7 @@ namespace App\Services\Revenue;
 
 use App\Models\Lead;
 use App\Models\LeadRevenueAnalysis;
-use App\Services\AiOrchestrationService;
+use App\Services\AI\AiOrchestrationService;
 use Illuminate\Support\Facades\Log;
 
 /**
