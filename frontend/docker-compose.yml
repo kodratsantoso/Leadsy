@@ -1,0 +1,113 @@
+# Leads Generator — local stack (PostgreSQL + Redis + Next.js + Laravel API).
+
+services:
+  postgres:
+    image: postgres:16
+    platform: linux/arm64
+    container_name: prasetia-leads-pg
+    environment:
+      POSTGRES_DB: leads
+      POSTGRES_USER: leads
+      POSTGRES_PASSWORD: leads
+    ports:
+      - "5435:5432"
+    networks:
+      - prasetia_net
+    volumes:
+      - prasetia_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U leads -d leads" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: prasetia-leads-redis
+    ports:
+      - "6382:6379"
+    networks:
+      - prasetia_net
+    volumes:
+      - prasetia_redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: prasetia-leads-backend
+    ports:
+      - "3001:8000"
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: leads
+      DB_USERNAME: leads
+      DB_PASSWORD: leads
+      REDIS_HOST: redis
+      APP_URL: http://localhost:3001
+      FRONTEND_URL: http://localhost:3000
+    volumes:
+      - ./backend:/var/www/html
+    networks:
+      - prasetia_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: prasetia-leads-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Browser-side env — used by client JS bundle (must match host-accessible URL)
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:3001
+      # Server-side env — used by Next.js rewrite proxy inside Docker container
+      API_INTERNAL_URL: http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # prevent host node_modules from overwriting container's
+    networks:
+      - prasetia_net
+    depends_on:
+      - backend
+
+  whatsapp-service:
+    build:
+      context: ./whatsapp-service
+      dockerfile: Dockerfile
+    container_name: prasetia-leads-whatsapp
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      LARAVEL_WEBHOOK_URL: http://backend:8000/api/webhooks/whatsapp
+    volumes:
+      - ./whatsapp-service:/usr/src/app
+      - /usr/src/app/node_modules # prevent overwrite
+      - whatsapp_auth_data:/usr/src/app/baileys_auth_info
+    networks:
+      - prasetia_net
+    depends_on:
+      - backend
+
+networks:
+  prasetia_net:
+
+
+volumes:
+  prasetia_pg_data:
+  prasetia_redis_data:
+  whatsapp_auth_data:

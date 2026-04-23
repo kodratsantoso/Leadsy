@@ -1,0 +1,1049 @@
+# Leads Generator Application Specification
+
+## 1. Purpose
+
+Build a web-based **Leads Generator Application** that helps users identify potential business leads based on geographic area, product relevance, and AI-assisted qualification.
+
+The system should support:
+
+* Lead discovery from map-based search areas
+* AI-assisted product-to-market matching
+* Heatmap visualization for lead concentration
+* Lead enrichment and deduplication
+* Lead pipeline/funnel management
+* WhatsApp-based follow-up
+* Enterprise-grade governance, auditability, and access control
+
+---
+
+## 2. Business Objective
+
+The application is intended to help commercial, presales, partnership, and business development teams:
+
+* Discover high-potential companies within target locations
+* Match the right product/use case to the right market segment
+* Enrich leads with company and contact details
+* Avoid duplicate lead creation
+* Push qualified leads into a structured funnel
+* Accelerate first outreach through WhatsApp
+* Maintain governance, traceability, and controlled access
+
+---
+
+## 3. Core Modules
+
+### 3.1 Map Search & Territory Selection
+
+Users can identify a target market area visually through Google Maps.
+
+#### Functional Requirements
+
+* Embed **Google Maps** in the application
+* Allow user to:
+
+  * Search a location
+  * Pinpoint a map center / target point
+  * Define a **radius** around the point
+  * Optionally draw polygon/area in future phase
+* Display selected search area on the map
+* Save search parameters for reuse
+* Support multiple saved territories per user/team
+
+#### Outputs
+
+* Search center coordinates
+* Radius in kilometers/meters
+* Search area metadata
+
+---
+
+### 3.2 Product Input & Product Intelligence
+
+The system must allow users to specify which product they are trying to sell, so AI can qualify relevant leads.
+
+#### Functional Requirements
+
+* Input **Product Name** manually
+* Or select product from **Master Product** (single-choice dropdown)
+* Each product master record should contain:
+
+  * Product Name
+  * Product Category
+  * Short Description
+  * Target Industry
+  * Target Pain Points
+  * Target Buyer Persona
+  * Ideal Company Profile
+  * AI Reference Material
+  * Status (Active/Inactive)
+
+#### AI Reference Input Options
+
+For each product, users can provide one or more of the following:
+
+* One-pager document upload (PDF/DOCX)
+* Public URL / website link
+* Internal product brief text
+* Existing product from master data
+
+#### AI Usage
+
+AI should analyze the product references to infer:
+
+* Suitable industries/sub-industries
+* Potential use cases
+* Buyer persona / decision-maker level
+* Qualification indicators for target leads
+
+---
+
+### 3.3 Lead Discovery Engine
+
+The system should generate potential company leads within the selected area.
+
+#### Functional Requirements
+
+* Search businesses/companies within the selected map radius
+* Collect company-level information where available:
+
+  * Company Name
+  * Address
+  * Coordinates
+  * Website
+  * Phone Number
+  * Industry
+  * Sub Industry
+  * Business Category
+* Enrich lead profile using available sources and AI inference
+* Score relevance between discovered company and selected product
+
+#### Expected Enrichment
+
+Where possible, enrich with:
+
+* Company size estimate
+* Branch count / multi-location indicator
+* Operating hours
+* Website domain
+* Social profile references
+* Publicly available decision-maker references
+
+> Note: any contact acquisition and enrichment must comply with applicable laws, platform policies, and privacy constraints.
+
+---
+
+### 3.4 Heatmap & Lead Density Visualization
+
+The application must provide a visual indication of geographic zones with the highest lead concentration.
+
+#### Functional Requirements
+
+* Render **heatmap** overlay on map
+* Highlight clusters of potential leads
+* Allow filtering by:
+
+  * Product
+  * Industry
+  * Sub Industry
+  * Qualification score
+  * Funnel stage
+* Clicking a heatmap cluster should show underlying leads
+
+#### Visualization Goals
+
+* Identify territories with highest lead density
+* Help prioritize prospecting areas
+* Support presentation to management and sales teams
+
+---
+
+### 3.5 Lead List View
+
+Provide a structured tabular list of discovered and enriched leads.
+
+#### Required Columns
+
+* Company Name
+* Address
+* Owner / High-Level Contact
+* Industry
+* Sub Industry
+* Email
+* Contact Person
+* Contact Source
+* LinkedIn URL (if available)
+* Website
+* Phone / WhatsApp number (if available)
+* Lead Score
+* Qualification Status
+* Duplicate Status
+* Source Area / Radius Search
+* Created By
+* Created Date
+
+#### Functional Requirements
+
+* Sort, filter, and search lead list
+* Bulk select leads
+* Export to CSV/XLSX
+* Open detailed lead profile drawer/page
+* Show source confidence for enriched fields
+
+---
+
+### 3.6 Lead Detail Page
+
+Each lead should have a detailed view.
+
+#### Lead Detail Contents
+
+* Company profile
+* Full address and map pin
+* Product relevance score
+* AI explanation why this lead is relevant
+* Contact persons and source references
+* Notes/history
+* Funnel stage
+* Audit trail
+* Follow-up actions
+
+---
+
+### 3.7 Deduplication & Lead Merge Logic
+
+The system must avoid duplicate lead records while allowing new contact enrichment.
+
+#### Rules
+
+* If company already exists:
+
+  * Do not create duplicate lead record
+  * Update only if new contact/PIC data is found
+  * Preserve existing funnel history
+* If same company but different branch/location:
+
+  * configurable rule: treat as same parent or separate lead entity
+* If same email/phone/website domain exists:
+
+  * mark as probable duplicate
+* Support manual merge approval for ambiguous duplicates
+
+#### Deduplication Keys
+
+Recommended hierarchy:
+
+1. Website domain
+2. Company name + address proximity
+3. Email domain
+4. Phone number
+5. External place/business ID
+
+#### Duplicate Actions
+
+* New
+* Exact duplicate
+* Probable duplicate
+* Existing company with new PIC
+* Requires manual review
+
+---
+
+### 3.8 CRM Funnel & Lead Lifecycle
+
+Leads must be movable into a funnel chart for pipeline visibility.
+
+#### Default Funnel Stages
+
+* New Lead
+* Enriched
+* Qualified
+* Contacted
+* Follow Up Ongoing
+* Meeting Scheduled
+* Opportunity
+* Proposal Sent
+* Won
+* Lost
+* Nurture / Hold
+
+#### Functional Requirements
+
+* Button: **Add to Database / Push to Funnel**
+* Lead stage movement with history tracking
+* Funnel chart dashboard
+* Conversion metrics by stage
+* Owner assignment
+* Team pipeline visibility
+
+---
+
+### 3.9 WhatsApp Integration
+
+The system should support direct lead follow-up through WhatsApp.
+
+#### Functional Requirements
+
+* Connect WhatsApp via QR scan
+* Show connection status
+* Open direct chat from lead detail/list
+* Send template-based first outreach message
+* Log outbound conversation initiation metadata
+* Record message status if provider supports it
+
+* Disconnect/Reconnect session gracefully
+
+**Architecture & Implementation Protocol**
+To prevent blocking the core Laravel execution threads, this application uses a "Sidecar Engine Pattern":
+*   **Engine**: A standalone Node.js Service (running on e.g. Port 3002) utilizing `@whiskeysockets/baileys` to maintain the WebSocket. 
+*   **Database**: Laravel acts as the single source of truth (`whatsapp_sessions`, `whatsapp_conversations`, `whatsapp_messages`).
+*   **Communication**: The Engine receives commands via REST and broadcasts inbound message/scan events to Laravel via Webhook (`/api/webhooks/whatsapp`).
+
+**Configuration / Environment Variables**
+A real configuration path for WhatsApp must be populated in `.env` (or IntegrationConfig table) before use:
+* `WHATSAPP_ENABLED` (boolean)
+* `WHATSAPP_PROVIDER_TYPE` (e.g., `baileys_sidecar`)
+* `WHATSAPP_RUNTIME_MODE` (`real` / `mock` - testing targets must use `real`)
+* `WHATSAPP_SESSION_NAME`
+* `WHATSAPP_API_BASE_URL` (points to Sidecar URL)
+* `WHATSAPP_WEBHOOK_URL` (points back to Laravel webhook)
+* `WHATSAPP_API_KEY`, `WHATSAPP_DEFAULT_COUNTRY_CODE`, `WHATSAPP_SEND_TIMEOUT_SECONDS`, `WHATSAPP_QR_REFRESH_INTERVAL_SECONDS`, `WHATSAPP_SESSION_STORAGE_DRIVER`, `WHATSAPP_EVENT_TRANSPORT`.
+
+For production-grade implementation, use an official or compliant WhatsApp integration model where required. Avoid designs that violate platform terms.
+
+---
+
+### 3.10 AI Qualification & Recommendation Engine
+
+AI should help determine which discovered leads are worth pursuing.
+
+#### Functional Requirements
+
+* Compare product references against lead/company profile
+* Generate:
+
+  * Lead relevance score
+  * Recommended pitch angle
+  * Suggested use case
+  * Suggested buyer persona
+  * Suggested outreach opener
+* Explain score rationale
+* Flag uncertain recommendations
+
+#### Suggested Score Dimensions
+
+* Geographic fit
+* Industry fit
+* Company profile fit
+* Product use-case fit
+* Contact availability
+* Digital maturity signals
+
+---
+
+### 3.11 AI Reference Mode & Lead Generation Modes (New)
+
+#### Purpose
+
+Allow users to choose whether to use AI reference materials or not during lead generation. This ensures flexibility across different user roles (sales, presales, research).
+
+---
+
+#### Modes Supported
+
+##### 1. Full AI Mode (AI Reference ON)
+
+User provides:
+
+* Document (PDF/DOCX)
+* URL / website
+* Product from Master Product
+
+Behavior:
+
+* AI parses reference
+* Infers:
+
+  * target industry
+  * sub-industry
+  * buyer persona
+  * use case
+* Drives advanced lead scoring
+
+Use Case:
+
+* Presales
+* Solution architect
+* Complex products
+
+---
+
+##### 2. Manual Mode (AI Reference OFF)
+
+User provides:
+
+* Product name
+* Optional industry / keyword
+
+Behavior:
+
+* System uses:
+
+  * keyword matching
+  * basic rule-based filtering
+* Optional lightweight AI scoring (no deep context)
+
+Use Case:
+
+* Fast prospecting
+* Sales team usage
+
+---
+
+##### 3. Hybrid Mode (Recommended Default)
+
+User provides:
+
+* Product name
+* Optional industry
+
+AI assists:
+
+* refine persona
+* refine use case
+* generate pitch suggestion
+* light scoring
+
+Use Case:
+
+* Balanced speed vs intelligence
+
+---
+
+#### UI/UX Flow
+
+Add toggle before lead generation:
+
+* Use AI Reference (toggle)
+
+  * If ON:
+
+    * Upload document
+    * Input URL
+    * Select from product master
+  * If OFF:
+
+    * Skip AI parsing
+
+---
+
+#### Processing Flow
+
+Full AI Mode:
+
+* Product → AI parsing → product profile → scoring engine → leads
+
+Manual Mode:
+
+* Product → keyword/industry mapping → leads → optional AI scoring
+
+Hybrid Mode:
+
+* Product → partial AI enrichment → leads → scoring
+
+---
+
+#### Data Model Additions
+
+Add fields:
+
+* use_ai_reference (boolean)
+* ai_mode (enum: full_ai, hybrid, manual)
+* ai_reference_source_type (document, url, master_product)
+* ai_reference_id
+* ai_processing_status (pending, processing, completed, failed)
+
+---
+
+#### Governance & Control
+
+* Allow admin to set default mode
+* Allow restriction of Full AI mode for certain roles
+* Log AI reference usage in audit log
+
+---
+
+## 4. Master Data Modules
+
+### 4.1 Master Product
+
+* Product Name
+* Category
+* Description
+* Target Industry
+* Target Persona
+* AI Reference Assets
+* Active/Inactive
+
+### 4.2 Master Industry & Sub Industry
+
+* Industry Name
+* Sub Industry Name
+* Synonyms / aliases
+* Default scoring hints
+
+### 4.3 Master Funnel Stage
+
+* Stage Name
+* Sequence
+* Color
+* Active flag
+* Probability
+
+### 4.4 Master Contact Source
+
+* LinkedIn
+* Website
+* Google Maps
+* Public Directory
+* Manual Input
+* Referral
+* Other
+
+---
+
+## 5. Standard Enterprise Features
+
+### 5.1 User & Role Management
+
+This is mandatory.
+
+#### Recommended Roles
+
+* Super Admin
+* Admin
+* Sales Manager
+* Sales/BD Executive
+* Presales/Research Analyst
+* Viewer/Auditor
+
+#### Functional Requirements
+
+* User registration/invitation
+* Role-based access control (RBAC)
+* Team-based data visibility
+* Permission matrix per module/action
+* Optional SSO integration (future phase)
+* Account activation/deactivation
+* Password policy and session control
+
+#### Permission Examples
+
+* View leads
+* Create leads
+* Approve merge
+* Edit master product
+* Export data
+* View audit log
+* Manage WhatsApp connection
+* Manage integrations
+
+---
+
+### 5.2 Audit Log
+
+This is mandatory.
+
+#### What Must Be Logged
+
+* Login/logout events
+* User creation/update/deactivation
+* Lead creation/update/merge/delete
+* Funnel stage changes
+* Product master changes
+* AI analysis requests/results
+* WhatsApp connection actions
+* Export/download actions
+* Integration configuration changes
+
+#### Audit Fields
+
+* Timestamp
+* User
+* Action
+* Module
+* Record ID
+* Before value
+* After value
+* Source IP/device where relevant
+
+---
+
+### 5.3 Approval & Control Layer
+
+Recommended for governance.
+
+#### Suggested Use Cases
+
+* Approve lead merge
+* Approve data deletion
+* Approve export of sensitive data
+* Approve master data changes for key products
+
+---
+
+### 5.4 Notification Center
+
+Recommended.
+
+#### Trigger Examples
+
+* New high-score lead found
+* Duplicate detected
+* New contact person found for existing lead
+* WhatsApp disconnected
+* Funnel stage stagnant too long
+* Lead assigned to user
+
+Channels:
+
+* In-app notification
+* Email
+* WhatsApp/internal chat (future)
+
+---
+
+### 5.5 Dashboard & Reporting
+
+Mandatory for management visibility.
+
+#### Suggested Widgets
+
+* Total leads discovered
+* Total qualified leads
+* Leads by area
+* Leads by industry
+* Heatmap summary
+* Funnel conversion chart
+* Duplicate ratio
+* Top performing territories
+* Follow-up status
+* User activity summary
+
+---
+
+## 6. Compliance, Security, and ISO-Oriented Requirements
+
+Below are practical, standard governance features aligned with enterprise expectations and common ISO-style controls.
+
+### 6.1 Access Control
+
+* Role-based access control
+* Least-privilege principle
+* Secure authentication
+* Session timeout
+* Optional MFA for admin users
+
+### 6.2 Data Protection
+
+* Encrypt data in transit (HTTPS/TLS)
+* Encrypt sensitive data at rest where applicable
+* Secure secrets management for API keys/tokens
+* Mask sensitive contact data based on role
+
+### 6.3 Logging & Traceability
+
+* Complete audit logging
+* Tamper-aware logs where possible
+* Log retention policy
+* Searchable activity history
+
+### 6.4 Backup & Recovery
+
+* Scheduled database backup
+* Restore testing procedure
+* Backup retention policy
+* Disaster recovery guidance
+
+### 6.5 Data Quality Controls
+
+* Required field validation
+* Duplicate prevention rules
+* Source confidence scoring
+* Manual review queue for uncertain AI output
+
+### 6.6 Privacy & Consent Awareness
+
+* Mark data source for each contact
+* Distinguish public vs manually supplied contacts
+* Support contact suppression/do-not-contact flags
+* Retention/archival rules for stale leads
+
+### 6.7 Change Management
+
+* Versioning for master data changes
+* Configuration change logs
+* Environment separation: dev / staging / production
+* Release notes / deployment history
+
+### 6.8 Operational Monitoring
+
+* Error monitoring
+* Integration health checks
+* Job queue monitoring
+* AI processing status logs
+* WhatsApp connection health status
+
+---
+
+## 7. Recommended Additional Features
+
+### 7.1 Data Import & Export
+
+* Import leads from CSV/XLSX
+* Export filtered lead data
+* Import contact enrichments
+
+### 7.2 Task & Activity Tracking
+
+* Next action date
+* Call/meeting/note logging
+* Reminder system
+* SLA for follow-up
+
+### 7.3 Territory Ownership
+
+* Assign geographic areas to teams/users
+* Prevent overlap or allow controlled overlap
+
+### 7.4 AI Prompt & Reference Governance
+
+* Version control for AI prompts/templates
+* Approval before changing core AI scoring logic
+* Reference library for one-pagers and links
+
+### 7.5 Integration Layer
+
+Future-ready connectors:
+
+* CRM integration
+* Email integration
+* Google Sheets / Excel export sync
+* Linked data enrichment providers
+* BI dashboard connector
+
+### 7.6 Lead Source Confidence Score
+
+For every enriched field, track:
+
+* Source type
+* Confidence level
+* Last verified date
+
+### 7.7 Branch / Parent Company Structure
+
+* Parent company grouping
+* Branch-level lead mapping
+* Enterprise account view
+
+---
+
+## 8. Suggested Non-Functional Requirements
+
+### Performance
+
+* Map rendering remains responsive for large result sets
+* Async processing for enrichment and AI scoring
+* Pagination for lead list
+
+### Scalability
+
+* Support multi-user concurrent access
+* Modular integrations
+* Queue-based processing for scraping/enrichment/AI tasks
+
+### Reliability
+
+* Retry mechanism for external API failures
+* Graceful degradation if one enrichment source is unavailable
+
+### Usability
+
+* Simple research workflow
+* Clear lead status indicators
+* Map/list synchronized navigation
+
+### Maintainability
+
+* Modular architecture
+* Config-driven integrations
+* Centralized audit and logging
+
+---
+
+## 9. Recommended MVP Scope
+
+To avoid overbuilding in phase 1, the MVP should include:
+
+### MVP In Scope
+
+* Google Maps area selection
+* Radius search
+* Product master
+* Product reference upload/link
+* Lead discovery list
+* Basic heatmap
+* Lead detail page
+* Deduplication rules
+* Push to funnel/database
+* Funnel stages and dashboard
+* User & role management
+* Audit log
+* WhatsApp QR connection + direct chat trigger
+
+### Phase 2 / Later
+
+* Polygon search
+* Advanced enrichment
+* Parent-branch intelligence
+* Approval workflow
+* SSO/MFA
+* CRM sync
+* Advanced AI playbook suggestions
+* SLA automation
+* Multi-channel outreach
+
+---
+
+## 10. Open Design Decisions to Confirm Later
+
+These items should be decided during architecture/design phase:
+
+* Source of company/business data discovery
+* Source of contact enrichment and its legal/compliance boundaries
+* Whether WhatsApp is personal-session based or official business API based
+* Whether branch entities are separate leads or child records
+* Whether AI scoring can auto-push or only recommend
+* Whether export of contact data requires approval
+* Multi-tenant vs single-company architecture
+
+---
+
+## 11. AI Provider & Model Management (New Module)
+
+### 11.1 Purpose
+
+This module enables the system to integrate with multiple AI providers in a secure, flexible, and scalable way without vendor lock-in.
+
+---
+
+### 11.2 AI Provider Management
+
+#### Supported Providers (Initial)
+
+* OpenAI (GPT models)
+* Anthropic (Claude)
+* Google Gemini
+* Azure OpenAI
+* OpenRouter
+* Custom / Self-hosted LLM (local or proxy endpoint)
+
+#### Functional Requirements
+
+* Add / edit / delete AI providers
+* Store provider configuration:
+
+  * Provider name
+  * Base URL (for custom endpoints)
+  * API key / token
+  * Organization / Project ID (if required)
+  * Region (if applicable)
+  * Status (Active / Inactive)
+* Enable/disable provider per environment (dev/staging/prod)
+
+---
+
+### 11.3 Credential Management (AI Credential Vault)
+
+#### Functional Requirements
+
+* Secure storage of API keys (encrypted at rest)
+* Masked display of credentials
+* Credential rotation support
+* Expiry tracking (if applicable)
+* Access control (only authorized roles can manage credentials)
+* Audit logging for all credential changes
+
+#### Security Requirements
+
+* Secrets must never be exposed in logs
+* Use environment-based separation
+* Support integration with secret managers (future phase)
+
+---
+
+### 11.4 Model Registry
+
+#### Functional Requirements
+
+* Register models per provider
+* Define:
+
+  * Model name (e.g., gpt-4, claude-3, gemini-pro)
+  * Provider
+  * Context window
+  * Capabilities (classification, extraction, reasoning, summarization)
+  * Cost tier (low / medium / high)
+  * Default usage type
+  * Status (Active / Deprecated)
+
+---
+
+### 11.5 Model Routing & Usage Mapping
+
+#### Functional Requirements
+
+Map models to specific system functions:
+
+* Lead scoring
+* Product understanding
+* Document parsing
+* Contact enrichment reasoning
+* Outreach message generation
+
+#### Routing Logic
+
+* Primary model selection
+* Fallback model if failure
+* Retry policy
+* Load balancing (future phase)
+
+---
+
+### 11.6 AI Configuration Panel
+
+#### UI Capabilities
+
+* Add new provider
+* Input API key / endpoint
+* Select active model
+* Configure parameters:
+
+  * temperature
+  * max tokens
+  * timeout
+* Test connection button
+* View response preview
+* Show latency and status
+
+---
+
+### 11.7 AI Testing & Validation
+
+#### Functional Requirements
+
+* Test prompt execution
+* Validate API connectivity
+* Show response success/failure
+* Measure latency
+* Display structured response preview
+
+---
+
+### 11.8 AI Usage Policy & Governance
+
+#### Functional Requirements
+
+* Define which model is used for each feature
+* Configure:
+
+  * Daily / monthly usage limits
+  * Cost monitoring
+  * Rate limiting
+  * Retry rules
+  * Fallback behavior
+
+#### Logging
+
+* Log prompt metadata (not full sensitive content)
+* Log response metadata
+* Track usage per user/team
+
+---
+
+### 11.9 AI Security & Compliance
+
+#### Controls
+
+* PII masking before sending to AI
+* Data classification awareness
+* Restrict sensitive fields from AI processing
+* Role-based access to AI features
+* Audit trail for AI usage
+
+---
+
+### 11.10 Supported Connection Modes
+
+#### 1. Official API Key Mode (Primary)
+
+* Standard integration using API keys
+* Recommended for production
+
+#### 2. Custom Endpoint Mode
+
+* For self-hosted models or internal gateways
+* Supports local inference
+
+#### 3. OAuth / Official Connected Account Mode (Optional)
+
+* Only if provider supports official integration
+
+#### Not Recommended
+
+* Login-based automation using chat UI accounts
+* Storing email/password credentials of AI chat services
+* Browser/session automation for backend inference
+
+---
+
+### 11.11 Cost & Performance Optimization
+
+#### Functional Requirements
+
+* Track cost per request (estimated)
+* Track usage per provider/model
+* Alert when usage threshold exceeded
+* Allow switching to cheaper model automatically
+
+---
+
+## 12. Final Recommendation
+
+The application should not be positioned as a simple lead scraper.
+It should be designed as a **geo-intelligence + AI-assisted lead qualification + funnel orchestration platform** with proper governance.
+
+With the addition of AI Provider & Model Management, the system becomes:
+
+* Vendor-agnostic
+* Scalable across multiple AI providers
+* Governed and auditable
+* Ready for enterprise deployment and cost control
+
+This positioning makes it more scalable, more enterprise-ready, and more defensible from a product, security, and operational standpoint.
+
+---
+
+## 10. Multi-Source Lead Ingestion Engine: Contact Enrichment (Tier 2.5)
+
+### 10.1 Pluggable Strategy Pattern
+The contact enrichment layer exclusively retrieves Person In Charge (PIC) information. It utilizes a `ContactEnrichmentProviderInterface` to support extensible provider integrations:
+- Default Adapter: **LushaProvider**
+- Future Support: Apollo, Clearbit, ZoomInfo
+
+### 10.2 Strict Rate & Cost Constraints
+The Orchestrator ensures no API waste occurs:
+- **Daily Quotas**: API dispatches enforce `LUSHA_MAX_DAILY_REQUESTS`. If exceeded, manual workflows gracefully take over, ensuring zero system outages or excessive billing.
+- **Circuit Breakers**: `Cache::remember` tracks company domains for 30 days to avoid repeat API hits on the same base corporation.
+
+### 10.3 Pipeline Chain Re-Trigger
+Data merging prioritizes existing manual entries (`do NOT overwrite`). Once new contact data successfully persists, the Orchestrator **triggers the ScoreLeadJob**, directly ensuring all LLM and heuristics correctly re-evaluate the Lead's pipeline velocity relative to the newly identified decision makers.
