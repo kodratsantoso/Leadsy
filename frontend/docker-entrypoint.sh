@@ -1,13 +1,24 @@
 #!/bin/sh
 set -e
 
-# Clear stale Next.js artifacts on the bind-mounted workspace.
-# Without this, Docker dev boot can reuse a partially written `.next`
-# directory and serve recurring 500s with missing manifest/chunk errors.
-rm -rf /app/.next
+NODE_ENV="${NODE_ENV:-development}"
+PORT="${PORT:-3000}"
 
-# Run npm install to ensure node_modules is populated over the volume
+if [ "$NODE_ENV" = "production" ]; then
+  # Install once if node_modules is missing in a fresh container.
+  if [ ! -d /app/node_modules ] || [ -z "$(ls -A /app/node_modules 2>/dev/null)" ]; then
+    npm ci --include=dev || npm install --include=dev
+  fi
+
+  # Build once per container lifecycle.
+  if [ ! -f /app/.next/BUILD_ID ]; then
+    npm run build
+  fi
+
+  exec npm run start -- --hostname 0.0.0.0 --port "$PORT"
+fi
+
+# Dev mode: clear stale artifacts and boot hot reload server.
+rm -rf /app/.next 2>/dev/null || true
 npm install
-
-# Boot next.js
 exec npm run dev

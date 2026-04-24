@@ -1,0 +1,156 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: leadsy-leads-pg
+    environment:
+      POSTGRES_DB: leads
+      POSTGRES_USER: leads
+      POSTGRES_PASSWORD: leads
+    volumes:
+      - leadsy_pg_data:/var/lib/postgresql/data
+    networks:
+      - coolify
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leads -d leads"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: leadsy-leads-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - leadsy_redis_data:/data
+    networks:
+      - coolify
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: leadsy-backend:latest
+    container_name: leadsy-leads-backend
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://leadsy.virtuenet.space
+      FRONTEND_URL: https://leadsy.virtuenet.space
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: leads
+      DB_USERNAME: leads
+      DB_PASSWORD: leads
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      WHATSAPP_SIDECAR_URL: http://whatsapp-service:3002
+      WHATSAPP_SESSION_NAME: leads_platform_session
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - backend_storage:/var/www/html/storage
+      - ./logs/backend:/var/www/html/storage/logs
+    networks:
+      - coolify
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.leadsy-backend.rule=Host(`leadsy.virtuenet.space`) && (PathPrefix(`/api`) || PathPrefix(`/webhook`))"
+      - "traefik.http.routers.leadsy-backend.entrypoints=https"
+      - "traefik.http.routers.leadsy-backend.tls=true"
+      - "traefik.http.routers.leadsy-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.leadsy-backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.leadsy-backend.priority=100"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: leadsy-frontend:latest
+    container_name: leadsy-leads-frontend
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_BASE_URL: https://leadsy.virtuenet.space
+      NEXT_PUBLIC_API_URL: https://leadsy.virtuenet.space
+      API_INTERNAL_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./logs/frontend:/app/logs
+    networks:
+      - coolify
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.leadsy-frontend.rule=Host(`leadsy.virtuenet.space`)"
+      - "traefik.http.routers.leadsy-frontend.entrypoints=https"
+      - "traefik.http.routers.leadsy-frontend.tls=true"
+      - "traefik.http.routers.leadsy-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.leadsy-frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.leadsy-frontend.priority=10"
+      - "traefik.http.routers.leadsy-http.rule=Host(`leadsy.virtuenet.space`)"
+      - "traefik.http.routers.leadsy-http.entrypoints=http"
+      - "traefik.http.routers.leadsy-http.middlewares=leadsy-redirect-to-https"
+      - "traefik.http.middlewares.leadsy-redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.leadsy-redirect-to-https.redirectscheme.permanent=true"
+
+  whatsapp-service:
+    build:
+      context: ./whatsapp-service
+      dockerfile: Dockerfile
+    image: leadsy-whatsapp:latest
+    container_name: leadsy-leads-whatsapp
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      LARAVEL_WEBHOOK_URL: http://backend:8000/api/webhooks/whatsapp
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - whatsapp_auth_data:/usr/src/app/baileys_auth_info
+      - ./logs/whatsapp:/usr/src/app/logs
+    networks:
+      - coolify
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3002/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+networks:
+  coolify:
+    external: true
+
+volumes:
+  leadsy_pg_data:
+  leadsy_redis_data:
+  backend_storage:
+  whatsapp_auth_data:
