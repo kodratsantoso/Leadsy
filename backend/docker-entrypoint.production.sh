@@ -14,6 +14,9 @@ if ! grep -q "APP_KEY=base64:" .env; then
   php artisan key:generate --force
 fi
 
+# Always clear Laravel caches so runtime env vars are used after each deploy.
+php artisan optimize:clear
+
 # Run migrations and seed
 php artisan migrate --force
 php artisan db:seed --force || true
