@@ -35,7 +35,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.production
     image: leadsy-backend:latest
     container_name: leadsy-leads-backend
     environment:
@@ -82,7 +82,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.production
     image: leadsy-frontend:latest
     container_name: leadsy-leads-frontend
     environment:
