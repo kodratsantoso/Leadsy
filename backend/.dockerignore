@@ -1,5 +1,8 @@
 .env
-.env.*
+.env.local
+.env.development
+.env.production
+.env.test
 vendor
 node_modules
 storage/logs
