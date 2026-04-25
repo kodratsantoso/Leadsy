@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Maps — Lead Discovery
     Route::prefix('maps')->group(function () {
+        Route::get('categories', [MapDiscoveryController::class, 'categories']);
         Route::get('geocode', [MapDiscoveryController::class, 'geocode']);
         Route::get('search', [MapDiscoveryController::class, 'search']);
         Route::get('place-details/{placeId}', [MapDiscoveryController::class, 'placeDetails']);
@@ -222,6 +223,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->middleware('permission:audit.view');
 
     // Revenue Intelligence — ICP Profiles
+    Route::post('icp-profiles/generate', [IcpProfileController::class, 'generate'])->middleware('permission:leads.edit');
     Route::apiResource('icp-profiles', IcpProfileController::class);
     Route::post('icp-profiles/{icpProfile}/batch-match', [IcpProfileController::class, 'batchMatch'])->middleware('permission:leads.edit');
 

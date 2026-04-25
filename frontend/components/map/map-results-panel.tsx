@@ -22,6 +22,7 @@ import type { AiMode } from "@/components/ai/ai-mode-selector";
 
 type ResultPanelProps = {
   results: DiscoveredLead[];
+  totalCount: number;
   selectedId: string | null;
   hoveredId: string | null;
   onSelect: (id: string | null) => void;
@@ -33,6 +34,7 @@ type ResultPanelProps = {
 
 export function MapResultsPanel({
   results,
+  totalCount,
   selectedId,
   hoveredId,
   onSelect,
@@ -48,7 +50,12 @@ export function MapResultsPanel({
       <Card className="flex h-full flex-col">
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">Discovery Results</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Discovery Results</CardTitle>
+              {totalCount > 0 && !selectedId ? (
+                <Badge variant="brand">{results.length}{results.length !== totalCount ? `/${totalCount}` : ""}</Badge>
+              ) : null}
+            </div>
             {selectedId ? (
               <Button variant="ghost" size="sm" onClick={() => onSelect(null)}>
                 Back to list

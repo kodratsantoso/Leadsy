@@ -9,18 +9,19 @@ use Illuminate\Support\Facades\DB;
 class AIRoutingService
 {
     public const FEATURE_CATALOG = [
-        'lead_analysis' => 'Lead Analysis',
-        'lead_scoring' => 'Lead Scoring Analysis',
-        'qualification_analysis' => 'Qualification Analysis',
-        'product_matching' => 'Product Matching Analysis',
-        'product_understanding' => 'Product Understanding',
-        'meeting_evaluation' => 'Meeting Evaluation',
-        'transcript_evaluation' => 'Transcript Evaluation',
-        'next_action_recommendation' => 'Next Action Recommendation',
-        'recommendation_engine' => 'Recommendation Engine',
-        'summary_generation' => 'Summary Generation',
-        'revenue_intelligence_analysis' => 'Revenue Intelligence Analysis',
-        'whatsapp_analysis' => 'WhatsApp Analysis',
+        'lead_analysis'                => 'Lead Analysis',
+        'lead_scoring'                 => 'Lead Scoring Analysis',
+        'qualification_analysis'       => 'Qualification Analysis',
+        'product_matching'             => 'Product Matching Analysis',
+        'product_understanding'        => 'Product Understanding',
+        'icp_generation'               => 'ICP Profile Generation',
+        'meeting_evaluation'           => 'Meeting Evaluation',
+        'transcript_evaluation'        => 'Transcript Evaluation',
+        'next_action_recommendation'   => 'Next Action Recommendation',
+        'recommendation_engine'        => 'Recommendation Engine',
+        'summary_generation'           => 'Summary Generation',
+        'revenue_intelligence_analysis'=> 'Revenue Intelligence Analysis',
+        'whatsapp_analysis'            => 'WhatsApp Analysis',
     ];
 
     public function listRoutes(): Collection

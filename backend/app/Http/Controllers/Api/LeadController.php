@@ -181,22 +181,23 @@ class LeadController extends Controller
         $original = $lead->getAttributes();
 
         $data = $request->validate([
-            'company_name'         => 'sometimes|string|max:255',
-            'address'              => 'nullable|string',
-            'lat'                  => 'nullable|numeric',
-            'lng'                  => 'nullable|numeric',
-            'website'              => 'nullable|url|max:500',
-            'phone'                => 'nullable|string|max:30',
-            'email'                => 'nullable|email',
-            'industry_id'          => 'nullable|exists:industries,id',
-            'sub_industry_id'      => 'nullable|exists:sub_industries,id',
-            'business_category'    => 'nullable|string|max:255',
-            'lead_score'           => 'nullable|integer|min:0|max:100',
-            'qualification_status' => 'nullable|in:pending,eligible,potential,not_eligible',
-            'ai_explanation'       => 'nullable|string',
-            'funnel_stage_id'      => 'nullable|exists:funnel_stages,id',
-            'owner_id'             => 'nullable|exists:users,id',
-            'product_id'           => 'nullable|exists:products,id',
+            'company_name'          => 'sometimes|string|max:255',
+            'address'               => 'nullable|string',
+            'lat'                   => 'nullable|numeric',
+            'lng'                   => 'nullable|numeric',
+            'website'               => 'nullable|url|max:500',
+            'phone'                 => 'nullable|string|max:30',
+            'email'                 => 'nullable|email',
+            'industry_id'           => 'nullable|exists:industries,id',
+            'sub_industry_id'       => 'nullable|exists:sub_industries,id',
+            'business_category'     => 'nullable|string|max:255',
+            'company_size_estimate' => 'nullable|string|max:100',
+            'lead_score'            => 'nullable|integer|min:0|max:100',
+            'qualification_status'  => 'nullable|in:pending,eligible,potential,not_eligible',
+            'ai_explanation'        => 'nullable|string',
+            'funnel_stage_id'       => 'nullable|exists:funnel_stages,id',
+            'owner_id'              => 'nullable|exists:users,id',
+            'product_id'            => 'nullable|exists:products,id',
         ]);
 
         if (isset($data['website'])) {
@@ -261,29 +262,70 @@ class LeadController extends Controller
     /** POST /api/leads/{lead}/rescore */
     public function rescore(Lead $lead): JsonResponse
     {
-        ScoreLeadJob::dispatch($lead->id)->onQueue('scoring');
+        // Run scoring synchronously — no dedicated queue worker in this deployment.
+        // ScoreLeadJob is preserved for background use; manual rescore executes inline.
+        try {
+            $lead->update(['ai_processing_status' => 'processing']);
+            $service = app(\App\Services\Lead\LeadScoringService::class);
+            $result  = $service->scoreLead($lead);
+            $lead->update(['ai_processing_status' => 'completed']);
 
-        $lead->update(['ai_processing_status' => 'queued']);
+            AuditService::log('rescore', 'leads', $lead, null, [
+                'score' => $result->score,
+                'grade' => $result->grade,
+            ]);
 
-        return response()->json(['message' => 'Scoring job dispatched', 'data' => $lead]);
+            return response()->json([
+                'message' => 'Lead rescored successfully',
+                'data'    => $result,
+            ]);
+        } catch (\Throwable $e) {
+            $lead->update(['ai_processing_status' => 'failed']);
+            return response()->json(['message' => 'Scoring failed: ' . $e->getMessage()], 500);
+        }
     }
 
     /** POST /api/leads/{lead}/activities */
     public function logActivity(Request $request, Lead $lead): JsonResponse
     {
         $data = $request->validate([
-            'activity_type' => 'required|string',
-            'description'   => 'nullable|string',
+            'activity_type'       => 'required|string|max:100',
+            'description'         => 'nullable|string',
+            'outcome'             => 'nullable|string|max:1000',
+            'activity_date'       => 'nullable|date',
+            'next_follow_up_date' => 'nullable|date',
+            'funnel_stage_id'     => 'nullable|exists:funnel_stages,id',
         ]);
 
         $activity = $lead->activities()->create([
-            'activity_type' => $data['activity_type'],
-            'description'   => $data['description'] ?? '',
-            'activity_date' => now(),
-            'user_id'       => $request->user()?->id,
+            'activity_type'       => $data['activity_type'],
+            'description'         => $data['description'] ?? '',
+            'outcome'             => $data['outcome'] ?? null,
+            'activity_date'       => isset($data['activity_date']) ? $data['activity_date'] : now(),
+            'next_follow_up_date' => $data['next_follow_up_date'] ?? null,
+            'user_id'             => $request->user()?->id,
         ]);
 
-        return response()->json(['data' => $activity], 201);
+        // Optionally move the lead to a new funnel stage
+        if (!empty($data['funnel_stage_id']) && $data['funnel_stage_id'] != $lead->funnel_stage_id) {
+            $lead->funnelHistory()->create([
+                'from_stage_id' => $lead->funnel_stage_id,
+                'to_stage_id'   => $data['funnel_stage_id'],
+                'moved_by'      => $request->user()?->id,
+            ]);
+            $lead->update(['funnel_stage_id' => $data['funnel_stage_id']]);
+            AuditService::log('stage_change_via_activity', 'leads', $lead, null, [
+                'from_stage_id' => $lead->funnel_stage_id,
+                'to_stage_id'   => $data['funnel_stage_id'],
+                'activity_id'   => $activity->id,
+            ]);
+        }
+
+        AuditService::log('log_activity', 'lead_activities', $activity, null, [
+            'activity_type' => $data['activity_type'],
+        ]);
+
+        return response()->json(['data' => $activity->load('user')], 201);
     }
 
     /** POST /api/leads/{lead}/meetings */
@@ -566,17 +608,34 @@ class LeadController extends Controller
         return response()->json(['data' => $result], 201);
     }
 
-    /** POST /api/leads/{lead}/match-products — Match lead to products */
-    public function matchProducts(Lead $lead): JsonResponse
+    /** POST /api/leads/{lead}/match-products — Match lead to products (BANT + Competitor AI) */
+    public function matchProducts(Request $request, Lead $lead): JsonResponse
     {
         $service = app(\App\Services\Lead\LeadProductMatchingService::class);
-        $matches = $service->matchLeadToProducts($lead);
+        $matches = $service->matchLeadToProducts($lead, $request->user()?->id);
+
+        // Reload with product relation for response
+        $lead->loadMissing('productMatches.product');
+        $enriched = $lead->productMatches()
+            ->with('product')
+            ->orderByDesc('match_score')
+            ->get();
 
         AuditService::log('match_products', 'leads', $lead, null, [
-            'matches_count' => count($matches),
+            'matches_count'    => count($matches),
+            'recommended_count'=> $enriched->where('is_recommended', true)->count(),
         ]);
 
-        return response()->json(['data' => $matches], 201);
+        return response()->json([
+            'data'    => $enriched,
+            'summary' => [
+                'total_evaluated'  => $enriched->count(),
+                'recommended'      => $enriched->where('is_recommended', true)->count(),
+                'top_match'        => $enriched->first()?->product?->name,
+                'top_match_score'  => $enriched->first()?->match_score,
+                'top_match_level'  => $enriched->first()?->match_level,
+            ],
+        ], 201);
     }
 
     /** GET /api/leads/{lead}/intelligence — Get all lead intelligence */
@@ -585,7 +644,7 @@ class LeadController extends Controller
         $lead->load([
             'scores' => fn($q) => $q->latest()->limit(1),
             'qualifications' => fn($q) => $q->latest()->limit(1),
-            'productMatches' => fn($q) => $q->with('product')->where('is_recommended', true)->orderByDesc('match_score')->limit(3),
+            'productMatches' => fn($q) => $q->with('product')->orderByDesc('match_score')->limit(5),
             'aiAnalyses' => fn($q) => $q->latest()->limit(1),
             'qualificationWorkflowReviews' => fn($q) => $q->with(['workflow.stages', 'requester', 'reviewer'])->latest()->limit(1),
         ]);
@@ -623,6 +682,7 @@ class LeadController extends Controller
     public function getActivities(Lead $lead): JsonResponse
     {
         $activities = $lead->activities()
+            ->with('user')
             ->orderByDesc('activity_date')
             ->paginate(50);
 
@@ -684,11 +744,15 @@ class LeadController extends Controller
     {
         $activity = $lead->activities()->findOrFail($activityId);
         $data = $request->validate([
-            'activity_type' => 'sometimes|string',
-            'description'   => 'nullable|string',
+            'activity_type'       => 'sometimes|string|max:100',
+            'description'         => 'nullable|string',
+            'outcome'             => 'nullable|string|max:1000',
+            'activity_date'       => 'nullable|date',
+            'next_follow_up_date' => 'nullable|date',
         ]);
         $activity->update($data);
-        return response()->json(['data' => $activity]);
+        AuditService::log('update_activity', 'lead_activities', $activity, $activity->toArray());
+        return response()->json(['data' => $activity->load('user')]);
     }
 
     /** DELETE /api/leads/{lead}/activities/{activity} */
@@ -762,10 +826,10 @@ class LeadController extends Controller
         ]);
 
         $transcript = $lead->transcripts()->create([
-            'source_type' => $data['source_type'],
+            'source_type'     => $data['source_type'],
             'transcript_text' => $data['transcript_text'],
-            'source_id' => $data['source_id'],
-            'recorded_at' => $data['recorded_at'] ?? now(),
+            'source_id'       => $data['source_id'] ?? null,
+            'recorded_at'     => $data['recorded_at'] ?? now(),
             'evaluation_status' => 'pending',
         ]);
 

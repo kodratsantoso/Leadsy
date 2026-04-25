@@ -30,6 +30,15 @@ type ProductRecord = {
   description?: string | null;
   category?: string | null;
   target_industry?: string | null;
+  target_company_size?: string | null;
+  target_pain_points?: string | null;
+  target_buyer_persona?: string | null;
+  ideal_company_profile?: string | null;
+  supported_regions?: string | null;
+  budget_range?: string | null;
+  use_cases?: string[] | null;
+  competitor_notes?: string | null;
+  keywords?: string[] | null;
   target_persona?: string | null;
   status?: string | null;
   ai_reference_source_type?: string | null;
@@ -58,7 +67,15 @@ export default function ProductsPage() {
   const [formDesc, setFormDesc] = useState("");
   const [formCategory, setFormCategory] = useState("");
   const [formTargetIndustry, setFormTargetIndustry] = useState("");
+  const [formTargetCompanySize, setFormTargetCompanySize] = useState("");
+  const [formTargetPainPoints, setFormTargetPainPoints] = useState("");
   const [formTargetPersona, setFormTargetPersona] = useState("");
+  const [formIdealCompanyProfile, setFormIdealCompanyProfile] = useState("");
+  const [formSupportedRegions, setFormSupportedRegions] = useState("");
+  const [formBudgetRange, setFormBudgetRange] = useState("");
+  const [formUseCases, setFormUseCases] = useState("");      // comma-sep → array
+  const [formCompetitorNotes, setFormCompetitorNotes] = useState("");
+  const [formKeywords, setFormKeywords] = useState("");       // comma-sep → array
   const [formStatus, setFormStatus] = useState("active");
 
   const { data, isLoading } = useQuery({
@@ -98,14 +115,17 @@ export default function ProductsPage() {
     },
   });
 
+  const resetForm = () => {
+    setFormName(""); setFormDesc(""); setFormCategory("");
+    setFormTargetIndustry(""); setFormTargetCompanySize(""); setFormTargetPainPoints("");
+    setFormTargetPersona(""); setFormIdealCompanyProfile(""); setFormSupportedRegions("");
+    setFormBudgetRange(""); setFormUseCases(""); setFormCompetitorNotes("");
+    setFormKeywords(""); setFormStatus("active");
+  };
+
   const openCreate = () => {
     setEditItem(null);
-    setFormName("");
-    setFormDesc("");
-    setFormCategory("");
-    setFormTargetIndustry("");
-    setFormTargetPersona("");
-    setFormStatus("active");
+    resetForm();
     setShowModal(true);
   };
 
@@ -115,7 +135,15 @@ export default function ProductsPage() {
     setFormDesc(item.description || "");
     setFormCategory(item.category || "");
     setFormTargetIndustry(item.target_industry || "");
-    setFormTargetPersona(item.target_persona || "");
+    setFormTargetCompanySize(item.target_company_size || "");
+    setFormTargetPainPoints(item.target_pain_points || "");
+    setFormTargetPersona(item.target_buyer_persona || item.target_persona || "");
+    setFormIdealCompanyProfile(item.ideal_company_profile || "");
+    setFormSupportedRegions(item.supported_regions || "");
+    setFormBudgetRange(item.budget_range || "");
+    setFormUseCases(item.use_cases?.join(", ") || "");
+    setFormCompetitorNotes(item.competitor_notes || "");
+    setFormKeywords(item.keywords?.join(", ") || "");
     setFormStatus(item.status || "active");
     setShowModal(true);
   };
@@ -125,15 +153,25 @@ export default function ProductsPage() {
     setEditItem(null);
   };
 
+  const strToArr = (s: string) => s.split(",").map(v => v.trim()).filter(Boolean);
+
   const handleSave = () => {
     saveMutation.mutate({
-      name: formName,
-      description: formDesc,
-      category: formCategory,
-      target_industry: formTargetIndustry,
-      target_persona: formTargetPersona,
-      status: formStatus,
-    });
+      name:                  formName,
+      description:           formDesc,
+      category:              formCategory,
+      target_industry:       formTargetIndustry,
+      target_company_size:   formTargetCompanySize,
+      target_pain_points:    formTargetPainPoints,
+      target_buyer_persona:  formTargetPersona,
+      ideal_company_profile: formIdealCompanyProfile,
+      supported_regions:     formSupportedRegions,
+      budget_range:          formBudgetRange,
+      use_cases:             strToArr(formUseCases) as any,
+      competitor_notes:      formCompetitorNotes,
+      keywords:              strToArr(formKeywords) as any,
+      status:                formStatus,
+    } as any);
   };
 
   const products: ProductRecord[] = (data?.data ?? []).filter((product: ProductRecord) => {
@@ -280,12 +318,11 @@ export default function ProductsPage() {
         open={showModal}
         onOpenChange={setShowModal}
         title={editItem ? "Edit Product" : "Create Product"}
-        description="Product CRUD must use shared form, button, and modal primitives."
+        description="Fill in product metadata to enable AI-powered BANT + Competitor product matching."
+        size="xl"
         footer={
           <>
-            <Button variant="outline" onClick={closeModal}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={closeModal}>Cancel</Button>
             <Button onClick={handleSave} disabled={saveMutation.isPending || !formName.trim()}>
               {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {editItem ? "Update Product" : "Create Product"}
@@ -293,47 +330,78 @@ export default function ProductsPage() {
           </>
         }
       >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Name</label>
-            <Input value={formName} onChange={(event) => setFormName(event.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
-            <Textarea
-              value={formDesc}
-              onChange={(event) => setFormDesc(event.target.value)}
-              rows={3}
-            />
-          </div>
+        <div className="space-y-5">
+          {/* Core */}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <Input
-                value={formCategory}
-                onChange={(event) => setFormCategory(event.target.value)}
-              />
+            <div className="sm:col-span-2 space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Product Name *</label>
+              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Enterprise ERP Solution" />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={formStatus} onChange={(event) => setFormStatus(event.target.value)}>
+            <div className="sm:col-span-2 space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Description</label>
+              <Textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} rows={2} placeholder="What does this product do?" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Category</label>
+              <Input value={formCategory} onChange={(e) => setFormCategory(e.target.value)} placeholder="e.g. Enterprise Software" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Status</label>
+              <Select value={formStatus} onChange={(e) => setFormStatus(e.target.value)}>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Target Industry</label>
-              <Input
-                value={formTargetIndustry}
-                onChange={(event) => setFormTargetIndustry(event.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Target Persona</label>
-              <Input
-                value={formTargetPersona}
-                onChange={(event) => setFormTargetPersona(event.target.value)}
-              />
+          </div>
+
+          {/* Targeting — used for Product Match */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Targeting (used in Product Match AI)</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Target Industry</label>
+                <Input value={formTargetIndustry} onChange={(e) => setFormTargetIndustry(e.target.value)} placeholder="Manufacturing, Retail, Technology" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Target Company Size</label>
+                <Input value={formTargetCompanySize} onChange={(e) => setFormTargetCompanySize(e.target.value)} placeholder="51-200, 201-500 employees" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Target Buyer Persona</label>
+                <Input value={formTargetPersona} onChange={(e) => setFormTargetPersona(e.target.value)} placeholder="CEO, Operations Director, IT Manager" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Budget Range</label>
+                <Input value={formBudgetRange} onChange={(e) => setFormBudgetRange(e.target.value)} placeholder="IDR 50M – 500M / year" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Supported Regions</label>
+                <Input value={formSupportedRegions} onChange={(e) => setFormSupportedRegions(e.target.value)} placeholder="Indonesia, Malaysia, Singapore" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Keywords <span className="font-normal text-muted-foreground/60">(comma-separated)</span>
+                </label>
+                <Input value={formKeywords} onChange={(e) => setFormKeywords(e.target.value)} placeholder="erp, inventory, finance" />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Target Pain Points</label>
+                <Textarea value={formTargetPainPoints} onChange={(e) => setFormTargetPainPoints(e.target.value)} rows={2} placeholder="What problems does this product solve?" />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Use Cases <span className="font-normal text-muted-foreground/60">(comma-separated)</span>
+                </label>
+                <Input value={formUseCases} onChange={(e) => setFormUseCases(e.target.value)} placeholder="Inventory tracking, Finance automation, HR management" />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Competitor Notes</label>
+                <Textarea value={formCompetitorNotes} onChange={(e) => setFormCompetitorNotes(e.target.value)} rows={2} placeholder="SAP: strong in large enterprise but expensive. Oracle: complex implementation. We offer faster ROI and local support." />
+              </div>
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Ideal Company Profile</label>
+                <Textarea value={formIdealCompanyProfile} onChange={(e) => setFormIdealCompanyProfile(e.target.value)} rows={2} placeholder="Mid-to-large manufacturers with 100+ employees struggling with manual processes" />
+              </div>
             </div>
           </div>
         </div>

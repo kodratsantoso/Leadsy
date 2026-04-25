@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { History, Map, MapPin, Navigation, SlidersHorizontal } from "lucide-react";
+import { useState, useEffect } from "react";
+import { History, Map, MapPin, Navigation, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 import { AiModeSelector, type AiMode } from "@/components/ai/ai-mode-selector";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/apiFetch";
 import { useMapDiscovery, type GeocodeResult } from "@/lib/hooks/use-map-discovery";
+
+type DiscoveryCategory = { id: number; label: string; value: string };
 
 type SearchPanelProps = {
   onSearch: (params: {
@@ -24,6 +27,7 @@ type SearchPanelProps = {
     areaInfo?: GeocodeResult;
     aiMode: AiMode;
   }) => void;
+  onReset: () => void;
   isSearching: boolean;
   resultCount: number;
   onAreaFound: (area: GeocodeResult) => void;
@@ -39,6 +43,7 @@ const searchModeTabs = [
 
 export function MapSearchPanel({
   onSearch,
+  onReset,
   isSearching,
   resultCount,
   onAreaFound,
@@ -57,6 +62,7 @@ export function MapSearchPanel({
   const [aiMode, setAiMode] = useState<AiMode>("hybrid");
   const [showFilters, setShowFilters] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [categories, setCategories] = useState<DiscoveryCategory[]>([]);
   const [historyItems, setHistoryItems] = useState<
     {
       area_name: string;
@@ -70,6 +76,27 @@ export function MapSearchPanel({
       result_count: number;
     }[]
   >([]);
+
+  // Fetch DB-backed discovery categories on mount
+  useEffect(() => {
+    apiFetch("/maps/categories")
+      .then((res) => res.json())
+      .then((json) => {
+        if (Array.isArray(json?.data)) setCategories(json.data);
+      })
+      .catch(() => {/* silently ignore — categories will remain empty */});
+  }, []);
+
+  const handleReset = () => {
+    setAreaQuery("");
+    setActiveArea(null);
+    setKeyword("");
+    setCategory("");
+    setRadius(3000);
+    setSearchMode("nearby");
+    onReset();
+    onMessage("");
+  };
 
   const handleGeocode = async (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -152,12 +179,9 @@ export function MapSearchPanel({
           />
 
           <Select value={category} onChange={(event) => setCategory(event.target.value)} placeholder="Any category">
-            <option value="restaurant">Restaurant / F&B</option>
-            <option value="cafe">Cafe / Coffee Shop</option>
-            <option value="hotel">Hotel / Accommodation</option>
-            <option value="store">Retail Store</option>
-            <option value="office">Corporate Office</option>
-            <option value="factory">Manufacturing / Factory</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.value}>{cat.label}</option>
+            ))}
           </Select>
 
           <Tabs
@@ -174,7 +198,7 @@ export function MapSearchPanel({
             <input
               type="range"
               min={500}
-              max={20000}
+              max={50000}
               step={500}
               value={radius}
               onChange={(event) => setRadius(Number(event.target.value))}
@@ -204,6 +228,15 @@ export function MapSearchPanel({
               tooltip="Search history"
             >
               <History className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleReset}
+              disabled={isSearching}
+              tooltip="Reset search state"
+            >
+              <RotateCcw className="h-4 w-4" />
             </Button>
           </div>
 

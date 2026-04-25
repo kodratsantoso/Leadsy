@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\ContactSource;
+use App\Models\DiscoveryCategory;
 use App\Models\FunnelStage;
 use App\Models\Industry;
 use App\Models\IntegrationConfig;
@@ -35,6 +36,7 @@ class DatabaseSeeder extends Seeder
         $this->seedProducts();
         $this->seedAiProviders();
         $this->seedNotificationPreferences();
+        $this->seedDiscoveryCategories();
     }
 
     private function seedPermissions(): void
@@ -330,6 +332,38 @@ class DatabaseSeeder extends Seeder
                     $model
                 );
             }
+        }
+    }
+
+    /**
+     * Seed default Google Places discovery categories.
+     * Source: seeded defaults — persisted to DB, managed via admin.
+     * value = Google Places API type string used in the search query.
+     */
+    private function seedDiscoveryCategories(): void
+    {
+        $categories = [
+            ['label' => 'Restaurant / F&B',         'value' => 'restaurant',    'sort_order' => 1],
+            ['label' => 'Cafe / Coffee Shop',        'value' => 'cafe',          'sort_order' => 2],
+            ['label' => 'Hotel / Accommodation',     'value' => 'lodging',       'sort_order' => 3],
+            ['label' => 'Retail Store',              'value' => 'store',         'sort_order' => 4],
+            ['label' => 'Corporate Office',          'value' => 'office',        'sort_order' => 5],
+            ['label' => 'Manufacturing / Factory',   'value' => 'factory',       'sort_order' => 6],
+            ['label' => 'Hospital / Clinic',         'value' => 'hospital',      'sort_order' => 7],
+            ['label' => 'Bank / Finance',            'value' => 'bank',          'sort_order' => 8],
+            ['label' => 'School / University',       'value' => 'school',        'sort_order' => 9],
+            ['label' => 'Supermarket / Grocery',     'value' => 'supermarket',   'sort_order' => 10],
+            ['label' => 'Gas Station',               'value' => 'gas_station',   'sort_order' => 11],
+            ['label' => 'Pharmacy',                  'value' => 'pharmacy',      'sort_order' => 12],
+            ['label' => 'Warehouse / Storage',       'value' => 'storage',       'sort_order' => 13],
+            ['label' => 'Automotive / Workshop',     'value' => 'car_repair',    'sort_order' => 14],
+        ];
+
+        foreach ($categories as $cat) {
+            DiscoveryCategory::firstOrCreate(
+                ['value' => $cat['value']],
+                array_merge($cat, ['is_active' => true])
+            );
         }
     }
 

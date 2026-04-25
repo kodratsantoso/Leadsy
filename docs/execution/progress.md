@@ -503,3 +503,151 @@ Full CRUD coverage audit across all 20 modules. Every entity must support Create
 
 ### Verification
 - `cd frontend && ./node_modules/.bin/tsc --noEmit` ✅
+
+## Phase 11: Lead Detail Page Improvements (2026-04-25 ✅)
+
+### Editable Company Information
+- `frontend/app/leads/[id]/page.tsx`
+  - Added Pencil edit button to Company Information card header.
+  - Added `Modal` (lg size) with form covering: company name (required), address (textarea), industry (Select from DB), sub-industry (Select filtered by industry), phone, email, website, company size (Select), business category.
+  - Industries and sub-industries loaded from `GET /api/industries` — no hardcoded lists.
+  - Sub-industry dropdown resets and re-filters when industry changes.
+  - Form pre-populated from current `leadData` on open.
+  - `PUT /api/leads/{id}` mutation invalidates the lead query on success.
+  - Read-only card now also shows sub-industry and business category when present.
+- `backend/app/Http/Controllers/Api/LeadController.php`
+  - Added `company_size_estimate` (`nullable|string|max:100`) to `update()` validation — previously accepted by model but silently dropped by controller.
+- Audit log: `AuditService::logUpdated('leads', ...)` already fires in the existing `update()` method — no additional wiring required.
+- TypeScript check: `tsc --noEmit` ✅ (0 errors)
+
+## Phase 12: Maps Discovery Improvements (2026-04-25 ✅)
+
+### Refresh Button & State Preservation
+- Removed `setResults([])` from `handleSearch` — results remain visible during loading, preventing empty-state flash.
+- Added `onReset` callback wired to a `RotateCcw` icon button in `MapSearchPanel`; clicking it clears area, keyword, category, and results — the only way to reset.
+- Location and search state persist within the session until the user explicitly resets.
+
+### Discovery Result Limit (up to 50)
+- `GET /api/maps/search` now accepts `limit` (1–50, default 20).
+- Backend fetches page 2 (and optionally page 3) using `next_page_token` with a 2-second delay when `limit > 20` and more results are available.
+- Frontend hook sends `limit=50` by default, so each scan tries to return up to 50 businesses.
+- Result count badge shown in `MapResultsPanel` header.
+
+### AI Mode Validation (Full AI / Hybrid / Manual)
+- Fixed critical bug: `aiMode` was hardcoded `"hybrid"` in `map/page.tsx:234` — it now tracks the user's actual selection.
+- `currentAiMode` state is captured in `handleSearch` from `params.aiMode` and passed to `MapResultsPanel`.
+- Backend `addToLeads()` validates AI provider availability when mode is `full_ai` or `hybrid`.
+  - If no active provider: mode downgrades to `manual`, response includes `ai_warning`.
+  - Frontend displays the warning as visible feedback (not a silent failure).
+
+### Radius Expansion to 50 KM
+- `MapSearchPanel` radius slider max: 20,000m → 50,000m.
+- Backend was already allowing up to 50,000m — no backend change needed.
+
+### DB-Backed Category Dropdown
+- New migration: `discovery_categories` table (`label`, `value`, `sort_order`, `is_active`).
+- New model: `App\Models\DiscoveryCategory`.
+- `DatabaseSeeder::seedDiscoveryCategories()` seeds 14 default Google Places categories.
+- `GET /api/maps/categories` returns active categories ordered by `sort_order`.
+- `MapSearchPanel` fetches categories on mount; no hardcoded runtime options remain.
+
+### Verification
+- `tsc --noEmit` ✅ (0 errors)
+
+## Phase 13: Lead Detail Full Feature Completion (2026-04-25 ✅)
+
+### Backend fixes
+- `lead_activities`: Added `outcome` and `next_follow_up_date` columns via migration.
+- `LeadController::logActivity()` and `updateActivity()` now accept the new fields plus optional `funnel_stage_id` for inline stage moves (creates funnel history + audit log).
+- `LeadController::rescore()`: Fixed DB constraint violation (`'queued'` not in allowed enum). Refactored to run `LeadScoringService::scoreLead()` synchronously — score returns immediately since no queue worker is deployed.
+
+### Transcripts tab — fully implemented
+- Form: source type dropdown + textarea. Saves via `POST /leads/{id}/transcripts`.
+- List: transcript cards with status badges and text preview.
+- "Analyse with AI" button per transcript calls `POST /leads/{id}/transcripts/{id}/evaluate`.
+- Evaluation result: sentiment, intent level, interest level, confidence %, buying signals, objections, recommended next action — all displayed inline, collapsed/expanded per transcript.
+
+### Activities tab — enhanced
+- Replaced `getElementById` form pattern with controlled React state.
+- 14 predefined activity types; date/time, outcome, next follow-up date, stage-move dropdown (live from `GET /funnel/stages`).
+- Timeline view with user attribution, edit/delete, outcome block.
+- Single modal reused for create and edit.
+
+### Meetings tab — deprecated
+- Removed from tab navigation. Replaced with a deprecation notice pointing to Activities.
+- Existing meeting records still visible below the notice for reference.
+
+### Contacts enrichment — modal
+- "Enrich via Lusha" `alert()` replaced with a source checklist modal.
+- Lusha: Active. LinkedIn/Apollo/Hunter: shows "Requires API key" with link to Settings → Integrations.
+
+### Intelligence tab — action bar
+- 4 action buttons: Rescore Lead, Re-qualify, Run ICP Match, Run AI Analysis — all inline on the Intelligence tab.
+- All mutations now invalidate the correct query keys so scores and match results refresh automatically.
+
+### ICP Profiles — new feature
+- Full CRUD page at `/settings/icp-profiles`.
+- Visual weight bars, company size chip selector, active toggle.
+- Batch Match button runs the profile against all leads synchronously.
+- Added to Settings page grid and sidebar navigation.
+
+### Verification
+- `tsc --noEmit` ✅ (0 errors)
+- Migration applied: `2026_04_25_110000` ✅
+
+## Phase 14: AI Product Matching Engine — BANT + Competitor (2026-04-25 ✅)
+
+### Audit result
+The existing service was a working stub: hybrid rule+AI scoring with minimal lead context (industry, size, contacts count, activity count). Missing: BANT framework, competitor analysis, confidence score, AI provenance, audit trail. Products table missing 6 metadata columns. Frontend had no "Run Product Match" button and showed basic name/score/reason only.
+
+### What was built
+
+**Schema (migration 2026_04_25_120000):**
+- `products`: +6 columns — supported_regions, budget_range, target_company_size, use_cases (json), competitor_notes, keywords (json)
+- `lead_product_matches`: +8 columns — bant_analysis (json), reasoning (json), recommended_approach, competitor_context, match_level, confidence_score, ai_provider_used, ai_model_used
+- `lead_product_match_runs`: new table — full audit trail per matching run
+
+**Service rewrite (`LeadProductMatchingService`):**
+- Context builder gathers from: contacts (authority signals), activities (engagement/timeline), qualifications (need/risk), AI analyses (pain points/urgency/use case), transcript evaluations (buying signals/objections), lead scores
+- BANT proxies: Budget ← company size+industry, Authority ← contact title seniority detection, Need ← pain point text + AI probable_needs, Timeline ← activity frequency + urgency + buying signals, Competitor ← transcript objections + product.competitor_notes
+- AI prompt produces full JSON: match_score, bant_analysis{budget/authority/need/timeline/competitor}, reasoning[], recommended_approach, competitor_context, confidence_score
+- Scoring: 60% rule-based + 40% AI (upgraded from 70/30)
+- Audit: creates `lead_product_match_runs` record with duration, cost, status
+- AI provenance: ai_provider_used + ai_model_used stored per match
+
+**Intelligence tab:**
+- 5th action button: "Run Product Match"
+- Product Match card: TOP badge on first result, match_level color badge, score bar, BANT grid (5 factors), reasoning list, recommended approach block, confidence + model footer
+- Empty state with clear CTA when no matches exist yet
+
+**Products page:**
+- All 9 new targeting fields now in create/edit modal (budget range, competitor notes, use cases, keywords, etc.)
+
+**Verification:** `tsc --noEmit` ✅ | Migration ✅
+
+## Phase 15: AI-Generated ICP Profiles (2026-04-25 ✅)
+
+### What was built
+
+**AI Feature Registration:**
+- `icp_generation` added to `AIRoutingService::FEATURE_CATALOG` — appears in AI Settings → Feature Routes, can be assigned a specific model/provider.
+- Default prompt template added to `AIPromptTemplateService`: instructs AI to return only valid JSON, base outputs strictly on product data.
+
+**`IcpGenerationService` (new):**
+- Reads all active products from DB including: target_industry, target_company_size, budget_range, use_cases, competitor_notes, keywords, supported_regions.
+- Builds a structured prompt asking AI to synthesise an ICP: target_industries, target_company_sizes, target_territories, min_lead_score, 5 weight values (lead_score/industry/company_size/territory/contact_info), reasoning, missing_data_notes, confidence.
+- Two modes: `combined` (single ICP for whole portfolio) and `per_category` (one ICP per product category group).
+- Returns normalised suggestion array — does NOT persist automatically.
+
+**`POST /api/icp-profiles/generate`:**
+- Validates `mode` param, calls service, audit logs the run, returns `{suggestions, products_analysed, mode, ai_model}`.
+- Registered before `apiResource` to avoid Laravel route param conflict.
+
+**ICP Profiles page — UI:**
+- "Generate with AI" split-button next to "New Profile": left triggers generation with selected mode, right opens mode dropdown (Combined / Per Category).
+- Error banner shown inline if generation fails.
+- **Suggestions modal**: each suggestion shows name, description, targeting criteria, weight bars, AI reasoning paragraph, missing data warning if product metadata is sparse.
+- **"Use this ICP"** button pre-fills the create form with all AI values. User can edit everything before saving.
+
+### Verification
+- `tsc --noEmit` ✅ (0 errors)

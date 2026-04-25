@@ -4,6 +4,8 @@
 This document defines the target normalized schema for the enterprise qualification layer and maps it to the current repository state.
 
 ## Current Tables Already Present
+
+### Core
 - `users`
 - `roles` and permission tables
 - `leads`
@@ -13,7 +15,58 @@ This document defines the target normalized schema for the enterprise qualificat
 - `lead_qualifications`
 - `lead_activities`
 - `audit_logs`
-- funnel and revenue-intelligence supporting tables
+
+### Funnel & Revenue
+- `funnel_stages`
+- `lead_funnel_history`
+- `revenue_rules`
+- `lead_revenue_analyses`
+
+### Products & ICP
+- `products`
+- `lead_product_matches`
+- `lead_product_match_runs` _(added Phase 14)_
+- `icp_profiles`
+- `lead_icp_matches`
+
+### AI Infrastructure
+- `ai_providers`
+- `ai_models`
+- `ai_feature_routes`
+- `ai_prompt_templates`
+- `ai_prompt_template_versions`
+- `ai_requests`
+- `ai_connection_tests`
+
+### Activities, Meetings & Intelligence
+- `lead_meetings`
+- `lead_transcripts`
+- `lead_ai_evaluations`
+- `lead_ai_analyses`
+- `lead_follow_ups`
+
+### Maps & Discovery
+- `discovery_categories` _(added Phase 12)_
+- `map_search_history`
+- `map_candidates`
+
+### Integration & Multi-Tenant
+- `integration_configs`
+- `tenants`
+- `record_origin_mappings`
+
+### WhatsApp
+- `whatsapp_sessions`
+- `whatsapp_conversations`
+- `whatsapp_messages`
+
+### Qualification Workflow
+- `qualification_parameter_sets`
+- `qualification_parameters`
+- `qualification_parameter_options`
+- `qualification_workflows`
+- `qualification_workflow_stages`
+- `qualification_workflow_reviews`
 
 ## Target Enterprise Entities
 Required entities from the directive:
@@ -122,3 +175,92 @@ Planned next:
 - admin UI for policy/workflow management
 - tenant scoping
 - override approval analytics
+
+---
+
+## Schema Changes — Phase 11–15 (2026-04-25)
+
+### Phase 12: `discovery_categories` (new table)
+Stores Google Places search category options — replaces hardcoded frontend dropdown.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | bigint PK | auto-increment |
+| `label` | varchar | Display name, e.g. "Restaurant / F&B" |
+| `value` | varchar UNIQUE | Google Places type, e.g. "restaurant" |
+| `sort_order` | smallint | Controls dropdown order |
+| `is_active` | boolean | Filters inactive categories from dropdown |
+| `created_at`, `updated_at` | timestamp | |
+
+Seeded with 14 default categories via `DatabaseSeeder::seedDiscoveryCategories()`.
+
+---
+
+### Phase 13: `lead_activities` — added columns
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `outcome` | varchar(1000) nullable | Free-text outcome of the activity |
+| `activity_date_override` | timestamp nullable | Explicit activity date set by user |
+| `next_follow_up_date` | date nullable | Suggested follow-up date surfaced in progress summary |
+
+---
+
+### Phase 14: `products` — added columns
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `supported_regions` | varchar(500) nullable | Geographic regions the product serves |
+| `budget_range` | varchar(255) nullable | Expected budget range, e.g. "IDR 50M–200M/year" |
+| `target_company_size` | varchar(255) nullable | Preferred company size range |
+| `use_cases` | json nullable | Array of use-case strings |
+| `competitor_notes` | text nullable | Known competitors and differentiators |
+| `keywords` | json nullable | Array of matching keywords |
+
+### Phase 14: `lead_product_matches` — added columns
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `bant_analysis` | json nullable | `{budget, authority, need, timeline, competitor}` each with `score` (0–100) and `reasoning` |
+| `reasoning` | json nullable | Array of human-readable reasoning strings |
+| `recommended_approach` | text nullable | AI-generated sales approach for this lead-product pair |
+| `competitor_context` | varchar(1000) nullable | Identified competitors and differentiation notes |
+| `match_level` | varchar(20) nullable | `strong` \| `moderate` \| `weak` |
+| `confidence_score` | smallint nullable | AI confidence 0–100 |
+| `ai_provider_used` | varchar(100) nullable | Provider slug used for this match |
+| `ai_model_used` | varchar(150) nullable | Model name used for this match |
+
+### Phase 14: `lead_product_match_runs` (new table)
+Audit trail for each time product matching is triggered for a lead.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | bigint PK | |
+| `lead_id` | FK → `leads` | cascadeOnDelete |
+| `triggered_by` | FK → `users` nullable | nullOnDelete |
+| `products_evaluated` | smallint | How many products were scored |
+| `matches_created` | smallint | How many match records were created/updated |
+| `ai_calls_made` | smallint | Number of AI API calls made |
+| `total_cost_usd` | decimal(10,6) nullable | Total AI cost for this run |
+| `duration_ms` | int nullable | Wall-clock duration |
+| `status` | varchar(20) | `completed` \| `failed` |
+| `error_message` | text nullable | Set on failure |
+| `run_at` | timestamp | Default = now() |
+| `created_at`, `updated_at` | timestamp | |
+
+Indexes: `lead_id`, `run_at`
+
+---
+
+## DB-Backed Reference Data (Seeded)
+
+| Table | Seed Count | Notes |
+|-------|-----------|-------|
+| `industries` | 10 | + 42 sub-industries |
+| `products` | 3 | Sample products — extend in Settings → Products |
+| `funnel_stages` | 4–6 | Default pipeline stages |
+| `ai_providers` | 3+ | Inactive by default — configure key in Settings → AI Defaults |
+| `ai_models` | 7+ | GPT-5.4 (id:12) is default route for all features |
+| `ai_feature_routes` | 13 | All features routed to GPT-5.4 as of 2026-04-25 |
+| `discovery_categories` | 14 | Google Places categories for Maps Discovery |
+| `icp_profiles` | 0 | Created by user or via AI generation |

@@ -11,7 +11,12 @@ import {
   AlertCircle, CheckCircle, Clock, User, FileText, Loader2,
   Phone, Mail, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
+  Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
+  Activity, Info,
 } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -330,13 +335,47 @@ export default function LeadDetailPage() {
   const leadId = params.id as string;
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
-  const [showActivityForm, setShowActivityForm] = useState(false);
-  const [showMeetingForm, setShowMeetingForm] = useState(false);
+
+  // Company info edit state
+  const [showEditCompanyInfo, setShowEditCompanyInfo] = useState(false);
+  const [companyForm, setCompanyForm] = useState({
+    company_name: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    industry_id: '',
+    sub_industry_id: '',
+    company_size_estimate: '',
+    business_category: '',
+  });
 
   // Contact UI state
   const [showAddContact, setShowAddContact]       = useState(false);
   const [editingContact, setEditingContact]       = useState<any | null>(null);
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
+  const [showEnrichModal, setShowEnrichModal]     = useState(false);
+  const [selectedEnrichSources, setSelectedEnrichSources] = useState<string[]>(['lusha']);
+
+  // Activity form state (controlled)
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [editingActivity, setEditingActivity]     = useState<any | null>(null);
+  const [deletingActivityId, setDeletingActivityId] = useState<number | null>(null);
+  const [activityForm, setActivityForm] = useState({
+    activity_type: '',
+    description: '',
+    outcome: '',
+    activity_date: '',
+    next_follow_up_date: '',
+    funnel_stage_id: '',
+  });
+
+  // Transcript state
+  const [showTranscriptForm, setShowTranscriptForm] = useState(false);
+  const [transcriptForm, setTranscriptForm] = useState({ source_type: 'manual', transcript_text: '' });
+  const [evaluatingTranscriptId, setEvaluatingTranscriptId] = useState<number | null>(null);
+  const [expandedEvalId, setExpandedEvalId]       = useState<number | null>(null);
+  const [transcriptFeedback, setTranscriptFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   // Fetch lead details (includes contacts)
   const { data: lead, isLoading: leadLoading } = useQuery({
@@ -372,31 +411,99 @@ export default function LeadDetailPage() {
     enabled: !!lead,
   });
 
+  // Fetch transcripts (lazy — only when tab is active)
+  const { data: transcriptsData, refetch: refetchTranscripts } = useQuery({
+    queryKey: ['lead-transcripts', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/transcripts`).then((r) => r.json()),
+    enabled: activeTab === 'transcripts',
+  });
+
+  // Fetch evaluations alongside transcripts
+  const { data: evaluationsData, refetch: refetchEvaluations } = useQuery({
+    queryKey: ['lead-evaluations', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/evaluations`).then((r) => r.json()),
+    enabled: activeTab === 'transcripts',
+  });
+
+  // Fetch funnel stages for the activity stage-move dropdown
+  const { data: funnelStagesData } = useQuery({
+    queryKey: ['funnel-stages'],
+    queryFn: () => apiFetch('/funnel/stages').then((r) => r.json()),
+  });
+
+  // Fetch all industries (with sub-industries) for edit form
+  const { data: industriesData } = useQuery({
+    queryKey: ['industries'],
+    queryFn: () => apiFetch('/industries').then((r) => r.json()),
+  });
+  const allIndustries: any[] = industriesData?.data ?? [];
+  const selectedIndustrySubIndustries: any[] =
+    allIndustries.find((i: any) => String(i.id) === String(companyForm.industry_id))?.sub_industries ?? [];
+
   const invalidateLead = () => qc.invalidateQueries({ queryKey: ['lead', leadId] });
+
+  // Update lead company info mutation
+  const updateLeadMutation = useMutation({
+    mutationFn: (data: Record<string, any>) =>
+      apiFetch(`/leads/${leadId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      invalidateLead();
+      setShowEditCompanyInfo(false);
+    },
+  });
+
+  function openEditCompanyInfo() {
+    setCompanyForm({
+      company_name:          leadData.company_name         ?? '',
+      address:               leadData.address              ?? '',
+      phone:                 leadData.phone                ?? '',
+      email:                 leadData.email                ?? '',
+      website:               leadData.website              ?? '',
+      industry_id:           leadData.industry_id != null ? String(leadData.industry_id) : '',
+      sub_industry_id:       leadData.sub_industry_id != null ? String(leadData.sub_industry_id) : '',
+      company_size_estimate: leadData.company_size_estimate ?? '',
+      business_category:     leadData.business_category    ?? '',
+    });
+    setShowEditCompanyInfo(true);
+  }
+
+  function submitCompanyInfo() {
+    const payload: Record<string, any> = {
+      company_name:          companyForm.company_name      || undefined,
+      address:               companyForm.address           || null,
+      phone:                 companyForm.phone             || null,
+      email:                 companyForm.email             || null,
+      website:               companyForm.website           || null,
+      industry_id:           companyForm.industry_id       ? Number(companyForm.industry_id)     : null,
+      sub_industry_id:       companyForm.sub_industry_id   ? Number(companyForm.sub_industry_id) : null,
+      company_size_estimate: companyForm.company_size_estimate || null,
+      business_category:     companyForm.business_category || null,
+    };
+    updateLeadMutation.mutate(payload);
+  }
 
   /* ── Intelligence mutations ── */
   const scoreMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/rescore`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead-progress', leadId] });
+    },
   });
 
   const qualifyMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/qualify`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead', leadId] });
+    },
   });
 
-  /* ── Activity / meeting mutations ── */
-  const activityMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiFetch(`/leads/${leadId}/activities`, { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-activities', leadId] }),
-  });
-
-  const meetingMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiFetch(`/leads/${leadId}/meetings`, { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-meetings', leadId] }),
-  });
 
   /* ── Contact mutations ── */
   const addContactMutation = useMutation({
@@ -434,7 +541,89 @@ export default function LeadDetailPage() {
   const enrichMutation = useMutation({
     mutationFn: () =>
       apiFetch(`/leads/${leadId}/enrich-contacts`, { method: 'POST' }),
-    onSuccess: () => alert('Contact enrichment queued. Results will appear shortly.'),
+    onSuccess: () => { invalidateLead(); setShowEnrichModal(false); },
+  });
+
+  /* ── Activity mutations (enhanced) ── */
+  const activityCreateMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiFetch(`/leads/${leadId}/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lead-activities', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead-progress', leadId] });
+      invalidateLead();
+      setShowActivityModal(false);
+      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
+    },
+  });
+
+  const activityUpdateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiFetch(`/leads/${leadId}/activities/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lead-activities', leadId] });
+      setEditingActivity(null);
+    },
+  });
+
+  const activityDeleteMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiFetch(`/leads/${leadId}/activities/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lead-activities', leadId] });
+      setDeletingActivityId(null);
+    },
+  });
+
+  /* ── Transcript mutations ── */
+  const storeTranscriptMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const r = await apiFetch(`/leads/${leadId}/transcripts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.message || `Server error (${r.status})`);
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      refetchTranscripts();
+      setShowTranscriptForm(false);
+      setTranscriptForm({ source_type: 'manual', transcript_text: '' });
+      setTranscriptFeedback({ type: 'success', msg: 'Transcript saved successfully.' });
+      setTimeout(() => setTranscriptFeedback(null), 4000);
+    },
+    onError: (err: any) => {
+      setTranscriptFeedback({ type: 'error', msg: err.message || 'Failed to save transcript.' });
+    },
+  });
+
+  const evaluateTranscriptMutation = useMutation({
+    mutationFn: (transcriptId: number) =>
+      apiFetch(`/leads/${leadId}/transcripts/${transcriptId}/evaluate`, { method: 'POST' }),
+    onSuccess: (_, transcriptId) => {
+      refetchTranscripts();
+      refetchEvaluations();
+      setEvaluatingTranscriptId(null);
+      setExpandedEvalId(transcriptId);
+    },
+  });
+
+  const deleteTranscriptMutation = useMutation({
+    mutationFn: (transcriptId: number) =>
+      apiFetch(`/leads/${leadId}/transcripts/${transcriptId}`, { method: 'DELETE' }),
+    onSuccess: () => refetchTranscripts(),
   });
 
   /* ── Revenue Intelligence queries & mutations ── */
@@ -467,8 +656,11 @@ export default function LeadDetailPage() {
   });
 
   const icpMatchMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/icp-match`, { method: 'POST' }),
-    onSuccess: () => refetchRevenue(),
+    mutationFn: () => apiFetch(`/leads/${leadId}/icp-match`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => {
+      refetchRevenue();
+      qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
+    },
   });
 
   const predictMutation = useMutation({
@@ -497,6 +689,11 @@ export default function LeadDetailPage() {
   const analysisMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/revenue-analysis`, { method: 'POST' }),
     onSuccess: () => refetchRevenue(),
+  });
+
+  const matchProductsMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/match-products`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] }),
   });
 
   /* ── Render ── */
@@ -529,9 +726,67 @@ export default function LeadDetailPage() {
       ? icpMatch.score_breakdown.factors
       : [];
   const icpReasoning = icpMatch?.reasoning ?? icpMatch?.reason ?? icpMatch?.score_breakdown?.reasoning;
-  const progressData  = progress || {};
-  const activitiesList = activities?.data || [];
-  const meetingsList  = meetings?.data || [];
+  const progressData      = progress || {};
+  const activitiesList    = activities?.data || [];
+  const meetingsList      = meetings?.data || [];
+  const transcriptsList   = transcriptsData?.data || [];
+  const evaluationsList   = evaluationsData?.data || [];
+  const funnelStages      = funnelStagesData?.data || [];
+
+  const ACTIVITY_TYPES = [
+    'Follow Up', 'Meeting', 'Demo', 'Proposal Sent', 'Negotiation',
+    'WhatsApp', 'Call', 'Email', 'Internal Note', 'Site Visit',
+    'Contract Discussion', 'Payment Discussion', 'Decision Maker Contact', 'Other',
+  ];
+
+  const TRANSCRIPT_SOURCES: Record<string, string> = {
+    manual:   'Manual / Copy-Paste',
+    meeting:  'Meeting Transcript',
+    call:     'Call Recording',
+    whatsapp: 'WhatsApp Conversation',
+  };
+
+  const ENRICH_SOURCES = [
+    { id: 'lusha',    label: 'Lusha',            available: true,  note: 'API-backed enrichment' },
+    { id: 'linkedin', label: 'LinkedIn',          available: false, note: 'Requires LinkedIn API key' },
+    { id: 'apollo',   label: 'Apollo.io',         available: false, note: 'Requires Apollo API key' },
+    { id: 'hunter',   label: 'Hunter.io',         available: false, note: 'Requires Hunter API key' },
+    { id: 'manual',   label: 'Manual Input',      available: true,  note: 'Add contacts manually' },
+  ];
+
+  function openActivityModal(existing?: any) {
+    if (existing) {
+      setActivityForm({
+        activity_type: existing.activity_type ?? '',
+        description: existing.description ?? '',
+        outcome: existing.outcome ?? '',
+        activity_date: existing.activity_date ? existing.activity_date.substring(0, 16) : '',
+        next_follow_up_date: existing.next_follow_up_date ?? '',
+        funnel_stage_id: '',
+      });
+      setEditingActivity(existing);
+    } else {
+      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
+      setEditingActivity(null);
+    }
+    setShowActivityModal(true);
+  }
+
+  function submitActivity() {
+    const payload = {
+      activity_type: activityForm.activity_type,
+      description: activityForm.description || undefined,
+      outcome: activityForm.outcome || undefined,
+      activity_date: activityForm.activity_date || undefined,
+      next_follow_up_date: activityForm.next_follow_up_date || undefined,
+      funnel_stage_id: activityForm.funnel_stage_id ? Number(activityForm.funnel_stage_id) : undefined,
+    };
+    if (editingActivity) {
+      activityUpdateMutation.mutate({ id: editingActivity.id, data: payload });
+    } else {
+      activityCreateMutation.mutate(payload);
+    }
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -686,7 +941,7 @@ export default function LeadDetailPage() {
       {/* Tabs */}
       <div className="border-b border-border">
         <div className="flex gap-0 overflow-x-auto">
-          {['Overview', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Meetings', 'Transcripts'].map((tab) => (
+          {['Overview', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Transcripts'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
@@ -711,9 +966,17 @@ export default function LeadDetailPage() {
       {activeTab === 'overview' && (
         <div className="grid gap-6 md:grid-cols-2">
           <div className="rounded-lg border border-border bg-card p-6">
-            <h3 className="mb-4 font-semibold">Company Information</h3>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-semibold">Company Information</h3>
+              <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit company information">
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </div>
             <div className="space-y-3 text-sm">
               <div><span className="text-muted-foreground">Industry:</span> {leadData.industry?.name || '—'}</div>
+              {leadData.subIndustry?.name && (
+                <div><span className="text-muted-foreground">Sub-Industry:</span> {leadData.subIndustry.name}</div>
+              )}
               <div><span className="text-muted-foreground">Email:</span> {leadData.email || '—'}</div>
               <div><span className="text-muted-foreground">Phone:</span> {leadData.phone || '—'}</div>
               <div>
@@ -725,6 +988,9 @@ export default function LeadDetailPage() {
                 ) : '—'}
               </div>
               <div><span className="text-muted-foreground">Company Size:</span> {leadData.company_size_estimate || '—'}</div>
+              {leadData.business_category && (
+                <div><span className="text-muted-foreground">Business Category:</span> {leadData.business_category}</div>
+              )}
             </div>
           </div>
 
@@ -777,14 +1043,11 @@ export default function LeadDetailPage() {
               <Plus className="h-3.5 w-3.5" /> Add Contact
             </button>
             <button
-              onClick={() => enrichMutation.mutate()}
-              disabled={enrichMutation.isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--brand)]/40 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-2 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] disabled:opacity-50"
+              onClick={() => setShowEnrichModal(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--brand)]/40 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-2 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)]"
             >
-              {enrichMutation.isPending
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <Zap className="h-3.5 w-3.5" />}
-              Enrich via Lusha
+              <Zap className="h-3.5 w-3.5" />
+              Enrich Contacts
             </button>
           </div>
 
@@ -890,6 +1153,87 @@ export default function LeadDetailPage() {
       {/* ── INTELLIGENCE TAB ── */}
       {activeTab === 'intelligence' && (
         <div className="space-y-6">
+
+          {/* ── Action bar ── */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Run Intelligence Functions</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => scoreMutation.mutate()}
+                disabled={scoreMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {scoreMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 text-yellow-500" />}
+                {scoreMutation.isPending ? 'Scoring…' : 'Rescore Lead'}
+              </Button>
+              <Button
+                onClick={() => qualifyMutation.mutate()}
+                disabled={qualifyMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {qualifyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5 text-[var(--status-success)]" />}
+                {qualifyMutation.isPending ? 'Qualifying…' : 'Re-qualify'}
+              </Button>
+              <Button
+                onClick={() => icpMatchMutation.mutate()}
+                disabled={icpMatchMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {icpMatchMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Target className="h-3.5 w-3.5 text-[var(--brand)]" />}
+                {icpMatchMutation.isPending ? 'Matching…' : 'Run ICP Match'}
+              </Button>
+              <Button
+                onClick={() => analysisMutation.mutate()}
+                disabled={analysisMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {analysisMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5 text-[var(--status-warning)]" />}
+                {analysisMutation.isPending ? 'Analysing…' : 'Run AI Analysis'}
+              </Button>
+              <Button
+                onClick={() => matchProductsMutation.mutate()}
+                disabled={matchProductsMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {matchProductsMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5 text-[var(--status-info)]" />}
+                {matchProductsMutation.isPending ? 'Matching…' : 'Run Product Match'}
+              </Button>
+            </div>
+            {scoreMutation.isSuccess && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
+                <CheckCircle className="h-3.5 w-3.5" /> Lead scored — results updated below.
+              </p>
+            )}
+            {scoreMutation.isError && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
+                <AlertCircle className="h-3.5 w-3.5" /> Scoring failed. Check AI settings.
+              </p>
+            )}
+            {icpMatchMutation.isSuccess && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
+                <CheckCircle className="h-3.5 w-3.5" /> ICP Match complete — see results below.
+              </p>
+            )}
+            {matchProductsMutation.isSuccess && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
+                <CheckCircle className="h-3.5 w-3.5" /> Product Match complete — results updated below.
+              </p>
+            )}
+            {matchProductsMutation.isError && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
+                <AlertCircle className="h-3.5 w-3.5" /> Product Match failed. Check AI settings and ensure products exist.
+              </p>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">
+              <strong>Rescore</strong> runs immediately. <strong>Re-qualify</strong> uses AI for business fit. <strong>ICP Match</strong> requires an active ICP Profile. <strong>AI Analysis</strong> generates a commercial readout. <strong>Product Match</strong> uses BANT + Competitor AI to rank all products against this lead.
+            </p>
+          </div>
+
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="mb-4 flex items-start justify-between gap-4">
@@ -950,7 +1294,7 @@ export default function LeadDetailPage() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No ICP match yet. Run ICP Match from the Revenue tab to evaluate this lead.
+                  No ICP match yet. Click <strong>Run ICP Match</strong> above to evaluate this lead.
                 </p>
               )}
             </div>
@@ -1078,22 +1422,123 @@ export default function LeadDetailPage() {
             </div>
           )}
 
-          {topProducts.length > 0 && (
-            <div className="rounded-lg border border-border bg-card p-6">
-              <h3 className="mb-4 font-semibold">Recommended Products</h3>
-              <div className="space-y-3">
-                {topProducts.map((match: any) => (
-                  <div key={match.id} className="flex items-center justify-between rounded-lg bg-muted/20 p-3">
-                    <div>
-                      <p className="text-sm font-medium">{match.product?.name}</p>
-                      <p className="text-xs text-muted-foreground">{match.match_reason}</p>
-                    </div>
-                    <p className="font-bold">{match.match_score}%</p>
-                  </div>
-                ))}
+          {/* ── Product Match Results ── */}
+          <div className="rounded-lg border border-border bg-card p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold">Product Match</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  AI-powered BANT + Competitor analysis against all active products.
+                </p>
               </div>
+              <Button
+                onClick={() => matchProductsMutation.mutate()}
+                disabled={matchProductsMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {matchProductsMutation.isPending
+                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Matching…</>
+                  : <><ClipboardList className="h-3.5 w-3.5" /> Run Product Match</>}
+              </Button>
             </div>
-          )}
+
+            {topProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/10 py-10 text-center">
+                <ClipboardList className="mb-2 h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No product matches yet.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Click <strong>Run Product Match</strong> above to analyse this lead against all active products.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topProducts.map((match: any, idx: number) => {
+                  const bant = match.bant_analysis || {};
+                  const reasoning = Array.isArray(match.reasoning) ? match.reasoning : [];
+                  const levelColor = match.match_level === 'strong'
+                    ? 'text-[var(--status-success)] bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] border-[var(--status-success)]/30'
+                    : match.match_level === 'moderate'
+                      ? 'text-[var(--status-warning)] bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] border-[var(--status-warning)]/30'
+                      : 'text-muted-foreground bg-muted/30 border-border';
+
+                  return (
+                    <div key={match.id} className={`rounded-xl border p-4 ${idx === 0 ? 'border-[var(--brand)]/40 bg-[color-mix(in_oklch,var(--brand)_4%,transparent)]' : 'border-border bg-card'}`}>
+                      {/* Header row */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          {idx === 0 && <span className="rounded-full bg-[var(--brand)] px-2 py-0.5 text-[10px] font-bold text-white">TOP</span>}
+                          <p className="font-semibold">{match.product?.name ?? `Product ${match.product_id}`}</p>
+                          {match.product?.category && <Badge variant="neutral">{match.product.category}</Badge>}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${levelColor}`}>
+                            {match.match_level ?? 'N/A'}
+                          </span>
+                          <span className="text-xl font-bold tabular-nums">{match.match_score}%</span>
+                        </div>
+                      </div>
+
+                      {/* Score bar */}
+                      <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
+                        <div
+                          className={`h-full rounded-full transition-all ${match.match_level === 'strong' ? 'bg-[var(--status-success)]' : match.match_level === 'moderate' ? 'bg-[var(--status-warning)]' : 'bg-muted-foreground/40'}`}
+                          style={{ width: `${match.match_score}%` }}
+                        />
+                      </div>
+
+                      {/* BANT breakdown */}
+                      {Object.keys(bant).length > 0 && (
+                        <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                          {[
+                            { key: 'budget',    label: 'Budget' },
+                            { key: 'authority', label: 'Authority' },
+                            { key: 'need',      label: 'Need' },
+                            { key: 'timeline',  label: 'Timeline' },
+                            { key: 'competitor',label: 'Competitor' },
+                          ].filter(f => bant[f.key]).map(({ key, label }) => (
+                            <div key={key} className="rounded-lg bg-muted/20 p-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+                              <p className="mt-0.5 text-xs">{bant[key]}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Reasoning */}
+                      {reasoning.length > 0 && (
+                        <div className="mb-3">
+                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Reasoning</p>
+                          <ul className="space-y-0.5">
+                            {reasoning.map((r: string, i: number) => (
+                              <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-[var(--brand)]" />{r}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Recommended approach */}
+                      {match.recommended_approach && (
+                        <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] p-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-1">Recommended Approach</p>
+                          <p className="text-xs">{match.recommended_approach}</p>
+                        </div>
+                      )}
+
+                      {/* Footer: confidence + AI model */}
+                      {(match.confidence_score != null || match.ai_model_used) && (
+                        <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
+                          {match.confidence_score != null && <span>Confidence: {match.confidence_score}%</span>}
+                          {match.ai_model_used && <span>Model: {match.ai_model_used}</span>}
+                          {match.last_matched_at && <span>{new Date(match.last_matched_at).toLocaleString()}</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1376,113 +1821,325 @@ export default function LeadDetailPage() {
       {/* ── ACTIVITIES TAB ── */}
       {activeTab === 'activities' && (
         <div className="space-y-4">
-          <button
-            onClick={() => setShowActivityForm(!showActivityForm)}
-            className="flex items-center gap-2 rounded-lg bg-[var(--brand)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
-          >
-            <Plus className="h-4 w-4" /> Add Activity
-          </button>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {activitiesList.length > 0 ? `${activitiesList.length} interaction${activitiesList.length !== 1 ? 's' : ''} recorded` : 'No interactions yet'}
+            </p>
+            <Button onClick={() => openActivityModal()} size="sm">
+              <Plus className="h-3.5 w-3.5" /> Log Activity
+            </Button>
+          </div>
 
-          {showActivityForm && (
-            <div className="rounded-lg border border-border bg-card p-4">
-              <input type="text" placeholder="Activity type (Call, Email, Meeting...)" className="mb-2 w-full rounded border border-input px-3 py-2 text-sm" id="activity-type" />
-              <textarea placeholder="Description..." className="mb-3 w-full rounded border border-input px-3 py-2 text-sm" id="activity-desc" rows={3} />
-              <button
-                onClick={() => {
-                  const typeEl = document.getElementById('activity-type') as HTMLInputElement;
-                  const descEl = document.getElementById('activity-desc') as HTMLTextAreaElement;
-                  activityMutation.mutate({ activity_type: typeEl.value, description: descEl.value });
-                  setShowActivityForm(false);
-                }}
-                className="rounded bg-[var(--brand)] px-3 py-2 text-sm font-medium text-white"
-              >
-                Save Activity
-              </button>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {activitiesList.length > 0 ? (
-              activitiesList.map((activity: any) => (
-                <div key={activity.id} className="flex gap-4 rounded border border-border bg-card p-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.activity_type}</p>
-                    <p className="text-xs text-muted-foreground">{activity.description}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(activity.activity_date).toLocaleDateString()}
-                    </p>
+          {/* Timeline */}
+          {activitiesList.length > 0 ? (
+            <div className="relative space-y-0">
+              <div className="absolute left-[19px] top-0 bottom-0 w-px bg-border" />
+              {activitiesList.map((activity: any) => (
+                <div key={activity.id} className="relative flex gap-4 pb-6 last:pb-0">
+                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-card">
+                    <Activity className="h-4 w-4 text-[var(--brand)]" />
+                  </div>
+                  <div className="flex-1 rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold">{activity.activity_type}</span>
+                          {activity.user?.name && (
+                            <span className="text-xs text-muted-foreground">by {activity.user.name}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(activity.activity_date).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          onClick={() => openActivityModal(activity)}
+                          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingActivityId(activity.id)}
+                          className="rounded p-1 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] hover:text-[var(--status-danger)]"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                    {activity.description && (
+                      <p className="mt-2 text-sm text-muted-foreground">{activity.description}</p>
+                    )}
+                    {activity.outcome && (
+                      <div className="mt-2 rounded-lg bg-[color-mix(in_oklch,var(--status-success)_8%,transparent)] border border-[var(--status-success)]/20 px-3 py-2">
+                        <p className="text-xs font-medium text-[var(--status-success)]">Outcome</p>
+                        <p className="text-sm">{activity.outcome}</p>
+                      </div>
+                    )}
+                    {activity.next_follow_up_date && (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Next follow-up: {new Date(activity.next_follow_up_date).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No activities recorded</p>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
+              <Activity className="mb-3 h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">No activities yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">Log the first interaction to start the timeline.</p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── MEETINGS TAB ── */}
+      {/* ── MEETINGS TAB (deprecated — use Activities) ── */}
       {activeTab === 'meetings' && (
         <div className="space-y-4">
-          <button
-            onClick={() => setShowMeetingForm(!showMeetingForm)}
-            className="flex items-center gap-2 rounded-lg bg-[var(--brand)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--brand-hover)]"
-          >
-            <Plus className="h-4 w-4" /> Add Meeting
-          </button>
-
-          {showMeetingForm && (
-            <div className="rounded-lg border border-border bg-card p-4">
-              <input type="date" className="mb-2 w-full rounded border border-input px-3 py-2 text-sm" id="meeting-date" />
-              <select className="mb-2 w-full rounded border border-input px-3 py-2 text-sm" id="meeting-type">
-                <option>Virtual</option>
-                <option>In-Person</option>
-                <option>Phone Call</option>
-              </select>
-              <textarea placeholder="Summary..." className="mb-2 w-full rounded border border-input px-3 py-2 text-sm" id="meeting-summary" rows={3} />
+          <div className="flex items-start gap-3 rounded-xl border border-[var(--status-warning)]/40 bg-[color-mix(in_oklch,var(--status-warning)_8%,transparent)] p-4">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-[var(--status-warning)]">Meetings are now logged in Activities</p>
+              <p className="text-xs text-muted-foreground">
+                Log new meetings as a <strong>Meeting</strong> activity in the Activities tab. The meeting type, summary, outcome, and next follow-up can all be captured there. Existing meeting records remain visible below.
+              </p>
               <button
-                onClick={() => {
-                  const dateEl    = document.getElementById('meeting-date') as HTMLInputElement;
-                  const typeEl    = document.getElementById('meeting-type') as HTMLSelectElement;
-                  const summaryEl = document.getElementById('meeting-summary') as HTMLTextAreaElement;
-                  meetingMutation.mutate({
-                    meeting_date: dateEl.value,
-                    meeting_type: typeEl.value,
-                    summary:      summaryEl.value,
-                    key_points: [], objections: [], next_steps: [],
-                  });
-                  setShowMeetingForm(false);
-                }}
-                className="rounded bg-[var(--brand)] px-3 py-2 text-sm font-medium text-white"
+                onClick={() => setActiveTab('activities')}
+                className="mt-1 flex items-center gap-1 text-xs font-medium text-[var(--brand)] hover:underline"
               >
-                Save Meeting
+                Go to Activities <CornerDownRight className="h-3 w-3" />
               </button>
             </div>
-          )}
-
-          <div className="space-y-2">
-            {meetingsList.length > 0 ? (
-              meetingsList.map((meeting: any) => (
-                <div key={meeting.id} className="flex gap-4 rounded border border-border bg-card p-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {meeting.meeting_type} — {new Date(meeting.meeting_date).toLocaleDateString()}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">{meeting.summary}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No meetings recorded</p>
-            )}
           </div>
+
+          {meetingsList.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Existing meeting records</p>
+              {meetingsList.map((meeting: any) => (
+                <div key={meeting.id} className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">{meeting.meeting_type}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(meeting.meeting_date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  {meeting.summary && <p className="mt-2 text-sm text-muted-foreground">{meeting.summary}</p>}
+                  {meeting.key_points?.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Key Points</p>
+                      <ul className="space-y-0.5">{meeting.key_points.map((k: string, i: number) => (
+                        <li key={i} className="text-xs flex items-start gap-1"><CheckCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-success)]" />{k}</li>
+                      ))}</ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No legacy meeting records.</p>
+          )}
         </div>
       )}
 
       {/* ── TRANSCRIPTS TAB ── */}
       {activeTab === 'transcripts' && (
-        <div className="text-sm text-muted-foreground">
-          Transcript feature coming soon. Evaluations will appear here.
+        <div className="space-y-4">
+          {/* Action bar */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {transcriptsList.length > 0
+                ? `${transcriptsList.length} transcript${transcriptsList.length !== 1 ? 's' : ''}`
+                : 'No transcripts yet'}
+            </p>
+            <Button size="sm" onClick={() => setShowTranscriptForm((v) => !v)}>
+              <Plus className="h-3.5 w-3.5" />
+              {showTranscriptForm ? 'Cancel' : 'Add Transcript'}
+            </Button>
+          </div>
+
+          {/* Feedback banner */}
+          {transcriptFeedback && (
+            <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium ${
+              transcriptFeedback.type === 'success'
+                ? 'bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]'
+                : 'bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
+            }`}>
+              {transcriptFeedback.type === 'success'
+                ? <CheckCircle className="h-4 w-4 shrink-0" />
+                : <AlertCircle className="h-4 w-4 shrink-0" />}
+              {transcriptFeedback.msg}
+            </div>
+          )}
+
+          {/* Add Transcript Form */}
+          {showTranscriptForm && (
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+              <h4 className="font-semibold text-sm">New Transcript</h4>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Source Type</label>
+                <Select
+                  value={transcriptForm.source_type}
+                  onChange={(e) => setTranscriptForm((f) => ({ ...f, source_type: e.target.value }))}
+                >
+                  {Object.entries(TRANSCRIPT_SOURCES).map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Transcript Text *</label>
+                <textarea
+                  value={transcriptForm.transcript_text}
+                  onChange={(e) => setTranscriptForm((f) => ({ ...f, transcript_text: e.target.value }))}
+                  rows={8}
+                  placeholder="Paste your meeting notes, call transcript, or conversation here..."
+                  className="min-h-[160px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowTranscriptForm(false)}>Cancel</Button>
+                <Button
+                  onClick={() => storeTranscriptMutation.mutate(transcriptForm)}
+                  disabled={storeTranscriptMutation.isPending || !transcriptForm.transcript_text.trim()}
+                >
+                  {storeTranscriptMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Save Transcript
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Transcript list */}
+          {transcriptsList.length === 0 && !showTranscriptForm ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
+              <FileText className="mb-3 h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">No transcripts yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">Paste meeting notes or call transcripts and run AI analysis.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {transcriptsList.map((tr: any) => {
+                const evaluation = evaluationsList.find(
+                  (ev: any) => ev.source_id === tr.id && ev.source_type?.endsWith('LeadTranscript')
+                );
+                const isExpanded = expandedEvalId === tr.id;
+                return (
+                  <div key={tr.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-3 p-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="neutral">{TRANSCRIPT_SOURCES[tr.source_type] ?? tr.source_type}</Badge>
+                          <Badge variant={tr.evaluation_status === 'evaluated' ? 'success' : 'warning'}>
+                            {tr.evaluation_status}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(tr.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {tr.evaluation_status !== 'evaluated' && (
+                          <Button
+                            variant="outline"
+                            size="xs"
+                            onClick={() => { setEvaluatingTranscriptId(tr.id); evaluateTranscriptMutation.mutate(tr.id); }}
+                            disabled={evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id}
+                          >
+                            {evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <Sparkles className="h-3 w-3" />}
+                            Analyse with AI
+                          </Button>
+                        )}
+                        {evaluation && (
+                          <Button variant="ghost" size="xs" onClick={() => setExpandedEvalId(isExpanded ? null : tr.id)}>
+                            {isExpanded ? 'Hide' : 'View'} Analysis
+                          </Button>
+                        )}
+                        <button
+                          onClick={() => deleteTranscriptMutation.mutate(tr.id)}
+                          disabled={deleteTranscriptMutation.isPending}
+                          className="rounded p-1 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] hover:text-[var(--status-danger)]"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Transcript text preview */}
+                    <div className="border-t border-border px-4 py-3 bg-muted/20">
+                      <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{tr.transcript_text}</p>
+                    </div>
+
+                    {/* Evaluation result */}
+                    {isExpanded && evaluation && (
+                      <div className="border-t border-border bg-[color-mix(in_oklch,var(--brand)_4%,transparent)] p-4 space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-[var(--brand)]" />
+                          <h4 className="font-semibold text-sm">AI Transcript Analysis</h4>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {[
+                            { label: 'Sentiment',     value: evaluation.sentiment },
+                            { label: 'Intent Level',  value: evaluation.intent_level },
+                            { label: 'Interest',      value: evaluation.interest_level },
+                            { label: 'Confidence',    value: `${evaluation.confidence_score ?? 0}%` },
+                          ].map(({ label, value }) => (
+                            <div key={label} className="rounded-lg border border-border bg-card p-3 text-center">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+                              <p className="mt-1 text-sm font-bold capitalize">{value ?? '—'}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {evaluation.buying_signals?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--status-success)] mb-2">Buying Signals</p>
+                            <ul className="space-y-1">
+                              {evaluation.buying_signals.map((s: string, i: number) => (
+                                <li key={i} className="flex items-start gap-1.5 text-xs">
+                                  <CheckCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-success)]" />{s}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {evaluation.objections_detected?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--status-danger)] mb-2">Objections Detected</p>
+                            <ul className="space-y-1">
+                              {evaluation.objections_detected.map((o: string, i: number) => (
+                                <li key={i} className="flex items-start gap-1.5 text-xs">
+                                  <AlertCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-danger)]" />{o}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {evaluation.next_best_action && (
+                          <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-1">Recommended Next Action</p>
+                            <p className="text-sm font-medium">{evaluation.next_best_action}</p>
+                          </div>
+                        )}
+
+                        <p className="text-[10px] text-muted-foreground">
+                          Analysed {new Date(evaluation.evaluated_at ?? evaluation.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -1579,6 +2236,322 @@ export default function LeadDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── Edit Company Information Modal ── */}
+      <Modal
+        open={showEditCompanyInfo}
+        onOpenChange={setShowEditCompanyInfo}
+        title="Edit Company Information"
+        description="Update the company details for this lead."
+        size="lg"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowEditCompanyInfo(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitCompanyInfo}
+              disabled={updateLeadMutation.isPending || !companyForm.company_name.trim()}
+            >
+              {updateLeadMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save Changes
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Company Name */}
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Company Name <span className="text-[var(--status-danger)]">*</span>
+              </label>
+              <Input
+                value={companyForm.company_name}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
+                placeholder="e.g. PT. Asahimas Flat Glass"
+              />
+            </div>
+
+            {/* Address */}
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Address</label>
+              <textarea
+                value={companyForm.address}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value }))}
+                placeholder="Full address"
+                rows={2}
+                className="min-h-[60px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
+              />
+            </div>
+
+            {/* Industry */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Industry</label>
+              <Select
+                value={companyForm.industry_id}
+                onChange={(e) =>
+                  setCompanyForm((f) => ({ ...f, industry_id: e.target.value, sub_industry_id: '' }))
+                }
+                placeholder="— Select industry —"
+              >
+                {allIndustries.map((ind: any) => (
+                  <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Sub-Industry */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sub-Industry</label>
+              <Select
+                value={companyForm.sub_industry_id}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, sub_industry_id: e.target.value }))}
+                placeholder="— Select sub-industry —"
+                disabled={!companyForm.industry_id || selectedIndustrySubIndustries.length === 0}
+              >
+                {selectedIndustrySubIndustries.map((sub: any) => (
+                  <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
+              <Input
+                type="tel"
+                value={companyForm.phone}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="+62 31 7882383"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
+              <Input
+                type="email"
+                value={companyForm.email}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="info@company.com"
+              />
+            </div>
+
+            {/* Website */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Website</label>
+              <Input
+                type="url"
+                value={companyForm.website}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, website: e.target.value }))}
+                placeholder="https://www.company.com"
+              />
+            </div>
+
+            {/* Company Size */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company Size</label>
+              <Select
+                value={companyForm.company_size_estimate}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, company_size_estimate: e.target.value }))}
+                placeholder="— Select size —"
+              >
+                <option value="1-10">1–10 employees</option>
+                <option value="11-50">11–50 employees</option>
+                <option value="51-200">51–200 employees</option>
+                <option value="201-500">201–500 employees</option>
+                <option value="501-1000">501–1,000 employees</option>
+                <option value="1000+">1,000+ employees</option>
+              </Select>
+            </div>
+
+            {/* Business Category */}
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category</label>
+              <Input
+                value={companyForm.business_category}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, business_category: e.target.value }))}
+                placeholder="e.g. Manufacturing, Retail, Services"
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Log / Edit Activity Modal ── */}
+      <Modal
+        open={showActivityModal}
+        onOpenChange={(open) => { if (!open) { setShowActivityModal(false); setEditingActivity(null); } }}
+        title={editingActivity ? 'Edit Activity' : 'Log Activity'}
+        description="Record an interaction or update the lead stage."
+        size="lg"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => { setShowActivityModal(false); setEditingActivity(null); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitActivity}
+              disabled={(activityCreateMutation.isPending || activityUpdateMutation.isPending) || !activityForm.activity_type}
+            >
+              {(activityCreateMutation.isPending || activityUpdateMutation.isPending) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {editingActivity ? 'Save Changes' : 'Log Activity'}
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Activity Type */}
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Activity Type <span className="text-[var(--status-danger)]">*</span>
+            </label>
+            <Select
+              value={activityForm.activity_type}
+              onChange={(e) => setActivityForm((f) => ({ ...f, activity_type: e.target.value }))}
+              placeholder="— Select activity type —"
+            >
+              {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </Select>
+          </div>
+
+          {/* Date & Time */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Date & Time</label>
+            <Input
+              type="datetime-local"
+              value={activityForm.activity_date}
+              onChange={(e) => setActivityForm((f) => ({ ...f, activity_date: e.target.value }))}
+            />
+          </div>
+
+          {/* Move Lead Stage */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Move Lead to Stage</label>
+            <Select
+              value={activityForm.funnel_stage_id}
+              onChange={(e) => setActivityForm((f) => ({ ...f, funnel_stage_id: e.target.value }))}
+              placeholder="— No stage change —"
+            >
+              {funnelStages.map((s: any) => (
+                <option key={s.id} value={String(s.id)}>{s.name}</option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Notes */}
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Notes / Description</label>
+            <textarea
+              value={activityForm.description}
+              onChange={(e) => setActivityForm((f) => ({ ...f, description: e.target.value }))}
+              rows={3}
+              placeholder="What happened? Any context or details..."
+              className="min-h-[80px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
+            />
+          </div>
+
+          {/* Outcome */}
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Outcome</label>
+            <Input
+              value={activityForm.outcome}
+              onChange={(e) => setActivityForm((f) => ({ ...f, outcome: e.target.value }))}
+              placeholder="e.g. Decision maker engaged, follow-up scheduled for next week"
+            />
+          </div>
+
+          {/* Next Follow-up */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Next Follow-up Date</label>
+            <Input
+              type="date"
+              value={activityForm.next_follow_up_date}
+              onChange={(e) => setActivityForm((f) => ({ ...f, next_follow_up_date: e.target.value }))}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Delete Activity Confirmation ── */}
+      {deletingActivityId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h2 className="mb-2 text-lg font-semibold">Delete Activity?</h2>
+            <p className="mb-5 text-sm text-muted-foreground">This activity will be permanently removed from the timeline.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeletingActivityId(null)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
+              <button
+                onClick={() => activityDeleteMutation.mutate(deletingActivityId)}
+                disabled={activityDeleteMutation.isPending}
+                className="flex items-center gap-1.5 rounded-lg bg-[var(--status-danger)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+              >
+                {activityDeleteMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Contact Enrichment Source Modal ── */}
+      <Modal
+        open={showEnrichModal}
+        onOpenChange={setShowEnrichModal}
+        title="Enrich Contacts"
+        description="Select sources to search for contact data. Only sources with a configured API key are active."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowEnrichModal(false)}>Cancel</Button>
+            <Button
+              onClick={() => enrichMutation.mutate()}
+              disabled={enrichMutation.isPending || !selectedEnrichSources.includes('lusha')}
+            >
+              {enrichMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Run Enrichment
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2">
+          {ENRICH_SOURCES.map((src) => (
+            <label
+              key={src.id}
+              className={`flex items-start gap-3 rounded-xl border p-3 transition-colors cursor-pointer ${
+                src.available
+                  ? 'border-border hover:bg-muted/30'
+                  : 'border-border/50 opacity-50 cursor-not-allowed'
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                disabled={!src.available}
+                checked={selectedEnrichSources.includes(src.id)}
+                onChange={(e) =>
+                  setSelectedEnrichSources((prev) =>
+                    e.target.checked ? [...prev, src.id] : prev.filter((s) => s !== src.id)
+                  )
+                }
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{src.label}</span>
+                  {src.available
+                    ? <Badge variant="success">Active</Badge>
+                    : <Badge variant="neutral">Not configured</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{src.note}</p>
+              </div>
+            </label>
+          ))}
+          <p className="text-xs text-muted-foreground pt-1">
+            Configure API keys in <strong>Settings → Integrations</strong> to enable additional sources.
+          </p>
+        </div>
+      </Modal>
 
       {/* ── Delete Contact Confirmation ── */}
       {deletingContactId !== null && (

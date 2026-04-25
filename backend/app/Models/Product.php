@@ -12,7 +12,14 @@ class Product extends Model
         'name', 'category', 'description', 'target_industry',
         'target_pain_points', 'target_buyer_persona',
         'ideal_company_profile', 'ai_reference_material',
+        'supported_regions', 'budget_range', 'target_company_size',
+        'use_cases', 'competitor_notes', 'keywords',
         'status', 'created_by',
+    ];
+
+    protected $casts = [
+        'use_cases' => 'array',
+        'keywords'  => 'array',
     ];
 
     public function creator(): BelongsTo

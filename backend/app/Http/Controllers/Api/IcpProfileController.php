@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\IcpProfile;
+use App\Services\AuditService;
+use App\Services\IcpGenerationService;
 use App\Services\Revenue\ICPMatchingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,5 +79,30 @@ class IcpProfileController extends Controller
     {
         $count = $service->batchMatch($icpProfile);
         return response()->json(['message' => "Matched {$count} leads against ICP profile"]);
+    }
+
+    /**
+     * POST /api/icp-profiles/generate
+     * Use AI to generate ICP suggestion(s) from active product data.
+     * Does NOT persist — returns suggestions for user review and editing.
+     */
+    public function generate(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'mode' => 'nullable|in:combined,per_category',
+        ]);
+
+        $mode    = $data['mode'] ?? 'combined';
+        $service = app(IcpGenerationService::class);
+        $result  = $service->generate($mode);
+
+        AuditService::log('generate_icp', 'icp_profiles', null, null, [
+            'mode'              => $mode,
+            'products_analysed' => $result['products_analysed'],
+            'suggestions_count' => count($result['suggestions']),
+            'ai_model'          => $result['ai_model'] ?? null,
+        ]);
+
+        return response()->json($result);
     }
 }

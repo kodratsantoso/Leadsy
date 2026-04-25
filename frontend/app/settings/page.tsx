@@ -1,17 +1,18 @@
 "use client";
 
-import { Settings, Globe, Key, Bell, Shield, Database, Users, Bot, Webhook } from "lucide-react";
+import { Settings, Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target } from "lucide-react";
 import Link from "next/link";
 
 const settingsItems = [
-  { icon: Users, title: "Users & Roles", desc: "User accounts, role management, permissions", href: "/settings/users", color: "from-indigo-500 to-purple-600" },
-  { icon: Bot, title: "AI Defaults", desc: "Providers, API keys, routing, prompts, health, and fallbacks", href: "/settings/ai-defaults", color: "from-indigo-500 to-purple-600" },
-  { icon: Key, title: "Integration & API Keys", desc: "Google Maps, WhatsApp, Lusha, and other non-AI integrations", href: "/settings/integrations", color: "from-amber-500 to-orange-600" },
-  { icon: Webhook, title: "Webhooks", desc: "Webhook URL configuration and event management", href: "/settings/webhooks", color: "from-cyan-500 to-blue-600" },
-  { icon: Globe, title: "Environment", desc: "Runtime environment overview and configuration", href: "/settings/environment", color: "from-blue-500 to-cyan-600" },
-  { icon: Bell, title: "Notifications", desc: "In-app, email, and integration alert preferences", href: "/settings/notifications", color: "from-purple-500 to-violet-600" },
-  { icon: Database, title: "Backup & Recovery", desc: "Scheduled backups, retention, and restore controls", href: "/settings/backup", color: "from-emerald-500 to-green-600" },
-  { icon: Shield, title: "Security", desc: "Session timeout, password policy, auth settings", href: "/settings/security", color: "from-red-500 to-pink-600" },
+  { icon: Users,    title: "Users & Roles",        desc: "User accounts, role management, permissions",                        href: "/settings/users",        color: "from-indigo-500 to-purple-600" },
+  { icon: Bot,      title: "AI Defaults",           desc: "Providers, API keys, routing, prompts, health, and fallbacks",      href: "/settings/ai-defaults",  color: "from-indigo-500 to-purple-600" },
+  { icon: Target,   title: "ICP Profiles",          desc: "Ideal Customer Profiles for lead scoring and ICP match evaluation", href: "/settings/icp-profiles", color: "from-violet-500 to-indigo-600" },
+  { icon: Key,      title: "Integration & API Keys",desc: "Google Maps, WhatsApp, Lusha, and other non-AI integrations",       href: "/settings/integrations", color: "from-amber-500 to-orange-600" },
+  { icon: Webhook,  title: "Webhooks",              desc: "Webhook URL configuration and event management",                    href: "/settings/webhooks",     color: "from-cyan-500 to-blue-600" },
+  { icon: Globe,    title: "Environment",           desc: "Runtime environment overview and configuration",                    href: "/settings/environment",  color: "from-blue-500 to-cyan-600" },
+  { icon: Bell,     title: "Notifications",         desc: "In-app, email, and integration alert preferences",                 href: "/settings/notifications",color: "from-purple-500 to-violet-600" },
+  { icon: Database, title: "Backup & Recovery",     desc: "Scheduled backups, retention, and restore controls",               href: "/settings/backup",       color: "from-emerald-500 to-green-600" },
+  { icon: Shield,   title: "Security",              desc: "Session timeout, password policy, auth settings",                  href: "/settings/security",     color: "from-red-500 to-pink-600" },
 ];
 
 export default function SettingsPage() {

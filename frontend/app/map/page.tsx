@@ -33,10 +33,11 @@ export default function MapPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isDetailFetching, setIsDetailFetching] = useState(false);
-  
+  const [currentAiMode, setCurrentAiMode] = useState<AiMode>("hybrid");
+
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [zoom, setZoom] = useState(13);
-  
+
   const [filters, setFilters] = useState({ hasPhone: false, newOnly: false });
   const [feedback, setFeedback] = useState("");
 
@@ -74,8 +75,11 @@ export default function MapPage() {
     areaInfo?: GeocodeResult;
     aiMode: AiMode;
   }) => {
-    setResults([]);
+    // Capture selected AI mode so results panel uses the correct mode
+    setCurrentAiMode(params.aiMode);
+    // Keep existing results visible during loading (no flash to empty state)
     setSelectedId(null);
+    setFeedback("");
     const discovered = await searchPlaces(
       params.lat,
       params.lng,
@@ -87,12 +91,8 @@ export default function MapPage() {
       params.areaInfo?.place_id
     );
     setResults(discovered);
-    if (params.areaInfo?.viewport) {
-      setCenter({ lat: params.lat, lng: params.lng });
-      setZoom(14);
-    } else {
-      setCenter({ lat: params.lat, lng: params.lng });
-    }
+    setCenter({ lat: params.lat, lng: params.lng });
+    setZoom(14);
   };
 
   const handleSelect = async (placeId: string | null) => {
@@ -119,13 +119,17 @@ export default function MapPage() {
 
   const handleAddLead = async (lead: DiscoveredLead, aiMode: AiMode) => {
     try {
-      await addToLeads(lead, aiMode);
-      setResults(prev => prev.map(r => 
-        r.external_place_id === lead.external_place_id 
-          ? { ...r, dedup: { is_duplicate: true, status: 'existing_new_pic', recommendation: 'skip' } } 
+      const result = await addToLeads(lead, aiMode);
+      setResults(prev => prev.map(r =>
+        r.external_place_id === lead.external_place_id
+          ? { ...r, dedup: { is_duplicate: true, status: 'existing_new_pic', recommendation: 'skip' } }
           : r
       ));
-      setFeedback("Lead added to leads queue successfully.");
+      if (result?.ai_warning) {
+        setFeedback(`Lead added. ⚠ ${result.ai_warning}`);
+      } else {
+        setFeedback("Lead added to leads queue successfully.");
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setFeedback(`Unable to add lead: ${message}`);
@@ -151,8 +155,9 @@ export default function MapPage() {
       </Card>
 
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card">
-      <MapSearchPanel 
+      <MapSearchPanel
         onSearch={handleSearch}
+        onReset={() => { setResults([]); setSelectedId(null); setFeedback(""); }}
         isSearching={isSearching}
         resultCount={results.length}
         onAreaFound={(area) => {
@@ -223,15 +228,16 @@ export default function MapPage() {
       </div>
 
       {(results.length > 0 || isSearching) && (
-        <MapResultsPanel 
+        <MapResultsPanel
           results={filteredResults}
+          totalCount={results.length}
           selectedId={selectedId}
           hoveredId={hoveredId}
           onSelect={handleSelect}
           onHover={setHoveredId}
           onAdd={handleAddLead}
           isDetailFetching={isDetailFetching}
-          aiMode="hybrid"
+          aiMode={currentAiMode}
         />
       )}
       </div>

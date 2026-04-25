@@ -200,3 +200,157 @@
 - [x] CRUD-012: Add WhatsApp Campaign Edit modal
 - [x] CRUD-013: Replace inline confirm() on campaign delete with proper modal
 - [x] CRUD-014: Add updateCampaign backend endpoint
+
+## Phase 11: Lead Detail Page Improvements (2026-04-25)
+
+### Lead Company Information — Edit Capability
+- [x] LEAD-001: Add `company_size_estimate` field to `PUT /api/leads/{lead}` validation in `LeadController::update`
+- [x] LEAD-002: Add edit button (Pencil icon) to Company Information card on Lead detail Overview tab
+- [x] LEAD-003: Implement `CompanyInfoModal` using shared `Modal`, `Input`, `Select`, `Button` components
+- [x] LEAD-004: Fetch industries and sub-industries from `GET /api/industries` (no hardcoded data)
+- [x] LEAD-005: Sub-industry dropdown filtered dynamically by selected industry
+- [x] LEAD-006: Form pre-populated from current lead data on open
+- [x] LEAD-007: `PUT /api/leads/{id}` mutation with `AuditService::logUpdated` audit trail (existing backend)
+- [x] LEAD-008: Show sub-industry and business category in read-only card view when present
+
+## Phase 12: Maps Discovery Improvements (2026-04-25)
+
+### Refresh Button & State Preservation
+- [x] MAP-001: Add explicit Reset button (RotateCcw icon) to search panel that clears results, location, and keyword — the only way to reset state
+- [x] MAP-002: Remove premature `setResults([])` on search start — existing results stay visible during loading (no flash to empty state)
+- [x] MAP-003: Wire `onReset` callback from `map/page.tsx` to `MapSearchPanel` so parent state clears only on explicit reset
+
+### Discovery Result Limit
+- [x] MAP-004: Add `limit` param (max 50) to `GET /api/maps/search` backend validation
+- [x] MAP-005: Implement automatic page-2 and page-3 fetch with 2-second delay when `limit > 20` and `next_page_token` is available (yields up to 60 results, capped at limit)
+- [x] MAP-006: Frontend sends `limit=50` by default in `searchPlaces()` hook
+- [x] MAP-007: Return `total` count alongside `data` in search response
+- [x] MAP-008: Show result count badge in `MapResultsPanel` header (with filter indicator `n/total` when filters are active)
+
+### AI Mode Validation
+- [x] MAP-009: Fix critical bug — `aiMode` was hardcoded as `"hybrid"` in `MapResultsPanel` call, ignoring user's selection
+- [x] MAP-010: Add `currentAiMode` state to `map/page.tsx`, captured from `handleSearch` params and passed correctly to `MapResultsPanel`
+- [x] MAP-011: Backend `addToLeads()` checks for active AI provider when `ai_mode` is `full_ai` or `hybrid`; downgrades to `manual` and returns `ai_warning` if no active provider found
+- [x] MAP-012: Frontend surfaces `ai_warning` from add-to-leads response as visible feedback to the user
+
+### Radius Expansion
+- [x] MAP-013: Frontend radius slider max changed from 20,000m (20km) to 50,000m (50km)
+- [x] MAP-014: Backend already validated radius up to 50,000m — no backend change needed
+
+### DB-Backed Dropdown Categories
+- [x] MAP-015: Create `discovery_categories` migration with columns: `id`, `label`, `value`, `sort_order`, `is_active`
+- [x] MAP-016: Create `DiscoveryCategory` Eloquent model
+- [x] MAP-017: Add `seedDiscoveryCategories()` to `DatabaseSeeder` with 14 default categories (seeded, not hardcoded runtime)
+- [x] MAP-018: Add `GET /api/maps/categories` route + `MapDiscoveryController::categories()` method returning active categories ordered by `sort_order`
+- [x] MAP-019: Frontend `MapSearchPanel` fetches categories from API on mount, replaces hardcoded `<option>` list
+
+## Phase 13: Lead Detail Full Feature Completion (2026-04-25)
+
+### Backend — Activity Enhancement
+- [x] ACT-001: Add `outcome` (string, max 1000) and `next_follow_up_date` (date) columns to `lead_activities` via migration `2026_04_25_110000`
+- [x] ACT-002: Update `LeadActivity` model `$fillable` and `$casts`
+- [x] ACT-003: Update `LeadController::logActivity()` — accepts `activity_type`, `description`, `outcome`, `activity_date`, `next_follow_up_date`, optional `funnel_stage_id` (triggers stage move + history + audit log)
+- [x] ACT-004: Update `LeadController::updateActivity()` — same new fields
+- [x] ACT-005: Update `LeadController::getActivities()` — eager-load `user` relation
+- [x] ACT-006: Fix `rescore()` — `'queued'` violated DB check constraint; changed to `'pending'` then refactored to synchronous execution (no queue worker running in this deployment)
+- [x] ACT-007: Fix `rescore()` — now calls `LeadScoringService::scoreLead()` directly, returns score/grade immediately; `ScoreLeadJob` preserved for future queue-based use
+
+### Frontend — Activities Tab
+- [x] ACT-008: Replace `getElementById`-based form with controlled `activityForm` state
+- [x] ACT-009: Activity type dropdown (14 predefined types: Follow Up, Meeting, Demo, Proposal Sent, Negotiation, WhatsApp, Call, Email, Internal Note, Site Visit, Contract Discussion, Payment Discussion, Decision Maker Contact, Other)
+- [x] ACT-010: Date/time picker, outcome field, next follow-up date, stage-move dropdown (live funnel stages from DB)
+- [x] ACT-011: Timeline view with user attribution, edit/delete per activity, outcome block, follow-up date display
+- [x] ACT-012: Activity modal reused for create and edit modes
+
+### Frontend — Meetings Tab
+- [x] MTG-001: Remove Meetings from tab navigation
+- [x] MTG-002: Replace Meetings tab content with deprecation notice pointing to Activities; existing meeting records preserved below notice
+
+### Frontend — Transcripts Tab
+- [x] TRX-001: Full replacement of "coming soon" stub with working Transcript feature
+- [x] TRX-002: Add/paste transcript form with source type selector (manual, meeting, call, whatsapp)
+- [x] TRX-003: Transcript list with status badge (pending / evaluated)
+- [x] TRX-004: Per-transcript "Analyse with AI" button calling `POST /leads/{id}/transcripts/{id}/evaluate`
+- [x] TRX-005: Inline evaluation result display: sentiment, intent level, interest level, confidence %, buying signals, objections, recommended next action
+- [x] TRX-006: Delete transcript with confirmation
+- [x] TRX-007: Queries for transcripts and evaluations (lazy — only load when tab is active)
+
+### Frontend — Contacts Tab
+- [x] CON-001: Replace single "Enrich via Lusha" alert button with "Enrich Contacts" modal
+- [x] CON-002: Enrichment source checklist (Lusha = active; LinkedIn/Apollo/Hunter = requires config; Manual always available)
+- [x] CON-003: Link to Settings → Integrations from modal for unconfigured sources
+
+### Frontend — Intelligence Tab
+- [x] INT-001: Add "Run Intelligence Functions" action bar to Intelligence tab with 4 buttons: Rescore Lead, Re-qualify, Run ICP Match, Run AI Analysis
+- [x] INT-002: Success/error feedback inline in the action bar
+- [x] INT-003: Fix `scoreMutation.onSuccess` — now invalidates `lead`, `lead-intelligence`, and `lead-progress` queries
+- [x] INT-004: Fix `qualifyMutation.onSuccess` — now invalidates `lead` and `lead-intelligence`
+- [x] INT-005: Fix `icpMatchMutation.onSuccess` — now invalidates both `lead-intelligence` and `revenue-intelligence`
+- [x] INT-006: Fix ICP Match card text — no longer says "go to Revenue tab"
+
+### ICP Profiles Feature
+- [x] ICP-001: Create full ICP Profiles management page at `/settings/icp-profiles`
+- [x] ICP-002: List view with weight bar visualization per profile
+- [x] ICP-003: Create/Edit modal with: name, description, target industries (comma-sep), company size chips, territories (comma-sep), min lead score, 5 weight sliders (sum indicator), active toggle
+- [x] ICP-004: Delete confirmation modal
+- [x] ICP-005: Batch Match button — runs the profile against all leads in the system
+- [x] ICP-006: Add "ICP Profiles" to Settings page grid
+- [x] ICP-007: Add "ICP Profiles" to sidebar navigation (Target icon)
+
+## Phase 14: AI Product Matching Engine — Full BANT + Competitor (2026-04-25)
+
+### Audit findings
+- [x] PM-001: Confirm existing LeadProductMatchingService (hybrid rule+AI, feature route 'product_matching')
+- [x] PM-002: Confirm lead_product_matches table exists (missing BANT/confidence/AI provenance columns)
+- [x] PM-003: Confirm products table missing: supported_regions, budget_range, target_company_size, use_cases, competitor_notes, keywords
+- [x] PM-004: Confirm "Run Product Match" button missing from Intelligence tab
+
+### Backend — Schema
+- [x] PM-005: Migration 2026_04_25_120000 — extend products with: supported_regions, budget_range, target_company_size, use_cases (json), competitor_notes, keywords (json)
+- [x] PM-006: Migration 2026_04_25_120000 — extend lead_product_matches with: bant_analysis (json), reasoning (json), recommended_approach, competitor_context, match_level, confidence_score, ai_provider_used, ai_model_used
+- [x] PM-007: Migration 2026_04_25_120000 — create lead_product_match_runs (audit trail: lead_id, triggered_by, products_evaluated, matches_created, ai_calls_made, total_cost_usd, duration_ms, status, error_message)
+
+### Backend — Models
+- [x] PM-008: Update Product model — new fillable + json casts for use_cases, keywords
+- [x] PM-009: Update LeadProductMatch model — new fillable + casts for bant_analysis, reasoning, confidence_score
+- [x] PM-010: Create LeadProductMatchRun model
+
+### Backend — Service
+- [x] PM-011: Rewrite LeadProductMatchingService::matchLeadToProducts() — builds full lead context from: contacts, activities, qualifications, AI analyses, scores, meetings, transcript evaluations (BANT proxies)
+- [x] PM-012: BANT context builder: Budget (size+industry proxy), Authority (contact title seniority), Need (pain points + AI analysis), Timeline (activity frequency + urgency signals + buying signals), Competitor (transcript objections + competitor_notes from product)
+- [x] PM-013: AI prompt produces structured JSON: match_score, bant_analysis, reasoning[], recommended_approach, competitor_context, confidence_score
+- [x] PM-014: Hybrid scoring: 60% rule-based + 40% AI (upgraded from 70/30)
+- [x] PM-015: match_level derived: strong ≥70, moderate ≥45, weak <45
+- [x] PM-016: Creates lead_product_match_runs audit record per run (duration, cost, status)
+- [x] PM-017: Stores ai_provider_used + ai_model_used on each match record
+
+### Backend — Controller
+- [x] PM-018: LeadController::matchProducts() — passes request user ID for audit trail, returns enriched matches with summary (total, recommended, top match)
+- [x] PM-019: LeadController::intelligence() — updated to load top 5 matches (all, not just recommended) ordered by score
+- [x] PM-020: ProductController::store() + update() — accept all new product fields
+
+### Frontend
+- [x] PM-021: Add matchProductsMutation to lead detail page
+- [x] PM-022: Add "Run Product Match" button to Intelligence tab action bar (5th button, ClipboardList icon)
+- [x] PM-023: Replace basic Recommended Products card with full BANT Product Match display: TOP badge, match_level colored badge, score bar, BANT breakdown grid (Budget/Authority/Need/Timeline/Competitor), reasoning list, recommended approach block, confidence + model footer
+- [x] PM-024: Product Match section always visible in Intelligence tab (empty state prompts to run)
+- [x] PM-025: Products page edit modal — add all new targeting fields: target_company_size, budget_range, supported_regions, keywords, target_pain_points, use_cases, competitor_notes, ideal_company_profile
+
+## Phase 15: AI-Generated ICP Profiles from Product Portfolio (2026-04-25)
+
+### Backend
+- [x] ICP-GEN-001: Add `icp_generation` to `AIRoutingService::FEATURE_CATALOG`
+- [x] ICP-GEN-002: Add default prompt template for `icp_generation` in `AIPromptTemplateService`
+- [x] ICP-GEN-003: Create `IcpGenerationService` — reads all active products, builds structured AI prompt, normalises response into ICP-compatible shape
+- [x] ICP-GEN-004: Support two generation modes: `combined` (one ICP across whole portfolio) and `per_category` (one ICP per distinct product category)
+- [x] ICP-GEN-005: Add `POST /api/icp-profiles/generate` endpoint in `IcpProfileController` — calls service, logs audit, returns suggestions WITHOUT persisting
+- [x] ICP-GEN-006: Register route before `apiResource` to avoid route conflict with `{icpProfile}` param
+
+### Frontend
+- [x] ICP-GEN-007: Add "Generate with AI" split-button to ICP Profiles page header (left = trigger, right = mode dropdown)
+- [x] ICP-GEN-008: Mode dropdown: Combined (one ICP) vs Per Category (one per product category)
+- [x] ICP-GEN-009: Generation error displayed inline below header
+- [x] ICP-GEN-010: Suggestions modal: shows each AI suggestion with name, description, criteria summary, weight bars, AI reasoning, missing data notes
+- [x] ICP-GEN-011: "Use this ICP" button on each suggestion — calls `applySuggestion()` which pre-fills create/edit form with all AI values
+- [x] ICP-GEN-012: Form remains fully editable after pre-fill — user adjusts weights, names, criteria before saving
+- [x] ICP-GEN-013: TypeScript check ✅

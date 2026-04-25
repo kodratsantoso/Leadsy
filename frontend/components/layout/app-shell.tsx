@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Map, Building2, Package, Layers,
-  FileText, MessageSquare, Settings, ClipboardCheck,
+  FileText, MessageSquare, Settings, ClipboardCheck, Target,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
@@ -16,15 +16,16 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { canAccessPath } from "@/lib/permissions";
 
 const navItems = [
-  { href: "/",                icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/map",             icon: Map,             label: "Map & Territory" },
-  { href: "/leads",           icon: Building2,       label: "Leads" },
-  { href: "/qualification/reviews", icon: ClipboardCheck, label: "Review Queue" },
-  { href: "/products",        icon: Package,         label: "Products" },
-  { href: "/industries",      icon: Layers,          label: "Industries" },
-  { href: "/whatsapp",        icon: MessageSquare,   label: "WhatsApp" },
-  { href: "/audit-logs",      icon: FileText,        label: "Audit Logs" },
-  { href: "/settings",        icon: Settings,        label: "Settings" },
+  { href: "/",                       icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/map",                    icon: Map,             label: "Map & Territory" },
+  { href: "/leads",                  icon: Building2,       label: "Leads" },
+  { href: "/qualification/reviews",  icon: ClipboardCheck,  label: "Review Queue" },
+  { href: "/products",               icon: Package,         label: "Products" },
+  { href: "/industries",             icon: Layers,          label: "Industries" },
+  { href: "/settings/icp-profiles",  icon: Target,          label: "ICP Profiles" },
+  { href: "/whatsapp",               icon: MessageSquare,   label: "WhatsApp" },
+  { href: "/audit-logs",             icon: FileText,        label: "Audit Logs" },
+  { href: "/settings",               icon: Settings,        label: "Settings" },
 ];
 
 function ThemedLogo({ collapsed }: { collapsed: boolean }) {

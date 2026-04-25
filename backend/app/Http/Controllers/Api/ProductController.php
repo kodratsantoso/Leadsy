@@ -27,10 +27,16 @@ class ProductController extends Controller
             'category'              => 'nullable|string|max:255',
             'description'           => 'nullable|string',
             'target_industry'       => 'nullable|string|max:255',
+            'target_company_size'   => 'nullable|string|max:255',
             'target_pain_points'    => 'nullable|string',
             'target_buyer_persona'  => 'nullable|string',
             'ideal_company_profile' => 'nullable|string',
             'ai_reference_material' => 'nullable|string',
+            'supported_regions'     => 'nullable|string|max:500',
+            'budget_range'          => 'nullable|string|max:255',
+            'use_cases'             => 'nullable|array',
+            'competitor_notes'      => 'nullable|string',
+            'keywords'              => 'nullable|array',
             'status'                => 'nullable|in:active,inactive',
         ]);
 
@@ -52,10 +58,16 @@ class ProductController extends Controller
             'category'              => 'nullable|string|max:255',
             'description'           => 'nullable|string',
             'target_industry'       => 'nullable|string|max:255',
+            'target_company_size'   => 'nullable|string|max:255',
             'target_pain_points'    => 'nullable|string',
             'target_buyer_persona'  => 'nullable|string',
             'ideal_company_profile' => 'nullable|string',
             'ai_reference_material' => 'nullable|string',
+            'supported_regions'     => 'nullable|string|max:500',
+            'budget_range'          => 'nullable|string|max:255',
+            'use_cases'             => 'nullable|array',
+            'competitor_notes'      => 'nullable|string',
+            'keywords'              => 'nullable|array',
             'status'                => 'nullable|in:active,inactive',
         ]);
 

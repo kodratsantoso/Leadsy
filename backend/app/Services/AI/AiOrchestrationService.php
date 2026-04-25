@@ -217,8 +217,7 @@ class AiOrchestrationService
                 'max_tokens' => $maxTokens ?? 1024,
                 'messages'   => [['role' => 'user', 'content' => $prompt]],
             ],
-            'google' => [
-                'model' => $modelName,
+            'google', 'gemini' => [
                 'contents' => [['parts' => [['text' => $prompt]]]],
             ],
             default => [ // openai-compatible

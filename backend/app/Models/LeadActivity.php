@@ -10,11 +10,13 @@ class LeadActivity extends Model
 {
     protected $fillable = [
         'lead_id', 'activity_type', 'description', 'activity_date',
+        'outcome', 'next_follow_up_date',
         'related_entity_type', 'related_entity_id', 'user_id',
     ];
 
     protected $casts = [
-        'activity_date' => 'datetime',
+        'activity_date'      => 'datetime',
+        'next_follow_up_date'=> 'date',
     ];
 
     public function lead(): BelongsTo

@@ -71,18 +71,20 @@ export function useMapDiscovery() {
     searchMode: "nearby" | "text",
     areaName?: string,
     areaPlaceId?: string,
+    limit: number = 50,
   ): Promise<DiscoveredLead[]> => {
     try {
       setIsSearching(true);
       setError(null);
-      
+
       const queryParams = new URLSearchParams({
         lat: lat.toString(),
         lng: lng.toString(),
         radius: radius.toString(),
         search_mode: searchMode,
+        limit: String(Math.min(limit, 50)),
       });
-      
+
       if (keyword) queryParams.set("keyword", keyword);
       if (category) queryParams.set("category", category);
       if (areaName) queryParams.set("area_name", areaName);
@@ -90,12 +92,12 @@ export function useMapDiscovery() {
 
       const res = await apiFetch(`/maps/search?${queryParams.toString()}`);
       const data = await res.json();
-      
+
       if (!res.ok) {
         setError(data.error || "Search failed");
         return [];
       }
-      
+
       return data.data || [];
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error");
@@ -142,11 +144,12 @@ export function useMapDiscovery() {
       });
       
       const data = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(data.message || data.error || "Failed to add lead");
       }
-      return data.data;
+      // Return both data and any AI warning from the server
+      return { data: data.data, ai_warning: data.ai_warning ?? null };
     } catch (err) {
       throw err;
     } finally {

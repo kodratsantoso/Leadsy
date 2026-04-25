@@ -248,3 +248,125 @@
   - Shared primitives now exist for `Input`, `Select`, `Badge`, `Card`, `Modal`, `Tabs`, `FilterBar`, and `Table`.
   - `frontend/app/leads/page.tsx`, `frontend/app/settings/users/page.tsx`, and `frontend/app/audit-logs/page.tsx` now share one admin interaction pattern.
   - `frontend/app/map/page.tsx` and `frontend/app/settings/ai-defaults/page.tsx` were normalized to the same runtime design language.
+
+## ADR-033: Company Information Edit Uses Inline Modal, Not Drawer or Separate Page
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: Company Information editing is implemented as a `Modal` (lg, scrollable) launched from a Pencil icon in the card header, reusing the existing shared `Modal`, `Input`, `Select`, and `Button` primitives.
+- **Rationale**: The contact edit pattern already established a modal-per-entity convention on this page (ContactFormModal). A modal is appropriate for a bounded field set (9 fields) and keeps the user in context. A separate route would break the single-page detail flow; a drawer was not considered because no drawer primitive exists in the shared UI system.
+- **Impact**: Consistent with ADR-032 (admin UI must use shared primitives). No new UI pattern introduced.
+
+## ADR-034: Industry/Sub-Industry Data Fetched from API, Never Hardcoded
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: The edit form populates the Industry and Sub-Industry dropdowns from `GET /api/industries` (which returns each industry with its `sub_industries`). Sub-industries are filtered client-side by the selected `industry_id`.
+- **Rationale**: Industry and sub-industry master data is owned by the DB and managed through the Industries admin page. Hardcoding them in the lead edit form would create a maintenance divergence and violate STAB-008 (convert runtime lists to DB/API-backed sources).
+- **Impact**: The `industries` query is cached by React Query; no extra round-trips on subsequent opens of the same session.
+
+## ADR-035: company_size_estimate Uses a Constrained Select in the Edit Form
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: The company size field is presented as a `Select` with six predefined bands (1–10, 11–50, 51–200, 201–500, 501–1000, 1000+), matching common CRM conventions. The backend stores it as a free-text string (`nullable|string|max:100`), so existing values are preserved.
+- **Rationale**: Free-text entry for company size produces inconsistent data (e.g. "~200", "200 people", "201-500"). Banding at input time improves data quality for scoring and ICP matching without requiring a DB schema change.
+- **Impact**: If an existing lead has a value that does not match one of the bands, the Select will show an empty selection on open. This is acceptable for now; the user can pick the nearest band and save.
+
+## ADR-036: Maps Discovery Refresh = Explicit User Action Only
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: Results are not cleared until the user explicitly clicks the Reset button (RotateCcw icon). Clicking "Run Discovery Scan" again replaces results only when the new scan completes, keeping existing results visible during loading.
+- **Rationale**: Auto-clearing on scan start caused a flash of empty state that felt like a page reset to users. Preserving results during loading is consistent with how other list views in the app behave.
+- **Impact**: `handleSearch` no longer calls `setResults([])`. A `RotateCcw` Reset button is added to `MapSearchPanel` as the single intentional reset path.
+
+## ADR-037: Discovery Result Limit Uses Sequential Page Fetching with Mandatory Delay
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: When `limit > 20`, the backend fetches page 2 (and page 3 when `limit > 40`) using Google's `next_page_token` with a 2-second `sleep()` between each request.
+- **Rationale**: Google Places API requires a minimum 2-second delay before a `next_page_token` request is valid. Client-side pagination would require multiple round-trips and a timer; server-side pagination keeps the client simple. The `MapCandidate` cache (`cacheCandidates`) reduces repeat costs for the same places.
+- **Impact**: Searches requesting limit=50 may take 4–6 seconds. Searches that stay within 20 results are unaffected. Documented as expected latency, not a bug.
+
+## ADR-038: AI Mode Validation Is Non-Blocking — Warning, Not Error
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: If a user selects `full_ai` or `hybrid` but no active AI provider is configured, the lead is still saved (mode downgraded to `manual`) and an `ai_warning` field is returned in the response.
+- **Rationale**: Blocking the lead addition when AI is unavailable would prevent data capture. The warning surface makes the degradation visible without losing the lead. This matches the pattern used elsewhere (e.g., enrichment jobs — the lead is created and jobs are queued; if the queue worker fails, the lead data is not lost).
+- **Impact**: Frontend surfaces `ai_warning` as a feedback message. Backend downgrades mode to `manual` when no active provider exists, ensuring no AI job is dispatched unnecessarily.
+
+## ADR-039: Discovery Categories Stored in DB, Seeded Once, Managed at Runtime
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: Place category options in the Maps Discovery search panel come from the `discovery_categories` DB table via `GET /api/maps/categories`, not from hardcoded JSX.
+- **Rationale**: Satisfies STAB-008 (convert runtime lists to DB/API-backed sources). Categories may need to be updated as the business expands to new verticals; DB-backed storage allows an admin to add/deactivate categories without a code deploy.
+- **Impact**: `DatabaseSeeder::seedDiscoveryCategories()` provides 14 initial categories. The `MapSearchPanel` fetches categories on mount via `apiFetch`. If the fetch fails, the dropdown renders empty (graceful degradation — the user can still type a keyword to search).
+
+## ADR-040: Meetings Tab Deprecated — Activities Is the Single Timeline
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: The Meetings tab is removed from the Lead Detail navigation. Users log meetings as a "Meeting" activity in the Activities tab. Legacy meeting records from `lead_meetings` remain visible via a read-only archive block in the deprecated Meetings view (accessible only via direct URL).
+- **Rationale**: `logMeeting()` already created a `LeadActivity` entry, so meetings already appeared in the activities list. Having two separate tabs for the same interaction timeline caused confusion. Activities is a superset of meetings.
+- **Impact**: No data loss — `lead_meetings` table is unchanged. The Meetings tab is reachable at `/leads/[id]?tab=meetings` but not surfaced in the nav.
+
+## ADR-041: Rescore Runs Synchronously — No Dedicated Queue Worker
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: `POST /leads/{lead}/rescore` now calls `LeadScoringService::scoreLead()` inline and returns the score result directly. `ScoreLeadJob` is preserved in the codebase for future use but is not dispatched on manual rescore.
+- **Rationale**: The container only runs `php artisan serve`. There is no `php artisan queue:work` process, so dispatched jobs sit in the queue forever and never execute. Synchronous execution gives immediate feedback.
+- **Impact**: Rescore is slightly slower under load (blocking the request thread for the duration of scoring). Acceptable for a manual trigger. If a queue worker is added later, the job-based path can be restored.
+
+## ADR-042: ICP Profile Weights Are User-Configurable Sliders
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: The five ICP matching weights (lead_score, industry, company_size, territory, contact_info) are exposed as sliders in the ICP Profile editor. A live "total" indicator shows when weights sum to 100%.
+- **Rationale**: Different target segments require different relative emphasis. A manufacturing ICP might weight territory heavily; a tech SaaS ICP might weight contact info more. Hardcoding weights would make the system inflexible.
+- **Impact**: Users are responsible for ensuring weights are coherent. The system does not enforce that they sum to exactly 1.0 — the ICPMatchingService normalises them during computation.
+
+## ADR-043: Transcript Analysis Is Initiated Manually Per Transcript
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: AI transcript analysis is triggered by an explicit "Analyse with AI" button per transcript rather than running automatically on save.
+- **Rationale**: AI calls have a cost. Running analysis on every paste/save could consume significant tokens for transcripts that are draft or may be discarded. Explicit opt-in keeps the user in control of when AI is invoked.
+- **Impact**: Users must click the button to see analysis. The transcript status badge (`pending` vs `evaluated`) gives clear visibility of which transcripts have been analysed.
+
+## ADR-044: Product Matching Uses 60/40 Rule+AI Split (Upgraded from 70/30)
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: The hybrid scoring formula is 60% rule-based (industry, size, authority, engagement, contact completeness) + 40% AI BANT analysis.
+- **Rationale**: The original 70/30 underweighted AI context. With BANT variables now passed to AI (authority, timeline, competitor), the AI score is more informative and deserves higher weighting. The rule-based floor prevents garbage AI scores from dominating.
+
+## ADR-045: BANT Variables Are Derived from Existing Lead Data, Not a Separate Form
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: Budget, Authority, Need, Timeline, and Competitor signals are inferred from existing lead relations (contacts, activities, qualifications, AI analyses, transcript evaluations) — not captured via a dedicated BANT form.
+- **Rationale**: Adding a BANT questionnaire form would require users to re-enter data they've already captured through activities, transcripts, and meetings. The derivation approach makes matching available immediately without extra data entry.
+- **Impact**: BANT quality depends on data richness. Leads with activities, transcripts, and contacts will get more accurate matches. Empty leads default to the rule-based score.
+
+## ADR-046: lead_product_match_runs Is a Dedicated Audit Table (Not Reusing ai_requests)
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: A dedicated `lead_product_match_runs` table captures per-run metadata (products evaluated, matches created, total AI cost, duration, status). Individual AI calls still log to `ai_requests`.
+- **Rationale**: `ai_requests` captures individual model calls. A "run" spans multiple products and multiple AI calls. The run table aggregates business-level metrics (how many products were evaluated, how many matched) that are not representable in `ai_requests`.
+
+## ADR-047: Product Metadata Is Editable per Product, Not Global Config
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: All product matching metadata (budget_range, competitor_notes, use_cases, keywords, target_company_size) is stored per-product in the `products` table and editable in the Products admin page.
+- **Rationale**: Different products have different positioning, pricing, and competitor landscapes. A global config cannot represent per-product nuance. Richer per-product metadata directly improves AI prompt quality and therefore match accuracy.
+
+## ADR-048: AI-Generated ICP Is a Suggestion, Not an Auto-Save
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: `POST /api/icp-profiles/generate` returns suggestion data but does NOT create an ICP record. The user must review, edit, and explicitly click Save.
+- **Rationale**: ICP profiles directly affect lead scoring and pipeline entry gates across all leads. Auto-saving an AI-generated profile without human review could silently change qualification outcomes for the entire lead database. Human confirmation is required.
+- **Impact**: The flow is: Generate → Review modal → "Use this ICP" pre-fills form → User edits → Save. This adds one explicit confirmation step that carries significant consequence.
+
+## ADR-049: Two Generation Modes — Combined vs Per Category
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: The generate endpoint accepts a `mode` param: `combined` (one ICP synthesised across all products) or `per_category` (one ICP per distinct product category). Per-category makes one AI call per category group.
+- **Rationale**: A company selling both ERP software and fleet management systems has fundamentally different target customers per product line. A single combined ICP would be too broad to be useful. Per-category produces more targeted, actionable profiles.
+- **Impact**: Per-category mode consumes one AI call per category. If there are 5 categories and AI costs $0.01/call, a single generation run costs ~$0.05. Documented in AI usage logs.
+
+## ADR-050: `icp_generation` Uses the Configured AI Default Route
+- **Date**: 2026-04-25
+- **Status**: Active
+- **Decision**: `IcpGenerationService` calls `AiOrchestrationService::call('icp_generation', ...)` using the standard feature routing. The feature `icp_generation` appears in the AI Defaults → Feature Routes table and can be assigned any provider/model.
+- **Rationale**: Consistent with all other AI features in the platform. No hardcoded providers. Users can assign a cheaper model (e.g. GPT-4o mini, Claude Haiku) to ICP generation since it runs infrequently and the output is human-reviewed before saving.
