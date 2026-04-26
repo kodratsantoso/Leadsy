@@ -43,7 +43,11 @@ type LeadRecord = {
   address?: string | null;
   phone?: string | null;
   email?: string | null;
+  website?: string | null;
   business_category?: string | null;
+  company_size_estimate?: string | null;
+  industry_id?: number | null;
+  sub_industry_id?: number | null;
   qualification_status?: string | null;
   lead_score?: number | null;
   funnel_stage_id?: number | null;
@@ -57,9 +61,13 @@ type FunnelStage = { id: number; name: string; sequence: number };
 type LeadFormState = {
   company_name: string;
   address: string;
-  business_category: string;
   email: string;
   phone: string;
+  website: string;
+  industry_id: string;
+  sub_industry_id: string;
+  company_size_estimate: string;
+  business_category: string;
   funnel_stage_id: string;
   qualification_status: string;
 };
@@ -67,9 +75,13 @@ type LeadFormState = {
 const emptyForm: LeadFormState = {
   company_name: "",
   address: "",
-  business_category: "",
   email: "",
   phone: "",
+  website: "",
+  industry_id: "",
+  sub_industry_id: "",
+  company_size_estimate: "",
+  business_category: "",
   funnel_stage_id: "",
   qualification_status: "pending",
 };
@@ -143,6 +155,14 @@ export default function LeadsPage() {
     },
   });
 
+  const { data: industriesData } = useQuery({
+    queryKey: ["industries"],
+    queryFn: async () => {
+      const response = await apiFetch("/industries");
+      return response.json();
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["leads", page, search, funnelStageId, qualificationFilter, duplicateFilter, minScore, maxScore],
     queryFn: async () => {
@@ -159,6 +179,10 @@ export default function LeadsPage() {
   });
 
   const funnelStages: FunnelStage[] = stagesData?.data ?? stagesData ?? [];
+  const allIndustries: { id: number; name: string; sub_industries: { id: number; name: string }[] }[] =
+    industriesData?.data ?? [];
+  const selectedSubIndustries =
+    allIndustries.find((i) => String(i.id) === formState.industry_id)?.sub_industries ?? [];
   const leads: LeadRecord[] = data?.data ?? [];
   const total = data?.total ?? 0;
   const lastPage = data?.last_page ?? 1;
@@ -166,32 +190,50 @@ export default function LeadsPage() {
   const resetForm = () => setFormState(emptyForm);
 
   const createMutation = useMutation({
-    mutationFn: async (payload: Record<string, unknown>) =>
-      apiFetch("/leads", {
+    mutationFn: async (payload: Record<string, unknown>) => {
+      const res = await apiFetch("/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message ?? `Failed to create lead (${res.status})`);
+      }
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       setCreateOpen(false);
       resetForm();
       setFeedback("Lead created successfully.");
     },
+    onError: (err: Error) => {
+      setFeedback(err.message);
+    },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
-      apiFetch(`/leads/${id}`, {
+    mutationFn: async ({ id, payload }: { id: number; payload: Record<string, unknown> }) => {
+      const res = await apiFetch(`/leads/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message ?? `Failed to update lead (${res.status})`);
+      }
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       setEditLead(null);
       resetForm();
       setFeedback("Lead updated successfully.");
+    },
+    onError: (err: Error) => {
+      setFeedback(err.message);
     },
   });
 
@@ -231,13 +273,17 @@ export default function LeadsPage() {
   const openEdit = (lead: LeadRecord) => {
     setEditLead(lead);
     setFormState({
-      company_name: lead.company_name || "",
-      address: lead.address || "",
-      business_category: lead.business_category || lead.industry?.name || "",
-      email: lead.email || "",
-      phone: lead.phone || "",
-      funnel_stage_id: String(lead.funnel_stage_id ?? lead.current_funnel_stage?.id ?? ""),
-      qualification_status: lead.qualification_status || "pending",
+      company_name:          lead.company_name || "",
+      address:               lead.address || "",
+      email:                 lead.email || "",
+      phone:                 lead.phone || "",
+      website:               lead.website || "",
+      industry_id:           lead.industry_id != null ? String(lead.industry_id) : "",
+      sub_industry_id:       lead.sub_industry_id != null ? String(lead.sub_industry_id) : "",
+      company_size_estimate: lead.company_size_estimate || "",
+      business_category:     lead.business_category || "",
+      funnel_stage_id:       String(lead.funnel_stage_id ?? lead.current_funnel_stage?.id ?? ""),
+      qualification_status:  lead.qualification_status || "pending",
     });
   };
 
@@ -254,11 +300,15 @@ export default function LeadsPage() {
 
   const submitCreate = () => {
     createMutation.mutate({
-      company_name: formState.company_name,
-      address: formState.address,
-      business_category: formState.business_category,
-      email: formState.email,
-      phone: formState.phone,
+      company_name:          formState.company_name,
+      address:               formState.address || undefined,
+      email:                 formState.email || undefined,
+      phone:                 formState.phone || undefined,
+      website:               formState.website || undefined,
+      industry_id:           formState.industry_id ? Number(formState.industry_id) : undefined,
+      sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : undefined,
+      company_size_estimate: formState.company_size_estimate || undefined,
+      business_category:     formState.business_category || undefined,
     });
   };
 
@@ -267,13 +317,17 @@ export default function LeadsPage() {
     updateMutation.mutate({
       id: editLead.id,
       payload: {
-        company_name: formState.company_name,
-        address: formState.address,
-        business_category: formState.business_category,
-        email: formState.email,
-        phone: formState.phone,
-        funnel_stage_id: formState.funnel_stage_id || null,
-        qualification_status: formState.qualification_status || null,
+        company_name:          formState.company_name,
+        address:               formState.address || null,
+        email:                 formState.email || null,
+        phone:                 formState.phone || null,
+        website:               formState.website || null,
+        industry_id:           formState.industry_id ? Number(formState.industry_id) : null,
+        sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : null,
+        company_size_estimate: formState.company_size_estimate || null,
+        business_category:     formState.business_category || null,
+        funnel_stage_id:       formState.funnel_stage_id || null,
+        qualification_status:  formState.qualification_status || null,
       },
     });
   };
@@ -611,7 +665,7 @@ export default function LeadsPage() {
           if (!open) resetForm();
         }}
         title="Create Lead"
-        description="Use the shared admin modal and form styles for new lead records."
+        description="Add a new lead company to the platform."
         footer={
           <>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
@@ -619,7 +673,7 @@ export default function LeadsPage() {
             </Button>
             <Button
               onClick={submitCreate}
-              disabled={createMutation.isPending || !formState.company_name}
+              disabled={createMutation.isPending || !formState.company_name.trim()}
             >
               {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Create Lead
@@ -629,52 +683,101 @@ export default function LeadsPage() {
       >
         <div className="grid gap-4">
           <div className="grid gap-2">
-            <label className="text-sm font-medium">Company Name</label>
+            <label className="text-sm font-medium">Company Name <span className="text-destructive">*</span></label>
             <Input
               value={formState.company_name}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, company_name: event.target.value }))
-              }
+              onChange={(e) => setFormState((s) => ({ ...s, company_name: e.target.value }))}
+              placeholder="e.g. PT Artha Solusi Global"
             />
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Address</label>
             <Input
               value={formState.address}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, address: event.target.value }))
-              }
-            />
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Industry / Category</label>
-            <Input
-              value={formState.business_category}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, business_category: event.target.value }))
-              }
+              onChange={(e) => setFormState((s) => ({ ...s, address: e.target.value }))}
+              placeholder="Full company address"
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Industry</label>
+              <Select
+                value={formState.industry_id}
+                onChange={(e) =>
+                  setFormState((s) => ({ ...s, industry_id: e.target.value, sub_industry_id: "" }))
+                }
+                placeholder="Select industry"
+              >
+                {allIndustries.map((ind) => (
+                  <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Sub-Industry</label>
+              <Select
+                value={formState.sub_industry_id}
+                onChange={(e) => setFormState((s) => ({ ...s, sub_industry_id: e.target.value }))}
+                placeholder="Select sub-industry"
+                disabled={!formState.industry_id || selectedSubIndustries.length === 0}
+              >
+                {selectedSubIndustries.map((sub) => (
+                  <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
+                ))}
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Phone</label>
+              <Input
+                value={formState.phone}
+                onChange={(e) => setFormState((s) => ({ ...s, phone: e.target.value }))}
+                placeholder="e.g. 6281234567890"
+              />
+            </div>
             <div className="grid gap-2">
               <label className="text-sm font-medium">Email</label>
               <Input
                 type="email"
                 value={formState.email}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, email: event.target.value }))
-                }
+                onChange={(e) => setFormState((s) => ({ ...s, email: e.target.value }))}
+                placeholder="info@company.com"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Website</label>
+              <Input
+                value={formState.website}
+                onChange={(e) => setFormState((s) => ({ ...s, website: e.target.value }))}
+                placeholder="https://www.company.com"
               />
             </div>
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Phone</label>
-              <Input
-                value={formState.phone}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, phone: event.target.value }))
-                }
-              />
+              <label className="text-sm font-medium">Company Size</label>
+              <Select
+                value={formState.company_size_estimate}
+                onChange={(e) => setFormState((s) => ({ ...s, company_size_estimate: e.target.value }))}
+                placeholder="Select size"
+              >
+                <option value="1-10">1–10 employees</option>
+                <option value="11-50">11–50 employees</option>
+                <option value="51-200">51–200 employees</option>
+                <option value="201-500">201–500 employees</option>
+                <option value="501-1000">501–1,000 employees</option>
+                <option value="1000+">1,000+ employees</option>
+              </Select>
             </div>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Business Category</label>
+            <Input
+              value={formState.business_category}
+              onChange={(e) => setFormState((s) => ({ ...s, business_category: e.target.value }))}
+              placeholder="e.g. Property Management"
+            />
           </div>
         </div>
       </Modal>
@@ -719,67 +822,108 @@ export default function LeadsPage() {
       >
         <div className="grid gap-4">
           <div className="grid gap-2">
-            <label className="text-sm font-medium">Company Name</label>
+            <label className="text-sm font-medium">Company Name <span className="text-destructive">*</span></label>
             <Input
               value={formState.company_name}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, company_name: event.target.value }))
-              }
+              onChange={(e) => setFormState((s) => ({ ...s, company_name: e.target.value }))}
             />
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Address</label>
             <Input
               value={formState.address}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, address: event.target.value }))
-              }
-            />
-          </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Industry / Category</label>
-            <Input
-              value={formState.business_category}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, business_category: event.target.value }))
-              }
+              onChange={(e) => setFormState((s) => ({ ...s, address: e.target.value }))}
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Industry</label>
+              <Select
+                value={formState.industry_id}
+                onChange={(e) =>
+                  setFormState((s) => ({ ...s, industry_id: e.target.value, sub_industry_id: "" }))
+                }
+                placeholder="Select industry"
+              >
+                {allIndustries.map((ind) => (
+                  <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Sub-Industry</label>
+              <Select
+                value={formState.sub_industry_id}
+                onChange={(e) => setFormState((s) => ({ ...s, sub_industry_id: e.target.value }))}
+                placeholder="Select sub-industry"
+                disabled={!formState.industry_id || selectedSubIndustries.length === 0}
+              >
+                {selectedSubIndustries.map((sub) => (
+                  <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
+                ))}
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Phone</label>
+              <Input
+                value={formState.phone}
+                onChange={(e) => setFormState((s) => ({ ...s, phone: e.target.value }))}
+              />
+            </div>
             <div className="grid gap-2">
               <label className="text-sm font-medium">Email</label>
               <Input
                 type="email"
                 value={formState.email}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, email: event.target.value }))
-                }
+                onChange={(e) => setFormState((s) => ({ ...s, email: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Website</label>
+              <Input
+                value={formState.website}
+                onChange={(e) => setFormState((s) => ({ ...s, website: e.target.value }))}
+                placeholder="https://www.company.com"
               />
             </div>
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Phone</label>
-              <Input
-                value={formState.phone}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, phone: event.target.value }))
-                }
-              />
+              <label className="text-sm font-medium">Company Size</label>
+              <Select
+                value={formState.company_size_estimate}
+                onChange={(e) => setFormState((s) => ({ ...s, company_size_estimate: e.target.value }))}
+                placeholder="Select size"
+              >
+                <option value="1-10">1–10 employees</option>
+                <option value="11-50">11–50 employees</option>
+                <option value="51-200">51–200 employees</option>
+                <option value="201-500">201–500 employees</option>
+                <option value="501-1000">501–1,000 employees</option>
+                <option value="1000+">1,000+ employees</option>
+              </Select>
             </div>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Business Category</label>
+            <Input
+              value={formState.business_category}
+              onChange={(e) => setFormState((s) => ({ ...s, business_category: e.target.value }))}
+              placeholder="e.g. Property Management"
+            />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <label className="text-sm font-medium">Stage</label>
               <Select
                 value={formState.funnel_stage_id}
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, funnel_stage_id: event.target.value }))
-                }
+                onChange={(e) => setFormState((s) => ({ ...s, funnel_stage_id: e.target.value }))}
                 placeholder="Unassigned"
               >
                 {funnelStages.map((stage) => (
-                  <option key={stage.id} value={String(stage.id)}>
-                    {stage.name}
-                  </option>
+                  <option key={stage.id} value={String(stage.id)}>{stage.name}</option>
                 ))}
               </Select>
             </div>
@@ -787,12 +931,7 @@ export default function LeadsPage() {
               <label className="text-sm font-medium">Qualification</label>
               <Select
                 value={formState.qualification_status}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    qualification_status: event.target.value,
-                  }))
-                }
+                onChange={(e) => setFormState((s) => ({ ...s, qualification_status: e.target.value }))}
               >
                 <option value="pending">Pending</option>
                 <option value="eligible">Eligible</option>
