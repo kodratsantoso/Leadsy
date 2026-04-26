@@ -651,3 +651,43 @@ The existing service was a working stub: hybrid rule+AI scoring with minimal lea
 
 ### Verification
 - `tsc --noEmit` ✅ (0 errors)
+
+## Deploy Bootstrap Standardisation (2026-04-26 ✅)
+
+### What was built
+
+**Problem**: The production entrypoint ran `php artisan db:seed --force` without differentiating between production and demo data, and had no wait-for-database logic. No documentation existed for the DB bootstrap strategy.
+
+**Solution:**
+
+**`ProductionSeeder.php`** (new):
+- Orchestrates `DatabaseSeeder` for production use
+- Called by entrypoint when `AUTO_SEED_BASELINE=true`
+- All underlying seed methods use `firstOrCreate` — idempotent on every deploy
+
+**`DemoSeeder.php`** (new):
+- Placeholder for staging/demo data (sample leads, test contacts)
+- Only runs when `SEED_DEMO_DATA=true` — never in production by default
+
+**`docker-entrypoint.production.sh`** (updated):
+- Added PHP PDO wait-for-db retry loop (max 30 × 3s = 90s)
+- `AUTO_MIGRATE=true` gate controls whether migrations run
+- `AUTO_SEED_BASELINE=true` gate controls whether ProductionSeeder runs
+- `SEED_DEMO_DATA=false` gate controls DemoSeeder (off by default)
+- Uses `--class=ProductionSeeder` instead of bare `db:seed`
+
+**`backend/.env.example`** (updated):
+- Added `AUTO_MIGRATE`, `AUTO_SEED_BASELINE`, `SEED_DEMO_DATA`
+
+**`scripts/sync-db-local-to-vps.sh`** (new):
+- Manual one-time helper: pg_dump locally → scp → docker exec restore on VPS
+- Confirmation prompt before overwriting VPS data
+- Configurable via env vars (LOCAL_DB_PORT, VPS_HOST, VPS_USER, etc.)
+
+**`docs/deployment/database-bootstrap.md`** (new):
+- Full documentation: why no DB files in Git, migration vs seeder strategy, entrypoint flow, env var table, Coolify checklist, validation commands, local-to-VPS sync options
+
+### Verification
+- All seeders idempotent (firstOrCreate throughout)
+- SEED_DEMO_DATA defaults to false — production-safe
+- Wait-for-db loop prevents race condition with Postgres startup

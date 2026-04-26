@@ -370,3 +370,27 @@
 - **Status**: Active
 - **Decision**: `IcpGenerationService` calls `AiOrchestrationService::call('icp_generation', ...)` using the standard feature routing. The feature `icp_generation` appears in the AI Defaults → Feature Routes table and can be assigned any provider/model.
 - **Rationale**: Consistent with all other AI features in the platform. No hardcoded providers. Users can assign a cheaper model (e.g. GPT-4o mini, Claude Haiku) to ICP generation since it runs infrequently and the output is human-reviewed before saving.
+
+## ADR-051: Database Bootstrap via Migrations + Seeders, Not Volume Commits
+- **Date**: 2026-04-26
+- **Status**: Active
+- **Decision**: DB structure is managed via Laravel migrations; baseline records via idempotent seeders (ProductionSeeder); demo data via env-gated DemoSeeder. Raw PostgreSQL volume data is never committed to Git.
+- **Rationale**: Docker volumes are binary, environment-specific, and large. Committing them would corrupt the repo and break every other environment. Migrations + seeders are the Laravel-canonical approach and support clean cold-start deploys.
+
+## ADR-052: Entrypoint Controls Migrate/Seed via Env Vars
+- **Date**: 2026-04-26
+- **Status**: Active
+- **Decision**: `AUTO_MIGRATE`, `AUTO_SEED_BASELINE`, and `SEED_DEMO_DATA` env vars (set in Coolify) control whether the entrypoint runs migrate, seeds production data, or seeds demo data on each container start.
+- **Rationale**: Allows operators to disable auto-migrate or auto-seed for specific scenarios (e.g. maintenance, read-only replicas, manual migration runs) without editing entrypoint code. Defaults are production-safe: migrate=true, baseline=true, demo=false.
+
+## ADR-053: ProductionSeeder Is the Single Source of Truth for Baseline Records
+- **Date**: 2026-04-26
+- **Status**: Active
+- **Decision**: `ProductionSeeder → DatabaseSeeder` is the canonical path for all baseline records. DemoSeeder is kept strictly separate and env-gated.
+- **Rationale**: Separating production data from demo data prevents accidental seeding of test records in production. The entrypoint and documentation both reference ProductionSeeder by class name for clarity.
+
+## ADR-054: Local-to-VPS DB Sync Is a Manual Script, Not CI/CD Step
+- **Date**: 2026-04-26
+- **Status**: Active
+- **Decision**: `scripts/sync-db-local-to-vps.sh` exists as a documented manual helper for one-time DB migrations from local to VPS. It is never called by CI/CD or the entrypoint.
+- **Rationale**: Moving actual business data between environments is a deliberate human action requiring confirmation. Automating it would risk overwriting VPS production data with local test data on every deploy.

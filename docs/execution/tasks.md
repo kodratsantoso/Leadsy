@@ -354,3 +354,14 @@
 - [x] ICP-GEN-011: "Use this ICP" button on each suggestion — calls `applySuggestion()` which pre-fills create/edit form with all AI values
 - [x] ICP-GEN-012: Form remains fully editable after pre-fill — user adjusts weights, names, criteria before saving
 - [x] ICP-GEN-013: TypeScript check ✅
+
+## Deploy Bootstrap Standardisation (2026-04-26)
+
+- [x] DB-BOOT-001: Create `backend/database/seeders/ProductionSeeder.php` — orchestrates DatabaseSeeder for production
+- [x] DB-BOOT-002: Create `backend/database/seeders/DemoSeeder.php` — empty placeholder for staging demo data (never runs in production)
+- [x] DB-BOOT-003: Update `backend/docker-entrypoint.production.sh` — add wait-for-db loop (PHP PDO retry), env-var-controlled migrate and seed steps
+- [x] DB-BOOT-004: Update `backend/.env.example` — add AUTO_MIGRATE, AUTO_SEED_BASELINE, SEED_DEMO_DATA
+- [x] DB-BOOT-005: Create `scripts/sync-db-local-to-vps.sh` — manual one-time pg_dump/restore helper with confirmation prompt
+- [x] DB-BOOT-006: Create `docs/deployment/database-bootstrap.md` — full deployment database strategy reference
+- [x] DB-BOOT-007: Update execution docs (decisions, tasks, progress)
+- [x] DB-BOOT-008: Commit and push to GitHub
