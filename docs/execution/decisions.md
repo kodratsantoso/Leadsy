@@ -394,3 +394,21 @@
 - **Status**: Active
 - **Decision**: `scripts/sync-db-local-to-vps.sh` exists as a documented manual helper for one-time DB migrations from local to VPS. It is never called by CI/CD or the entrypoint.
 - **Rationale**: Moving actual business data between environments is a deliberate human action requiring confirmation. Automating it would risk overwriting VPS production data with local test data on every deploy.
+
+## ADR-055: Category Options for AI Product Generation Come from DB, Not Config
+- **Date**: 2026-04-26
+- **Status**: Active
+- **Decision**: The `POST /api/products/ai-generate` endpoint loads distinct category values from existing products + all active industry names, merges them, and sends this list to AI. The AI is instructed to choose ONLY from this list. The backend normalises by validating returned categories case-insensitively against the available list.
+- **Rationale**: Free-text AI categories would cause data drift and break filtering/grouping over time. Using DB values ensures every AI-generated category already exists in the system. The categories table is implicit (products.category + industries.name) rather than requiring a new master table.
+
+## ADR-056: AI Product Generation Returns Suggestions — Fields Remain Fully Editable
+- **Date**: 2026-04-26
+- **Status**: Active
+- **Decision**: AI-generated values are populated into the form but are NOT auto-saved. The user must review and click "Create/Update Product" to persist. All fields remain editable after AI fill.
+- **Rationale**: Consistent with ADR-048 (ICP generation). AI output for product metadata may require human correction (e.g. wrong budget range, off-target persona). Requiring explicit save prevents incorrect AI data entering the product catalog silently.
+
+## ADR-057: product_metadata_generation Uses Standard AI Feature Route
+- **Date**: 2026-04-26
+- **Status**: Active
+- **Decision**: The new feature uses `AiOrchestrationService::call('product_metadata_generation', ...)` with the standard priority routing. No hardcoded provider or model.
+- **Rationale**: All AI features in the platform route through the same priority resolver. This allows operators to assign a cheaper/faster model (e.g. GPT-4o mini, Haiku) to product generation since it runs infrequently and output is human-reviewed.

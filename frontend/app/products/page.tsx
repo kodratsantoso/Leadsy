@@ -10,6 +10,7 @@ import {
   Package,
   Pencil,
   Plus,
+  Sparkles,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -45,6 +46,21 @@ type ProductRecord = {
   created_at?: string | null;
 };
 
+type AiGenerateResult = {
+  description: string;
+  category: string;
+  target_industry: string;
+  target_company_size: string;
+  target_buyer_persona: string;
+  budget_range: string;
+  supported_regions: string;
+  keywords: string[];
+  target_pain_points: string;
+  use_cases: string[];
+  competitor_notes: string;
+  ideal_company_profile: string;
+};
+
 const refTypeLabels: Record<
   string,
   { label: string; icon: typeof FileText; iconClassName: string; badgeVariant: "neutral" | "info" | "success" | "brand" }
@@ -78,6 +94,9 @@ export default function ProductsPage() {
   const [formKeywords, setFormKeywords] = useState("");       // comma-sep → array
   const [formStatus, setFormStatus] = useState("active");
 
+  const [aiGenerated, setAiGenerated] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   const { data, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
@@ -107,6 +126,40 @@ export default function ProductsPage() {
     },
   });
 
+  const aiGenerateMutation = useMutation({
+    mutationFn: async (productName: string) => {
+      const res = await apiFetch("/products/ai-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_name: productName }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Request failed (${res.status})`);
+      }
+      return res.json() as Promise<{ data: AiGenerateResult; ai_model: string | null }>;
+    },
+    onSuccess: ({ data: generated }) => {
+      setFormDesc(generated.description || "");
+      setFormCategory(generated.category || "");
+      setFormTargetIndustry(generated.target_industry || "");
+      setFormTargetCompanySize(generated.target_company_size || "");
+      setFormTargetPersona(generated.target_buyer_persona || "");
+      setFormBudgetRange(generated.budget_range || "");
+      setFormSupportedRegions(generated.supported_regions || "");
+      setFormKeywords(Array.isArray(generated.keywords) ? generated.keywords.join(", ") : (generated.keywords || ""));
+      setFormTargetPainPoints(generated.target_pain_points || "");
+      setFormUseCases(Array.isArray(generated.use_cases) ? generated.use_cases.join(", ") : (generated.use_cases || ""));
+      setFormCompetitorNotes(generated.competitor_notes || "");
+      setFormIdealCompanyProfile(generated.ideal_company_profile || "");
+      setAiGenerated(true);
+      setAiError(null);
+    },
+    onError: (err: Error) => {
+      setAiError(err.message);
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => apiFetch(`/products/${id}`, { method: "DELETE" }),
     onSuccess: () => {
@@ -121,6 +174,8 @@ export default function ProductsPage() {
     setFormTargetPersona(""); setFormIdealCompanyProfile(""); setFormSupportedRegions("");
     setFormBudgetRange(""); setFormUseCases(""); setFormCompetitorNotes("");
     setFormKeywords(""); setFormStatus("active");
+    setAiGenerated(false);
+    setAiError(null);
   };
 
   const openCreate = () => {
@@ -145,6 +200,8 @@ export default function ProductsPage() {
     setFormCompetitorNotes(item.competitor_notes || "");
     setFormKeywords(item.keywords?.join(", ") || "");
     setFormStatus(item.status || "active");
+    setAiGenerated(false);
+    setAiError(null);
     setShowModal(true);
   };
 
@@ -172,6 +229,12 @@ export default function ProductsPage() {
       keywords:              strToArr(formKeywords) as any,
       status:                formStatus,
     } as any);
+  };
+
+  const handleAiGenerate = () => {
+    if (!formName.trim()) return;
+    setAiError(null);
+    aiGenerateMutation.mutate(formName.trim());
   };
 
   const products: ProductRecord[] = (data?.data ?? []).filter((product: ProductRecord) => {
@@ -270,7 +333,7 @@ export default function ProductsPage() {
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           Target Persona
                         </p>
-                        <p className="mt-1 text-sm">{product.target_persona || "—"}</p>
+                        <p className="mt-1 text-sm">{product.target_buyer_persona || product.target_persona || "—"}</p>
                       </div>
                       <div>
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -335,15 +398,49 @@ export default function ProductsPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Product Name *</label>
-              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Enterprise ERP Solution" />
+              <div className="flex gap-2">
+                <Input
+                  value={formName}
+                  onChange={(e) => { setFormName(e.target.value); setAiGenerated(false); }}
+                  placeholder="e.g. Enterprise ERP Solution"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAiGenerate}
+                  disabled={!formName.trim() || aiGenerateMutation.isPending}
+                  className="shrink-0 gap-1.5 border-[color:var(--brand)] text-[color:var(--brand)] hover:bg-[color:var(--brand)]/5"
+                >
+                  {aiGenerateMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {aiGenerateMutation.isPending ? "Generating…" : "AI Generate"}
+                </Button>
+              </div>
+              {aiError && (
+                <p className="text-xs text-destructive">{aiError}</p>
+              )}
+              {aiGenerated && !aiError && (
+                <div className="flex items-center gap-1.5 text-xs text-[color:var(--brand)]">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Fields filled by AI — review and edit before saving</span>
+                </div>
+              )}
             </div>
+
             <div className="sm:col-span-2 space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Description</label>
               <Textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} rows={2} placeholder="What does this product do?" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Category</label>
-              <Input value={formCategory} onChange={(e) => setFormCategory(e.target.value)} placeholder="e.g. Enterprise Software" />
+              <label className="text-xs font-medium text-muted-foreground">
+                Category
+                <span className="ml-1 font-normal text-muted-foreground/60">(comma-separated, from DB)</span>
+              </label>
+              <Input value={formCategory} onChange={(e) => setFormCategory(e.target.value)} placeholder="e.g. Enterprise Software, Manufacturing" />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Status</label>

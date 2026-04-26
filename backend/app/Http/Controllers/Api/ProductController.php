@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Industry;
 use App\Models\Product;
 use App\Services\AuditService;
+use App\Services\ProductMetadataGenerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -84,5 +86,56 @@ class ProductController extends Controller
         $product->delete();
 
         return response()->json(null, 204);
+    }
+
+    public function aiGenerate(Request $request): JsonResponse
+    {
+        $request->validate(['product_name' => 'required|string|max:255']);
+
+        $productName = $request->string('product_name')->trim()->toString();
+
+        // Load category options from DB: existing product categories + active industry names
+        $existingCategories = Product::whereNotNull('category')
+            ->where('category', '!=', '')
+            ->distinct()
+            ->pluck('category')
+            ->flatMap(fn ($c) => array_map('trim', explode(',', $c)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $industryNames = Industry::where('is_active', true)
+            ->pluck('name')
+            ->values()
+            ->all();
+
+        $availableCategories = array_values(array_unique(array_merge($existingCategories, $industryNames)));
+
+        /** @var ProductMetadataGenerationService $service */
+        $service = app(ProductMetadataGenerationService::class);
+        $result  = $service->generate($productName, $availableCategories);
+
+        if (! $result['success']) {
+            return response()->json(['error' => $result['error']], 422);
+        }
+
+        AuditService::log(
+            'ai_product_metadata_generated',
+            'products',
+            null,
+            null,
+            [
+                'product_name' => $productName,
+                'ai_model'     => $result['ai_model'],
+                'user_id'      => $request->user()?->id,
+            ],
+        );
+
+        return response()->json([
+            'data'                => $result['data'],
+            'ai_model'            => $result['ai_model'],
+            'available_categories'=> $availableCategories,
+        ]);
     }
 }

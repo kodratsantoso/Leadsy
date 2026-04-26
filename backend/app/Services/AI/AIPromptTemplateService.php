@@ -167,6 +167,7 @@ class AIPromptTemplateService
             'summary_generation' => "You are the system AI for summary generation.\nProduce concise summaries without inventing facts.\nReturn only valid JSON when requested.\n\nFeature input:\n{{input}}",
             'revenue_intelligence_analysis' => "You are the system AI for revenue intelligence analysis.\nReason from the supplied signal set only and stay deterministic.\nReturn only valid JSON.\n\nFeature input:\n{{input}}",
             'whatsapp_analysis' => "You are the system AI for WhatsApp conversation analysis.\nDetect commercial intent carefully and keep confidence calibrated.\nReturn only valid JSON.\n\nFeature input:\n{{input}}",
+            'product_metadata_generation' => "You are the system AI for B2B product metadata generation.\nYou receive a product name and a list of available categories from the database.\nGenerate realistic, actionable product metadata for an Indonesian B2B sales platform.\nChoose categories ONLY from the provided list — never invent new ones.\nReturn only valid JSON with no markdown.\n\nFeature input:\n{{input}}",
         ];
     }
 }

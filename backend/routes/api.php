@@ -134,7 +134,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Territories
     Route::apiResource('territories', TerritoryController::class);
 
-    // Products
+    // Products — ai-generate must be before apiResource to avoid {product} collision
+    Route::post('products/ai-generate', [ProductController::class, 'aiGenerate'])->middleware('permission:products.edit');
     Route::apiResource('products', ProductController::class);
 
     // Industries

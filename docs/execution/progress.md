@@ -691,3 +691,42 @@ The existing service was a working stub: hybrid rule+AI scoring with minimal lea
 - All seeders idempotent (firstOrCreate throughout)
 - SEED_DEMO_DATA defaults to false — production-safe
 - Wait-for-db loop prevents race condition with Postgres startup
+
+## AI Product Metadata Generator (2026-04-26 ✅)
+
+### What was built
+
+**Problem**: Creating a product required filling 12 metadata fields manually. Users had no AI assistance for product setup.
+
+**Feature:** "AI Generate" button in the Create/Edit Product modal. User enters Product Name, clicks AI Generate, and all remaining fields are filled automatically by AI.
+
+**`ProductMetadataGenerationService`** (new):
+- Sends product name + available DB categories to `product_metadata_generation` AI feature route
+- Prompt explicitly constrains AI to choose categories only from the provided list
+- Normalises AI output to product schema fields
+- Strips markdown fences from AI response before JSON parse
+- Categories validated case-insensitively against available options
+
+**`POST /api/products/ai-generate`** (new):
+- Loads available categories from: distinct values in `products.category` + active industry names
+- Calls `ProductMetadataGenerationService::generate()`
+- Logs audit entry `ai_product_metadata_generated`
+- Returns `{ data, ai_model, available_categories }`
+
+**AI Feature Route:**
+- `product_metadata_generation` added to `AIRoutingService::FEATURE_CATALOG` — configurable in Settings → AI Defaults
+- Default prompt template registered in `AIPromptTemplateService`
+
+**Frontend (products/page.tsx):**
+- "AI Generate" button inline with Product Name input (Sparkles icon, brand-coloured outline style)
+- Disabled unless product name has text; shows spinner + "Generating…" while pending
+- On success: populates all 12 fields (description, category, target_industry, company_size, buyer_persona, budget_range, regions, keywords, pain_points, use_cases, competitor_notes, ideal_company_profile)
+- "Fields filled by AI" indicator shown after generation
+- Inline error message on failure (retry by clicking again)
+- All fields remain fully editable after AI fill
+- Changing Product Name clears the "generated" indicator
+
+### Verification
+- `tsc --noEmit` ✅ (0 errors)
+- Categories cannot be AI-invented — validated against DB-loaded list
+- Audit log records every AI generation trigger

@@ -365,3 +365,23 @@
 - [x] DB-BOOT-006: Create `docs/deployment/database-bootstrap.md` — full deployment database strategy reference
 - [x] DB-BOOT-007: Update execution docs (decisions, tasks, progress)
 - [x] DB-BOOT-008: Commit and push to GitHub
+
+## AI Product Metadata Generator (2026-04-26)
+
+### Backend
+- [x] APM-001: Add `product_metadata_generation` to `AIRoutingService::FEATURE_CATALOG`
+- [x] APM-002: Add default prompt template for `product_metadata_generation` in `AIPromptTemplateService`
+- [x] APM-003: Create `ProductMetadataGenerationService` — builds AI prompt with product name + DB category list, normalises output, validates categories against available list
+- [x] APM-004: Add `aiGenerate()` to `ProductController` — loads categories from products+industries DB, calls service, logs audit
+- [x] APM-005: Register `POST /api/products/ai-generate` before `apiResource` to avoid `{product}` collision
+
+### Frontend
+- [x] APM-006: Add `aiGenerateMutation` to products page (calls `/api/products/ai-generate`)
+- [x] APM-007: Add `aiGenerated` / `aiError` state for indicator and error display
+- [x] APM-008: Add "AI Generate" button inline next to Product Name field (Sparkles icon, brand color, disabled unless name filled)
+- [x] APM-009: On success: populate all 12 form fields from AI response
+- [x] APM-010: Show "Fields filled by AI — review and edit before saving" indicator after generation
+- [x] APM-011: Show inline error message below button if AI call fails
+- [x] APM-012: All form fields remain fully editable after AI fill
+- [x] APM-013: Changing Product Name clears `aiGenerated` indicator (user must re-generate)
+- [x] APM-014: TypeScript check ✅ (0 errors)
