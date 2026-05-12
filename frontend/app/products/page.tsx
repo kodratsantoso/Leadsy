@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import {
+  AlertCircle,
   ChevronDown,
   ChevronUp,
   FileText,
+  Globe,
   Link as LinkIcon,
   Loader2,
   Package,
@@ -13,6 +15,7 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -96,6 +99,12 @@ export default function ProductsPage() {
 
   const [aiGenerated, setAiGenerated] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSource, setAiSource] = useState<"name" | "url" | "pdf" | null>(null);
+
+  // Reference inputs
+  const [refUrl, setRefUrl] = useState("");
+  const [refPdfFile, setRefPdfFile] = useState<File | null>(null);
+  const [refPdfName, setRefPdfName] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["products"],
@@ -127,19 +136,37 @@ export default function ProductsPage() {
   });
 
   const aiGenerateMutation = useMutation({
-    mutationFn: async (productName: string) => {
-      const res = await apiFetch("/products/ai-generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_name: productName }),
-      });
+    mutationFn: async ({ source, productName, url, pdfFile }: {
+      source: "name" | "url" | "pdf";
+      productName: string;
+      url?: string;
+      pdfFile?: File;
+    }) => {
+      let res: Response;
+
+      if (source === "pdf" && pdfFile) {
+        const form = new FormData();
+        form.append("pdf_file", pdfFile);
+        if (productName) form.append("product_name", productName);
+        res = await apiFetch("/products/ai-generate", { method: "POST", body: form });
+      } else {
+        const body: Record<string, string> = {};
+        if (productName) body.product_name = productName;
+        if (source === "url" && url) body.reference_url = url;
+        res = await apiFetch("/products/ai-generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }
+
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
-      return res.json() as Promise<{ data: AiGenerateResult; ai_model: string | null }>;
+      return res.json() as Promise<{ data: AiGenerateResult; ai_model: string | null; source: string }>;
     },
-    onSuccess: ({ data: generated }) => {
+    onSuccess: ({ data: generated }, variables) => {
       setFormDesc(generated.description || "");
       setFormCategory(generated.category || "");
       setFormTargetIndustry(generated.target_industry || "");
@@ -153,6 +180,7 @@ export default function ProductsPage() {
       setFormCompetitorNotes(generated.competitor_notes || "");
       setFormIdealCompanyProfile(generated.ideal_company_profile || "");
       setAiGenerated(true);
+      setAiSource(variables.source);
       setAiError(null);
     },
     onError: (err: Error) => {
@@ -174,8 +202,8 @@ export default function ProductsPage() {
     setFormTargetPersona(""); setFormIdealCompanyProfile(""); setFormSupportedRegions("");
     setFormBudgetRange(""); setFormUseCases(""); setFormCompetitorNotes("");
     setFormKeywords(""); setFormStatus("active");
-    setAiGenerated(false);
-    setAiError(null);
+    setAiGenerated(false); setAiError(null); setAiSource(null);
+    setRefUrl(""); setRefPdfFile(null); setRefPdfName("");
   };
 
   const openCreate = () => {
@@ -231,10 +259,18 @@ export default function ProductsPage() {
     } as any);
   };
 
-  const handleAiGenerate = () => {
-    if (!formName.trim()) return;
+  const handleAiGenerate = (source: "name" | "url" | "pdf") => {
     setAiError(null);
-    aiGenerateMutation.mutate(formName.trim());
+    if (source === "url") {
+      if (!refUrl.trim()) return;
+      aiGenerateMutation.mutate({ source: "url", productName: formName.trim(), url: refUrl.trim() });
+    } else if (source === "pdf") {
+      if (!refPdfFile) return;
+      aiGenerateMutation.mutate({ source: "pdf", productName: formName.trim(), pdfFile: refPdfFile });
+    } else {
+      if (!formName.trim()) return;
+      aiGenerateMutation.mutate({ source: "name", productName: formName.trim() });
+    }
   };
 
   const products: ProductRecord[] = (data?.data ?? []).filter((product: ProductRecord) => {
@@ -408,27 +444,150 @@ export default function ProductsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleAiGenerate}
+                  onClick={() => handleAiGenerate("name")}
                   disabled={!formName.trim() || aiGenerateMutation.isPending}
                   className="shrink-0 gap-1.5 border-[color:var(--brand)] text-[color:var(--brand)] hover:bg-[color:var(--brand)]/5"
                 >
-                  {aiGenerateMutation.isPending ? (
+                  {aiGenerateMutation.isPending && aiSource === "name" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <Sparkles className="h-3.5 w-3.5" />
                   )}
-                  {aiGenerateMutation.isPending ? "Generating…" : "AI Generate"}
+                  {aiGenerateMutation.isPending && aiSource === "name" ? "Generating…" : "AI Generate"}
                 </Button>
               </div>
-              {aiError && (
+              {aiError && aiSource === "name" && (
                 <p className="text-xs text-destructive">{aiError}</p>
               )}
               {aiGenerated && !aiError && (
                 <div className="flex items-center gap-1.5 text-xs text-[color:var(--brand)]">
                   <Sparkles className="h-3 w-3" />
-                  <span>Fields filled by AI — review and edit before saving</span>
+                  <span>
+                    Fields filled by AI from{" "}
+                    {aiSource === "url" ? "website URL" : aiSource === "pdf" ? "PDF document" : "product name"}
+                    {" "}— review and edit before saving
+                  </span>
                 </div>
               )}
+            </div>
+
+            {/* AI Reference Sources */}
+            <div className="sm:col-span-2 rounded-2xl border border-border bg-[color:var(--surface-subtle)] p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                AI Reference Source
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Optionally provide a website URL or PDF one-pager for more accurate AI-generated metadata.
+              </p>
+
+              {/* URL Reference */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5" />
+                  Website URL
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    value={refUrl}
+                    onChange={(e) => setRefUrl(e.target.value)}
+                    placeholder="https://www.yourproduct.com"
+                    className="flex-1 text-sm"
+                    type="url"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleAiGenerate("url")}
+                    disabled={!refUrl.trim() || aiGenerateMutation.isPending}
+                    className="shrink-0"
+                  >
+                    {aiGenerateMutation.isPending && aiSource === "url" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    {aiGenerateMutation.isPending && aiSource === "url" ? "Analyzing…" : "Analyze URL"}
+                  </Button>
+                </div>
+                {aiError && aiSource === "url" && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {aiError}
+                  </p>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-2">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              {/* PDF Upload */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5" />
+                  Product One-Pager (PDF)
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      className="absolute inset-0 cursor-pointer opacity-0"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        setRefPdfFile(file);
+                        setRefPdfName(file?.name ?? "");
+                        e.target.value = "";
+                      }}
+                    />
+                    <div className="flex h-9 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm text-muted-foreground">
+                      <Upload className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">
+                        {refPdfName || "Choose PDF file…"}
+                      </span>
+                      {refPdfFile && (
+                        <button
+                          type="button"
+                          className="ml-auto shrink-0 hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRefPdfFile(null);
+                            setRefPdfName("");
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleAiGenerate("pdf")}
+                    disabled={!refPdfFile || aiGenerateMutation.isPending}
+                    className="shrink-0"
+                  >
+                    {aiGenerateMutation.isPending && aiSource === "pdf" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    {aiGenerateMutation.isPending && aiSource === "pdf" ? "Analyzing…" : "Analyze PDF"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Max 10 MB. Text-based PDFs only — scanned/image PDFs are not supported.
+                </p>
+                {aiError && aiSource === "pdf" && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    {aiError}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="sm:col-span-2 space-y-1.5">

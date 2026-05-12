@@ -94,13 +94,79 @@ class ProductController extends Controller
         return response()->json(null, 204);
     }
 
+    /**
+     * POST /api/products/ai-generate
+     *
+     * Three source modes (mutually exclusive, in priority order):
+     *   1. pdf_file   — multipart file upload, AI analyses extracted PDF text
+     *   2. reference_url — AI fetches and analyses website content
+     *   3. product_name  — AI generates metadata from product name alone (original)
+     *
+     * product_name is always accepted alongside url/pdf as an optional name hint.
+     */
     public function aiGenerate(Request $request): JsonResponse
     {
-        $request->validate(['product_name' => 'required|string|max:255']);
+        $request->validate([
+            'product_name'  => 'nullable|string|max:255',
+            'reference_url' => 'nullable|url|max:2048',
+            'pdf_file'      => 'nullable|file|mimes:pdf|max:10240', // 10 MB
+        ]);
 
-        $productName = $request->string('product_name')->trim()->toString();
+        $productName  = trim($request->input('product_name', ''));
+        $referenceUrl = trim($request->input('reference_url', ''));
+        $pdfFile      = $request->file('pdf_file');
 
-        // Load category options from DB: existing product categories + active industry names
+        // At least one source must be provided
+        if (! $pdfFile && ! $referenceUrl && ! $productName) {
+            return response()->json([
+                'error' => 'Provide at least one of: product_name, reference_url, or pdf_file.',
+            ], 422);
+        }
+
+        $availableCategories = $this->loadAvailableCategories();
+
+        /** @var ProductMetadataGenerationService $service */
+        $service = app(ProductMetadataGenerationService::class);
+
+        // Determine source and call appropriate method
+        if ($pdfFile) {
+            $result     = $service->generateFromPdf($pdfFile->getRealPath(), $productName, $availableCategories);
+            $auditSource = 'pdf';
+        } elseif ($referenceUrl) {
+            $result     = $service->generateFromUrl($referenceUrl, $productName, $availableCategories);
+            $auditSource = 'url';
+        } else {
+            $result     = $service->generate($productName, $availableCategories);
+            $auditSource = 'name';
+        }
+
+        if (! $result['success']) {
+            return response()->json(['error' => $result['error']], 422);
+        }
+
+        AuditService::log(
+            'ai_product_metadata_generated',
+            'products',
+            null,
+            null,
+            [
+                'product_name' => $productName ?: null,
+                'source'       => $auditSource,
+                'reference_url'=> $referenceUrl ?: null,
+                'ai_model'     => $result['ai_model'],
+                'user_id'      => $request->user()?->id,
+            ],
+        );
+
+        return response()->json([
+            'data'     => $result['data'],
+            'ai_model' => $result['ai_model'],
+            'source'   => $auditSource,
+        ]);
+    }
+
+    private function loadAvailableCategories(): array
+    {
         $existingCategories = Product::whereNotNull('category')
             ->where('category', '!=', '')
             ->distinct()
@@ -116,32 +182,6 @@ class ProductController extends Controller
             ->values()
             ->all();
 
-        $availableCategories = array_values(array_unique(array_merge($existingCategories, $industryNames)));
-
-        /** @var ProductMetadataGenerationService $service */
-        $service = app(ProductMetadataGenerationService::class);
-        $result  = $service->generate($productName, $availableCategories);
-
-        if (! $result['success']) {
-            return response()->json(['error' => $result['error']], 422);
-        }
-
-        AuditService::log(
-            'ai_product_metadata_generated',
-            'products',
-            null,
-            null,
-            [
-                'product_name' => $productName,
-                'ai_model'     => $result['ai_model'],
-                'user_id'      => $request->user()?->id,
-            ],
-        );
-
-        return response()->json([
-            'data'                => $result['data'],
-            'ai_model'            => $result['ai_model'],
-            'available_categories'=> $availableCategories,
-        ]);
+        return array_values(array_unique(array_merge($existingCategories, $industryNames)));
     }
 }

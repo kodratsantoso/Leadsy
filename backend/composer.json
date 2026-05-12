@@ -11,7 +11,8 @@
         "laravel/horizon": "^5.29",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
-        "predis/predis": "^2.3"
+        "predis/predis": "^2.3",
+        "smalot/pdfparser": "^2.12"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
