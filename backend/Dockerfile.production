@@ -18,6 +18,9 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 
 COPY . .
 
+# .dockerignore omits framework cache/views/sessions from build context; Laravel still needs these paths.
+RUN mkdir -p storage/framework/views storage/framework/cache/data storage/framework/sessions storage/logs
+
 RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader \
     && chmod +x docker-entrypoint.production.sh
 

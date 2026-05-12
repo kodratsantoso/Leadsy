@@ -14,9 +14,6 @@ if ! grep -q "APP_KEY=base64:" .env; then
   php artisan key:generate --force
 fi
 
-# ── Clear all Laravel caches so fresh env vars are picked up on every deploy ──
-php artisan optimize:clear
-
 # ── Wait for database ─────────────────────────────────────────────────────────
 DB_HOST="${DB_HOST:-postgres}"
 DB_PORT="${DB_PORT:-5432}"
@@ -50,13 +47,16 @@ try {
 done
 echo "Database is ready."
 
-# ── Migrations ────────────────────────────────────────────────────────────────
+# ── Migrations (must run before optimize:clear when CACHE_STORE=database) ────
 AUTO_MIGRATE="${AUTO_MIGRATE:-true}"
 if [ "$AUTO_MIGRATE" = "true" ]; then
     echo "Running migrations..."
     php artisan migrate --force
     echo "Migrations complete."
 fi
+
+# ── Clear Laravel caches after schema exists (avoids flush on missing tables) ─
+php artisan optimize:clear
 
 # ── Baseline seed (roles, stages, AI providers, etc.) ─────────────────────────
 AUTO_SEED_BASELINE="${AUTO_SEED_BASELINE:-true}"
