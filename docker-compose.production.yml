@@ -149,8 +149,17 @@ networks:
   coolify:
     external: true
 
+# Stable volume names (do not rely on compose project dir — Coolify clones each
+# deploy under /artifacts/<random>, which can otherwise create new empty volumes).
+# Coolify names volumes: ${COOLIFY_RESOURCE_UUID}_<kebab-case-of-compose-key>
+# (see `docker volume ls` on the server). Explicit names pin the same volume
+# across redeploys. Fallback prefix is for local compose without Coolify env.
 volumes:
   leadsy_pg_data:
+    name: "${COOLIFY_RESOURCE_UUID:-rndleadsgenerator}_leadsy-pg-data"
   leadsy_redis_data:
+    name: "${COOLIFY_RESOURCE_UUID:-rndleadsgenerator}_leadsy-redis-data"
   backend_storage:
+    name: "${COOLIFY_RESOURCE_UUID:-rndleadsgenerator}_backend-storage"
   whatsapp_auth_data:
+    name: "${COOLIFY_RESOURCE_UUID:-rndleadsgenerator}_whatsapp-auth-data"
