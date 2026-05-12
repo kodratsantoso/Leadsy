@@ -1,0 +1,90 @@
+---
+description: >-
+  Directive for backing up Leadsy PostgreSQL from local Docker and publishing
+  safely to GitHub (encrypted artifacts or automation only — never plaintext secrets).
+alwaysApply: false
+---
+
+# Database backup → GitHub (agent directive)
+
+Use this rule when the user asks to **back up the database** and **push something to GitHub**. Treat **database dumps as sensitive** (PII, passwords, API-related rows). Default to **safe** behavior.
+
+## Non‑negotiables
+
+1. **Never** commit a **plaintext** `.sql` / `.dump` of a real database to a **public** repository.
+2. **Never** commit production credentials, `APP_KEY`, API keys, or decryption passphrases.
+3. Prefer **encrypted** dumps for any Git-tracked artifact, or push **automation only** (scripts, docs) and keep dumps **local / off Git**.
+
+## Repo-local defaults (Docker)
+
+| Stack file | Postgres access |
+|------------|------------------|
+| `docker-compose.yml` (dev) | Host `localhost:5435`, DB `leads`, user/password `leads` |
+| `docker-compose.production.yml` | Often **no** host port; use `docker compose exec` (see below) |
+
+## Procedure the agent must follow
+
+### A) Create the backup (pick one source)
+
+**From host (dev compose with published port):**
+
+```bash
+mkdir -p backups
+PGPASSWORD=leads pg_dump -h localhost -p 5435 -U leads -d leads \
+  --no-owner --no-acl -f "backups/leads-$(date +%Y%m%d-%H%M%S).sql"
+```
+
+**From the Postgres container (no host port):**
+
+```bash
+mkdir -p backups
+docker compose -f docker-compose.production.yml exec -T postgres \
+  pg_dump -U leads leads --no-owner --no-acl \
+  > "backups/leads-$(date +%Y%m%d-%H%M%S).sql"
+```
+
+(Adjust compose file / service name if the user’s stack differs.)
+
+### B) What may go to GitHub
+
+**Allowed without extra caution**
+
+- New or updated **scripts** under `scripts/` (e.g. wrapper around `pg_dump`).
+- **Documentation** describing backup/restore (no secrets).
+- **This rule file** or similar agent instructions.
+
+**Allowed only with explicit user confirmation and encryption**
+
+- A **GPG‑encrypted** dump (e.g. `backups/leads-YYYYMMDD.sql.gpg`) committed to a **private** repo, **or**
+- A **GitHub Release** asset uploaded via `gh release upload` (still treat as sensitive; repo should be private unless the user explicitly accepts public exposure).
+
+**Encrypt before commit (example — user must supply passphrase out-of-band, never stored in repo):**
+
+```bash
+gpg --symmetric --cipher-algo AES256 -o "backups/leads-YYYYMMDD.sql.gpg" "backups/leads-YYYYMMDD.sql"
+shred -u "backups/leads-YYYYMMDD.sql" 2>/dev/null || rm -f "backups/leads-YYYYMMDD.sql"
+```
+
+Then `git add` only the `.gpg` file if the user confirmed private repo + encrypted path.
+
+**Disallowed by default**
+
+- `git add` of plaintext `backups/*.sql` or `*.dump` (these paths are gitignored; do not force-add with `-f` unless the user gives **written** explicit exception and understands the risk).
+
+### C) Git operations
+
+1. Ensure `backups/*.sql` and `backups/*.dump` stay ignored (see repo `.gitignore`).
+2. `git status` — verify no accidental plaintext dumps.
+3. Commit with a clear message (e.g. `chore(scripts): add encrypted DB backup artifact` or `docs: backup procedure`).
+4. `git push` to the branch the user specifies (usually `main`).
+
+### D) After push
+
+- Tell the user **where** the artifact lives (path or Release URL) and that **decryption** uses the passphrase they chose (not stored in Git).
+- Remind them to **rotate** anything exposed if a dump ever leaked.
+
+## Copy-paste user prompt (optional)
+
+The user may paste this into the agent to trigger the same behavior:
+
+> Back up my Leadsy Postgres from local Docker using this repo’s compose defaults, then put only an **encrypted** backup (or **scripts/docs only**) on GitHub. Do **not** commit plaintext SQL. Confirm repo visibility with me before adding any dump file. Show `git status` before commit.
