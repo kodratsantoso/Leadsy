@@ -1,7 +1,6 @@
 FROM php:8.2-cli
 
 RUN apt-get update && apt-get install -y \
-    postgresql-server-dev-all \
     libpq-dev \
     libzip-dev \
     zip \

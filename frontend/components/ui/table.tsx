@@ -2,14 +2,18 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function TableShell({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+function TableShell({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("overflow-hidden rounded-2xl border border-border bg-card shadow-xs", className)} {...props} />
+    <div className={cn("overflow-hidden rounded-2xl border border-border bg-card shadow-xs", className)} {...props}>
+      <div className="overflow-x-auto">
+        {children}
+      </div>
+    </div>
   );
 }
 
 function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
-  return <table className={cn("w-full text-sm", className)} {...props} />;
+  return <table className={cn("min-w-full text-sm", className)} {...props} />;
 }
 
 function TableHead({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {

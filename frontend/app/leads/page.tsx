@@ -488,14 +488,14 @@ export default function LeadsPage() {
         <Table>
           <TableHead>
             <tr>
-              <TableHeaderCell>Company</TableHeaderCell>
-              <TableHeaderCell>Industry</TableHeaderCell>
-              <TableHeaderCell>Contact</TableHeaderCell>
-              <TableHeaderCell>Score</TableHeaderCell>
-              <TableHeaderCell>Grade</TableHeaderCell>
-              <TableHeaderCell>Qualification</TableHeaderCell>
-              <TableHeaderCell>Stage</TableHeaderCell>
-              <TableHeaderCell>Actions</TableHeaderCell>
+              <TableHeaderCell className="min-w-[200px]">Company</TableHeaderCell>
+              <TableHeaderCell className="min-w-[120px]">Industry</TableHeaderCell>
+              <TableHeaderCell className="min-w-[160px]">Contact</TableHeaderCell>
+              <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
+              <TableHeaderCell className="w-[80px]">Grade</TableHeaderCell>
+              <TableHeaderCell className="w-[120px]">Qualification</TableHeaderCell>
+              <TableHeaderCell className="w-[120px]">Stage</TableHeaderCell>
+              <TableHeaderCell className="w-[160px]">Actions</TableHeaderCell>
             </tr>
           </TableHead>
           <TableBody>
@@ -525,10 +525,7 @@ export default function LeadsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-1">
-                      <Badge variant={scoreVariant(lead.lead_score)}>{lead.lead_score ?? "—"}</Badge>
-                      <p className="text-[11px] text-muted-foreground">Weighted deterministic score</p>
-                    </div>
+                    <Badge variant={scoreVariant(lead.lead_score)}>{lead.lead_score ?? "—"}</Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={gradeVariant(lead.lead_score)}>{scoreGrade(lead.lead_score)}</Badge>
@@ -556,70 +553,54 @@ export default function LeadsPage() {
                       const nextStageId = getNextFunnelStageId(lead);
 
                       return (
-                        <div className="space-y-2">
-                          {warnings.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {warnings.map((warning) => (
-                                <Badge key={warning} variant="warning">
-                                  {warning}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-[11px] text-muted-foreground">
-                              Review approval is still required before pipeline push.
-                            </p>
-                          )}
-                          <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => {
-                          if (!nextStageId) {
-                            setFeedback("No funnel stage is available for this lead.");
-                            return;
-                          }
-
-                          pushToFunnel.mutate({ id: lead.id, funnelStageId: nextStageId });
-                        }}
-                        disabled={blocked || pushToFunnel.isPending || !nextStageId}
-                        tooltip={blocked ? warnings.join(". ") : "Push to funnel"}
-                      >
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => openEdit(lead)}
-                        tooltip="Edit lead"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => setDeleteLead(lead)}
-                        tooltip="Delete lead"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleWhatsApp(lead.phone)}
-                        tooltip="Open WhatsApp"
-                      >
-                        <MessageSquare className="h-4 w-4" />
-                      </Button>
-                      <Link
-                        href={`/leads/${lead.id}`}
-                        className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
-                        title="View details"
-                        aria-label="View details"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Link>
-                          </div>
+                        <div className="flex items-center gap-1 whitespace-nowrap">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => {
+                              if (!nextStageId) {
+                                setFeedback("No funnel stage is available for this lead.");
+                                return;
+                              }
+                              pushToFunnel.mutate({ id: lead.id, funnelStageId: nextStageId });
+                            }}
+                            disabled={blocked || pushToFunnel.isPending || !nextStageId}
+                            tooltip={blocked ? warnings.join(" · ") : "Push to funnel"}
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => openEdit(lead)}
+                            tooltip="Edit lead"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setDeleteLead(lead)}
+                            tooltip="Delete lead"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => handleWhatsApp(lead.phone)}
+                            tooltip="Open WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                          <Link
+                            href={`/leads/${lead.id}`}
+                            className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+                            title="View details"
+                            aria-label="View details"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Link>
                         </div>
                       );
                     })()}
