@@ -14,6 +14,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { canAccessPath } from "@/lib/permissions";
+import { apiFetch } from "@/lib/apiFetch";
 
 const navItems = [
   { href: "/",                       icon: LayoutDashboard, label: "Dashboard" },
@@ -65,6 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -78,6 +80,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  useEffect(() => {
+    apiFetch("/version")
+      .then((res) => res.json())
+      .then((data) => setAppVersion(data?.version ?? null))
+      .catch(() => {/* silently ignore */});
   }, []);
 
   return (
@@ -119,6 +128,23 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+
+        {/* Version badge */}
+        {appVersion && (
+          <div className={cn(
+            "flex items-center border-t border-sidebar-border px-3 py-2",
+            collapsed ? "justify-center" : "justify-between"
+          )}>
+            {!collapsed && (
+              <span className="text-[10px] text-sidebar-foreground/40 font-medium tracking-wide">
+                Leadsy
+              </span>
+            )}
+            <span className="rounded-md bg-sidebar-accent/60 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-sidebar-foreground/50">
+              v{appVersion}
+            </span>
+          </div>
+        )}
 
         {/* Collapse toggle */}
         <button

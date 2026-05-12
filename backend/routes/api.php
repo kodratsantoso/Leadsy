@@ -38,6 +38,16 @@ Route::get('health', function () {
     return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
 });
 
+// ── Version (Public) ──
+Route::get('version', function () {
+    return response()->json([
+        'version'     => config('version.version', '1.0.0'),
+        'released_at' => config('version.released_at'),
+        'type'        => config('version.type'),
+        'notes'       => config('version.notes'),
+    ]);
+});
+
 // ── Auth (public) ──
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
