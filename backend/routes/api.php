@@ -60,7 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('auth/me', [AuthController::class, 'me']);
 
-    // Maps — Lead Discovery
+    // Maps — Lead Discovery + Geo Product Fit Intelligence
     Route::prefix('maps')->group(function () {
         Route::get('categories', [MapDiscoveryController::class, 'categories']);
         Route::get('geocode', [MapDiscoveryController::class, 'geocode']);
@@ -69,6 +69,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('add-to-leads', [MapDiscoveryController::class, 'addToLeads']);
         Route::post('bulk-add-to-leads', [MapDiscoveryController::class, 'bulkAddToLeads']);
         Route::get('search-history', [MapDiscoveryController::class, 'searchHistory']);
+        // Geo Product Fit Intelligence
+        Route::post('geo-product-fit/analyze', [MapDiscoveryController::class, 'analyzeProductFit']);
+        Route::get('geo-product-fit/results', [MapDiscoveryController::class, 'productFitResults']);
     });
 
     // Dashboard

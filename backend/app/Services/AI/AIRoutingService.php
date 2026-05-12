@@ -23,6 +23,7 @@ class AIRoutingService
         'revenue_intelligence_analysis'=> 'Revenue Intelligence Analysis',
         'whatsapp_analysis'            => 'WhatsApp Analysis',
         'product_metadata_generation'  => 'Product Metadata Generation',
+        'geo_product_fit_analysis'     => 'Geo Product Fit Analysis',
     ];
 
     public function listRoutes(): Collection

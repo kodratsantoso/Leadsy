@@ -49,6 +49,7 @@ This document defines the target normalized schema for the enterprise qualificat
 - `discovery_categories` _(added Phase 12)_
 - `map_search_history`
 - `map_candidates`
+- `geo_product_fit_analyses` _(added Phase 16)_ — caches product-fit scores per (place_id, product_id) pair; keyed by payload hashes for cache invalidation
 
 ### Integration & Multi-Tenant
 - `integration_configs`

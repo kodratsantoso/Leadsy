@@ -412,3 +412,24 @@
 - **Status**: Active
 - **Decision**: The new feature uses `AiOrchestrationService::call('product_metadata_generation', ...)` with the standard priority routing. No hardcoded provider or model.
 - **Rationale**: All AI features in the platform route through the same priority resolver. This allows operators to assign a cheaper/faster model (e.g. GPT-4o mini, Haiku) to product generation since it runs infrequently and output is human-reviewed.
+
+## ADR-016: Geo Product Fit — Two-Phase Rule + AI Strategy
+- **Date**: 2026-05-12
+- **Status**: Active
+- **Decision**: Product-fit analysis runs in two phases: (1) deterministic rule-based pre-score on all results (free, instant), then (2) AI deep-analysis on top-N pre-scored candidates only (default 10, max 15 per run).
+- **Rationale**: Running AI on every discovered business is cost-prohibitive (up to 50 results per scan). Rule-based pre-score is deterministic, instantaneous, and correctly de-prioritizes irrelevant candidates before AI is invoked.
+- **Impact**: AI cost is bounded per run. Pre-score results are still useful without AI — they surface likely candidates visually. AI results enrich the pre-score with reasoning, matched signals, and recommended approaches.
+
+## ADR-017: Geo Product Fit — DB Cache Keyed by Payload Hashes
+- **Date**: 2026-05-12
+- **Status**: Active
+- **Decision**: Persist analysis results in `geo_product_fit_analyses` keyed by `(place_id, product_id)`. Use SHA-256 hashes of the place payload and product metadata to detect staleness — reuse cache only when both hashes match.
+- **Rationale**: Re-analyzing the same place+product combination wastes AI tokens. However, cached results become stale if the product ICP is updated or place details are enriched. Hashing the relevant fields solves this without requiring time-based TTLs.
+- **Impact**: Subsequent "Analyze" clicks on unchanged data are instant (cache hit). Updating a product description or enriching place details automatically invalidates the cache entry and triggers fresh analysis.
+
+## ADR-018: Geo Product Fit → LeadProductMatch Bridge
+- **Date**: 2026-05-12
+- **Status**: Active
+- **Decision**: When a user adds a geo-discovered business to leads with a product selected, automatically create a `LeadProductMatch` record seeded from the `GeoProductFitAnalysis`. Map `fit_level` to `match_level` (high→strong, medium→moderate, others→weak).
+- **Rationale**: The lead pipeline already uses `lead_product_matches` for product scoring. Bridging geo-fit analysis into this table means the lead immediately appears pre-scored in the product matching view — no separate analysis run needed.
+- **Impact**: The `GeoProductFitAnalysis` record is also linked back to the lead via `lead_id` for full traceability. No new tables or UI were needed in the lead pipeline.

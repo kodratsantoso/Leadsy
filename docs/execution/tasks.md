@@ -385,3 +385,28 @@
 - [x] APM-012: All form fields remain fully editable after AI fill
 - [x] APM-013: Changing Product Name clears `aiGenerated` indicator (user must re-generate)
 - [x] APM-014: TypeScript check ✅ (0 errors)
+
+## Phase 16: Geo-Based Product Fit Intelligence (Completed ✅)
+
+### Backend
+- [x] GEO-001: Create `geo_product_fit_analyses` migration with `(place_id, product_id)` unique key, hash fields, AI provenance, scoring fields
+- [x] GEO-002: Create `GeoProductFitAnalysis` Eloquent model with casts and relationships
+- [x] GEO-003: Create `GeoProductFitService` with rule-based pre-score + AI batch analysis + DB cache
+- [x] GEO-004: Add `geo_product_fit_analysis` to `AIRoutingService::FEATURE_CATALOG`
+- [x] GEO-005: Update `ProductController.index()` to support `?status=active` query param
+- [x] GEO-006: Add `analyzeProductFit()` and `productFitResults()` methods to `MapDiscoveryController`
+- [x] GEO-007: Update `addToLeads()` to accept `product_id` + `fit_analysis_id` and seed `LeadProductMatch`
+- [x] GEO-008: Register new routes in `api.php`: `POST maps/geo-product-fit/analyze`, `GET maps/geo-product-fit/results`
+
+### Frontend
+- [x] GEO-010: Extend `DiscoveredLead` type with `fit_analysis?`, add `GeoProductFitAnalysis`, `FitLevel`, `ProductOption` types
+- [x] GEO-011: Add `analyzeProductFit()` to `useMapDiscovery` hook; update `addToLeads` to pass product context
+- [x] GEO-012: Add Product Fit Target card to `MapSearchPanel` with DB-loaded active products
+- [x] GEO-013: Update `MapResultsPanel` with Analyze button, fit score/level badges, score gauge bar, filter/sort controls, full detail view card
+- [x] GEO-014: Update `MapMarkersLayer` with fit-level coloring (emerald/amber/neutral), score chip on hover, label popover fit text
+- [x] GEO-015: Update `map/page.tsx` to thread `selectedProductId`, wire `handleAnalyzeProductFit`, merge analysis into results state
+
+### Docs
+- [x] GEO-020: Update `docs/execution/progress.md` — Phase 16 summary
+- [x] GEO-021: Update `docs/execution/decisions.md` — ADR-016, ADR-017, ADR-018
+- [x] GEO-022: Update `docs/execution/tasks.md` — Phase 16 task list

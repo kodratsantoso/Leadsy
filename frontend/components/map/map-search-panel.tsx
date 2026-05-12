@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { History, Map, MapPin, Navigation, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { History, Map, MapPin, Navigation, Package, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 import { AiModeSelector, type AiMode } from "@/components/ai/ai-mode-selector";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/apiFetch";
-import { useMapDiscovery, type GeocodeResult } from "@/lib/hooks/use-map-discovery";
+import { useMapDiscovery, type GeocodeResult, type ProductOption } from "@/lib/hooks/use-map-discovery";
 
 type DiscoveryCategory = { id: number; label: string; value: string };
 
@@ -26,6 +26,7 @@ type SearchPanelProps = {
     searchMode: "nearby" | "text";
     areaInfo?: GeocodeResult;
     aiMode: AiMode;
+    selectedProductId: number | null;
   }) => void;
   onReset: () => void;
   isSearching: boolean;
@@ -34,6 +35,8 @@ type SearchPanelProps = {
   filters: { hasPhone: boolean; newOnly: boolean };
   onFilterChange: (filters: { hasPhone: boolean; newOnly: boolean }) => void;
   onMessage: (message: string) => void;
+  selectedProductId: number | null;
+  onProductChange: (productId: number | null) => void;
 };
 
 const searchModeTabs = [
@@ -50,6 +53,8 @@ export function MapSearchPanel({
   filters,
   onFilterChange,
   onMessage,
+  selectedProductId,
+  onProductChange,
 }: SearchPanelProps) {
   const { geocodeArea, getSearchHistory } = useMapDiscovery();
 
@@ -63,6 +68,7 @@ export function MapSearchPanel({
   const [showFilters, setShowFilters] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [categories, setCategories] = useState<DiscoveryCategory[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [historyItems, setHistoryItems] = useState<
     {
       area_name: string;
@@ -84,7 +90,17 @@ export function MapSearchPanel({
       .then((json) => {
         if (Array.isArray(json?.data)) setCategories(json.data);
       })
-      .catch(() => {/* silently ignore — categories will remain empty */});
+      .catch(() => {/* silently ignore */});
+  }, []);
+
+  // Fetch active products for the product selector
+  useEffect(() => {
+    apiFetch("/products?status=active")
+      .then((res) => res.json())
+      .then((json) => {
+        if (Array.isArray(json?.data)) setProducts(json.data);
+      })
+      .catch(() => {/* silently ignore */});
   }, []);
 
   const handleReset = () => {
@@ -94,6 +110,7 @@ export function MapSearchPanel({
     setCategory("");
     setRadius(3000);
     setSearchMode("nearby");
+    onProductChange(null);
     onReset();
     onMessage("");
   };
@@ -125,6 +142,7 @@ export function MapSearchPanel({
       searchMode,
       areaInfo: activeArea,
       aiMode,
+      selectedProductId,
     });
   };
 
@@ -135,6 +153,8 @@ export function MapSearchPanel({
     }
     setShowHistory(!showHistory);
   };
+
+  const selectedProduct = products.find((p) => p.id === selectedProductId) ?? null;
 
   return (
     <div className="flex w-[360px] shrink-0 flex-col gap-4 overflow-auto border-r border-border bg-background p-4">
@@ -164,6 +184,63 @@ export function MapSearchPanel({
               {activeArea.formatted_address}
             </Badge>
           ) : null}
+        </CardContent>
+      </Card>
+
+      {/* Product Selector */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Product Fit Target</CardTitle>
+            {selectedProduct ? (
+              <button
+                onClick={() => onProductChange(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {products.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border bg-[color:var(--surface-subtle)] px-4 py-3 text-center">
+              <Package className="mx-auto mb-1.5 h-5 w-5 text-muted-foreground/50" />
+              <p className="text-xs text-muted-foreground">
+                No active products found.{" "}
+                <a href="/products" className="text-[color:var(--brand)] hover:underline">
+                  Add a product
+                </a>{" "}
+                to enable product-fit scoring.
+              </p>
+            </div>
+          ) : (
+            <>
+              <Select
+                value={selectedProductId?.toString() ?? ""}
+                onChange={(e) =>
+                  onProductChange(e.target.value ? Number(e.target.value) : null)
+                }
+                placeholder="Select product for fit analysis…"
+              >
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{p.category ? ` — ${p.category}` : ""}
+                  </option>
+                ))}
+              </Select>
+              {selectedProduct ? (
+                <Badge variant="brand">
+                  <Package className="h-3 w-3" />
+                  {selectedProduct.name}
+                </Badge>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Select a product to enable product-fit analysis after discovery.
+                </p>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

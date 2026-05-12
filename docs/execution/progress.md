@@ -730,3 +730,94 @@ The existing service was a working stub: hybrid rule+AI scoring with minimal lea
 - `tsc --noEmit` ✅ (0 errors)
 - Categories cannot be AI-invented — validated against DB-loaded list
 - Audit log records every AI generation trigger
+
+## Phase 16: Geo-Based Product Fit Intelligence (Completed ✅)
+**Date completed**: 2026-05-12
+
+### What was done
+Upgraded the Maps & Territory / Discovery Target module with full product-fit intelligence. Users can now select a product before running a discovery scan, then analyze all discovered businesses against the product's ICP metadata using a two-phase rule + AI strategy.
+
+### Backend
+
+#### New: `geo_product_fit_analyses` table + `GeoProductFitAnalysis` model
+Persists analysis results keyed by `(place_id, product_id)`. Cache invalidation via `source_payload_hash` + `product_payload_hash` SHA-256 pairs — re-analysis only triggers when metadata changes.
+
+Fields: `fit_score`, `fit_level` (high/medium/low/unknown), `confidence_score`, `reasoning[]`, `matched_signals[]`, `missing_information[]`, `risk_flags[]`, `recommended_approach`, `recommended_next_action`, `potential_use_case`, `pre_fit_score`, `analyzed_with_ai`, `ai_provider_used`, `ai_model_used`.
+
+#### New: `GeoProductFitService`
+- **Phase 1 (free):** Deterministic pre-score (0–100) based on category/industry match, keyword match, region match, website/phone availability, rating/review quality.
+- **Phase 2 (AI):** Top N candidates (default 10, max 15) sent to AI via `AiOrchestrationService.call('geo_product_fit_analysis', ...)`. AI analyses 10 dimensions including industry fit, pain point likelihood, budget signal, digital maturity, competitor displacement.
+- **Cache:** Exact-match lookup by `(place_id, product_id, source_hash, product_hash)` before any AI call.
+- **Fallback:** AI failure degrades to pre-score result — no hard errors.
+
+#### AI Routing
+- Feature name: `geo_product_fit_analysis`
+- Added to `AIRoutingService::FEATURE_CATALOG` — configurable in Settings → AI Defaults
+- Uses existing `AiOrchestrationService` with full provider fallback
+
+#### Updated `MapDiscoveryController`
+| Endpoint | Description |
+|---|---|
+| `POST /api/maps/geo-product-fit/analyze` | Batch analyze places against product (pre-score + AI) |
+| `GET /api/maps/geo-product-fit/results` | Fetch cached analyses by place_ids + product_id |
+| `POST /api/maps/add-to-leads` (updated) | Accepts `product_id` + `fit_analysis_id`; seeds `LeadProductMatch` from analysis |
+
+When a lead is added to the pipeline with product-fit context, a `LeadProductMatch` record is automatically created — bridging discovery intelligence into the existing lead pipeline.
+
+#### Updated `ProductController.index()`
+Now accepts `?status=active` query param for filtering.
+
+### Frontend
+
+#### `useMapDiscovery` hook
+- New type: `GeoProductFitAnalysis`, `FitLevel`, `ProductOption`
+- `DiscoveredLead` extended with optional `fit_analysis?: GeoProductFitAnalysis`
+- New function: `analyzeProductFit(places, productId, aiLimit)` → `Record<place_id, GeoProductFitAnalysis>`
+- `addToLeads` updated to pass `product_id` + `fit_analysis_id`
+
+#### `MapSearchPanel`
+- New **Product Fit Target** card between Territory and Discovery Target panels
+- Loads active products from `GET /api/products?status=active`
+- Shows product name + category in dropdown; selected product shown as badge
+- Empty state with link to Products page when no active products exist
+- Product selection persisted in page-level state, cleared on Reset
+
+#### `MapResultsPanel`
+- **"Analyze Product Fit" button** appears when a product is selected and results exist
+- **Fit score badge** (score number) + **Fit level badge** (High/Medium/Low) on each list row
+- **Mini score gauge bar** per result item (color-coded: green/amber/muted)
+- **Sort controls**: fit score ↓, fit score ↑, rating ↓, default
+- **Filter controls**: All / High fit only / Medium fit only / Low fit only
+- **Detail view**: Full product-fit card with score gauge, reasoning list, matched signals, recommended approach, potential use case, risk flags, missing information, AI provenance
+- Add to Leads button shows "★" suffix for high-fit candidates
+
+#### `MapMarkersLayer`
+- High-fit markers: emerald border/bg + TrendingUp icon
+- Medium-fit markers: amber border/bg
+- Low-fit / no-analysis: existing neutral style
+- Fit score chip visible on hover/select
+- Label popover shows "High Fit" / "Medium Fit" text on hover
+- Z-index: Selected > Hovered > High fit > Default
+
+#### `map/page.tsx`
+- `selectedProductId` state threaded to SearchPanel, ResultsPanel, and hook calls
+- `handleAnalyzeProductFit()` calls `analyzeProductFit()`, merges results into `results` state
+- Feedback badge shows analysis summary (e.g. "3 high-fit businesses found")
+
+### Cost-Control Strategy
+- Max AI analyses per run: 10 (configurable via `ai_limit` param, max 15)
+- Rule-based pre-score runs on ALL results for free
+- AI only runs on top pre-scored candidates
+- Results cached in DB; cache invalidated only when place or product metadata changes
+- Manual trigger: user clicks "Analyze Product Fit" — no automatic analysis on scan
+
+### Verification
+- Product selector loads from DB (no hardcoded values)
+- Discovery scan unchanged — existing flow fully preserved
+- Radius up to 50 km still works
+- Fit score/reasoning visible in result list and detail view
+- Filter/sort by fit level and score functional
+- Analysis result persisted in `geo_product_fit_analyses`
+- Add to Leads creates `LeadProductMatch` with fit context
+- AI uses `geo_product_fit_analysis` feature route from Settings → AI Defaults
+- No regression to existing map rendering

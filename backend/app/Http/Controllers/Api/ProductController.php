@@ -12,9 +12,15 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        return response()->json(['data' => Product::orderBy('name')->get()]);
+        $query = Product::orderBy('name');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        return response()->json(['data' => $query->get()]);
     }
 
     public function show(Product $product): JsonResponse

@@ -12,6 +12,30 @@ export type GeocodeResult = {
   };
 };
 
+export type FitLevel = "high" | "medium" | "low" | "unknown";
+
+export type GeoProductFitAnalysis = {
+  id: number;
+  place_id: string;
+  product_id: number;
+  lead_id: number | null;
+  fit_score: number;
+  fit_level: FitLevel;
+  confidence_score: number;
+  reasoning: string[];
+  matched_signals: string[];
+  missing_information: string[];
+  risk_flags: string[];
+  recommended_approach: string | null;
+  recommended_next_action: string | null;
+  potential_use_case: string | null;
+  pre_fit_score: number;
+  analyzed_with_ai: boolean;
+  ai_provider_used: string | null;
+  ai_model_used: string | null;
+  analyzed_at: string | null;
+};
+
 export type DiscoveredLead = {
   id: number;
   external_place_id?: string;
@@ -36,10 +60,20 @@ export type DiscoveredLead = {
     status: string;
     recommendation: string;
   };
+  // Product-fit analysis (populated after analyzeProductFit)
+  fit_analysis?: GeoProductFitAnalysis;
+};
+
+export type ProductOption = {
+  id: number;
+  name: string;
+  category: string | null;
+  status: string;
 };
 
 export function useMapDiscovery() {
   const [isSearching, setIsSearching] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const geocodeArea = useCallback(async (query: string): Promise<GeocodeResult | null> => {
@@ -48,7 +82,6 @@ export function useMapDiscovery() {
       setError(null);
       const res = await apiFetch(`/maps/geocode?query=${encodeURIComponent(query)}`);
       const data = await res.json();
-      
       if (!res.ok) {
         setError(data.error || "Failed to geocode area");
         return null;
@@ -112,7 +145,6 @@ export function useMapDiscovery() {
       setError(null);
       const res = await apiFetch(`/maps/place-details/${placeId}`);
       const data = await res.json();
-      
       if (!res.ok) return null;
       return data.data;
     } catch (err) {
@@ -121,13 +153,66 @@ export function useMapDiscovery() {
     }
   }, []);
 
+  /**
+   * Analyze a batch of discovered places against a product.
+   * Returns analysis records keyed by place_id.
+   */
+  const analyzeProductFit = useCallback(async (
+    places: DiscoveredLead[],
+    productId: number,
+    aiLimit: number = 10,
+  ): Promise<Record<string, GeoProductFitAnalysis>> => {
+    try {
+      setIsAnalyzing(true);
+      setError(null);
+
+      const res = await apiFetch("/maps/geo-product-fit/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: productId,
+          places: places.map((p) => ({
+            external_place_id: p.external_place_id,
+            company_name: p.company_name,
+            address: p.address,
+            business_category: p.business_category,
+            phone: p.phone,
+            website: p.website,
+            rating: p.rating,
+          })),
+          ai_limit: aiLimit,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || data.error || "Analysis failed");
+        return {};
+      }
+
+      // Index by place_id
+      const indexed: Record<string, GeoProductFitAnalysis> = {};
+      for (const item of (data.data as GeoProductFitAnalysis[])) {
+        indexed[item.place_id] = item;
+      }
+      return indexed;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error");
+      return {};
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, []);
+
   const addToLeads = useCallback(async (
     place: DiscoveredLead,
-    aiMode: "full_ai" | "hybrid" | "manual"
+    aiMode: "full_ai" | "hybrid" | "manual",
+    productId?: number,
   ) => {
     try {
       setIsSearching(true);
-      const res = await apiFetch(`/maps/add-to-leads`, {
+      const res = await apiFetch("/maps/add-to-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -140,15 +225,17 @@ export function useMapDiscovery() {
           website: place.website,
           business_category: place.business_category,
           ai_mode: aiMode,
+          // Product-fit context
+          product_id: productId ?? null,
+          fit_analysis_id: place.fit_analysis?.id ?? null,
         }),
       });
-      
+
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.message || data.error || "Failed to add lead");
       }
-      // Return both data and any AI warning from the server
       return { data: data.data, ai_warning: data.ai_warning ?? null };
     } catch (err) {
       throw err;
@@ -159,7 +246,7 @@ export function useMapDiscovery() {
 
   const getSearchHistory = useCallback(async () => {
     try {
-      const res = await apiFetch(`/maps/search-history`);
+      const res = await apiFetch("/maps/search-history");
       const data = await res.json();
       return res.ok ? data.data : [];
     } catch {
@@ -169,10 +256,12 @@ export function useMapDiscovery() {
 
   return {
     isSearching,
+    isAnalyzing,
     error,
     geocodeArea,
     searchPlaces,
     getPlaceDetails,
+    analyzeProductFit,
     addToLeads,
     getSearchHistory,
   };
