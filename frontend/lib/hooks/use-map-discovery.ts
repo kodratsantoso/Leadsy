@@ -160,7 +160,7 @@ export function useMapDiscovery() {
   const analyzeProductFit = useCallback(async (
     places: DiscoveredLead[],
     productId: number,
-    aiLimit: number = 10,
+    aiLimit: number = 3,
   ): Promise<Record<string, GeoProductFitAnalysis>> => {
     try {
       setIsAnalyzing(true);
@@ -184,16 +184,17 @@ export function useMapDiscovery() {
         }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type");
+      const data = contentType?.includes("application/json") ? await res.json() : null;
 
       if (!res.ok) {
-        setError(data.message || data.error || "Analysis failed");
+        setError(data?.message || data?.error || "Product-fit analysis could not finish. Please try again with fewer results.");
         return {};
       }
 
       // Index by place_id
       const indexed: Record<string, GeoProductFitAnalysis> = {};
-      for (const item of (data.data as GeoProductFitAnalysis[])) {
+      for (const item of (data?.data as GeoProductFitAnalysis[] | undefined) ?? []) {
         indexed[item.place_id] = item;
       }
       return indexed;

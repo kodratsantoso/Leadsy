@@ -158,7 +158,7 @@ class MapDiscoveryController extends Controller
      * Body:
      *   product_id  — required
      *   places      — array of place payloads (from /maps/search)
-     *   ai_limit    — optional, max AI analyses this run (default 10, max 15)
+     *   ai_limit    — optional, max AI analyses this run (default 3, max 15)
      */
     public function analyzeProductFit(Request $request): JsonResponse
     {
@@ -177,7 +177,7 @@ class MapDiscoveryController extends Controller
 
         $product = Product::findOrFail($data['product_id']);
         $userId  = $request->user()?->id ?? 0;
-        $aiLimit = (int) ($data['ai_limit'] ?? 10);
+        $aiLimit = (int) ($data['ai_limit'] ?? 3);
 
         $analyses = $this->fitService->batchAnalyze($data['places'], $product, $userId, $aiLimit);
 

@@ -150,7 +150,7 @@ export default function MapPage() {
     const analysisMap = await analyzeProductFit(filteredResults, selectedProductId);
 
     if (Object.keys(analysisMap).length === 0) {
-      setFeedback("Product-fit analysis failed. Check AI provider settings.");
+      setFeedback("Product-fit analysis could not finish. Try again with fewer results or check the error detail on the map.");
       return;
     }
 
@@ -215,7 +215,7 @@ export default function MapPage() {
           {isMapsEnabled && apiKey ? (
             <APIProvider apiKey={apiKey}>
               <Map
-                mapId="leadsy-map-id"
+                mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
                 defaultCenter={center}
                 center={center}
                 zoom={zoom}

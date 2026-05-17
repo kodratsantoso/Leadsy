@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
 class GeoProductFitService
 {
     const FEATURE_NAME = 'geo_product_fit_analysis';
-    const MAX_AI_BATCH = 10;
+    const MAX_AI_BATCH = 3;
 
     public function __construct(private AiOrchestrationService $ai) {}
 
