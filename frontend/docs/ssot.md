@@ -45,6 +45,7 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/settings/page.tsx`
 - `frontend/app/settings/lead-sources/page.tsx`
 - `frontend/app/settings/lead-channels/page.tsx`
+- `frontend/app/settings/currency/page.tsx`
 - `frontend/app/settings/users/page.tsx`
 - `frontend/app/settings/ai-defaults/page.tsx`
 - `frontend/app/audit-logs/page.tsx`
@@ -57,6 +58,9 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/settings/lead-sources/page.tsx` — added DB-backed lead source taxonomy management using shared settings primitives.
 - `frontend/app/settings/lead-channels/page.tsx` — added DB-backed channel type management scoped to lead sources.
 - `frontend/app/leads/page.tsx` — now consumes lead source and channel type master data for create/edit classification, table display, and filters.
+- `frontend/app/leads/page.tsx` — displays estimated and realized closing amounts and lets admins maintain both values from lead create/edit modals.
+- `frontend/app/settings/currency/page.tsx` — added DB-backed currency and number separator settings with live preview.
+- `frontend/lib/hooks/use-number-format.ts` — added the shared number/currency display contract used by operational pages.
 - `frontend/AGENTS.md` — strengthened the runtime UI governance lock with post-refactor enforcement rules.
 - `AGENTS.md` — added repository-root guidance pointing contributors to the active frontend governance files.
 

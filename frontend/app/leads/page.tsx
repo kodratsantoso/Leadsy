@@ -35,6 +35,7 @@ import {
   TableShell,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/apiFetch";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { cn } from "@/lib/utils";
 
 type LeadRecord = {
@@ -46,6 +47,8 @@ type LeadRecord = {
   website?: string | null;
   business_category?: string | null;
   company_size_estimate?: string | null;
+  estimated_closing_amount?: string | number | null;
+  realized_closing_amount?: string | number | null;
   industry_id?: number | null;
   sub_industry_id?: number | null;
   qualification_status?: string | null;
@@ -91,6 +94,8 @@ type LeadFormState = {
   sub_industry_id: string;
   company_size_estimate: string;
   business_category: string;
+  estimated_closing_amount: string;
+  realized_closing_amount: string;
   source_type: string;
   channel_type_id: string;
   funnel_stage_id: string;
@@ -107,6 +112,8 @@ const emptyForm: LeadFormState = {
   sub_industry_id: "",
   company_size_estimate: "",
   business_category: "",
+  estimated_closing_amount: "",
+  realized_closing_amount: "",
   source_type: "",
   channel_type_id: "",
   funnel_stage_id: "",
@@ -162,10 +169,15 @@ function primaryChannelId(lead: LeadRecord) {
   return lead.sources?.[0]?.channel_type_id ?? lead.sources?.[0]?.channel_type?.id ?? null;
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export default function LeadsPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { setting: numberFormatSetting, formatNumber, formatCurrency } = useNumberFormat();
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [page, setPage] = useState(1);
@@ -183,6 +195,50 @@ export default function LeadsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editLead, setEditLead] = useState<LeadRecord | null>(null);
   const [deleteLead, setDeleteLead] = useState<LeadRecord | null>(null);
+
+  const normalizeAmountInput = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+
+    let normalized = trimmed;
+    const thousandsSeparator = numberFormatSetting?.thousands_separator ?? ",";
+    const decimalSeparator = numberFormatSetting?.decimal_separator ?? ".";
+
+    if (thousandsSeparator) {
+      normalized = normalized.replace(new RegExp(escapeRegExp(thousandsSeparator), "g"), "");
+    }
+
+    if (decimalSeparator && decimalSeparator !== ".") {
+      normalized = normalized.replace(new RegExp(escapeRegExp(decimalSeparator), "g"), ".");
+    }
+
+    const sanitized = normalized.replace(/[^\d.]/g, "");
+    const [integerPart, ...fractionParts] = sanitized.split(".");
+    const integer = integerPart.replace(/^0+(?=\d)/, "");
+
+    if (fractionParts.length === 0) {
+      return integer;
+    }
+
+    const maxDecimalDigits = Math.max(0, numberFormatSetting?.decimal_digits ?? 2);
+    const fraction = fractionParts.join("").slice(0, maxDecimalDigits);
+
+    return maxDecimalDigits === 0 ? integer : `${integer || "0"}.${fraction}`;
+  };
+
+  const formatAmountInput = (value: string) => {
+    if (!value) return "";
+
+    const [integerPart, fractionPart] = value.split(".");
+    const formattedInteger = formatNumber(integerPart || "0", { decimals: 0 });
+    const decimalSeparator = numberFormatSetting?.decimal_separator ?? ".";
+
+    if (fractionPart === undefined) {
+      return formattedInteger === "—" ? "" : formattedInteger;
+    }
+
+    return `${formattedInteger === "—" ? "0" : formattedInteger}${decimalSeparator}${fractionPart}`;
+  };
 
   const { data: stagesData } = useQuery({
     queryKey: ["funnel-stages"],
@@ -346,6 +402,8 @@ export default function LeadsPage() {
       sub_industry_id:       lead.sub_industry_id != null ? String(lead.sub_industry_id) : "",
       company_size_estimate: lead.company_size_estimate || "",
       business_category:     lead.business_category || "",
+      estimated_closing_amount: lead.estimated_closing_amount != null ? String(lead.estimated_closing_amount) : "",
+      realized_closing_amount:  lead.realized_closing_amount != null ? String(lead.realized_closing_amount) : "",
       source_type:           primarySourceSlug(lead),
       channel_type_id:       primaryChannelId(lead) != null ? String(primaryChannelId(lead)) : "",
       funnel_stage_id:       String(lead.funnel_stage_id ?? lead.current_funnel_stage?.id ?? ""),
@@ -377,6 +435,8 @@ export default function LeadsPage() {
       sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : undefined,
       company_size_estimate: formState.company_size_estimate || undefined,
       business_category:     formState.business_category || undefined,
+      estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : undefined,
+      realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : undefined,
       source_type:           formState.source_type || undefined,
       channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : undefined,
     });
@@ -396,6 +456,8 @@ export default function LeadsPage() {
         sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : null,
         company_size_estimate: formState.company_size_estimate || null,
         business_category:     formState.business_category || null,
+        estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : null,
+        realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : null,
         source_type:           formState.source_type || null,
         channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : null,
         funnel_stage_id:       formState.funnel_stage_id || null,
@@ -599,18 +661,20 @@ export default function LeadsPage() {
               <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
               <TableHeaderCell className="w-[80px]">Grade</TableHeaderCell>
               <TableHeaderCell className="w-[120px]">Qualification</TableHeaderCell>
+              <TableHeaderCell className="min-w-[150px]">Est. Closing</TableHeaderCell>
+              <TableHeaderCell className="min-w-[150px]">Realized</TableHeaderCell>
               <TableHeaderCell className="w-[120px]">Stage</TableHeaderCell>
               <TableHeaderCell className="w-[160px]">Actions</TableHeaderCell>
             </tr>
           </TableHead>
           <TableBody>
             {isLoading ? (
-              <TableEmpty colSpan={10}>
+              <TableEmpty colSpan={12}>
                 <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                 Loading leads...
               </TableEmpty>
             ) : leads.length === 0 ? (
-              <TableEmpty colSpan={10}>No leads found.</TableEmpty>
+              <TableEmpty colSpan={12}>No leads found.</TableEmpty>
             ) : (
               leads.map((lead) => (
                 <TableRow key={lead.id}>
@@ -657,6 +721,12 @@ export default function LeadsPage() {
                     <Badge variant={qualificationVariant(lead.qualification_status)}>
                       {(lead.qualification_status || "pending").replace("_", " ")}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm font-medium">{formatCurrency(lead.estimated_closing_amount)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm font-medium">{formatCurrency(lead.realized_closing_amount)}</span>
                   </TableCell>
                   <TableCell>
                     <button
@@ -883,6 +953,28 @@ export default function LeadsPage() {
               placeholder="e.g. Property Management"
             />
           </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Estimated Closing Amount</label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={formatAmountInput(formState.estimated_closing_amount)}
+                onChange={(e) => setFormState((s) => ({ ...s, estimated_closing_amount: normalizeAmountInput(e.target.value) }))}
+                placeholder={`e.g. ${formatAmountInput("15000000")}`}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Realized Closing Amount</label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={formatAmountInput(formState.realized_closing_amount)}
+                onChange={(e) => setFormState((s) => ({ ...s, realized_closing_amount: normalizeAmountInput(e.target.value) }))}
+                placeholder={`e.g. ${formatAmountInput("12000000")}`}
+              />
+            </div>
+          </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Lead Source</label>
             <Select
@@ -1042,6 +1134,28 @@ export default function LeadsPage() {
               onChange={(e) => setFormState((s) => ({ ...s, business_category: e.target.value }))}
               placeholder="e.g. Property Management"
             />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Estimated Closing Amount</label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={formatAmountInput(formState.estimated_closing_amount)}
+                onChange={(e) => setFormState((s) => ({ ...s, estimated_closing_amount: normalizeAmountInput(e.target.value) }))}
+                placeholder={`e.g. ${formatAmountInput("15000000")}`}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Realized Closing Amount</label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={formatAmountInput(formState.realized_closing_amount)}
+                onChange={(e) => setFormState((s) => ({ ...s, realized_closing_amount: normalizeAmountInput(e.target.value) }))}
+                placeholder={`e.g. ${formatAmountInput("12000000")}`}
+              />
+            </div>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Lead Source</label>

@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useNumberFormat } from '@/lib/hooks/use-number-format';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -135,6 +136,7 @@ function pipelineGateWarnings(params: {
 }
 
 function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
+  const { formatNumber, formatCurrency } = useNumberFormat();
   const date = analysis.created_at ? new Date(analysis.created_at).toLocaleString() : '';
   const model = analysis.ai_model ? analysis.ai_model.split('-').slice(0, 3).join('-') : 'AI';
 
@@ -156,7 +158,7 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
           <p className="text-[10px] text-muted-foreground mt-0.5">{model} · {date}</p>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold tabular-nums">{analysis.probability_to_close?.toFixed(0) ?? '—'}<span className="text-xs font-normal text-muted-foreground">%</span></p>
+          <p className="text-2xl font-bold tabular-nums">{formatNumber(analysis.probability_to_close, { decimals: 0 })}<span className="text-xs font-normal text-muted-foreground">%</span></p>
           <p className="text-[10px] text-muted-foreground">prob. to close</p>
         </div>
       </div>
@@ -253,8 +255,8 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
       {/* Token usage footer */}
       {(analysis.prompt_tokens || analysis.cost_usd) && (
         <div className="flex items-center gap-4 text-[10px] text-muted-foreground border-t border-border/50 pt-3">
-          {analysis.prompt_tokens && <span>{(analysis.prompt_tokens + (analysis.completion_tokens ?? 0)).toLocaleString()} tokens</span>}
-          {analysis.cost_usd && <span>${analysis.cost_usd.toFixed(4)}</span>}
+          {analysis.prompt_tokens && <span>{formatNumber(analysis.prompt_tokens + (analysis.completion_tokens ?? 0), { decimals: 0 })} tokens</span>}
+          {analysis.cost_usd && <span>{formatCurrency(analysis.cost_usd, { decimals: 4 })}</span>}
         </div>
       )}
     </div>
@@ -334,6 +336,7 @@ export default function LeadDetailPage() {
   const params = useParams();
   const leadId = params.id as string;
   const qc = useQueryClient();
+  const { formatNumber, formatCurrency } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Company info edit state
@@ -1325,7 +1328,7 @@ export default function LeadDetailPage() {
                       <div className="text-right">
                         <p className="text-lg font-semibold">{factor.raw_score ?? 0}/100</p>
                         <p className="text-xs text-muted-foreground">
-                          +{Number(factor.score_contribution ?? 0).toFixed(2)} from {factor.weight}% weight
+                          +{formatNumber(factor.score_contribution, { decimals: 2 })} from {formatNumber(factor.weight, { decimals: 0 })}% weight
                         </p>
                       </div>
                     </div>
@@ -1620,7 +1623,7 @@ export default function LeadDetailPage() {
                         <>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-2xl font-bold">
-                              {(revenueIntel.data.icp_match.icp_score ?? revenueIntel.data.icp_match.match_score ?? 0).toFixed(0)}
+                              {formatNumber(revenueIntel.data.icp_match.icp_score ?? revenueIntel.data.icp_match.match_score, { decimals: 0 })}
                             </span>
                             <Badge variant={icpVariant(revenueIntel.data.icp_match.match_status ?? revenueIntel.data.icp_match.match_level)}>
                               {icpLabel(revenueIntel.data.icp_match.match_status ?? revenueIntel.data.icp_match.match_level)}
@@ -1643,7 +1646,7 @@ export default function LeadDetailPage() {
                                   <div className="flex items-center justify-between gap-3">
                                     <span className="font-medium capitalize">{factor.factor?.replace(/_/g, ' ')}</span>
                                     <span>
-                                      {Number(factor.weighted_score ?? 0).toFixed(1)} pts
+                                      {formatNumber(factor.weighted_score, { decimals: 1 })} pts
                                     </span>
                                   </div>
                                   {factor.reason ? (
@@ -1689,7 +1692,7 @@ export default function LeadDetailPage() {
                           <p className="text-xs text-muted-foreground">Est. Deal</p>
                           <p className="text-xs font-semibold">
                             {revenueIntel.data.latest_prediction.expected_deal_size
-                              ? `$${revenueIntel.data.latest_prediction.expected_deal_size.toLocaleString()}`
+                              ? formatCurrency(revenueIntel.data.latest_prediction.expected_deal_size)
                               : '—'}
                           </p>
                         </div>
@@ -1800,7 +1803,7 @@ export default function LeadDetailPage() {
                       {revenueIntel.data.latest_outcome.deal_size && (
                         <div>
                           <p className="text-xs text-muted-foreground">Deal Size</p>
-                          <p className="font-semibold">${revenueIntel.data.latest_outcome.deal_size.toLocaleString()}</p>
+                          <p className="font-semibold">{formatCurrency(revenueIntel.data.latest_outcome.deal_size)}</p>
                         </div>
                       )}
                       {revenueIntel.data.latest_outcome.feedback_notes && (

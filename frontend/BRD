@@ -742,6 +742,28 @@ For every enriched field, track:
 
 Lead source and channel type master data must be editable from Settings and persisted in PostgreSQL. The Leads list and create/edit flow must expose both fields so sales users can classify whether a lead came from Google Maps, manual entry, import, referral, WhatsApp, web, or another configured source, then classify the deeper channel beneath that source.
 
+### 7.6.1 Lead Closing Amount Tracking
+
+For each lead, track:
+
+* Estimated closing amount
+* Realized closing amount
+
+Both values must be stored in PostgreSQL and visible on the Leads list so pipeline value and actual closed value can be compared without opening the lead detail page.
+
+### 7.6.2 Currency and Number Formatting
+
+The platform must provide database-backed currency and numeric display settings:
+
+* World currency master data
+* Active platform currency
+* Thousands separator
+* Decimal separator
+* Decimal precision
+* Currency symbol position and spacing
+
+All visible operational amount and number formatting should consume the shared formatter backed by this setting rather than hardcoded locale, currency code, or separator rules.
+
 ### 7.7 Branch / Parent Company Structure
 
 * Parent company grouping

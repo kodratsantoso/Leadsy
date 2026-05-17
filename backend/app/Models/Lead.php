@@ -17,7 +17,8 @@ class Lead extends Model
         'industry_id', 'sub_industry_id', 'business_category',
         'company_size_estimate', 'branch_count', 'operating_hours',
         'social_profiles',
-        'lead_score', 'qualification_status', 'ai_explanation',
+        'lead_score', 'estimated_closing_amount', 'realized_closing_amount',
+        'qualification_status', 'ai_explanation',
         'duplicate_status', 'duplicate_of_id', 'external_place_id',
         'use_ai_reference', 'ai_mode', 'ai_reference_source_type',
         'ai_reference_id', 'ai_processing_status',
@@ -31,6 +32,8 @@ class Lead extends Model
         'lng'              => 'float',
         'social_profiles'  => 'array',
         'lead_score'       => 'integer',
+        'estimated_closing_amount' => 'decimal:2',
+        'realized_closing_amount'  => 'decimal:2',
         'use_ai_reference' => 'boolean',
         'branch_count'     => 'integer',
     ];

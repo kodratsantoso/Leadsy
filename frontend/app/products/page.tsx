@@ -27,6 +27,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { apiFetch } from "@/lib/apiFetch";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
 type ProductRecord = {
   id: number;
@@ -76,6 +77,7 @@ const refTypeLabels: Record<
 
 export default function ProductsPage() {
   const qc = useQueryClient();
+  const { formatCurrency } = useNumberFormat();
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -628,7 +630,7 @@ export default function ProductsPage() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Budget Range</label>
-                <Input value={formBudgetRange} onChange={(e) => setFormBudgetRange(e.target.value)} placeholder="IDR 50M – 500M / year" />
+                <Input value={formBudgetRange} onChange={(e) => setFormBudgetRange(e.target.value)} placeholder={`${formatCurrency(50000000)} - ${formatCurrency(500000000)} / year`} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Supported Regions</label>

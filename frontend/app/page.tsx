@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import Link from "next/link";
 import { resolveStageColor } from "@/lib/stage-colors";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
 function PipelineHealthBadge({ health }: { health?: string }) {
   const cfg = {
@@ -29,6 +30,7 @@ function ScoreMeter({ value, max = 100, color }: { value: number; max?: number; 
 }
 
 export default function DashboardPage() {
+  const { formatNumber } = useNumberFormat();
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard"],
     queryFn: async () => { const r = await apiFetch("/dashboard"); return r.json(); },
@@ -113,7 +115,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
-                    <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? s.value.toLocaleString() : s.value}</p>
+                    <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? formatNumber(s.value, { decimals: 0 }) : s.value}</p>
                   </div>
                   <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} shadow-lg`}>
                     <s.icon className="h-5 w-5 text-white" />
@@ -155,15 +157,15 @@ export default function DashboardPage() {
                 />
                 <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                   <Link href="/leads?qualification_status=eligible" className="rounded-lg bg-muted/40 p-2 hover:bg-muted/70 transition-colors block">
-                    <p className="text-lg font-bold text-[var(--status-success)]">{pq.qualified_ratio}%</p>
+                    <p className="text-lg font-bold text-[var(--status-success)]">{formatNumber(pq.qualified_ratio, { decimals: 0 })}%</p>
                     <p className="text-xs text-muted-foreground">Qualified ↗</p>
                   </Link>
                   <Link href="/leads?filter=ghost" className="rounded-lg bg-muted/40 p-2 hover:bg-muted/70 transition-colors block">
-                    <p className="text-lg font-bold text-[var(--status-danger)]">{pq.ghost_lead_ratio}%</p>
+                    <p className="text-lg font-bold text-[var(--status-danger)]">{formatNumber(pq.ghost_lead_ratio, { decimals: 0 })}%</p>
                     <p className="text-xs text-muted-foreground">Ghost Leads ↗</p>
                   </Link>
                   <div className="rounded-lg bg-muted/40 p-2">
-                    <p className="text-lg font-bold">{pq.average_score}</p>
+                    <p className="text-lg font-bold">{formatNumber(pq.average_score, { decimals: 0 })}</p>
                     <p className="text-xs text-muted-foreground">Avg Score</p>
                   </div>
                 </div>
@@ -195,7 +197,7 @@ export default function DashboardPage() {
                       <div key={s.source_type}>
                         <div className="flex items-center justify-between text-xs mb-1">
                           <span className="font-medium capitalize">{s.source_type.replace(/_/g, " ")}</span>
-                          <span className="text-muted-foreground">{s.conversion_rate}% conv · {s.total_leads} leads · avg {s.avg_score}</span>
+                          <span className="text-muted-foreground">{formatNumber(s.conversion_rate, { decimals: 0 })}% conv · {formatNumber(s.total_leads, { decimals: 0 })} leads · avg {formatNumber(s.avg_score, { decimals: 0 })}</span>
                         </div>
                         <ScoreMeter value={s.conversion_rate} color="var(--brand)" />
                       </div>
@@ -215,7 +217,7 @@ export default function DashboardPage() {
                   <TrendingUp className="h-4 w-4 text-[var(--status-success)]" />
                   <p className="text-sm font-semibold">Average Score</p>
                 </div>
-                <p className="text-4xl font-bold tabular-nums">{pq.average_score}</p>
+                <p className="text-4xl font-bold tabular-nums">{formatNumber(pq.average_score, { decimals: 0 })}</p>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Average lead quality across the current database.
                 </p>

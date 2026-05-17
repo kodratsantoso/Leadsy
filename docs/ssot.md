@@ -103,6 +103,16 @@
 - `docker-compose.yml` — wired the backend container to the internal WhatsApp sidecar URL explicitly.
 - `docs/execution/diff.md` — logged the revenue intelligence contract fix and lead detail regression repair.
 - `docs/execution/progress.md` — recorded the April 18 stability/spec-alignment pass.
+- `backend/database/migrations/2026_05_17_022000_add_closing_amounts_to_leads_table.php` — added estimated and realized closing amount columns to the `leads` table.
+- `backend/app/Models/Lead.php` — exposed closing amount fields for mass assignment and decimal serialization.
+- `backend/app/Http/Controllers/Api/LeadController.php` — accepts estimated and realized closing amounts during lead create/update flows.
+- `frontend/app/leads/page.tsx` — displays estimated closing and realized closing amounts in the Leads table and adds inputs to create/edit modals.
+- `backend/database/migrations/2026_05_17_023000_create_currency_settings_tables.php` — added DB-backed world currency master data and global currency display settings.
+- `backend/app/Http/Controllers/Api/CurrencySettingController.php` — added currency settings and format endpoints.
+- `backend/app/Models/Currency.php` and `backend/app/Models/CurrencySetting.php` — added currency master and tenant-aware formatting models.
+- `frontend/app/settings/currency/page.tsx` — added Settings → Currency UI for active currency, separators, decimal digits, symbol position, and preview.
+- `frontend/lib/hooks/use-number-format.ts` — added the shared frontend number/currency formatter that reads from the database.
+- `frontend/app/page.tsx`, `frontend/app/leads/page.tsx`, `frontend/app/leads/[id]/page.tsx`, `frontend/app/settings/ai-defaults/page.tsx`, and `frontend/app/products/page.tsx` — replaced visible amount/number formatting with the shared DB-backed formatter.
 
 ## Notes
 

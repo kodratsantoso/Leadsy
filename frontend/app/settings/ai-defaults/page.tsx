@@ -31,6 +31,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { apiFetch } from "@/lib/apiFetch";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { cn } from "@/lib/utils";
 
 type ProviderModel = {
@@ -230,6 +231,7 @@ function providerBadge(status?: string | null) {
 
 export default function AiDefaultsPage() {
   const queryClient = useQueryClient();
+  const { formatNumber, formatCurrency } = useNumberFormat();
   const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("providers");
   const [expandedProviderId, setExpandedProviderId] = useState<number | null>(null);
   const [providerForm, setProviderForm] = useState<ProviderFormState>(emptyProviderForm);
@@ -1017,19 +1019,19 @@ export default function AiDefaultsPage() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Calls</p>
-              <p className="mt-3 text-3xl font-semibold">{usageOverview?.summary.total_calls ?? 0}</p>
+              <p className="mt-3 text-3xl font-semibold">{formatNumber(usageOverview?.summary.total_calls ?? 0, { decimals: 0 })}</p>
             </CardContent></Card>
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Cost</p>
-              <p className="mt-3 text-3xl font-semibold">${usageOverview?.summary.total_cost_usd.toFixed(4) ?? "0.0000"}</p>
+              <p className="mt-3 text-3xl font-semibold">{formatCurrency(usageOverview?.summary.total_cost_usd ?? 0, { decimals: 4 })}</p>
             </CardContent></Card>
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Success Rate</p>
-              <p className="mt-3 text-3xl font-semibold">{usageOverview?.summary.success_rate ?? 0}%</p>
+              <p className="mt-3 text-3xl font-semibold">{formatNumber(usageOverview?.summary.success_rate ?? 0, { decimals: 0 })}%</p>
             </CardContent></Card>
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Fallback Count</p>
-              <p className="mt-3 text-3xl font-semibold">{usageOverview?.summary.fallback_count ?? 0}</p>
+              <p className="mt-3 text-3xl font-semibold">{formatNumber(usageOverview?.summary.fallback_count ?? 0, { decimals: 0 })}</p>
             </CardContent></Card>
           </div>
 
@@ -1043,11 +1045,11 @@ export default function AiDefaultsPage() {
                       <div>
                         <p className="font-medium">{item.provider_name}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          {item.total_calls} calls • {item.fallback_count} fallbacks • Last used {fmtDate(item.last_used_at)}
+                          {formatNumber(item.total_calls, { decimals: 0 })} calls • {formatNumber(item.fallback_count, { decimals: 0 })} fallbacks • Last used {fmtDate(item.last_used_at)}
                         </p>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        ${(item.total_cost_usd ?? 0).toFixed(4)} • {item.success_rate ?? 0}% success • {item.avg_latency_ms ?? 0}ms avg
+                        {formatCurrency(item.total_cost_usd ?? 0, { decimals: 4 })} • {formatNumber(item.success_rate ?? 0, { decimals: 0 })}% success • {formatNumber(item.avg_latency_ms ?? 0, { decimals: 0 })}ms avg
                       </div>
                     </div>
                   </div>

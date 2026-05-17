@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AiProviderController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CurrencySettingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FunnelController;
 use App\Http\Controllers\Api\IcpProfileController;
@@ -97,6 +98,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('leads', LeadController::class);
     Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['show'])->middleware('permission:leads.edit');
     Route::apiResource('settings/lead-channels', LeadChannelTypeController::class)->except(['show'])->middleware('permission:leads.edit');
+    Route::get('settings/currency-format', [CurrencySettingController::class, 'format']);
+    Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
+    Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/rescore', [LeadController::class, 'rescore'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');
