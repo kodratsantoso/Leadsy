@@ -79,3 +79,10 @@
   - `frontend/AGENTS.md` is the enforcement reference for runtime UI work.
   - `frontend/docs/ssot.md` defines the baseline pages and design-system contract.
   - Low-risk cleanup aligned `Industries`, `Products`, and `Settings → Webhooks` to shared `Button`, `Card`, `Input`, `Badge`, `FilterBar`, `Select`, and `Modal` primitives.
+
+## ADR-012: DB-Backed Lead Source and Channel Taxonomy
+- **Date**: 2026-05-17
+- **Status**: Active
+- **Decision**: Lead source and channel type classification are master data stored in PostgreSQL via `lead_source_types` and `lead_channel_types`, then referenced from `lead_sources`.
+- **Rationale**: Lead origin taxonomy must be configurable by admins and reusable across imports, manual entry, map discovery, WhatsApp, referrals, and future channels without hardcoded frontend lists.
+- **Impact**: Settings now exposes Lead Sources and Lead Channels CRUD. The Leads page can classify, display, and filter by both levels, with channel options scoped to the selected source.

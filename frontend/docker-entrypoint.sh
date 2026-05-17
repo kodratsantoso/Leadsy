@@ -20,5 +20,7 @@ fi
 
 # Dev mode: clear stale artifacts and boot hot reload server.
 rm -rf /app/.next 2>/dev/null || true
-npm install
+if [ ! -d /app/node_modules ] || [ -z "$(ls -A /app/node_modules 2>/dev/null)" ]; then
+  npm install
+fi
 exec npm run dev

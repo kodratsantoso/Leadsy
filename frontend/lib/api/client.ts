@@ -1,5 +1,5 @@
 /**
- * Centralised API client for the Leads Generator Platform.
+ * Centralised API client for the Leadsy Platform.
  * Points at NEXT_PUBLIC_API_URL (backend on :3001) when set,
  * otherwise uses same-origin Next.js route handlers.
  */

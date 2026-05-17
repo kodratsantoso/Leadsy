@@ -1,8 +1,8 @@
-# Leads Generator Application Specification
+# Leadsy Application Specification
 
 ## 1. Purpose
 
-Build a web-based **Leads Generator Application** that helps users identify potential business leads based on geographic area, product relevance, and AI-assisted qualification.
+Build a web-based **Leadsy application** that helps users identify potential business leads based on geographic area, product relevance, and AI-assisted qualification.
 
 The system should support:
 
@@ -736,8 +736,11 @@ Future-ready connectors:
 For every enriched field, track:
 
 * Source type
+* Channel type under the selected lead source
 * Confidence level
 * Last verified date
+
+Lead source and channel type master data must be editable from Settings and persisted in PostgreSQL. The Leads list and create/edit flow must expose both fields so sales users can classify whether a lead came from Google Maps, manual entry, import, referral, WhatsApp, web, or another configured source, then classify the deeper channel beneath that source.
 
 ### 7.7 Branch / Parent Company Structure
 

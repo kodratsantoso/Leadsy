@@ -1,4 +1,4 @@
-# Progress Log — Leads Generator Platform
+# Progress Log — Leadsy Platform
 
 ## Phase 1: Foundation (Completed ✅)
 - [x] Backend: Laravel 12 bootstrap, PostgreSQL/Redis config
@@ -249,3 +249,32 @@ GET    /api/leads/{id}/progress           — Get aggregated progress summary
 **Module C**: ✅ Complete (production-ready)
 **Frontend**: ✅ 95% Complete (Lead Detail + Settings integrated, Leads list enhanced)
 **Documentation**: ⏳ 60% Complete (tasks updated, progress updated, BRD/SSOT/decisions pending)
+
+## Phase 8: Leadsy Runtime Rename & Lead Taxonomy Settings (Completed ✅)
+**Date completed**: 2026-05-17
+
+### What was done
+Renamed the local runtime namespace and app-facing brand to Leadsy, then added DB-backed lead origin classification.
+
+### Runtime and Branding
+| Area | Change |
+|---|---|
+| Docker | Renamed service containers, volumes, and network namespace to `leadsy-*` across root and frontend compose files. |
+| Frontend runtime | Added `.dockerignore`, hardened Docker install flow, and kept frontend/backend/WhatsApp ports stable at `3000`/`3001`/`3002`. |
+| App metadata | Updated public app name fallback and documentation references to Leadsy. |
+
+### Lead Classification
+| Layer | Change |
+|---|---|
+| Database | Added `lead_source_types`, `lead_channel_types`, and `lead_sources.channel_type_id` migrations with seeded defaults. |
+| Backend API | Added CRUD endpoints for `/api/settings/lead-sources` and `/api/settings/lead-channels`; leads can be saved and filtered by source/channel. |
+| Frontend Settings | Added Lead Sources and Lead Channels settings pages using shared UI primitives. |
+| Leads UI | Added source/channel create-edit controls, filters, table columns, and source-scoped channel options. |
+
+### Verification
+- [x] `php artisan migrate --force`
+- [x] `php artisan route:list --path=settings/lead-channels`
+- [x] PHP syntax checks for new/modified backend classes
+- [x] `cd frontend && ./node_modules/.bin/tsc --noEmit`
+- [x] Authenticated API smoke checks for lead source, lead channel, and lead channel filter payloads
+- [x] Docker stack confirmed running as `leadsy-*`

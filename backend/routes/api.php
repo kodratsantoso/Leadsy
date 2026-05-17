@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\IcpProfileController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\IntegrationConfigController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\LeadChannelTypeController;
+use App\Http\Controllers\Api\LeadSourceTypeController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\QualificationController;
 use App\Http\Controllers\Api\QualificationParameterSetController;
@@ -27,7 +29,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes — Leads Generator Platform
+| API Routes — Leadsy Platform
 |--------------------------------------------------------------------------
 | BRD-aligned API surface. All protected routes require Sanctum auth.
 | RBAC enforced via 'permission' middleware on sensitive endpoints.
@@ -93,6 +95,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/discover', [LeadController::class, 'discover'])->middleware('permission:leads.create');
     Route::post('leads/bulk-import', [LeadController::class, 'bulkImport'])->middleware('permission:leads.create');
     Route::apiResource('leads', LeadController::class);
+    Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['show'])->middleware('permission:leads.edit');
+    Route::apiResource('settings/lead-channels', LeadChannelTypeController::class)->except(['show'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/rescore', [LeadController::class, 'rescore'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');

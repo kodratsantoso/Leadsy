@@ -8,6 +8,8 @@ use App\Jobs\EnrichLeadContactsJob;
 use App\Jobs\EnrichLeadJob;
 use App\Jobs\ScoreLeadJob;
 use App\Models\Lead;
+use App\Models\LeadChannelType;
+use App\Models\LeadSourceType;
 use App\Models\LeadOutcome;
 use App\Services\AuditService;
 use App\Services\DeduplicationService;
@@ -31,7 +33,7 @@ class LeadController extends Controller
     /** GET /api/leads */
     public function index(Request $request): JsonResponse
     {
-        $query = Lead::with(['industry', 'subIndustry', 'funnelStage', 'owner', 'territory', 'product']);
+        $query = Lead::with(['industry', 'subIndustry', 'funnelStage', 'owner', 'territory', 'product', 'sources.channelType']);
 
         // Filters
         if ($request->filled('industry_id')) {
@@ -54,6 +56,12 @@ class LeadController extends Controller
         }
         if ($request->filled('owner_id')) {
             $query->where('owner_id', $request->owner_id);
+        }
+        if ($request->filled('source_type')) {
+            $query->whereHas('sources', fn ($sourceQuery) => $sourceQuery->where('source_type', $request->source_type));
+        }
+        if ($request->filled('channel_type_id')) {
+            $query->whereHas('sources', fn ($sourceQuery) => $sourceQuery->where('channel_type_id', (int) $request->channel_type_id));
         }
         if ($request->filled('min_score')) {
             $query->where('lead_score', '>=', (int) $request->min_score);
@@ -85,7 +93,7 @@ class LeadController extends Controller
         $lead->load([
             'industry', 'subIndustry', 'funnelStage', 'owner',
             'territory', 'product', 'contacts.contactSource',
-            'sources', 'funnelHistory.fromStage', 'funnelHistory.toStage',
+            'sources.channelType', 'funnelHistory.fromStage', 'funnelHistory.toStage',
             'funnelHistory.movedBy', 'creator',
             'scores', 'qualifications', 'productMatches', 'aiAnalyses',
             'activities', 'meetings', 'transcripts', 'aiEvaluations', 'followUps',
@@ -118,7 +126,13 @@ class LeadController extends Controller
             'use_ai_reference'     => 'nullable|boolean',
             'funnel_stage_id'      => 'nullable|exists:funnel_stages,id',
             'owner_id'             => 'nullable|exists:users,id',
+            'source_type'          => 'nullable|exists:lead_source_types,slug',
+            'channel_type_id'      => 'nullable|exists:lead_channel_types,id',
         ]);
+        $sourceType = $data['source_type'] ?? 'manual';
+        $channelTypeId = $data['channel_type_id'] ?? null;
+        unset($data['source_type']);
+        unset($data['channel_type_id']);
 
         // Extract website domain for dedup
         if (! empty($data['website'])) {
@@ -149,6 +163,7 @@ class LeadController extends Controller
         $data['duplicate_of_id']  = $dedupResult->matchedLeadId;
 
         $lead = Lead::create($data);
+        $this->syncLeadSource($lead, $sourceType, $channelTypeId);
 
         AuditService::logCreated('leads', $lead);
 
@@ -170,7 +185,7 @@ class LeadController extends Controller
         }
 
         return response()->json([
-            'data'      => $lead->load(['industry', 'funnelStage']),
+            'data'      => $lead->load(['industry', 'funnelStage', 'sources.channelType']),
             'duplicate' => $dedupResult->toArray(),
         ], 201);
     }
@@ -198,7 +213,13 @@ class LeadController extends Controller
             'funnel_stage_id'       => 'nullable|exists:funnel_stages,id',
             'owner_id'              => 'nullable|exists:users,id',
             'product_id'            => 'nullable|exists:products,id',
+            'source_type'           => 'nullable|exists:lead_source_types,slug',
+            'channel_type_id'       => 'nullable|exists:lead_channel_types,id',
         ]);
+        $sourceType = $data['source_type'] ?? null;
+        $channelTypeId = $data['channel_type_id'] ?? null;
+        unset($data['source_type']);
+        unset($data['channel_type_id']);
 
         if (isset($data['website'])) {
             $data['website_domain'] = parse_url($data['website'], PHP_URL_HOST);
@@ -221,10 +242,38 @@ class LeadController extends Controller
         }
 
         $lead->update($data);
+        $this->syncLeadSource($lead, $sourceType, $channelTypeId);
 
         AuditService::logUpdated('leads', $lead, $original);
 
-        return response()->json(['data' => $lead->fresh(['industry', 'funnelStage'])]);
+        return response()->json(['data' => $lead->fresh(['industry', 'funnelStage', 'sources.channelType'])]);
+    }
+
+    private function syncLeadSource(Lead $lead, ?string $sourceType, ?int $channelTypeId = null): void
+    {
+        if (! $sourceType && ! $channelTypeId) {
+            return;
+        }
+
+        $channel = $channelTypeId ? LeadChannelType::with('sourceType')->find($channelTypeId) : null;
+        $sourceType = $channel?->sourceType?->slug
+            ?? LeadSourceType::where('slug', $sourceType)->value('slug')
+            ?? 'other';
+
+        $source = $lead->sources()->orderBy('id')->first();
+        $payload = [
+            'source_type' => $sourceType,
+            'channel_type_id' => $channel?->id,
+            'confidence' => 'medium',
+            'last_verified_at' => now()->toDateString(),
+        ];
+
+        if ($source) {
+            $source->update($payload);
+            return;
+        }
+
+        $lead->sources()->create($payload);
     }
 
     /** DELETE /api/leads/{lead} */

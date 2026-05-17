@@ -43,6 +43,8 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/leads/page.tsx`
 - `frontend/app/map/page.tsx`
 - `frontend/app/settings/page.tsx`
+- `frontend/app/settings/lead-sources/page.tsx`
+- `frontend/app/settings/lead-channels/page.tsx`
 - `frontend/app/settings/users/page.tsx`
 - `frontend/app/settings/ai-defaults/page.tsx`
 - `frontend/app/audit-logs/page.tsx`
@@ -52,6 +54,9 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/industries/page.tsx` — moved create/edit/delete flows onto shared `Card`, `Button`, `Input`, `Badge`, and `Modal` primitives.
 - `frontend/app/products/page.tsx` — replaced page-local form and destructive controls with shared `FilterBar`, `Card`, `Badge`, `Button`, `Input`, `Textarea`, `Select`, and `Modal`.
 - `frontend/app/settings/webhooks/page.tsx` — aligned settings actions to shared cards, inputs, buttons, badges, and governed delete confirmation modal.
+- `frontend/app/settings/lead-sources/page.tsx` — added DB-backed lead source taxonomy management using shared settings primitives.
+- `frontend/app/settings/lead-channels/page.tsx` — added DB-backed channel type management scoped to lead sources.
+- `frontend/app/leads/page.tsx` — now consumes lead source and channel type master data for create/edit classification, table display, and filters.
 - `frontend/AGENTS.md` — strengthened the runtime UI governance lock with post-refactor enforcement rules.
 - `AGENTS.md` — added repository-root guidance pointing contributors to the active frontend governance files.
 

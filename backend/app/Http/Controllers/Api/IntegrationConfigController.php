@@ -82,7 +82,7 @@ class IntegrationConfigController extends Controller
             ->map(fn ($rows) => $rows->first()->value);
 
         // Augment with runtime environment values (not stored in DB)
-        $configs['APP_NAME'] = config('app.name', 'Prasetia Leads');
+        $configs['APP_NAME'] = config('app.name', 'Leadsy');
         $configs['APP_ENV']  = config('app.env', 'production');
 
         return response()->json(['data' => $configs]);

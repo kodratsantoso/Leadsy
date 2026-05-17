@@ -54,9 +54,32 @@ type LeadRecord = {
   funnel_stage?: { id: number; name: string } | null;
   current_funnel_stage?: { id: number; name: string } | null;
   industry?: { name: string } | null;
+  sources?: LeadSource[];
 };
 
 type FunnelStage = { id: number; name: string; sequence: number };
+type LeadChannelType = {
+  id: number;
+  lead_source_type_id: number;
+  name: string;
+  slug: string;
+  is_active: boolean;
+};
+type LeadSource = {
+  id: number;
+  source_type: string;
+  channel_type_id?: number | null;
+  source_ref?: string | null;
+  confidence?: string | null;
+  channel_type?: LeadChannelType | null;
+};
+type LeadSourceType = {
+  id: number;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  channels?: LeadChannelType[];
+};
 
 type LeadFormState = {
   company_name: string;
@@ -68,6 +91,8 @@ type LeadFormState = {
   sub_industry_id: string;
   company_size_estimate: string;
   business_category: string;
+  source_type: string;
+  channel_type_id: string;
   funnel_stage_id: string;
   qualification_status: string;
 };
@@ -82,6 +107,8 @@ const emptyForm: LeadFormState = {
   sub_industry_id: "",
   company_size_estimate: "",
   business_category: "",
+  source_type: "",
+  channel_type_id: "",
   funnel_stage_id: "",
   qualification_status: "pending",
 };
@@ -127,6 +154,14 @@ function pipelineWarnings(lead: LeadRecord) {
   return warnings;
 }
 
+function primarySourceSlug(lead: LeadRecord) {
+  return lead.sources?.[0]?.source_type ?? "";
+}
+
+function primaryChannelId(lead: LeadRecord) {
+  return lead.sources?.[0]?.channel_type_id ?? lead.sources?.[0]?.channel_type?.id ?? null;
+}
+
 export default function LeadsPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -139,6 +174,8 @@ export default function LeadsPage() {
     searchParams.get("qualification_status") ?? ""
   );
   const [duplicateFilter, setDuplicateFilter] = useState(searchParams.get("duplicate_status") ?? "");
+  const [sourceFilter, setSourceFilter] = useState(searchParams.get("source_type") ?? "");
+  const [channelFilter, setChannelFilter] = useState(searchParams.get("channel_type_id") ?? "");
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
   const [feedback, setFeedback] = useState("");
@@ -163,14 +200,24 @@ export default function LeadsPage() {
     },
   });
 
+  const { data: leadSourcesData } = useQuery({
+    queryKey: ["lead-source-types"],
+    queryFn: async () => {
+      const response = await apiFetch("/settings/lead-sources");
+      return response.json();
+    },
+  });
+
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, search, funnelStageId, qualificationFilter, duplicateFilter, minScore, maxScore],
+    queryKey: ["leads", page, search, funnelStageId, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, minScore, maxScore],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page) });
       if (search) params.set("search", search);
       if (funnelStageId) params.set("funnel_stage_id", funnelStageId);
       if (qualificationFilter) params.set("qualification_status", qualificationFilter);
       if (duplicateFilter) params.set("duplicate_status", duplicateFilter);
+      if (sourceFilter) params.set("source_type", sourceFilter);
+      if (channelFilter) params.set("channel_type_id", channelFilter);
       if (minScore) params.set("min_score", minScore);
       if (maxScore) params.set("max_score", maxScore);
       const response = await apiFetch(`/leads?${params.toString()}`);
@@ -184,6 +231,23 @@ export default function LeadsPage() {
   const selectedSubIndustries =
     allIndustries.find((i) => String(i.id) === formState.industry_id)?.sub_industries ?? [];
   const leads: LeadRecord[] = data?.data ?? [];
+  const leadSources: LeadSourceType[] = leadSourcesData?.data ?? [];
+  const activeLeadSources = leadSources.filter((source) => source.is_active);
+  const activeLeadChannels = activeLeadSources.flatMap((source) =>
+    (source.channels ?? [])
+      .filter((channel) => channel.is_active)
+      .map((channel) => ({ ...channel, source_name: source.name, source_slug: source.slug }))
+  );
+  const selectedLeadChannels = activeLeadChannels.filter((channel) => {
+    if (!formState.source_type) return true;
+    return channel.source_slug === formState.source_type;
+  });
+  const filteredLeadChannels = activeLeadChannels.filter((channel) => {
+    if (!sourceFilter) return true;
+    return channel.source_slug === sourceFilter;
+  });
+  const sourceNameBySlug = new Map(leadSources.map((source) => [source.slug, source.name]));
+  const channelNameById = new Map(activeLeadChannels.map((channel) => [channel.id, channel.name]));
   const total = data?.total ?? 0;
   const lastPage = data?.last_page ?? 1;
 
@@ -282,6 +346,8 @@ export default function LeadsPage() {
       sub_industry_id:       lead.sub_industry_id != null ? String(lead.sub_industry_id) : "",
       company_size_estimate: lead.company_size_estimate || "",
       business_category:     lead.business_category || "",
+      source_type:           primarySourceSlug(lead),
+      channel_type_id:       primaryChannelId(lead) != null ? String(primaryChannelId(lead)) : "",
       funnel_stage_id:       String(lead.funnel_stage_id ?? lead.current_funnel_stage?.id ?? ""),
       qualification_status:  lead.qualification_status || "pending",
     });
@@ -292,6 +358,8 @@ export default function LeadsPage() {
     setFunnelStageId("");
     setQualificationFilter("");
     setDuplicateFilter("");
+    setSourceFilter("");
+    setChannelFilter("");
     setMinScore("");
     setMaxScore("");
     setPage(1);
@@ -309,6 +377,8 @@ export default function LeadsPage() {
       sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : undefined,
       company_size_estimate: formState.company_size_estimate || undefined,
       business_category:     formState.business_category || undefined,
+      source_type:           formState.source_type || undefined,
+      channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : undefined,
     });
   };
 
@@ -326,6 +396,8 @@ export default function LeadsPage() {
         sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : null,
         company_size_estimate: formState.company_size_estimate || null,
         business_category:     formState.business_category || null,
+        source_type:           formState.source_type || null,
+        channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : null,
         funnel_stage_id:       formState.funnel_stage_id || null,
         qualification_status:  formState.qualification_status || null,
       },
@@ -357,7 +429,7 @@ export default function LeadsPage() {
   };
 
   const hasActiveFilter = Boolean(
-    search || funnelStageId || qualificationFilter || duplicateFilter || minScore || maxScore
+    search || funnelStageId || qualificationFilter || duplicateFilter || sourceFilter || channelFilter || minScore || maxScore
   );
 
   const getNextFunnelStageId = (lead: LeadRecord) => {
@@ -457,6 +529,37 @@ export default function LeadsPage() {
           <option value="probable_duplicate">Probable duplicate</option>
           <option value="exact_duplicate">Exact duplicate</option>
         </Select>
+        <Select
+          value={sourceFilter}
+          onChange={(event) => {
+            const nextSource = event.target.value;
+            setSourceFilter(nextSource);
+            setChannelFilter("");
+            setPage(1);
+          }}
+          placeholder="All sources"
+        >
+          {leadSources.map((source) => (
+            <option key={source.id} value={source.slug}>
+              {source.name}
+            </option>
+          ))}
+        </Select>
+        <Select
+          value={channelFilter}
+          onChange={(event) => {
+            setChannelFilter(event.target.value);
+            setPage(1);
+          }}
+          placeholder="All channels"
+          disabled={filteredLeadChannels.length === 0}
+        >
+          {filteredLeadChannels.map((channel) => (
+            <option key={channel.id} value={String(channel.id)}>
+              {channel.name}
+            </option>
+          ))}
+        </Select>
         <Input
           className="w-24"
           inputMode="numeric"
@@ -490,6 +593,8 @@ export default function LeadsPage() {
             <tr>
               <TableHeaderCell className="min-w-[200px]">Company</TableHeaderCell>
               <TableHeaderCell className="min-w-[120px]">Industry</TableHeaderCell>
+              <TableHeaderCell className="min-w-[120px]">Source</TableHeaderCell>
+              <TableHeaderCell className="min-w-[130px]">Channel</TableHeaderCell>
               <TableHeaderCell className="min-w-[160px]">Contact</TableHeaderCell>
               <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
               <TableHeaderCell className="w-[80px]">Grade</TableHeaderCell>
@@ -500,12 +605,12 @@ export default function LeadsPage() {
           </TableHead>
           <TableBody>
             {isLoading ? (
-              <TableEmpty colSpan={8}>
+              <TableEmpty colSpan={10}>
                 <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                 Loading leads...
               </TableEmpty>
             ) : leads.length === 0 ? (
-              <TableEmpty colSpan={8}>No leads found.</TableEmpty>
+              <TableEmpty colSpan={10}>No leads found.</TableEmpty>
             ) : (
               leads.map((lead) => (
                 <TableRow key={lead.id}>
@@ -517,6 +622,24 @@ export default function LeadsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="neutral">{lead.industry?.name ?? lead.business_category ?? "Unknown"}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {primarySourceSlug(lead) ? (
+                      <Badge variant="brand">
+                        {sourceNameBySlug.get(primarySourceSlug(lead)) ?? primarySourceSlug(lead)}
+                      </Badge>
+                    ) : (
+                      <Badge variant="neutral">Unclassified</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {primaryChannelId(lead) ? (
+                      <Badge variant="info">
+                        {channelNameById.get(primaryChannelId(lead) as number) ?? lead.sources?.[0]?.channel_type?.name ?? "Channel"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="neutral">Unclassified</Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1 text-xs">
@@ -760,6 +883,31 @@ export default function LeadsPage() {
               placeholder="e.g. Property Management"
             />
           </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Lead Source</label>
+            <Select
+              value={formState.source_type}
+              onChange={(e) => setFormState((s) => ({ ...s, source_type: e.target.value, channel_type_id: "" }))}
+              placeholder="Select source"
+            >
+              {activeLeadSources.map((source) => (
+                <option key={source.id} value={source.slug}>{source.name}</option>
+              ))}
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Channel Type</label>
+            <Select
+              value={formState.channel_type_id}
+              onChange={(e) => setFormState((s) => ({ ...s, channel_type_id: e.target.value }))}
+              placeholder="Select channel"
+              disabled={!formState.source_type || selectedLeadChannels.length === 0}
+            >
+              {selectedLeadChannels.map((channel) => (
+                <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+              ))}
+            </Select>
+          </div>
         </div>
       </Modal>
 
@@ -894,6 +1042,41 @@ export default function LeadsPage() {
               onChange={(e) => setFormState((s) => ({ ...s, business_category: e.target.value }))}
               placeholder="e.g. Property Management"
             />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Lead Source</label>
+            <Select
+              value={formState.source_type}
+              onChange={(e) => setFormState((s) => ({ ...s, source_type: e.target.value, channel_type_id: "" }))}
+              placeholder="Select source"
+            >
+              {activeLeadSources.map((source) => (
+                <option key={source.id} value={source.slug}>{source.name}</option>
+              ))}
+              {formState.source_type && !activeLeadSources.some((source) => source.slug === formState.source_type) ? (
+                <option value={formState.source_type}>
+                  {sourceNameBySlug.get(formState.source_type) ?? formState.source_type}
+                </option>
+              ) : null}
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Channel Type</label>
+            <Select
+              value={formState.channel_type_id}
+              onChange={(e) => setFormState((s) => ({ ...s, channel_type_id: e.target.value }))}
+              placeholder="Select channel"
+              disabled={!formState.source_type || selectedLeadChannels.length === 0}
+            >
+              {selectedLeadChannels.map((channel) => (
+                <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+              ))}
+              {formState.channel_type_id && !selectedLeadChannels.some((channel) => String(channel.id) === formState.channel_type_id) ? (
+                <option value={formState.channel_type_id}>
+                  {channelNameById.get(Number(formState.channel_type_id)) ?? "Saved channel"}
+                </option>
+              ) : null}
+            </Select>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">

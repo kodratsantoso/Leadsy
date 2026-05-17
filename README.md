@@ -1,4 +1,4 @@
-# Leads Generator Platform
+# Leadsy Platform
 
 Web application for map-based lead discovery, AI-assisted qualification, funnel management, and governance (see `BRD`).
 
@@ -57,6 +57,7 @@ Connection defaults (see `docker-compose.yml`): Postgres `postgres:16` exposed o
 
 A normal `docker compose restart` or container restart must not change the host URLs or ports.
 
+- Container namespace: `leadsy-*`
 - Frontend: `http://localhost:3000`
 - Backend API: `http://localhost:3001`
 - WhatsApp sidecar: `http://localhost:3002`

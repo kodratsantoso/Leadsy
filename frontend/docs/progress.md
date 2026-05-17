@@ -1,4 +1,4 @@
-# Progress Log — Leads Generator Platform
+# Progress Log — Leadsy Platform
 
 ## Phase 1: Foundation (Completed ✅)
 - [x] Backend: Laravel 12 bootstrap, PostgreSQL/Redis config
@@ -88,3 +88,15 @@ Fully rewrote the WhatsApp Client Module combining the Docker sidecar orchestrat
 
 ### Actionable Results
 The client now correctly registers a real WhatsApp session, can broadcast campaigns, logs replies explicitly skipping personal chats, and processes intent scores cleanly on standard UI modules.
+
+## Phase 7: Lead Source & Channel Taxonomy (Completed ✅)
+**Date completed**: 2026-05-17
+
+### What was done
+Leadsy now has database-backed source and channel classification for leads.
+
+- Added `lead_source_types` and `lead_channel_types` master data tables with seeded defaults.
+- Added Settings pages for Lead Sources and Lead Channels CRUD.
+- Linked `lead_sources` to optional `channel_type_id`.
+- Updated Leads list create/edit, filters, and table display to classify source and deeper channel type.
+- Verified migrations, API routes, PHP syntax, frontend TypeScript, and authenticated API responses.

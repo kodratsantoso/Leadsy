@@ -1,10 +1,10 @@
-# Leads Generator — local stack (PostgreSQL + Redis + Next.js + Laravel API).
+# Leadsy — local stack (PostgreSQL + Redis + Next.js + Laravel API).
 
 services:
   postgres:
     image: postgres:16
     platform: linux/arm64
-    container_name: prasetia-leads-pg
+    container_name: leadsy-pg
     environment:
       POSTGRES_DB: leads
       POSTGRES_USER: leads
@@ -12,9 +12,9 @@ services:
     ports:
       - "5435:5432"
     networks:
-      - prasetia_net
+      - leadsy_net
     volumes:
-      - prasetia_pg_data:/var/lib/postgresql/data
+      - leadsy_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U leads -d leads" ]
       interval: 5s
@@ -23,13 +23,13 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: prasetia-leads-redis
+    container_name: leadsy-redis
     ports:
       - "6382:6379"
     networks:
-      - prasetia_net
+      - leadsy_net
     volumes:
-      - prasetia_redis_data:/data
+      - leadsy_redis_data:/data
     command: redis-server --appendonly yes
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
@@ -41,7 +41,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: prasetia-leads-backend
+    container_name: leadsy-backend
     ports:
       - "3001:8000"
     environment:
@@ -57,7 +57,7 @@ services:
     volumes:
       - ./backend:/var/www/html
     networks:
-      - prasetia_net
+      - leadsy_net
     depends_on:
       postgres:
         condition: service_healthy
@@ -68,7 +68,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: prasetia-leads-frontend
+    container_name: leadsy-frontend
     ports:
       - "3000:3000"
     environment:
@@ -80,7 +80,7 @@ services:
       - ./frontend:/app
       - /app/node_modules # prevent host node_modules from overwriting container's
     networks:
-      - prasetia_net
+      - leadsy_net
     depends_on:
       - backend
 
@@ -88,7 +88,7 @@ services:
     build:
       context: ./whatsapp-service
       dockerfile: Dockerfile
-    container_name: prasetia-leads-whatsapp
+    container_name: leadsy-whatsapp
     ports:
       - "3002:3002"
     environment:
@@ -99,15 +99,15 @@ services:
       - /usr/src/app/node_modules # prevent overwrite
       - whatsapp_auth_data:/usr/src/app/baileys_auth_info
     networks:
-      - prasetia_net
+      - leadsy_net
     depends_on:
       - backend
 
 networks:
-  prasetia_net:
+  leadsy_net:
 
 
 volumes:
-  prasetia_pg_data:
-  prasetia_redis_data:
+  leadsy_pg_data:
+  leadsy_redis_data:
   whatsapp_auth_data:

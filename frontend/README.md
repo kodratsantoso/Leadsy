@@ -1,4 +1,4 @@
-# Leads Generator Platform
+# Leadsy Platform
 
 Web application for map-based lead discovery, AI-assisted qualification, funnel management, and governance (see `BRD`).
 
@@ -42,6 +42,8 @@ docker compose up -d
 ```
 
 Connection defaults (see `docker-compose.yml`): Postgres `postgres:16` exposed on host `localhost:5435` and mapped to container `5432`, database `leads`, user/password `leads`; Redis `localhost:6382`.
+
+Runtime containers use the `leadsy-*` namespace for the frontend, backend, PostgreSQL, Redis, and WhatsApp sidecar services.
 
 ## Quick start — backend (Laravel)
 

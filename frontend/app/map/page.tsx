@@ -215,7 +215,7 @@ export default function MapPage() {
           {isMapsEnabled && apiKey ? (
             <APIProvider apiKey={apiKey}>
               <Map
-                mapId="prasetia-leads-map-id"
+                mapId="leadsy-map-id"
                 defaultCenter={center}
                 center={center}
                 zoom={zoom}

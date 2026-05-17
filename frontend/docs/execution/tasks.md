@@ -47,7 +47,7 @@
 - [x] NR-003: Add `/api/health` validation route to Laravel layer to confirm readiness safely.
 
 ### Docker Sandbox Configuration
-- [x] DS-001: Implement safe `prasetia-*` namespace collision handlers in `docker-compose.yml`.
+- [x] DS-001: Implement safe `leadsy-*` namespace collision handlers in `docker-compose.yml`.
 - [x] DS-002: Translate PostgreSQL/Redis mapping interfaces to distinct safe ports (`5435`, `6382`).
 - [x] DS-003: Lock Laravel backend to target native frontend API expectation (`3001`) inside `composer.json` loops.
 - [x] DS-004: Align Frontend `.env` explicitly with `NEXT_PUBLIC_API_BASE_URL`.
@@ -152,3 +152,29 @@
 - [ ] DOC-002: Update BRD with Lead Intelligence, Sales Activity, AI Provider sections
 - [ ] DOC-003: Update progress.md with completion status
 - [ ] DOC-004: Update decisions.md with architectural decisions
+
+## Phase 5: Leadsy Runtime Rename & Lead Taxonomy Settings
+
+### Runtime Namespace
+- [x] LS-001: Rename Docker container, network, and volume namespace to `leadsy-*`.
+- [x] LS-002: Update app-facing brand and documentation references to Leadsy.
+- [x] LS-003: Add frontend Docker ignore/install guard so runtime containers start consistently.
+
+### Lead Source Settings
+- [x] LS-010: Add `lead_source_types` database table with seeded defaults.
+- [x] LS-011: Add `LeadSourceType` model, controller, and protected Settings CRUD routes.
+- [x] LS-012: Add Settings → Lead Sources UI.
+- [x] LS-013: Add source create/edit, display, and filtering to Leads.
+
+### Lead Channel Settings
+- [x] LS-020: Add `lead_channel_types` database table scoped to source types.
+- [x] LS-021: Add nullable `lead_sources.channel_type_id` relationship.
+- [x] LS-022: Add `LeadChannelType` model, controller, and protected Settings CRUD routes.
+- [x] LS-023: Add Settings → Lead Channels UI.
+- [x] LS-024: Add channel create/edit, display, and filtering to Leads.
+
+### Validation
+- [x] LS-030: Run migrations against the Docker PostgreSQL database.
+- [x] LS-031: Validate backend route registration and PHP syntax.
+- [x] LS-032: Validate frontend TypeScript.
+- [x] LS-033: Smoke test authenticated Settings and Leads API responses.

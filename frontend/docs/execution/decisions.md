@@ -72,7 +72,7 @@
 ## ADR-011: Docker Coexistence Port Strategy
 - **Date**: 2026-04-11
 - **Status**: Active
-- **Decision**: Redesign the docker orchestration layer `docker-compose.yml` to utilize uniquely indexed container prefixes (`prasetia-leads-*`) and exclusively map offline data layers to safe random collision-free ports (`5435`/`6382`). Backend API exclusively bound to `3001`.
+- **Decision**: Redesign the docker orchestration layer `docker-compose.yml` to utilize uniquely indexed container prefixes (`leadsy-*`) and exclusively map offline data layers to safe random collision-free ports (`5435`/`6382`). Backend API exclusively bound to `3001`.
 - **Rationale**: Strict compliance with Enterprise-Grade local testing requiring multiple sandbox clusters active simultaneously.
 - **Impact**: All `.env` replicas and startup scripts must rigidly observe `5435`/`6382` defaults and `3001` backend configurations securely.
 
@@ -112,3 +112,10 @@
 - **Decision**: All authenticated API calls in the frontend MUST use `apiFetch` from `@/lib/apiFetch.ts`, not the raw `fetch()` Web API or the `api` client from `@/lib/api/client.ts`. `useQuery` hooks wrapping `apiFetch` are the approved pattern.
 - **Rationale**: `apiFetch` injects the Sanctum Bearer token from `useAuthStore`, handles 401 auto-redirect to `/login`, and normalizes paths through the Next.js proxy. The `settings/ai-defaults/page.tsx` was found using raw `fetch()` without token injection, causing auth failures for protected endpoints.
 - **Impact**: All future components must use `useQuery(() => apiFetch('/endpoint').then(r => r.json()))`. The `api` client in `lib/api/client.ts` uses `credentials: 'include'` (cookie-based) and may be deprecated in favor of `apiFetch` in a future cleanup pass.
+
+## ADR-017: DB-Backed Lead Source and Channel Taxonomy
+- **Date**: 2026-05-17
+- **Status**: Active
+- **Decision**: Lead source and channel type classification are first-class PostgreSQL master data via `lead_source_types` and `lead_channel_types`, linked from `lead_sources.channel_type_id`.
+- **Rationale**: Sales classification needs to evolve without code changes. Source-level grouping answers "where did this lead come from", while channel type answers the deeper route beneath that source.
+- **Impact**: Settings owns CRUD for both taxonomies through `/api/settings/lead-sources` and `/api/settings/lead-channels`. Leads list, create, edit, and filters consume the same DB-backed options.
