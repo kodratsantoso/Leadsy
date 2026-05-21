@@ -34,11 +34,6 @@ backend/.env
 .vscode/
 *.swp
 
-# Local DB dumps (do not commit plaintext backups; use encryption + explicit review)
-backups/*.sql
-backups/*.dump
-backups/*.sql.gz
-
 # Test / coverage
 coverage/
 .phpunit.result.cache
