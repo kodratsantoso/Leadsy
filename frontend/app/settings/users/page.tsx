@@ -47,6 +47,10 @@ type AppUser = {
   name: string;
   email: string;
   phone?: string | null;
+  direct_manager_id?: number | null;
+  direct_manager?: Pick<AppUser, "id" | "name" | "email"> | null;
+  target_period?: "weekly" | "monthly" | "quarterly" | "yearly" | null;
+  target_revenue?: string | number | null;
   is_active: boolean;
   role?: AppRole | null;
   role_id?: number | null;
@@ -58,6 +62,9 @@ type UserFormState = {
   password: string;
   phone: string;
   role_id: string;
+  direct_manager_id: string;
+  target_period: string;
+  target_revenue: string;
 };
 
 type RoleFormState = {
@@ -73,6 +80,9 @@ const userFormDefaults: UserFormState = {
   password: "",
   phone: "",
   role_id: "",
+  direct_manager_id: "",
+  target_period: "monthly",
+  target_revenue: "",
 };
 
 const roleFormDefaults: RoleFormState = {
@@ -246,6 +256,9 @@ export default function SettingsUsersPage() {
       password: "",
       phone: user.phone || "",
       role_id: user.role?.id ? String(user.role.id) : "",
+      direct_manager_id: user.direct_manager_id ? String(user.direct_manager_id) : "",
+      target_period: user.target_period || "monthly",
+      target_revenue: user.target_revenue != null ? String(user.target_revenue) : "",
     });
     setUserError("");
     setUserModalOpen(true);
@@ -275,6 +288,9 @@ export default function SettingsUsersPage() {
       name: userForm.name,
       email: userForm.email,
       phone: userForm.phone,
+      direct_manager_id: userForm.direct_manager_id ? Number(userForm.direct_manager_id) : null,
+      target_period: userForm.target_period,
+      target_revenue: userForm.target_revenue ? Number(userForm.target_revenue) : null,
     };
     if (userForm.role_id) payload.role_id = Number(userForm.role_id);
     if (userForm.password) {
@@ -355,18 +371,20 @@ export default function SettingsUsersPage() {
               <tr>
                 <TableHeaderCell>User</TableHeaderCell>
                 <TableHeaderCell>Role</TableHeaderCell>
+                <TableHeaderCell>Manager</TableHeaderCell>
+                <TableHeaderCell>Target</TableHeaderCell>
                 <TableHeaderCell>Status</TableHeaderCell>
                 <TableHeaderCell>Actions</TableHeaderCell>
               </tr>
             </TableHead>
             <TableBody>
               {usersLoading ? (
-                <TableEmpty colSpan={4}>
+                <TableEmpty colSpan={6}>
                   <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                   Loading users...
                 </TableEmpty>
               ) : users.length === 0 ? (
-                <TableEmpty colSpan={4}>No users found.</TableEmpty>
+                <TableEmpty colSpan={6}>No users found.</TableEmpty>
               ) : (
                 users.map((user) => (
                   <TableRow key={user.id}>
@@ -380,6 +398,20 @@ export default function SettingsUsersPage() {
                       <Badge variant="neutral">
                         {user.role?.display_name || user.role?.name || "Unassigned"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-sm">
+                        <p>{user.direct_manager?.name ?? "—"}</p>
+                        {user.direct_manager?.email ? (
+                          <p className="text-xs text-muted-foreground">{user.direct_manager.email}</p>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-sm">
+                        <p className="font-medium">{user.target_revenue ?? "—"}</p>
+                        <p className="text-xs capitalize text-muted-foreground">{user.target_period ?? "monthly"}</p>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.is_active ? "success" : "danger"}>
@@ -590,6 +622,51 @@ export default function SettingsUsersPage() {
                 </option>
               ))}
             </Select>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Direct Manager</label>
+            <Select
+              value={userForm.direct_manager_id}
+              onChange={(event) =>
+                setUserForm((current) => ({ ...current, direct_manager_id: event.target.value }))
+              }
+              placeholder="No direct manager"
+            >
+              {(usersData?.data ?? [])
+                .filter((user: AppUser) => user.id !== editingUser?.id)
+                .map((user: AppUser) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+            </Select>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Target Period</label>
+              <Select
+                value={userForm.target_period}
+                onChange={(event) =>
+                  setUserForm((current) => ({ ...current, target_period: event.target.value }))
+                }
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Target Revenue</label>
+              <Input
+                type="number"
+                min="0"
+                value={userForm.target_revenue}
+                onChange={(event) =>
+                  setUserForm((current) => ({ ...current, target_revenue: event.target.value }))
+                }
+              />
+            </div>
           </div>
         </div>
       </Modal>

@@ -1,20 +1,49 @@
 #!/bin/sh
+# Production entrypoint for leadsy-backend container.
+# Runs on every container start: wait-for-db → migrate → seed → serve.
+#
+# Environment variables (set in Coolify dashboard or docker-compose.production.yml):
+#   APP_KEY             Required. Generate with: php artisan key:generate --show
+#   AUTO_MIGRATE        true|false  (default: true)
+#   AUTO_SEED_BASELINE  true|false  (default: true)
+#   SEED_DEMO_DATA      true|false  (default: false — NEVER set true in production)
+#   ADMIN_EMAIL         (default: admin@prasetia.com)
+#   ADMIN_PASSWORD      (default: ChangeMe!123 — override in Coolify!)
+
 set -e
 
-# ── Copy env template if no .env present ──────────────────────────────────────
+log() {
+    echo "[entrypoint] $*"
+}
+
+# ── 1. Bootstrap .env ─────────────────────────────────────────────────────────
 if [ ! -f .env ]; then
-  cp .env.example .env
+    log "No .env found — copying .env.example as base"
+    cp .env.example .env
 fi
 
-# ── Permissions ───────────────────────────────────────────────────────────────
-chmod -R 777 storage bootstrap/cache 2>/dev/null || true
+# ── 2. Storage permissions ────────────────────────────────────────────────────
+chmod -R 775 storage bootstrap/cache 2>/dev/null || true
 
-# ── Generate app key if missing ───────────────────────────────────────────────
-if ! grep -q "APP_KEY=base64:" .env; then
-  php artisan key:generate --force
+# ── 3. App key ────────────────────────────────────────────────────────────────
+# Only generate if APP_KEY is not already injected via Docker environment.
+# Priority: Docker env var > .env file > generate new.
+if [ -z "${APP_KEY}" ]; then
+    if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
+        log "APP_KEY not set — generating. Set APP_KEY in Coolify to make it permanent."
+        php artisan key:generate --force
+    fi
+else
+    log "APP_KEY provided via environment."
+    # Write Docker env var into .env so artisan commands can read it
+    if grep -q "^APP_KEY=" .env 2>/dev/null; then
+        sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
+    else
+        echo "APP_KEY=${APP_KEY}" >> .env
+    fi
 fi
 
-# ── Wait for database ─────────────────────────────────────────────────────────
+# ── 4. Wait for database ──────────────────────────────────────────────────────
 DB_HOST="${DB_HOST:-postgres}"
 DB_PORT="${DB_PORT:-5432}"
 DB_DATABASE="${DB_DATABASE:-leads}"
@@ -24,14 +53,10 @@ DB_PASSWORD="${DB_PASSWORD:-leads}"
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-echo "Waiting for database at ${DB_HOST}:${DB_PORT}..."
+log "Waiting for database at ${DB_HOST}:${DB_PORT}..."
 until php -r "
 try {
-    \$pdo = new PDO(
-        'pgsql:host=${DB_HOST};port=${DB_PORT};dbname=${DB_DATABASE}',
-        '${DB_USERNAME}',
-        '${DB_PASSWORD}'
-    );
+    new PDO('pgsql:host=${DB_HOST};port=${DB_PORT};dbname=${DB_DATABASE}', '${DB_USERNAME}', '${DB_PASSWORD}');
     exit(0);
 } catch (Exception \$e) {
     exit(1);
@@ -39,41 +64,55 @@ try {
 " 2>/dev/null; do
     RETRY_COUNT=$((RETRY_COUNT + 1))
     if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
-        echo "ERROR: Database not reachable after ${MAX_RETRIES} attempts. Aborting."
+        log "ERROR: Database not reachable after ${MAX_RETRIES} attempts. Aborting."
         exit 1
     fi
-    echo "  Database not ready — attempt ${RETRY_COUNT}/${MAX_RETRIES}, retrying in 3s..."
+    log "  Not ready — attempt ${RETRY_COUNT}/${MAX_RETRIES}, retrying in 3s..."
     sleep 3
 done
-echo "Database is ready."
+log "Database is ready."
 
-# ── Migrations (must run before optimize:clear when CACHE_STORE=database) ────
+# ── 5. Migrations ─────────────────────────────────────────────────────────────
 AUTO_MIGRATE="${AUTO_MIGRATE:-true}"
 if [ "$AUTO_MIGRATE" = "true" ]; then
-    echo "Running migrations..."
+    log "Running migrations..."
     php artisan migrate --force
-    echo "Migrations complete."
+    log "Migrations complete."
 fi
 
-# ── Clear Laravel caches after schema exists (avoids flush on missing tables) ─
-php artisan optimize:clear
+# ── 6. Clear caches (non-fatal — cache may not be warm yet on first boot) ─────
+log "Clearing Laravel caches..."
+php artisan optimize:clear || {
+    log "WARNING: optimize:clear failed (non-fatal). Cache will warm on first request."
+}
 
-# ── Baseline seed (roles, stages, AI providers, etc.) ─────────────────────────
+# ── 7. Production seeder ──────────────────────────────────────────────────────
+# Runs roles, permissions, funnel stages, admin user, industries, AI providers,
+# lead source types, notification defaults, and discovery categories.
+# All seeders use updateOrCreate — safe to run on every deploy.
 AUTO_SEED_BASELINE="${AUTO_SEED_BASELINE:-true}"
 if [ "$AUTO_SEED_BASELINE" = "true" ]; then
-    echo "Running ProductionSeeder..."
+    log "Running ProductionSeeder..."
     php artisan db:seed --class=ProductionSeeder --force
-    echo "Baseline seed complete."
+    log "ProductionSeeder complete."
+else
+    log "AUTO_SEED_BASELINE=false — skipping ProductionSeeder."
 fi
 
-# ── Demo seed (sample leads — staging/dev only) ───────────────────────────────
+# ── 8. Demo/staging seeder (explicitly opt-in, never default true) ────────────
 SEED_DEMO_DATA="${SEED_DEMO_DATA:-false}"
 if [ "$SEED_DEMO_DATA" = "true" ]; then
-    echo "Running DemoSeeder (SEED_DEMO_DATA=true)..."
+    log "SEED_DEMO_DATA=true — running DemoSeeder (staging/dev only)."
     php artisan db:seed --class=DemoSeeder --force
-    echo "Demo seed complete."
+    log "DemoSeeder complete."
 fi
 
-# ── Start application ─────────────────────────────────────────────────────────
-echo "Starting Laravel server..."
+# ── 9. Optimise for production ────────────────────────────────────────────────
+log "Running config:cache and route:cache..."
+php artisan config:cache  || log "WARNING: config:cache failed (non-fatal)."
+php artisan route:cache   || log "WARNING: route:cache failed (non-fatal)."
+php artisan view:cache    || log "WARNING: view:cache failed (non-fatal)."
+
+# ── 10. Start server ──────────────────────────────────────────────────────────
+log "Starting Laravel server on 0.0.0.0:8000..."
 exec php artisan serve --host=0.0.0.0 --port=8000

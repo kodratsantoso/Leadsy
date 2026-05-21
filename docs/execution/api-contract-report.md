@@ -67,3 +67,49 @@ The backend API surface is substantially ahead of the live frontend runtime. The
 1. Migrate the five root-only pages into `frontend/app`.
 2. Update live sidebar, settings index, and permission map for those routes.
 3. Consolidate frontend HTTP access around one runtime contract path so auth and error handling stay consistent.
+
+## 2026-05-19 Contract Additions
+
+### Dashboard
+- `GET /api/dashboard`
+  - Adds `data.map_points[]` with `id`, `company_name`, `address`, `lat`, `lng`, `lead_score`, `qualification_status`, and `funnel_stage`.
+  - Adds `data.sales_funnel_tracking` with `funnel[]`, `sales_volume[]`, and `total_market[]` aggregate arrays for the Dashboard funnel panel. Funnel rows include `percentage`, `estimated_amount`, and `estimated_percentage`, and start from `Belum Di Klasifikasi`.
+  - Dashboard funnel rows are cumulative conversion rows: each stage counts leads whose current stage sequence is at that stage or beyond. Estimated amount uses the same cumulative logic.
+  - Adds `data.source_channel_breakdown.sources[]` and `data.source_channel_breakdown.channels[]` with drilldown `href` values for total leads by source and channel. Counts use visible leads and `COUNT(DISTINCT leads.id)`.
+  - Adds `data.sales_achievement` with `period`, `target_revenue`, `realized_revenue`, `achievement_percentage`, `closed_won_count`, `period_start`, `period_end`, and `trend[]`.
+- `GET /api/dashboard/heatmap`
+  - Now respects hierarchy visibility and includes funnel stage metadata for mapped leads.
+
+### Leads
+- `GET /api/leads?funnel_min_sequence=N`
+  - Filters leads to current funnel stages with `sequence >= N`, used by cumulative dashboard funnel drilldown.
+- `GET /api/leads?outcome=won|lost`
+  - Filters leads by related `lead_outcomes.outcome` for dashboard funnel drilldown.
+- `POST /api/leads` / `PUT /api/leads/{lead}`
+  - Existing `lat` and `lng` payload fields are now used by the New Lead Add Location flow.
+  - Accepts optional `product_id` for the lead's initial product interest.
+- `POST /api/leads/{lead}/outcome`
+  - Accepts optional `product_id`, `sale_type` (`new_sales` or `upsales`), and `deal_size` so one lead/customer can record multiple product-specific won/lost outcomes with separate amounts.
+- `POST /api/leads/{lead}/activities` / `PUT /api/leads/{lead}/activities/{activity}`
+  - Meeting activities accept optional `budget`, `authority`, `needs`, `timeline`, and `competitor`.
+- `GET /api/leads/{lead}/bantc-questions`
+  - Returns saved customer BANTC question guide for a lead.
+- `POST /api/leads/{lead}/bantc-questions/generate`
+  - Generates draft customer BANTC questions via `lead_bantc_question_generation`.
+- `PUT /api/leads/{lead}/bantc-questions`
+  - Persists user-approved BANTC questions.
+- `POST /api/leads/{lead}/transcripts`
+  - Accepts JSON text transcripts or multipart uploads with `transcript_file`, optional `activity_id`, `title`, `recorded_at`, and `transcript_text`.
+- `POST /api/leads/{lead}/transcripts/{transcript}/evaluate`
+  - Runs AI evaluation when transcript text exists and returns summary, sentiment, intent, interest, objections, buying signals, confidence, and next action.
+
+### Maps
+- `GET /api/maps/geocode?query=...`
+  - Used by New Lead Add Location to search and select coordinates.
+
+### Users
+- `GET /api/users`
+  - Includes `direct_manager` relation and target fields.
+- `POST /api/users` / `PUT /api/users/{user}`
+  - Accepts `direct_manager_id`, `target_period`, and `target_revenue`.
+  - Existing audit logging records permission/hierarchy/target changes through user update audit rows.

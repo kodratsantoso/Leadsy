@@ -1,19 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { APIProvider, AdvancedMarker, Map } from "@vis.gl/react-google-maps";
 import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
   Download,
   ExternalLink,
+  FileSpreadsheet,
   Loader2,
+  MapPin,
   MessageSquare,
   Pencil,
   Plus,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -42,6 +46,8 @@ type LeadRecord = {
   id: number;
   company_name: string;
   address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   phone?: string | null;
   email?: string | null;
   website?: string | null;
@@ -49,6 +55,7 @@ type LeadRecord = {
   company_size_estimate?: string | null;
   estimated_closing_amount?: string | number | null;
   realized_closing_amount?: string | number | null;
+  product_id?: number | null;
   industry_id?: number | null;
   sub_industry_id?: number | null;
   qualification_status?: string | null;
@@ -57,10 +64,12 @@ type LeadRecord = {
   funnel_stage?: { id: number; name: string } | null;
   current_funnel_stage?: { id: number; name: string } | null;
   industry?: { name: string } | null;
+  product?: { id: number; name: string } | null;
   sources?: LeadSource[];
 };
 
 type FunnelStage = { id: number; name: string; sequence: number };
+type ProductOption = { id: number; name: string; category?: string | null; status?: string | null };
 type LeadChannelType = {
   id: number;
   lead_source_type_id: number;
@@ -90,10 +99,13 @@ type LeadFormState = {
   email: string;
   phone: string;
   website: string;
+  lat: string;
+  lng: string;
   industry_id: string;
   sub_industry_id: string;
   company_size_estimate: string;
   business_category: string;
+  product_id: string;
   estimated_closing_amount: string;
   realized_closing_amount: string;
   source_type: string;
@@ -102,16 +114,68 @@ type LeadFormState = {
   qualification_status: string;
 };
 
+type ImportContact = {
+  name: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  linkedin_url?: string;
+  confidence?: "high" | "medium" | "low";
+  is_primary?: boolean;
+  do_not_contact?: boolean;
+};
+
+type ImportLead = {
+  company_name: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  website?: string;
+  phone?: string;
+  email?: string;
+  industry_id?: number;
+  sub_industry_id?: number;
+  business_category?: string;
+  company_size_estimate?: string;
+  branch_count?: number;
+  operating_hours?: string;
+  lead_score?: number;
+  qualification_status?: "pending" | "eligible" | "potential" | "not_eligible";
+  external_place_id?: string;
+  funnel_stage_id?: number;
+  owner_id?: number;
+  territory_id?: number;
+  product_id?: number;
+  estimated_closing_amount?: number;
+  realized_closing_amount?: number;
+  source_type?: string;
+  channel_type_id?: number;
+  contacts?: ImportContact[];
+};
+
+type ImportMappingTarget = {
+  key: string;
+  label: string;
+  group: "Lead" | "PIC 1" | "PIC 2" | "PIC 3";
+  required?: boolean;
+  aliases: string[];
+  example: string | number;
+  note?: string;
+};
+
 const emptyForm: LeadFormState = {
   company_name: "",
   address: "",
   email: "",
   phone: "",
   website: "",
+  lat: "",
+  lng: "",
   industry_id: "",
   sub_industry_id: "",
   company_size_estimate: "",
   business_category: "",
+  product_id: "",
   estimated_closing_amount: "",
   realized_closing_amount: "",
   source_type: "",
@@ -119,6 +183,341 @@ const emptyForm: LeadFormState = {
   funnel_stage_id: "",
   qualification_status: "pending",
 };
+
+const importHeaderAliases: Record<keyof Omit<ImportLead, "contacts">, string[]> = {
+  company_name: ["company_name", "company", "company name", "nama perusahaan", "perusahaan", "nama lead", "lead"],
+  address: ["address", "alamat", "company address", "alamat perusahaan"],
+  lat: ["lat", "latitude"],
+  lng: ["lng", "long", "longitude"],
+  website: ["website", "site", "url", "web"],
+  phone: ["phone", "telepon", "telp", "company phone", "no telepon", "nomor telepon"],
+  email: ["email", "company email", "email perusahaan"],
+  industry_id: ["industry_id", "industry id"],
+  sub_industry_id: ["sub_industry_id", "sub industry id", "subindustry_id"],
+  business_category: ["business_category", "business category", "kategori bisnis", "category", "kategori"],
+  company_size_estimate: ["company_size_estimate", "company size", "jumlah karyawan", "size"],
+  branch_count: ["branch_count", "branch count", "jumlah cabang", "cabang"],
+  operating_hours: ["operating_hours", "operating hours", "jam operasional"],
+  lead_score: ["lead_score", "lead score", "score", "skor"],
+  qualification_status: ["qualification_status", "qualification", "status kualifikasi", "status"],
+  external_place_id: ["external_place_id", "place id", "google place id"],
+  funnel_stage_id: ["funnel_stage_id", "funnel stage id", "stage_id"],
+  owner_id: ["owner_id", "owner id", "sales id"],
+  territory_id: ["territory_id", "territory id"],
+  product_id: ["product_id", "product id"],
+  estimated_closing_amount: ["estimated_closing_amount", "estimated closing amount", "estimasi closing", "nilai estimasi"],
+  realized_closing_amount: ["realized_closing_amount", "realized closing amount", "realisasi closing", "nilai realisasi"],
+  source_type: ["source_type", "lead source", "source", "sumber"],
+  channel_type_id: ["channel_type_id", "channel type id", "channel id"],
+};
+
+const contactHeaderAliases = {
+  name: ["pic name", "nama pic", "contact name", "nama contact", "nama kontak", "pic", "contact"],
+  title: ["pic title", "jabatan pic", "contact title", "position", "jabatan"],
+  email: ["pic email", "contact email", "email pic", "email kontak"],
+  phone: ["pic phone", "contact phone", "phone pic", "telepon pic", "hp pic", "nomor pic"],
+  linkedin_url: ["pic linkedin", "contact linkedin", "linkedin"],
+};
+
+const leadImportTargets: ImportMappingTarget[] = [
+  { key: "company_name", label: "company_name", group: "Lead", required: true, aliases: importHeaderAliases.company_name, example: "PT Artha Solusi Global", note: "Required" },
+  { key: "address", label: "address", group: "Lead", aliases: importHeaderAliases.address, example: "Jl. Sudirman No. 1, Jakarta" },
+  { key: "lat", label: "lat", group: "Lead", aliases: importHeaderAliases.lat, example: -6.2001 },
+  { key: "lng", label: "lng", group: "Lead", aliases: importHeaderAliases.lng, example: 106.8167 },
+  { key: "website", label: "website", group: "Lead", aliases: importHeaderAliases.website, example: "https://artha.example" },
+  { key: "phone", label: "phone", group: "Lead", aliases: importHeaderAliases.phone, example: "0215550101" },
+  { key: "email", label: "email", group: "Lead", aliases: importHeaderAliases.email, example: "info@artha.example" },
+  { key: "industry_id", label: "industry_id", group: "Lead", aliases: importHeaderAliases.industry_id, example: 1, note: "Use database ID when available" },
+  { key: "sub_industry_id", label: "sub_industry_id", group: "Lead", aliases: importHeaderAliases.sub_industry_id, example: 3, note: "Use database ID when available" },
+  { key: "business_category", label: "business_category", group: "Lead", aliases: importHeaderAliases.business_category, example: "Property Management" },
+  { key: "company_size_estimate", label: "company_size_estimate", group: "Lead", aliases: importHeaderAliases.company_size_estimate, example: "51-200" },
+  { key: "branch_count", label: "branch_count", group: "Lead", aliases: importHeaderAliases.branch_count, example: 4 },
+  { key: "operating_hours", label: "operating_hours", group: "Lead", aliases: importHeaderAliases.operating_hours, example: "Mon-Fri 09:00-17:00" },
+  { key: "lead_score", label: "lead_score", group: "Lead", aliases: importHeaderAliases.lead_score, example: 75 },
+  { key: "qualification_status", label: "qualification_status", group: "Lead", aliases: importHeaderAliases.qualification_status, example: "potential", note: "pending, eligible, potential, not_eligible" },
+  { key: "estimated_closing_amount", label: "estimated_closing_amount", group: "Lead", aliases: importHeaderAliases.estimated_closing_amount, example: 15000000 },
+  { key: "realized_closing_amount", label: "realized_closing_amount", group: "Lead", aliases: importHeaderAliases.realized_closing_amount, example: 0 },
+  { key: "external_place_id", label: "external_place_id", group: "Lead", aliases: importHeaderAliases.external_place_id, example: "" },
+  { key: "funnel_stage_id", label: "funnel_stage_id", group: "Lead", aliases: importHeaderAliases.funnel_stage_id, example: 1 },
+  { key: "owner_id", label: "owner_id", group: "Lead", aliases: importHeaderAliases.owner_id, example: "" },
+  { key: "territory_id", label: "territory_id", group: "Lead", aliases: importHeaderAliases.territory_id, example: "" },
+  { key: "product_id", label: "product_id", group: "Lead", aliases: importHeaderAliases.product_id, example: "" },
+  { key: "source_type", label: "source_type", group: "Lead", aliases: importHeaderAliases.source_type, example: "csv_import", note: "Uses modal source when unmapped" },
+  { key: "channel_type_id", label: "channel_type_id", group: "Lead", aliases: importHeaderAliases.channel_type_id, example: "", note: "Uses modal channel when unmapped" },
+];
+
+const contactImportTargets: ImportMappingTarget[] = [1, 2, 3].flatMap((index) => {
+  const group = `PIC ${index}` as ImportMappingTarget["group"];
+  const prefix = index === 1 ? "pic" : `pic_${index}`;
+
+  return [
+    { key: `contact_${index}_name`, label: `${prefix}_name`, group, aliases: index === 1 ? contactHeaderAliases.name : contactHeaderAliases.name.map((alias) => `${alias} ${index}`), example: index === 1 ? "Budi Santoso" : "" },
+    { key: `contact_${index}_title`, label: `${prefix}_title`, group, aliases: index === 1 ? contactHeaderAliases.title : contactHeaderAliases.title.map((alias) => `${alias} ${index}`), example: index === 1 ? "Procurement Manager" : "" },
+    { key: `contact_${index}_email`, label: `${prefix}_email`, group, aliases: index === 1 ? contactHeaderAliases.email : contactHeaderAliases.email.map((alias) => `${alias} ${index}`), example: index === 1 ? "budi@artha.example" : "" },
+    { key: `contact_${index}_phone`, label: `${prefix}_phone`, group, aliases: index === 1 ? contactHeaderAliases.phone : contactHeaderAliases.phone.map((alias) => `${alias} ${index}`), example: index === 1 ? "6281234567890" : "" },
+    { key: `contact_${index}_linkedin_url`, label: `${prefix}_linkedin_url`, group, aliases: index === 1 ? contactHeaderAliases.linkedin_url : contactHeaderAliases.linkedin_url.map((alias) => `${alias} ${index}`), example: "" },
+  ];
+});
+
+const importMappingTargets = [...leadImportTargets, ...contactImportTargets];
+const importTemplateHeaders = importMappingTargets.map((target) => target.label);
+const defaultMapCenter = { lat: -6.2088, lng: 106.8456 };
+
+function normalizeHeader(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function normalizeImportValue(value: unknown) {
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function readAliasedValue(row: Record<string, unknown>, aliases: string[]) {
+  const normalizedEntries = Object.entries(row).map(([key, value]) => [normalizeHeader(key), value] as const);
+  const normalizedAliases = aliases.map(normalizeHeader);
+  const match = normalizedEntries.find(([key]) => normalizedAliases.includes(key));
+  return normalizeImportValue(match?.[1]);
+}
+
+function readContactValue(row: Record<string, unknown>, index: number, aliases: string[]) {
+  const prefixes = index === 1
+    ? ["", "1 ", "pic ", "contact "]
+    : [`${index} `, `pic ${index} `, `contact ${index} `, `${index}. `];
+  const expandedAliases = aliases.flatMap((alias) => prefixes.map((prefix) => `${prefix}${alias}`));
+  return readAliasedValue(row, expandedAliases);
+}
+
+function detectImportMapping(headers: string[]) {
+  return importMappingTargets.reduce<Record<string, string>>((mapping, target) => {
+    const aliases = [target.label, ...target.aliases].map(normalizeHeader);
+    const matchedHeader = headers.find((header) => aliases.includes(normalizeHeader(header)));
+    if (matchedHeader) {
+      mapping[target.key] = matchedHeader;
+    }
+    return mapping;
+  }, {});
+}
+
+function readMappedValue(row: Record<string, unknown>, mapping: Record<string, string>, key: string) {
+  const header = mapping[key];
+  if (!header) return "";
+  return normalizeImportValue(row[header]);
+}
+
+function rowToMappedImportLead(row: Record<string, unknown>, mapping: Record<string, string>): ImportLead | null {
+  const companyName = readMappedValue(row, mapping, "company_name");
+  if (!companyName) return null;
+
+  const lead: ImportLead = { company_name: companyName };
+  const textFields: (keyof Pick<
+    ImportLead,
+    "address" | "phone" | "email" | "business_category" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
+  >)[] = [
+    "address",
+    "phone",
+    "email",
+    "business_category",
+    "company_size_estimate",
+    "operating_hours",
+    "external_place_id",
+    "source_type",
+  ];
+
+  textFields.forEach((field) => {
+    const value = readMappedValue(row, mapping, field);
+    if (value) lead[field] = value;
+  });
+
+  const website = normalizeWebsite(readMappedValue(row, mapping, "website"));
+  if (website) lead.website = website;
+
+  const numberFields: (keyof Pick<ImportLead, "lat" | "lng" | "estimated_closing_amount" | "realized_closing_amount">)[] = [
+    "lat",
+    "lng",
+    "estimated_closing_amount",
+    "realized_closing_amount",
+  ];
+  numberFields.forEach((field) => {
+    const value = parseImportNumber(readMappedValue(row, mapping, field));
+    if (value != null) lead[field] = value;
+  });
+
+  const integerFields: (keyof Pick<
+    ImportLead,
+    "industry_id" | "sub_industry_id" | "branch_count" | "lead_score" | "funnel_stage_id" | "owner_id" | "territory_id" | "product_id" | "channel_type_id"
+  >)[] = [
+    "industry_id",
+    "sub_industry_id",
+    "branch_count",
+    "lead_score",
+    "funnel_stage_id",
+    "owner_id",
+    "territory_id",
+    "product_id",
+    "channel_type_id",
+  ];
+  integerFields.forEach((field) => {
+    const value = parseImportInteger(readMappedValue(row, mapping, field));
+    if (value != null) lead[field] = value;
+  });
+
+  const qualification = normalizeQualification(readMappedValue(row, mapping, "qualification_status"));
+  if (qualification) lead.qualification_status = qualification;
+
+  const contacts = [1, 2, 3]
+    .map((index): ImportContact | null => {
+      const name = readMappedValue(row, mapping, `contact_${index}_name`);
+      if (!name) return null;
+
+      const contact: ImportContact = {
+        name,
+        confidence: "medium",
+        is_primary: index === 1,
+      };
+      const title = readMappedValue(row, mapping, `contact_${index}_title`);
+      const email = readMappedValue(row, mapping, `contact_${index}_email`);
+      const phone = readMappedValue(row, mapping, `contact_${index}_phone`);
+      const linkedin = readMappedValue(row, mapping, `contact_${index}_linkedin_url`);
+
+      if (title) contact.title = title;
+      if (email) contact.email = email;
+      if (phone) contact.phone = phone;
+      if (linkedin) contact.linkedin_url = linkedin;
+
+      return contact;
+    })
+    .filter(Boolean) as ImportContact[];
+
+  if (contacts.length > 0) lead.contacts = contacts;
+
+  return lead;
+}
+
+function mapImportRows(rows: Record<string, unknown>[], mapping: Record<string, string>) {
+  return rows.map((row) => rowToMappedImportLead(row, mapping)).filter(Boolean) as ImportLead[];
+}
+
+function parseImportNumber(value: string) {
+  if (!value) return undefined;
+  const normalized = value.replace(/[^0-9,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseImportInteger(value: string) {
+  const parsed = parseImportNumber(value);
+  return parsed == null ? undefined : Math.trunc(parsed);
+}
+
+function normalizeWebsite(value: string) {
+  if (!value) return undefined;
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+}
+
+function normalizeQualification(value: string): ImportLead["qualification_status"] | undefined {
+  const normalized = normalizeHeader(value).replace(/\s+/g, "_");
+  if (["pending", "eligible", "potential", "not_eligible"].includes(normalized)) {
+    return normalized as ImportLead["qualification_status"];
+  }
+  return undefined;
+}
+
+function rowToImportLead(row: Record<string, unknown>): ImportLead | null {
+  const companyName = readAliasedValue(row, importHeaderAliases.company_name);
+  if (!companyName) return null;
+
+  const lead: ImportLead = { company_name: companyName };
+  const textFields: (keyof Pick<
+    ImportLead,
+    "address" | "phone" | "email" | "business_category" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
+  >)[] = [
+    "address",
+    "phone",
+    "email",
+    "business_category",
+    "company_size_estimate",
+    "operating_hours",
+    "external_place_id",
+    "source_type",
+  ];
+
+  textFields.forEach((field) => {
+    const value = readAliasedValue(row, importHeaderAliases[field]);
+    if (value) {
+      lead[field] = value;
+    }
+  });
+
+  const website = normalizeWebsite(readAliasedValue(row, importHeaderAliases.website));
+  if (website) lead.website = website;
+
+  const numberFields: (keyof Pick<ImportLead, "lat" | "lng" | "estimated_closing_amount" | "realized_closing_amount">)[] = [
+    "lat",
+    "lng",
+    "estimated_closing_amount",
+    "realized_closing_amount",
+  ];
+  numberFields.forEach((field) => {
+    const value = parseImportNumber(readAliasedValue(row, importHeaderAliases[field]));
+    if (value != null) lead[field] = value;
+  });
+
+  const integerFields: (keyof Pick<
+    ImportLead,
+    "industry_id" | "sub_industry_id" | "branch_count" | "lead_score" | "funnel_stage_id" | "owner_id" | "territory_id" | "product_id" | "channel_type_id"
+  >)[] = [
+    "industry_id",
+    "sub_industry_id",
+    "branch_count",
+    "lead_score",
+    "funnel_stage_id",
+    "owner_id",
+    "territory_id",
+    "product_id",
+    "channel_type_id",
+  ];
+  integerFields.forEach((field) => {
+    const value = parseImportInteger(readAliasedValue(row, importHeaderAliases[field]));
+    if (value != null) lead[field] = value;
+  });
+
+  const qualification = normalizeQualification(readAliasedValue(row, importHeaderAliases.qualification_status));
+  if (qualification) lead.qualification_status = qualification;
+
+  const contacts = [1, 2, 3, 4, 5]
+    .map((index): ImportContact | null => {
+      const name = readContactValue(row, index, contactHeaderAliases.name);
+      if (!name) return null;
+
+      const contact: ImportContact = {
+        name,
+        confidence: "medium",
+        is_primary: index === 1,
+      };
+
+      const title = readContactValue(row, index, contactHeaderAliases.title);
+      const email = readContactValue(row, index, contactHeaderAliases.email);
+      const phone = readContactValue(row, index, contactHeaderAliases.phone);
+      const linkedin = readContactValue(row, index, contactHeaderAliases.linkedin_url);
+
+      if (title) contact.title = title;
+      if (email) contact.email = email;
+      if (phone) contact.phone = phone;
+      if (linkedin) contact.linkedin_url = linkedin;
+
+      return contact;
+    })
+    .filter(Boolean) as ImportContact[];
+
+  if (contacts.length > 0) lead.contacts = contacts;
+
+  return lead;
+}
 
 function qualificationVariant(status?: string | null) {
   if (status === "eligible") return "success";
@@ -182,17 +581,31 @@ export default function LeadsPage() {
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [page, setPage] = useState(1);
   const [funnelStageId, setFunnelStageId] = useState(searchParams.get("funnel_stage_id") ?? "");
+  const funnelMinSequence = searchParams.get("funnel_min_sequence") ?? "";
   const [qualificationFilter, setQualificationFilter] = useState(
     searchParams.get("qualification_status") ?? ""
   );
   const [duplicateFilter, setDuplicateFilter] = useState(searchParams.get("duplicate_status") ?? "");
   const [sourceFilter, setSourceFilter] = useState(searchParams.get("source_type") ?? "");
   const [channelFilter, setChannelFilter] = useState(searchParams.get("channel_type_id") ?? "");
+  const [productFilter] = useState(searchParams.get("product_id") ?? "");
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
   const [feedback, setFeedback] = useState("");
   const [formState, setFormState] = useState<LeadFormState>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [locationFeedback, setLocationFeedback] = useState("");
+  const [mapsApiKey, setMapsApiKey] = useState("");
+  const [mapsEnabled, setMapsEnabled] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importLeads, setImportLeads] = useState<ImportLead[]>([]);
+  const [importRows, setImportRows] = useState<Record<string, unknown>[]>([]);
+  const [importHeaders, setImportHeaders] = useState<string[]>([]);
+  const [importMapping, setImportMapping] = useState<Record<string, string>>({});
+  const [importFileName, setImportFileName] = useState("");
+  const [importSourceType, setImportSourceType] = useState("csv_import");
+  const [importChannelTypeId, setImportChannelTypeId] = useState("");
   const [editLead, setEditLead] = useState<LeadRecord | null>(null);
   const [deleteLead, setDeleteLead] = useState<LeadRecord | null>(null);
 
@@ -248,6 +661,14 @@ export default function LeadsPage() {
     },
   });
 
+  const { data: publicSettingsData } = useQuery({
+    queryKey: ["public-settings"],
+    queryFn: async () => {
+      const response = await apiFetch("/settings/public");
+      return response.json();
+    },
+  });
+
   const { data: industriesData } = useQuery({
     queryKey: ["industries"],
     queryFn: async () => {
@@ -264,16 +685,26 @@ export default function LeadsPage() {
     },
   });
 
+  const { data: productsData } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => {
+      const response = await apiFetch("/products");
+      return response.json();
+    },
+  });
+
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, search, funnelStageId, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, minScore, maxScore],
+    queryKey: ["leads", page, search, funnelStageId, funnelMinSequence, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, minScore, maxScore],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page) });
       if (search) params.set("search", search);
       if (funnelStageId) params.set("funnel_stage_id", funnelStageId);
+      if (funnelMinSequence) params.set("funnel_min_sequence", funnelMinSequence);
       if (qualificationFilter) params.set("qualification_status", qualificationFilter);
       if (duplicateFilter) params.set("duplicate_status", duplicateFilter);
       if (sourceFilter) params.set("source_type", sourceFilter);
       if (channelFilter) params.set("channel_type_id", channelFilter);
+      if (productFilter) params.set("product_id", productFilter);
       if (minScore) params.set("min_score", minScore);
       if (maxScore) params.set("max_score", maxScore);
       const response = await apiFetch(`/leads?${params.toString()}`);
@@ -287,6 +718,7 @@ export default function LeadsPage() {
   const selectedSubIndustries =
     allIndustries.find((i) => String(i.id) === formState.industry_id)?.sub_industries ?? [];
   const leads: LeadRecord[] = data?.data ?? [];
+  const products: ProductOption[] = productsData?.data ?? [];
   const leadSources: LeadSourceType[] = leadSourcesData?.data ?? [];
   const activeLeadSources = leadSources.filter((source) => source.is_active);
   const activeLeadChannels = activeLeadSources.flatMap((source) =>
@@ -298,16 +730,49 @@ export default function LeadsPage() {
     if (!formState.source_type) return true;
     return channel.source_slug === formState.source_type;
   });
+  const selectedImportChannels = activeLeadChannels.filter((channel) => {
+    if (!importSourceType) return true;
+    return channel.source_slug === importSourceType;
+  });
   const filteredLeadChannels = activeLeadChannels.filter((channel) => {
     if (!sourceFilter) return true;
     return channel.source_slug === sourceFilter;
   });
-  const sourceNameBySlug = new Map(leadSources.map((source) => [source.slug, source.name]));
-  const channelNameById = new Map(activeLeadChannels.map((channel) => [channel.id, channel.name]));
+  const sourceNameBySlug = new globalThis.Map(leadSources.map((source) => [source.slug, source.name]));
+  const channelNameById = new globalThis.Map(activeLeadChannels.map((channel) => [channel.id, channel.name]));
   const total = data?.total ?? 0;
   const lastPage = data?.last_page ?? 1;
+  const locationCenter = formState.lat && formState.lng
+    ? { lat: Number(formState.lat), lng: Number(formState.lng) }
+    : defaultMapCenter;
 
-  const resetForm = () => setFormState(emptyForm);
+  useEffect(() => {
+    if (!publicSettingsData?.data) return;
+    const settings = publicSettingsData.data;
+    setMapsApiKey(settings.GOOGLE_MAPS_BROWSER_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "");
+    setMapsEnabled(settings.GOOGLE_MAPS_ENABLED === undefined || settings.GOOGLE_MAPS_ENABLED === true || settings.GOOGLE_MAPS_ENABLED === "true");
+  }, [publicSettingsData]);
+
+  const resetForm = () => {
+    setFormState(emptyForm);
+    setLocationSearch("");
+    setLocationFeedback("");
+  };
+
+  const resetImport = () => {
+    setImportLeads([]);
+    setImportRows([]);
+    setImportHeaders([]);
+    setImportMapping({});
+    setImportFileName("");
+    setImportSourceType(activeLeadSources.some((source) => source.slug === "csv_import") ? "csv_import" : activeLeadSources[0]?.slug ?? "");
+    setImportChannelTypeId("");
+  };
+
+  const applyImportMapping = (mapping: Record<string, string>, rows = importRows) => {
+    setImportMapping(mapping);
+    setImportLeads(mapImportRows(rows, mapping));
+  };
 
   const createMutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
@@ -366,6 +831,39 @@ export default function LeadsPage() {
     },
   });
 
+  const importMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch("/leads/bulk-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leads: importLeads,
+          source_type: importSourceType || undefined,
+          channel_type_id: importChannelTypeId ? Number(importChannelTypeId) : undefined,
+          ai_mode: "manual",
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message ?? `Failed to import leads (${res.status})`);
+      }
+
+      return res.json();
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setImportOpen(false);
+      resetImport();
+      setFeedback(
+        `Import completed: ${result.created ?? 0} leads and ${result.contacts_created ?? 0} PIC/contact records created.`
+      );
+    },
+    onError: (err: Error) => {
+      setFeedback(err.message);
+    },
+  });
+
   const pushToFunnel = useMutation({
     mutationFn: async ({ id, funnelStageId }: { id: number; funnelStageId: number }) => {
       const response = await apiFetch(`/leads/${id}/push-to-funnel`, {
@@ -392,9 +890,13 @@ export default function LeadsPage() {
 
   const openEdit = (lead: LeadRecord) => {
     setEditLead(lead);
+    setLocationSearch(lead.address || "");
+    setLocationFeedback("");
     setFormState({
       company_name:          lead.company_name || "",
       address:               lead.address || "",
+      lat:                   lead.lat != null ? String(lead.lat) : "",
+      lng:                   lead.lng != null ? String(lead.lng) : "",
       email:                 lead.email || "",
       phone:                 lead.phone || "",
       website:               lead.website || "",
@@ -402,6 +904,7 @@ export default function LeadsPage() {
       sub_industry_id:       lead.sub_industry_id != null ? String(lead.sub_industry_id) : "",
       company_size_estimate: lead.company_size_estimate || "",
       business_category:     lead.business_category || "",
+      product_id:            lead.product_id != null ? String(lead.product_id) : "",
       estimated_closing_amount: lead.estimated_closing_amount != null ? String(lead.estimated_closing_amount) : "",
       realized_closing_amount:  lead.realized_closing_amount != null ? String(lead.realized_closing_amount) : "",
       source_type:           primarySourceSlug(lead),
@@ -428,6 +931,8 @@ export default function LeadsPage() {
     createMutation.mutate({
       company_name:          formState.company_name,
       address:               formState.address || undefined,
+      lat:                   formState.lat ? Number(formState.lat) : undefined,
+      lng:                   formState.lng ? Number(formState.lng) : undefined,
       email:                 formState.email || undefined,
       phone:                 formState.phone || undefined,
       website:               formState.website || undefined,
@@ -435,6 +940,7 @@ export default function LeadsPage() {
       sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : undefined,
       company_size_estimate: formState.company_size_estimate || undefined,
       business_category:     formState.business_category || undefined,
+      product_id:            formState.product_id ? Number(formState.product_id) : undefined,
       estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : undefined,
       realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : undefined,
       source_type:           formState.source_type || undefined,
@@ -449,6 +955,8 @@ export default function LeadsPage() {
       payload: {
         company_name:          formState.company_name,
         address:               formState.address || null,
+        lat:                   formState.lat ? Number(formState.lat) : null,
+        lng:                   formState.lng ? Number(formState.lng) : null,
         email:                 formState.email || null,
         phone:                 formState.phone || null,
         website:               formState.website || null,
@@ -456,6 +964,7 @@ export default function LeadsPage() {
         sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : null,
         company_size_estimate: formState.company_size_estimate || null,
         business_category:     formState.business_category || null,
+        product_id:            formState.product_id ? Number(formState.product_id) : null,
         estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : null,
         realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : null,
         source_type:           formState.source_type || null,
@@ -482,6 +991,142 @@ export default function LeadsPage() {
     }
   };
 
+  const renderInlineLocationPicker = () => (
+    <div className="grid gap-3 rounded-xl border border-border bg-[color:var(--surface-subtle)] p-3">
+      <div className="flex flex-col gap-2 md:flex-row">
+        <Input
+          value={locationSearch}
+          onChange={(event) => setLocationSearch(event.target.value)}
+          placeholder="Search address, building, or area"
+        />
+        <Button type="button" onClick={handleLocationSearch}>
+          <MapPin className="h-4 w-4" />
+          Search Location
+        </Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {locationFeedback ? <Badge variant="info">{locationFeedback}</Badge> : null}
+        <span className="text-xs text-muted-foreground">
+          {formState.lat && formState.lng
+            ? `${formState.lat}, ${formState.lng}`
+            : "No coordinates selected"}
+        </span>
+      </div>
+      <div className="h-[260px] overflow-hidden rounded-xl border border-border bg-background">
+        {mapsEnabled && mapsApiKey ? (
+          <APIProvider apiKey={mapsApiKey}>
+            <Map
+              mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
+              center={locationCenter}
+              defaultCenter={locationCenter}
+              defaultZoom={formState.lat && formState.lng ? 15 : 11}
+              gestureHandling="greedy"
+            >
+              {formState.lat && formState.lng ? (
+                <AdvancedMarker position={locationCenter}>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-[color:var(--brand)] text-white shadow-lg">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                </AdvancedMarker>
+              ) : null}
+            </Map>
+          </APIProvider>
+        ) : (
+          <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
+            Maps are unavailable. Configure the public Google Maps browser key to use location selection.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const handleDownloadImportTemplate = async () => {
+    const XLSX = await import("xlsx");
+    const exampleRow = importMappingTargets.reduce<Record<string, string | number>>((row, target) => {
+      row[target.label] = target.example;
+      return row;
+    }, {});
+    const mappingRows = importMappingTargets.map((target) => ({
+      "Database Field": target.key,
+      "Excel Column": target.label,
+      Group: target.group,
+      Required: target.required ? "Yes" : "No",
+      Notes: target.note ?? "",
+    }));
+    const workbook = XLSX.utils.book_new();
+    const dataSheet = XLSX.utils.json_to_sheet([exampleRow], { header: importTemplateHeaders });
+    const mappingSheet = XLSX.utils.json_to_sheet(mappingRows);
+
+    XLSX.utils.book_append_sheet(workbook, dataSheet, "Leads Import");
+    XLSX.utils.book_append_sheet(workbook, mappingSheet, "Field Mapping");
+    XLSX.writeFile(workbook, "leads_import_template.xlsx");
+    setFeedback("Lead import template downloaded.");
+  };
+
+  const handleImportFile = async (file?: File | null) => {
+    if (!file) return;
+
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
+        defval: "",
+        raw: false,
+      });
+      const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+      const mapping = detectImportMapping(headers);
+      const parsed = mapImportRows(rows, mapping);
+
+      setImportFileName(file.name);
+      setImportRows(rows);
+      setImportHeaders(headers);
+      setImportMapping(mapping);
+      setImportLeads(parsed);
+      setFeedback(
+        parsed.length > 0
+          ? `${parsed.length} leads ready to import from ${file.name}.`
+          : "No valid leads found. Make sure the sheet has a Company Name column."
+      );
+    } catch {
+      setImportFileName(file.name);
+      setImportRows([]);
+      setImportHeaders([]);
+      setImportMapping({});
+      setImportLeads([]);
+      setFeedback("Unable to read the file. Please upload .xlsx, .xls, or .csv.");
+    }
+  };
+
+  const handleLocationSearch = async () => {
+    const query = locationSearch.trim() || formState.address.trim() || formState.company_name.trim();
+    if (!query) {
+      setLocationFeedback("Enter an address or company location to search.");
+      return;
+    }
+
+    setLocationFeedback("Searching location...");
+    try {
+      const response = await apiFetch(`/maps/geocode?query=${encodeURIComponent(query)}`);
+      const json = await response.json();
+      if (!response.ok || !json?.data) {
+        setLocationFeedback(json?.error || "Location not found.");
+        return;
+      }
+      setFormState((current) => ({
+        ...current,
+        lat: String(json.data.lat),
+        lng: String(json.data.lng),
+        address: current.address || json.data.formatted_address || "",
+      }));
+      setLocationFeedback(json.data.formatted_address || "Location selected.");
+    } catch {
+      setLocationFeedback("Unable to search location right now.");
+    }
+  };
+
   const handleWhatsApp = (phone?: string | null) => {
     if (!phone) {
       setFeedback("This lead does not have a phone number.");
@@ -491,7 +1136,7 @@ export default function LeadsPage() {
   };
 
   const hasActiveFilter = Boolean(
-    search || funnelStageId || qualificationFilter || duplicateFilter || sourceFilter || channelFilter || minScore || maxScore
+    search || funnelStageId || funnelMinSequence || qualificationFilter || duplicateFilter || sourceFilter || channelFilter || minScore || maxScore
   );
 
   const getNextFunnelStageId = (lead: LeadRecord) => {
@@ -515,7 +1160,7 @@ export default function LeadsPage() {
             <CardTitle>Leads</CardTitle>
             <CardDescription>Discovered and enriched leads with one standardized admin workflow.</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" data-tour="leads-actions">
             <Link href="/qualification/reviews">
               <Button variant="outline">
                 Review Queue
@@ -524,6 +1169,16 @@ export default function LeadsPage() {
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4" />
               Export
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                resetImport();
+                setImportOpen(true);
+              }}
+            >
+              <Upload className="h-4 w-4" />
+              Import
             </Button>
             <Button
               onClick={() => {
@@ -543,6 +1198,7 @@ export default function LeadsPage() {
         ) : null}
       </Card>
 
+      <div data-tour="leads-filters">
       <FilterBar>
         <FilterBarSearch
           value={search}
@@ -648,13 +1304,16 @@ export default function LeadsPage() {
           </Button>
         ) : null}
       </FilterBar>
+      </div>
 
+      <div data-tour="leads-table">
       <TableShell>
         <Table>
           <TableHead>
             <tr>
               <TableHeaderCell className="min-w-[200px]">Company</TableHeaderCell>
               <TableHeaderCell className="min-w-[120px]">Industry</TableHeaderCell>
+              <TableHeaderCell className="min-w-[140px]">Product</TableHeaderCell>
               <TableHeaderCell className="min-w-[120px]">Source</TableHeaderCell>
               <TableHeaderCell className="min-w-[130px]">Channel</TableHeaderCell>
               <TableHeaderCell className="min-w-[160px]">Contact</TableHeaderCell>
@@ -669,12 +1328,12 @@ export default function LeadsPage() {
           </TableHead>
           <TableBody>
             {isLoading ? (
-              <TableEmpty colSpan={12}>
+              <TableEmpty colSpan={13}>
                 <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                 Loading leads...
               </TableEmpty>
             ) : leads.length === 0 ? (
-              <TableEmpty colSpan={12}>No leads found.</TableEmpty>
+              <TableEmpty colSpan={13}>No leads found.</TableEmpty>
             ) : (
               leads.map((lead) => (
                 <TableRow key={lead.id}>
@@ -686,6 +1345,11 @@ export default function LeadsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="neutral">{lead.industry?.name ?? lead.business_category ?? "Unknown"}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={lead.product ? "info" : "neutral"}>
+                      {lead.product?.name ?? "Unassigned"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {primarySourceSlug(lead) ? (
@@ -831,6 +1495,186 @@ export default function LeadsPage() {
           </div>
         </div>
       </TableShell>
+      </div>
+
+      <Modal
+        open={importOpen}
+        onOpenChange={(open) => {
+          setImportOpen(open);
+          if (!open) resetImport();
+        }}
+        title="Import Leads"
+        description="Upload an Excel or CSV file and migrate lead companies with related PIC/contact rows."
+        size="xl"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => importMutation.mutate()}
+              disabled={importMutation.isPending || importLeads.length === 0}
+            >
+              {importMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Import {importLeads.length || ""} Leads
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-5">
+          <div className="grid gap-4 md:grid-cols-[180px_1fr_180px_220px]">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Template</label>
+              <Button variant="outline" onClick={handleDownloadImportTemplate}>
+                <Download className="h-4 w-4" />
+                Template
+              </Button>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Excel or CSV File</label>
+              <Input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(event) => handleImportFile(event.target.files?.[0])}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Lead Source</label>
+              <Select
+                value={importSourceType}
+                onChange={(event) => {
+                  setImportSourceType(event.target.value);
+                  setImportChannelTypeId("");
+                }}
+                placeholder="Select source"
+              >
+                {activeLeadSources.map((source) => (
+                  <option key={source.id} value={source.slug}>{source.name}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Channel Type</label>
+              <Select
+                value={importChannelTypeId}
+                onChange={(event) => setImportChannelTypeId(event.target.value)}
+                placeholder="Select channel"
+                disabled={!importSourceType || selectedImportChannels.length === 0}
+              >
+                {selectedImportChannels.map((channel) => (
+                  <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <div>
+                <CardTitle className="text-base">Column Mapping</CardTitle>
+                <CardDescription>
+                  Match each database field with a column from the uploaded file before importing.
+                </CardDescription>
+              </div>
+              {importHeaders.length > 0 ? (
+                <Badge variant="info">{importHeaders.length} columns detected</Badge>
+              ) : null}
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid gap-3 md:grid-cols-2">
+                {importMappingTargets.map((target) => (
+                  <div key={target.key} className="grid gap-2">
+                    <label className="text-sm font-medium">
+                      {target.group} · {target.label}
+                      {target.required ? <span className="text-destructive"> *</span> : null}
+                    </label>
+                    <Select
+                      value={importMapping[target.key] ?? ""}
+                      onChange={(event) => {
+                        const nextMapping = { ...importMapping };
+                        if (event.target.value) {
+                          nextMapping[target.key] = event.target.value;
+                        } else {
+                          delete nextMapping[target.key];
+                        }
+                        applyImportMapping(nextMapping);
+                      }}
+                      placeholder="Not mapped"
+                      disabled={importHeaders.length === 0}
+                    >
+                      {importHeaders.map((header) => (
+                        <option key={`${target.key}-${header}`} value={header}>
+                          {header}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Import Preview
+                </CardTitle>
+                <CardDescription>
+                  {importFileName || "No file selected"} · {importLeads.length} valid lead rows detected
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <TableShell>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <TableHeaderCell>Company</TableHeaderCell>
+                      <TableHeaderCell>Contact</TableHeaderCell>
+                      <TableHeaderCell>Email</TableHeaderCell>
+                      <TableHeaderCell>Phone</TableHeaderCell>
+                      <TableHeaderCell>PIC Count</TableHeaderCell>
+                    </tr>
+                  </TableHead>
+                  <TableBody>
+                    {importLeads.length === 0 ? (
+                      <TableEmpty colSpan={5}>
+                        Upload a sheet with columns such as Company Name, Address, Email, Phone, PIC Name, PIC Email, and PIC Phone.
+                      </TableEmpty>
+                    ) : (
+                      importLeads.slice(0, 10).map((lead, index) => (
+                        <TableRow key={`${lead.company_name}-${index}`}>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <p className="font-medium">{lead.company_name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{lead.contacts?.[0]?.name ?? "—"}</TableCell>
+                          <TableCell>{lead.email ?? lead.contacts?.[0]?.email ?? "—"}</TableCell>
+                          <TableCell>{lead.phone ?? lead.contacts?.[0]?.phone ?? "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={lead.contacts?.length ? "info" : "neutral"}>
+                              {lead.contacts?.length ?? 0}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableShell>
+              {importLeads.length > 10 ? (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Showing the first 10 rows. All {importLeads.length} valid rows will be imported.
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        </div>
+      </Modal>
 
       <Modal
         open={createOpen}
@@ -872,6 +1716,7 @@ export default function LeadsPage() {
               placeholder="Full company address"
             />
           </div>
+          {renderInlineLocationPicker()}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <label className="text-sm font-medium">Industry</label>
@@ -952,6 +1797,23 @@ export default function LeadsPage() {
               onChange={(e) => setFormState((s) => ({ ...s, business_category: e.target.value }))}
               placeholder="e.g. Property Management"
             />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Initial Product</label>
+            <Select
+              value={formState.product_id}
+              onChange={(e) => setFormState((s) => ({ ...s, product_id: e.target.value }))}
+              placeholder="Select product"
+            >
+              {products.map((product) => (
+                <option key={product.id} value={String(product.id)}>
+                  {product.name}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Use this for the first product interest. Additional products are recorded from Revenue → Record Outcome.
+            </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
@@ -1056,6 +1918,7 @@ export default function LeadsPage() {
               onChange={(e) => setFormState((s) => ({ ...s, address: e.target.value }))}
             />
           </div>
+          {renderInlineLocationPicker()}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <label className="text-sm font-medium">Industry</label>
@@ -1134,6 +1997,23 @@ export default function LeadsPage() {
               onChange={(e) => setFormState((s) => ({ ...s, business_category: e.target.value }))}
               placeholder="e.g. Property Management"
             />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Initial Product</label>
+            <Select
+              value={formState.product_id}
+              onChange={(e) => setFormState((s) => ({ ...s, product_id: e.target.value }))}
+              placeholder="Select product"
+            >
+              {products.map((product) => (
+                <option key={product.id} value={String(product.id)}>
+                  {product.name}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Use this for the first product interest. Additional products are recorded from Revenue → Record Outcome.
+            </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">

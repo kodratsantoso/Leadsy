@@ -24,6 +24,8 @@ class AIRoutingService
         'whatsapp_analysis'            => 'WhatsApp Analysis',
         'product_metadata_generation'  => 'Product Metadata Generation',
         'geo_product_fit_analysis'     => 'Geo Product Fit Analysis',
+        'product_question_generation'  => 'Product Question Guide Generation',
+        'lead_bantc_question_generation' => 'Lead BANTC Question Guide Generation',
     ];
 
     public function listRoutes(): Collection

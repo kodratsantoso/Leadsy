@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 
 class Lead extends Model
 {
@@ -184,8 +186,28 @@ class Lead extends Model
         return $this->hasMany(LeadRevenueAnalysis::class);
     }
 
+    public function bantcQuestionGuide(): HasOne
+    {
+        return $this->hasOne(LeadBantcQuestionGuide::class);
+    }
+
     public function qualificationWorkflowReviews(): HasMany
     {
         return $this->hasMany(QualificationWorkflowReview::class);
+    }
+
+    public function scopeVisibleTo(Builder $query, ?User $user): Builder
+    {
+        if (! $user || $user->isSuperAdmin()) {
+            return $query;
+        }
+
+        $visibleUserIds = $user->hierarchyUserIds();
+
+        return $query->where(function (Builder $visibility) use ($visibleUserIds) {
+            $visibility
+                ->whereIn('owner_id', $visibleUserIds)
+                ->orWhereIn('created_by', $visibleUserIds);
+        });
     }
 }

@@ -1,0 +1,72 @@
+{
+  "_comment": "Coolify deployment configuration for Leadsy. See docs/deployment/coolify-setup.md for step-by-step Coolify dashboard instructions.",
+  "version": "1.0",
+  "build": {
+    "docker_compose_file": "docker-compose.production.yml",
+    "docker_compose_custom_start_command": "",
+    "build_pack": "dockercompose"
+  },
+  "services": {
+    "backend": {
+      "dockerfile": "backend/Dockerfile.production",
+      "entrypoint": "sh /var/www/html/docker-entrypoint.production.sh",
+      "healthcheck_path": "/api/health"
+    },
+    "frontend": {
+      "dockerfile": "frontend/Dockerfile.production",
+      "healthcheck_path": "/"
+    },
+    "whatsapp-service": {
+      "dockerfile": "whatsapp-service/Dockerfile",
+      "healthcheck_path": "/api/health"
+    }
+  },
+  "required_environment_variables": [
+    {
+      "key": "APP_KEY",
+      "description": "Laravel application key. Generate with: php artisan key:generate --show. Must start with base64:",
+      "required": true,
+      "secret": true
+    },
+    {
+      "key": "DB_PASSWORD",
+      "description": "PostgreSQL password for the leads database user. Use a strong random value.",
+      "required": true,
+      "secret": true
+    },
+    {
+      "key": "ADMIN_PASSWORD",
+      "description": "Password for the seeded super admin account. Must be changed before going live.",
+      "required": true,
+      "secret": true
+    },
+    {
+      "key": "ADMIN_EMAIL",
+      "description": "Email address for the seeded super admin account.",
+      "required": false,
+      "default": "admin@prasetia.com",
+      "secret": false
+    },
+    {
+      "key": "AUTO_MIGRATE",
+      "description": "Run database migrations on every container start.",
+      "required": false,
+      "default": "true",
+      "secret": false
+    },
+    {
+      "key": "AUTO_SEED_BASELINE",
+      "description": "Run ProductionSeeder on every container start. Safe — uses updateOrCreate.",
+      "required": false,
+      "default": "true",
+      "secret": false
+    },
+    {
+      "key": "SEED_DEMO_DATA",
+      "description": "Run DemoSeeder (sample data). NEVER set true in production.",
+      "required": false,
+      "default": "false",
+      "secret": false
+    }
+  ]
+}

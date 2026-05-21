@@ -28,6 +28,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { QuestionGuide } from "@/components/products/QuestionGuide";
 
 type ProductRecord = {
   id: number;
@@ -52,15 +53,15 @@ type ProductRecord = {
 
 type AiGenerateResult = {
   description: string;
-  category: string;
-  target_industry: string;
+  category: string | string[];
+  target_industry: string | string[];
   target_company_size: string;
-  target_buyer_persona: string;
+  target_buyer_persona: string | string[];
   budget_range: string;
-  supported_regions: string;
-  keywords: string[];
+  supported_regions: string | string[];
+  keywords: string[] | string;
   target_pain_points: string;
-  use_cases: string[];
+  use_cases: string[] | string;
   competitor_notes: string;
   ideal_company_profile: string;
 };
@@ -107,6 +108,51 @@ export default function ProductsPage() {
   const [refUrl, setRefUrl] = useState("");
   const [refPdfFile, setRefPdfFile] = useState<File | null>(null);
   const [refPdfName, setRefPdfName] = useState("");
+
+  const toParts = (value: string | string[] | null | undefined, splitLines = false) => {
+    if (!value) return [];
+    const raw = Array.isArray(value)
+      ? value.flatMap((item) => splitLines ? item.split(/\n+/) : item.split(","))
+      : splitLines ? value.split(/\n+/) : value.split(",");
+    return raw.map((item) => item.trim()).filter(Boolean);
+  };
+
+  const uniqueJoin = (items: string[], separator = ", ") => {
+    const seen = new Set<string>();
+    return items
+      .filter((item) => {
+        const key = item.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .join(separator);
+  };
+
+  const isGenericAiDescription = (value: string) =>
+    value.includes("Review the generated targeting, pain points, and use cases");
+
+  const mergeText = (current: string, incoming?: string | null, replaceGeneric = false) => {
+    const next = incoming?.trim() ?? "";
+    if (!next) return current;
+    if (!current.trim() || (replaceGeneric && isGenericAiDescription(current))) return next;
+    if (current.trim().toLowerCase() === next.toLowerCase()) return current;
+    return current;
+  };
+
+  const mergeParagraphs = (current: string, incoming?: string | null) => {
+    const next = incoming?.trim() ?? "";
+    if (!next) return current;
+    if (!current.trim()) return next;
+    if (current.trim().toLowerCase().includes(next.toLowerCase())) return current;
+    return `${current.trim()}\n\n${next}`;
+  };
+
+  const mergeCsv = (current: string, incoming: string | string[] | null | undefined) =>
+    uniqueJoin([...toParts(current), ...toParts(incoming)]);
+
+  const mergeLines = (current: string, incoming: string | string[] | null | undefined) =>
+    uniqueJoin([...toParts(current, true), ...toParts(incoming, true)], "\n");
 
   const { data, isLoading } = useQuery({
     queryKey: ["products"],
@@ -164,25 +210,32 @@ export default function ProductsPage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `Request failed (${res.status})`);
+        const validationMessage = body.errors
+          ? Object.values(body.errors).flat().join(" ")
+          : null;
+        throw new Error(body.error ?? body.message ?? validationMessage ?? `Request failed (${res.status})`);
       }
       return res.json() as Promise<{ data: AiGenerateResult; ai_model: string | null; source: string }>;
     },
-    onSuccess: ({ data: generated }, variables) => {
-      setFormDesc(generated.description || "");
-      setFormCategory(generated.category || "");
-      setFormTargetIndustry(generated.target_industry || "");
-      setFormTargetCompanySize(generated.target_company_size || "");
-      setFormTargetPersona(generated.target_buyer_persona || "");
-      setFormBudgetRange(generated.budget_range || "");
-      setFormSupportedRegions(generated.supported_regions || "");
-      setFormKeywords(Array.isArray(generated.keywords) ? generated.keywords.join(", ") : (generated.keywords || ""));
-      setFormTargetPainPoints(generated.target_pain_points || "");
-      setFormUseCases(Array.isArray(generated.use_cases) ? generated.use_cases.join(", ") : (generated.use_cases || ""));
-      setFormCompetitorNotes(generated.competitor_notes || "");
-      setFormIdealCompanyProfile(generated.ideal_company_profile || "");
-      setAiGenerated(true);
+    onMutate: (variables) => {
       setAiSource(variables.source);
+      setAiGenerated(false);
+      setAiError(null);
+    },
+    onSuccess: ({ data: generated }, variables) => {
+      setFormDesc((current) => mergeText(current, generated.description, true));
+      setFormCategory((current) => mergeCsv(current, generated.category));
+      setFormTargetIndustry((current) => mergeCsv(current, generated.target_industry));
+      setFormTargetCompanySize((current) => mergeText(current, generated.target_company_size));
+      setFormTargetPersona((current) => mergeCsv(current, generated.target_buyer_persona));
+      setFormBudgetRange((current) => mergeText(current, generated.budget_range));
+      setFormSupportedRegions((current) => mergeCsv(current, generated.supported_regions));
+      setFormKeywords((current) => mergeCsv(current, generated.keywords));
+      setFormTargetPainPoints((current) => mergeLines(current, generated.target_pain_points));
+      setFormUseCases((current) => mergeCsv(current, generated.use_cases));
+      setFormCompetitorNotes((current) => mergeParagraphs(current, generated.competitor_notes));
+      setFormIdealCompanyProfile((current) => mergeParagraphs(current, generated.ideal_company_profile));
+      setAiGenerated(true);
       setAiError(null);
     },
     onError: (err: Error) => {
@@ -293,7 +346,7 @@ export default function ProductsPage() {
               Product catalog and AI reference management aligned to the shared admin design system.
             </CardDescription>
           </div>
-          <Button onClick={openCreate}>
+          <Button onClick={openCreate} data-tour="products-add">
             <Plus className="h-4 w-4" />
             Add Product
           </Button>
@@ -407,6 +460,11 @@ export default function ProductsPage() {
                         Delete
                       </Button>
                     </div>
+
+                    {/* Question Guide — AI-generated requirement questions per product */}
+                    <div className="mt-1 border-t border-border pt-1">
+                      <QuestionGuide productId={product.id} />
+                    </div>
                   </CardContent>
                 ) : null}
               </Card>
@@ -440,7 +498,7 @@ export default function ProductsPage() {
                 <Input
                   value={formName}
                   onChange={(e) => { setFormName(e.target.value); setAiGenerated(false); }}
-                  placeholder="e.g. Enterprise ERP Solution"
+                  placeholder="e.g. Google Workspace"
                   className="flex-1"
                 />
                 <Button

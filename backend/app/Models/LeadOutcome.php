@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class LeadOutcome extends Model
 {
     protected $fillable = [
-        'lead_id', 'outcome', 'deal_size',
+        'lead_id', 'product_id', 'outcome', 'sale_type', 'deal_size',
         'loss_reason', 'loss_category', 'feedback_notes',
         'closed_by', 'closed_at',
     ];
@@ -21,6 +21,11 @@ class LeadOutcome extends Model
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
     }
 
     public function closedBy(): BelongsTo

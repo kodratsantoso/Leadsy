@@ -128,6 +128,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/verification/request', [LeadController::class, 'requestVerificationReview'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/activities', [LeadController::class, 'getActivities'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/progress', [LeadController::class, 'getProgress'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/bantc-questions', [LeadController::class, 'getBantcQuestions'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/bantc-questions/generate', [LeadController::class, 'generateBantcQuestions'])->middleware('permission:leads.edit');
+    Route::put('leads/{lead}/bantc-questions', [LeadController::class, 'saveBantcQuestions'])->middleware('permission:leads.edit');
 
     // Revenue Intelligence Routes (Module D — ICP, Conversion, Prescriptive, Rules, Feedback)
     Route::post('leads/{lead}/icp-match', [LeadController::class, 'icpMatch'])->middleware('permission:leads.edit');
@@ -159,6 +162,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('products/ai-generate', [ProductController::class, 'aiGenerate'])->middleware('permission:products.edit');
     Route::apiResource('products', ProductController::class);
 
+    // Product Question Guide
+    Route::prefix('products/{product}/questions')->group(function () {
+        Route::get('/',          [ProductController::class, 'getQuestions'])->middleware('permission:products.view');
+        Route::post('/generate', [ProductController::class, 'generateQuestions'])->middleware('permission:products.edit');
+        Route::put('/',          [ProductController::class, 'saveQuestions'])->middleware('permission:products.edit');
+    });
+
     // Industries
     Route::apiResource('industries', IndustryController::class)->except(['show']);
     Route::post('industries/{industry}/sub-industries', [IndustryController::class, 'storeSub']);
@@ -167,9 +177,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Funnel
     Route::get('funnel/stages', [FunnelController::class, 'stages']);
-    Route::post('funnel/stages', [FunnelController::class, 'storeStage']);
-    Route::put('funnel/stages/{stage}', [FunnelController::class, 'updateStage']);
-    Route::delete('funnel/stages/{stage}', [FunnelController::class, 'destroyStage']);
+    Route::post('funnel/stages', [FunnelController::class, 'storeStage'])->middleware('permission:leads.edit');
+    Route::put('funnel/stages/{stage}', [FunnelController::class, 'updateStage'])->middleware('permission:leads.edit');
+    Route::delete('funnel/stages/{stage}', [FunnelController::class, 'destroyStage'])->middleware('permission:leads.edit');
     Route::get('funnel/dashboard', [FunnelController::class, 'dashboard']);
 
     // AI Providers — must register usage-summary BEFORE apiResource to avoid route collision

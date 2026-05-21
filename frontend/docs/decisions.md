@@ -86,3 +86,41 @@
 - **Decision**: Lead source and channel type classification are master data stored in PostgreSQL via `lead_source_types` and `lead_channel_types`, then referenced from `lead_sources`.
 - **Rationale**: Lead origin taxonomy must be configurable by admins and reusable across imports, manual entry, map discovery, WhatsApp, referrals, and future channels without hardcoded frontend lists.
 - **Impact**: Settings now exposes Lead Sources and Lead Channels CRUD. The Leads page can classify, display, and filter by both levels, with channel options scoped to the selected source.
+
+## ADR-013: Dashboard Geography, Conversion Funnels, and Sales Achievement
+- **Date**: 2026-05-19
+- **Status**: Active
+- **Decision**: Dashboard geography, conversion funnels, and achievement metrics are served from `/api/dashboard` rather than hardcoded frontend fixtures.
+- **Rationale**: Dashboard modules must reflect real lead state, funnel stage colors, user hierarchy visibility, and Closed Won realization without duplicate client logic.
+- **Impact**:
+  - Map POI colors resolve from `funnel_stages.color` through shared stage color tokens.
+  - Conversion is shown as aggregate horizontal funnel bars with `Belum Di Klasifikasi` as the 100% baseline, plus estimated amount conversion and drillable product bars.
+  - Realisasi Revenue is calculated from `lead_outcomes` where `outcome = won` and `closed_at` falls inside the user's target period.
+
+## ADR-014: Direct Manager Hierarchy Visibility
+- **Date**: 2026-05-19
+- **Status**: Active
+- **Decision**: `users.direct_manager_id` defines the reporting tree used for lead visibility. Superadmin sees all; individual users see own leads; manager/admin-like roles see own leads plus recursive team leads.
+- **Rationale**: Hierarchical access should be consistent across list views and dashboard aggregations without requiring page-specific permission rules.
+- **Impact**: Lead queries now use `Lead::visibleTo($user)` for Leads, Dashboard, Funnel, Map, and revenue calculations. User updates are audit logged by existing `AuditService::logUpdated`.
+
+## ADR-015: Horizontal Dashboard Funnel Visualization
+- **Date**: 2026-05-19
+- **Status**: Active
+- **Decision**: Dashboard funnels use horizontal conversion bars for each pipeline path while preserving DB-backed aggregate counts and drilldown links.
+- **Rationale**: The horizontal style makes count and conversion percentage comparison clearer and starts conversion from the pre-classification baseline.
+- **Impact**: `frontend/app/page.tsx` renders two separate funnels, Belum Di Klasifikasi → Won and Belum Di Klasifikasi → Lost, using existing Card, Badge, and token-based colors.
+
+## ADR-017: Product Tour — Lazy State Init to Fix StrictMode Race Condition
+- **Date**: 2026-05-20
+- **Status**: Active
+- **Decision**: `useTour.js` initializes `isActive`, `currentStep`, and `isMinimized` via lazy `useState` initializers that read localStorage synchronously, instead of a `useEffect` that ran after the first render.
+- **Rationale**: React StrictMode (enabled by default in Next.js 15 dev mode) double-invokes effects. The original init-`useEffect`/persist-`useEffect` pair created a race: persist ran with stale initial state (`active=false, step=0`) between the two StrictMode invocations of the init effect, so the second invocation read corrupted localStorage and reset the tour to step 0 while `isActive=true`. The routing effect then saw `step.route='/'` while `pathname='/map'` and pushed back to `/`, creating an infinite loop. Lazy initializers execute once at component creation — before any effect — eliminating the race window entirely.
+- **Impact**: The tour correctly navigates across all 14 steps and 6 distinct routes without resetting. A secondary `routeReady` guard (`setTimeout(...,0)`) in `ProductTour.jsx` prevents the routing effect from firing until after the first render commit, adding an extra safety margin.
+
+## ADR-016: Dashboard Lead Origin Aggregation
+- **Date**: 2026-05-19
+- **Status**: Active
+- **Decision**: Dashboard lead source and channel totals are served by `/api/dashboard` as DB-backed aggregates using `COUNT(DISTINCT leads.id)` and `Lead::visibleTo($user)`.
+- **Rationale**: Lead origin analytics must respect hierarchy visibility and avoid double-counting duplicate join rows while still allowing each source/channel row to drill into filtered Leads.
+- **Impact**: `frontend/app/page.tsx` renders a Lead Sources & Channels block with token-based bars and links to `source_type` or `channel_type_id` filters.

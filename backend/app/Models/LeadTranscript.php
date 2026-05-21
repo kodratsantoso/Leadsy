@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 class LeadTranscript extends Model
 {
     protected $fillable = [
-        'lead_id', 'source_type', 'source_id', 'transcript_text',
+        'lead_id', 'activity_id', 'title', 'source_type', 'source_id',
+        'transcript_text', 'file_path', 'file_name', 'file_mime', 'file_size',
         'recorded_at', 'evaluation_status',
     ];
 
@@ -20,6 +21,11 @@ class LeadTranscript extends Model
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function activity(): BelongsTo
+    {
+        return $this->belongsTo(LeadActivity::class, 'activity_id');
     }
 
     public function evaluations(): MorphMany

@@ -15,13 +15,13 @@ class UserController extends Controller
     public function index(): JsonResponse
     {
         return response()->json([
-            'data' => User::with('role')->orderBy('name')->get(),
+            'data' => User::with(['role', 'directManager:id,name,email'])->orderBy('name')->get(),
         ]);
     }
 
     public function show(User $user): JsonResponse
     {
-        return response()->json(['data' => $user->load('role.permissions')]);
+        return response()->json(['data' => $user->load(['role.permissions', 'directManager:id,name,email'])]);
     }
 
     public function store(Request $request): JsonResponse
@@ -31,14 +31,17 @@ class UserController extends Controller
             'email'     => 'required|email|unique:users',
             'password'  => 'required|string|min:8',
             'role_id'   => 'nullable|exists:roles,id',
+            'direct_manager_id' => 'nullable|exists:users,id',
             'phone'     => 'nullable|string|max:30',
+            'target_period' => 'nullable|in:weekly,monthly,quarterly,yearly',
+            'target_revenue' => 'nullable|numeric|min:0',
             'is_active' => 'nullable|boolean',
         ]);
 
         $user = User::create($data);
         AuditService::logCreated('users', $user);
 
-        return response()->json(['data' => $user->load('role')], 201);
+        return response()->json(['data' => $user->load(['role', 'directManager:id,name,email'])], 201);
     }
 
     public function update(Request $request, User $user): JsonResponse
@@ -50,9 +53,16 @@ class UserController extends Controller
             'email'     => 'sometimes|email|unique:users,email,' . $user->id,
             'password'  => 'nullable|string|min:8',
             'role_id'   => 'nullable|exists:roles,id',
+            'direct_manager_id' => 'nullable|exists:users,id',
             'phone'     => 'nullable|string|max:30',
+            'target_period' => 'nullable|in:weekly,monthly,quarterly,yearly',
+            'target_revenue' => 'nullable|numeric|min:0',
             'is_active' => 'nullable|boolean',
         ]);
+
+        if (isset($data['direct_manager_id']) && (int) $data['direct_manager_id'] === $user->id) {
+            return response()->json(['message' => 'A user cannot be their own direct manager.'], 422);
+        }
 
         if (empty($data['password'])) {
             unset($data['password']);
@@ -61,7 +71,7 @@ class UserController extends Controller
         $user->update($data);
         AuditService::logUpdated('users', $user, $original);
 
-        return response()->json(['data' => $user->load('role')]);
+        return response()->json(['data' => $user->load(['role', 'directManager:id,name,email'])]);
     }
 
     public function destroy(User $user): JsonResponse

@@ -10,7 +10,7 @@ class LeadAiEvaluation extends Model
 {
     protected $fillable = [
         'lead_id', 'source_type', 'source_id', 'sentiment',
-        'intent_level', 'interest_level', 'objections_detected',
+        'intent_level', 'interest_level', 'summary', 'objections_detected',
         'buying_signals', 'next_best_action', 'recommended_product_id',
         'confidence_score', 'evaluated_at',
     ];

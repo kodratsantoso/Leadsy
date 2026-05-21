@@ -11,10 +11,14 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/industries": { any: ["products.view", "products.edit"] },
   "/whatsapp": { any: ["whatsapp.manage"] },
   "/audit-logs": { any: ["audit.view"] },
+  "/settings/industries": { any: ["products.view", "products.edit"] },
+  "/settings/audit-logs": { any: ["audit.view"] },
+  "/settings/icp-profiles": { any: ["leads.view", "leads.edit"] },
   "/settings/ai-defaults": { any: ["ai.manage"] },
   "/settings/users": { any: ["users.manage"] },
   "/settings/lead-sources": { any: ["leads.edit"] },
   "/settings/lead-channels": { any: ["leads.edit"] },
+  "/settings/lead-stages": { any: ["leads.edit"] },
   "/settings/currency": { any: ["integrations.manage"] },
   "/settings/integrations": { any: ["integrations.manage"] },
   "/settings/webhooks": { any: ["integrations.manage"] },
@@ -22,7 +26,7 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/settings/environment": { any: ["integrations.manage"] },
   "/settings/security": { any: ["integrations.manage"] },
   "/settings/backup": { any: ["integrations.manage"] },
-  "/settings": { any: ["users.manage", "ai.manage", "integrations.manage", "audit.view"] },
+  "/settings": { any: ["users.manage", "ai.manage", "integrations.manage", "audit.view", "products.view", "products.edit", "leads.edit"] },
 };
 
 export function getUserPermissionNames(user: any): string[] {

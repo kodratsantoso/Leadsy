@@ -100,3 +100,10 @@ Leadsy now has database-backed source and channel classification for leads.
 - Linked `lead_sources` to optional `channel_type_id`.
 - Updated Leads list create/edit, filters, and table display to classify source and deeper channel type.
 - Verified migrations, API routes, PHP syntax, frontend TypeScript, and authenticated API responses.
+
+## Phase 8: Dashboard Lead Origin Analytics (Completed ✅)
+**Date completed**: 2026-05-19
+
+- Added Dashboard Lead Sources & Channels block.
+- Aggregated visible leads by source and channel from DB using distinct lead counts.
+- Added drilldown links from each aggregate row into filtered Leads.

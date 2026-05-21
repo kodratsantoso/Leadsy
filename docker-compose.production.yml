@@ -43,16 +43,37 @@ services:
       APP_DEBUG: "false"
       APP_URL: https://leadsy.virtuenet.space
       FRONTEND_URL: https://leadsy.virtuenet.space
+      # ── APP_KEY: MUST be set in Coolify dashboard (Environment Variables). ──
+      # Generate once with: php artisan key:generate --show
+      # Copy the output (base64:XXXX...) and paste it in Coolify.
+      # If left unset, the entrypoint generates a new key on every deploy,
+      # which invalidates all sessions and encrypted data.
+      APP_KEY: "${APP_KEY}"
+      # ── Database ─────────────────────────────────────────────────────────────
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_DATABASE: leads
-      DB_USERNAME: leads
-      DB_PASSWORD: leads
+      DB_DATABASE: "${DB_DATABASE:-leads}"
+      DB_USERNAME: "${DB_USERNAME:-leads}"
+      # DB_PASSWORD: set in Coolify dashboard — do NOT hardcode here.
+      DB_PASSWORD: "${DB_PASSWORD}"
+      # ── Cache / Queue ─────────────────────────────────────────────────────────
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      # ── WhatsApp sidecar ──────────────────────────────────────────────────────
       WHATSAPP_SIDECAR_URL: http://whatsapp-service:3002
       WHATSAPP_SESSION_NAME: leads_platform_session
+      # ── Deployment controls ───────────────────────────────────────────────────
+      # These are explicit here so Coolify never accidentally inherits wrong defaults.
+      AUTO_MIGRATE: "true"
+      AUTO_SEED_BASELINE: "true"
+      SEED_DEMO_DATA: "false"
+      # ── Admin account (override in Coolify before first deploy) ───────────────
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@prasetia.com}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
     depends_on:
       postgres:
         condition: service_healthy

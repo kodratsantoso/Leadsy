@@ -10,7 +10,8 @@ class LeadActivity extends Model
 {
     protected $fillable = [
         'lead_id', 'activity_type', 'description', 'activity_date',
-        'outcome', 'next_follow_up_date',
+        'outcome', 'budget', 'authority', 'needs', 'timeline', 'competitor',
+        'next_follow_up_date',
         'related_entity_type', 'related_entity_id', 'user_id',
     ];
 

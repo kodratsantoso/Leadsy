@@ -692,7 +692,7 @@ Kedua sumber menghasilkan record di tabel `lead_product_matches` yang sama, sehi
 
 ```
 1. Buka Maps & Territory
-2. Pilih produk target (e.g. "Enterprise ERP Solution")
+2. Pilih produk target dari data produk yang tersedia di database
 3. Geocode area target (e.g. "Kawasan Industri Cikarang")
 4. Set radius 10 km, kategori "Manufacturing"
 5. Run Discovery Scan → dapat 35 bisnis

@@ -1,5 +1,63 @@
 # Real WhatsApp Mirroring Implementation Tasks
 
+## Product Question Guide (Completed ✅)
+- [x] Migration `2026_05_20_000001_create_product_questions_table.php` — product_id FK, questions JSON, ai_generated, ai_model, updated_by.
+- [x] `ProductQuestion` model + `Product::questionGuide()` HasOne relation.
+- [x] `ProductQuestionGenerationService` — context-aware AI prompt from product metadata, JSON parsing, category normalization.
+- [x] `ProductController` — `getQuestions`, `generateQuestions`, `saveQuestions` methods.
+- [x] Routes: `GET/POST(generate)/PUT /api/products/{product}/questions` with permission guards.
+- [x] `QuestionGuide.tsx` — inline editable question list with AI generate, category picker, ordering, unsaved-changes badge, save.
+- [x] Integrated into expanded product card in `app/products/page.tsx`.
+- [x] Updated SSOT, tasks, progress, and README.
+
+## Lead BANTC, Transcript Enhancements, and Cumulative Funnels (Completed ✅)
+- [x] Add `lead_bantc_question_guides` table, model, API endpoints, AI feature route, and Lead Detail guide UI.
+- [x] Keep generated Customer BANTC questions as draft until user explicitly saves.
+- [x] Add Meeting Activity BANTC fields: Budget, Authority, Needs, Timeline, Competitor.
+- [x] Prefill new Meeting BANTC fields from the latest previous Meeting activity.
+- [x] Extend Transcripts with Activity linkage, title, recorded timestamp, text/file inputs, and audio/video file references.
+- [x] Add AI transcript summary storage/display.
+- [x] Correct dashboard funnel logic to cumulative/aggregate stage conversion and cumulative estimated amount.
+- [x] Add `funnel_min_sequence` Leads filter for cumulative funnel drilldown.
+
+## Lead Product Revenue and Upsales (Completed ✅)
+- [x] Add Initial Product field to Leads create/edit forms and lead table.
+- [x] Extend `lead_outcomes` with product and sales type fields for multi-product customer purchases.
+- [x] Add Product, Sales Type, and amount capture to Lead Detail → Revenue → Record Outcome.
+- [x] Display per-lead Product Revenue History with new-sales versus upsales classification.
+- [x] Update dashboard product aggregates and product drilldown filters to include outcome products.
+
+## Production Deployment Pipeline (Completed ✅)
+- [x] Diagnose seeder-not-running root cause (optimize:clear + set -e + missing APP_KEY).
+- [x] Refactor `database/seeders/production/` with 10 individual idempotent seeders.
+- [x] Create `database/seeders/development/SampleLeadSeeder.php` placeholder.
+- [x] Create `DevelopmentSeeder.php` orchestrator (ProductionSeeder + dev seeders).
+- [x] Refactor `ProductionSeeder.php` to call individual production seeders in order.
+- [x] Refactor `DatabaseSeeder.php` to call DevelopmentSeeder (local dev only).
+- [x] Add `LeadSourceTypeSeeder` — restores lead_source_types + lead_channel_types without re-running migrations.
+- [x] Fix `docker-entrypoint.production.sh` — non-fatal optimize:clear, structured logging, APP_KEY injection, separate cache steps.
+- [x] Fix `docker-compose.production.yml` — remove hardcoded DB_PASSWORD, add APP_KEY/ADMIN_PASSWORD/deployment controls as env vars.
+- [x] Create `coolify.json` — Coolify build configuration with required env var documentation.
+- [x] Create `docs/deployment/coolify-setup.md` — step-by-step Coolify setup guide.
+
+## Product Tour System (Completed ✅)
+- [x] Build `components/ProductTour/` system: `ProductTour.jsx`, `TourTooltip.jsx`, `TourOverlay.jsx`, `TourSpotlight.jsx`, `TourMinimized.jsx`, `useTour.js`, `tourSteps.js`, `ProductTour.css`.
+- [x] 14-step tour flow covering navigation, search, dashboard, map, review queue, leads, products, and settings.
+- [x] Auto-start on first visit with localStorage completion flag; manual trigger via HelpCircle button.
+- [x] Minimized mode (floating pill badge) persists step and state across page navigation.
+- [x] Route-aware navigation: tour pushes correct route per step.
+- [x] Add `data-tour` attributes to all 14 targeted elements across 7 pages/components.
+- [x] Mount `<ProductTour />` inside AppShell and wire HelpCircle trigger button.
+- [x] Update SSOT, tasks, progress docs, and README.
+
+## Dashboard, Location, Hierarchy, and Revenue Improvements
+- [x] Add Dashboard map block with DB-backed lead POIs and stage-based marker colors.
+- [x] Add New Lead Add Location map popup and persist selected `lat`/`lng`.
+- [x] Add aggregate Tracking Customer Sales Funnel dashboard panel with drilldown.
+- [x] Add Direct Manager user field and hierarchy-based lead visibility.
+- [x] Add target period/target revenue user fields and Dashboard Achievement Sales.
+- [x] Update docs and API reference for new dashboard, map, funnel, hierarchy, and revenue contracts.
+
 ## Audit Current Implementation
 - [x] WA-001: Identify mock data in `frontend/app/whatsapp/page.tsx`
 - [x] WA-002: Identify mock endpoints in `frontend/app/api/whatsapp/*`
@@ -86,7 +144,7 @@
 - [x] MD-011: AiProviderController — added `GET /ai-providers/usage-summary` reading real `ai_requests` aggregation
 - [x] MD-012: IntegrationConfigController — added single-item POST format (for webhooks/notifications), `DELETE` endpoint
 - [x] MD-013: api.php — registered `ai-providers/usage-summary` (before wildcard), `DELETE /settings/integrations/{id}`
-- [x] MD-014: DatabaseSeeder — seeded 10 industries (42 sub-industries), 3 sample products, 3 AI providers (7 models, inactive), 3 notification pref defaults
+- [x] MD-014: DatabaseSeeder — seeded 10 industries (42 sub-industries), AI providers/models, and notification pref defaults; product sample seeding removed
 
 ### Frontend
 - [x] MD-020: `settings/ai-defaults/page.tsx` — replaced `useEffect+fetch` with `useQuery+apiFetch`; removed `Math.random()`; Usage tab reads real `ai_requests` data with proper empty state

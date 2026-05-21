@@ -1,5 +1,24 @@
 # Architecture Decision Records (ADR)
 
+## ADR-2026-05-19: Dashboard Geography, Split Funnels, and Hierarchy Revenue
+- **Status**: Active
+- **Decision**: Dashboard map, conversion funnels, and sales achievement are generated from backend DB queries and honor `Lead::visibleTo($user)`.
+- **Rationale**: Sales visibility, map POIs, funnel drilldown, and revenue achievement must remain consistent across Dashboard and Leads without duplicated frontend-only business rules.
+- **Impact**:
+  - Map marker color uses each lead's funnel stage color token.
+  - Funnel conversion is represented as horizontal conversion bars starting from `Belum Di Klasifikasi`, with lead-count conversion, estimated amount conversion, and product-level Sales Volume and Total Market bars.
+  - Realisasi Revenue uses `lead_outcomes.outcome = won` and `closed_at` inside the user's configured target period.
+  - `users.direct_manager_id` defines recursive team visibility. Superadmin bypasses scoping.
+
+## ADR-2026-05-20: Product Revenue Outcomes Per Lead
+- **Status**: Active
+- **Decision**: Preserve `leads.product_id` as the initial product interest and use `lead_outcomes.product_id` plus `sale_type` for realized product purchases.
+- **Rationale**: One lead/customer can buy several products. The first product is tracked as `new_sales`; additional products can be tracked as `upsales`, each with an independent amount.
+- **Impact**:
+  - Lead create/edit can set the initial product.
+  - Lead Detail Revenue records multiple product outcomes.
+  - Dashboard product aggregates include both initial product interest and product-specific Closed Won outcomes.
+
 ## ADR-001: Interim Next.js API Layer
 - **Date**: 2026-04-11
 - **Status**: Active
@@ -81,9 +100,9 @@
 ## ADR-012: Seeded DB Sample Data Strategy
 - **Date**: 2026-04-12
 - **Status**: Active
-- **Decision**: Industries, products, and AI provider records are seeded via `DatabaseSeeder.php` (not hardcoded in the frontend). These are real DB rows — explicitly marked "seeded sample data" in code comments. They can be modified by admins at runtime.
-- **Rationale**: SSOT §5 mandates that ALL runtime data originates from PostgreSQL. Hardcoding reference data in the frontend violates this. DB seeding is the approved pattern for bootstrapping an empty database.
-- **Impact**: Running `php artisan db:seed --force` populates 10 industries, 3 products, 3 AI providers, 7 models, and 3 notification prefs. AI providers are seeded as `status=inactive` with placeholder API keys — admins must configure real keys in Settings → AI Defaults.
+- **Decision**: Industries and AI provider records are seeded via `DatabaseSeeder.php` (not hardcoded in the frontend), but product catalog rows are not seeded.
+- **Rationale**: Products are user-managed business data. Seeding sample products caused deleted rows such as ERP, Sales Intelligence, and Fleet products to reappear after `db:seed --force`.
+- **Impact**: Running `php artisan db:seed --force` populates baseline industries, AI providers/models, and notification prefs only. Product lists shown in the app come from the `products` table and remain deleted unless recreated by a user.
 
 ## ADR-013: AI Usage Summary — Empty State vs. Seeded Rows
 - **Date**: 2026-04-12
@@ -433,3 +452,24 @@
 - **Decision**: When a user adds a geo-discovered business to leads with a product selected, automatically create a `LeadProductMatch` record seeded from the `GeoProductFitAnalysis`. Map `fit_level` to `match_level` (high→strong, medium→moderate, others→weak).
 - **Rationale**: The lead pipeline already uses `lead_product_matches` for product scoring. Bridging geo-fit analysis into this table means the lead immediately appears pre-scored in the product matching view — no separate analysis run needed.
 - **Impact**: The `GeoProductFitAnalysis` record is also linked back to the lead via `lead_id` for full traceability. No new tables or UI were needed in the lead pipeline.
+
+## ADR-058: Cumulative Dashboard Funnel Conversion
+- **Date**: 2026-05-20
+- **Status**: Active
+- **Decision**: Dashboard funnel bars use cumulative stage conversion instead of current-stage distribution. Each stage counts leads whose current funnel stage sequence is equal to or greater than the selected stage.
+- **Rationale**: Sales funnel conversion should show how many leads reached each step, not how many are parked at that exact step. This makes New Leads equal to the classified baseline and later stages show drop-off correctly.
+- **Impact**: Dashboard counts and estimated amount are cumulative. Stage drilldown uses `funnel_min_sequence`; Won/Lost terminal rows continue to use outcome filters.
+
+## ADR-059: Meeting BANTC Is Captured on Activities
+- **Date**: 2026-05-20
+- **Status**: Active
+- **Decision**: Budget, Authority, Needs, Timeline, and Competitor fields are stored on Meeting activities.
+- **Rationale**: BANTC discovery changes over time, and activity history is the correct place to capture those changes per customer interaction.
+- **Impact**: New Meeting activity forms prefill the latest previous Meeting BANTC values, and users can update them as discovery develops.
+
+## ADR-060: Transcript Files Are Stored as References Unless Text Exists
+- **Date**: 2026-05-20
+- **Status**: Active
+- **Decision**: Transcript records can store file metadata and Activity linkage, but AI transcript analysis requires text content.
+- **Rationale**: Leadsy has text-based AI evaluation, not a speech-to-text engine. TXT/VTT/SRT files can be extracted; audio/video files are retained as meeting references until text is provided.
+- **Impact**: `lead_transcripts` stores title, `activity_id`, file metadata, and nullable text. `lead_ai_evaluations` stores transcript summary output.

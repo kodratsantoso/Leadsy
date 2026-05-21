@@ -13,10 +13,16 @@ use Illuminate\Support\Facades\DB;
 class FunnelController extends Controller
 {
     /** GET /api/funnel/stages */
-    public function stages(): JsonResponse
+    public function stages(Request $request): JsonResponse
     {
+        $query = FunnelStage::query()->orderBy('sequence')->orderBy('id');
+
+        if (! $request->boolean('include_inactive')) {
+            $query->where('is_active', true);
+        }
+
         return response()->json([
-            'data' => FunnelStage::where('is_active', true)->orderBy('sequence')->get(),
+            'data' => $query->get(),
         ]);
     }
 
@@ -28,6 +34,7 @@ class FunnelController extends Controller
             'sequence'    => 'required|integer|min:0',
             'color'       => 'nullable|string|max:7',
             'probability' => 'nullable|integer|min:0|max:100',
+            'is_active'   => 'nullable|boolean',
         ]);
 
         $stage = FunnelStage::create($data);
@@ -72,7 +79,8 @@ class FunnelController extends Controller
     {
         $stages = FunnelStage::where('is_active', true)->orderBy('sequence')->get();
 
-        $counts = Lead::select('funnel_stage_id', DB::raw('count(*) as total'))
+        $counts = Lead::visibleTo(request()->user())
+            ->select('funnel_stage_id', DB::raw('count(*) as total'))
             ->whereNotNull('funnel_stage_id')
             ->groupBy('funnel_stage_id')
             ->pluck('total', 'funnel_stage_id');

@@ -1,5 +1,11 @@
 # Architecture Decision Records (ADR)
 
+## ADR-2026-05-20: Product Revenue Outcomes Per Lead
+- **Status**: Active
+- **Decision**: Keep `leads.product_id` as the lead/customer's initial product interest, and store each realized product purchase on `lead_outcomes.product_id` with `sale_type`.
+- **Rationale**: A single customer can buy more than one product. The first product is treated as `new_sales`; later product wins can be tracked as `upsales`, each with its own amount and notes.
+- **Impact**: Dashboard product bars no longer rely only on `leads.product_id`; they also include product-specific outcomes. Lead Detail Revenue becomes the operational entry point for multi-product revenue history.
+
 ## ADR-001: Interim Next.js API Layer
 - **Date**: 2026-04-11
 - **Status**: Active
@@ -81,9 +87,9 @@
 ## ADR-012: Seeded DB Sample Data Strategy
 - **Date**: 2026-04-12
 - **Status**: Active
-- **Decision**: Industries, products, and AI provider records are seeded via `DatabaseSeeder.php` (not hardcoded in the frontend). These are real DB rows — explicitly marked "seeded sample data" in code comments. They can be modified by admins at runtime.
-- **Rationale**: SSOT §5 mandates that ALL runtime data originates from PostgreSQL. Hardcoding reference data in the frontend violates this. DB seeding is the approved pattern for bootstrapping an empty database.
-- **Impact**: Running `php artisan db:seed --force` populates 10 industries, 3 products, 3 AI providers, 7 models, and 3 notification prefs. AI providers are seeded as `status=inactive` with placeholder API keys — admins must configure real keys in Settings → AI Defaults.
+- **Decision**: Industries and AI provider records are seeded via `DatabaseSeeder.php` (not hardcoded in the frontend), but product catalog rows are not seeded.
+- **Rationale**: Products are user-managed business data. Seeding sample products caused deleted rows such as ERP, Sales Intelligence, and Fleet products to reappear after `db:seed --force`.
+- **Impact**: Running `php artisan db:seed --force` populates baseline industries, AI providers/models, and notification prefs only. Product lists shown in the app come from the `products` table and remain deleted unless recreated by a user.
 
 ## ADR-013: AI Usage Summary — Empty State vs. Seeded Rows
 - **Date**: 2026-04-12
@@ -119,3 +125,24 @@
 - **Decision**: Lead source and channel type classification are first-class PostgreSQL master data via `lead_source_types` and `lead_channel_types`, linked from `lead_sources.channel_type_id`.
 - **Rationale**: Sales classification needs to evolve without code changes. Source-level grouping answers "where did this lead come from", while channel type answers the deeper route beneath that source.
 - **Impact**: Settings owns CRUD for both taxonomies through `/api/settings/lead-sources` and `/api/settings/lead-channels`. Leads list, create, edit, and filters consume the same DB-backed options.
+
+## ADR-018: Cumulative Dashboard Funnel Conversion
+- **Date**: 2026-05-20
+- **Status**: Active
+- **Decision**: Dashboard funnel bars use cumulative stage conversion instead of current-stage distribution. A stage counts leads whose current funnel stage sequence is equal to or greater than that stage sequence.
+- **Rationale**: Conversion visualization should answer "how many leads reached this step", not "how many leads are currently parked here". This matches sales funnel convention and makes New Leads equal to the classified baseline when all leads are classified.
+- **Impact**: `DashboardController` serves cumulative lead counts and cumulative estimated amount. Stage drilldown uses `funnel_min_sequence`; terminal Won/Lost rows continue to use outcome filters.
+
+## ADR-019: Meeting BANTC Is Captured on Activities
+- **Date**: 2026-05-20
+- **Status**: Active
+- **Decision**: Budget, Authority, Needs, Timeline, and Competitor notes are stored on `lead_activities` when `activity_type = Meeting`.
+- **Rationale**: BANTC discovery evolves meeting by meeting and belongs to the timeline of customer interactions. Prefilling from the latest Meeting lets users revise the latest understanding without retyping historical context.
+- **Impact**: The Activities modal conditionally renders BANTC fields for Meeting activities, and the activity timeline displays saved BANTC snippets.
+
+## ADR-020: Transcript Files Are References Unless Text Exists
+- **Date**: 2026-05-20
+- **Status**: Active
+- **Decision**: Transcripts can store file metadata for TXT/VTT/SRT/audio/video uploads, but AI transcript analysis runs only when text content exists.
+- **Rationale**: Leadsy currently has text-based AI evaluation but no dedicated speech-to-text pipeline. TXT/VTT/SRT can be parsed immediately; audio/video files are retained as references until transcript text is supplied.
+- **Impact**: `lead_transcripts` stores `activity_id`, title, file metadata, and nullable transcript text. AI evaluation now includes a persisted summary field.

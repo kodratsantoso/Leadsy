@@ -5,9 +5,9 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, Map, Building2, Package, Layers,
-  FileText, MessageSquare, Settings, ClipboardCheck, Target,
-  ChevronLeft, ChevronRight, Search, LogOut, ChevronDown
+  LayoutDashboard, Map, Building2, Package,
+  MessageSquare, Settings, ClipboardCheck,
+  ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle
 } from "lucide-react";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -15,6 +15,8 @@ import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { canAccessPath } from "@/lib/permissions";
 import { apiFetch } from "@/lib/apiFetch";
+import { ProductTour } from "@/components/ProductTour/ProductTour";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { href: "/",                       icon: LayoutDashboard, label: "Dashboard" },
@@ -22,10 +24,7 @@ const navItems = [
   { href: "/leads",                  icon: Building2,       label: "Leads" },
   { href: "/qualification/reviews",  icon: ClipboardCheck,  label: "Review Queue" },
   { href: "/products",               icon: Package,         label: "Products" },
-  { href: "/industries",             icon: Layers,          label: "Industries" },
-  { href: "/settings/icp-profiles",  icon: Target,          label: "ICP Profiles" },
   { href: "/whatsapp",               icon: MessageSquare,   label: "WhatsApp" },
-  { href: "/audit-logs",             icon: FileText,        label: "Audit Logs" },
   { href: "/settings",               icon: Settings,        label: "Settings" },
 ];
 
@@ -93,6 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
       <aside
+        data-tour="sidebar"
         className={cn(
           "flex flex-col border-r border-border bg-sidebar transition-all duration-300",
           collapsed ? "w-16" : "w-60",
@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-2" data-tour="sidebar-nav">
           {visibleNavItems.map((item) => {
             const isActive =
               item.href === "/"
@@ -114,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
                 className={cn(
                   "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
@@ -163,6 +164,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
+                data-tour="global-search"
                 type="text"
                 placeholder="Search..."
                 className="h-9 w-64 rounded-lg border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -171,6 +173,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              data-tour="tour-trigger"
+              tooltip="Take a tour"
+              onClick={() => window.dispatchEvent(new Event("leadsy:start-tour"))}
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
+
             {/* Theme toggle */}
             <ThemeToggle />
 
@@ -218,6 +231,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      <ProductTour />
     </div>
   );
 }

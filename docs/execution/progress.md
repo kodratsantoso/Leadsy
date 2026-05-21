@@ -1,5 +1,52 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-05-20 — Product Question Guide
+- Added `product_questions` table and `ProductQuestion` model; one guide per product with JSON question array.
+- `ProductQuestionGenerationService` generates 12–18 contextual discovery questions using product metadata via AI.
+- 3 new API endpoints: get, generate (preview-only), save.
+- `QuestionGuide.tsx` — inline editable component with AI generate, category picker, ordering, add/delete, unsaved state, save.
+- Integrated into expanded product card below Edit/Delete actions.
+
+## 2026-05-20 — Lead BANTC, Transcript Enhancements, and Cumulative Funnels
+- Added per-lead Customer BANTC Question Guide on Lead Detail → Intelligence with draft-first AI generation and explicit save.
+- Meeting activities now store Budget, Authority, Needs, Timeline, and Competitor notes, and new Meeting logs prefill values from the latest previous Meeting.
+- Transcripts now support multiple records per lead, optional Activity linkage, title, recorded timestamp, pasted text, TXT/VTT/SRT extraction, and audio/video file references.
+- Transcript AI evaluation now persists a summary plus sentiment, intent, interest, objections, buying signals, confidence, and next action.
+- Dashboard funnel conversion now uses cumulative/aggregate stage counts and cumulative estimated amount; drilldown uses `funnel_min_sequence`.
+
+## 2026-05-20 — Lead Product Revenue and Upsales
+- Added Initial Product to Lead create/edit and list display.
+- Extended `lead_outcomes` with `product_id` and `sale_type` so each customer can have multiple product-specific outcomes.
+- Lead Detail → Revenue → Record Outcome now captures Product, Sales Type (`new_sales`/`upsales`), amount, and notes.
+- Product Revenue History now shows per-lead product purchases and amounts.
+- Dashboard Sales Volume and Total Market product bars now use both lead initial product interest and product-specific outcomes.
+
+## 2026-05-20 — Production Deployment Pipeline Fix
+- **Root cause identified**: `php artisan optimize:clear` ran under `set -e` in `docker-entrypoint.production.sh` with no error handling. Any failure (Redis not yet warm, cache driver mismatch) exited the script before the seeder ran. Additionally, `APP_KEY` was not set in the production compose, causing key regeneration on every deploy and breaking sessions.
+- **Fixed `docker-entrypoint.production.sh`**: `optimize:clear` is now non-fatal (`|| log WARNING`). Added structured `[entrypoint]` logging for every step. Separated `APP_KEY` injection from generation. Added separate `config:cache`, `route:cache`, and `view:cache` steps with individual non-fatal guards.
+- **Refactored seeder structure** into `database/seeders/production/` (10 individual seeders) and `database/seeders/development/`. `ProductionSeeder` orchestrates all baseline data in dependency order. `DevelopmentSeeder` calls `ProductionSeeder` + dev sample seeders. `DatabaseSeeder` calls `DevelopmentSeeder` for local dev.
+- **Added `LeadSourceTypeSeeder`**: `lead_source_types` and `lead_channel_types` were seeded only inside migration files (anti-pattern). New seeder makes them restorable via `ProductionSeeder` without re-running migrations.
+- **Fixed `docker-compose.production.yml`**: Removed hardcoded `DB_PASSWORD: leads`. Added `APP_KEY`, `DB_PASSWORD`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `AUTO_MIGRATE`, `AUTO_SEED_BASELINE`, `SEED_DEMO_DATA` as explicit env vars (all read from Coolify secrets via `${VAR}`). Added explicit `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `SESSION_DRIVER=redis`.
+- **Created `coolify.json`**: Documents build pack, required env vars, and their defaults for Coolify dashboard configuration.
+- **Created `docs/deployment/coolify-setup.md`**: Complete step-by-step Coolify setup guide with volume strategy, troubleshooting, and seeder category reference.
+
+## 2026-05-19 — Product Tour System
+- Built complete `components/ProductTour/` system (8 files) — orchestrator, tooltip, overlay, spotlight, minimized badge, state hook, step definitions, and CSS.
+- 14-step guided tour covering the full primary user flow from navigation to settings.
+- Auto-starts on first visit; minimized state, current step, and completion flag persisted in localStorage.
+- Route-aware: tour navigates to the correct page per step.
+- HelpCircle button in AppShell header allows manual tour restart at any time.
+- Added `data-tour` attributes to all targeted elements; added Map and Review Queue coverage.
+- Updated SSOT, frontend and root execution docs.
+
+## 2026-05-19 — Dashboard, Lead Location, User Hierarchy, and Revenue Targets
+- Dashboard now includes a database-driven map block with stage-colored POIs and lead summary tooltips.
+- Dashboard now includes an aggregate funnel panel with drillable conversion bars and product bars.
+- New Lead creation now includes Add Location with map/geocode selection and persists `lat`/`lng`.
+- User Settings now include Direct Manager, target period, and target revenue.
+- Backend lead visibility now scopes Leads, Dashboard, Funnel, and revenue metrics by direct-manager hierarchy unless the user is superadmin.
+- Achievement Sales compares user target revenue against Closed Won realization from `lead_outcomes`.
+
 ## Phase 1: Foundation (Completed ✅)
 - [x] Backend: Laravel 12 bootstrap, PostgreSQL/Redis config
 - [x] Database: 10 migration files covering all BRD tables
@@ -74,7 +121,7 @@ Full audit and elimination of all runtime mock/hardcoded/fake data from the code
 | `AiProviderController.php` | Added `GET /api/ai-providers/usage-summary` aggregating real `ai_requests` table |
 | `IntegrationConfigController.php` | Added single-item POST format + `DELETE /settings/integrations/{id}` |
 | `routes/api.php` | Registered usage-summary route (before wildcard), DELETE integrations route |
-| `DatabaseSeeder.php` | 10 industries (42 sub-industries), 3 sample products, 3 AI providers (inactive, 7 models), 3 notification defaults |
+| `DatabaseSeeder.php` | 10 industries (42 sub-industries), AI providers/models, and notification defaults; product sample seeding removed so deleted products do not reappear |
 
 ### Frontend changes
 | File | Change |
@@ -91,7 +138,7 @@ Full audit and elimination of all runtime mock/hardcoded/fake data from the code
 ```
 Industries:       10
 SubIndustries:    42
-Products:          3
+Products:          User-managed, no seeded sample rows
 AI Providers:      3 (inactive — configure keys in Settings → AI Defaults)
 AI Models:         7
 Notification prefs: 3

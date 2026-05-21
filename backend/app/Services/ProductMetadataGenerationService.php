@@ -33,7 +33,10 @@ class ProductMetadataGenerationService
     public function generate(string $productName, array $availableCategories): array
     {
         $prompt = $this->buildNamePrompt($productName, $availableCategories);
-        return $this->callAi($prompt, ['product_name' => $productName]);
+        return $this->callAi($prompt, [
+            'product_name' => $productName,
+            'available_categories' => $availableCategories,
+        ]);
     }
 
     /**
@@ -54,7 +57,11 @@ class ProductMetadataGenerationService
         }
 
         $prompt = $this->buildContentPrompt($content, $url, $productName, $availableCategories, 'website');
-        return $this->callAi($prompt, ['product_name' => $productName, 'source_url' => $url]);
+        return $this->callAi($prompt, [
+            'product_name' => $productName,
+            'source_url' => $url,
+            'available_categories' => $availableCategories,
+        ]);
     }
 
     /**
@@ -76,7 +83,11 @@ class ProductMetadataGenerationService
         }
 
         $prompt = $this->buildContentPrompt($content, null, $productName, $availableCategories, 'pdf');
-        return $this->callAi($prompt, ['product_name' => $productName, 'source' => 'pdf']);
+        return $this->callAi($prompt, [
+            'product_name' => $productName,
+            'source' => 'pdf',
+            'available_categories' => $availableCategories,
+        ]);
     }
 
     /* ══════════════════════════════════════════════════════════════════
@@ -176,6 +187,7 @@ Generate complete product metadata for the following product name.
 - Platform target market: Indonesia B2B (manufacturing, retail, tech, finance, logistics, etc.)
 - Output language: English
 - Be specific and actionable — not vague
+- Every field must be filled. Use a reasonable inference when the product name alone is not enough.
 
 {$this->outputFormatInstructions()}
 PROMPT;
@@ -211,7 +223,8 @@ Analyse the following product content and extract complete product metadata.
 - Platform target market: Indonesia B2B (manufacturing, retail, tech, finance, logistics, etc.)
 - Output language: English
 - Extract real information from the content — do not invent details not present
-- If a field cannot be determined from the content, use a reasonable inference and note the uncertainty
+- Combine the product name hint and source content into complementary metadata
+- Every field must be filled. If a field cannot be determined from the content, use a reasonable inference and note the uncertainty
 
 {$this->outputFormatInstructions()}
 PROMPT;
@@ -236,6 +249,9 @@ Return ONLY valid JSON — no markdown, no code fences, no extra text:
   "competitor_context": "Brief description of key competitors and our differentiation",
   "ideal_company_profile": "Concise description of the ideal target company"
 }
+
+All array fields must contain at least three concise items when possible.
+All string fields must be non-empty.
 INSTRUCTIONS;
     }
 
@@ -271,31 +287,140 @@ INSTRUCTIONS;
 
         return [
             'success'  => true,
-            'data'     => $this->normalise($parsed),
+            'data'     => $this->normalise(
+                $parsed,
+                $context['product_name'] ?? '',
+                $context['available_categories'] ?? [],
+            ),
             'ai_model' => $result['model'] ?? null,
         ];
     }
 
-    private function normalise(array $raw): array
+    private function normalise(array $raw, string $productName = '', array $availableCategories = []): array
     {
-        $painPoints = $raw['pain_points'] ?? '';
-        if (is_array($painPoints)) {
-            $painPoints = implode("\n", $painPoints);
+        $data = [
+            'description'           => $this->toText($raw['description'] ?? $raw['product_description'] ?? $raw['product_summary'] ?? $raw['solution_summary'] ?? $raw['summary'] ?? $raw['overview'] ?? $raw['product_overview'] ?? $raw['value_proposition'] ?? ''),
+            'category'              => implode(', ', $this->toList($raw['categories'] ?? $raw['category'] ?? [])),
+            'target_industry'       => implode(', ', $this->toList($raw['target_industries'] ?? $raw['target_industry'] ?? $raw['industries'] ?? [])),
+            'target_company_size'   => $this->toText($raw['company_size'] ?? $raw['target_company_size'] ?? ''),
+            'target_buyer_persona'  => implode(', ', $this->toList($raw['buyer_persona'] ?? $raw['target_buyer_persona'] ?? [])),
+            'budget_range'          => $this->toText($raw['budget_range'] ?? ''),
+            'supported_regions'     => implode(', ', $this->toList($raw['regions'] ?? $raw['supported_regions'] ?? $raw['geographic_focus'] ?? $raw['markets'] ?? [])),
+            'keywords'              => $this->toList($raw['keywords'] ?? []),
+            'target_pain_points'    => implode("\n", $this->toList($raw['pain_points'] ?? $raw['target_pain_points'] ?? $raw['customer_pain_points'] ?? $raw['business_challenges'] ?? $raw['key_pain_points'] ?? $raw['challenges_addressed'] ?? [])),
+            'use_cases'             => $this->toList($raw['use_cases'] ?? $raw['recommended_use_cases'] ?? $raw['applications'] ?? []),
+            'competitor_notes'      => $this->toText($raw['competitor_context'] ?? $raw['competitor_notes'] ?? ''),
+            'ideal_company_profile' => $this->toText($raw['ideal_company_profile'] ?? ''),
+        ];
+
+        return $this->fillMissingDefaults($data, $productName, $availableCategories);
+    }
+
+    private function fillMissingDefaults(array $data, string $productName = '', array $availableCategories = []): array
+    {
+        $name = trim($productName) !== '' ? trim($productName) : 'This product';
+        $firstCategory = $this->toList($availableCategories)[0] ?? 'General B2B Solution';
+
+        $defaults = [
+            'description' => "{$name} is a B2B product for organizations that need clearer operations, collaboration, and measurable business outcomes. Review the generated targeting, pain points, and use cases, then refine this description before saving.",
+            'category' => $firstCategory,
+            'target_industry' => $firstCategory,
+            'target_company_size' => 'SMB to enterprise organizations',
+            'target_buyer_persona' => 'Business Owner, Operations Manager, IT Manager, Procurement Manager',
+            'budget_range' => 'To be validated during discovery',
+            'supported_regions' => 'Indonesia',
+            'target_pain_points' => implode("\n", [
+                'Manual or fragmented business processes reduce team productivity',
+                'Decision makers lack consolidated visibility into performance and adoption',
+                'Teams need a scalable solution with clear implementation ownership',
+            ]),
+            'competitor_notes' => 'Competitor landscape should be validated during discovery; compare against incumbent tools, manual processes, and local alternatives.',
+            'ideal_company_profile' => "Companies evaluating {$name} with clear business ownership, active operational pain points, and budget authority for a B2B solution.",
+        ];
+
+        foreach ($defaults as $key => $value) {
+            if (trim((string) ($data[$key] ?? '')) === '') {
+                $data[$key] = $value;
+            }
         }
 
-        return [
-            'description'           => (string) ($raw['description'] ?? ''),
-            'category'              => implode(', ', array_map('strval', (array) ($raw['categories'] ?? []))),
-            'target_industry'       => implode(', ', array_map('strval', (array) ($raw['target_industries'] ?? []))),
-            'target_company_size'   => (string) ($raw['company_size'] ?? ''),
-            'target_buyer_persona'  => implode(', ', array_map('strval', (array) ($raw['buyer_persona'] ?? []))),
-            'budget_range'          => (string) ($raw['budget_range'] ?? ''),
-            'supported_regions'     => implode(', ', array_map('strval', (array) ($raw['regions'] ?? []))),
-            'keywords'              => array_map('strval', (array) ($raw['keywords'] ?? [])),
-            'target_pain_points'    => (string) $painPoints,
-            'use_cases'             => array_map('strval', (array) ($raw['use_cases'] ?? [])),
-            'competitor_notes'      => (string) ($raw['competitor_context'] ?? ''),
-            'ideal_company_profile' => (string) ($raw['ideal_company_profile'] ?? ''),
-        ];
+        if (empty($data['keywords'])) {
+            $nameKeywords = preg_split('/[\s,.\-_]+/', strtolower($name)) ?: [];
+            $data['keywords'] = array_values(array_unique(array_filter(array_merge(
+                $nameKeywords,
+                ['b2b', 'sales', 'solution', 'productivity']
+            ))));
+        }
+
+        if (empty($data['use_cases'])) {
+            $data['use_cases'] = [
+                'Business process improvement',
+                'Team productivity and collaboration',
+                'Management visibility and reporting',
+            ];
+        }
+
+        return $data;
+    }
+
+    private function toText(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        if (is_scalar($value)) {
+            return trim((string) $value);
+        }
+
+        if (is_array($value)) {
+            return implode(', ', $this->toList($value));
+        }
+
+        return trim(json_encode($value, JSON_UNESCAPED_UNICODE) ?: '');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function toList(mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        if (is_scalar($value)) {
+            return [trim((string) $value)];
+        }
+
+        if (! is_array($value)) {
+            return [$this->toText($value)];
+        }
+
+        $items = [];
+        foreach ($value as $key => $item) {
+            if (is_array($item)) {
+                $label = $item['label']
+                    ?? $item['name']
+                    ?? $item['title']
+                    ?? $item['value']
+                    ?? null;
+                $items[] = $label !== null
+                    ? $this->toText($label)
+                    : $this->toText($item);
+                continue;
+            }
+
+            if (is_string($key) && is_bool($item)) {
+                if ($item) {
+                    $items[] = $key;
+                }
+                continue;
+            }
+
+            $items[] = $this->toText($item);
+        }
+
+        return array_values(array_filter(array_map('trim', $items), fn (string $item) => $item !== ''));
     }
 }

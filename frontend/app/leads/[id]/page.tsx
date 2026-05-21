@@ -20,6 +20,7 @@ import { Select } from '@/components/ui/select';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
+import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuide';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -267,6 +268,60 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
 
 type ContactFormData = { name: string; title: string; email: string; phone: string };
 const EMPTY_FORM: ContactFormData = { name: '', title: '', email: '', phone: '' };
+const EMPTY_BANTC = { budget: '', authority: '', needs: '', timeline: '', competitor: '' };
+
+function toDateTimeLocalValue(value?: string | null) {
+  if (!value) return '';
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    return value;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(value)) {
+    return value.slice(0, 16).replace(' ', 'T');
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  const tzOffsetMs = parsed.getTimezoneOffset() * 60_000;
+  return new Date(parsed.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+}
+
+function toApiDateTime(value?: string | null) {
+  if (!value) return '';
+
+  const trimmed = value.trim();
+
+  const localMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,\s*|\s+)(\d{1,2}):(\d{2})$/);
+  if (localMatch) {
+    const [, day, month, year, hour, minute] = localMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${hour.padStart(2, '0')}:${minute}`;
+  }
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  if (isoMatch) {
+    const [, year, month, day, hour, minute] = isoMatch;
+    return `${year}-${month}-${day} ${hour}:${minute}`;
+  }
+
+  const normalized = toDateTimeLocalValue(trimmed);
+  return normalized ? normalized.replace('T', ' ') : '';
+}
+
+function firstErrorMessage(payload: any, fallback: string) {
+  if (typeof payload?.message === 'string') return payload.message;
+  if (typeof payload?.error === 'string') return payload.error;
+
+  const firstError = payload?.errors && Object.values(payload.errors)[0];
+  if (Array.isArray(firstError) && typeof firstError[0] === 'string') {
+    return firstError[0];
+  }
+
+  return fallback;
+}
 
 function ContactFormModal({
   title,
@@ -351,6 +406,7 @@ export default function LeadDetailPage() {
     sub_industry_id: '',
     company_size_estimate: '',
     business_category: '',
+    product_id: '',
   });
 
   // Contact UI state
@@ -368,6 +424,7 @@ export default function LeadDetailPage() {
     activity_type: '',
     description: '',
     outcome: '',
+    ...EMPTY_BANTC,
     activity_date: '',
     next_follow_up_date: '',
     funnel_stage_id: '',
@@ -375,7 +432,15 @@ export default function LeadDetailPage() {
 
   // Transcript state
   const [showTranscriptForm, setShowTranscriptForm] = useState(false);
-  const [transcriptForm, setTranscriptForm] = useState({ source_type: 'manual', transcript_text: '' });
+  const [transcriptForm, setTranscriptForm] = useState({
+    title: '',
+    source_type: 'manual',
+    activity_id: '',
+    recorded_at: '',
+    transcript_text: '',
+    transcript_file: null as File | null,
+    analyze_after_save: true,
+  });
   const [evaluatingTranscriptId, setEvaluatingTranscriptId] = useState<number | null>(null);
   const [expandedEvalId, setExpandedEvalId]       = useState<number | null>(null);
   const [transcriptFeedback, setTranscriptFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -439,7 +504,12 @@ export default function LeadDetailPage() {
     queryKey: ['industries'],
     queryFn: () => apiFetch('/industries').then((r) => r.json()),
   });
+  const { data: productsData } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => apiFetch('/products').then((r) => r.json()),
+  });
   const allIndustries: any[] = industriesData?.data ?? [];
+  const products: any[] = productsData?.data ?? [];
   const selectedIndustrySubIndustries: any[] =
     allIndustries.find((i: any) => String(i.id) === String(companyForm.industry_id))?.sub_industries ?? [];
 
@@ -470,6 +540,7 @@ export default function LeadDetailPage() {
       sub_industry_id:       leadData.sub_industry_id != null ? String(leadData.sub_industry_id) : '',
       company_size_estimate: leadData.company_size_estimate ?? '',
       business_category:     leadData.business_category    ?? '',
+      product_id:            leadData.product_id != null ? String(leadData.product_id) : '',
     });
     setShowEditCompanyInfo(true);
   }
@@ -485,6 +556,7 @@ export default function LeadDetailPage() {
       sub_industry_id:       companyForm.sub_industry_id   ? Number(companyForm.sub_industry_id) : null,
       company_size_estimate: companyForm.company_size_estimate || null,
       business_category:     companyForm.business_category || null,
+      product_id:            companyForm.product_id ? Number(companyForm.product_id) : null,
     };
     updateLeadMutation.mutate(payload);
   }
@@ -560,7 +632,7 @@ export default function LeadDetailPage() {
       qc.invalidateQueries({ queryKey: ['lead-progress', leadId] });
       invalidateLead();
       setShowActivityModal(false);
-      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
+      setActivityForm({ activity_type: '', description: '', outcome: '', ...EMPTY_BANTC, activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
     },
   });
 
@@ -573,6 +645,8 @@ export default function LeadDetailPage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lead-activities', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead-progress', leadId] });
+      invalidateLead();
       setEditingActivity(null);
     },
   });
@@ -582,6 +656,7 @@ export default function LeadDetailPage() {
       apiFetch(`/leads/${leadId}/activities/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lead-activities', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead-progress', leadId] });
       setDeletingActivityId(null);
     },
   });
@@ -591,20 +666,51 @@ export default function LeadDetailPage() {
     mutationFn: async (data: any) => {
       const r = await apiFetch(`/leads/${leadId}/transcripts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        ...(data.transcript_file ? {
+          body: (() => {
+            const formData = new FormData();
+            formData.append('source_type', data.source_type);
+            if (data.title) formData.append('title', data.title);
+            if (data.activity_id) formData.append('activity_id', data.activity_id);
+            const recordedAt = toApiDateTime(data.recorded_at);
+            if (data.recorded_at && !recordedAt) {
+              throw new Error('Recorded At harus memakai format DD/MM/YYYY, HH:mm. Contoh: 21/05/2026, 17:37');
+            }
+            if (recordedAt) formData.append('recorded_at', recordedAt);
+            if (data.transcript_text) formData.append('transcript_text', data.transcript_text);
+            formData.append('transcript_file', data.transcript_file);
+            return formData;
+          })(),
+        } : {
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...data,
+            transcript_file: undefined,
+            recorded_at: (() => {
+              const recordedAt = toApiDateTime(data.recorded_at);
+              if (data.recorded_at && !recordedAt) {
+                throw new Error('Recorded At harus memakai format DD/MM/YYYY, HH:mm. Contoh: 21/05/2026, 17:37');
+              }
+              return recordedAt || undefined;
+            })(),
+          }),
+        }),
       });
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
-        throw new Error(err.message || `Server error (${r.status})`);
+        throw new Error(firstErrorMessage(err, `Server error (${r.status})`));
       }
       return r.json();
     },
-    onSuccess: () => {
+    onSuccess: (payload) => {
       refetchTranscripts();
       setShowTranscriptForm(false);
-      setTranscriptForm({ source_type: 'manual', transcript_text: '' });
+      setTranscriptForm({ title: '', source_type: 'manual', activity_id: '', recorded_at: '', transcript_text: '', transcript_file: null, analyze_after_save: true });
       setTranscriptFeedback({ type: 'success', msg: 'Transcript saved successfully.' });
+      if (transcriptForm.analyze_after_save && payload?.data?.id && payload?.data?.transcript_text?.trim()) {
+        setEvaluatingTranscriptId(payload.data.id);
+        evaluateTranscriptMutation.mutate(payload.data.id);
+      }
       setTimeout(() => setTranscriptFeedback(null), 4000);
     },
     onError: (err: any) => {
@@ -613,13 +719,23 @@ export default function LeadDetailPage() {
   });
 
   const evaluateTranscriptMutation = useMutation({
-    mutationFn: (transcriptId: number) =>
-      apiFetch(`/leads/${leadId}/transcripts/${transcriptId}/evaluate`, { method: 'POST' }),
+    mutationFn: async (transcriptId: number) => {
+      const r = await apiFetch(`/leads/${leadId}/transcripts/${transcriptId}/evaluate`, { method: 'POST' });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.message || `AI analysis failed (${r.status})`);
+      }
+      return r.json();
+    },
     onSuccess: (_, transcriptId) => {
       refetchTranscripts();
       refetchEvaluations();
       setEvaluatingTranscriptId(null);
       setExpandedEvalId(transcriptId);
+    },
+    onError: (err: any) => {
+      setEvaluatingTranscriptId(null);
+      setTranscriptFeedback({ type: 'error', msg: err.message || 'Failed to analyze transcript.' });
     },
   });
 
@@ -677,7 +793,7 @@ export default function LeadDetailPage() {
   });
 
   const outcomeMutation = useMutation({
-    mutationFn: (data: { outcome: string; deal_size?: number; loss_reason?: string; feedback_notes?: string }) =>
+    mutationFn: (data: { outcome: string; product_id?: number; sale_type?: string; deal_size?: number; loss_reason?: string; feedback_notes?: string }) =>
       apiFetch(`/leads/${leadId}/outcome`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -687,7 +803,7 @@ export default function LeadDetailPage() {
   });
 
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
-  const [outcomeForm, setOutcomeForm] = useState({ outcome: 'won', deal_size: '', feedback_notes: '' });
+  const [outcomeForm, setOutcomeForm] = useState({ outcome: 'won', product_id: '', sale_type: 'new_sales', deal_size: '', feedback_notes: '' });
 
   const analysisMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/revenue-analysis`, { method: 'POST' }),
@@ -710,6 +826,8 @@ export default function LeadDetailPage() {
 
   const leadData      = lead?.data || {};
   const contacts      = leadData.contacts || [];
+  const leadOutcomes  = leadData.outcomes || [];
+  const defaultOutcomeSaleType = leadOutcomes.some((outcome: any) => outcome.outcome === 'won') ? 'upsales' : 'new_sales';
   const latestScore   = intelligence?.latest_score;
   const latestQual    = intelligence?.latest_qualification;
   const topProducts   = intelligence?.recommended_products || [];
@@ -735,6 +853,10 @@ export default function LeadDetailPage() {
   const transcriptsList   = transcriptsData?.data || [];
   const evaluationsList   = evaluationsData?.data || [];
   const funnelStages      = funnelStagesData?.data || [];
+  const meetingActivities = activitiesList.filter((activity: any) => activity.activity_type === 'Meeting');
+  const latestMeetingBantc = meetingActivities.find((activity: any) =>
+    activity.budget || activity.authority || activity.needs || activity.timeline || activity.competitor
+  );
 
   const ACTIVITY_TYPES = [
     'Follow Up', 'Meeting', 'Demo', 'Proposal Sent', 'Negotiation',
@@ -747,6 +869,9 @@ export default function LeadDetailPage() {
     meeting:  'Meeting Transcript',
     call:     'Call Recording',
     whatsapp: 'WhatsApp Conversation',
+    audio:    'Audio File',
+    video:    'Video File',
+    file:     'Transcript File',
   };
 
   const ENRICH_SOURCES = [
@@ -763,16 +888,35 @@ export default function LeadDetailPage() {
         activity_type: existing.activity_type ?? '',
         description: existing.description ?? '',
         outcome: existing.outcome ?? '',
+        budget: existing.budget ?? '',
+        authority: existing.authority ?? '',
+        needs: existing.needs ?? '',
+        timeline: existing.timeline ?? '',
+        competitor: existing.competitor ?? '',
         activity_date: existing.activity_date ? existing.activity_date.substring(0, 16) : '',
         next_follow_up_date: existing.next_follow_up_date ?? '',
         funnel_stage_id: '',
       });
       setEditingActivity(existing);
     } else {
-      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
+      setActivityForm({ activity_type: '', description: '', outcome: '', ...EMPTY_BANTC, activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
       setEditingActivity(null);
     }
     setShowActivityModal(true);
+  }
+
+  function applyMeetingBantcDefaults(activityType: string) {
+    setActivityForm((f) => ({
+      ...f,
+      activity_type: activityType,
+      ...(activityType === 'Meeting' && !editingActivity && latestMeetingBantc ? {
+        budget: latestMeetingBantc.budget ?? '',
+        authority: latestMeetingBantc.authority ?? '',
+        needs: latestMeetingBantc.needs ?? '',
+        timeline: latestMeetingBantc.timeline ?? '',
+        competitor: latestMeetingBantc.competitor ?? '',
+      } : {}),
+    }));
   }
 
   function submitActivity() {
@@ -780,6 +924,11 @@ export default function LeadDetailPage() {
       activity_type: activityForm.activity_type,
       description: activityForm.description || undefined,
       outcome: activityForm.outcome || undefined,
+      budget: activityForm.activity_type === 'Meeting' ? activityForm.budget || undefined : undefined,
+      authority: activityForm.activity_type === 'Meeting' ? activityForm.authority || undefined : undefined,
+      needs: activityForm.activity_type === 'Meeting' ? activityForm.needs || undefined : undefined,
+      timeline: activityForm.activity_type === 'Meeting' ? activityForm.timeline || undefined : undefined,
+      competitor: activityForm.activity_type === 'Meeting' ? activityForm.competitor || undefined : undefined,
       activity_date: activityForm.activity_date || undefined,
       next_follow_up_date: activityForm.next_follow_up_date || undefined,
       funnel_stage_id: activityForm.funnel_stage_id ? Number(activityForm.funnel_stage_id) : undefined,
@@ -991,6 +1140,7 @@ export default function LeadDetailPage() {
                 ) : '—'}
               </div>
               <div><span className="text-muted-foreground">Company Size:</span> {leadData.company_size_estimate || '—'}</div>
+              <div><span className="text-muted-foreground">Initial Product:</span> {leadData.product?.name || '—'}</div>
               {leadData.business_category && (
                 <div><span className="text-muted-foreground">Business Category:</span> {leadData.business_category}</div>
               )}
@@ -1236,6 +1386,8 @@ export default function LeadDetailPage() {
               <strong>Rescore</strong> runs immediately. <strong>Re-qualify</strong> uses AI for business fit. <strong>ICP Match</strong> requires an active ICP Profile. <strong>AI Analysis</strong> generates a commercial readout. <strong>Product Match</strong> uses BANT + Competitor AI to rank all products against this lead.
             </p>
           </div>
+
+          <LeadBantcQuestionGuide leadId={leadData.id} />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-6">
@@ -1587,7 +1739,14 @@ export default function LeadDetailPage() {
                   Run AI Analysis
                 </button>
                 <button
-                  onClick={() => setShowOutcomeModal(true)}
+                  onClick={() => {
+                    setOutcomeForm((current) => ({
+                      ...current,
+                      product_id: current.product_id || (leadData.product_id ? String(leadData.product_id) : ''),
+                      sale_type: current.sale_type || defaultOutcomeSaleType,
+                    }));
+                    setShowOutcomeModal(true);
+                  }}
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/30 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50"
                 >
                   <ThumbsUp className="h-3 w-3" />
@@ -1800,6 +1959,14 @@ export default function LeadDetailPage() {
                         <p className="text-xs text-muted-foreground">Result</p>
                         <p className="font-semibold capitalize">{revenueIntel.data.latest_outcome.outcome}</p>
                       </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Product</p>
+                        <p className="font-semibold">{revenueIntel.data.latest_outcome.product?.name ?? 'Unassigned'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Sales Type</p>
+                        <p className="font-semibold capitalize">{(revenueIntel.data.latest_outcome.sale_type ?? 'new_sales').replace('_', ' ')}</p>
+                      </div>
                       {revenueIntel.data.latest_outcome.deal_size && (
                         <div>
                           <p className="text-xs text-muted-foreground">Deal Size</p>
@@ -1812,6 +1979,36 @@ export default function LeadDetailPage() {
                           <p className="text-sm">{revenueIntel.data.latest_outcome.feedback_notes}</p>
                         </div>
                       )}
+                    </div>
+                  </div>
+                )}
+                {leadOutcomes.length > 0 && (
+                  <div className="col-span-full rounded-xl border border-border bg-card p-5">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h3 className="font-semibold text-sm">Product Revenue History</h3>
+                      <Badge variant="neutral">{leadOutcomes.length} outcome{leadOutcomes.length === 1 ? '' : 's'}</Badge>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {leadOutcomes.map((outcome: any) => (
+                        <div key={outcome.id} className="grid gap-2 py-3 text-sm md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+                          <div>
+                            <p className="font-medium">{outcome.product?.name ?? 'Unassigned product'}</p>
+                            <p className="text-xs text-muted-foreground">{outcome.feedback_notes || 'No notes'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Outcome</p>
+                            <p className="font-semibold capitalize">{outcome.outcome}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Type</p>
+                            <p className="font-semibold capitalize">{(outcome.sale_type ?? 'new_sales').replace('_', ' ')}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Amount</p>
+                            <p className="font-semibold">{formatCurrency(outcome.deal_size)}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -1877,6 +2074,22 @@ export default function LeadDetailPage() {
                       <div className="mt-2 rounded-lg bg-[color-mix(in_oklch,var(--status-success)_8%,transparent)] border border-[var(--status-success)]/20 px-3 py-2">
                         <p className="text-xs font-medium text-[var(--status-success)]">Outcome</p>
                         <p className="text-sm">{activity.outcome}</p>
+                      </div>
+                    )}
+                    {activity.activity_type === 'Meeting' && (activity.budget || activity.authority || activity.needs || activity.timeline || activity.competitor) && (
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                        {[
+                          ['Budget', activity.budget],
+                          ['Authority', activity.authority],
+                          ['Needs', activity.needs],
+                          ['Timeline', activity.timeline],
+                          ['Competitor', activity.competitor],
+                        ].filter(([, value]) => Boolean(value)).map(([label, value]) => (
+                          <div key={label} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+                            <p className="mt-1 line-clamp-3 text-xs text-foreground">{value}</p>
+                          </div>
+                        ))}
                       </div>
                     )}
                     {activity.next_follow_up_date && (
@@ -1981,19 +2194,80 @@ export default function LeadDetailPage() {
           {showTranscriptForm && (
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <h4 className="font-semibold text-sm">New Transcript</h4>
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Source Type</label>
-                <Select
-                  value={transcriptForm.source_type}
-                  onChange={(e) => setTranscriptForm((f) => ({ ...f, source_type: e.target.value }))}
-                >
-                  {Object.entries(TRANSCRIPT_SOURCES).map(([val, label]) => (
-                    <option key={val} value={val}>{label}</option>
-                  ))}
-                </Select>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Title</label>
+                  <Input
+                    value={transcriptForm.title}
+                    onChange={(e) => setTranscriptForm((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="e.g. Discovery meeting transcript"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Related Activity</label>
+                  <Select
+                    value={transcriptForm.activity_id}
+                    onChange={(e) => setTranscriptForm((f) => ({ ...f, activity_id: e.target.value }))}
+                    placeholder="— Not linked —"
+                  >
+                    {activitiesList.map((activity: any) => (
+                      <option key={activity.id} value={String(activity.id)}>
+                        {activity.activity_type} · {new Date(activity.activity_date).toLocaleDateString()}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Source Type</label>
+                  <Select
+                    value={transcriptForm.source_type}
+                    onChange={(e) => setTranscriptForm((f) => ({ ...f, source_type: e.target.value }))}
+                  >
+                    {Object.entries(TRANSCRIPT_SOURCES).map(([val, label]) => (
+                      <option key={val} value={val}>{label}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Recorded At</label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={transcriptForm.recorded_at}
+                    onChange={(e) => setTranscriptForm((f) => ({ ...f, recorded_at: e.target.value }))}
+                    placeholder="21/05/2026, 17:37"
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Format: DD/MM/YYYY, HH:mm. Kosongkan untuk memakai waktu saat disimpan.
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Transcript File</label>
+                  <Input
+                    type="file"
+                    accept=".txt,.vtt,.srt,audio/*,video/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setTranscriptForm((f) => ({
+                        ...f,
+                        transcript_file: file,
+                        source_type: file?.type.startsWith('audio/')
+                          ? 'audio'
+                          : file?.type.startsWith('video/')
+                            ? 'video'
+                            : file
+                              ? 'file'
+                              : f.source_type,
+                      }));
+                    }}
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    TXT/VTT/SRT akan dibaca sebagai teks. Audio/video disimpan sebagai referensi; paste transkrip atau catatan agar AI bisa menganalisis isi meeting.
+                  </p>
+                </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Transcript Text *</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Transcript Text / Notes</label>
                 <textarea
                   value={transcriptForm.transcript_text}
                   onChange={(e) => setTranscriptForm((f) => ({ ...f, transcript_text: e.target.value }))}
@@ -2002,11 +2276,20 @@ export default function LeadDetailPage() {
                   className="min-h-[160px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
                 />
               </div>
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={transcriptForm.analyze_after_save}
+                  onChange={(e) => setTranscriptForm((f) => ({ ...f, analyze_after_save: e.target.checked }))}
+                  className="h-4 w-4 rounded border-border"
+                />
+                Analyze with AI after saving when text is available
+              </label>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowTranscriptForm(false)}>Cancel</Button>
                 <Button
                   onClick={() => storeTranscriptMutation.mutate(transcriptForm)}
-                  disabled={storeTranscriptMutation.isPending || !transcriptForm.transcript_text.trim()}
+                  disabled={storeTranscriptMutation.isPending || (!transcriptForm.transcript_text.trim() && !transcriptForm.transcript_file)}
                 >
                   {storeTranscriptMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   Save Transcript
@@ -2034,14 +2317,21 @@ export default function LeadDetailPage() {
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3 p-4">
                       <div className="space-y-1">
+                        {tr.title && <p className="text-sm font-semibold">{tr.title}</p>}
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="neutral">{TRANSCRIPT_SOURCES[tr.source_type] ?? tr.source_type}</Badge>
                           <Badge variant={tr.evaluation_status === 'evaluated' ? 'success' : 'warning'}>
                             {tr.evaluation_status}
                           </Badge>
+                          {tr.activity && (
+                            <Badge variant="info" className="text-[10px]">
+                              Linked: {tr.activity.activity_type}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(tr.created_at).toLocaleString()}
+                          {new Date(tr.recorded_at ?? tr.created_at).toLocaleString()}
+                          {tr.file_name ? ` · ${tr.file_name}` : ''}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
@@ -2050,7 +2340,8 @@ export default function LeadDetailPage() {
                             variant="outline"
                             size="xs"
                             onClick={() => { setEvaluatingTranscriptId(tr.id); evaluateTranscriptMutation.mutate(tr.id); }}
-                            disabled={evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id}
+                            disabled={(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || !tr.transcript_text?.trim()}
+                            title={!tr.transcript_text?.trim() ? 'Add transcript text before AI analysis' : undefined}
                           >
                             {evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id
                               ? <Loader2 className="h-3 w-3 animate-spin" />
@@ -2075,7 +2366,13 @@ export default function LeadDetailPage() {
 
                     {/* Transcript text preview */}
                     <div className="border-t border-border px-4 py-3 bg-muted/20">
-                      <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{tr.transcript_text}</p>
+                      {tr.transcript_text ? (
+                        <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{tr.transcript_text}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Media file saved. Add or paste transcript text before running AI analysis.
+                        </p>
+                      )}
                     </div>
 
                     {/* Evaluation result */}
@@ -2099,6 +2396,13 @@ export default function LeadDetailPage() {
                             </div>
                           ))}
                         </div>
+
+                        {evaluation.summary && (
+                          <div className="rounded-lg border border-border bg-card p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Meeting Summary</p>
+                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{evaluation.summary}</p>
+                          </div>
+                        )}
 
                         {evaluation.buying_signals?.length > 0 && (
                           <div>
@@ -2198,6 +2502,30 @@ export default function LeadDetailPage() {
                 </select>
               </div>
               <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Product</label>
+                <select
+                  value={outcomeForm.product_id}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, product_id: e.target.value })}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Unassigned product</option>
+                  {products.map((product: any) => (
+                    <option key={product.id} value={String(product.id)}>{product.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Sales Type</label>
+                <select
+                  value={outcomeForm.sale_type}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, sale_type: e.target.value })}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="new_sales">New Sales</option>
+                  <option value="upsales">Upsales</option>
+                </select>
+              </div>
+              <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Size (optional)</label>
                 <input
                   type="number"
@@ -2225,6 +2553,8 @@ export default function LeadDetailPage() {
                 onClick={() => {
                   outcomeMutation.mutate({
                     outcome: outcomeForm.outcome as any,
+                    product_id: outcomeForm.product_id ? Number(outcomeForm.product_id) : undefined,
+                    sale_type: outcomeForm.sale_type,
                     deal_size: outcomeForm.deal_size ? parseFloat(outcomeForm.deal_size) : undefined,
                     feedback_notes: outcomeForm.feedback_notes || undefined,
                   });
@@ -2378,6 +2708,23 @@ export default function LeadDetailPage() {
                 placeholder="e.g. Manufacturing, Retail, Services"
               />
             </div>
+
+            {/* Initial Product */}
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Initial Product</label>
+              <Select
+                value={companyForm.product_id}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, product_id: e.target.value }))}
+                placeholder="— Select product —"
+              >
+                {products.map((product: any) => (
+                  <option key={product.id} value={String(product.id)}>{product.name}</option>
+                ))}
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Use this as the first product interest. Additional product purchases are tracked as outcomes in the Revenue tab.
+              </p>
+            </div>
           </div>
         </div>
       </Modal>
@@ -2412,7 +2759,7 @@ export default function LeadDetailPage() {
             </label>
             <Select
               value={activityForm.activity_type}
-              onChange={(e) => setActivityForm((f) => ({ ...f, activity_type: e.target.value }))}
+              onChange={(e) => applyMeetingBantcDefaults(e.target.value)}
               placeholder="— Select activity type —"
             >
               {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -2464,6 +2811,42 @@ export default function LeadDetailPage() {
               placeholder="e.g. Decision maker engaged, follow-up scheduled for next week"
             />
           </div>
+
+          {activityForm.activity_type === 'Meeting' && (
+            <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold">BANTC Discovery</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Meeting berikutnya akan memuat BANTC terakhir agar bisa dilanjutkan dan diperbarui.
+                  </p>
+                </div>
+                {!editingActivity && latestMeetingBantc && (
+                  <Badge variant="info" className="text-[10px]">Prefilled from last meeting</Badge>
+                )}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ['budget', 'Budget', 'Budget range, constraint, ROI expectation'],
+                  ['authority', 'Authority', 'Decision maker, influencer, approval process'],
+                  ['needs', 'Needs', 'Pain point, impact, desired outcome'],
+                  ['timeline', 'Timeline', 'Urgency, milestone, target decision date'],
+                  ['competitor', 'Competitor', 'Incumbent, alternatives, switching risk'],
+                ].map(([key, label, placeholder]) => (
+                  <div key={key} className={key === 'needs' ? 'sm:col-span-2' : ''}>
+                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
+                    <textarea
+                      value={(activityForm as any)[key]}
+                      onChange={(e) => setActivityForm((f) => ({ ...f, [key]: e.target.value }))}
+                      rows={key === 'needs' ? 3 : 2}
+                      placeholder={placeholder}
+                      className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Next Follow-up */}
           <div>

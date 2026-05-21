@@ -145,7 +145,7 @@ export default function QualificationReviewsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <Card>
+      <Card data-tour="review-queue">
         <CardHeader>
           <div>
             <CardTitle>Human Verification Queue</CardTitle>

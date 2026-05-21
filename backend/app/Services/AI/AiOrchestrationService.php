@@ -212,23 +212,23 @@ class AiOrchestrationService
     private function buildRequestBody(string $slug, string $modelName, string $prompt, ?int $maxTokens = null): array
     {
         return match ($slug) {
-            'anthropic' => [
+            'anthropic' => array_filter([
                 'model'      => $modelName,
                 'max_tokens' => $maxTokens ?? 1024,
                 'messages'   => [['role' => 'user', 'content' => $prompt]],
-            ],
+            ], fn ($value) => $value !== null),
             'google', 'gemini' => [
                 'contents' => [['parts' => [['text' => $prompt]]]],
             ],
-            default => [ // openai-compatible
+            default => array_filter([ // openai-compatible
                 'model'    => $modelName,
                 'messages' => [
-                    ['role' => 'system', 'content' => 'You are a lead qualification assistant.'],
+                    ['role' => 'system', 'content' => 'You are a B2B sales intelligence assistant. Return valid JSON whenever the user requests JSON.'],
                     ['role' => 'user',   'content' => $prompt],
                 ],
                 'response_format' => ['type' => 'json_object'],
                 'max_tokens' => $maxTokens,
-            ],
+            ], fn ($value) => $value !== null),
         };
     }
 

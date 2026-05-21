@@ -178,7 +178,7 @@ export default function MapPage() {
 
   return (
     <div className="flex h-full flex-col gap-4 p-4">
-      <Card>
+      <Card data-tour="map-discovery">
         <CardHeader>
           <div>
             <CardTitle>Maps Discovery</CardTitle>

@@ -43,10 +43,12 @@ php artisan db:seed --class=ProductionSeeder --force
 | `seedContactSources()`     | 7 contact source labels                                     |
 | `seedSuperAdmin()`         | Default tenant + super_admin user                           |
 | `seedIndustries()`         | 10 industries + 47 sub-industries                           |
-| `seedProducts()`           | 3 sample products (ERP, Sales Intelligence, Fleet)          |
 | `seedAiProviders()`        | OpenAI, Anthropic, Google Gemini (inactive placeholders)    |
 | `seedDiscoveryCategories()`| 14 Google Maps discovery categories                         |
 | `seedNotificationPreferences()` | Default notification toggles in integration_configs   |
+
+Products are intentionally not seeded. The product catalog is user-managed
+database data, so deleted products must not reappear after `db:seed --force`.
 
 ---
 

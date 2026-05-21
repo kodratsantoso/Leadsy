@@ -49,7 +49,24 @@ Runtime containers use the `leadsy-*` namespace for the frontend, backend, Postg
 
 Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create the Laravel 12 project and configure `.env` for Postgres/Redis.
 
+## Key frontend features
+
+| Feature | Location |
+|---------|----------|
+| Product Tour | `components/ProductTour/` — 14-step guided tour, auto-starts on first visit, minimizable, restartable via the `?` button in the header |
+| Product Question Guide | `components/products/QuestionGuide.tsx` — AI-generated + user-editable requirement question guide per product, shown in each product's expanded card |
+| Customer BANTC Question Guide | `components/leads/LeadBantcQuestionGuide.tsx` — AI-generated + user-editable BANTC discovery questions per Lead, shown on Lead Detail → Intelligence |
+| Dashboard Funnel Tracking | `app/page.tsx` — two cumulative/aggregate funnels for Leads → Won and Leads → Lost, with estimated amount conversion and drilldown via `funnel_min_sequence` |
+| Lead Product Revenue | `app/leads/page.tsx`, `app/leads/[id]/page.tsx` — lead initial product selection plus product-specific deal outcomes for new sales and upsales amounts |
+| Meeting BANTC & Transcripts | `app/leads/[id]/page.tsx` — Activities capture evolving BANTC notes for Meeting records; Transcripts can link to activities, accept text/files, and run AI analysis summaries |
+| App Shell | `components/layout/app-shell.tsx` — sidebar nav, global search, user menu, tour trigger |
+| Design system | `components/ui/` — Button, Card, Badge, Modal, Table, FilterBar, Input, Select, Tabs |
+| Theme system | `app/globals.css` (CSS tokens), `lib/theme-context.tsx` (React context) |
+| Auth store | `store/useAuthStore.ts` (Zustand + persist) |
+| API client | `lib/apiFetch.ts` — attaches Authorization header, reads `NEXT_PUBLIC_API_BASE_URL` |
+
 ## Documentation
 
 - Phase 1 plan: `docs/execution/phase-1/plan.md`
 - Decisions (append-only): `docs/decisions.md`
+- Frontend SSOT: `frontend/docs/ssot.md` (includes ProductTour data-tour contract)

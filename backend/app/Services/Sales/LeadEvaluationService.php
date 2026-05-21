@@ -39,7 +39,7 @@ class LeadEvaluationService
         $result = $this->ai->call('transcript_evaluation', $prompt);
 
         if ($result['success'] && $result['content']) {
-            $evaluation = json_decode($result['content'], true);
+            $evaluation = $this->parseJson($result['content']) ?: $this->defaultEvaluation();
         } else {
             $evaluation = $this->defaultEvaluation();
         }
@@ -51,6 +51,7 @@ class LeadEvaluationService
             'sentiment' => $evaluation['sentiment'] ?? 'neutral',
             'intent_level' => $evaluation['intent_level'] ?? 'low',
             'interest_level' => $evaluation['interest_level'] ?? 'medium',
+            'summary' => $this->stringValue($evaluation['summary'] ?? null),
             'objections_detected' => $evaluation['objections'] ?? [],
             'buying_signals' => $evaluation['buying_signals'] ?? [],
             'next_best_action' => $evaluation['next_best_action'] ?? 'Schedule follow-up',
@@ -75,7 +76,7 @@ class LeadEvaluationService
         $result = $this->ai->call('meeting_evaluation', $prompt);
 
         if ($result['success'] && $result['content']) {
-            $evaluation = json_decode($result['content'], true);
+            $evaluation = $this->parseJson($result['content']) ?: $this->defaultEvaluation();
         } else {
             $evaluation = $this->defaultEvaluation();
         }
@@ -87,6 +88,7 @@ class LeadEvaluationService
             'sentiment' => $evaluation['sentiment'] ?? 'neutral',
             'intent_level' => $evaluation['intent_level'] ?? 'medium',
             'interest_level' => $evaluation['interest_level'] ?? 'medium',
+            'summary' => $this->stringValue($evaluation['summary'] ?? null),
             'objections_detected' => array_merge($meeting->objections ?? [], $evaluation['objections'] ?? []),
             'buying_signals' => $evaluation['buying_signals'] ?? [],
             'next_best_action' => $evaluation['next_best_action'] ?? 'Send proposal',
@@ -184,6 +186,7 @@ class LeadEvaluationService
     {
         return <<<PROMPT
         Analyze this customer interaction transcript and return a JSON evaluation with:
+        - summary: concise 3-5 bullet conclusion of the meeting/transcript
         - sentiment: "positive", "neutral", or "negative"
         - intent_level: "high", "medium", or "low" (likelihood they want to buy)
         - interest_level: "high", "medium", or "low" (expressed interest in product/service)
@@ -213,6 +216,7 @@ class LeadEvaluationService
 
         return <<<PROMPT
         Evaluate this meeting summary and return a JSON evaluation with:
+        - summary: concise 3-5 bullet conclusion of the meeting
         - sentiment: "positive", "neutral", or "negative"
         - intent_level: "high", "medium", or "low"
         - interest_level: "high", "medium", or "low"
@@ -239,6 +243,7 @@ class LeadEvaluationService
     private function defaultEvaluation(): array
     {
         return [
+            'summary' => 'AI analysis could not produce a reliable summary. Review the transcript manually.',
             'sentiment' => 'neutral',
             'intent_level' => 'medium',
             'interest_level' => 'medium',
@@ -247,6 +252,40 @@ class LeadEvaluationService
             'next_best_action' => 'Schedule follow-up meeting',
             'confidence' => 40,
         ];
+    }
+
+    private function parseJson(string $content): ?array
+    {
+        $json = preg_replace('/^```(?:json)?\s*/i', '', trim($content));
+        $json = preg_replace('/\s*```$/', '', trim($json ?? ''));
+        $decoded = json_decode(trim($json ?? ''), true);
+
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        $start = strpos((string) $json, '{');
+        $end = strrpos((string) $json, '}');
+        if ($start === false || $end === false || $end <= $start) {
+            return null;
+        }
+
+        $decoded = json_decode(substr((string) $json, $start, $end - $start + 1), true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function stringValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return implode("\n", array_map(fn ($item) => '- ' . trim((string) $item), $value));
+        }
+
+        return trim((string) $value) ?: null;
     }
 
     /**

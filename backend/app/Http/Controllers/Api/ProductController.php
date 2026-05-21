@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Industry;
 use App\Models\Product;
+use App\Models\ProductQuestion;
 use App\Services\AuditService;
 use App\Services\ProductMetadataGenerationService;
+use App\Services\ProductQuestionGenerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -162,6 +164,95 @@ class ProductController extends Controller
             'data'     => $result['data'],
             'ai_model' => $result['ai_model'],
             'source'   => $auditSource,
+        ]);
+    }
+
+    // ── Question Guide ──────────────────────────────────────────────────────
+
+    /**
+     * GET /api/products/{product}/questions
+     * Returns the saved question guide for the product (or empty list).
+     */
+    public function getQuestions(Product $product): JsonResponse
+    {
+        $guide = $product->questionGuide;
+
+        return response()->json([
+            'data' => [
+                'questions'    => $guide?->questions ?? [],
+                'ai_generated' => $guide?->ai_generated ?? false,
+                'ai_model'     => $guide?->ai_model ?? null,
+                'updated_at'   => $guide?->updated_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/products/{product}/questions/generate
+     * Uses AI to generate a question guide based on the product metadata.
+     * Does NOT save — the client previews and edits first.
+     */
+    public function generateQuestions(Request $request, Product $product): JsonResponse
+    {
+        /** @var ProductQuestionGenerationService $service */
+        $service = app(ProductQuestionGenerationService::class);
+
+        $result = $service->generate($product);
+
+        if (! $result['success']) {
+            return response()->json(['error' => $result['error']], 422);
+        }
+
+        AuditService::log(
+            'ai_product_questions_generated',
+            'products',
+            $product,
+            null,
+            ['ai_model' => $result['ai_model'], 'count' => count($result['questions'])],
+        );
+
+        return response()->json([
+            'data'     => $result['questions'],
+            'ai_model' => $result['ai_model'],
+        ]);
+    }
+
+    /**
+     * PUT /api/products/{product}/questions
+     * Saves the (possibly edited) question guide for the product.
+     * Idempotent — creates or replaces the single guide record.
+     */
+    public function saveQuestions(Request $request, Product $product): JsonResponse
+    {
+        $validated = $request->validate([
+            'questions'    => 'required|array',
+            'questions.*.id'       => 'required|string|max:64',
+            'questions.*.text'     => 'required|string|max:1000',
+            'questions.*.category' => 'required|string|max:100',
+            'questions.*.order'    => 'required|integer|min:1',
+            'ai_generated' => 'boolean',
+            'ai_model'     => 'nullable|string|max:200',
+        ]);
+
+        $guide = ProductQuestion::updateOrCreate(
+            ['product_id' => $product->id],
+            [
+                'questions'    => $validated['questions'],
+                'ai_generated' => $validated['ai_generated'] ?? false,
+                'ai_model'     => $validated['ai_model'] ?? null,
+                'updated_by'   => $request->user()?->id,
+            ],
+        );
+
+        AuditService::logUpdated('product_questions', $guide, []);
+
+        return response()->json([
+            'data' => [
+                'questions'    => $guide->questions,
+                'ai_generated' => $guide->ai_generated,
+                'ai_model'     => $guide->ai_model,
+                'updated_at'   => $guide->updated_at?->toIso8601String(),
+            ],
         ]);
     }
 

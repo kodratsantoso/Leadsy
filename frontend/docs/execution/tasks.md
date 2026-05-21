@@ -1,5 +1,112 @@
 # Real WhatsApp Mirroring Implementation Tasks
 
+## Product Question Guide (Completed ✅)
+- [x] Migration: `product_questions` table (product_id FK, questions JSON, ai_generated, ai_model, updated_by).
+- [x] Model: `ProductQuestion` with questions cast as array; `Product` model gets `questionGuide()` HasOne.
+- [x] Service: `ProductQuestionGenerationService` — builds context-aware prompt, parses and normalizes structured JSON question list.
+- [x] Controller: `getQuestions`, `generateQuestions`, `saveQuestions` in `ProductController`.
+- [x] Routes: `GET /products/{id}/questions`, `POST /products/{id}/questions/generate`, `PUT /products/{id}/questions`.
+- [x] Frontend `QuestionGuide.tsx`: fetch saved guide, AI generate, inline edit (text + category picker + order), add/delete, save with unsaved-changes indicator.
+- [x] Integrated `<QuestionGuide>` into expanded product card in `app/products/page.tsx`.
+- [x] Updated SSOT, tasks, progress.
+
+## Lead Customer BANTC Question Guide (Completed ✅)
+- [x] Migration/model/API for `lead_bantc_question_guides`.
+- [x] AI feature route `lead_bantc_question_generation`.
+- [x] `LeadBantcQuestionGenerationService` builds customer context and returns Budget, Authority, Need, Timeline, Competition questions.
+- [x] `LeadBantcQuestionGuide.tsx` on Lead Detail → Intelligence supports generate, edit, reorder, add/delete, and explicit save.
+- [x] Generated questions remain draft-only until saved by the user.
+
+## Meeting BANTC and Transcript Enhancements (Completed ✅)
+- [x] Add Budget, Authority, Needs, Timeline, and Competitor fields to Meeting activities.
+- [x] Prefill new Meeting activity BANTC values from the latest previous Meeting activity.
+- [x] Show BANTC values in the Activities timeline.
+- [x] Extend transcripts with `activity_id`, title, file metadata, nullable text, and recorded timestamp handling.
+- [x] Allow transcripts to be linked to an activity and created from text, TXT/VTT/SRT, audio, or video files.
+- [x] Add AI transcript summary storage and display alongside sentiment, intent, interest, objections, buying signals, confidence, and next action.
+
+## Dashboard Funnel Aggregate Correction (Completed ✅)
+- [x] Update Dashboard funnels from current-stage counts to cumulative/aggregate conversion counts.
+- [x] Cumulative stages count leads whose current funnel sequence is at that stage or beyond.
+- [x] Cumulative estimated amount follows the same stage-or-beyond logic.
+- [x] Add `GET /api/leads?funnel_min_sequence=N` drilldown support for cumulative funnel bars.
+
+## Lead Product Revenue and Upsales (Completed ✅)
+- [x] Add `product_id` selection to Leads create/edit UI and table display.
+- [x] Extend `lead_outcomes` with `product_id` and `sale_type` so a customer can buy multiple products with separate deal amounts.
+- [x] Add Product and Sales Type fields to Lead Detail → Revenue → Record Outcome.
+- [x] Display Product Revenue History per lead/customer.
+- [x] Update dashboard product aggregates to use lead initial products plus product-specific outcomes.
+
+## Phase 9: Product Tour System (Completed ✅)
+
+### Core Components
+- [x] TOUR-001: Build `useTour.js` hook — active, minimized, currentStep, startTour, nextStep, prevStep, skipTour, minimizeTour, restoreTour, goToStep.
+- [x] TOUR-002: Build `tourSteps.js` — 14-step tour covering navigation, search, dashboard, map, review queue, leads, products, and settings.
+- [x] TOUR-003: Build `ProductTour.jsx` — orchestrator with route-aware navigation, element polling (20 retries × 120 ms), resize/scroll rect sync, and fallback centering.
+- [x] TOUR-004: Build `TourTooltip.jsx` — fixed-position card with step progress, title, content, Skip / Back / Next (Finish) actions, and Minimize button.
+- [x] TOUR-005: Build `TourOverlay.jsx` — four-piece `rgba(0,0,0,0.5)` overlay with animated transparent cutout around the spotlight rect.
+- [x] TOUR-006: Build `TourSpotlight.jsx` — brand-colored border box anchored to the target element rect with smooth CSS transitions.
+- [x] TOUR-007: Build `TourMinimized.jsx` — fixed bottom-right pill badge showing "Tour: Step N/M ▲"; restores tour on click.
+- [x] TOUR-008: Build `ProductTour.css` — all `.leadsy-tour-*` styles; mobile responsive breakpoint; enter/exit keyframe animations.
+
+### Integration
+- [x] TOUR-010: Mount `<ProductTour />` inside `AppShell` so the tour is present on every authenticated page.
+- [x] TOUR-011: Add `HelpCircle` button to the AppShell header (`data-tour="tour-trigger"`) that fires `leadsy:start-tour` event.
+- [x] TOUR-012: Auto-start tour on first visit; skip if `leadsy-product-tour-completed=true` in localStorage.
+- [x] TOUR-013: Persist active step and minimized state in localStorage so navigation between pages does not reset the tour.
+
+### data-tour Attribute Coverage
+- [x] TOUR-020: `sidebar-nav` — AppShell nav container.
+- [x] TOUR-021: `global-search` — AppShell top-bar search input.
+- [x] TOUR-022: `tour-trigger` — AppShell HelpCircle button.
+- [x] TOUR-023: `dashboard-kpis` — Dashboard Key Metrics card.
+- [x] TOUR-024: `dashboard-funnel` — Dashboard conversion funnel section.
+- [x] TOUR-025: `dashboard-source-channel` — Dashboard Lead Sources & Channels card.
+- [x] TOUR-026: `dashboard-map` — Dashboard Lead Geography card.
+- [x] TOUR-027: `map-discovery` — Map & Territory page header card.
+- [x] TOUR-028: `review-queue` — Qualification / Review Queue stats card.
+- [x] TOUR-029: `leads-actions` — Leads page action group (create, import, export).
+- [x] TOUR-030: `leads-filters` — Leads page filter bar.
+- [x] TOUR-031: `leads-table` — Leads page data table container.
+- [x] TOUR-032: `products-add` — Products page Add Product button.
+- [x] TOUR-033: `settings-master-data` — Settings page master-data grid.
+
+### Documentation
+- [x] TOUR-040: Add ProductTour section to `frontend/docs/ssot.md` with component table, integration points, and `data-tour` contract.
+- [x] TOUR-041: Update `frontend/docs/execution/tasks.md` and `progress.md`.
+- [x] TOUR-042: Update root `docs/execution/tasks.md` and `progress.md`.
+- [x] TOUR-043: Update `frontend/README.md` with ProductTour feature mention.
+
+## Phase 8: Dashboard, Location, Hierarchy, and Revenue Improvements
+
+### Dashboard Maps
+- [x] DASH-MAP-001: Add database-backed map block on Dashboard.
+- [x] DASH-MAP-002: Render leads/customers with coordinates and stage-colored POI markers.
+- [x] DASH-MAP-003: Add pan/zoom and tooltip summary behavior through Google Maps.
+
+### Lead Location Input
+- [x] LEAD-LOC-001: Add Add Location action to New Lead form.
+- [x] LEAD-LOC-002: Add map/geocode popup for location search.
+- [x] LEAD-LOC-003: Persist selected `lat` and `lng` to the lead.
+
+### Dashboard Funnels
+- [x] DASH-FUN-001: Add aggregate Tracking Customer Sales Funnel dashboard panel.
+- [x] DASH-FUN-002: Source funnel counts from DB.
+- [x] DASH-FUN-003: Make funnel stages drillable into filtered Leads.
+- [x] DASH-ORIGIN-001: Add Dashboard block for total leads by Lead Sources and Lead Channels.
+- [x] DASH-ORIGIN-002: Aggregate lead origin counts with distinct visible leads and drilldown filters.
+
+### User Hierarchy and Revenue Targets
+- [x] USER-HIER-001: Add `direct_manager_id` to users.
+- [x] USER-HIER-002: Apply hierarchy-based lead visibility to lead, dashboard, funnel, and revenue queries.
+- [x] USER-REV-001: Add target period and target revenue fields.
+- [x] USER-REV-002: Calculate realization from Closed Won outcomes by close date.
+- [x] USER-REV-003: Add Achievement Sales dashboard block.
+
+### Documentation
+- [x] DOC-DASH-001: Update SSOT, tasks, progress, decisions, README, and API reference notes.
+
 ## Audit Current Implementation
 - [x] WA-001: Identify mock data in `frontend/app/whatsapp/page.tsx`
 - [x] WA-002: Identify mock endpoints in `frontend/app/api/whatsapp/*`
@@ -86,7 +193,7 @@
 - [x] MD-011: AiProviderController — added `GET /ai-providers/usage-summary` reading real `ai_requests` aggregation
 - [x] MD-012: IntegrationConfigController — added single-item POST format (for webhooks/notifications), `DELETE` endpoint
 - [x] MD-013: api.php — registered `ai-providers/usage-summary` (before wildcard), `DELETE /settings/integrations/{id}`
-- [x] MD-014: DatabaseSeeder — seeded 10 industries (42 sub-industries), 3 sample products, 3 AI providers (7 models, inactive), 3 notification pref defaults
+- [x] MD-014: DatabaseSeeder — seeded 10 industries (42 sub-industries), AI providers/models, and notification pref defaults; product sample seeding removed
 
 ### Frontend
 - [x] MD-020: `settings/ai-defaults/page.tsx` — replaced `useEffect+fetch` with `useQuery+apiFetch`; removed `Math.random()`; Usage tab reads real `ai_requests` data with proper empty state
@@ -178,3 +285,10 @@
 - [x] LS-031: Validate backend route registration and PHP syntax.
 - [x] LS-032: Validate frontend TypeScript.
 - [x] LS-033: Smoke test authenticated Settings and Leads API responses.
+
+## Funnel UI Update
+- [x] FUNNEL-UI-001: Replace vertical funnel segments with horizontal conversion bars.
+- [x] FUNNEL-UI-002: Keep two separate pipelines for Closed Won and Closed Lost.
+- [x] FUNNEL-UI-003: Start conversion calculation from `Belum Di Klasifikasi`.
+- [x] FUNNEL-UI-004: Add estimated amount conversion per funnel step.
+- [x] FUNNEL-UI-005: Preserve drilldown links and DB aggregate data contract.

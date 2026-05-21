@@ -8,6 +8,7 @@ use App\Jobs\EnrichLeadContactsJob;
 use App\Jobs\EnrichLeadJob;
 use App\Jobs\ScoreLeadJob;
 use App\Models\Lead;
+use App\Models\LeadBantcQuestionGuide;
 use App\Models\LeadChannelType;
 use App\Models\LeadSourceType;
 use App\Models\LeadOutcome;
@@ -15,6 +16,7 @@ use App\Services\AuditService;
 use App\Services\DeduplicationService;
 use App\Services\Lead\LeadDiscoveryService;
 use App\Services\Lead\HumanVerificationWorkflowService;
+use App\Services\LeadBantcQuestionGenerationService;
 use App\Services\Revenue\ConversionPredictionService;
 use App\Services\Revenue\ICPMatchingService;
 use App\Services\Revenue\PrescriptiveEngineService;
@@ -22,6 +24,7 @@ use App\Services\Revenue\RevenueIntelligenceAnalysisService;
 use App\Services\Revenue\RevenueRuleEngineService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class LeadController extends Controller
 {
@@ -33,7 +36,8 @@ class LeadController extends Controller
     /** GET /api/leads */
     public function index(Request $request): JsonResponse
     {
-        $query = Lead::with(['industry', 'subIndustry', 'funnelStage', 'owner', 'territory', 'product', 'sources.channelType']);
+        $query = Lead::visibleTo($request->user())
+            ->with(['industry', 'subIndustry', 'funnelStage', 'owner', 'territory', 'product', 'sources.channelType']);
 
         // Filters
         if ($request->filled('industry_id')) {
@@ -42,11 +46,22 @@ class LeadController extends Controller
         if ($request->filled('funnel_stage_id')) {
             $query->where('funnel_stage_id', $request->funnel_stage_id);
         }
+        if ($request->filled('funnel_min_sequence')) {
+            $minimumSequence = (int) $request->funnel_min_sequence;
+            $query->whereHas('funnelStage', fn ($stageQuery) => $stageQuery
+                ->where('sequence', '>=', $minimumSequence)
+                ->where('name', '!=', 'Nurture / Hold'));
+        }
         if ($request->filled('qualification_status')) {
             $query->where('qualification_status', $request->qualification_status);
         }
         if ($request->filled('product_id')) {
-            $query->where('product_id', $request->product_id);
+            $productId = $request->product_id;
+            $query->where(function ($productQuery) use ($productId) {
+                $productQuery
+                    ->where('product_id', $productId)
+                    ->orWhereHas('outcomes', fn ($outcomeQuery) => $outcomeQuery->where('product_id', $productId));
+            });
         }
         if ($request->filled('territory_id')) {
             $query->where('territory_id', $request->territory_id);
@@ -65,6 +80,15 @@ class LeadController extends Controller
         }
         if ($request->filled('min_score')) {
             $query->where('lead_score', '>=', (int) $request->min_score);
+        }
+        if ($request->filled('max_score')) {
+            $query->where('lead_score', '<=', (int) $request->max_score);
+        }
+        if ($request->get('filter') === 'prospects') {
+            $query->whereIn('qualification_status', ['eligible', 'potential']);
+        }
+        if ($request->filled('outcome')) {
+            $query->whereHas('outcomes', fn ($outcomeQuery) => $outcomeQuery->where('outcome', $request->outcome));
         }
         if ($request->filled('search')) {
             $s = '%' . $request->search . '%';
@@ -90,6 +114,10 @@ class LeadController extends Controller
 
     public function show(Lead $lead): JsonResponse
     {
+        if (! Lead::visibleTo(request()->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
+
         $lead->load([
             'industry', 'subIndustry', 'funnelStage', 'owner',
             'territory', 'product', 'contacts.contactSource',
@@ -97,12 +125,96 @@ class LeadController extends Controller
             'funnelHistory.movedBy', 'creator',
             'scores', 'qualifications', 'productMatches', 'aiAnalyses',
             'activities', 'meetings', 'transcripts', 'aiEvaluations', 'followUps',
+            'outcomes.product',
             'qualificationWorkflowReviews.workflow.stages',
             'qualificationWorkflowReviews.requester',
             'qualificationWorkflowReviews.reviewer',
+            'bantcQuestionGuide',
         ]);
 
         return response()->json(['data' => $lead]);
+    }
+
+    public function getBantcQuestions(Lead $lead): JsonResponse
+    {
+        if (! Lead::visibleTo(request()->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
+
+        $guide = $lead->bantcQuestionGuide;
+
+        return response()->json([
+            'data' => [
+                'questions' => $guide?->questions ?? [],
+                'ai_generated' => $guide?->ai_generated ?? false,
+                'ai_model' => $guide?->ai_model ?? null,
+                'updated_at' => $guide?->updated_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
+    public function generateBantcQuestions(Request $request, Lead $lead): JsonResponse
+    {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
+
+        $result = app(LeadBantcQuestionGenerationService::class)->generate($lead);
+
+        if (! $result['success']) {
+            return response()->json(['error' => $result['error']], 422);
+        }
+
+        AuditService::log(
+            'ai_lead_bantc_questions_generated',
+            'leads',
+            $lead,
+            null,
+            ['ai_model' => $result['ai_model'], 'count' => count($result['questions'])],
+        );
+
+        return response()->json([
+            'data' => $result['questions'],
+            'ai_model' => $result['ai_model'],
+        ]);
+    }
+
+    public function saveBantcQuestions(Request $request, Lead $lead): JsonResponse
+    {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'questions' => 'required|array',
+            'questions.*.id' => 'required|string|max:64',
+            'questions.*.text' => 'required|string|max:1000',
+            'questions.*.category' => 'required|string|max:100',
+            'questions.*.order' => 'required|integer|min:1',
+            'ai_generated' => 'boolean',
+            'ai_model' => 'nullable|string|max:200',
+        ]);
+
+        $guide = LeadBantcQuestionGuide::updateOrCreate(
+            ['lead_id' => $lead->id],
+            [
+                'questions' => $validated['questions'],
+                'ai_generated' => $validated['ai_generated'] ?? false,
+                'ai_model' => $validated['ai_model'] ?? null,
+                'updated_by' => $request->user()?->id,
+            ],
+        );
+
+        AuditService::logUpdated('lead_bantc_question_guides', $guide, []);
+
+        return response()->json([
+            'data' => [
+                'questions' => $guide->questions,
+                'ai_generated' => $guide->ai_generated,
+                'ai_model' => $guide->ai_model,
+                'updated_at' => $guide->updated_at?->toIso8601String(),
+            ],
+        ]);
     }
 
     /** POST /api/leads */
@@ -346,6 +458,11 @@ class LeadController extends Controller
             'activity_type'       => 'required|string|max:100',
             'description'         => 'nullable|string',
             'outcome'             => 'nullable|string|max:1000',
+            'budget'              => 'nullable|string',
+            'authority'           => 'nullable|string',
+            'needs'               => 'nullable|string',
+            'timeline'            => 'nullable|string',
+            'competitor'          => 'nullable|string',
             'activity_date'       => 'nullable|date',
             'next_follow_up_date' => 'nullable|date',
             'funnel_stage_id'     => 'nullable|exists:funnel_stages,id',
@@ -355,6 +472,11 @@ class LeadController extends Controller
             'activity_type'       => $data['activity_type'],
             'description'         => $data['description'] ?? '',
             'outcome'             => $data['outcome'] ?? null,
+            'budget'              => $data['budget'] ?? null,
+            'authority'           => $data['authority'] ?? null,
+            'needs'               => $data['needs'] ?? null,
+            'timeline'            => $data['timeline'] ?? null,
+            'competitor'          => $data['competitor'] ?? null,
             'activity_date'       => isset($data['activity_date']) ? $data['activity_date'] : now(),
             'next_follow_up_date' => $data['next_follow_up_date'] ?? null,
             'user_id'             => $request->user()?->id,
@@ -506,7 +628,7 @@ class LeadController extends Controller
     public function bulkImport(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'leads'              => 'required|array|min:1|max:100',
+            'leads'              => 'required|array|min:1|max:500',
             'leads.*.company_name' => 'required|string|max:255',
             'leads.*.address'    => 'nullable|string',
             'leads.*.lat'        => 'nullable|numeric',
@@ -516,18 +638,50 @@ class LeadController extends Controller
             'leads.*.website'    => 'nullable|url',
             'leads.*.external_place_id' => 'nullable|string',
             'leads.*.business_category' => 'nullable|string',
+            'leads.*.industry_id' => 'nullable|exists:industries,id',
+            'leads.*.sub_industry_id' => 'nullable|exists:sub_industries,id',
+            'leads.*.company_size_estimate' => 'nullable|string|max:100',
+            'leads.*.branch_count' => 'nullable|integer|min:0',
+            'leads.*.operating_hours' => 'nullable|string|max:255',
+            'leads.*.lead_score' => 'nullable|integer|min:0|max:100',
+            'leads.*.qualification_status' => 'nullable|in:pending,eligible,potential,not_eligible',
+            'leads.*.estimated_closing_amount' => 'nullable|numeric|min:0',
+            'leads.*.realized_closing_amount' => 'nullable|numeric|min:0',
+            'leads.*.funnel_stage_id' => 'nullable|exists:funnel_stages,id',
+            'leads.*.owner_id' => 'nullable|exists:users,id',
+            'leads.*.territory_id' => 'nullable|exists:territories,id',
+            'leads.*.product_id' => 'nullable|exists:products,id',
+            'leads.*.source_type' => 'nullable|exists:lead_source_types,slug',
+            'leads.*.channel_type_id' => 'nullable|exists:lead_channel_types,id',
+            'leads.*.contacts' => 'nullable|array|max:10',
+            'leads.*.contacts.*.name' => 'sometimes|required|string|max:255',
+            'leads.*.contacts.*.title' => 'nullable|string|max:255',
+            'leads.*.contacts.*.email' => 'nullable|email',
+            'leads.*.contacts.*.phone' => 'nullable|string|max:30',
+            'leads.*.contacts.*.linkedin_url' => 'nullable|string|max:500',
+            'leads.*.contacts.*.confidence' => 'nullable|in:high,medium,low',
+            'leads.*.contacts.*.is_primary' => 'nullable|boolean',
+            'leads.*.contacts.*.do_not_contact' => 'nullable|boolean',
             'territory_id'       => 'nullable|exists:territories,id',
             'product_id'         => 'nullable|exists:products,id',
+            'source_type'        => 'nullable|exists:lead_source_types,slug',
+            'channel_type_id'    => 'nullable|exists:lead_channel_types,id',
             'ai_mode'            => 'nullable|in:full_ai,hybrid,manual',
         ]);
 
         $created  = [];
         $skipped  = [];
         $aiMode   = $data['ai_mode'] ?? 'manual';
+        $createdContacts = 0;
 
         $defaultStageId = \App\Models\FunnelStage::orderBy('sequence')->value('id');
 
         foreach ($data['leads'] as $leadData) {
+            $contacts = $leadData['contacts'] ?? [];
+            $sourceType = $leadData['source_type'] ?? $data['source_type'] ?? 'csv_import';
+            $channelTypeId = $leadData['channel_type_id'] ?? $data['channel_type_id'] ?? null;
+            unset($leadData['contacts'], $leadData['source_type'], $leadData['channel_type_id']);
+
             // Domain extraction
             if (! empty($leadData['website'])) {
                 $leadData['website_domain'] = parse_url($leadData['website'], PHP_URL_HOST);
@@ -543,15 +697,38 @@ class LeadController extends Controller
                 continue;
             }
 
-            $leadData['territory_id']     = $data['territory_id'] ?? null;
-            $leadData['product_id']       = $data['product_id'] ?? null;
+            $leadData['territory_id']     = $leadData['territory_id'] ?? $data['territory_id'] ?? null;
+            $leadData['product_id']       = $leadData['product_id'] ?? $data['product_id'] ?? null;
             $leadData['ai_mode']          = $aiMode;
             $leadData['duplicate_status'] = $dedupResult->status;
             $leadData['duplicate_of_id']  = $dedupResult->matchedLeadId;
             $leadData['created_by']       = $request->user()?->id;
+            $leadData['tenant_id']        = $request->user()?->tenant_id;
             $leadData['funnel_stage_id']  = $leadData['funnel_stage_id'] ?? $defaultStageId;
+            $leadData['qualification_status'] = $leadData['qualification_status'] ?? 'pending';
 
             $lead = Lead::create($leadData);
+            $this->syncLeadSource($lead, $sourceType, $channelTypeId ? (int) $channelTypeId : null);
+
+            foreach ($contacts as $index => $contactData) {
+                if (empty($contactData['name'])) {
+                    continue;
+                }
+
+                $lead->contacts()->create([
+                    'name' => $contactData['name'],
+                    'title' => $contactData['title'] ?? null,
+                    'email' => $contactData['email'] ?? null,
+                    'phone' => $contactData['phone'] ?? null,
+                    'linkedin_url' => $contactData['linkedin_url'] ?? null,
+                    'confidence' => $contactData['confidence'] ?? 'medium',
+                    'is_primary' => (bool) ($contactData['is_primary'] ?? $index === 0),
+                    'do_not_contact' => (bool) ($contactData['do_not_contact'] ?? false),
+                    'source' => 'import',
+                    'confidence_score' => ($contactData['confidence'] ?? 'medium') === 'high' ? 90 : 70,
+                ]);
+                $createdContacts++;
+            }
 
             if ($lead->external_place_id) {
                 EnrichLeadJob::dispatch($lead->id)->onQueue('enrichment');
@@ -571,10 +748,12 @@ class LeadController extends Controller
         AuditService::log('bulk_import', 'leads', null, null, [
             'created' => count($created),
             'skipped' => count($skipped),
+            'contacts' => $createdContacts,
         ]);
 
         return response()->json([
             'created' => count($created),
+            'contacts_created' => $createdContacts,
             'skipped' => $skipped,
             'leads'   => collect($created)->map->only(['id', 'company_name', 'duplicate_status']),
         ], 201);
@@ -801,6 +980,11 @@ class LeadController extends Controller
             'activity_type'       => 'sometimes|string|max:100',
             'description'         => 'nullable|string',
             'outcome'             => 'nullable|string|max:1000',
+            'budget'              => 'nullable|string',
+            'authority'           => 'nullable|string',
+            'needs'               => 'nullable|string',
+            'timeline'            => 'nullable|string',
+            'competitor'          => 'nullable|string',
             'activity_date'       => 'nullable|date',
             'next_follow_up_date' => 'nullable|date',
         ]);
@@ -863,6 +1047,7 @@ class LeadController extends Controller
     public function getTranscripts(Lead $lead): JsonResponse
     {
         $transcripts = $lead->transcripts()
+            ->with(['activity:id,activity_type,activity_date,description'])
             ->orderByDesc('recorded_at')
             ->paginate(50);
 
@@ -873,16 +1058,55 @@ class LeadController extends Controller
     public function storeTranscript(Request $request, Lead $lead): JsonResponse
     {
         $data = $request->validate([
-            'source_type' => 'required|in:whatsapp,meeting,manual,call',
-            'transcript_text' => 'required|string',
+            'title' => 'nullable|string|max:255',
+            'activity_id' => 'nullable|integer|exists:lead_activities,id',
+            'source_type' => 'required|in:whatsapp,meeting,manual,call,audio,video,file',
+            'transcript_text' => 'nullable|string',
+            'transcript_file' => 'nullable|file|max:51200|mimes:txt,vtt,srt,mp3,wav,m4a,mp4,mov,webm',
             'source_id' => 'nullable|integer',
             'recorded_at' => 'nullable|date',
         ]);
 
+        if (! empty($data['activity_id']) && ! $lead->activities()->whereKey($data['activity_id'])->exists()) {
+            abort(422, 'Selected activity does not belong to this lead.');
+        }
+
+        $filePath = null;
+        $fileName = null;
+        $fileMime = null;
+        $fileSize = null;
+        $transcriptText = $data['transcript_text'] ?? null;
+
+        if ($request->hasFile('transcript_file')) {
+            $file = $request->file('transcript_file');
+            $filePath = $file->store('lead-transcripts', 'public');
+            $fileName = $file->getClientOriginalName();
+            $fileMime = $file->getMimeType();
+            $fileSize = $file->getSize();
+
+            $extension = strtolower($file->getClientOriginalExtension());
+            if (in_array($extension, ['txt', 'vtt', 'srt'], true)) {
+                $fileText = file_get_contents($file->getRealPath());
+                if (is_string($fileText) && trim($fileText) !== '') {
+                    $transcriptText = trim($transcriptText ? "{$transcriptText}\n\n{$fileText}" : $fileText);
+                }
+            }
+        }
+
+        if (! $transcriptText && ! $filePath) {
+            abort(422, 'Transcript text or a transcript file is required.');
+        }
+
         $transcript = $lead->transcripts()->create([
+            'activity_id'     => $data['activity_id'] ?? null,
+            'title'           => $data['title'] ?? null,
             'source_type'     => $data['source_type'],
-            'transcript_text' => $data['transcript_text'],
+            'transcript_text' => $transcriptText,
             'source_id'       => $data['source_id'] ?? null,
+            'file_path'       => $filePath,
+            'file_name'       => $fileName,
+            'file_mime'       => $fileMime,
+            'file_size'       => $fileSize,
             'recorded_at'     => $data['recorded_at'] ?? now(),
             'evaluation_status' => 'pending',
         ]);
@@ -891,13 +1115,16 @@ class LeadController extends Controller
             'source_type' => $data['source_type'],
         ]);
 
-        return response()->json(['data' => $transcript], 201);
+        return response()->json(['data' => $transcript->load('activity:id,activity_type,activity_date,description')], 201);
     }
 
     /** DELETE /api/leads/{lead}/transcripts/{transcript} */
     public function deleteTranscript(Lead $lead, $transcriptId): JsonResponse
     {
         $transcript = $lead->transcripts()->findOrFail($transcriptId);
+        if ($transcript->file_path) {
+            Storage::disk('public')->delete($transcript->file_path);
+        }
         $transcript->delete();
 
         AuditService::log('delete_transcript', 'lead_transcripts', $transcript, $transcript->toArray());
@@ -909,6 +1136,12 @@ class LeadController extends Controller
     public function evaluateTranscript(Lead $lead, $transcriptId): JsonResponse
     {
         $transcript = $lead->transcripts()->findOrFail($transcriptId);
+
+        if (! trim((string) $transcript->transcript_text)) {
+            return response()->json([
+                'message' => 'This transcript has no text content yet. Add/paste transcript text before running AI analysis.',
+            ], 422);
+        }
 
         $service = app(\App\Services\Sales\LeadEvaluationService::class);
         $evaluation = $service->evaluateTranscript($lead, $transcript);
@@ -1018,6 +1251,8 @@ class LeadController extends Controller
     {
         $data = $request->validate([
             'outcome'        => 'required|in:won,lost,churned,disqualified',
+            'product_id'     => 'nullable|exists:products,id',
+            'sale_type'      => 'nullable|in:new_sales,upsales',
             'deal_size'      => 'nullable|numeric|min:0',
             'loss_reason'    => 'nullable|string|max:255',
             'loss_category'  => 'nullable|in:price,timing,competition,no_budget,no_need,other',
@@ -1028,22 +1263,34 @@ class LeadController extends Controller
         $data['lead_id']   = $lead->id;
         $data['closed_by'] = $request->user()->id;
         $data['closed_at'] = $data['closed_at'] ?? now();
+        $data['sale_type'] = $data['sale_type']
+            ?? ($lead->outcomes()->where('outcome', 'won')->exists() ? 'upsales' : 'new_sales');
 
         $outcome = LeadOutcome::create($data);
 
         // Update lead qualification status to reflect outcome
+        $leadUpdates = [];
         if ($data['outcome'] === 'won') {
-            $lead->update(['qualification_status' => 'eligible']);
+            $leadUpdates['qualification_status'] = 'eligible';
+            if (! $lead->product_id && ! empty($data['product_id']) && $data['sale_type'] === 'new_sales') {
+                $leadUpdates['product_id'] = $data['product_id'];
+            }
         } elseif (in_array($data['outcome'], ['lost', 'disqualified'])) {
-            $lead->update(['qualification_status' => 'not_eligible']);
+            $leadUpdates['qualification_status'] = 'not_eligible';
+        }
+
+        if ($leadUpdates !== []) {
+            $lead->update($leadUpdates);
         }
 
         AuditService::log('record_outcome', 'leads', $lead, null, [
             'outcome'   => $data['outcome'],
+            'product_id' => $data['product_id'] ?? null,
+            'sale_type' => $data['sale_type'],
             'deal_size' => $data['deal_size'] ?? null,
         ]);
 
-        return response()->json(['data' => $outcome], 201);
+        return response()->json(['data' => $outcome->load('product')], 201);
     }
 
     /** POST /api/leads/{lead}/revenue-analysis — Run Revenue Intelligence Analyst AI */
@@ -1095,7 +1342,7 @@ class LeadController extends Controller
             'latest_prediction'    => $lead->conversionPredictions()->latest()->first(),
             'latest_prescription'  => $lead->prescriptions()->with('recommendedOwner')->latest()->first(),
             'revenue_check'        => $ruleService->evaluate($lead),
-            'latest_outcome'       => $lead->outcomes()->latest()->first(),
+            'latest_outcome'       => $lead->outcomes()->with('product')->latest('id')->first(),
             'latest_analysis'      => $lead->revenueAnalyses()->latest()->first(),
         ]]);
     }

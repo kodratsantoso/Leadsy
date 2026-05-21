@@ -1,5 +1,107 @@
 # Progress Log — Leadsy Platform
 
+## Product Question Guide (Completed ✅)
+**Date completed**: 2026-05-20
+
+### What was built
+- **`product_questions` table** — one row per product, stores structured JSON question array with AI metadata.
+- **`ProductQuestionGenerationService`** — builds a rich product-context prompt, calls `product_question_generation` AI feature route, parses the returned JSON array, and normalizes question categories.
+- **3 new API endpoints**: fetch questions, AI-generate (preview only — does not auto-save), save finalized questions.
+- **`QuestionGuide.tsx` component** — fully self-contained: loads saved guide, shows AI generate button, renders each question as an editable row (textarea for text, inline category picker dropdown, move-up/down, delete), add-question-manually button, unsaved-changes indicator, save action.
+- Integrated seamlessly into the expanded product card below the Edit / Delete actions.
+
+### Key design decisions
+- **Draft-first**: AI generation populates local state only; nothing is persisted until the user explicitly saves. Users can edit, reorder, add, and delete before committing.
+- **Idempotent save**: `updateOrCreate` on `product_id` — one guide per product, always replaceable.
+- **Category taxonomy**: 6 fixed categories (Current State, Requirements, Budget & Timeline, Decision Process, Technical Fit, Competition) shown as color-coded badges; each question's category is changeable via inline dropdown.
+
+## Lead BANTC, Transcript Enhancements, and Cumulative Funnels (Completed ✅)
+**Date completed**: 2026-05-20
+
+### What was built
+- **Customer BANTC Question Guide** — Lead Detail → Intelligence now generates customer-specific Budget, Authority, Need, Timeline, and Competition questions from lead context, contacts, product signals, activities, AI analyses, and revenue signals.
+- **Draft-first BANTC guide flow** — AI output stays local until the user explicitly saves; users can edit, reorder, add, and delete questions before committing.
+- **Meeting BANTC capture** — Meeting activities now store Budget, Authority, Needs, Timeline, and Competitor notes. New Meeting logs prefill the latest saved Meeting BANTC values so discovery can evolve over time.
+- **Transcript upgrades** — Transcripts can be linked to an Activity, include a title and recorded timestamp, accept pasted text, extract text from TXT/VTT/SRT files, and attach audio/video files as references.
+- **AI transcript summary** — Transcript evaluation now stores and displays a concise summary alongside sentiment, intent, interest, objections, buying signals, confidence, and next best action.
+- **Cumulative dashboard funnels** — Funnel bars now use aggregate conversion counts: each stage counts leads that have reached that stage or any later stage. Estimated amount conversion follows the same logic.
+- **Cumulative drilldown** — Dashboard stage bars link to `GET /api/leads?funnel_min_sequence=N`, returning leads whose current stage sequence is at or beyond the selected stage.
+
+### Validation
+- PHP syntax checks passed for Dashboard, Lead, Activity/Transcript models, and evaluation services.
+- Frontend `tsc --noEmit` passed after UI changes.
+- API smoke tests confirmed cumulative funnel values, Meeting BANTC create, linked transcript create, and AI transcript summary generation.
+
+## Lead Product Revenue and Upsales (Completed ✅)
+**Date completed**: 2026-05-20
+
+### What was built
+- Added Initial Product selection to Lead create/edit and table display.
+- Added product-specific `lead_outcomes.product_id` and `sale_type` so one customer can have multiple Closed Won/Lost product outcomes.
+- Lead Detail → Revenue → Record Outcome now captures Product, Sales Type (`new_sales`/`upsales`), amount, and notes.
+- Lead Detail → Revenue now shows Product Revenue History, making first purchase versus additional upsales visible.
+- Dashboard product Sales Volume and Total Market aggregates now combine lead initial product interest and product-specific outcomes.
+
+### Validation
+- Migration `2026_05_20_000008_add_product_sales_fields_to_lead_outcomes` ran successfully in Docker.
+- PHP syntax checks passed and frontend `npx tsc --noEmit` passed.
+- API smoke test created a temporary lead, recorded new-sales and upsales product outcomes with separate amounts, verified product payloads, then deleted the temporary lead.
+
+## Phase 9: Product Tour System (Completed ✅)
+**Date completed**: 2026-05-19
+
+### What was built
+- **`components/ProductTour/`** — complete 8-file system: orchestrator, tooltip, overlay, spotlight, minimized badge, state hook, step definitions, and CSS.
+- **14-step tour flow**: Navigation → Global Search → Dashboard KPIs → Conversion Funnels → Lead Geography → Lead Sources & Channels → Map Discovery → Review Queue → Lead Actions → Lead Filters → Lead Workspace → AI Products → Master Data Settings → Restart.
+- **Auto-start on first visit** with localStorage completion flag (`leadsy-product-tour-completed`).
+- **Minimized mode**: floating bottom-right pill badge persists step and minimized state across page navigation.
+- **Manual trigger**: `HelpCircle` button in AppShell header fires `leadsy:start-tour` event.
+- **Route-aware**: tour navigates to the correct page (`step.route`) when a step is on a different route than the current pathname.
+- **Element polling**: up to 20 retries × 120 ms to wait for SSR/CSR hydration before giving up and using a centered fallback rect.
+- **Responsive**: mobile breakpoint shifts tooltip to bottom and stacks action buttons vertically.
+
+### data-tour coverage added in this phase
+- `map-discovery` on `app/map/page.tsx` header Card.
+- `review-queue` on `app/qualification/reviews/page.tsx` stats Card.
+
+### Bug fix: StrictMode race condition (2026-05-20)
+React StrictMode (active in Next.js 15 dev mode) double-invokes effects. The original `useEffect`-based initialization read localStorage on mount, but the persistence effect ran immediately after with the stale initial state (`isActive=false, step=0`), overwriting localStorage. The second StrictMode invocation of the init effect then read `active=false` and reset `currentStep=0` while `isActive=true`, causing the routing effect to push back to `'/'` — creating a navigation loop `/map → / → /map → /`.
+
+**Fix applied to `useTour.js`**: replaced `useEffect`-based initialization with **lazy `useState` initializers** (`useState(initFn)`). State is now read from localStorage before the first render, eliminating the race window.
+
+**Fix applied to `ProductTour.jsx`**: added a one-tick `routeReady` guard via `setTimeout(..., 0)` so the routing effect cannot fire until React has committed the initial render.
+
+**Verified**: container logs now show the full 14-step tour traversal without loops:
+`/ → /map → /qualification/reviews → /leads → /products → /settings → /`
+
+### Validation
+- All `data-tour` selectors are verified present in the codebase and match `tourSteps.js` targets.
+- `ProductTour.css` scoped exclusively under `.leadsy-tour-*` — no global style leakage.
+- `<ProductTour />` renders `null` when `isActive === false` — no performance overhead outside tour runs.
+- Full 14-step cross-route navigation confirmed working in Docker dev container.
+
+## Phase 8: Dashboard, Location, Hierarchy, and Revenue Improvements
+**Date completed**: 2026-05-19
+
+### Dashboard
+- Added Lead Geography map block backed by `dashboard.map_points`.
+- POI marker color is resolved from funnel stage color tokens.
+- Added aggregate Dashboard funnel panel with drillable conversion bars and product bars.
+- Added Achievement Sales block using user target revenue and Closed Won realization.
+
+### Leads
+- Added Add Location map popup to New Lead creation.
+- Location search uses `/api/maps/geocode` and saves selected `lat`/`lng`.
+
+### User Settings and Backend Access
+- Added `direct_manager_id`, `target_period`, and `target_revenue` user fields.
+- Added hierarchy-based lead visibility: user sees own leads, managers/admin-like roles see team hierarchy, superadmin sees all.
+- Applied visibility scoping to Leads, Dashboard, Funnel counts, map points, and revenue realization.
+
+### Validation
+- Frontend TypeScript passes with `cd frontend && ./node_modules/.bin/tsc --noEmit`.
+- PHP syntax checks pass for changed backend models/controllers/migration.
+
 ## Phase 1: Foundation (Completed ✅)
 - [x] Backend: Laravel 12 bootstrap, PostgreSQL/Redis config
 - [x] Database: 10 migration files covering all BRD tables
@@ -74,7 +176,7 @@ Full audit and elimination of all runtime mock/hardcoded/fake data from the code
 | `AiProviderController.php` | Added `GET /api/ai-providers/usage-summary` aggregating real `ai_requests` table |
 | `IntegrationConfigController.php` | Added single-item POST format + `DELETE /settings/integrations/{id}` |
 | `routes/api.php` | Registered usage-summary route (before wildcard), DELETE integrations route |
-| `DatabaseSeeder.php` | 10 industries (42 sub-industries), 3 sample products, 3 AI providers (inactive, 7 models), 3 notification defaults |
+| `DatabaseSeeder.php` | 10 industries (42 sub-industries), AI providers/models, and notification defaults; product sample seeding removed so deleted products do not reappear |
 
 ### Frontend changes
 | File | Change |
@@ -278,3 +380,8 @@ Renamed the local runtime namespace and app-facing brand to Leadsy, then added D
 - [x] `cd frontend && ./node_modules/.bin/tsc --noEmit`
 - [x] Authenticated API smoke checks for lead source, lead channel, and lead channel filter payloads
 - [x] Docker stack confirmed running as `leadsy-*`
+
+## 2026-05-19 — Funnel UI Update
+- Updated Dashboard funnels to horizontal conversion bars with counts, count conversion percentages, and estimated amount conversion.
+- Kept separate Belum Di Klasifikasi → Won and Belum Di Klasifikasi → Lost funnels.
+- Preserved dynamic aggregate counts and drilldown behavior.
