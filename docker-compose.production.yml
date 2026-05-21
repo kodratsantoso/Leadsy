@@ -9,7 +9,9 @@ services:
     volumes:
       - leadsy_pg_data:/var/lib/postgresql/data
     networks:
-      - coolify
+      coolify:
+        aliases:
+          - "leadsy-postgres-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U leads -d leads"]
@@ -24,7 +26,9 @@ services:
     volumes:
       - leadsy_redis_data:/data
     networks:
-      - coolify
+      coolify:
+        aliases:
+          - "leadsy-redis-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -51,20 +55,21 @@ services:
       APP_KEY: "${APP_KEY}"
       # ── Database ─────────────────────────────────────────────────────────────
       DB_CONNECTION: pgsql
-      DB_HOST: postgres
+      DB_HOST: "leadsy-postgres-${COOLIFY_RESOURCE_UUID:-local}"
       DB_PORT: 5432
       DB_DATABASE: "${DB_DATABASE:-leads}"
       DB_USERNAME: "${DB_USERNAME:-leads}"
       # DB_PASSWORD: set in Coolify dashboard — do NOT hardcode here.
-      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_PASSWORD: "${DB_PASSWORD:-leads}"
       # ── Cache / Queue ─────────────────────────────────────────────────────────
-      REDIS_HOST: redis
+      REDIS_HOST: "leadsy-redis-${COOLIFY_RESOURCE_UUID:-local}"
       REDIS_PORT: 6379
+      REDIS_CLIENT: predis
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
       # ── WhatsApp sidecar ──────────────────────────────────────────────────────
-      WHATSAPP_SIDECAR_URL: http://whatsapp-service:3002
+      WHATSAPP_SIDECAR_URL: "http://leadsy-whatsapp-${COOLIFY_RESOURCE_UUID:-local}:3002"
       WHATSAPP_SESSION_NAME: leads_platform_session
       # ── Deployment controls ───────────────────────────────────────────────────
       # These are explicit here so Coolify never accidentally inherits wrong defaults.
@@ -73,7 +78,7 @@ services:
       SEED_DEMO_DATA: "false"
       # ── Admin account (override in Coolify before first deploy) ───────────────
       ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@prasetia.com}"
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-ChangeMe!123}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,7 +88,9 @@ services:
       - backend_storage:/var/www/html/storage
       - ./logs/backend:/var/www/html/storage/logs
     networks:
-      - coolify
+      coolify:
+        aliases:
+          - "leadsy-backend-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
@@ -111,7 +118,7 @@ services:
       PORT: 3000
       NEXT_PUBLIC_API_BASE_URL: https://leadsy.virtuenet.space
       NEXT_PUBLIC_API_URL: https://leadsy.virtuenet.space
-      API_INTERNAL_URL: http://backend:8000
+      API_INTERNAL_URL: "http://leadsy-backend-${COOLIFY_RESOURCE_UUID:-local}:8000"
     depends_on:
       backend:
         condition: service_healthy
@@ -149,7 +156,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3002
-      LARAVEL_WEBHOOK_URL: http://backend:8000/api/webhooks/whatsapp
+      LARAVEL_WEBHOOK_URL: "http://leadsy-backend-${COOLIFY_RESOURCE_UUID:-local}:8000/api/webhooks/whatsapp"
     depends_on:
       backend:
         condition: service_healthy
@@ -157,7 +164,9 @@ services:
       - whatsapp_auth_data:/usr/src/app/baileys_auth_info
       - ./logs/whatsapp:/usr/src/app/logs
     networks:
-      - coolify
+      coolify:
+        aliases:
+          - "leadsy-whatsapp-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3002/api/health || exit 1"]

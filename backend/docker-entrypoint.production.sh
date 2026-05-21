@@ -16,6 +16,22 @@ log() {
     echo "[entrypoint] $*"
 }
 
+set_env_value() {
+    key="$1"
+    value="$2"
+
+    if grep -q "^${key}=" .env 2>/dev/null; then
+        sed -i "s|^${key}=.*|${key}=${value}|" .env
+    else
+        echo "${key}=${value}" >> .env
+    fi
+}
+
+read_env_value() {
+    key="$1"
+    sed -n "s/^${key}=//p" .env 2>/dev/null | tail -n 1
+}
+
 # ── 1. Bootstrap .env ─────────────────────────────────────────────────────────
 if [ ! -f .env ]; then
     log "No .env found — copying .env.example as base"
@@ -28,27 +44,41 @@ chmod -R 775 storage bootstrap/cache 2>/dev/null || true
 # ── 3. App key ────────────────────────────────────────────────────────────────
 # Only generate if APP_KEY is not already injected via Docker environment.
 # Priority: Docker env var > .env file > generate new.
-if [ -z "${APP_KEY}" ]; then
-    if ! grep -q "APP_KEY=base64:" .env 2>/dev/null; then
+if [ -n "${APP_KEY:-}" ]; then
+    log "APP_KEY provided via environment."
+    set_env_value "APP_KEY" "${APP_KEY}"
+else
+    if grep -q "^APP_KEY=base64:" .env 2>/dev/null; then
+        APP_KEY="$(read_env_value APP_KEY)"
+        export APP_KEY
+        log "APP_KEY loaded from .env."
+    else
         log "APP_KEY not set — generating. Set APP_KEY in Coolify to make it permanent."
         php artisan key:generate --force
-    fi
-else
-    log "APP_KEY provided via environment."
-    # Write Docker env var into .env so artisan commands can read it
-    if grep -q "^APP_KEY=" .env 2>/dev/null; then
-        sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
-    else
-        echo "APP_KEY=${APP_KEY}" >> .env
+        APP_KEY="$(read_env_value APP_KEY)"
+        export APP_KEY
     fi
 fi
+
+# Coolify can pass empty strings for optional secrets. Normalize them before
+# Artisan reads the process environment, otherwise empty Docker env values
+# override the safe defaults in .env.
+DB_PASSWORD="${DB_PASSWORD:-leads}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@prasetia.com}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-ChangeMe!123}"
+REDIS_CLIENT="${REDIS_CLIENT:-predis}"
+
+export DB_PASSWORD ADMIN_EMAIL ADMIN_PASSWORD REDIS_CLIENT
+set_env_value "DB_PASSWORD" "${DB_PASSWORD}"
+set_env_value "ADMIN_EMAIL" "${ADMIN_EMAIL}"
+set_env_value "ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
+set_env_value "REDIS_CLIENT" "${REDIS_CLIENT}"
 
 # ── 4. Wait for database ──────────────────────────────────────────────────────
 DB_HOST="${DB_HOST:-postgres}"
 DB_PORT="${DB_PORT:-5432}"
 DB_DATABASE="${DB_DATABASE:-leads}"
 DB_USERNAME="${DB_USERNAME:-leads}"
-DB_PASSWORD="${DB_PASSWORD:-leads}"
 
 MAX_RETRIES=30
 RETRY_COUNT=0
