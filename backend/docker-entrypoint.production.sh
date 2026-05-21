@@ -60,19 +60,22 @@ else
     fi
 fi
 
-# Coolify can pass empty strings for optional secrets. Normalize them before
-# Artisan reads the process environment, otherwise empty Docker env values
-# override the safe defaults in .env.
+# Coolify can pass empty strings for optional secrets. Normalize service
+# defaults before Artisan reads the process environment, otherwise empty Docker
+# env values override the safe defaults in .env.
 DB_PASSWORD="${DB_PASSWORD:-leads}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@prasetia.com}"
-ADMIN_PASSWORD="${ADMIN_PASSWORD:-ChangeMe!123}"
 REDIS_CLIENT="${REDIS_CLIENT:-predis}"
 
-export DB_PASSWORD ADMIN_EMAIL ADMIN_PASSWORD REDIS_CLIENT
+export DB_PASSWORD ADMIN_EMAIL REDIS_CLIENT
 set_env_value "DB_PASSWORD" "${DB_PASSWORD}"
 set_env_value "ADMIN_EMAIL" "${ADMIN_EMAIL}"
-set_env_value "ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
 set_env_value "REDIS_CLIENT" "${REDIS_CLIENT}"
+
+if [ -n "${ADMIN_PASSWORD:-}" ]; then
+    export ADMIN_PASSWORD
+    set_env_value "ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
+fi
 
 # ── 4. Wait for database ──────────────────────────────────────────────────────
 DB_HOST="${DB_HOST:-postgres}"

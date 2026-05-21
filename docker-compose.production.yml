@@ -78,7 +78,7 @@ services:
       SEED_DEMO_DATA: "false"
       # ── Admin account (override in Coolify before first deploy) ───────────────
       ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@prasetia.com}"
-      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-ChangeMe!123}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
     depends_on:
       postgres:
         condition: service_healthy

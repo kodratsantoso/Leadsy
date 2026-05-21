@@ -22,18 +22,23 @@ class AdminUserSeeder extends Seeder
 
         // Admin email and password are read from env so they can be customised
         // in Coolify without touching code. Defaults are safe placeholders only.
-        $adminEmail    = env('ADMIN_EMAIL',    'admin@prasetia.com');
-        $adminName     = env('ADMIN_NAME',     'Admin');
-        $adminPassword = env('ADMIN_PASSWORD', 'ChangeMe!123');
+        $adminEmail = env('ADMIN_EMAIL') ?: 'admin@prasetia.com';
+        $adminName = env('ADMIN_NAME') ?: 'Admin';
+        $adminPassword = env('ADMIN_PASSWORD');
+        $hasConfiguredPassword = is_string($adminPassword) && $adminPassword !== '';
 
-        User::updateOrCreate(
-            ['email' => $adminEmail],
-            [
-                'name'      => $adminName,
-                'password'  => Hash::make($adminPassword),
-                'role_id'   => $adminRole?->id,
-                'tenant_id' => $tenant->id,
-            ]
-        );
+        $adminUser = User::where('email', $adminEmail)->first();
+        $attributes = [
+            'name'      => $adminUser?->name ?: $adminName,
+            'role_id'   => $adminRole?->id,
+            'tenant_id' => $tenant->id,
+            'is_active' => true,
+        ];
+
+        if (! $adminUser || $hasConfiguredPassword) {
+            $attributes['password'] = Hash::make($hasConfiguredPassword ? $adminPassword : 'ChangeMe!123');
+        }
+
+        User::updateOrCreate(['email' => $adminEmail], $attributes);
     }
 }
