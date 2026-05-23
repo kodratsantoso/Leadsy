@@ -21,15 +21,15 @@ class GeoProductFitAnalysis extends Model
     ];
 
     protected $casts = [
-        'fit_score'        => 'integer',
+        'fit_score' => 'integer',
         'confidence_score' => 'integer',
-        'pre_fit_score'    => 'integer',
+        'pre_fit_score' => 'integer',
         'analyzed_with_ai' => 'boolean',
-        'reasoning'        => 'array',
-        'matched_signals'  => 'array',
+        'reasoning' => 'array',
+        'matched_signals' => 'array',
         'missing_information' => 'array',
-        'risk_flags'       => 'array',
-        'analyzed_at'      => 'datetime',
+        'risk_flags' => 'array',
+        'analyzed_at' => 'datetime',
     ];
 
     public function product(): BelongsTo

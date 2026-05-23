@@ -84,6 +84,43 @@ These bindings are intentionally fixed in `docker-compose.yml`. Only change them
 
 Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create the Laravel 12 project and configure `.env` for Postgres/Redis.
 
+## Git Hooks
+
+This repository uses tracked Git hooks under `.githooks/`.
+
+After cloning the repository, configure hooks with:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+or run:
+
+```bash
+npm run setup:githooks
+```
+
+The pre-commit hook runs:
+
+```bash
+sh scripts/validate-pre-commit.sh
+```
+
+That validates the active frontend TypeScript compile, Laravel Pint formatting, PHP syntax, local Docker Compose syntax, and WhatsApp sidecar JavaScript syntax.
+
+The pre-push hook runs:
+
+```bash
+sh scripts/validate-pre-push.sh
+```
+
+That includes the pre-commit checks plus the active frontend production build, Composer manifest validation, and production Docker Compose syntax.
+
+Audited exceptions:
+
+- `npm --prefix frontend run lint` currently fails on pre-existing legacy `@typescript-eslint/no-explicit-any` and JSX escaping violations. It is not disabled in ESLint and should be fixed before lint becomes a blocking hook gate.
+- `cd backend && php artisan test` currently requires PostgreSQL on `localhost:5435`; without the local Docker database running, the suite fails during database connection setup. The hook uses PHP syntax and formatting checks as the database-independent backend gate.
+
 ## Documentation
 
 - Phase 1 plan: `docs/execution/phase-1/plan.md`

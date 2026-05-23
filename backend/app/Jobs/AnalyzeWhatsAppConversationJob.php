@@ -2,14 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Models\WhatsappAiAnalysis;
+use App\Models\WhatsappConversation;
+use App\Services\AI\AiOrchestrationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Models\WhatsappConversation;
-use App\Models\WhatsappAiAnalysis;
-use App\Services\AI\AiOrchestrationService;
 use Illuminate\Support\Facades\Log;
 
 class AnalyzeWhatsAppConversationJob implements ShouldQueue
@@ -25,16 +25,17 @@ class AnalyzeWhatsAppConversationJob implements ShouldQueue
 
     public function handle(AiOrchestrationService $ai): void
     {
-        $conversation = WhatsappConversation::with(['messages' => function($q) {
+        $conversation = WhatsappConversation::with(['messages' => function ($q) {
             $q->orderBy('sent_at', 'asc')->take(50);
         }, 'contact'])->find($this->conversationId);
 
-        if (!$conversation || $conversation->messages->isEmpty()) {
+        if (! $conversation || $conversation->messages->isEmpty()) {
             return;
         }
 
         $messagesText = $conversation->messages->map(function ($m) {
             $dir = $m->direction === 'inbound' ? 'Contact' : 'Us';
+
             return "[{$dir}] {$m->body}";
         })->join("\n");
 
@@ -45,27 +46,27 @@ class AnalyzeWhatsAppConversationJob implements ShouldQueue
         $result = $this->tryAiAnalysis($ai, $contactName, $phone, $messagesText);
 
         // Fallback to keyword heuristic if AI is not configured
-        if (!$result) {
+        if (! $result) {
             $result = $this->keywordHeuristic($messagesText);
         }
 
         WhatsappAiAnalysis::updateOrCreate(
             ['conversation_id' => $conversation->id],
             [
-                'provider'          => $result['provider'],
-                'analysis_result'   => $result['label'],
-                'confidence_score'  => $result['confidence'],
+                'provider' => $result['provider'],
+                'analysis_result' => $result['label'],
+                'confidence_score' => $result['confidence'],
                 'reasoning_summary' => $result['reasoning'],
-                'analyzed_at'       => now(),
+                'analyzed_at' => now(),
             ]
         );
 
         $conversation->update([
             'relevance_status' => match ($result['label']) {
-                'yes'   => 'high',
+                'yes' => 'high',
                 'maybe' => 'medium',
                 default => 'low',
-            }
+            },
         ]);
 
         Log::info('[WhatsApp AI] Analysis complete', [
@@ -105,12 +106,12 @@ PROMPT;
                 $parsed = json_decode($result['content'], true);
                 if ($parsed && isset($parsed['lead_potential_label'])) {
                     return [
-                        'provider'   => $result['model'] ?? 'ai',
-                        'label'      => $parsed['lead_potential_label'],
+                        'provider' => $result['model'] ?? 'ai',
+                        'label' => $parsed['lead_potential_label'],
                         'confidence' => $parsed['confidence_score'] ?? 0.5,
-                        'reasoning'  => ($parsed['reasoning_summary'] ?? '') .
-                            (isset($parsed['signals_found']) ? "\nSignals: " . implode(', ', $parsed['signals_found']) : '') .
-                            (isset($parsed['recommended_next_action']) ? "\nNext: " . $parsed['recommended_next_action'] : ''),
+                        'reasoning' => ($parsed['reasoning_summary'] ?? '').
+                            (isset($parsed['signals_found']) ? "\nSignals: ".implode(', ', $parsed['signals_found']) : '').
+                            (isset($parsed['recommended_next_action']) ? "\nNext: ".$parsed['recommended_next_action'] : ''),
                     ];
                 }
             }
@@ -134,35 +135,39 @@ PROMPT;
         $foundMedium = [];
 
         foreach ($highSignals as $kw) {
-            if (str_contains($lower, $kw)) $foundHigh[] = $kw;
+            if (str_contains($lower, $kw)) {
+                $foundHigh[] = $kw;
+            }
         }
         foreach ($mediumSignals as $kw) {
-            if (str_contains($lower, $kw)) $foundMedium[] = $kw;
+            if (str_contains($lower, $kw)) {
+                $foundMedium[] = $kw;
+            }
         }
 
-        if (!empty($foundHigh)) {
+        if (! empty($foundHigh)) {
             return [
-                'provider'   => 'keyword_heuristic',
-                'label'      => 'yes',
+                'provider' => 'keyword_heuristic',
+                'label' => 'yes',
                 'confidence' => min(0.60 + count($foundHigh) * 0.1, 0.95),
-                'reasoning'  => 'High-intent keywords found: ' . implode(', ', $foundHigh) . '. This conversation likely indicates purchase intent or active interest.',
+                'reasoning' => 'High-intent keywords found: '.implode(', ', $foundHigh).'. This conversation likely indicates purchase intent or active interest.',
             ];
         }
 
-        if (!empty($foundMedium)) {
+        if (! empty($foundMedium)) {
             return [
-                'provider'   => 'keyword_heuristic',
-                'label'      => 'maybe',
+                'provider' => 'keyword_heuristic',
+                'label' => 'maybe',
                 'confidence' => min(0.40 + count($foundMedium) * 0.08, 0.70),
-                'reasoning'  => 'Medium-intent keywords found: ' . implode(', ', $foundMedium) . '. Some interest indicators detected but not conclusive.',
+                'reasoning' => 'Medium-intent keywords found: '.implode(', ', $foundMedium).'. Some interest indicators detected but not conclusive.',
             ];
         }
 
         return [
-            'provider'   => 'keyword_heuristic',
-            'label'      => 'no',
+            'provider' => 'keyword_heuristic',
+            'label' => 'no',
             'confidence' => 0.50,
-            'reasoning'  => 'No clear business intent detected in the conversation.',
+            'reasoning' => 'No clear business intent detected in the conversation.',
         ];
     }
 }

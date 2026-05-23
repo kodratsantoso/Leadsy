@@ -2,11 +2,11 @@
 
 namespace App\Services\Lead;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use App\Models\IntegrationConfig;
 use App\Models\MapCandidate;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Lead Discovery Service — BRD §3.3
@@ -30,24 +30,27 @@ class LeadDiscoveryService
      */
     public function geocodeArea(string $query): ?array
     {
-        if (empty($this->apiKey)) return null;
+        if (empty($this->apiKey)) {
+            return null;
+        }
 
         // ── Attempt 1: Geocoding API ──
         try {
             $response = Http::get('https://maps.googleapis.com/maps/api/geocode/json', [
                 'address' => $query,
-                'key'     => $this->apiKey,
+                'key' => $this->apiKey,
             ]);
             $data = $response->json();
 
-            if (($data['status'] ?? '') === 'OK' && !empty($data['results'])) {
+            if (($data['status'] ?? '') === 'OK' && ! empty($data['results'])) {
                 $first = $data['results'][0];
+
                 return [
-                    'place_id'          => $first['place_id'],
+                    'place_id' => $first['place_id'],
                     'formatted_address' => $first['formatted_address'],
-                    'lat'               => $first['geometry']['location']['lat'] ?? null,
-                    'lng'               => $first['geometry']['location']['lng'] ?? null,
-                    'viewport'          => $first['geometry']['viewport'] ?? null,
+                    'lat' => $first['geometry']['location']['lat'] ?? null,
+                    'lng' => $first['geometry']['location']['lng'] ?? null,
+                    'viewport' => $first['geometry']['viewport'] ?? null,
                 ];
             }
 
@@ -65,18 +68,19 @@ class LeadDiscoveryService
         try {
             $response = Http::get('https://maps.googleapis.com/maps/api/place/textsearch/json', [
                 'query' => $query,
-                'key'   => $this->apiKey,
+                'key' => $this->apiKey,
             ]);
             $data = $response->json();
 
-            if (($data['status'] ?? '') === 'OK' && !empty($data['results'])) {
+            if (($data['status'] ?? '') === 'OK' && ! empty($data['results'])) {
                 $first = $data['results'][0];
+
                 return [
-                    'place_id'          => $first['place_id'] ?? null,
+                    'place_id' => $first['place_id'] ?? null,
                     'formatted_address' => $first['formatted_address'] ?? $first['name'] ?? $query,
-                    'lat'               => $first['geometry']['location']['lat'] ?? null,
-                    'lng'               => $first['geometry']['location']['lng'] ?? null,
-                    'viewport'          => $first['geometry']['viewport'] ?? null,
+                    'lat' => $first['geometry']['location']['lat'] ?? null,
+                    'lng' => $first['geometry']['location']['lng'] ?? null,
+                    'viewport' => $first['geometry']['viewport'] ?? null,
                 ];
             }
         } catch (\Throwable $e) {
@@ -101,10 +105,10 @@ class LeadDiscoveryService
 
         try {
             $response = Http::get('https://maps.googleapis.com/maps/api/place/textsearch/json', [
-                'query'    => $query,
+                'query' => $query,
                 'location' => "{$lat},{$lng}",
-                'radius'   => min($radiusM, 50000),
-                'key'      => $this->apiKey,
+                'radius' => min($radiusM, 50000),
+                'key' => $this->apiKey,
             ]);
 
             $data = $response->json();
@@ -117,23 +121,26 @@ class LeadDiscoveryService
             $this->cacheCandidates($results);
 
             return [
-                'results'         => $results,
+                'results' => $results,
                 'next_page_token' => $data['next_page_token'] ?? null,
             ];
         } catch (\Throwable $e) {
             Log::error('[LeadDiscovery] Exception', ['msg' => $e->getMessage()]);
+
             return ['results' => [], 'error' => $e->getMessage()];
         }
     }
-    
+
     /**
      * Search wrapper that checks cache to limit API calls (future enhancement, for now saves direct to cache).
      */
     private function cacheCandidates(array $normalisedResults): void
     {
         foreach ($normalisedResults as $res) {
-            if (empty($res['external_place_id'])) continue;
-            
+            if (empty($res['external_place_id'])) {
+                continue;
+            }
+
             try {
                 MapCandidate::updateOrCreate(
                     ['place_id' => $res['external_place_id']],
@@ -159,11 +166,11 @@ class LeadDiscoveryService
     /**
      * Search for businesses near a given point within a radius.
      *
-     * @param  float   $lat        Center latitude
-     * @param  float   $lng        Center longitude
-     * @param  int     $radiusM    Radius in metres (max 50000)
-     * @param  string  $keyword    Business type / keyword to search
-     * @param  string  $type       Google Places type (eg. 'establishment')
+     * @param  float  $lat  Center latitude
+     * @param  float  $lng  Center longitude
+     * @param  int  $radiusM  Radius in metres (max 50000)
+     * @param  string  $keyword  Business type / keyword to search
+     * @param  string  $type  Google Places type (eg. 'establishment')
      * @return array{results: array, next_page_token: string|null}
      */
     public function discoverNearby(
@@ -180,29 +187,31 @@ class LeadDiscoveryService
         try {
             $response = Http::get('https://maps.googleapis.com/maps/api/place/nearbysearch/json', [
                 'location' => "{$lat},{$lng}",
-                'radius'   => min($radiusM, 50000),
-                'keyword'  => $keyword,
-                'type'     => $type,
-                'key'      => $this->apiKey,
+                'radius' => min($radiusM, 50000),
+                'keyword' => $keyword,
+                'type' => $type,
+                'key' => $this->apiKey,
             ]);
 
             $data = $response->json();
 
             if ($data['status'] !== 'OK' && $data['status'] !== 'ZERO_RESULTS') {
                 Log::error('[LeadDiscovery] Google Places API error', ['status' => $data['status']]);
+
                 return ['results' => [], 'next_page_token' => null, 'error' => $data['status']];
             }
 
             $results = collect($data['results'] ?? [])->map(fn ($place) => $this->normalise($place))->toArray();
-            
+
             $this->cacheCandidates($results);
 
             return [
-                'results'         => $results,
+                'results' => $results,
                 'next_page_token' => $data['next_page_token'] ?? null,
             ];
         } catch (\Throwable $e) {
             Log::error('[LeadDiscovery] Exception', ['msg' => $e->getMessage()]);
+
             return ['results' => [], 'next_page_token' => null, 'error' => $e->getMessage()];
         }
     }
@@ -215,16 +224,16 @@ class LeadDiscoveryService
         try {
             $response = Http::get('https://maps.googleapis.com/maps/api/place/nearbysearch/json', [
                 'pagetoken' => $pageToken,
-                'key'       => $this->apiKey,
+                'key' => $this->apiKey,
             ]);
 
             $data = $response->json();
             $results = collect($data['results'] ?? [])->map(fn ($p) => $this->normalise($p))->toArray();
-            
+
             $this->cacheCandidates($results);
 
             return [
-                'results'         => $results,
+                'results' => $results,
                 'next_page_token' => $data['next_page_token'] ?? null,
             ];
         } catch (\Throwable $e) {
@@ -249,8 +258,8 @@ class LeadDiscoveryService
 
             $response = Http::get('https://maps.googleapis.com/maps/api/place/details/json', [
                 'place_id' => $placeId,
-                'fields'   => 'place_id,name,formatted_address,geometry,formatted_phone_number,international_phone_number,website,opening_hours,types,business_status,url,rating,user_ratings_total',
-                'key'      => $this->apiKey,
+                'fields' => 'place_id,name,formatted_address,geometry,formatted_phone_number,international_phone_number,website,opening_hours,types,business_status,url,rating,user_ratings_total',
+                'key' => $this->apiKey,
             ]);
 
             $data = $response->json();
@@ -259,7 +268,7 @@ class LeadDiscoveryService
             }
 
             $detail = $this->normaliseDetail($data['result']);
-            
+
             // Upsert with enriched fields
             MapCandidate::updateOrCreate(
                 ['place_id' => $placeId],
@@ -283,6 +292,7 @@ class LeadDiscoveryService
             return $detail;
         } catch (\Throwable $e) {
             Log::error('[LeadDiscovery] Place detail error', ['msg' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -296,15 +306,15 @@ class LeadDiscoveryService
 
         return [
             'external_place_id' => $place['place_id'] ?? null,
-            'company_name'      => $place['name'] ?? 'Unknown',
-            'address'           => $place['vicinity'] ?? ($place['formatted_address'] ?? ''),
-            'lat'               => $loc['lat'] ?? null,
-            'lng'               => $loc['lng'] ?? null,
+            'company_name' => $place['name'] ?? 'Unknown',
+            'address' => $place['vicinity'] ?? ($place['formatted_address'] ?? ''),
+            'lat' => $loc['lat'] ?? null,
+            'lng' => $loc['lng'] ?? null,
             'business_category' => implode(', ', array_slice($place['types'] ?? [], 0, 3)),
-            'operating_hours'   => isset($place['opening_hours']['open_now'])
+            'operating_hours' => isset($place['opening_hours']['open_now'])
                 ? ($place['opening_hours']['open_now'] ? 'Open now' : 'Closed')
                 : null,
-            'rating'            => $place['rating'] ?? null,
+            'rating' => $place['rating'] ?? null,
             'user_ratings_total' => $place['user_ratings_total'] ?? null,
         ];
     }
@@ -318,18 +328,18 @@ class LeadDiscoveryService
 
         return [
             'external_place_id' => $place['place_id'] ?? null,
-            'company_name'      => $place['name'] ?? 'Unknown',
-            'address'           => $place['formatted_address'] ?? '',
-            'lat'               => $loc['lat'] ?? null,
-            'lng'               => $loc['lng'] ?? null,
-            'phone'             => $place['international_phone_number'] ?? ($place['formatted_phone_number'] ?? null),
-            'website'           => $place['website'] ?? null,
-            'website_domain'    => isset($place['website']) ? parse_url($place['website'], PHP_URL_HOST) : null,
+            'company_name' => $place['name'] ?? 'Unknown',
+            'address' => $place['formatted_address'] ?? '',
+            'lat' => $loc['lat'] ?? null,
+            'lng' => $loc['lng'] ?? null,
+            'phone' => $place['international_phone_number'] ?? ($place['formatted_phone_number'] ?? null),
+            'website' => $place['website'] ?? null,
+            'website_domain' => isset($place['website']) ? parse_url($place['website'], PHP_URL_HOST) : null,
             'business_category' => implode(', ', array_slice($place['types'] ?? [], 0, 3)),
-            'operating_hours'   => isset($place['opening_hours']['weekday_text'])
+            'operating_hours' => isset($place['opening_hours']['weekday_text'])
                 ? implode('; ', $place['opening_hours']['weekday_text'])
                 : null,
-            'google_maps_url'   => $place['url'] ?? null,
+            'google_maps_url' => $place['url'] ?? null,
         ];
     }
 }

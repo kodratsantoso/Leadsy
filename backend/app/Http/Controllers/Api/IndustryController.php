@@ -21,8 +21,8 @@ class IndustryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'          => 'required|string|max:255|unique:industries',
-            'synonyms'      => 'nullable|array',
+            'name' => 'required|string|max:255|unique:industries',
+            'synonyms' => 'nullable|array',
             'scoring_hints' => 'nullable|string',
         ]);
 
@@ -37,10 +37,10 @@ class IndustryController extends Controller
         $original = $industry->getAttributes();
 
         $data = $request->validate([
-            'name'          => 'sometimes|string|max:255',
-            'synonyms'      => 'nullable|array',
+            'name' => 'sometimes|string|max:255',
+            'synonyms' => 'nullable|array',
             'scoring_hints' => 'nullable|string',
-            'is_active'     => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $industry->update($data);
@@ -53,6 +53,7 @@ class IndustryController extends Controller
     {
         AuditService::logDeleted('industries', $industry);
         $industry->delete();
+
         return response()->json(null, 204);
     }
 
@@ -61,8 +62,8 @@ class IndustryController extends Controller
     public function storeSub(Request $request, Industry $industry): JsonResponse
     {
         $data = $request->validate([
-            'name'          => 'required|string|max:255',
-            'synonyms'      => 'nullable|array',
+            'name' => 'required|string|max:255',
+            'synonyms' => 'nullable|array',
             'scoring_hints' => 'nullable|string',
         ]);
 
@@ -77,8 +78,8 @@ class IndustryController extends Controller
         $original = $sub->getAttributes();
 
         $data = $request->validate([
-            'name'          => 'sometimes|string|max:255',
-            'synonyms'      => 'nullable|array',
+            'name' => 'sometimes|string|max:255',
+            'synonyms' => 'nullable|array',
             'scoring_hints' => 'nullable|string',
         ]);
 
@@ -92,6 +93,7 @@ class IndustryController extends Controller
     {
         AuditService::logDeleted('sub_industries', $sub);
         $sub->delete();
+
         return response()->json(null, 204);
     }
 }

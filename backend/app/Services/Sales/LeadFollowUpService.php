@@ -5,11 +5,12 @@ namespace App\Services\Sales;
 use App\Models\Lead;
 use App\Models\LeadFollowUp;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
  * Lead Follow-Up Service — Module B (Sales Activity & Lead Evaluation Engine)
- * 
+ *
  * Implements follow-up tracking and management with:
  * - Follow-up creation and status management
  * - Overdue detection
@@ -55,6 +56,7 @@ class LeadFollowUpService
     public function completeFollowUp(LeadFollowUp $followUp): LeadFollowUp
     {
         $followUp->update(['status' => 'completed']);
+
         return $followUp->fresh();
     }
 
@@ -64,6 +66,7 @@ class LeadFollowUpService
     public function cancelFollowUp(LeadFollowUp $followUp): LeadFollowUp
     {
         $followUp->update(['status' => 'cancelled']);
+
         return $followUp->fresh();
     }
 
@@ -92,7 +95,7 @@ class LeadFollowUpService
     /**
      * Get pending follow-ups for a lead
      */
-    public function getPendingFollowUps(Lead $lead): \Illuminate\Database\Eloquent\Collection
+    public function getPendingFollowUps(Lead $lead): Collection
     {
         return $lead->followUps()
             ->where('status', 'pending')
@@ -103,7 +106,7 @@ class LeadFollowUpService
     /**
      * Get overdue follow-ups for a lead
      */
-    public function getOverdueFollowUps(Lead $lead): \Illuminate\Database\Eloquent\Collection
+    public function getOverdueFollowUps(Lead $lead): Collection
     {
         return $lead->followUps()
             ->where('status', 'pending')
@@ -137,11 +140,12 @@ class LeadFollowUpService
     public function getDaysUntilNextFollowUp(Lead $lead): ?int
     {
         $nextFollowUp = $this->getNextFollowUp($lead);
-        if (!$nextFollowUp) {
+        if (! $nextFollowUp) {
             return null;
         }
 
         $diff = Carbon::now()->diffInDays($nextFollowUp->due_date, false);
+
         return $diff > 0 ? $diff : null; // null if overdue
     }
 
@@ -167,7 +171,7 @@ class LeadFollowUpService
                 'days_until' => $this->getDaysUntilNextFollowUp($lead),
             ] : null,
             'overdue_details' => $this->getOverdueFollowUps($lead)
-                ->map(fn($f) => [
+                ->map(fn ($f) => [
                     'id' => $f->id,
                     'due_date' => $f->due_date,
                     'purpose' => $f->purpose,
@@ -248,7 +252,7 @@ class LeadFollowUpService
     /**
      * Get follow-ups due in next N days for multiple leads (for scheduling/reminders)
      */
-    public function getFollowUpsDueInDays(int $days = 7): \Illuminate\Database\Eloquent\Collection
+    public function getFollowUpsDueInDays(int $days = 7): Collection
     {
         return LeadFollowUp::where('status', 'pending')
             ->whereBetween('due_date', [
@@ -263,7 +267,7 @@ class LeadFollowUpService
     /**
      * Get all overdue follow-ups (for team dashboard)
      */
-    public function getAllOverdueFollowUps(): \Illuminate\Database\Eloquent\Collection
+    public function getAllOverdueFollowUps(): Collection
     {
         return LeadFollowUp::where('status', 'pending')
             ->where('due_date', '<', Carbon::now())

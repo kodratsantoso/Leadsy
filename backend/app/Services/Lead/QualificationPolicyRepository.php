@@ -13,7 +13,7 @@ class QualificationPolicyRepository
             ->latest('id')
             ->first();
 
-        if (!$set) {
+        if (! $set) {
             return config('qualification');
         }
 

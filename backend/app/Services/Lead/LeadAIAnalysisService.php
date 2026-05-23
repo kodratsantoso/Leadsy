@@ -8,7 +8,7 @@ use App\Services\AI\AiOrchestrationService;
 
 /**
  * Lead AI Analysis Service — Module A (Lead Intelligence Engine)
- * 
+ *
  * Implements AI-assisted lead analysis with:
  * - Relevance score (0-100)
  * - Business opportunity summary
@@ -21,9 +21,7 @@ use App\Services\AI\AiOrchestrationService;
  */
 class LeadAIAnalysisService
 {
-    public function __construct(private AiOrchestrationService $ai)
-    {
-    }
+    public function __construct(private AiOrchestrationService $ai) {}
 
     /**
      * Analyze a lead using AI to understand opportunities

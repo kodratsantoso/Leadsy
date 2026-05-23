@@ -16,12 +16,12 @@ class LeadProductMatch extends Model
     ];
 
     protected $casts = [
-        'match_score'     => 'integer',
-        'confidence_score'=> 'integer',
-        'is_recommended'  => 'boolean',
+        'match_score' => 'integer',
+        'confidence_score' => 'integer',
+        'is_recommended' => 'boolean',
         'last_matched_at' => 'datetime',
-        'bant_analysis'   => 'array',
-        'reasoning'       => 'array',
+        'bant_analysis' => 'array',
+        'reasoning' => 'array',
     ];
 
     public function lead(): BelongsTo

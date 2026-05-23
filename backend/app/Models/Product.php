@@ -20,7 +20,7 @@ class Product extends Model
 
     protected $casts = [
         'use_cases' => 'array',
-        'keywords'  => 'array',
+        'keywords' => 'array',
     ];
 
     public function creator(): BelongsTo

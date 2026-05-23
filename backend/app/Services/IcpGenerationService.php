@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Services\AI\AiOrchestrationService;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -40,11 +41,11 @@ class IcpGenerationService
 
         if ($products->isEmpty()) {
             return [
-                'suggestions'       => [],
+                'suggestions' => [],
                 'products_analysed' => 0,
-                'mode'              => $mode,
-                'ai_model'          => null,
-                'error'             => 'No active products found. Add products with targeting metadata first.',
+                'mode' => $mode,
+                'ai_model' => null,
+                'error' => 'No active products found. Add products with targeting metadata first.',
             ];
         }
 
@@ -57,20 +58,20 @@ class IcpGenerationService
 
     /* ── Combined (one ICP across all products) ───────────────────── */
 
-    private function generateCombined(\Illuminate\Support\Collection $products, string $mode): array
+    private function generateCombined(Collection $products, string $mode): array
     {
-        $prompt  = $this->buildPrompt($products->toArray(), 'combined');
-        $result  = $this->ai->call('icp_generation', $prompt, [
+        $prompt = $this->buildPrompt($products->toArray(), 'combined');
+        $result = $this->ai->call('icp_generation', $prompt, [
             'entity_type' => 'icp_generation',
-            'entity_id'   => 'combined_' . md5($products->pluck('id')->join(',')),
+            'entity_id' => 'combined_'.md5($products->pluck('id')->join(',')),
         ]);
 
-        if (!$result['success'] || empty($result['content'])) {
+        if (! $result['success'] || empty($result['content'])) {
             return $this->errorResult($mode, $products->count(), $result['error'] ?? 'AI call failed');
         }
 
         $parsed = json_decode($result['content'], true);
-        if (!is_array($parsed)) {
+        if (! is_array($parsed)) {
             return $this->errorResult($mode, $products->count(), 'AI returned invalid JSON');
         }
 
@@ -78,46 +79,49 @@ class IcpGenerationService
         $suggestions = isset($parsed[0]) ? $parsed : [$parsed];
 
         return [
-            'suggestions'       => $this->normaliseSuggestions($suggestions),
+            'suggestions' => $this->normaliseSuggestions($suggestions),
             'products_analysed' => $products->count(),
-            'mode'              => $mode,
-            'ai_model'          => $result['model'] ?? null,
+            'mode' => $mode,
+            'ai_model' => $result['model'] ?? null,
         ];
     }
 
     /* ── Per-category (one ICP per distinct category) ─────────────── */
 
-    private function generatePerCategory(\Illuminate\Support\Collection $products, string $mode): array
+    private function generatePerCategory(Collection $products, string $mode): array
     {
         $categories = $products->groupBy(fn ($p) => $p->category ?: 'Uncategorised');
         $suggestions = [];
-        $aiModel     = null;
+        $aiModel = null;
 
         foreach ($categories as $category => $group) {
             $prompt = $this->buildPrompt($group->toArray(), 'per_category', $category);
             $result = $this->ai->call('icp_generation', $prompt, [
                 'entity_type' => 'icp_generation',
-                'entity_id'   => 'cat_' . md5($category),
+                'entity_id' => 'cat_'.md5($category),
             ]);
 
-            if (!$result['success'] || empty($result['content'])) {
+            if (! $result['success'] || empty($result['content'])) {
                 Log::warning('[IcpGeneration] Category failed', ['category' => $category]);
+
                 continue;
             }
 
             $parsed = json_decode($result['content'], true);
-            if (!is_array($parsed)) continue;
+            if (! is_array($parsed)) {
+                continue;
+            }
 
-            $single      = isset($parsed[0]) ? $parsed[0] : $parsed;
+            $single = isset($parsed[0]) ? $parsed[0] : $parsed;
             $suggestions = array_merge($suggestions, $this->normaliseSuggestions([$single]));
-            $aiModel     = $result['model'] ?? $aiModel;
+            $aiModel = $result['model'] ?? $aiModel;
         }
 
         return [
-            'suggestions'       => $suggestions,
+            'suggestions' => $suggestions,
             'products_analysed' => $products->count(),
-            'mode'              => $mode,
-            'ai_model'          => $aiModel,
+            'mode' => $mode,
+            'ai_model' => $aiModel,
         ];
     }
 
@@ -127,26 +131,26 @@ class IcpGenerationService
     {
         $productJson = json_encode(array_map(function ($p) {
             return [
-                'name'                => $p['name'] ?? null,
-                'category'            => $p['category'] ?? null,
-                'description'         => $p['description'] ?? null,
-                'target_industry'     => $p['target_industry'] ?? null,
+                'name' => $p['name'] ?? null,
+                'category' => $p['category'] ?? null,
+                'description' => $p['description'] ?? null,
+                'target_industry' => $p['target_industry'] ?? null,
                 'target_company_size' => $p['target_company_size'] ?? null,
-                'target_pain_points'  => $p['target_pain_points'] ?? null,
-                'target_buyer_persona'=> $p['target_buyer_persona'] ?? null,
-                'ideal_company_profile'=> $p['ideal_company_profile'] ?? null,
-                'budget_range'        => $p['budget_range'] ?? null,
-                'use_cases'           => $p['use_cases'] ?? null,
-                'competitor_notes'    => $p['competitor_notes'] ?? null,
-                'keywords'            => $p['keywords'] ?? null,
-                'supported_regions'   => $p['supported_regions'] ?? null,
+                'target_pain_points' => $p['target_pain_points'] ?? null,
+                'target_buyer_persona' => $p['target_buyer_persona'] ?? null,
+                'ideal_company_profile' => $p['ideal_company_profile'] ?? null,
+                'budget_range' => $p['budget_range'] ?? null,
+                'use_cases' => $p['use_cases'] ?? null,
+                'competitor_notes' => $p['competitor_notes'] ?? null,
+                'keywords' => $p['keywords'] ?? null,
+                'supported_regions' => $p['supported_regions'] ?? null,
             ];
         }, $products), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         $categoryContext = $category ? "\nFocus only on the '{$category}' product category." : '';
         $modeInstruction = $mode === 'per_category'
             ? "Generate ONE ICP profile specifically for the products in this category.{$categoryContext}"
-            : "Synthesise ONE combined ICP profile that represents the ideal customer across the entire product portfolio.";
+            : 'Synthesise ONE combined ICP profile that represents the ideal customer across the entire product portfolio.';
 
         return <<<PROMPT
 You are an expert B2B go-to-market strategist. Analyse the product portfolio below and generate an Ideal Customer Profile (ICP).
@@ -190,24 +194,26 @@ PROMPT;
     private function normaliseSuggestions(array $raw): array
     {
         return array_values(array_filter(array_map(function ($item) {
-            if (!is_array($item) || empty($item['name'])) return null;
+            if (! is_array($item) || empty($item['name'])) {
+                return null;
+            }
 
             return [
-                'name'                 => (string) ($item['name'] ?? ''),
-                'description'          => (string) ($item['description'] ?? ''),
-                'target_industries'    => (array)  ($item['target_industries'] ?? []),
-                'target_company_sizes' => (array)  ($item['target_company_sizes'] ?? []),
-                'target_territories'   => (array)  ($item['target_territories'] ?? []),
-                'min_lead_score'       => (int)    ($item['min_lead_score'] ?? 0),
-                'weight_lead_score'    => (float)  ($item['weight_lead_score'] ?? 0.30),
-                'weight_industry'      => (float)  ($item['weight_industry'] ?? 0.25),
-                'weight_company_size'  => (float)  ($item['weight_company_size'] ?? 0.20),
-                'weight_territory'     => (float)  ($item['weight_territory'] ?? 0.15),
-                'weight_contact_info'  => (float)  ($item['weight_contact_info'] ?? 0.10),
-                'reasoning'            => (string) ($item['reasoning'] ?? ''),
-                'missing_data_notes'   => (string) ($item['missing_data_notes'] ?? ''),
-                'confidence'           => (int)    ($item['confidence'] ?? 50),
-                'is_active'            => true,
+                'name' => (string) ($item['name'] ?? ''),
+                'description' => (string) ($item['description'] ?? ''),
+                'target_industries' => (array) ($item['target_industries'] ?? []),
+                'target_company_sizes' => (array) ($item['target_company_sizes'] ?? []),
+                'target_territories' => (array) ($item['target_territories'] ?? []),
+                'min_lead_score' => (int) ($item['min_lead_score'] ?? 0),
+                'weight_lead_score' => (float) ($item['weight_lead_score'] ?? 0.30),
+                'weight_industry' => (float) ($item['weight_industry'] ?? 0.25),
+                'weight_company_size' => (float) ($item['weight_company_size'] ?? 0.20),
+                'weight_territory' => (float) ($item['weight_territory'] ?? 0.15),
+                'weight_contact_info' => (float) ($item['weight_contact_info'] ?? 0.10),
+                'reasoning' => (string) ($item['reasoning'] ?? ''),
+                'missing_data_notes' => (string) ($item['missing_data_notes'] ?? ''),
+                'confidence' => (int) ($item['confidence'] ?? 50),
+                'is_active' => true,
             ];
         }, $raw)));
     }
@@ -215,11 +221,11 @@ PROMPT;
     private function errorResult(string $mode, int $count, string $error): array
     {
         return [
-            'suggestions'       => [],
+            'suggestions' => [],
             'products_analysed' => $count,
-            'mode'              => $mode,
-            'ai_model'          => null,
-            'error'             => $error,
+            'mode' => $mode,
+            'ai_model' => null,
+            'error' => $error,
         ];
     }
 }

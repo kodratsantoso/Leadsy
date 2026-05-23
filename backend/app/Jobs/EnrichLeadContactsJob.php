@@ -3,9 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Lead;
-use App\Models\LeadContact;
 use App\Services\Enrichment\ContactEnrichmentOrchestrator;
-use App\Jobs\ScoreLeadJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -22,6 +20,7 @@ class EnrichLeadContactsJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
+
     public int $backoff = 30; // Handle API limits gracefully
 
     public function __construct(

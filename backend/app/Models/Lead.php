@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Builder;
 
 class Lead extends Model
 {
@@ -30,14 +30,14 @@ class Lead extends Model
     ];
 
     protected $casts = [
-        'lat'              => 'float',
-        'lng'              => 'float',
-        'social_profiles'  => 'array',
-        'lead_score'       => 'integer',
+        'lat' => 'float',
+        'lng' => 'float',
+        'social_profiles' => 'array',
+        'lead_score' => 'integer',
         'estimated_closing_amount' => 'decimal:2',
-        'realized_closing_amount'  => 'decimal:2',
+        'realized_closing_amount' => 'decimal:2',
         'use_ai_reference' => 'boolean',
-        'branch_count'     => 'integer',
+        'branch_count' => 'integer',
     ];
 
     /* ── Relationships ── */

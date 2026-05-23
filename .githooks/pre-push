@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -e
+
+printf "\nRunning pre-push validation...\n"
+sh scripts/validate-pre-push.sh
+printf "\nPre-push validation passed.\n"

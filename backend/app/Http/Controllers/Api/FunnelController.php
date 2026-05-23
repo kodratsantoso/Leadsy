@@ -30,11 +30,11 @@ class FunnelController extends Controller
     public function storeStage(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'sequence'    => 'required|integer|min:0',
-            'color'       => 'nullable|string|max:7',
+            'name' => 'required|string|max:255',
+            'sequence' => 'required|integer|min:0',
+            'color' => 'nullable|string|max:7',
             'probability' => 'nullable|integer|min:0|max:100',
-            'is_active'   => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $stage = FunnelStage::create($data);
@@ -48,11 +48,11 @@ class FunnelController extends Controller
     {
         $original = $stage->getAttributes();
         $data = $request->validate([
-            'name'        => 'sometimes|string|max:255',
-            'sequence'    => 'nullable|integer|min:0',
-            'color'       => 'nullable|string|max:7',
+            'name' => 'sometimes|string|max:255',
+            'sequence' => 'nullable|integer|min:0',
+            'color' => 'nullable|string|max:7',
             'probability' => 'nullable|integer|min:0|max:100',
-            'is_active'   => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $stage->update($data);
@@ -86,12 +86,12 @@ class FunnelController extends Controller
             ->pluck('total', 'funnel_stage_id');
 
         $result = $stages->map(fn ($s) => [
-            'id'          => $s->id,
-            'name'        => $s->name,
-            'color'       => $s->color,
-            'sequence'    => $s->sequence,
+            'id' => $s->id,
+            'name' => $s->name,
+            'color' => $s->color,
+            'sequence' => $s->sequence,
             'probability' => $s->probability,
-            'count'       => $counts[$s->id] ?? 0,
+            'count' => $counts[$s->id] ?? 0,
         ]);
 
         return response()->json(['data' => $result]);

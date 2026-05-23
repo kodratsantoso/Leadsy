@@ -33,6 +33,7 @@ class ProductMetadataGenerationService
     public function generate(string $productName, array $availableCategories): array
     {
         $prompt = $this->buildNamePrompt($productName, $availableCategories);
+
         return $this->callAi($prompt, [
             'product_name' => $productName,
             'available_categories' => $availableCategories,
@@ -57,6 +58,7 @@ class ProductMetadataGenerationService
         }
 
         $prompt = $this->buildContentPrompt($content, $url, $productName, $availableCategories, 'website');
+
         return $this->callAi($prompt, [
             'product_name' => $productName,
             'source_url' => $url,
@@ -83,6 +85,7 @@ class ProductMetadataGenerationService
         }
 
         $prompt = $this->buildContentPrompt($content, null, $productName, $availableCategories, 'pdf');
+
         return $this->callAi($prompt, [
             'product_name' => $productName,
             'source' => 'pdf',
@@ -103,16 +106,20 @@ class ProductMetadataGenerationService
 
             if (! $response->successful()) {
                 Log::warning('[ProductMetadataGen] URL fetch failed', ['url' => $url, 'status' => $response->status()]);
+
                 return null;
             }
 
             $html = $response->body();
+
             return $this->extractTextFromHtml($html);
         } catch (ConnectionException $e) {
             Log::warning('[ProductMetadataGen] URL connection error', ['url' => $url, 'error' => $e->getMessage()]);
+
             return null;
         } catch (\Throwable $e) {
             Log::warning('[ProductMetadataGen] URL fetch exception', ['url' => $url, 'error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -126,7 +133,7 @@ class ProductMetadataGenerationService
         // Extract meta description for extra context
         $metaDesc = '';
         if (preg_match('/<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']/i', $html, $m)) {
-            $metaDesc = $m[1] . "\n\n";
+            $metaDesc = $m[1]."\n\n";
         }
 
         // Strip remaining tags and decode entities
@@ -136,7 +143,7 @@ class ProductMetadataGenerationService
         // Collapse whitespace
         $text = preg_replace('/[ \t]+/', ' ', $text);
         $text = preg_replace('/\n{3,}/', "\n\n", $text);
-        $text = trim($metaDesc . $text);
+        $text = trim($metaDesc.$text);
 
         return mb_substr($text, 0, self::MAX_CONTENT_CHARS);
     }
@@ -144,9 +151,9 @@ class ProductMetadataGenerationService
     private function extractPdfText(string $path): ?string
     {
         try {
-            $parser = new PdfParser();
-            $pdf    = $parser->parseFile($path);
-            $text   = $pdf->getText();
+            $parser = new PdfParser;
+            $pdf = $parser->parseFile($path);
+            $text = $pdf->getText();
 
             if (empty(trim($text))) {
                 return null;
@@ -159,6 +166,7 @@ class ProductMetadataGenerationService
             return mb_substr(trim($text), 0, self::MAX_CONTENT_CHARS);
         } catch (\Throwable $e) {
             Log::warning('[ProductMetadataGen] PDF parse error', ['path' => $path, 'error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -201,8 +209,8 @@ PROMPT;
         string $sourceType
     ): string {
         $categoriesJson = json_encode(array_values($availableCategories), JSON_UNESCAPED_UNICODE);
-        $sourceLabel    = $sourceType === 'pdf' ? 'Product One-Pager (PDF)' : "Website ({$url})";
-        $nameHint       = $productName ? "\n## PRODUCT NAME HINT\n{$productName}\n" : '';
+        $sourceLabel = $sourceType === 'pdf' ? 'Product One-Pager (PDF)' : "Website ({$url})";
+        $nameHint = $productName ? "\n## PRODUCT NAME HINT\n{$productName}\n" : '';
 
         return <<<PROMPT
 You are a B2B product metadata expert for an Indonesian sales intelligence platform.
@@ -263,31 +271,33 @@ INSTRUCTIONS;
     {
         $result = $this->ai->call('product_metadata_generation', $prompt, array_merge([
             'entity_type' => 'product_metadata',
-            'entity_id'   => md5($context['product_name'] ?? $prompt),
+            'entity_id' => md5($context['product_name'] ?? $prompt),
         ], $context));
 
         if (! $result['success'] || empty($result['content'])) {
             Log::warning('[ProductMetadataGen] AI call failed', [
                 'context' => $context,
-                'error'   => $result['error'] ?? 'unknown',
+                'error' => $result['error'] ?? 'unknown',
             ]);
+
             return ['success' => false, 'error' => $result['error'] ?? 'AI call failed'];
         }
 
-        $raw    = preg_replace('/^```(?:json)?\s*|\s*```$/s', '', trim($result['content']));
+        $raw = preg_replace('/^```(?:json)?\s*|\s*```$/s', '', trim($result['content']));
         $parsed = json_decode($raw, true);
 
         if (! is_array($parsed)) {
             Log::warning('[ProductMetadataGen] AI returned invalid JSON', [
                 'context' => $context,
-                'raw'     => substr($result['content'], 0, 300),
+                'raw' => substr($result['content'], 0, 300),
             ]);
+
             return ['success' => false, 'error' => 'AI returned invalid JSON — please retry'];
         }
 
         return [
-            'success'  => true,
-            'data'     => $this->normalise(
+            'success' => true,
+            'data' => $this->normalise(
                 $parsed,
                 $context['product_name'] ?? '',
                 $context['available_categories'] ?? [],
@@ -299,17 +309,17 @@ INSTRUCTIONS;
     private function normalise(array $raw, string $productName = '', array $availableCategories = []): array
     {
         $data = [
-            'description'           => $this->toText($raw['description'] ?? $raw['product_description'] ?? $raw['product_summary'] ?? $raw['solution_summary'] ?? $raw['summary'] ?? $raw['overview'] ?? $raw['product_overview'] ?? $raw['value_proposition'] ?? ''),
-            'category'              => implode(', ', $this->toList($raw['categories'] ?? $raw['category'] ?? [])),
-            'target_industry'       => implode(', ', $this->toList($raw['target_industries'] ?? $raw['target_industry'] ?? $raw['industries'] ?? [])),
-            'target_company_size'   => $this->toText($raw['company_size'] ?? $raw['target_company_size'] ?? ''),
-            'target_buyer_persona'  => implode(', ', $this->toList($raw['buyer_persona'] ?? $raw['target_buyer_persona'] ?? [])),
-            'budget_range'          => $this->toText($raw['budget_range'] ?? ''),
-            'supported_regions'     => implode(', ', $this->toList($raw['regions'] ?? $raw['supported_regions'] ?? $raw['geographic_focus'] ?? $raw['markets'] ?? [])),
-            'keywords'              => $this->toList($raw['keywords'] ?? []),
-            'target_pain_points'    => implode("\n", $this->toList($raw['pain_points'] ?? $raw['target_pain_points'] ?? $raw['customer_pain_points'] ?? $raw['business_challenges'] ?? $raw['key_pain_points'] ?? $raw['challenges_addressed'] ?? [])),
-            'use_cases'             => $this->toList($raw['use_cases'] ?? $raw['recommended_use_cases'] ?? $raw['applications'] ?? []),
-            'competitor_notes'      => $this->toText($raw['competitor_context'] ?? $raw['competitor_notes'] ?? ''),
+            'description' => $this->toText($raw['description'] ?? $raw['product_description'] ?? $raw['product_summary'] ?? $raw['solution_summary'] ?? $raw['summary'] ?? $raw['overview'] ?? $raw['product_overview'] ?? $raw['value_proposition'] ?? ''),
+            'category' => implode(', ', $this->toList($raw['categories'] ?? $raw['category'] ?? [])),
+            'target_industry' => implode(', ', $this->toList($raw['target_industries'] ?? $raw['target_industry'] ?? $raw['industries'] ?? [])),
+            'target_company_size' => $this->toText($raw['company_size'] ?? $raw['target_company_size'] ?? ''),
+            'target_buyer_persona' => implode(', ', $this->toList($raw['buyer_persona'] ?? $raw['target_buyer_persona'] ?? [])),
+            'budget_range' => $this->toText($raw['budget_range'] ?? ''),
+            'supported_regions' => implode(', ', $this->toList($raw['regions'] ?? $raw['supported_regions'] ?? $raw['geographic_focus'] ?? $raw['markets'] ?? [])),
+            'keywords' => $this->toList($raw['keywords'] ?? []),
+            'target_pain_points' => implode("\n", $this->toList($raw['pain_points'] ?? $raw['target_pain_points'] ?? $raw['customer_pain_points'] ?? $raw['business_challenges'] ?? $raw['key_pain_points'] ?? $raw['challenges_addressed'] ?? [])),
+            'use_cases' => $this->toList($raw['use_cases'] ?? $raw['recommended_use_cases'] ?? $raw['applications'] ?? []),
+            'competitor_notes' => $this->toText($raw['competitor_context'] ?? $raw['competitor_notes'] ?? ''),
             'ideal_company_profile' => $this->toText($raw['ideal_company_profile'] ?? ''),
         ];
 
@@ -408,6 +418,7 @@ INSTRUCTIONS;
                 $items[] = $label !== null
                     ? $this->toText($label)
                     : $this->toText($item);
+
                 continue;
             }
 
@@ -415,6 +426,7 @@ INSTRUCTIONS;
                 if ($item) {
                     $items[] = $key;
                 }
+
                 continue;
             }
 

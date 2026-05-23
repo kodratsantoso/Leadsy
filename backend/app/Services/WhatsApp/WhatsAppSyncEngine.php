@@ -2,15 +2,14 @@
 
 namespace App\Services\WhatsApp;
 
-use App\Models\WhatsappSyncRule;
 use App\Models\Lead;
-use Illuminate\Support\Str;
+use App\Models\WhatsappSyncRule;
 
 class WhatsAppSyncEngine
 {
     /**
      * Determines if a message should be ingested based on Privacy Sync Rules.
-     * 
+     *
      * Evaluation Flow:
      * 1. If strict_allowlist is enabled, ONLY matches pass. (default deny)
      * 2. If sender's phone number exactly matches an existing Lead, ALWAYS PASS.
@@ -25,6 +24,7 @@ class WhatsAppSyncEngine
         $linkedLeadId = null;
         if (Lead::where('phone', 'like', "%{$cleanPhone}%")->exists()) {
             $linkedLeadId = Lead::where('phone', 'like', "%{$cleanPhone}%")->value('id');
+
             // If we know this lead, we sync it.
             return ['allow' => true, 'reason' => 'matched_known_lead', 'lead_id' => $linkedLeadId];
         }
@@ -36,7 +36,7 @@ class WhatsAppSyncEngine
         $includeKeywords = $rules->where('rule_type', 'include_keyword')->pluck('rule_value');
         $isStrictAllowlist = $rules->where('rule_type', 'strict_allowlist')->where('rule_value', 'true')->isNotEmpty();
 
-        $textToSearch = strtolower($senderName . ' ' . $body);
+        $textToSearch = strtolower($senderName.' '.$body);
 
         // 2. Evaluate Exclusions (Denylist)
         foreach ($excludeKeywords as $keyword) {

@@ -13,6 +13,7 @@ class TerritoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $territories = Territory::orderBy('created_at', 'desc')->get();
+
         return response()->json(['data' => $territories]);
     }
 
@@ -24,11 +25,11 @@ class TerritoryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'          => 'required|string|max:255',
-            'center_lat'    => 'required|numeric|between:-90,90',
-            'center_lng'    => 'required|numeric|between:-180,180',
+            'name' => 'required|string|max:255',
+            'center_lat' => 'required|numeric|between:-90,90',
+            'center_lng' => 'required|numeric|between:-180,180',
             'radius_meters' => 'required|integer|min:100|max:50000',
-            'metadata'      => 'nullable|array',
+            'metadata' => 'nullable|array',
         ]);
 
         $data['created_by'] = $request->user()?->id;
@@ -45,11 +46,11 @@ class TerritoryController extends Controller
         $original = $territory->getAttributes();
 
         $data = $request->validate([
-            'name'          => 'sometimes|string|max:255',
-            'center_lat'    => 'nullable|numeric|between:-90,90',
-            'center_lng'    => 'nullable|numeric|between:-180,180',
+            'name' => 'sometimes|string|max:255',
+            'center_lat' => 'nullable|numeric|between:-90,90',
+            'center_lng' => 'nullable|numeric|between:-180,180',
             'radius_meters' => 'nullable|integer|min:100|max:50000',
-            'metadata'      => 'nullable|array',
+            'metadata' => 'nullable|array',
         ]);
 
         $territory->update($data);
@@ -62,6 +63,7 @@ class TerritoryController extends Controller
     {
         AuditService::logDeleted('territories', $territory);
         $territory->delete();
+
         return response()->json(null, 204);
     }
 }

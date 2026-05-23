@@ -10,7 +10,7 @@ class Industry extends Model
     protected $fillable = ['name', 'synonyms', 'scoring_hints', 'is_active'];
 
     protected $casts = [
-        'synonyms'  => 'array',
+        'synonyms' => 'array',
         'is_active' => 'boolean',
     ];
 

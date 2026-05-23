@@ -3,19 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\AnalyzeWhatsAppConversationJob;
+use App\Models\Lead;
+use App\Models\WhatsappCampaign;
+use App\Models\WhatsappCampaignRecipient;
+use App\Models\WhatsappContact;
+use App\Models\WhatsappConversation;
+use App\Models\WhatsappMessage;
+use App\Models\WhatsappSession;
+use App\Models\WhatsappSyncRule;
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use App\Models\WhatsappSession;
-use App\Models\WhatsappContact;
-use App\Models\WhatsappConversation;
-use App\Models\WhatsappMessage;
-use App\Models\WhatsappCampaign;
-use App\Models\WhatsappCampaignRecipient;
-use App\Models\WhatsappSyncRule;
-use App\Models\Lead;
-use App\Jobs\AnalyzeWhatsAppConversationJob;
 
 class WhatsAppController extends Controller
 {
@@ -50,6 +51,7 @@ class WhatsAppController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('[WhatsApp] Engine unreachable on init', ['error' => $e->getMessage()]);
+
             return response()->json(['error' => 'Failed to reach WhatsApp Engine. Ensure the sidecar is running.'], 500);
         }
 
@@ -74,7 +76,7 @@ class WhatsAppController extends Controller
         $session->refresh();
 
         return response()->json([
-            'status'     => $snapshot['status'] ?? $session->status,
+            'status' => $snapshot['status'] ?? $session->status,
             'qr_payload' => $snapshot['qr_payload'] ?? $session->qr_payload,
         ]);
     }
@@ -82,7 +84,7 @@ class WhatsAppController extends Controller
     public function status(): JsonResponse
     {
         $session = WhatsappSession::where('session_name', $this->defaultSession)->first();
-        if (!$session) {
+        if (! $session) {
             $session = WhatsappSession::create([
                 'session_name' => $this->defaultSession,
                 'status' => 'disconnected',
@@ -92,9 +94,9 @@ class WhatsAppController extends Controller
         $snapshot = $this->pullSidecarStatus($session);
 
         return response()->json([
-            'status'       => $snapshot['status'] ?? $session->status,
-            'number'       => $snapshot['number'] ?? ($session->metadata_json['number'] ?? null),
-            'qr_payload'   => $snapshot['qr_payload'] ?? ($session->status === 'qr_ready' ? $session->qr_payload : null),
+            'status' => $snapshot['status'] ?? $session->status,
+            'number' => $snapshot['number'] ?? ($session->metadata_json['number'] ?? null),
+            'qr_payload' => $snapshot['qr_payload'] ?? ($session->status === 'qr_ready' ? $session->qr_payload : null),
             'connected_at' => ($snapshot['connected_at'] ?? $session->connected_at)?->toIso8601String(),
         ]);
     }
@@ -178,6 +180,7 @@ class WhatsAppController extends Controller
                 'engine_urls' => $this->engineUrls(),
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -189,8 +192,8 @@ class WhatsAppController extends Controller
     public function sendMessage(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'phone'  => 'required|string',
-            'text'   => 'required|string',
+            'phone' => 'required|string',
+            'text' => 'required|string',
         ]);
 
         // Normalize phone → JID
@@ -199,11 +202,11 @@ class WhatsAppController extends Controller
 
         try {
             [$res, $engineUrl] = $this->requestEngine('post', 'messages/send', [
-                'jid'  => $jid,
+                'jid' => $jid,
                 'text' => $data['text'],
             ], 10);
 
-            if (!$res->successful()) {
+            if (! $res->successful()) {
                 return response()->json(['error' => $res->json('error', 'Send failed')], $res->status());
             }
 
@@ -229,12 +232,12 @@ class WhatsAppController extends Controller
             );
 
             WhatsappMessage::create([
-                'conversation_id'     => $conversation->id,
+                'conversation_id' => $conversation->id,
                 'external_message_id' => $res->json('external_id', uniqid('out_')),
-                'direction'           => 'outbound',
-                'message_type'        => 'text',
-                'body'                => $data['text'],
-                'sent_at'             => now(),
+                'direction' => 'outbound',
+                'message_type' => 'text',
+                'body' => $data['text'],
+                'sent_at' => now(),
             ]);
 
             $conversation->update(['last_message_at' => now()]);
@@ -245,6 +248,7 @@ class WhatsAppController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('[WhatsApp] Send message failed', ['error' => $e->getMessage()]);
+
             return response()->json(['error' => 'Engine unreachable.'], 500);
         }
     }
@@ -268,10 +272,10 @@ class WhatsAppController extends Controller
     public function createCampaign(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'campaign_name'    => 'required|string|max:255',
+            'campaign_name' => 'required|string|max:255',
             'message_template' => 'required|string',
-            'lead_ids'         => 'required|array|min:1',
-            'lead_ids.*'       => 'integer|exists:leads,id',
+            'lead_ids' => 'required|array|min:1',
+            'lead_ids.*' => 'integer|exists:leads,id',
         ]);
 
         $leads = Lead::whereIn('id', $data['lead_ids'])
@@ -284,18 +288,18 @@ class WhatsAppController extends Controller
         }
 
         $campaign = WhatsappCampaign::create([
-            'campaign_name'    => $data['campaign_name'],
+            'campaign_name' => $data['campaign_name'],
             'message_template' => $data['message_template'],
-            'total_targets'    => $leads->count(),
-            'status'           => 'draft',
+            'total_targets' => $leads->count(),
+            'status' => 'draft',
         ]);
 
         foreach ($leads as $lead) {
             WhatsappCampaignRecipient::create([
-                'campaign_id'  => $campaign->id,
-                'lead_id'      => $lead->id,
+                'campaign_id' => $campaign->id,
+                'lead_id' => $lead->id,
                 'phone_number' => preg_replace('/[^0-9]/', '', $lead->phone),
-                'send_status'  => 'pending',
+                'send_status' => 'pending',
             ]);
         }
 
@@ -321,7 +325,7 @@ class WhatsAppController extends Controller
             $jid = "{$recipient->phone_number}@s.whatsapp.net";
             try {
                 [$res, $engineUrl] = $this->requestEngine('post', 'messages/send', [
-                    'jid'  => $jid,
+                    'jid' => $jid,
                     'text' => $campaign->message_template,
                 ], 10);
 
@@ -388,7 +392,7 @@ class WhatsAppController extends Controller
         }
 
         $data = $request->validate([
-            'campaign_name'    => 'sometimes|string|max:255',
+            'campaign_name' => 'sometimes|string|max:255',
             'message_template' => 'sometimes|string',
         ]);
 
@@ -435,7 +439,7 @@ class WhatsAppController extends Controller
     public function analyzeConversation($id): JsonResponse
     {
         $conversation = WhatsappConversation::find($id);
-        if (!$conversation) {
+        if (! $conversation) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
@@ -451,6 +455,7 @@ class WhatsAppController extends Controller
     public function getSyncRules(): JsonResponse
     {
         $rules = WhatsappSyncRule::orderBy('rule_type')->get();
+
         return response()->json(['data' => $rules]);
     }
 
@@ -499,7 +504,7 @@ class WhatsAppController extends Controller
      * Returns the first HTTP response from a reachable engine URL.
      * If an engine responds with a 4xx/5xx, that still counts as reachable and is returned.
      *
-     * @return array{0:\Illuminate\Http\Client\Response,1:string}
+     * @return array{0:Response,1:string}
      */
     private function requestEngine(string $method, string $path, array $payload = [], int $timeout = 5): array
     {

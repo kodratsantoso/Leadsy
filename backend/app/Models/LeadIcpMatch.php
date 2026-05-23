@@ -13,9 +13,9 @@ class LeadIcpMatch extends Model
     ];
 
     protected $casts = [
-        'match_score'     => 'float',
+        'match_score' => 'float',
         'score_breakdown' => 'array',
-        'evaluated_at'    => 'datetime',
+        'evaluated_at' => 'datetime',
     ];
 
     public function lead(): BelongsTo

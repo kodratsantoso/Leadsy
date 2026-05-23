@@ -4,13 +4,13 @@ namespace App\Services\Sales;
 
 use App\Models\Lead;
 use App\Models\LeadActivity;
-use App\Models\LeadFunnelHistory;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
  * Lead Activity Service — Module B (Sales Activity & Lead Evaluation Engine)
- * 
+ *
  * Implements activity timeline management with:
  * - Activity type routing (Call, WhatsApp, Meeting, Email, Follow-up, Note, etc.)
  * - Timeline queries and filtering
@@ -47,7 +47,7 @@ class LeadActivityService
         ?int $userId = null
     ): LeadActivity {
         // Validate activity type
-        if (!in_array($activityType, self::ACTIVITY_TYPES)) {
+        if (! in_array($activityType, self::ACTIVITY_TYPES)) {
             $activityType = 'Note'; // Default to Note for invalid types
         }
 
@@ -80,7 +80,7 @@ class LeadActivityService
         ]);
 
         // Log as activity
-        $description = "Lead moved to stage " . ($lead->funnelStage?->name ?? "Unknown");
+        $description = 'Lead moved to stage '.($lead->funnelStage?->name ?? 'Unknown');
         if ($notes) {
             $description .= ": {$notes}";
         }
@@ -98,7 +98,7 @@ class LeadActivityService
         ?Carbon $fromDate = null,
         ?Carbon $toDate = null,
         ?int $limit = null
-    ): \Illuminate\Database\Eloquent\Collection {
+    ): Collection {
         $query = $lead->activities();
 
         if ($activityType) {
@@ -139,7 +139,7 @@ class LeadActivityService
     /**
      * Get latest activity of each type
      */
-    public function getLatestActivities(Lead $lead, int $limit = 5): \Illuminate\Database\Eloquent\Collection
+    public function getLatestActivities(Lead $lead, int $limit = 5): Collection
     {
         return $lead->activities()
             ->orderByDesc('activity_date')
@@ -163,7 +163,7 @@ class LeadActivityService
     public function getDaysSinceLastActivity(Lead $lead): ?int
     {
         $lastActivity = $this->getLastActivityDate($lead);
-        if (!$lastActivity) {
+        if (! $lastActivity) {
             return null;
         }
 
@@ -188,6 +188,7 @@ class LeadActivityService
     public function isRecentlyActive(Lead $lead, int $dayThreshold = 7): bool
     {
         $daysSince = $this->getDaysSinceLastActivity($lead);
+
         return $daysSince !== null && $daysSince <= $dayThreshold;
     }
 
@@ -212,7 +213,7 @@ class LeadActivityService
             'activity_count_30days' => $this->getActivityCountInPeriod($lead, 30),
             'is_recently_active' => $this->isRecentlyActive($lead),
             'recent_activities' => $this->getLatestActivities($lead, 3)
-                ->map(fn($a) => [
+                ->map(fn ($a) => [
                     'id' => $a->id,
                     'type' => $a->activity_type,
                     'date' => $a->activity_date,

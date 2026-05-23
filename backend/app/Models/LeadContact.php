@@ -11,13 +11,13 @@ class LeadContact extends Model
         'lead_id', 'name', 'title', 'email', 'phone',
         'linkedin_url', 'contact_source_id', 'confidence',
         'last_verified_at', 'do_not_contact',
-        'is_primary', 'source', 'confidence_score'
+        'is_primary', 'source', 'confidence_score',
     ];
 
     protected $casts = [
-        'do_not_contact'   => 'boolean',
+        'do_not_contact' => 'boolean',
         'last_verified_at' => 'date',
-        'is_primary'       => 'boolean',
+        'is_primary' => 'boolean',
     ];
 
     public function lead(): BelongsTo

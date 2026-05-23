@@ -29,8 +29,8 @@ class AdminUserSeeder extends Seeder
 
         $adminUser = User::where('email', $adminEmail)->first();
         $attributes = [
-            'name'      => $adminUser?->name ?: $adminName,
-            'role_id'   => $adminRole?->id,
+            'name' => $adminUser?->name ?: $adminName,
+            'role_id' => $adminRole?->id,
             'tenant_id' => $tenant->id,
             'is_active' => true,
         ];

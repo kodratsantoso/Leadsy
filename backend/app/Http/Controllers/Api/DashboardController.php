@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\FunnelStage;
 use App\Models\Lead;
 use App\Models\LeadOutcome;
 use App\Models\Product;
@@ -16,7 +17,7 @@ class DashboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $leadQuery = Lead::visibleTo($request->user());
-        $totalLeads     = (clone $leadQuery)->count();
+        $totalLeads = (clone $leadQuery)->count();
         $qualifiedLeads = (clone $leadQuery)->where('qualification_status', 'eligible')->count();
         $duplicateCount = (clone $leadQuery)->where('duplicate_status', '!=', 'new')->count();
 
@@ -26,22 +27,22 @@ class DashboardController extends Controller
         })->count();
 
         $duplicateRate = $totalLeads > 0
-            ? round($duplicateCount / $totalLeads * 100, 1) . '%'
+            ? round($duplicateCount / $totalLeads * 100, 1).'%'
             : '0%';
 
         // Month-over-month deltas
-        $now       = now();
+        $now = now();
         $thisStart = $now->copy()->startOfMonth();
-        $thisEnd   = $now->copy()->endOfMonth();
+        $thisEnd = $now->copy()->endOfMonth();
         $lastStart = $now->copy()->subMonth()->startOfMonth();
-        $lastEnd   = $now->copy()->subMonth()->endOfMonth();
+        $lastEnd = $now->copy()->subMonth()->endOfMonth();
 
-        $thisMonthLeads     = (clone $leadQuery)->whereBetween('created_at', [$thisStart, $thisEnd])->count();
-        $lastMonthLeads     = (clone $leadQuery)->whereBetween('created_at', [$lastStart, $lastEnd])->count();
+        $thisMonthLeads = (clone $leadQuery)->whereBetween('created_at', [$thisStart, $thisEnd])->count();
+        $lastMonthLeads = (clone $leadQuery)->whereBetween('created_at', [$lastStart, $lastEnd])->count();
         $thisMonthQualified = (clone $leadQuery)->where('qualification_status', 'eligible')
-                                ->whereBetween('created_at', [$thisStart, $thisEnd])->count();
+            ->whereBetween('created_at', [$thisStart, $thisEnd])->count();
         $lastMonthQualified = (clone $leadQuery)->where('qualification_status', 'eligible')
-                                ->whereBetween('created_at', [$lastStart, $lastEnd])->count();
+            ->whereBetween('created_at', [$lastStart, $lastEnd])->count();
 
         $byIndustry = (clone $leadQuery)->select('industry_id', DB::raw('count(*) as total'))
             ->groupBy('industry_id')
@@ -90,19 +91,19 @@ class DashboardController extends Controller
 
         return response()->json([
             'data' => [
-                'total_leads'      => $totalLeads,
-                'qualified_leads'  => $qualifiedLeads,
-                'pipeline_leads'   => $pipelineLeads,
-                'duplicate_count'  => $duplicateCount,
-                'duplicate_rate'   => $duplicateRate,
-                'duplicate_ratio'  => $totalLeads > 0 ? round($duplicateCount / $totalLeads * 100, 1) : 0,
-                'leads_change'     => $this->calcChange($thisMonthLeads, $lastMonthLeads),
+                'total_leads' => $totalLeads,
+                'qualified_leads' => $qualifiedLeads,
+                'pipeline_leads' => $pipelineLeads,
+                'duplicate_count' => $duplicateCount,
+                'duplicate_rate' => $duplicateRate,
+                'duplicate_ratio' => $totalLeads > 0 ? round($duplicateCount / $totalLeads * 100, 1) : 0,
+                'leads_change' => $this->calcChange($thisMonthLeads, $lastMonthLeads),
                 'qualified_change' => $this->calcChange($thisMonthQualified, $lastMonthQualified),
-                'by_industry'      => $byIndustry,
-                'by_status'        => $byStatus,
-                'by_territory'     => $byTerritory,
-                'recent_leads'     => $recentLeads,
-                'map_points'       => $mapPoints,
+                'by_industry' => $byIndustry,
+                'by_status' => $byStatus,
+                'by_territory' => $byTerritory,
+                'recent_leads' => $recentLeads,
+                'map_points' => $mapPoints,
                 'conversion_funnels' => $conversionFunnels,
                 'sales_achievement' => $salesAchievement,
                 'sales_funnel_tracking' => $salesFunnelTracking,
@@ -141,7 +142,7 @@ class DashboardController extends Controller
 
     private function conversionFunnels(Request $request): array
     {
-        $stages = \App\Models\FunnelStage::where('is_active', true)
+        $stages = FunnelStage::where('is_active', true)
             ->whereNotIn('name', ['Won', 'Lost', 'Nurture / Hold'])
             ->orderBy('sequence')
             ->get();
@@ -179,7 +180,7 @@ class DashboardController extends Controller
                 'percentage' => round(($count / $baseline) * 100, 1),
                 'estimated_amount' => $estimated,
                 'estimated_percentage' => round(($estimated / $estimatedBaseline) * 100, 1),
-                'href' => '/leads?funnel_min_sequence=' . $stage->sequence,
+                'href' => '/leads?funnel_min_sequence='.$stage->sequence,
             ];
         })->values()->all();
 
@@ -257,7 +258,7 @@ class DashboardController extends Controller
 
     private function salesFunnelTracking(Request $request, int $totalLeads, int $pipelineLeads): array
     {
-        $stages = \App\Models\FunnelStage::where('is_active', true)
+        $stages = FunnelStage::where('is_active', true)
             ->whereNotIn('name', ['Won', 'Lost', 'Nurture / Hold'])
             ->orderBy('sequence')
             ->get();
@@ -293,7 +294,7 @@ class DashboardController extends Controller
                 'estimated_amount' => $estimated,
                 'estimated_percentage' => round(($estimated / $estimatedBaseline) * 100, 1),
                 'color' => $stage->color ?: 'brand',
-                'href' => '/leads?funnel_min_sequence=' . $stage->sequence,
+                'href' => '/leads?funnel_min_sequence='.$stage->sequence,
             ];
         })->values()->all();
 
@@ -331,13 +332,13 @@ class DashboardController extends Controller
                 'label' => $row['product_name'],
                 'value' => (float) $row['sales_volume'],
                 'count' => (int) $row['total_market'],
-                'href' => $row['product_id'] ? '/leads?product_id=' . $row['product_id'] : '/leads',
+                'href' => $row['product_id'] ? '/leads?product_id='.$row['product_id'] : '/leads',
             ])->values(),
             'total_market' => collect($productAggregates)->map(fn ($row) => [
                 'label' => $row['product_name'],
                 'value' => (int) $row['total_market'],
                 'estimated_volume' => (float) $row['estimated_volume'],
-                'href' => $row['product_id'] ? '/leads?product_id=' . $row['product_id'] : '/leads',
+                'href' => $row['product_id'] ? '/leads?product_id='.$row['product_id'] : '/leads',
             ])->values(),
         ];
     }
@@ -417,7 +418,7 @@ class DashboardController extends Controller
 
     private function cumulativeStageAggregates(Request $request): array
     {
-        $stageRows = \App\Models\FunnelStage::where('is_active', true)
+        $stageRows = FunnelStage::where('is_active', true)
             ->whereNotIn('name', ['Nurture / Hold'])
             ->orderBy('sequence')
             ->get(['id', 'name', 'sequence']);
@@ -499,7 +500,7 @@ class DashboardController extends Controller
                 'source_type' => $row->source_type,
                 'label' => $row->label,
                 'value' => (int) $row->total,
-                'href' => $row->source_type ? '/leads?source_type=' . urlencode($row->source_type) : '/leads',
+                'href' => $row->source_type ? '/leads?source_type='.urlencode($row->source_type) : '/leads',
             ])->values(),
             'channels' => $channelRows->map(fn ($row) => [
                 'source_type' => $row->source_type,
@@ -508,8 +509,8 @@ class DashboardController extends Controller
                 'label' => $row->label,
                 'value' => (int) $row->total,
                 'href' => $row->channel_type_id
-                    ? '/leads?source_type=' . urlencode((string) $row->source_type) . '&channel_type_id=' . $row->channel_type_id
-                    : ($row->source_type ? '/leads?source_type=' . urlencode($row->source_type) : '/leads'),
+                    ? '/leads?source_type='.urlencode((string) $row->source_type).'&channel_type_id='.$row->channel_type_id
+                    : ($row->source_type ? '/leads?source_type='.urlencode($row->source_type) : '/leads'),
             ])->values(),
         ];
     }
@@ -520,7 +521,7 @@ class DashboardController extends Controller
         if ($previous === 0) {
             return $current > 0 ? '+100% this month' : null;
         }
-        $pct  = round((($current - $previous) / $previous) * 100, 1);
+        $pct = round((($current - $previous) / $previous) * 100, 1);
         $sign = $pct >= 0 ? '+' : '';
 
         return "{$sign}{$pct}% vs last month";

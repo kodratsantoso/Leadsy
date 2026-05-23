@@ -30,6 +30,7 @@ class AiProvider extends Model
         if ($value === null || $value === '') {
             $this->attributes['api_key_encrypted'] = $value;
             $this->attributes['api_key_last4'] = null;
+
             return;
         }
 
@@ -67,7 +68,7 @@ class AiProvider extends Model
             return 'Not configured';
         }
 
-        return 'sk-****-****-' . $this->api_key_last4;
+        return 'sk-****-****-'.$this->api_key_last4;
     }
 
     public function hasConfiguredKey(): bool

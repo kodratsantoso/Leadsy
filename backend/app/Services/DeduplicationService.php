@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Lead;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Deduplication Engine — BRD §3.7
@@ -65,6 +64,7 @@ class DeduplicationService
                         $payload['lat'], $payload['lng'],
                         $lead->lat, $lead->lng,
                     );
+
                     return $dist <= 500; // within 500 m
                 });
 
@@ -85,7 +85,7 @@ class DeduplicationService
         if (! empty($payload['phone'])) {
             $digits = preg_replace('/\D/', '', $payload['phone']);
             if (strlen($digits) >= 8) {
-                $match = Lead::whereRaw("regexp_replace(phone, '\\D', '', 'g') LIKE ?", ['%' . $digits])
+                $match = Lead::whereRaw("regexp_replace(phone, '\\D', '', 'g') LIKE ?", ['%'.$digits])
                     ->first();
                 if ($match) {
                     return DedupResult::probableDuplicate($match->id, 'phone');
@@ -161,11 +161,11 @@ class DedupResult
     public function toArray(): array
     {
         return [
-            'is_duplicate'    => $this->isDuplicate,
-            'status'          => $this->status,
+            'is_duplicate' => $this->isDuplicate,
+            'status' => $this->status,
             'matched_lead_id' => $this->matchedLeadId,
-            'match_reason'    => $this->matchReason,
-            'recommendation'  => $this->recommendation,
+            'match_reason' => $this->matchReason,
+            'recommendation' => $this->recommendation,
         ];
     }
 }

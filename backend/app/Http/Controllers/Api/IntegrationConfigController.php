@@ -36,16 +36,16 @@ class IntegrationConfigController extends Controller
             ->orderBy('key')
             ->get()
             ->map(function ($config) {
-            return [
-                'id'         => $config->id,
-                'category'   => $config->category,
-                'key'        => $config->key,
-                'value'      => $config->safe_value,
-                'is_secret'  => $config->is_secret,
-                'is_active'  => $config->is_active,
-                'value_type' => $config->value_type,
-            ];
-        });
+                return [
+                    'id' => $config->id,
+                    'category' => $config->category,
+                    'key' => $config->key,
+                    'value' => $config->safe_value,
+                    'is_secret' => $config->is_secret,
+                    'is_active' => $config->is_active,
+                    'value_type' => $config->value_type,
+                ];
+            });
 
         $grouped = $configs->groupBy('category');
 
@@ -83,7 +83,7 @@ class IntegrationConfigController extends Controller
 
         // Augment with runtime environment values (not stored in DB)
         $configs['APP_NAME'] = config('app.name', 'Leadsy');
-        $configs['APP_ENV']  = config('app.env', 'production');
+        $configs['APP_ENV'] = config('app.env', 'production');
 
         return response()->json(['data' => $configs]);
     }
@@ -97,12 +97,12 @@ class IntegrationConfigController extends Controller
         // Detect single-item format (key + value + category at root level)
         if ($request->has('key') && ! $request->has('configs')) {
             $data = $request->validate([
-                'key'        => 'required|string',
-                'value'      => 'nullable',
-                'category'   => 'required|string',
-                'is_secret'  => 'nullable|boolean',
+                'key' => 'required|string',
+                'value' => 'nullable',
+                'category' => 'required|string',
+                'is_secret' => 'nullable|boolean',
                 'value_type' => 'nullable|string',
-                'is_active'  => 'nullable|boolean',
+                'is_active' => 'nullable|boolean',
             ]);
 
             $tenantId = $this->currentTenantId($request);
@@ -116,6 +116,7 @@ class IntegrationConfigController extends Controller
                     if (isset($data['is_active'])) {
                         $existing->update(['is_active' => $data['is_active']]);
                     }
+
                     return response()->json(['message' => 'Secret unchanged', 'data' => $existing]);
                 }
             }
@@ -125,12 +126,12 @@ class IntegrationConfigController extends Controller
             $model = IntegrationConfig::updateOrCreate(
                 ['tenant_id' => $tenantId, 'key' => $data['key']],
                 [
-                    'tenant_id'   => $tenantId,
-                    'category'   => $data['category'],
-                    'value'      => $data['value'],
-                    'is_secret'  => $data['is_secret'] ?? ($existing->is_secret ?? false),
+                    'tenant_id' => $tenantId,
+                    'category' => $data['category'],
+                    'value' => $data['value'],
+                    'is_secret' => $data['is_secret'] ?? ($existing->is_secret ?? false),
                     'value_type' => $data['value_type'] ?? ($existing->value_type ?? 'string'),
-                    'is_active'  => $data['is_active'] ?? true,
+                    'is_active' => $data['is_active'] ?? true,
                 ]
             );
 
@@ -143,17 +144,17 @@ class IntegrationConfigController extends Controller
 
         // Bulk format: { category, configs: [{key, value, ...}] }
         $data = $request->validate([
-            'category'             => 'required|string',
-            'configs'              => 'required|array',
-            'configs.*.key'        => 'required|string',
-            'configs.*.value'      => 'nullable',
-            'configs.*.is_secret'  => 'nullable|boolean',
+            'category' => 'required|string',
+            'configs' => 'required|array',
+            'configs.*.key' => 'required|string',
+            'configs.*.value' => 'nullable',
+            'configs.*.is_secret' => 'nullable|boolean',
             'configs.*.value_type' => 'nullable|string',
-            'configs.*.is_active'  => 'nullable|boolean',
+            'configs.*.is_active' => 'nullable|boolean',
         ]);
 
         $category = $data['category'];
-        $updated  = [];
+        $updated = [];
 
         foreach ($data['configs'] as $conf) {
             $tenantId = $this->currentTenantId($request);
@@ -167,6 +168,7 @@ class IntegrationConfigController extends Controller
                         $existing->update(['is_active' => $conf['is_active']]);
                         $updated[] = $existing;
                     }
+
                     continue;
                 }
             }
@@ -176,12 +178,12 @@ class IntegrationConfigController extends Controller
             $model = IntegrationConfig::updateOrCreate(
                 ['tenant_id' => $tenantId, 'key' => $conf['key']],
                 [
-                    'tenant_id'   => $tenantId,
-                    'category'   => $category,
-                    'value'      => $conf['value'],
-                    'is_secret'  => $conf['is_secret'] ?? ($existing->is_secret ?? false),
+                    'tenant_id' => $tenantId,
+                    'category' => $category,
+                    'value' => $conf['value'],
+                    'is_secret' => $conf['is_secret'] ?? ($existing->is_secret ?? false),
                     'value_type' => $conf['value_type'] ?? ($existing->value_type ?? 'string'),
-                    'is_active'  => $conf['is_active'] ?? true,
+                    'is_active' => $conf['is_active'] ?? true,
                 ]
             );
 

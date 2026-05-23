@@ -12,8 +12,8 @@
 */
 
 return [
-    'version'     => '1.0.0',
+    'version' => '1.0.0',
     'released_at' => '2026-05-12',
-    'type'        => 'major',   // major | minor | patch
-    'notes'       => 'First stable production release',
+    'type' => 'major',   // major | minor | patch
+    'notes' => 'First stable production release',
 ];

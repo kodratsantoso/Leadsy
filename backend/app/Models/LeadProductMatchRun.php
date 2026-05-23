@@ -13,12 +13,12 @@ class LeadProductMatchRun extends Model
     ];
 
     protected $casts = [
-        'run_at'            => 'datetime',
-        'total_cost_usd'    => 'float',
-        'products_evaluated'=> 'integer',
-        'matches_created'   => 'integer',
-        'ai_calls_made'     => 'integer',
-        'duration_ms'       => 'integer',
+        'run_at' => 'datetime',
+        'total_cost_usd' => 'float',
+        'products_evaluated' => 'integer',
+        'matches_created' => 'integer',
+        'ai_calls_made' => 'integer',
+        'duration_ms' => 'integer',
     ];
 
     public function lead(): BelongsTo

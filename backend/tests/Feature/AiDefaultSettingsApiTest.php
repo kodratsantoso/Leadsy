@@ -172,7 +172,7 @@ class AiDefaultSettingsApiTest extends TestCase
 
         return User::create([
             'name' => ucfirst($roleName),
-            'email' => $roleName . '-' . uniqid() . '@example.com',
+            'email' => $roleName.'-'.uniqid().'@example.com',
             'password' => 'password123',
             'role_id' => $role->id,
             'tenant_id' => $tenant->id,

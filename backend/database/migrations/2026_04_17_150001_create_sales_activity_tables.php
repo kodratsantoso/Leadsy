@@ -17,10 +17,10 @@ return new class extends Migration
             $table->string('activity_type'); // Call, WhatsApp, Meeting, Email, Follow-up, Note, Internal Review, Stage Change
             $table->text('description')->nullable();
             $table->timestamp('activity_date');
-            
+
             // Polymorphic to tie to a specifi meeting or note if needed
             $table->nullableMorphs('related_entity');
-            
+
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
@@ -46,7 +46,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('lead_id')->constrained('leads')->cascadeOnDelete();
             $table->string('source_type'); // whatsapp, meeting, manual
-            $table->unsignedBigInteger('source_id')->nullable(); 
+            $table->unsignedBigInteger('source_id')->nullable();
             $table->text('transcript_text');
             $table->timestamp('recorded_at')->useCurrent();
             $table->enum('evaluation_status', ['pending', 'evaluated', 'skipped'])->default('pending');
@@ -57,10 +57,10 @@ return new class extends Migration
         Schema::create('lead_ai_evaluations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('lead_id')->constrained('leads')->cascadeOnDelete();
-            
+
             // Polymorphic to point to transcripts or meetings
             $table->morphs('source');
-            
+
             $table->string('sentiment')->nullable(); // positive, neutral, negative
             $table->string('intent_level')->nullable(); // high, medium, low
             $table->string('interest_level')->nullable(); // high, medium, low

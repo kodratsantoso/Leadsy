@@ -14,10 +14,10 @@ class PipelineQualityService
             $base->where('territory_id', $territoryId);
         }
 
-        $total      = (clone $base)->count();
-        $qualified  = (clone $base)->where('qualification_status', 'eligible')->count();
-        $ghosts     = $this->countGhostLeads(clone $base);
-        $avgScore   = (clone $base)->avg('lead_score') ?? 0;
+        $total = (clone $base)->count();
+        $qualified = (clone $base)->where('qualification_status', 'eligible')->count();
+        $ghosts = $this->countGhostLeads(clone $base);
+        $avgScore = (clone $base)->avg('lead_score') ?? 0;
         $scoreDistribution = $this->scoreDistribution(clone $base, $total);
         $insights = $this->buildInsights(
             averageScore: round($avgScore, 1),
@@ -28,7 +28,7 @@ class PipelineQualityService
         );
 
         $qualifiedRatio = $total > 0 ? round($qualified / $total * 100, 1) : 0;
-        $ghostRatio     = $total > 0 ? round($ghosts / $total * 100, 1) : 0;
+        $ghostRatio = $total > 0 ? round($ghosts / $total * 100, 1) : 0;
 
         // Quality score: 40% qualified ratio + ghost penalty + 30% normalised avg score
         $pqs = max(0, min(100,
@@ -38,18 +38,18 @@ class PipelineQualityService
         ));
 
         return [
-            'total_leads'            => $total,
-            'qualified_leads'        => $qualified,
-            'ghost_leads'            => $ghosts,
-            'qualified_ratio'        => $qualifiedRatio,
-            'ghost_lead_ratio'       => $ghostRatio,
-            'average_score'          => round($avgScore, 1),
+            'total_leads' => $total,
+            'qualified_leads' => $qualified,
+            'ghost_leads' => $ghosts,
+            'qualified_ratio' => $qualifiedRatio,
+            'ghost_lead_ratio' => $ghostRatio,
+            'average_score' => round($avgScore, 1),
             'pipeline_quality_score' => round($pqs, 1),
-            'health'                 => $this->healthLevel($pqs),
-            'by_status'              => $this->byStatus(clone $base),
-            'by_score_band'          => $this->byScoreBand(clone $base),
-            'score_distribution'     => $scoreDistribution,
-            'insights'               => $insights,
+            'health' => $this->healthLevel($pqs),
+            'by_status' => $this->byStatus(clone $base),
+            'by_score_band' => $this->byScoreBand(clone $base),
+            'score_distribution' => $scoreDistribution,
+            'insights' => $insights,
         ];
     }
 
@@ -58,7 +58,7 @@ class PipelineQualityService
         $rows = DB::table('lead_sources')
             ->join('leads', function ($j) {
                 $j->on('lead_sources.lead_id', '=', 'leads.id')
-                  ->whereNull('leads.deleted_at');
+                    ->whereNull('leads.deleted_at');
             })
             ->selectRaw(
                 'lead_sources.source_type,
@@ -73,10 +73,11 @@ class PipelineQualityService
             $conv = $row->total_leads > 0
                 ? round($row->qualified_count / $row->total_leads * 100, 1)
                 : 0;
+
             return [
-                'source_type'     => $row->source_type,
-                'total_leads'     => (int) $row->total_leads,
-                'avg_score'       => (float) $row->avg_score,
+                'source_type' => $row->source_type,
+                'total_leads' => (int) $row->total_leads,
+                'avg_score' => (float) $row->avg_score,
                 'qualified_count' => (int) $row->qualified_count,
                 'conversion_rate' => $conv,
             ];
@@ -105,10 +106,11 @@ class PipelineQualityService
     private function byScoreBand($query): array
     {
         $leads = (clone $query)->pluck('lead_score');
+
         return [
-            'hot'  => $leads->filter(fn($s) => $s >= 80)->count(),
-            'warm' => $leads->filter(fn($s) => $s >= 60 && $s < 80)->count(),
-            'cold' => $leads->filter(fn($s) => $s < 60)->count(),
+            'hot' => $leads->filter(fn ($s) => $s >= 80)->count(),
+            'warm' => $leads->filter(fn ($s) => $s >= 60 && $s < 80)->count(),
+            'cold' => $leads->filter(fn ($s) => $s < 60)->count(),
         ];
     }
 
@@ -172,8 +174,13 @@ class PipelineQualityService
 
     private function healthLevel(float $score): string
     {
-        if ($score >= 70) return 'healthy';
-        if ($score >= 50) return 'warning';
+        if ($score >= 70) {
+            return 'healthy';
+        }
+        if ($score >= 50) {
+            return 'warning';
+        }
+
         return 'critical';
     }
 }

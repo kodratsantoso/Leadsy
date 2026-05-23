@@ -55,13 +55,13 @@ class LeadBantcQuestionGenerationService
     {
         $contacts = $lead->contacts
             ->take(5)
-            ->map(fn ($contact) => trim(($contact->name ?? 'Unknown') . ' - ' . ($contact->title ?? 'Unknown role')))
+            ->map(fn ($contact) => trim(($contact->name ?? 'Unknown').' - '.($contact->title ?? 'Unknown role')))
             ->filter()
             ->values()
             ->implode('; ');
 
         $sources = $lead->sources
-            ->map(fn ($source) => trim(($source->source_type ?? 'unknown') . ($source->channelType?->name ? ' / ' . $source->channelType->name : '')))
+            ->map(fn ($source) => trim(($source->source_type ?? 'unknown').($source->channelType?->name ? ' / '.$source->channelType->name : '')))
             ->filter()
             ->unique()
             ->values()
@@ -70,7 +70,7 @@ class LeadBantcQuestionGenerationService
         $topProductMatches = $lead->productMatches
             ->sortByDesc('match_score')
             ->take(3)
-            ->map(fn ($match) => trim(($match->product?->name ?? 'Product') . ' (' . ($match->match_score ?? 0) . '% match)'))
+            ->map(fn ($match) => trim(($match->product?->name ?? 'Product').' ('.($match->match_score ?? 0).'% match)'))
             ->values()
             ->implode('; ');
 
@@ -179,7 +179,7 @@ PROMPT;
             }
 
             $questions[] = [
-                'id' => (string) ($item['id'] ?? ('bantc-' . ($index + 1))),
+                'id' => (string) ($item['id'] ?? ('bantc-'.($index + 1))),
                 'text' => trim((string) $item['text']),
                 'category' => $this->normalizeCategory($item['category'] ?? ''),
                 'order' => (int) ($item['order'] ?? ($index + 1)),

@@ -8,6 +8,7 @@ use App\Models\DiscoveryCategory;
 use App\Models\GeoProductFitAnalysis;
 use App\Models\Lead;
 use App\Models\LeadProductMatch;
+use App\Models\MapSearchHistory;
 use App\Models\Product;
 use App\Services\AuditService;
 use App\Services\DeduplicationService;
@@ -38,7 +39,7 @@ class MapDiscoveryController extends Controller
 
         $result = $this->discovery->geocodeArea($data['query']);
 
-        if (!$result) {
+        if (! $result) {
             return response()->json(['error' => 'Geocoding failed or returned no results'], 404);
         }
 
@@ -63,23 +64,23 @@ class MapDiscoveryController extends Controller
     public function search(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'lat'           => 'required|numeric',
-            'lng'           => 'required|numeric',
-            'radius'        => 'required|integer|min:100|max:50000',
-            'keyword'       => 'nullable|string|max:255',
-            'category'      => 'nullable|string|max:255',
-            'search_mode'   => 'nullable|in:nearby,text',
-            'area_name'     => 'nullable|string',
+            'lat' => 'required|numeric',
+            'lng' => 'required|numeric',
+            'radius' => 'required|integer|min:100|max:50000',
+            'keyword' => 'nullable|string|max:255',
+            'category' => 'nullable|string|max:255',
+            'search_mode' => 'nullable|in:nearby,text',
+            'area_name' => 'nullable|string',
             'area_place_id' => 'nullable|string',
-            'limit'         => 'nullable|integer|min:1|max:50',
+            'limit' => 'nullable|integer|min:1|max:50',
         ]);
 
-        $mode  = $data['search_mode'] ?? 'nearby';
+        $mode = $data['search_mode'] ?? 'nearby';
         $limit = (int) ($data['limit'] ?? 20);
 
-        $searchTerm = trim(($data['keyword'] ?? '') . ' ' . ($data['category'] ?? ''));
+        $searchTerm = trim(($data['keyword'] ?? '').' '.($data['category'] ?? ''));
 
-        if ($mode === 'text' && !empty($searchTerm)) {
+        if ($mode === 'text' && ! empty($searchTerm)) {
             $page1 = $this->discovery->textSearch(
                 $searchTerm, $data['lat'], $data['lng'], $data['radius']
             );
@@ -89,19 +90,19 @@ class MapDiscoveryController extends Controller
             );
         }
 
-        $allResults    = $page1['results'] ?? [];
+        $allResults = $page1['results'] ?? [];
         $nextPageToken = $page1['next_page_token'] ?? null;
 
         if ($limit > 20 && $nextPageToken && count($allResults) < $limit) {
             sleep(2);
-            $page2      = $this->discovery->fetchNextPage($nextPageToken);
+            $page2 = $this->discovery->fetchNextPage($nextPageToken);
             $allResults = array_merge($allResults, $page2['results'] ?? []);
             $nextPageToken = $page2['next_page_token'] ?? null;
         }
 
         if ($limit > 40 && $nextPageToken && count($allResults) < $limit) {
             sleep(2);
-            $page3      = $this->discovery->fetchNextPage($nextPageToken);
+            $page3 = $this->discovery->fetchNextPage($nextPageToken);
             $allResults = array_merge($allResults, $page3['results'] ?? []);
             $nextPageToken = $page3['next_page_token'] ?? null;
         }
@@ -109,28 +110,29 @@ class MapDiscoveryController extends Controller
         $allResults = array_slice($allResults, 0, $limit);
 
         $this->history->logSearch([
-            'area_name'     => $data['area_name'] ?? null,
+            'area_name' => $data['area_name'] ?? null,
             'area_place_id' => $data['area_place_id'] ?? null,
-            'area_lat'      => $data['lat'],
-            'area_lng'      => $data['lng'],
-            'keyword'       => $data['keyword'] ?? null,
-            'category'      => $data['category'] ?? null,
-            'search_mode'   => $mode,
+            'area_lat' => $data['lat'],
+            'area_lng' => $data['lng'],
+            'keyword' => $data['keyword'] ?? null,
+            'category' => $data['category'] ?? null,
+            'search_mode' => $mode,
             'radius_meters' => $data['radius'],
-            'result_count'  => count($allResults),
+            'result_count' => count($allResults),
         ], $request->user()?->id);
 
         $enrichedResults = collect($allResults)->map(function ($place) {
             $dedupResult = $this->dedup->check($place);
             $place['dedup'] = $dedupResult->toArray();
+
             return $place;
         });
 
         return response()->json([
-            'data'            => $enrichedResults,
-            'total'           => count($enrichedResults),
+            'data' => $enrichedResults,
+            'total' => count($enrichedResults),
             'next_page_token' => $nextPageToken,
-            'error'           => $page1['error'] ?? null,
+            'error' => $page1['error'] ?? null,
         ]);
     }
 
@@ -141,7 +143,7 @@ class MapDiscoveryController extends Controller
     {
         $details = $this->discovery->getPlaceDetails($placeId);
 
-        if (!$details) {
+        if (! $details) {
             return response()->json(['error' => 'Place details not found'], 404);
         }
 
@@ -163,20 +165,20 @@ class MapDiscoveryController extends Controller
     public function analyzeProductFit(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'product_id'     => 'required|integer|exists:products,id',
-            'places'         => 'required|array|min:1|max:50',
+            'product_id' => 'required|integer|exists:products,id',
+            'places' => 'required|array|min:1|max:50',
             'places.*.external_place_id' => 'required|string',
-            'places.*.company_name'      => 'nullable|string',
-            'places.*.address'           => 'nullable|string',
+            'places.*.company_name' => 'nullable|string',
+            'places.*.address' => 'nullable|string',
             'places.*.business_category' => 'nullable|string',
-            'places.*.phone'             => 'nullable|string',
-            'places.*.website'           => 'nullable|string',
-            'places.*.rating'            => 'nullable|numeric',
-            'ai_limit'       => 'nullable|integer|min:1|max:15',
+            'places.*.phone' => 'nullable|string',
+            'places.*.website' => 'nullable|string',
+            'places.*.rating' => 'nullable|numeric',
+            'ai_limit' => 'nullable|integer|min:1|max:15',
         ]);
 
         $product = Product::findOrFail($data['product_id']);
-        $userId  = $request->user()?->id ?? 0;
+        $userId = $request->user()?->id ?? 0;
         $aiLimit = (int) ($data['ai_limit'] ?? 3);
 
         $analyses = $this->fitService->batchAnalyze($data['places'], $product, $userId, $aiLimit);
@@ -192,9 +194,9 @@ class MapDiscoveryController extends Controller
         );
 
         return response()->json([
-            'data'    => $analyses,
+            'data' => $analyses,
             'product' => ['id' => $product->id, 'name' => $product->name],
-            'total'   => count($analyses),
+            'total' => count($analyses),
         ]);
     }
 
@@ -210,14 +212,14 @@ class MapDiscoveryController extends Controller
     {
         $data = $request->validate([
             'product_id' => 'required|integer|exists:products,id',
-            'place_ids'  => 'required|array|min:1',
-            'place_ids.*'=> 'required|string',
+            'place_ids' => 'required|array|min:1',
+            'place_ids.*' => 'required|string',
         ]);
 
         $cached = $this->fitService->getCachedResults($data['place_ids'], (int) $data['product_id']);
 
         return response()->json([
-            'data'  => array_values($cached),
+            'data' => array_values($cached),
             'total' => count($cached),
         ]);
     }
@@ -230,29 +232,29 @@ class MapDiscoveryController extends Controller
     public function addToLeads(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'external_place_id'  => 'required|string',
-            'company_name'       => 'required|string|max:255',
-            'address'            => 'nullable|string',
-            'lat'                => 'nullable|numeric',
-            'lng'                => 'nullable|numeric',
-            'phone'              => 'nullable|string',
-            'website'            => 'nullable|url',
-            'business_category'  => 'nullable|string',
-            'ai_mode'            => 'nullable|in:full_ai,hybrid,manual',
-            'ai_reference_id'    => 'nullable|integer',
+            'external_place_id' => 'required|string',
+            'company_name' => 'required|string|max:255',
+            'address' => 'nullable|string',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
+            'phone' => 'nullable|string',
+            'website' => 'nullable|url',
+            'business_category' => 'nullable|string',
+            'ai_mode' => 'nullable|in:full_ai,hybrid,manual',
+            'ai_reference_id' => 'nullable|integer',
             // Product-fit context (optional)
-            'product_id'         => 'nullable|integer|exists:products,id',
-            'fit_analysis_id'    => 'nullable|integer|exists:geo_product_fit_analyses,id',
+            'product_id' => 'nullable|integer|exists:products,id',
+            'fit_analysis_id' => 'nullable|integer|exists:geo_product_fit_analyses,id',
         ]);
 
-        if (!empty($data['website'])) {
+        if (! empty($data['website'])) {
             $data['website_domain'] = parse_url($data['website'], PHP_URL_HOST);
         }
 
         $aiWarning = null;
         if (in_array($data['ai_mode'] ?? 'manual', ['full_ai', 'hybrid'])) {
             $hasActiveProvider = AiProvider::where('status', 'active')->exists();
-            if (!$hasActiveProvider) {
+            if (! $hasActiveProvider) {
                 $aiWarning = 'No active AI provider is configured. The lead will be saved but AI enrichment will not run. Configure a provider in Settings → AI Defaults.';
                 $data['ai_mode'] = 'manual';
             }
@@ -261,26 +263,26 @@ class MapDiscoveryController extends Controller
         $dedupResult = $this->dedup->check($data);
         if ($dedupResult->status === 'exact_duplicate') {
             return response()->json([
-                'message'   => 'Exact duplicate detected',
+                'message' => 'Exact duplicate detected',
                 'duplicate' => $dedupResult->toArray(),
             ], 409);
         }
 
         $data['duplicate_status'] = $dedupResult->status;
-        $data['duplicate_of_id']  = $dedupResult->matchedLeadId;
-        $data['created_by']       = $request->user()?->id;
+        $data['duplicate_of_id'] = $dedupResult->matchedLeadId;
+        $data['created_by'] = $request->user()?->id;
 
         $lead = Lead::create($data);
 
         $lead->sources()->create([
             'source_type' => 'google_maps',
-            'source_ref'  => $data['external_place_id'],
-            'confidence'  => 'high',
+            'source_ref' => $data['external_place_id'],
+            'confidence' => 'high',
         ]);
 
         // If a product + fit analysis were provided, seed a LeadProductMatch
-        if (!empty($data['product_id'])) {
-            $fitAnalysis = !empty($data['fit_analysis_id'])
+        if (! empty($data['product_id'])) {
+            $fitAnalysis = ! empty($data['fit_analysis_id'])
                 ? GeoProductFitAnalysis::find($data['fit_analysis_id'])
                 : GeoProductFitAnalysis::where('place_id', $data['external_place_id'])
                     ->where('product_id', $data['product_id'])
@@ -290,16 +292,16 @@ class MapDiscoveryController extends Controller
                 LeadProductMatch::updateOrCreate(
                     ['lead_id' => $lead->id, 'product_id' => $data['product_id']],
                     [
-                        'match_score'         => $fitAnalysis->fit_score,
-                        'match_reason'        => implode(' ', array_slice($fitAnalysis->reasoning ?? [], 0, 2)),
-                        'reasoning'           => $fitAnalysis->reasoning,
-                        'recommended_approach'=> $fitAnalysis->recommended_approach,
-                        'match_level'         => $this->fitLevelToMatchLevel($fitAnalysis->fit_level),
-                        'confidence_score'    => $fitAnalysis->confidence_score,
-                        'ai_provider_used'    => $fitAnalysis->ai_provider_used,
-                        'ai_model_used'       => $fitAnalysis->ai_model_used,
-                        'is_recommended'      => $fitAnalysis->fit_score >= 60,
-                        'last_matched_at'     => Carbon::now(),
+                        'match_score' => $fitAnalysis->fit_score,
+                        'match_reason' => implode(' ', array_slice($fitAnalysis->reasoning ?? [], 0, 2)),
+                        'reasoning' => $fitAnalysis->reasoning,
+                        'recommended_approach' => $fitAnalysis->recommended_approach,
+                        'match_level' => $this->fitLevelToMatchLevel($fitAnalysis->fit_level),
+                        'confidence_score' => $fitAnalysis->confidence_score,
+                        'ai_provider_used' => $fitAnalysis->ai_provider_used,
+                        'ai_model_used' => $fitAnalysis->ai_model_used,
+                        'is_recommended' => $fitAnalysis->fit_score >= 60,
+                        'last_matched_at' => Carbon::now(),
                     ]
                 );
 
@@ -316,15 +318,15 @@ class MapDiscoveryController extends Controller
             null,
             'success',
             [
-                'place_id'   => $data['external_place_id'],
+                'place_id' => $data['external_place_id'],
                 'product_id' => $data['product_id'] ?? null,
-                'fit_score'  => isset($fitAnalysis) ? $fitAnalysis->fit_score : null,
+                'fit_score' => isset($fitAnalysis) ? $fitAnalysis->fit_score : null,
             ]
         );
 
         return response()->json([
-            'data'       => $lead,
-            'duplicate'  => $dedupResult->toArray(),
+            'data' => $lead,
+            'duplicate' => $dedupResult->toArray(),
             'ai_warning' => $aiWarning,
         ], 201);
     }
@@ -342,7 +344,7 @@ class MapDiscoveryController extends Controller
      */
     public function searchHistory(Request $request): JsonResponse
     {
-        $history = \App\Models\MapSearchHistory::where('created_by', $request->user()?->id)
+        $history = MapSearchHistory::where('created_by', $request->user()?->id)
             ->latest()
             ->limit(20)
             ->get();
@@ -353,9 +355,9 @@ class MapDiscoveryController extends Controller
     private function fitLevelToMatchLevel(string $fitLevel): string
     {
         return match ($fitLevel) {
-            'high'   => 'strong',
+            'high' => 'strong',
             'medium' => 'moderate',
-            default  => 'weak',
+            default => 'weak',
         };
     }
 }

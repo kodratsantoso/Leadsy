@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Services\AI\AiOrchestrationService;
-use Illuminate\Support\Str;
 
 /**
  * Generates a structured requirement question guide for a product.
@@ -30,7 +29,7 @@ class ProductQuestionGenerationService
         $prompt = $this->buildPrompt($product);
 
         $result = $this->ai->call('product_question_generation', $prompt, [
-            'product_id'   => $product->id,
+            'product_id' => $product->id,
             'product_name' => $product->name,
         ]);
 
@@ -45,9 +44,9 @@ class ProductQuestionGenerationService
         }
 
         return [
-            'success'   => true,
+            'success' => true,
             'questions' => $questions,
-            'ai_model'  => $result['model'] ?? null,
+            'ai_model' => $result['model'] ?? null,
         ];
     }
 
@@ -56,20 +55,20 @@ class ProductQuestionGenerationService
     private function buildPrompt(Product $product): string
     {
         $fields = array_filter([
-            'Product Name'          => $product->name,
-            'Description'           => $product->description,
-            'Category'              => $product->category,
-            'Target Industry'       => $product->target_industry,
-            'Target Company Size'   => $product->target_company_size,
-            'Target Buyer Persona'  => $product->target_buyer_persona,
+            'Product Name' => $product->name,
+            'Description' => $product->description,
+            'Category' => $product->category,
+            'Target Industry' => $product->target_industry,
+            'Target Company Size' => $product->target_company_size,
+            'Target Buyer Persona' => $product->target_buyer_persona,
             'Pain Points Addressed' => $product->target_pain_points,
             'Ideal Company Profile' => $product->ideal_company_profile,
-            'Use Cases'             => is_array($product->use_cases)
+            'Use Cases' => is_array($product->use_cases)
                 ? implode(', ', $product->use_cases)
                 : $product->use_cases,
-            'Budget Range'          => $product->budget_range,
-            'Supported Regions'     => $product->supported_regions,
-            'Competitor Notes'      => $product->competitor_notes,
+            'Budget Range' => $product->budget_range,
+            'Supported Regions' => $product->supported_regions,
+            'Competitor Notes' => $product->competitor_notes,
         ]);
 
         $productContext = collect($fields)
@@ -121,7 +120,7 @@ PROMPT;
             // Older prompts asked for a raw JSON array. Try to recover an array
             // embedded in additional text or markdown.
             $start = strpos($json, '[');
-            $end   = strrpos($json, ']');
+            $end = strrpos($json, ']');
 
             if ($start === false || $end === false || $end <= $start) {
                 return [];
@@ -145,10 +144,10 @@ PROMPT;
             }
 
             $questions[] = [
-                'id'       => $item['id'] ?? ('q' . ($i + 1)),
-                'text'     => trim((string) $item['text']),
+                'id' => $item['id'] ?? ('q'.($i + 1)),
+                'text' => trim((string) $item['text']),
                 'category' => $this->normalizeCategory($item['category'] ?? ''),
-                'order'    => (int) ($item['order'] ?? ($i + 1)),
+                'order' => (int) ($item['order'] ?? ($i + 1)),
             ];
         }
 

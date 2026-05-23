@@ -6,9 +6,7 @@ use App\Models\Lead;
 
 class QualificationRuleEngineService
 {
-    public function __construct(private QualificationPolicyRepository $policyRepository)
-    {
-    }
+    public function __construct(private QualificationPolicyRepository $policyRepository) {}
 
     public function evaluate(array $input): array
     {
@@ -178,7 +176,7 @@ class QualificationRuleEngineService
         }
 
         $risks = [];
-        if (!$snapshot['problem_statement']) {
+        if (! $snapshot['problem_statement']) {
             $risks[] = 'Problem statement is missing.';
         }
         if ($snapshot['use_case_fit'] === 'low') {
@@ -385,7 +383,7 @@ class QualificationRuleEngineService
 
     private function looksLikeDecisionMaker(?string $title): ?bool
     {
-        if (!$title) {
+        if (! $title) {
             return null;
         }
 

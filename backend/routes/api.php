@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AiFeatureRouteController;
 use App\Http\Controllers\Api\AiProviderController;
+use App\Http\Controllers\Api\AiSettingsController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
@@ -10,9 +12,10 @@ use App\Http\Controllers\Api\FunnelController;
 use App\Http\Controllers\Api\IcpProfileController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\IntegrationConfigController;
-use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\LeadChannelTypeController;
+use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\LeadSourceTypeController;
+use App\Http\Controllers\Api\MapDiscoveryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\QualificationController;
 use App\Http\Controllers\Api\QualificationParameterSetController;
@@ -22,10 +25,7 @@ use App\Http\Controllers\Api\RevenueRuleController;
 use App\Http\Controllers\Api\TerritoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
-use App\Http\Controllers\Api\MapDiscoveryController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
-use App\Http\Controllers\Api\AiFeatureRouteController;
-use App\Http\Controllers\Api\AiSettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,10 +44,10 @@ Route::get('health', function () {
 // ── Version (Public) ──
 Route::get('version', function () {
     return response()->json([
-        'version'     => config('version.version', '1.0.0'),
+        'version' => config('version.version', '1.0.0'),
         'released_at' => config('version.released_at'),
-        'type'        => config('version.type'),
-        'notes'       => config('version.notes'),
+        'type' => config('version.type'),
+        'notes' => config('version.notes'),
     ]);
 });
 
@@ -164,9 +164,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Product Question Guide
     Route::prefix('products/{product}/questions')->group(function () {
-        Route::get('/',          [ProductController::class, 'getQuestions'])->middleware('permission:products.view');
+        Route::get('/', [ProductController::class, 'getQuestions'])->middleware('permission:products.view');
         Route::post('/generate', [ProductController::class, 'generateQuestions'])->middleware('permission:products.edit');
-        Route::put('/',          [ProductController::class, 'saveQuestions'])->middleware('permission:products.edit');
+        Route::put('/', [ProductController::class, 'saveQuestions'])->middleware('permission:products.edit');
     });
 
     // Industries
@@ -190,7 +190,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('ai-providers/{aiProvider}/models/{model}', [AiProviderController::class, 'destroyModel'])->middleware('permission:ai.manage');
     Route::get('ai-model-routes', [AiProviderController::class, 'routes'])->middleware('permission:ai.manage');
     Route::post('ai-model-routes', [AiProviderController::class, 'storeRoute'])->middleware('permission:ai.manage');
-    
+
     // AI Feature Routing (Priority Engine)
     Route::apiResource('ai-feature-routes', AiFeatureRouteController::class)->except(['show', 'update'])->middleware('permission:ai.manage');
 

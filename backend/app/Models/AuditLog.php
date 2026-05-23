@@ -15,7 +15,7 @@ class AuditLog extends Model
 
     protected $casts = [
         'before_value' => 'array',
-        'after_value'  => 'array',
+        'after_value' => 'array',
         'metadata_json' => 'array',
     ];
 

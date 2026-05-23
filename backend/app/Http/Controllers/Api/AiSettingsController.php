@@ -22,8 +22,7 @@ class AiSettingsController extends Controller
         private AIPromptTemplateService $prompts,
         private AIConnectionTestService $connectionTests,
         private AIUsageLogService $usage,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {

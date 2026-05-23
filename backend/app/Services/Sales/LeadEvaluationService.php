@@ -3,16 +3,16 @@
 namespace App\Services\Sales;
 
 use App\Models\Lead;
+use App\Models\LeadAiEvaluation;
 use App\Models\LeadMeeting;
 use App\Models\LeadTranscript;
-use App\Models\LeadAiEvaluation;
 use App\Services\AI\AiOrchestrationService;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Lead Evaluation Service — Module B (Sales Activity & Lead Evaluation Engine)
- * 
+ *
  * Implements AI-assisted evaluation of meetings and transcripts with:
  * - Sentiment analysis (positive/neutral/negative)
  * - Intent level detection (high/medium/low)
@@ -26,9 +26,7 @@ use Illuminate\Support\Facades\Auth;
  */
 class LeadEvaluationService
 {
-    public function __construct(private AiOrchestrationService $ai)
-    {
-    }
+    public function __construct(private AiOrchestrationService $ai) {}
 
     /**
      * Evaluate a transcript using AI
@@ -114,7 +112,7 @@ class LeadEvaluationService
     public function getEvaluationsBySource(
         Lead $lead,
         string $sourceType
-    ): \Illuminate\Database\Eloquent\Collection {
+    ): Collection {
         return $lead->aiEvaluations()
             ->where('source_type', $sourceType)
             ->orderByDesc('evaluated_at')
@@ -282,7 +280,7 @@ class LeadEvaluationService
         }
 
         if (is_array($value)) {
-            return implode("\n", array_map(fn ($item) => '- ' . trim((string) $item), $value));
+            return implode("\n", array_map(fn ($item) => '- '.trim((string) $item), $value));
         }
 
         return trim((string) $value) ?: null;

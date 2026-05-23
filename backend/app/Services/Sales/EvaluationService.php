@@ -9,14 +9,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class EvaluationService
 {
-    public function __construct(private AiOrchestrationService $ai)
-    {
-    }
+    public function __construct(private AiOrchestrationService $ai) {}
 
     public function evaluateTranscriptOrMeeting(Lead $lead, Model $source, string $textContent): LeadAiEvaluation
     {
         $prompt = "Evaluate the following interaction for Lead: {$lead->company_name}. Interaction content: {$textContent}. Return JSON with 'sentiment', 'intent_level', 'interest_level', 'objections_detected' (array), 'buying_signals' (array), 'next_best_action', 'confidence_score' (0-100).";
-        
+
         $result = $this->ai->call('conversation_evaluation', $prompt);
 
         if ($result['success'] && $result['content']) {

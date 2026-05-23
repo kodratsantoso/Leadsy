@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ContactEnrichmentOrchestrator::class, function () {
             return new ContactEnrichmentOrchestrator([
-                new LushaProvider(),
+                new LushaProvider,
             ]);
         });
     }

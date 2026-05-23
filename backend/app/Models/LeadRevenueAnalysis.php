@@ -29,14 +29,14 @@ class LeadRevenueAnalysis extends Model
     ];
 
     protected $casts = [
-        'buying_signals'       => 'array',
-        'objections'           => 'array',
-        'reasoning'            => 'array',
+        'buying_signals' => 'array',
+        'objections' => 'array',
+        'reasoning' => 'array',
         'probability_to_close' => 'float',
-        'confidence'           => 'float',
-        'prompt_tokens'        => 'integer',
-        'completion_tokens'    => 'integer',
-        'cost_usd'             => 'float',
+        'confidence' => 'float',
+        'prompt_tokens' => 'integer',
+        'completion_tokens' => 'integer',
+        'cost_usd' => 'float',
     ];
 
     public function lead(): BelongsTo

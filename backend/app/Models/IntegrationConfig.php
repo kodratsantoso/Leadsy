@@ -34,7 +34,7 @@ class IntegrationConfig extends Model
      */
     public function setValueAttribute($value)
     {
-        $this->attributes['value_encrypted'] = $value !== null ? Crypt::encryptString((string)$value) : null;
+        $this->attributes['value_encrypted'] = $value !== null ? Crypt::encryptString((string) $value) : null;
     }
 
     /**
@@ -48,17 +48,17 @@ class IntegrationConfig extends Model
 
         try {
             $decrypted = Crypt::decryptString($this->value_encrypted);
-            
+
             if ($this->value_type === 'boolean') {
                 return $decrypted === '1' || $decrypted === 'true';
             }
             if ($this->value_type === 'number') {
-                return (float)$decrypted;
+                return (float) $decrypted;
             }
             if ($this->value_type === 'json') {
                 return json_decode($decrypted, true);
             }
-            
+
             return $decrypted;
         } catch (\Throwable $e) {
             return null;
@@ -71,11 +71,16 @@ class IntegrationConfig extends Model
     public function getSafeValueAttribute()
     {
         $val = $this->value;
-        if ($val === null) return null;
+        if ($val === null) {
+            return null;
+        }
 
         if ($this->is_secret && is_string($val)) {
-            if (strlen($val) <= 4) return '••••';
-            return str_repeat('•', 20) . substr($val, -4);
+            if (strlen($val) <= 4) {
+                return '••••';
+            }
+
+            return str_repeat('•', 20).substr($val, -4);
         }
 
         return $val;

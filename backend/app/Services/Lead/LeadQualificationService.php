@@ -9,7 +9,7 @@ use Carbon\Carbon;
 
 /**
  * Lead Qualification Service — Module A (Lead Intelligence Engine)
- * 
+ *
  * Implements lead qualification logic with:
  * - yes/maybe/no qualification status
  * - Business type detection (B2B/B2C/mixed)
@@ -23,9 +23,7 @@ class LeadQualificationService
     public function __construct(
         private AiOrchestrationService $ai,
         private QualificationRuleEngineService $engine,
-    )
-    {
-    }
+    ) {}
 
     /**
      * Qualify a lead based on rules and optional AI analysis
@@ -129,7 +127,7 @@ class LeadQualificationService
         }
 
         // Default based on company size
-        if (!empty($lead->company_size_estimate)) {
+        if (! empty($lead->company_size_estimate)) {
             $size = strtolower($lead->company_size_estimate);
             if (str_contains($size, 'enterprise') || str_contains($size, 'large')) {
                 return 'B2B';
@@ -145,7 +143,7 @@ class LeadQualificationService
      */
     private function inferCompanySizeBand(Lead $lead): string
     {
-        if (!empty($lead->company_size_estimate)) {
+        if (! empty($lead->company_size_estimate)) {
             $size = strtolower($lead->company_size_estimate);
 
             if (str_contains($size, 'enterprise') || str_contains($size, '1000+') || str_contains($size, '5000')) {
@@ -166,7 +164,7 @@ class LeadQualificationService
         }
 
         // Estimate from branch count
-        if (!empty($lead->branch_count)) {
+        if (! empty($lead->branch_count)) {
             if ($lead->branch_count >= 50) {
                 return 'enterprise';
             }
@@ -191,9 +189,9 @@ class LeadQualificationService
         $leadData = [
             'company_name' => $lead->company_name,
             'industry' => $lead->industry?->name,
-            'website' => !empty($lead->website),
-            'email' => !empty($lead->email),
-            'phone' => !empty($lead->phone),
+            'website' => ! empty($lead->website),
+            'email' => ! empty($lead->email),
+            'phone' => ! empty($lead->phone),
             'contacts' => $lead->contacts()->count(),
             'activities' => $lead->activities()->count(),
         ];
@@ -211,6 +209,7 @@ class LeadQualificationService
 
         if ($result['success'] && $result['content']) {
             $data = json_decode($result['content'], true);
+
             return [
                 'success' => true,
                 'qualified' => $data['qualified'] ?? 'maybe',

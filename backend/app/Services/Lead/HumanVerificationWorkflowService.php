@@ -12,9 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class HumanVerificationWorkflowService
 {
-    public function __construct(private readonly LeadScoringService $scoringService)
-    {
-    }
+    public function __construct(private readonly LeadScoringService $scoringService) {}
 
     public function requestReview(Lead $lead, User $requester, array $input = []): QualificationWorkflowReview
     {

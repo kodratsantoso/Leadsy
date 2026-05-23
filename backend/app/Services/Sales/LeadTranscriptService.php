@@ -5,10 +5,11 @@ namespace App\Services\Sales;
 use App\Models\Lead;
 use App\Models\LeadTranscript;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Lead Transcript Service — Module B (Sales Activity & Lead Evaluation Engine)
- * 
+ *
  * Implements transcript storage and management with:
  * - Multiple source types (WhatsApp, meetings, manual, calls)
  * - Privacy controls and PII awareness
@@ -51,7 +52,7 @@ class LeadTranscriptService
         ?Carbon $recordedAt = null
     ): LeadTranscript {
         // Validate source type
-        if (!in_array($sourceType, self::SOURCE_TYPES)) {
+        if (! in_array($sourceType, self::SOURCE_TYPES)) {
             $sourceType = 'manual';
         }
 
@@ -87,6 +88,7 @@ class LeadTranscriptService
     public function markEvaluated(LeadTranscript $transcript): LeadTranscript
     {
         $transcript->update(['evaluation_status' => 'evaluated']);
+
         return $transcript->fresh();
     }
 
@@ -96,6 +98,7 @@ class LeadTranscriptService
     public function markSkipped(LeadTranscript $transcript, ?string $reason = null): LeadTranscript
     {
         $transcript->update(['evaluation_status' => 'skipped']);
+
         return $transcript->fresh();
     }
 
@@ -114,7 +117,7 @@ class LeadTranscriptService
         Lead $lead,
         ?string $sourceType = null,
         ?string $evaluationStatus = null
-    ): \Illuminate\Database\Eloquent\Collection {
+    ): Collection {
         $query = $lead->transcripts();
 
         if ($sourceType && in_array($sourceType, self::SOURCE_TYPES)) {
@@ -131,7 +134,7 @@ class LeadTranscriptService
     /**
      * Get pending evaluation transcripts
      */
-    public function getPendingEvaluation(Lead $lead): \Illuminate\Database\Eloquent\Collection
+    public function getPendingEvaluation(Lead $lead): Collection
     {
         return $this->getTranscripts($lead, evaluationStatus: 'pending');
     }
@@ -139,7 +142,7 @@ class LeadTranscriptService
     /**
      * Get evaluated transcripts
      */
-    public function getEvaluatedTranscripts(Lead $lead): \Illuminate\Database\Eloquent\Collection
+    public function getEvaluatedTranscripts(Lead $lead): Collection
     {
         return $this->getTranscripts($lead, evaluationStatus: 'evaluated');
     }
@@ -201,15 +204,15 @@ class LeadTranscriptService
         return [
             'lead_id' => $lead->id,
             'company_name' => $lead->company_name,
-            'period' => $fromDate->format('Y-m-d') . ' to ' . $toDate->format('Y-m-d'),
+            'period' => $fromDate->format('Y-m-d').' to '.$toDate->format('Y-m-d'),
             'total_transcripts' => $transcripts->count(),
-            'transcripts' => $transcripts->map(fn($t) => [
+            'transcripts' => $transcripts->map(fn ($t) => [
                 'id' => $t->id,
                 'source' => $t->source_type,
                 'recorded_at' => $t->recorded_at->format('Y-m-d H:i'),
                 'status' => $t->evaluation_status,
                 'length_chars' => strlen($t->transcript_text),
-                'preview' => substr($t->transcript_text, 0, 200) . '...',
+                'preview' => substr($t->transcript_text, 0, 200).'...',
             ])->toArray(),
         ];
     }
@@ -217,10 +220,10 @@ class LeadTranscriptService
     /**
      * Get search results in transcripts
      */
-    public function searchTranscripts(Lead $lead, string $searchTerm): \Illuminate\Database\Eloquent\Collection
+    public function searchTranscripts(Lead $lead, string $searchTerm): Collection
     {
         return $lead->transcripts()
-            ->whereRaw("transcript_text ILIKE ?", ["%{$searchTerm}%"])
+            ->whereRaw('transcript_text ILIKE ?', ["%{$searchTerm}%"])
             ->orderByDesc('recorded_at')
             ->get();
     }

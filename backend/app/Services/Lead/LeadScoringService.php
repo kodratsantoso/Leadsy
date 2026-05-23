@@ -7,6 +7,7 @@ use App\Models\LeadIcpConfig;
 use App\Models\LeadScore;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -92,7 +93,7 @@ class LeadScoringService
         $score = max(0, min(100, $score));
         $now = Carbon::now();
         $grade = self::gradeForScore($score);
-        $explanation = 'Human reviewer override applied. ' . trim($reason);
+        $explanation = 'Human reviewer override applied. '.trim($reason);
 
         return DB::transaction(function () use ($lead, $score, $grade, $explanation, $reason, $reviewer, $now) {
             /** @var LeadScore $scoreRecord */
@@ -187,7 +188,7 @@ class LeadScoringService
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int,LeadIcpConfig>
+     * @return Collection<int,LeadIcpConfig>
      */
     private function getScopedIcpConfig(Lead $lead)
     {
@@ -412,8 +413,8 @@ class LeadScoringService
             'Data Completeness',
             $weight,
             $rawScore,
-            "{$completed}/" . count($required),
-            "Completed {$completed} of " . count($required) . ' core lead fields.'
+            "{$completed}/".count($required),
+            "Completed {$completed} of ".count($required).' core lead fields.'
         );
     }
 
@@ -515,7 +516,7 @@ class LeadScoringService
                 };
 
                 return [
-                    'label' => $source->source_type . ' / ' . $source->confidence,
+                    'label' => $source->source_type.' / '.$source->confidence,
                     'score' => (int) round(($typeScore + $confidenceScore) / 2),
                 ];
             })
@@ -594,7 +595,7 @@ class LeadScoringService
     }
 
     /**
-     * @param array<int,array<string,mixed>> $factorResults
+     * @param  array<int,array<string,mixed>>  $factorResults
      */
     private function buildExplanation(array $factorResults): string
     {
@@ -615,11 +616,11 @@ class LeadScoringService
         $parts = [];
 
         if ($strengths !== []) {
-            $parts[] = 'Strong on ' . $this->joinLabelList($strengths) . '.';
+            $parts[] = 'Strong on '.$this->joinLabelList($strengths).'.';
         }
 
         if ($gaps !== []) {
-            $parts[] = 'Needs improvement in ' . $this->joinLabelList($gaps) . '.';
+            $parts[] = 'Needs improvement in '.$this->joinLabelList($gaps).'.';
         }
 
         if ($parts === []) {
@@ -630,15 +631,15 @@ class LeadScoringService
     }
 
     /**
-     * @param array<int,string> $labels
+     * @param  array<int,string>  $labels
      */
     private function joinLabelList(array $labels): string
     {
         return match (count($labels)) {
             0 => 'none',
             1 => $labels[0],
-            2 => $labels[0] . ' and ' . $labels[1],
-            default => implode(', ', array_slice($labels, 0, -1)) . ', and ' . end($labels),
+            2 => $labels[0].' and '.$labels[1],
+            default => implode(', ', array_slice($labels, 0, -1)).', and '.end($labels),
         };
     }
 
@@ -676,7 +677,7 @@ class LeadScoringService
     }
 
     /**
-     * @param array<int,string> $targets
+     * @param  array<int,string>  $targets
      */
     private function isAdjacentSize(string $size, array $targets): bool
     {

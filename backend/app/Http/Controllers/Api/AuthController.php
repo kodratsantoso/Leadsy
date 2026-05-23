@@ -20,7 +20,7 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
@@ -28,6 +28,7 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             AuditService::logFailedLogin($request->email);
+
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
@@ -41,7 +42,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => $user->load('role.permissions'),
+            'user' => $user->load('role.permissions'),
         ]);
     }
 
@@ -73,8 +74,8 @@ class AuthController extends Controller
         $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         EmailVerificationOtp::create([
-            'email'      => $email,
-            'otp'        => $otp,
+            'email' => $email,
+            'otp' => $otp,
             'expires_at' => now()->addMinutes(10),
         ]);
 
@@ -92,10 +93,10 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'                  => 'required|string|max:255',
-            'email'                 => 'required|email|unique:users',
-            'password'              => ['required', 'confirmed', Password::defaults()],
-            'otp'                   => 'required|string|size:6',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'password' => ['required', 'confirmed', Password::defaults()],
+            'otp' => 'required|string|size:6',
         ]);
 
         $email = strtolower(trim($data['email']));
@@ -118,11 +119,11 @@ class AuthController extends Controller
         $defaultRole = Role::where('name', 'sales_exec')->first();
 
         $user = User::create([
-            'name'              => $data['name'],
-            'email'             => $email,
-            'password'          => $data['password'],
-            'role_id'           => $defaultRole?->id,
-            'is_active'         => true,
+            'name' => $data['name'],
+            'email' => $email,
+            'password' => $data['password'],
+            'role_id' => $defaultRole?->id,
+            'is_active' => true,
             'email_verified_at' => now(),
         ]);
 
@@ -132,7 +133,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user'  => $user->load('role.permissions'),
+            'user' => $user->load('role.permissions'),
         ], 201);
     }
 

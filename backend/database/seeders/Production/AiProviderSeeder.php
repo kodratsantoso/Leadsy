@@ -12,12 +12,12 @@ class AiProviderSeeder extends Seeder
     {
         $providers = [
             [
-                'name'              => 'OpenAI',
-                'slug'              => 'openai',
-                'base_url'          => 'https://api.openai.com/v1',
+                'name' => 'OpenAI',
+                'slug' => 'openai',
+                'base_url' => 'https://api.openai.com/v1',
                 'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
-                'status'            => 'inactive',
-                'models'            => [
+                'status' => 'inactive',
+                'models' => [
                     ['name' => 'gpt-5.1',      'cost_tier' => 'high',   'context_window' => 400000],
                     ['name' => 'gpt-5',        'cost_tier' => 'high',   'context_window' => 400000],
                     ['name' => 'gpt-5-mini',   'cost_tier' => 'medium', 'context_window' => 400000],
@@ -30,12 +30,12 @@ class AiProviderSeeder extends Seeder
                 ],
             ],
             [
-                'name'              => 'Anthropic',
-                'slug'              => 'anthropic',
-                'base_url'          => 'https://api.anthropic.com/v1',
+                'name' => 'Anthropic',
+                'slug' => 'anthropic',
+                'base_url' => 'https://api.anthropic.com/v1',
                 'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
-                'status'            => 'inactive',
-                'models'            => [
+                'status' => 'inactive',
+                'models' => [
                     ['name' => 'claude-opus-4-1-20250805',   'cost_tier' => 'high',   'context_window' => 200000],
                     ['name' => 'claude-opus-4-20250514',     'cost_tier' => 'high',   'context_window' => 200000],
                     ['name' => 'claude-sonnet-4-20250514',   'cost_tier' => 'medium', 'context_window' => 200000],
@@ -45,12 +45,12 @@ class AiProviderSeeder extends Seeder
                 ],
             ],
             [
-                'name'              => 'Google Gemini',
-                'slug'              => 'google',
-                'base_url'          => 'https://generativelanguage.googleapis.com/v1beta',
+                'name' => 'Google Gemini',
+                'slug' => 'google',
+                'base_url' => 'https://generativelanguage.googleapis.com/v1beta',
                 'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
-                'status'            => 'inactive',
-                'models'            => [
+                'status' => 'inactive',
+                'models' => [
                     ['name' => 'gemini-3-pro-preview',  'cost_tier' => 'high',   'context_window' => 1048576],
                     ['name' => 'gemini-2.5-pro',        'cost_tier' => 'high',   'context_window' => 1048576],
                     ['name' => 'gemini-2.5-flash',      'cost_tier' => 'medium', 'context_window' => 1048576],

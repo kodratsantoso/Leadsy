@@ -5,11 +5,12 @@ namespace App\Services\Sales;
 use App\Models\Lead;
 use App\Models\LeadMeeting;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
  * Lead Meeting Service — Module B (Sales Activity & Lead Evaluation Engine)
- * 
+ *
  * Implements meeting management with:
  * - CRUD operations for meeting records
  * - Meeting timeline integration
@@ -52,7 +53,7 @@ class LeadMeetingService
 
         // Auto-log as activity
         $activityService = app(LeadActivityService::class);
-        $summary = substr($meeting->summary, 0, 100) . (strlen($meeting->summary) > 100 ? '...' : '');
+        $summary = substr($meeting->summary, 0, 100).(strlen($meeting->summary) > 100 ? '...' : '');
         $activityService->logActivity(
             $lead,
             'Meeting',
@@ -65,7 +66,7 @@ class LeadMeetingService
             $this->createFollowUp(
                 $lead,
                 $meeting->follow_up_date,
-                'Follow up from ' . $meeting->meeting_date->format('M d, Y'),
+                'Follow up from '.$meeting->meeting_date->format('M d, Y'),
                 Auth::id()
             );
         }
@@ -114,7 +115,7 @@ class LeadMeetingService
         Lead $lead,
         ?Carbon $fromDate = null,
         ?Carbon $toDate = null
-    ): \Illuminate\Database\Eloquent\Collection {
+    ): Collection {
         $query = $lead->meetings();
 
         if ($fromDate) {
@@ -131,7 +132,7 @@ class LeadMeetingService
     /**
      * Get upcoming meetings for a lead
      */
-    public function getUpcomingMeetings(Lead $lead, int $daysAhead = 30): \Illuminate\Database\Eloquent\Collection
+    public function getUpcomingMeetings(Lead $lead, int $daysAhead = 30): Collection
     {
         return $lead->meetings()
             ->whereBetween('meeting_date', [
@@ -145,7 +146,7 @@ class LeadMeetingService
     /**
      * Get past meetings for a lead
      */
-    public function getPastMeetings(Lead $lead, int $limit = 10): \Illuminate\Database\Eloquent\Collection
+    public function getPastMeetings(Lead $lead, int $limit = 10): Collection
     {
         return $lead->meetings()
             ->where('meeting_date', '<', Carbon::now())
@@ -191,7 +192,7 @@ class LeadMeetingService
             ] : null,
             'upcoming_count' => $upcomingMeetings->count(),
             'upcoming' => $upcomingMeetings
-                ->map(fn($m) => [
+                ->map(fn ($m) => [
                     'id' => $m->id,
                     'date' => $m->meeting_date,
                     'type' => $m->meeting_type,
@@ -223,9 +224,9 @@ class LeadMeetingService
         return [
             'lead_id' => $lead->id,
             'company_name' => $lead->company_name,
-            'period' => $fromDate->format('Y-m-d') . ' to ' . $toDate->format('Y-m-d'),
+            'period' => $fromDate->format('Y-m-d').' to '.$toDate->format('Y-m-d'),
             'total_meetings' => $meetings->count(),
-            'meetings' => $meetings->map(fn($m) => [
+            'meetings' => $meetings->map(fn ($m) => [
                 'date' => $m->meeting_date->format('Y-m-d H:i'),
                 'type' => $m->meeting_type,
                 'participants' => $m->participants,

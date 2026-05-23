@@ -45,7 +45,7 @@ return new class extends Migration
             return;
         }
 
-        $primaryId  = $this->resolveModelId(self::PREFERRED_PRIMARY);
+        $primaryId = $this->resolveModelId(self::PREFERRED_PRIMARY);
         $fallbackId = $this->resolveModelId(self::PREFERRED_FALLBACK, exclude: $primaryId);
 
         if (! $primaryId) {
@@ -55,30 +55,30 @@ return new class extends Migration
 
         DB::table('ai_feature_routes')->insert([
             [
-                'feature_name'    => self::FEATURE,
-                'ai_model_id'     => $primaryId,
-                'priority'        => 1,
-                'max_retries'     => 1,
+                'feature_name' => self::FEATURE,
+                'ai_model_id' => $primaryId,
+                'priority' => 1,
+                'max_retries' => 1,
                 'timeout_seconds' => 45,
-                'cost_sensitivity'=> 'medium',
-                'is_active'       => true,
-                'created_at'      => now(),
-                'updated_at'      => now(),
+                'cost_sensitivity' => 'medium',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
         ]);
 
         if ($fallbackId) {
             DB::table('ai_feature_routes')->insert([
                 [
-                    'feature_name'    => self::FEATURE,
-                    'ai_model_id'     => $fallbackId,
-                    'priority'        => 2,
-                    'max_retries'     => 1,
+                    'feature_name' => self::FEATURE,
+                    'ai_model_id' => $fallbackId,
+                    'priority' => 2,
+                    'max_retries' => 1,
                     'timeout_seconds' => 45,
-                    'cost_sensitivity'=> 'low',
-                    'is_active'       => true,
-                    'created_at'      => now(),
-                    'updated_at'      => now(),
+                    'cost_sensitivity' => 'low',
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ],
             ]);
         }
@@ -118,6 +118,7 @@ return new class extends Migration
         if ($exclude) {
             $query->where('id', '!=', $exclude);
         }
+
         return $query->value('id');
     }
 };

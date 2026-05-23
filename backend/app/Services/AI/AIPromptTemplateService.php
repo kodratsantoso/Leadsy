@@ -130,7 +130,7 @@ class AIPromptTemplateService
         $replacements = ['{{input}}' => $input];
 
         foreach ($variables as $key => $value) {
-            $replacements['{{' . $key . '}}'] = is_scalar($value) ? (string) $value : json_encode($value, JSON_PRETTY_PRINT);
+            $replacements['{{'.$key.'}}'] = is_scalar($value) ? (string) $value : json_encode($value, JSON_PRETTY_PRINT);
         }
 
         $compiled = strtr($template, $replacements);
@@ -145,7 +145,7 @@ class AIPromptTemplateService
         if ($content !== null) {
             return str_contains($content, '{{input}}')
                 ? str_replace('{{input}}', $sampleInput, $content)
-                : trim($content . "\n\nInput:\n" . $sampleInput);
+                : trim($content."\n\nInput:\n".$sampleInput);
         }
 
         return $this->compilePrompt($featureName, $sampleInput);

@@ -82,7 +82,7 @@ return new class extends Migration
                     [
                         'lead_source_type_id' => $sourceId,
                         'name' => $name,
-                        'description' => Str::headline(str_replace(['-', '_'], ' ', $sourceSlug)) . ' channel',
+                        'description' => Str::headline(str_replace(['-', '_'], ' ', $sourceSlug)).' channel',
                         'sort_order' => ($index + 1) * 10,
                         'is_active' => true,
                         'created_at' => now(),

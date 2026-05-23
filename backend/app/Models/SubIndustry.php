@@ -10,7 +10,7 @@ class SubIndustry extends Model
     protected $fillable = ['industry_id', 'name', 'synonyms', 'scoring_hints', 'is_active'];
 
     protected $casts = [
-        'synonyms'  => 'array',
+        'synonyms' => 'array',
         'is_active' => 'boolean',
     ];
 

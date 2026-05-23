@@ -10,11 +10,11 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        $allPermIds   = Permission::pluck('id')->toArray();
-        $leadProdIds  = Permission::whereIn('module', ['leads', 'products'])->pluck('id')->toArray();
-        $execIds      = Permission::whereIn('name', ['leads.view', 'leads.create', 'leads.edit', 'products.view'])->pluck('id')->toArray();
-        $presalesIds  = Permission::whereIn('name', ['leads.view', 'leads.create', 'products.view', 'products.edit', 'ai.manage'])->pluck('id')->toArray();
-        $viewerIds    = Permission::whereIn('name', ['leads.view', 'products.view', 'audit.view'])->pluck('id')->toArray();
+        $allPermIds = Permission::pluck('id')->toArray();
+        $leadProdIds = Permission::whereIn('module', ['leads', 'products'])->pluck('id')->toArray();
+        $execIds = Permission::whereIn('name', ['leads.view', 'leads.create', 'leads.edit', 'products.view'])->pluck('id')->toArray();
+        $presalesIds = Permission::whereIn('name', ['leads.view', 'leads.create', 'products.view', 'products.edit', 'ai.manage'])->pluck('id')->toArray();
+        $viewerIds = Permission::whereIn('name', ['leads.view', 'products.view', 'audit.view'])->pluck('id')->toArray();
 
         $roles = [
             ['name' => 'super_admin',   'display_name' => 'Super Admin',                'perms' => $allPermIds],

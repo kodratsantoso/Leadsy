@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\Lead;
-use App\Models\LeadContact;
 use App\Services\Lead\LeadDiscoveryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -23,6 +22,7 @@ class EnrichLeadJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $backoff = 15;
 
     public function __construct(
@@ -35,6 +35,7 @@ class EnrichLeadJob implements ShouldQueue
 
         if (! $lead || empty($lead->external_place_id)) {
             Log::info("[EnrichLeadJob] Lead {$this->leadId} has no external_place_id, skipping.");
+
             return;
         }
 
@@ -42,6 +43,7 @@ class EnrichLeadJob implements ShouldQueue
 
         if (! $details) {
             Log::warning("[EnrichLeadJob] Could not fetch details for lead {$this->leadId}");
+
             return;
         }
 
@@ -55,11 +57,11 @@ class EnrichLeadJob implements ShouldQueue
 
         if (! empty($updates)) {
             $lead->update($updates);
-            Log::info("[EnrichLeadJob] Enriched lead {$this->leadId} with fields: " . implode(', ', array_keys($updates)));
+            Log::info("[EnrichLeadJob] Enriched lead {$this->leadId} with fields: ".implode(', ', array_keys($updates)));
         }
 
         // Chain Contact Discovery Enrichment
-        \App\Jobs\EnrichLeadContactsJob::dispatch($this->leadId)
+        EnrichLeadContactsJob::dispatch($this->leadId)
             ->delay(now()->addSeconds(5))
             ->onQueue('enrichment');
     }

@@ -125,7 +125,7 @@ return new class extends Migration
                 $rawKey = $provider->api_key_encrypted;
                 try {
                     $rawKey = Crypt::decryptString($provider->api_key_encrypted);
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     $rawKey = (string) $provider->api_key_encrypted;
                 }
 

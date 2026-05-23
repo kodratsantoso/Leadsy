@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Http;
 use App\Models\Lead;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class WhatsAppMessagingController extends Controller
 {
@@ -25,7 +25,7 @@ class WhatsAppMessagingController extends Controller
         ]);
 
         $lead = Lead::find($data['lead_id']);
-        if (!$lead->phone) {
+        if (! $lead->phone) {
             return response()->json(['error' => 'Lead has no phone number'], 422);
         }
 
@@ -44,7 +44,7 @@ class WhatsAppMessagingController extends Controller
 
             return response()->json(['error' => 'Provider error', 'details' => $response->json()], 502);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Transmission failed: ' . $e->getMessage()], 503);
+            return response()->json(['error' => 'Transmission failed: '.$e->getMessage()], 503);
         }
     }
 }

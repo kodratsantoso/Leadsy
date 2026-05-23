@@ -33,21 +33,21 @@ class ProductController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'                  => 'required|string|max:255',
-            'category'              => 'nullable|string|max:255',
-            'description'           => 'nullable|string',
-            'target_industry'       => 'nullable|string|max:255',
-            'target_company_size'   => 'nullable|string|max:255',
-            'target_pain_points'    => 'nullable|string',
-            'target_buyer_persona'  => 'nullable|string',
+            'name' => 'required|string|max:255',
+            'category' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'target_industry' => 'nullable|string|max:255',
+            'target_company_size' => 'nullable|string|max:255',
+            'target_pain_points' => 'nullable|string',
+            'target_buyer_persona' => 'nullable|string',
             'ideal_company_profile' => 'nullable|string',
             'ai_reference_material' => 'nullable|string',
-            'supported_regions'     => 'nullable|string|max:500',
-            'budget_range'          => 'nullable|string|max:255',
-            'use_cases'             => 'nullable|array',
-            'competitor_notes'      => 'nullable|string',
-            'keywords'              => 'nullable|array',
-            'status'                => 'nullable|in:active,inactive',
+            'supported_regions' => 'nullable|string|max:500',
+            'budget_range' => 'nullable|string|max:255',
+            'use_cases' => 'nullable|array',
+            'competitor_notes' => 'nullable|string',
+            'keywords' => 'nullable|array',
+            'status' => 'nullable|in:active,inactive',
         ]);
 
         $data['created_by'] = $request->user()?->id;
@@ -64,21 +64,21 @@ class ProductController extends Controller
         $original = $product->getAttributes();
 
         $data = $request->validate([
-            'name'                  => 'sometimes|string|max:255',
-            'category'              => 'nullable|string|max:255',
-            'description'           => 'nullable|string',
-            'target_industry'       => 'nullable|string|max:255',
-            'target_company_size'   => 'nullable|string|max:255',
-            'target_pain_points'    => 'nullable|string',
-            'target_buyer_persona'  => 'nullable|string',
+            'name' => 'sometimes|string|max:255',
+            'category' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'target_industry' => 'nullable|string|max:255',
+            'target_company_size' => 'nullable|string|max:255',
+            'target_pain_points' => 'nullable|string',
+            'target_buyer_persona' => 'nullable|string',
             'ideal_company_profile' => 'nullable|string',
             'ai_reference_material' => 'nullable|string',
-            'supported_regions'     => 'nullable|string|max:500',
-            'budget_range'          => 'nullable|string|max:255',
-            'use_cases'             => 'nullable|array',
-            'competitor_notes'      => 'nullable|string',
-            'keywords'              => 'nullable|array',
-            'status'                => 'nullable|in:active,inactive',
+            'supported_regions' => 'nullable|string|max:500',
+            'budget_range' => 'nullable|string|max:255',
+            'use_cases' => 'nullable|array',
+            'competitor_notes' => 'nullable|string',
+            'keywords' => 'nullable|array',
+            'status' => 'nullable|in:active,inactive',
         ]);
 
         $product->update($data);
@@ -109,14 +109,14 @@ class ProductController extends Controller
     public function aiGenerate(Request $request): JsonResponse
     {
         $request->validate([
-            'product_name'  => 'nullable|string|max:255',
+            'product_name' => 'nullable|string|max:255',
             'reference_url' => 'nullable|url|max:2048',
-            'pdf_file'      => 'nullable|file|mimes:pdf|max:10240', // 10 MB
+            'pdf_file' => 'nullable|file|mimes:pdf|max:10240', // 10 MB
         ]);
 
-        $productName  = trim($request->input('product_name', ''));
+        $productName = trim($request->input('product_name', ''));
         $referenceUrl = trim($request->input('reference_url', ''));
-        $pdfFile      = $request->file('pdf_file');
+        $pdfFile = $request->file('pdf_file');
 
         // At least one source must be provided
         if (! $pdfFile && ! $referenceUrl && ! $productName) {
@@ -132,13 +132,13 @@ class ProductController extends Controller
 
         // Determine source and call appropriate method
         if ($pdfFile) {
-            $result     = $service->generateFromPdf($pdfFile->getRealPath(), $productName, $availableCategories);
+            $result = $service->generateFromPdf($pdfFile->getRealPath(), $productName, $availableCategories);
             $auditSource = 'pdf';
         } elseif ($referenceUrl) {
-            $result     = $service->generateFromUrl($referenceUrl, $productName, $availableCategories);
+            $result = $service->generateFromUrl($referenceUrl, $productName, $availableCategories);
             $auditSource = 'url';
         } else {
-            $result     = $service->generate($productName, $availableCategories);
+            $result = $service->generate($productName, $availableCategories);
             $auditSource = 'name';
         }
 
@@ -153,17 +153,17 @@ class ProductController extends Controller
             null,
             [
                 'product_name' => $productName ?: null,
-                'source'       => $auditSource,
-                'reference_url'=> $referenceUrl ?: null,
-                'ai_model'     => $result['ai_model'],
-                'user_id'      => $request->user()?->id,
+                'source' => $auditSource,
+                'reference_url' => $referenceUrl ?: null,
+                'ai_model' => $result['ai_model'],
+                'user_id' => $request->user()?->id,
             ],
         );
 
         return response()->json([
-            'data'     => $result['data'],
+            'data' => $result['data'],
             'ai_model' => $result['ai_model'],
-            'source'   => $auditSource,
+            'source' => $auditSource,
         ]);
     }
 
@@ -179,10 +179,10 @@ class ProductController extends Controller
 
         return response()->json([
             'data' => [
-                'questions'    => $guide?->questions ?? [],
+                'questions' => $guide?->questions ?? [],
                 'ai_generated' => $guide?->ai_generated ?? false,
-                'ai_model'     => $guide?->ai_model ?? null,
-                'updated_at'   => $guide?->updated_at?->toIso8601String(),
+                'ai_model' => $guide?->ai_model ?? null,
+                'updated_at' => $guide?->updated_at?->toIso8601String(),
             ],
         ]);
     }
@@ -212,7 +212,7 @@ class ProductController extends Controller
         );
 
         return response()->json([
-            'data'     => $result['questions'],
+            'data' => $result['questions'],
             'ai_model' => $result['ai_model'],
         ]);
     }
@@ -225,22 +225,22 @@ class ProductController extends Controller
     public function saveQuestions(Request $request, Product $product): JsonResponse
     {
         $validated = $request->validate([
-            'questions'    => 'required|array',
-            'questions.*.id'       => 'required|string|max:64',
-            'questions.*.text'     => 'required|string|max:1000',
+            'questions' => 'required|array',
+            'questions.*.id' => 'required|string|max:64',
+            'questions.*.text' => 'required|string|max:1000',
             'questions.*.category' => 'required|string|max:100',
-            'questions.*.order'    => 'required|integer|min:1',
+            'questions.*.order' => 'required|integer|min:1',
             'ai_generated' => 'boolean',
-            'ai_model'     => 'nullable|string|max:200',
+            'ai_model' => 'nullable|string|max:200',
         ]);
 
         $guide = ProductQuestion::updateOrCreate(
             ['product_id' => $product->id],
             [
-                'questions'    => $validated['questions'],
+                'questions' => $validated['questions'],
                 'ai_generated' => $validated['ai_generated'] ?? false,
-                'ai_model'     => $validated['ai_model'] ?? null,
-                'updated_by'   => $request->user()?->id,
+                'ai_model' => $validated['ai_model'] ?? null,
+                'updated_by' => $request->user()?->id,
             ],
         );
 
@@ -248,10 +248,10 @@ class ProductController extends Controller
 
         return response()->json([
             'data' => [
-                'questions'    => $guide->questions,
+                'questions' => $guide->questions,
                 'ai_generated' => $guide->ai_generated,
-                'ai_model'     => $guide->ai_model,
-                'updated_at'   => $guide->updated_at?->toIso8601String(),
+                'ai_model' => $guide->ai_model,
+                'updated_at' => $guide->updated_at?->toIso8601String(),
             ],
         ]);
     }

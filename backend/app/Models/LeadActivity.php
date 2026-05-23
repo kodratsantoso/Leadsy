@@ -16,8 +16,8 @@ class LeadActivity extends Model
     ];
 
     protected $casts = [
-        'activity_date'      => 'datetime',
-        'next_follow_up_date'=> 'date',
+        'activity_date' => 'datetime',
+        'next_follow_up_date' => 'date',
     ];
 
     public function lead(): BelongsTo

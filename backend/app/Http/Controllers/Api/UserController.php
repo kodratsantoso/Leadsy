@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,12 +27,12 @@ class UserController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'      => 'required|string|max:255',
-            'email'     => 'required|email|unique:users',
-            'password'  => 'required|string|min:8',
-            'role_id'   => 'nullable|exists:roles,id',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|string|min:8',
+            'role_id' => 'nullable|exists:roles,id',
             'direct_manager_id' => 'nullable|exists:users,id',
-            'phone'     => 'nullable|string|max:30',
+            'phone' => 'nullable|string|max:30',
             'target_period' => 'nullable|in:weekly,monthly,quarterly,yearly',
             'target_revenue' => 'nullable|numeric|min:0',
             'is_active' => 'nullable|boolean',
@@ -49,12 +49,12 @@ class UserController extends Controller
         $original = $user->getAttributes();
 
         $data = $request->validate([
-            'name'      => 'sometimes|string|max:255',
-            'email'     => 'sometimes|email|unique:users,email,' . $user->id,
-            'password'  => 'nullable|string|min:8',
-            'role_id'   => 'nullable|exists:roles,id',
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,'.$user->id,
+            'password' => 'nullable|string|min:8',
+            'role_id' => 'nullable|exists:roles,id',
             'direct_manager_id' => 'nullable|exists:users,id',
-            'phone'     => 'nullable|string|max:30',
+            'phone' => 'nullable|string|max:30',
             'target_period' => 'nullable|in:weekly,monthly,quarterly,yearly',
             'target_revenue' => 'nullable|numeric|min:0',
             'is_active' => 'nullable|boolean',
@@ -78,6 +78,7 @@ class UserController extends Controller
     {
         AuditService::logDeleted('users', $user);
         $user->update(['is_active' => false]);
+
         return response()->json(null, 204);
     }
 
@@ -100,10 +101,10 @@ class UserController extends Controller
     public function storeRole(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'          => 'required|string|max:100|unique:roles',
-            'display_name'  => 'required|string|max:255',
-            'description'   => 'nullable|string',
-            'permissions'   => 'nullable|array',
+            'name' => 'required|string|max:100|unique:roles',
+            'display_name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
 
@@ -123,10 +124,10 @@ class UserController extends Controller
         $original = $role->getAttributes();
 
         $data = $request->validate([
-            'display_name'  => 'sometimes|string|max:255',
-            'description'   => 'nullable|string',
-            'is_active'     => 'nullable|boolean',
-            'permissions'   => 'nullable|array',
+            'display_name' => 'sometimes|string|max:255',
+            'description' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
+            'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
 

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('search_mode')->default('nearby'); // nearby, text
             $table->unsignedInteger('radius_meters')->nullable();
             $table->unsignedInteger('result_count')->default(0);
-            
+
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
@@ -36,7 +36,7 @@ return new class extends Migration
             $table->string('category')->nullable();
             $table->decimal('rating', 3, 1)->nullable();
             $table->text('maps_url')->nullable();
-            
+
             $table->json('raw_payload')->nullable();
             $table->timestamp('fetched_at');
             $table->timestamps();

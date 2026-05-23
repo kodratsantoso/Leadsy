@@ -34,7 +34,7 @@ class AIConnectionTestService
             curl_close($ch);
 
             $success = $status >= 200 && $status < 300 && empty($curlError);
-            $message = $success ? 'Connection successful' : ($curlError ?: ('HTTP ' . $status));
+            $message = $success ? 'Connection successful' : ($curlError ?: ('HTTP '.$status));
             $responseMetadata = [
                 'endpoint' => $url,
                 'body_preview' => is_string($responseBody) ? mb_substr($responseBody, 0, 500) : null,
@@ -83,9 +83,9 @@ class AIConnectionTestService
         $baseUrl = rtrim($provider->base_url ?: $this->defaultBaseUrl($provider->provider_type ?: $provider->slug), '/');
 
         return match ($provider->provider_type ?: $provider->slug) {
-            'anthropic' => $baseUrl . '/messages',
-            'gemini', 'google' => $baseUrl . '/models',
-            default => $baseUrl . '/models',
+            'anthropic' => $baseUrl.'/messages',
+            'gemini', 'google' => $baseUrl.'/models',
+            default => $baseUrl.'/models',
         };
     }
 
@@ -96,11 +96,11 @@ class AIConnectionTestService
 
         return match ($provider->provider_type ?: $provider->slug) {
             'anthropic' => array_merge($common, [
-                'x-api-key: ' . $key,
+                'x-api-key: '.$key,
                 'anthropic-version: 2023-06-01',
             ]),
-            'gemini', 'google' => array_merge($common, ['x-goog-api-key: ' . $key]),
-            default => array_merge($common, ['Authorization: Bearer ' . $key]),
+            'gemini', 'google' => array_merge($common, ['x-goog-api-key: '.$key]),
+            default => array_merge($common, ['Authorization: Bearer '.$key]),
         };
     }
 

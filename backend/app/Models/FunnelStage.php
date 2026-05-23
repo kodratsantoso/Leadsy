@@ -9,8 +9,8 @@ class FunnelStage extends Model
     protected $fillable = ['name', 'sequence', 'color', 'probability', 'is_active'];
 
     protected $casts = [
-        'is_active'   => 'boolean',
+        'is_active' => 'boolean',
         'probability' => 'integer',
-        'sequence'    => 'integer',
+        'sequence' => 'integer',
     ];
 }

@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AiProvider;
 use App\Models\AiModel;
 use App\Models\AiModelRoute;
-use App\Models\AiRequest;
+use App\Models\AiProvider;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +18,8 @@ class AiProviderController extends Controller
     public function index(): JsonResponse
     {
         $providers = AiProvider::with('models')->get()->map(function ($p) {
-            $p->api_key_masked = str_repeat('•', 20) . substr($p->decrypted_api_key, -4);
+            $p->api_key_masked = str_repeat('•', 20).substr($p->decrypted_api_key, -4);
+
             return $p;
         });
 
@@ -29,14 +29,14 @@ class AiProviderController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'            => 'required|string|max:255',
-            'slug'            => 'required|string|max:100|unique:ai_providers',
-            'base_url'        => 'nullable|url',
-            'api_key'         => 'required|string',
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:100|unique:ai_providers',
+            'base_url' => 'nullable|url',
+            'api_key' => 'required|string',
             'organization_id' => 'nullable|string',
-            'region'          => 'nullable|string',
-            'status'          => 'nullable|in:active,inactive',
-            'environments'    => 'nullable|array',
+            'region' => 'nullable|string',
+            'status' => 'nullable|in:active,inactive',
+            'environments' => 'nullable|array',
         ]);
 
         $data['api_key_encrypted'] = $data['api_key'];
@@ -54,13 +54,13 @@ class AiProviderController extends Controller
         $original = $aiProvider->getAttributes();
 
         $data = $request->validate([
-            'name'            => 'sometimes|string|max:255',
-            'base_url'        => 'nullable|url',
-            'api_key'         => 'nullable|string',
+            'name' => 'sometimes|string|max:255',
+            'base_url' => 'nullable|url',
+            'api_key' => 'nullable|string',
             'organization_id' => 'nullable|string',
-            'region'          => 'nullable|string',
-            'status'          => 'nullable|in:active,inactive',
-            'environments'    => 'nullable|array',
+            'region' => 'nullable|string',
+            'status' => 'nullable|in:active,inactive',
+            'environments' => 'nullable|array',
         ]);
 
         if (! empty($data['api_key'])) {
@@ -78,6 +78,7 @@ class AiProviderController extends Controller
     {
         AuditService::logDeleted('ai_providers', $aiProvider);
         $aiProvider->delete();
+
         return response()->json(null, 204);
     }
 
@@ -91,10 +92,10 @@ class AiProviderController extends Controller
 
             $ch = curl_init();
             curl_setopt_array($ch, [
-                CURLOPT_URL            => $url . '/models',
+                CURLOPT_URL => $url.'/models',
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 10,
-                CURLOPT_HTTPHEADER     => [
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_HTTPHEADER => [
                     "Authorization: Bearer {$key}",
                     'Content-Type: application/json',
                 ],
@@ -106,14 +107,14 @@ class AiProviderController extends Controller
             $success = $code >= 200 && $code < 300;
 
             return response()->json([
-                'success'    => $success,
-                'status'     => $code,
+                'success' => $success,
+                'status' => $code,
                 'latency_ms' => null,
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 502);
         }
     }
@@ -123,12 +124,12 @@ class AiProviderController extends Controller
     public function storeModel(Request $request, AiProvider $aiProvider): JsonResponse
     {
         $data = $request->validate([
-            'name'               => 'required|string|max:255',
-            'context_window'     => 'nullable|integer',
-            'capabilities'       => 'nullable|array',
-            'cost_tier'          => 'nullable|in:low,medium,high',
+            'name' => 'required|string|max:255',
+            'context_window' => 'nullable|integer',
+            'capabilities' => 'nullable|array',
+            'cost_tier' => 'nullable|in:low,medium,high',
             'default_usage_type' => 'nullable|string',
-            'status'             => 'nullable|in:active,deprecated',
+            'status' => 'nullable|in:active,deprecated',
         ]);
 
         $model = $aiProvider->models()->create($data);
@@ -141,6 +142,7 @@ class AiProviderController extends Controller
     {
         AuditService::logDeleted('ai_models', $model);
         $model->delete();
+
         return response()->json(null, 204);
     }
 
@@ -165,28 +167,28 @@ class AiProviderController extends Controller
             ->groupBy('ai_providers.id', 'ai_providers.name', 'ai_providers.slug')
             ->get();
 
-        $totalCalls   = $perProvider->sum('total_calls');
-        $totalCost    = $perProvider->sum('total_cost_usd');
+        $totalCalls = $perProvider->sum('total_calls');
+        $totalCost = $perProvider->sum('total_cost_usd');
         $successCount = $perProvider->sum('success_count');
-        $avgLatency   = $perProvider->avg('avg_latency_ms');
+        $avgLatency = $perProvider->avg('avg_latency_ms');
 
         return response()->json([
             'data' => [
                 'summary' => [
-                    'total_calls'    => (int) $totalCalls,
+                    'total_calls' => (int) $totalCalls,
                     'total_cost_usd' => round((float) $totalCost, 4),
-                    'success_rate'   => $totalCalls > 0 ? round($successCount / $totalCalls * 100, 1) : null,
+                    'success_rate' => $totalCalls > 0 ? round($successCount / $totalCalls * 100, 1) : null,
                     'avg_latency_ms' => $avgLatency ? round((float) $avgLatency) : null,
-                    'has_data'       => $totalCalls > 0,
+                    'has_data' => $totalCalls > 0,
                 ],
                 'per_provider' => $perProvider->map(fn ($row) => [
-                    'provider_id'    => $row->provider_id,
-                    'provider_name'  => $row->provider_name,
-                    'provider_slug'  => $row->provider_slug,
-                    'total_calls'    => (int) $row->total_calls,
+                    'provider_id' => $row->provider_id,
+                    'provider_name' => $row->provider_name,
+                    'provider_slug' => $row->provider_slug,
+                    'total_calls' => (int) $row->total_calls,
                     'total_cost_usd' => round((float) $row->total_cost_usd, 4),
                     'avg_latency_ms' => $row->avg_latency_ms ? round((float) $row->avg_latency_ms) : null,
-                    'success_rate'   => $row->total_calls > 0
+                    'success_rate' => $row->total_calls > 0
                         ? round($row->success_count / $row->total_calls * 100, 1)
                         : null,
                 ]),
@@ -206,11 +208,11 @@ class AiProviderController extends Controller
     public function storeRoute(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'function_name'     => 'required|string|unique:ai_model_routes',
-            'primary_model_id'  => 'required|exists:ai_models,id',
+            'function_name' => 'required|string|unique:ai_model_routes',
+            'primary_model_id' => 'required|exists:ai_models,id',
             'fallback_model_id' => 'nullable|exists:ai_models,id',
-            'retry_count'       => 'nullable|integer|min:0|max:10',
-            'timeout_seconds'   => 'nullable|integer|min:5|max:120',
+            'retry_count' => 'nullable|integer|min:0|max:10',
+            'timeout_seconds' => 'nullable|integer|min:5|max:120',
         ]);
 
         $route = AiModelRoute::create($data);
@@ -222,10 +224,10 @@ class AiProviderController extends Controller
     private function defaultUrl(string $slug): string
     {
         return match ($slug) {
-            'openai'    => 'https://api.openai.com/v1',
+            'openai' => 'https://api.openai.com/v1',
             'anthropic' => 'https://api.anthropic.com/v1',
-            'google'    => 'https://generativelanguage.googleapis.com/v1beta',
-            default     => '',
+            'google' => 'https://generativelanguage.googleapis.com/v1beta',
+            default => '',
         };
     }
 }

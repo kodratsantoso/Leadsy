@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Log;
 class GeoProductFitService
 {
     const FEATURE_NAME = 'geo_product_fit_analysis';
+
     const MAX_AI_BATCH = 3;
 
     public function __construct(private AiOrchestrationService $ai) {}
@@ -33,10 +34,8 @@ class GeoProductFitService
      * Analyze a batch of discovered places against a product.
      * Applies rule-based pre-score to all, then AI-analyzes top candidates up to $aiLimit.
      *
-     * @param  array   $places     Array of place payloads (from Maps search)
-     * @param  Product $product
-     * @param  int     $userId
-     * @param  int     $aiLimit    Max places to analyze with AI this run
+     * @param  array  $places  Array of place payloads (from Maps search)
+     * @param  int  $aiLimit  Max places to analyze with AI this run
      * @return array<GeoProductFitAnalysis>
      */
     public function batchAnalyze(array $places, Product $product, int $userId, int $aiLimit = self::MAX_AI_BATCH): array
@@ -48,7 +47,9 @@ class GeoProductFitService
         $prescored = [];
         foreach ($places as $place) {
             $placeId = $place['external_place_id'] ?? $place['place_id'] ?? null;
-            if (!$placeId) continue;
+            if (! $placeId) {
+                continue;
+            }
 
             $sourceHash = $this->hashPlace($place);
 
@@ -56,22 +57,23 @@ class GeoProductFitService
             $cached = $this->getCached($placeId, $product->id, $sourceHash, $productHash);
             if ($cached) {
                 $results[] = $cached;
+
                 continue;
             }
 
             $preScore = $this->preScore($place, $product);
             $prescored[] = [
-                'place'       => $place,
-                'place_id'    => $placeId,
+                'place' => $place,
+                'place_id' => $placeId,
                 'source_hash' => $sourceHash,
-                'pre_score'   => $preScore,
+                'pre_score' => $preScore,
             ];
         }
 
         // Phase 2: Sort prescored by pre_score desc, take top $aiLimit for AI
-        usort($prescored, fn($a, $b) => $b['pre_score'] <=> $a['pre_score']);
-        $aiCandidates  = array_slice($prescored, 0, $aiLimit);
-        $ruleOnly      = array_slice($prescored, $aiLimit);
+        usort($prescored, fn ($a, $b) => $b['pre_score'] <=> $a['pre_score']);
+        $aiCandidates = array_slice($prescored, 0, $aiLimit);
+        $ruleOnly = array_slice($prescored, $aiLimit);
 
         // Store rule-only results (no AI, use pre_score as fit_score)
         foreach ($ruleOnly as $item) {
@@ -109,23 +111,25 @@ class GeoProductFitService
      */
     public function analyzeSingle(array $place, Product $product, int $userId): GeoProductFitAnalysis
     {
-        $placeId     = $place['external_place_id'] ?? $place['place_id'] ?? '';
-        $sourceHash  = $this->hashPlace($place);
+        $placeId = $place['external_place_id'] ?? $place['place_id'] ?? '';
+        $sourceHash = $this->hashPlace($place);
         $productHash = $this->hashProduct($product);
 
         $cached = $this->getCached($placeId, $product->id, $sourceHash, $productHash);
-        if ($cached) return $cached;
+        if ($cached) {
+            return $cached;
+        }
 
         $preScore = $this->preScore($place, $product);
+
         return $this->analyzeWithAi($place, $placeId, $product, $preScore, $sourceHash, $productHash, $userId);
     }
 
     /**
      * Get all cached analyses for a set of place_ids + product_id.
      *
-     * @param  string[] $placeIds
-     * @param  int      $productId
-     * @return array<string, GeoProductFitAnalysis>  Keyed by place_id
+     * @param  string[]  $placeIds
+     * @return array<string, GeoProductFitAnalysis> Keyed by place_id
      */
     public function getCachedResults(array $placeIds, int $productId): array
     {
@@ -148,7 +152,7 @@ class GeoProductFitService
         $score = 0;
 
         $placeCategory = strtolower($place['business_category'] ?? $place['category'] ?? '');
-        $placeName     = strtolower($place['company_name'] ?? $place['name'] ?? '');
+        $placeName = strtolower($place['company_name'] ?? $place['name'] ?? '');
 
         // --- Category / industry alignment (30 pts) ---
         $targetIndustry = strtolower($product->target_industry ?? '');
@@ -176,7 +180,7 @@ class GeoProductFitService
 
         // --- Region / location match (15 pts) ---
         $supportedRegions = strtolower($product->supported_regions ?? '');
-        $placeAddress     = strtolower($place['address'] ?? '');
+        $placeAddress = strtolower($place['address'] ?? '');
         if ($supportedRegions && $placeAddress) {
             $regionTerms = preg_split('/[\s,;|]+/', $supportedRegions);
             foreach ($regionTerms as $term) {
@@ -188,16 +192,26 @@ class GeoProductFitService
         }
 
         // --- Data completeness signals (15 pts) ---
-        if (!empty($place['website'])) $score += 7;
-        if (!empty($place['phone']))   $score += 5;
-        if (!empty($place['email']))   $score += 3;
+        if (! empty($place['website'])) {
+            $score += 7;
+        }
+        if (! empty($place['phone'])) {
+            $score += 5;
+        }
+        if (! empty($place['email'])) {
+            $score += 3;
+        }
 
         // --- Rating / review quality (15 pts) ---
-        $rating      = (float) ($place['rating'] ?? 0);
-        $reviewCount = (int)   ($place['review_count'] ?? $place['user_ratings_total'] ?? 0);
-        if ($rating >= 4.0 && $reviewCount >= 20) $score += 15;
-        elseif ($rating >= 3.5 && $reviewCount >= 5) $score += 8;
-        elseif ($rating > 0) $score += 3;
+        $rating = (float) ($place['rating'] ?? 0);
+        $reviewCount = (int) ($place['review_count'] ?? $place['user_ratings_total'] ?? 0);
+        if ($rating >= 4.0 && $reviewCount >= 20) {
+            $score += 15;
+        } elseif ($rating >= 3.5 && $reviewCount >= 5) {
+            $score += 8;
+        } elseif ($rating > 0) {
+            $score += 3;
+        }
 
         return min(100, $score);
     }
@@ -213,77 +227,78 @@ class GeoProductFitService
         $prompt = $this->buildPrompt($place, $product);
 
         $aiResult = $this->ai->call(self::FEATURE_NAME, $prompt, [
-            'entity_type'    => 'geo_product_fit',
-            'entity_id'      => $placeId . '_' . $product->id,
-            'check_collision'=> false,
+            'entity_type' => 'geo_product_fit',
+            'entity_id' => $placeId.'_'.$product->id,
+            'check_collision' => false,
         ]);
 
-        if (!$aiResult['success'] || empty($aiResult['content'])) {
+        if (! $aiResult['success'] || empty($aiResult['content'])) {
             Log::warning('[GeoProductFit] AI call failed, falling back to pre-score', [
-                'place_id'   => $placeId,
+                'place_id' => $placeId,
                 'product_id' => $product->id,
-                'error'      => $aiResult['error'] ?? 'unknown',
+                'error' => $aiResult['error'] ?? 'unknown',
             ]);
+
             return $this->persistPreScoreOnly($placeId, $product, $place, $preScore, $sourceHash, $productHash, $userId);
         }
 
         $parsed = json_decode($aiResult['content'], true);
-        if (!is_array($parsed)) {
+        if (! is_array($parsed)) {
             return $this->persistPreScoreOnly($placeId, $product, $place, $preScore, $sourceHash, $productHash, $userId);
         }
 
-        $fitScore  = min(100, max(0, (int) ($parsed['fit_score'] ?? $preScore)));
-        $fitLevel  = $this->scoreToLevel($fitScore);
+        $fitScore = min(100, max(0, (int) ($parsed['fit_score'] ?? $preScore)));
+        $fitLevel = $this->scoreToLevel($fitScore);
         $confidence = min(100, max(0, (int) ($parsed['confidence_score'] ?? 50)));
 
         return $this->upsertRecord($placeId, $product->id, [
-            'fit_score'              => $fitScore,
-            'fit_level'              => $fitLevel,
-            'confidence_score'       => $confidence,
-            'reasoning'              => $parsed['reasoning'] ?? [],
-            'matched_signals'        => $parsed['matched_signals'] ?? [],
-            'missing_information'    => $parsed['missing_information'] ?? [],
-            'risk_flags'             => $parsed['risk_flags'] ?? [],
-            'recommended_approach'   => $parsed['recommended_approach'] ?? null,
-            'recommended_next_action'=> $parsed['recommended_next_action'] ?? null,
-            'potential_use_case'     => $parsed['potential_use_case'] ?? null,
-            'pre_fit_score'          => $preScore,
-            'analyzed_with_ai'       => true,
-            'ai_provider_used'       => $aiResult['provider'] ?? null,
-            'ai_model_used'          => $aiResult['model'] ?? null,
-            'source_payload_hash'    => $sourceHash,
-            'product_payload_hash'   => $productHash,
-            'analyzed_at'            => Carbon::now(),
-            'created_by'             => $userId,
+            'fit_score' => $fitScore,
+            'fit_level' => $fitLevel,
+            'confidence_score' => $confidence,
+            'reasoning' => $parsed['reasoning'] ?? [],
+            'matched_signals' => $parsed['matched_signals'] ?? [],
+            'missing_information' => $parsed['missing_information'] ?? [],
+            'risk_flags' => $parsed['risk_flags'] ?? [],
+            'recommended_approach' => $parsed['recommended_approach'] ?? null,
+            'recommended_next_action' => $parsed['recommended_next_action'] ?? null,
+            'potential_use_case' => $parsed['potential_use_case'] ?? null,
+            'pre_fit_score' => $preScore,
+            'analyzed_with_ai' => true,
+            'ai_provider_used' => $aiResult['provider'] ?? null,
+            'ai_model_used' => $aiResult['model'] ?? null,
+            'source_payload_hash' => $sourceHash,
+            'product_payload_hash' => $productHash,
+            'analyzed_at' => Carbon::now(),
+            'created_by' => $userId,
         ]);
     }
 
     private function buildPrompt(array $place, Product $product): string
     {
         $placeJson = json_encode([
-            'name'              => $place['company_name'] ?? $place['name'] ?? '',
-            'address'           => $place['address'] ?? '',
-            'category'          => $place['business_category'] ?? $place['category'] ?? '',
-            'phone'             => $place['phone'] ?? null,
-            'website'           => $place['website'] ?? null,
-            'rating'            => $place['rating'] ?? null,
-            'review_count'      => $place['review_count'] ?? $place['user_ratings_total'] ?? null,
-            'google_maps_url'   => $place['google_maps_url'] ?? null,
+            'name' => $place['company_name'] ?? $place['name'] ?? '',
+            'address' => $place['address'] ?? '',
+            'category' => $place['business_category'] ?? $place['category'] ?? '',
+            'phone' => $place['phone'] ?? null,
+            'website' => $place['website'] ?? null,
+            'rating' => $place['rating'] ?? null,
+            'review_count' => $place['review_count'] ?? $place['user_ratings_total'] ?? null,
+            'google_maps_url' => $place['google_maps_url'] ?? null,
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         $productJson = json_encode([
-            'name'                 => $product->name,
-            'category'             => $product->category,
-            'description'          => $product->description,
-            'target_industry'      => $product->target_industry,
-            'target_company_size'  => $product->target_company_size ?? $product->ideal_company_profile,
-            'target_pain_points'   => $product->target_pain_points,
+            'name' => $product->name,
+            'category' => $product->category,
+            'description' => $product->description,
+            'target_industry' => $product->target_industry,
+            'target_company_size' => $product->target_company_size ?? $product->ideal_company_profile,
+            'target_pain_points' => $product->target_pain_points,
             'target_buyer_persona' => $product->target_buyer_persona,
-            'budget_range'         => $product->budget_range,
-            'use_cases'            => $product->use_cases,
-            'keywords'             => $product->keywords,
-            'supported_regions'    => $product->supported_regions,
-            'competitor_notes'     => $product->competitor_notes,
+            'budget_range' => $product->budget_range,
+            'use_cases' => $product->use_cases,
+            'keywords' => $product->keywords,
+            'supported_regions' => $product->supported_regions,
+            'competitor_notes' => $product->competitor_notes,
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         return <<<PROMPT
@@ -341,19 +356,19 @@ PROMPT;
         $fitLevel = $this->scoreToLevel($preScore);
 
         return $this->upsertRecord($placeId, $product->id, [
-            'fit_score'           => $preScore,
-            'fit_level'           => $fitLevel,
-            'confidence_score'    => 40,
-            'reasoning'           => ['Rule-based pre-score. AI analysis pending or unavailable.'],
-            'matched_signals'     => [],
+            'fit_score' => $preScore,
+            'fit_level' => $fitLevel,
+            'confidence_score' => 40,
+            'reasoning' => ['Rule-based pre-score. AI analysis pending or unavailable.'],
+            'matched_signals' => [],
             'missing_information' => [],
-            'risk_flags'          => [],
-            'pre_fit_score'       => $preScore,
-            'analyzed_with_ai'    => false,
+            'risk_flags' => [],
+            'pre_fit_score' => $preScore,
+            'analyzed_with_ai' => false,
             'source_payload_hash' => $sourceHash,
-            'product_payload_hash'=> $productHash,
-            'analyzed_at'         => Carbon::now(),
-            'created_by'          => $userId,
+            'product_payload_hash' => $productHash,
+            'analyzed_at' => Carbon::now(),
+            'created_by' => $userId,
         ]);
     }
 
@@ -365,11 +380,12 @@ PROMPT;
 
         if ($record) {
             $record->update($data);
+
             return $record->fresh();
         }
 
         return GeoProductFitAnalysis::create(array_merge($data, [
-            'place_id'   => $placeId,
+            'place_id' => $placeId,
             'product_id' => $productId,
         ]));
     }
@@ -390,27 +406,29 @@ PROMPT;
             $score >= 80 => 'high',
             $score >= 60 => 'medium',
             $score >= 40 => 'low',
-            default      => 'unknown',
+            default => 'unknown',
         };
     }
 
     private function hashPlace(array $place): string
     {
         $key = ($place['external_place_id'] ?? $place['place_id'] ?? '')
-            . ($place['business_category'] ?? $place['category'] ?? '')
-            . ($place['website'] ?? '')
-            . ($place['phone'] ?? '')
-            . ($place['rating'] ?? '');
+            .($place['business_category'] ?? $place['category'] ?? '')
+            .($place['website'] ?? '')
+            .($place['phone'] ?? '')
+            .($place['rating'] ?? '');
+
         return hash('sha256', $key);
     }
 
     private function hashProduct(Product $product): string
     {
         $key = $product->id
-            . ($product->description ?? '')
-            . ($product->target_industry ?? '')
-            . ($product->target_pain_points ?? '')
-            . json_encode($product->keywords ?? []);
+            .($product->description ?? '')
+            .($product->target_industry ?? '')
+            .($product->target_pain_points ?? '')
+            .json_encode($product->keywords ?? []);
+
         return hash('sha256', $key);
     }
 }

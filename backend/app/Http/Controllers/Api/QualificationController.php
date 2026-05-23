@@ -10,9 +10,7 @@ use Illuminate\Http\Request;
 
 class QualificationController extends Controller
 {
-    public function __construct(private QualificationRuleEngineService $engine)
-    {
-    }
+    public function __construct(private QualificationRuleEngineService $engine) {}
 
     public function evaluate(Request $request): JsonResponse
     {

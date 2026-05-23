@@ -6,6 +6,7 @@ use App\Models\AiFeatureRoute;
 use App\Models\AiModel;
 use App\Models\AiProvider;
 use App\Models\AiRequest;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -25,13 +26,14 @@ use Illuminate\Support\Facades\Log;
 class AIRouterService
 {
     const COLLISION_WINDOW = 30; // seconds
+
     const COST_SENSITIVITY_THRESHOLD = 0.05; // 5 cents
 
     /**
      * Select the best provider/model for a feature based on priority routing.
      *
-     * @param string $featureName e.g. 'lead_scoring', 'product_matching'
-     * @param array $context Context about the request (cost_sensitive, entity_id, etc)
+     * @param  string  $featureName  e.g. 'lead_scoring', 'product_matching'
+     * @param  array  $context  Context about the request (cost_sensitive, entity_id, etc)
      * @return array{provider: AiProvider, model: AiModel, route: AiFeatureRoute, priority: int}
      */
     public function selectProviderAndModel(string $featureName, array $context = []): array
@@ -57,12 +59,13 @@ class AIRouterService
         if ($context['check_collision'] ?? true) {
             $isDuplicate = $this->isDuplicateRequest($featureName, $entityType, $entityId);
             if ($isDuplicate) {
-                Log::info("[AIRouter] Duplicate request detected, avoiding duplicate call", [
+                Log::info('[AIRouter] Duplicate request detected, avoiding duplicate call', [
                     'feature' => $featureName,
                     'entity' => "{$entityType}:{$entityId}",
                 ]);
                 // Return the last successful route for this feature
                 $lastRoute = $routes->first();
+
                 return [
                     'provider' => $lastRoute->aiModel->aiProvider,
                     'model' => $lastRoute->aiModel,
@@ -89,6 +92,7 @@ class AIRouterService
 
         // Default: use highest priority route
         $firstRoute = $routes->first();
+
         return [
             'provider' => $firstRoute->aiModel->aiProvider,
             'model' => $firstRoute->aiModel,
@@ -101,9 +105,7 @@ class AIRouterService
     /**
      * Get the next fallback provider/model if primary fails.
      *
-     * @param string $featureName
-     * @param int $currentPriority Current priority level
-     * @return array|null
+     * @param  int  $currentPriority  Current priority level
      */
     public function getNextFallback(string $featureName, int $currentPriority): ?array
     {
@@ -114,7 +116,7 @@ class AIRouterService
             ->orderBy('priority', 'asc')
             ->first();
 
-        if (!$nextRoute) {
+        if (! $nextRoute) {
             return null;
         }
 
@@ -133,14 +135,11 @@ class AIRouterService
      *   - Same feature, same entity, within COLLISION_WINDOW seconds
      *   - And last request was successful
      *
-     * @param string $featureName
-     * @param string|null $entityType
-     * @param int|string|null $entityId
-     * @return bool
+     * @param  int|string|null  $entityId
      */
     public function isDuplicateRequest(string $featureName, ?string $entityType, $entityId): bool
     {
-        if (!$entityType || !$entityId) {
+        if (! $entityType || ! $entityId) {
             return false; // Can't detect duplicates without entity info
         }
 
@@ -160,14 +159,13 @@ class AIRouterService
      *
      * Prefers models with 'low' cost tier, then 'medium'.
      *
-     * @param \Illuminate\Database\Eloquent\Collection $routes
-     * @return AiFeatureRoute|null
+     * @param  Collection  $routes
      */
     protected function selectCheaperRoute($routes): ?AiFeatureRoute
     {
         // Try low-cost models first
         $cheapRoute = $routes
-            ->filter(fn($r) => $r->aiModel->cost_tier === 'low')
+            ->filter(fn ($r) => $r->aiModel->cost_tier === 'low')
             ->first();
 
         if ($cheapRoute) {
@@ -176,15 +174,12 @@ class AIRouterService
 
         // Fall back to medium-cost
         return $routes
-            ->filter(fn($r) => $r->aiModel->cost_tier === 'medium')
+            ->filter(fn ($r) => $r->aiModel->cost_tier === 'medium')
             ->first();
     }
 
     /**
      * Log an AI request for usage tracking and collision detection.
-     *
-     * @param array $data
-     * @return AiRequest
      */
     public function logRequest(array $data): AiRequest
     {
@@ -207,10 +202,6 @@ class AIRouterService
 
     /**
      * Mark a request as completed.
-     *
-     * @param AiRequest $request
-     * @param array $result
-     * @return AiRequest
      */
     public function markRequestComplete(AiRequest $request, array $result): AiRequest
     {
@@ -227,10 +218,6 @@ class AIRouterService
 
     /**
      * Get provider usage summary for a date range.
-     *
-     * @param \DateTime|null $startDate
-     * @param \DateTime|null $endDate
-     * @return array
      */
     public function getUsageSummary(?\DateTime $startDate = null, ?\DateTime $endDate = null): array
     {
@@ -284,38 +271,36 @@ class AIRouterService
 
     /**
      * Check if a provider is available (enabled and has valid API key).
-     *
-     * @param AiProvider $provider
-     * @return bool
      */
     public function isProviderAvailable(AiProvider $provider): bool
     {
-        if (!$provider->is_active) {
+        if (! $provider->is_active) {
             return false;
         }
 
         // Check if API key is set (decrypted by Laravel)
         $apiKey = $provider->api_key;
-        return !empty($apiKey);
+
+        return ! empty($apiKey);
     }
 
     /**
      * Get all active providers with their models.
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return Collection
      */
     public function getActiveProviders()
     {
         return AiProvider::where('is_active', true)
-            ->with(['models' => fn($q) => $q->where('is_active', true)])
+            ->with(['models' => fn ($q) => $q->where('is_active', true)])
             ->get();
     }
 
     /**
      * Get feature routing configuration.
      *
-     * @param string|null $featureName Filter by feature name
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @param  string|null  $featureName  Filter by feature name
+     * @return Collection
      */
     public function getFeatureRouting(?string $featureName = null)
     {

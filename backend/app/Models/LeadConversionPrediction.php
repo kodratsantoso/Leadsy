@@ -15,9 +15,9 @@ class LeadConversionPrediction extends Model
 
     protected $casts = [
         'probability_to_close' => 'float',
-        'expected_deal_size'   => 'float',
-        'confidence_score'     => 'float',
-        'prediction_factors'   => 'array',
+        'expected_deal_size' => 'float',
+        'confidence_score' => 'float',
+        'prediction_factors' => 'array',
     ];
 
     public function lead(): BelongsTo

@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use App\Models\WhatsappSession;
+use App\Jobs\AnalyzeWhatsAppConversationJob;
 use App\Models\WhatsappContact;
 use App\Models\WhatsappConversation;
 use App\Models\WhatsappMessage;
+use App\Models\WhatsappSession;
 use App\Services\WhatsApp\WhatsAppSyncEngine;
-use App\Jobs\AnalyzeWhatsAppConversationJob;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class WhatsAppWebhookController extends Controller
 {
@@ -25,7 +25,7 @@ class WhatsAppWebhookController extends Controller
     {
         $payload = $request->all();
         $action = $payload['action'] ?? null;
-        
+
         $session = WhatsappSession::firstOrCreate(
             ['session_name' => 'leads_platform_session'],
             ['status' => 'disconnected']
@@ -52,8 +52,9 @@ class WhatsAppWebhookController extends Controller
             $eval = $this->syncEngine->evaluateMessage($senderName, $remoteJid, $body);
 
             // If disallowed, drop it silently (DO NOT SYNC TO DB)
-            if (!$eval['allow']) {
+            if (! $eval['allow']) {
                 \Log::info("WhatsApp Chat Dropped (Privacy Filter) - JID: {$remoteJid}, Reason: {$eval['reason']}");
+
                 return response()->json(['success' => true, 'ignored' => true]);
             }
 
@@ -64,7 +65,7 @@ class WhatsAppWebhookController extends Controller
                     'name' => $senderName,
                     'is_relevant' => true,
                     'relevance_reason' => $eval['reason'],
-                    'linked_lead_id' => $eval['lead_id']
+                    'linked_lead_id' => $eval['lead_id'],
                 ]
             );
 

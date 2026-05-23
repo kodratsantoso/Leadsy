@@ -10,7 +10,7 @@ class EmailVerificationOtp extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
-        'used_at'    => 'datetime',
+        'used_at' => 'datetime',
     ];
 
     public function isExpired(): bool
@@ -25,6 +25,6 @@ class EmailVerificationOtp extends Model
 
     public function isValid(): bool
     {
-        return !$this->isExpired() && !$this->isUsed();
+        return ! $this->isExpired() && ! $this->isUsed();
     }
 }

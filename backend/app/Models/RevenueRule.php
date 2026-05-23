@@ -14,8 +14,8 @@ class RevenueRule extends Model
 
     protected $casts = [
         'condition_value' => 'array',
-        'is_active'       => 'boolean',
-        'priority'        => 'integer',
+        'is_active' => 'boolean',
+        'priority' => 'integer',
     ];
 
     public function creator(): BelongsTo

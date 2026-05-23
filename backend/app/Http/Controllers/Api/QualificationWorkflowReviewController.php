@@ -11,9 +11,7 @@ use Illuminate\Http\Request;
 
 class QualificationWorkflowReviewController extends Controller
 {
-    public function __construct(private readonly HumanVerificationWorkflowService $workflowService)
-    {
-    }
+    public function __construct(private readonly HumanVerificationWorkflowService $workflowService) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -36,7 +34,7 @@ class QualificationWorkflowReviewController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = '%' . $request->search . '%';
+            $search = '%'.$request->search.'%';
             $query->where(function ($inner) use ($search) {
                 $inner->whereHas('lead', fn ($lead) => $lead->where('company_name', 'ilike', $search))
                     ->orWhereHas('requester', fn ($user) => $user->where('name', 'ilike', $search))

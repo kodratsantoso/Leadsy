@@ -27,9 +27,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'is_active'         => 'boolean',
-            'target_revenue'    => 'decimal:2',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
+            'target_revenue' => 'decimal:2',
         ];
     }
 

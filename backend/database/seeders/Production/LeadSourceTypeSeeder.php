@@ -32,15 +32,15 @@ class LeadSourceTypeSeeder extends Seeder
         }
 
         $channels = [
-            'google_maps'      => [['Maps Search', 'maps_search'], ['Place Detail', 'place_detail'], ['Bulk Map Import', 'bulk_map_import']],
-            'manual'           => [['Sales Input', 'sales_input'], ['Admin Input', 'admin_input'], ['Field Visit', 'field_visit']],
-            'csv_import'       => [['Spreadsheet Upload', 'spreadsheet_upload'], ['CRM Export', 'crm_export']],
-            'website'          => [['Contact Form', 'contact_form'], ['Website Research', 'website_research'], ['Inbound Demo Request', 'inbound_demo_request']],
-            'linkedin'         => [['Company Search', 'company_search'], ['Sales Navigator', 'sales_navigator'], ['Direct Message', 'direct_message']],
-            'referral'         => [['Customer Referral', 'customer_referral'], ['Partner Referral', 'partner_referral'], ['Employee Referral', 'employee_referral']],
+            'google_maps' => [['Maps Search', 'maps_search'], ['Place Detail', 'place_detail'], ['Bulk Map Import', 'bulk_map_import']],
+            'manual' => [['Sales Input', 'sales_input'], ['Admin Input', 'admin_input'], ['Field Visit', 'field_visit']],
+            'csv_import' => [['Spreadsheet Upload', 'spreadsheet_upload'], ['CRM Export', 'crm_export']],
+            'website' => [['Contact Form', 'contact_form'], ['Website Research', 'website_research'], ['Inbound Demo Request', 'inbound_demo_request']],
+            'linkedin' => [['Company Search', 'company_search'], ['Sales Navigator', 'sales_navigator'], ['Direct Message', 'direct_message']],
+            'referral' => [['Customer Referral', 'customer_referral'], ['Partner Referral', 'partner_referral'], ['Employee Referral', 'employee_referral']],
             'public_directory' => [['Association Directory', 'association_directory'], ['Marketplace Directory', 'marketplace_directory'], ['Government Directory', 'government_directory']],
-            'whatsapp'         => [['Incoming Chat', 'incoming_chat'], ['Broadcast Reply', 'broadcast_reply'], ['Manual Chat Sync', 'manual_chat_sync']],
-            'other'            => [['Unclassified', 'unclassified']],
+            'whatsapp' => [['Incoming Chat', 'incoming_chat'], ['Broadcast Reply', 'broadcast_reply'], ['Manual Chat Sync', 'manual_chat_sync']],
+            'other' => [['Unclassified', 'unclassified']],
         ];
 
         foreach ($channels as $sourceSlug => $channelList) {
@@ -54,9 +54,9 @@ class LeadSourceTypeSeeder extends Seeder
                     ['slug' => $slug],
                     [
                         'lead_source_type_id' => $source->id,
-                        'name'                => $name,
-                        'sort_order'          => ($i + 1) * 10,
-                        'is_active'           => true,
+                        'name' => $name,
+                        'sort_order' => ($i + 1) * 10,
+                        'is_active' => true,
                     ]
                 );
             }

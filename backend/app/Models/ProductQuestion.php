@@ -16,7 +16,7 @@ class ProductQuestion extends Model
     ];
 
     protected $casts = [
-        'questions'    => 'array',
+        'questions' => 'array',
         'ai_generated' => 'boolean',
     ];
 

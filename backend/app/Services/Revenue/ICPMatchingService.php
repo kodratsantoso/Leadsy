@@ -380,11 +380,11 @@ class ICPMatchingService
         $parts = [$intro];
 
         if ($strong !== []) {
-            $parts[] = 'Strong fit on ' . $this->joinList($strong) . '.';
+            $parts[] = 'Strong fit on '.$this->joinList($strong).'.';
         }
 
         if ($weak !== []) {
-            $parts[] = 'Weak fit on ' . $this->joinList($weak) . '.';
+            $parts[] = 'Weak fit on '.$this->joinList($weak).'.';
         }
 
         return implode(' ', $parts);
@@ -395,8 +395,8 @@ class ICPMatchingService
         return match (count($items)) {
             0 => 'none',
             1 => $items[0],
-            2 => $items[0] . ' and ' . $items[1],
-            default => implode(', ', array_slice($items, 0, -1)) . ', and ' . end($items),
+            2 => $items[0].' and '.$items[1],
+            default => implode(', ', array_slice($items, 0, -1)).', and '.end($items),
         };
     }
 

@@ -12,10 +12,10 @@ class Territory extends Model
     ];
 
     protected $casts = [
-        'center_lat'    => 'float',
-        'center_lng'    => 'float',
+        'center_lat' => 'float',
+        'center_lng' => 'float',
         'radius_meters' => 'integer',
-        'metadata'      => 'array',
+        'metadata' => 'array',
     ];
 
     public function creator(): BelongsTo

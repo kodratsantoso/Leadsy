@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\AuditService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,7 +47,7 @@ class CheckPermission
 
         // Parse module from the first segment of the route path
         $module = explode('/', $request->path())[1] ?? 'system';
-        \App\Services\AuditService::logAccessDenied($module, $permissions);
+        AuditService::logAccessDenied($module, $permissions);
 
         return response()->json([
             'success' => false,

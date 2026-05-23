@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 class MapCandidate extends Model
 {
     protected $table = 'map_candidates';
-    
+
     // We use place_id as the primary key
     protected $primaryKey = 'place_id';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [

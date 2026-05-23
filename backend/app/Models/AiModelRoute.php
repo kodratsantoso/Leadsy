@@ -13,8 +13,8 @@ class AiModelRoute extends Model
     ];
 
     protected $casts = [
-        'is_active'       => 'boolean',
-        'retry_count'     => 'integer',
+        'is_active' => 'boolean',
+        'retry_count' => 'integer',
         'timeout_seconds' => 'integer',
     ];
 

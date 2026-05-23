@@ -12,6 +12,7 @@ class AnalyticsController extends Controller
     public function pipelineQuality(Request $request, PipelineQualityService $service): JsonResponse
     {
         $territoryId = $request->integer('territory_id') ?: null;
+
         return response()->json(['data' => $service->getPipelineQuality($territoryId)]);
     }
 

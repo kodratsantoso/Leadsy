@@ -13,7 +13,7 @@ class AiModel extends Model
     ];
 
     protected $casts = [
-        'capabilities'   => 'array',
+        'capabilities' => 'array',
         'context_window' => 'integer',
     ];
 

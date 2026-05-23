@@ -15,13 +15,13 @@ class AiRequest extends Model
     ];
 
     protected $casts = [
-        'prompt_metadata'    => 'array',
-        'response_metadata'  => 'array',
-        'prompt_tokens'      => 'integer',
-        'completion_tokens'  => 'integer',
+        'prompt_metadata' => 'array',
+        'response_metadata' => 'array',
+        'prompt_tokens' => 'integer',
+        'completion_tokens' => 'integer',
         'estimated_cost_usd' => 'float',
-        'latency_ms'         => 'integer',
-        'fallback_used'      => 'boolean',
+        'latency_ms' => 'integer',
+        'fallback_used' => 'boolean',
     ];
 
     public function model(): BelongsTo

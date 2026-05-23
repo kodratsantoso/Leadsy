@@ -20,15 +20,14 @@ class AiOrchestrationService
     public function __construct(
         private AIPriorityResolverService $priorityResolver,
         private AIPromptTemplateService $promptTemplates,
-    ) {
-    }
+    ) {}
 
     /**
      * Execute an AI call for a named function.
      *
-     * @param  string  $functionName   e.g. 'lead_scoring', 'product_understanding'
+     * @param  string  $functionName  e.g. 'lead_scoring', 'product_understanding'
      * @param  string  $promptContent  The user/system prompt body
-     * @param  array   $context        Additional metadata
+     * @param  array  $context  Additional metadata
      * @return array{success: bool, content: string|null, tokens: array, cost: float, model: string}
      */
     public function call(string $functionName, string $promptContent, array $context = []): array
@@ -49,9 +48,9 @@ class AiOrchestrationService
 
         foreach ($routes as $index => $route) {
             $isFallback = $index > 0;
-            
+
             if ($isFallback) {
-                Log::warning("[AI] Priority " . $routes[$index - 1]->priority . " model failed for {$functionName}. Trying Priority {$route->priority} fallback.", [
+                Log::warning('[AI] Priority '.$routes[$index - 1]->priority." model failed for {$functionName}. Trying Priority {$route->priority} fallback.", [
                     'previous_error' => $lastError,
                 ]);
             }
@@ -60,6 +59,7 @@ class AiOrchestrationService
                 $result = $this->tryModel($route, $functionName, $promptContent, $context, $route->timeout_seconds, $isFallback);
                 if ($result['success']) {
                     $this->putCachedResult($functionName, $promptContent, $context, $route->cache_ttl_minutes, $result);
+
                     return $result;
                 }
                 $lastError = $result['error'] ?? 'unknown';
@@ -79,13 +79,14 @@ class AiOrchestrationService
 
         if ($result['success'] && $result['content']) {
             $parsed = json_decode($result['content'], true);
+
             return [
-                'success'              => true,
-                'score'                => $parsed['score'] ?? 50,
+                'success' => true,
+                'score' => $parsed['score'] ?? 50,
                 'qualification_status' => $parsed['qualification_status'] ?? 'pending',
-                'explanation'          => $parsed['explanation'] ?? '',
-                'tokens'               => $result['tokens'],
-                'cost'                 => $result['cost'],
+                'explanation' => $parsed['explanation'] ?? '',
+                'tokens' => $result['tokens'],
+                'cost' => $result['cost'],
             ];
         }
 
@@ -122,7 +123,7 @@ class AiOrchestrationService
     }
 
     /* ──────────────────────────────────────────── */
-    /*  PRIVATE                                     */
+    /*  PRIVATE */
     /* ──────────────────────────────────────────── */
 
     private function tryModel($route, string $functionName, string $prompt, array $context, int $timeout, ?bool $isFallback = false): array
@@ -133,39 +134,40 @@ class AiOrchestrationService
         }
 
         $provider = $model->provider;
-        $startMs  = hrtime(true);
+        $startMs = hrtime(true);
 
         try {
-            $apiKey  = $provider->decrypted_api_key;
+            $apiKey = $provider->decrypted_api_key;
             $baseUrl = $provider->base_url ?? $this->defaultBaseUrl($provider->slug);
-            $body    = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $route->max_tokens ?? $provider->max_tokens_default);
+            $body = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $route->max_tokens ?? $provider->max_tokens_default);
 
             $ch = curl_init();
             curl_setopt_array($ch, [
-                CURLOPT_URL            => $this->chatEndpoint($provider->provider_type ?: $provider->slug, $baseUrl, $model->name),
+                CURLOPT_URL => $this->chatEndpoint($provider->provider_type ?: $provider->slug, $baseUrl, $model->name),
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST           => true,
-                CURLOPT_TIMEOUT        => $timeout,
-                CURLOPT_POSTFIELDS     => json_encode($body),
-                CURLOPT_HTTPHEADER     => $this->headers($provider->provider_type ?: $provider->slug, $apiKey),
+                CURLOPT_POST => true,
+                CURLOPT_TIMEOUT => $timeout,
+                CURLOPT_POSTFIELDS => json_encode($body),
+                CURLOPT_HTTPHEADER => $this->headers($provider->provider_type ?: $provider->slug, $apiKey),
             ]);
 
-            $response   = curl_exec($ch);
+            $response = curl_exec($ch);
             $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlError = curl_error($ch);
             curl_close($ch);
 
             $latencyMs = (int) ((hrtime(true) - $startMs) / 1_000_000);
-            
+
             if ($response === false) {
-                 return $this->fail("cURL Error: " . $curlError);
+                return $this->fail('cURL Error: '.$curlError);
             }
 
-            $decoded   = json_decode($response, true);
+            $decoded = json_decode($response, true);
 
             if ($httpStatus < 200 || $httpStatus >= 300) {
                 $this->logRequest($model, $functionName, null, null, 0, $latencyMs, 'failure', $response, $isFallback);
-                return $this->fail("HTTP {$httpStatus}: " . ($decoded['error']['message'] ?? 'Unknown'));
+
+                return $this->fail("HTTP {$httpStatus}: ".($decoded['error']['message'] ?? 'Unknown'));
             }
 
             // Extract content & tokens based on provider
@@ -178,9 +180,9 @@ class AiOrchestrationService
             return [
                 'success' => true,
                 'content' => $content,
-                'model'   => $model->name,
-                'tokens'  => ['prompt' => $promptTokens, 'completion' => $completionTokens],
-                'cost'    => $cost,
+                'model' => $model->name,
+                'tokens' => ['prompt' => $promptTokens, 'completion' => $completionTokens],
+                'cost' => $cost,
             ];
         } catch (\Throwable $e) {
             $latencyMs = (int) ((hrtime(true) - $startMs) / 1_000_000);
@@ -213,15 +215,15 @@ class AiOrchestrationService
     {
         return match ($slug) {
             'anthropic' => array_filter([
-                'model'      => $modelName,
+                'model' => $modelName,
                 'max_tokens' => $maxTokens ?? 1024,
-                'messages'   => [['role' => 'user', 'content' => $prompt]],
+                'messages' => [['role' => 'user', 'content' => $prompt]],
             ], fn ($value) => $value !== null),
             'google', 'gemini' => [
                 'contents' => [['parts' => [['text' => $prompt]]]],
             ],
             default => array_filter([ // openai-compatible
-                'model'    => $modelName,
+                'model' => $modelName,
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are a B2B sales intelligence assistant. Return valid JSON whenever the user requests JSON.'],
                     ['role' => 'user',   'content' => $prompt],
@@ -235,9 +237,9 @@ class AiOrchestrationService
     private function chatEndpoint(string $slug, string $baseUrl, string $modelName): string
     {
         return match ($slug) {
-            'anthropic' => rtrim($baseUrl, '/') . '/messages',
-            'google', 'gemini' => rtrim($baseUrl, '/') . '/models/' . $modelName . ':generateContent',
-            default     => rtrim($baseUrl, '/') . '/chat/completions',
+            'anthropic' => rtrim($baseUrl, '/').'/messages',
+            'google', 'gemini' => rtrim($baseUrl, '/').'/models/'.$modelName.':generateContent',
+            default => rtrim($baseUrl, '/').'/chat/completions',
         };
     }
 
@@ -251,7 +253,7 @@ class AiOrchestrationService
                 'anthropic-version: 2023-06-01',
             ]),
             'google', 'gemini' => array_merge($common, ["x-goog-api-key: {$apiKey}"]),
-            default  => array_merge($common, ["Authorization: Bearer {$apiKey}"]),
+            default => array_merge($common, ["Authorization: Bearer {$apiKey}"]),
         };
     }
 
@@ -280,10 +282,10 @@ class AiOrchestrationService
     {
         // Rough cost per 1M tokens (USD)
         $rates = match ($costTier) {
-            'low'    => ['prompt' => 0.15,  'completion' => 0.60],
+            'low' => ['prompt' => 0.15,  'completion' => 0.60],
             'medium' => ['prompt' => 3.00,  'completion' => 15.00],
-            'high'   => ['prompt' => 5.00,  'completion' => 15.00],
-            default  => ['prompt' => 1.00,  'completion' => 3.00],
+            'high' => ['prompt' => 5.00,  'completion' => 15.00],
+            default => ['prompt' => 1.00,  'completion' => 3.00],
         };
 
         return round(
@@ -304,16 +306,16 @@ class AiOrchestrationService
         ?bool $isFallback = false
     ): void {
         AiRequest::create([
-            'ai_model_id'       => $model->id,
-            'user_id'           => auth()->id(),
-            'function_name'     => $functionName,
-            'prompt_tokens'     => $promptTokens,
+            'ai_model_id' => $model->id,
+            'user_id' => auth()->id(),
+            'function_name' => $functionName,
+            'prompt_tokens' => $promptTokens,
             'completion_tokens' => $completionTokens,
             'estimated_cost_usd' => $cost,
-            'latency_ms'        => $latencyMs,
-            'status'            => $status,
-            'error_message'     => $error,
-            'fallback_used'     => $isFallback,
+            'latency_ms' => $latencyMs,
+            'status' => $status,
+            'error_message' => $error,
+            'fallback_used' => $isFallback,
         ]);
 
         $model->provider?->forceFill([
@@ -325,11 +327,11 @@ class AiOrchestrationService
     private function defaultBaseUrl(string $slug): string
     {
         return match ($slug) {
-            'openai'    => 'https://api.openai.com/v1',
+            'openai' => 'https://api.openai.com/v1',
             'anthropic' => 'https://api.anthropic.com/v1',
             'google', 'gemini' => 'https://generativelanguage.googleapis.com/v1beta',
             'openrouter' => 'https://openrouter.ai/api/v1',
-            default     => '',
+            default => '',
         };
     }
 
@@ -383,6 +385,6 @@ class AiOrchestrationService
             'prompt_hash' => sha1($promptContent),
         ];
 
-        return 'ai:result:' . sha1(json_encode($identity));
+        return 'ai:result:'.sha1(json_encode($identity));
     }
 }

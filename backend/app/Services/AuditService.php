@@ -23,20 +23,20 @@ class AuditService
         ?int $userId = null
     ): AuditLog {
         return AuditLog::create([
-            'tenant_id'      => Auth::user()?->tenant_id,
-            'user_id'        => $userId ?? Auth::id(),
-            'action'         => $action,
-            'module'         => $module,
-            'record_type'    => $record ? get_class($record) : null,
-            'record_id'      => $record?->getKey(),
+            'tenant_id' => Auth::user()?->tenant_id,
+            'user_id' => $userId ?? Auth::id(),
+            'action' => $action,
+            'module' => $module,
+            'record_type' => $record ? get_class($record) : null,
+            'record_id' => $record?->getKey(),
             'request_method' => Request::method(),
-            'route_path'     => Request::path(),
-            'status'         => $status,
-            'before_value'   => $before,
-            'after_value'    => $after,
-            'ip_address'     => Request::ip(),
-            'user_agent'     => Request::userAgent(),
-            'metadata_json'  => $metadata,
+            'route_path' => Request::path(),
+            'status' => $status,
+            'before_value' => $before,
+            'after_value' => $after,
+            'ip_address' => Request::ip(),
+            'user_agent' => Request::userAgent(),
+            'metadata_json' => $metadata,
         ]);
     }
 
@@ -54,7 +54,7 @@ class AuditService
     public static function logUpdated(string $module, Model $record, array $originalValues): AuditLog
     {
         $changed = $record->getChanges();
-        $before  = array_intersect_key($originalValues, $changed);
+        $before = array_intersect_key($originalValues, $changed);
 
         return self::log('updated', $module, $record, $before, $changed);
     }
@@ -73,12 +73,12 @@ class AuditService
     public static function logFailedLogin(string $email): AuditLog
     {
         return self::log(
-            'login_failed', 
-            'auth', 
-            null, 
-            null, 
-            ['email' => $email], 
-            'failed', 
+            'login_failed',
+            'auth',
+            null,
+            null,
+            ['email' => $email],
+            'failed',
             ['attempt' => 'invalid_credentials']
         );
     }

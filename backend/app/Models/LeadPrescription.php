@@ -15,7 +15,7 @@ class LeadPrescription extends Model
 
     protected $casts = [
         'priority_score' => 'integer',
-        'is_applied'     => 'boolean',
+        'is_applied' => 'boolean',
     ];
 
     public function lead(): BelongsTo

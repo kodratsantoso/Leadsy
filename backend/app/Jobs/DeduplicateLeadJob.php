@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\Lead;
-use App\Services\DeduplicationService;
 use App\Services\AuditService;
+use App\Services\DeduplicationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -37,23 +37,24 @@ class DeduplicateLeadJob implements ShouldQueue
         }
 
         $result = $dedup->check([
-            'company_name'   => $lead->company_name,
+            'company_name' => $lead->company_name,
             'website_domain' => $lead->website_domain,
-            'email'          => $lead->email,
-            'phone'          => $lead->phone,
-            'lat'            => $lead->lat,
-            'lng'            => $lead->lng,
+            'email' => $lead->email,
+            'phone' => $lead->phone,
+            'lat' => $lead->lat,
+            'lng' => $lead->lng,
         ]);
 
         // Don't match against itself
         if ($result->matchedLeadId === $lead->id) {
             $lead->update(['duplicate_status' => 'new']);
+
             return;
         }
 
         $lead->update([
             'duplicate_status' => $result->status,
-            'duplicate_of_id'  => $result->matchedLeadId,
+            'duplicate_of_id' => $result->matchedLeadId,
         ]);
 
         if ($result->isDuplicate) {

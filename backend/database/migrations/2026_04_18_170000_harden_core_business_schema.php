@@ -18,7 +18,7 @@ return new class extends Migration
         ];
 
         foreach ($tenantTables as $tableName) {
-            if (!Schema::hasColumn($tableName, 'tenant_id')) {
+            if (! Schema::hasColumn($tableName, 'tenant_id')) {
                 Schema::table($tableName, function (Blueprint $table) {
                     $table->foreignId('tenant_id')->nullable()->after('id')->constrained('tenants')->nullOnDelete();
                     $table->index('tenant_id');
@@ -98,18 +98,18 @@ return new class extends Migration
         if ($this->isSqlite()) {
             DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS lead_contacts_one_primary_per_lead ON lead_contacts (lead_id) WHERE is_primary = 1');
             DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS lead_sources_identity_unique ON lead_sources (lead_id, source_type, IFNULL(source_ref, ''))");
-            DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS integration_configs_tenant_key_unique ON integration_configs (IFNULL(tenant_id, 0), key)");
+            DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS integration_configs_tenant_key_unique ON integration_configs (IFNULL(tenant_id, 0), key)');
             DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS qualification_parameter_sets_one_active_per_tenant ON qualification_parameter_sets (IFNULL(tenant_id, 0)) WHERE status = 'active' AND deleted_at IS NULL");
-            DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS qualification_workflows_active_trigger_per_tenant ON qualification_workflows (IFNULL(tenant_id, 0), trigger_status) WHERE is_active = 1 AND deleted_at IS NULL");
+            DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS qualification_workflows_active_trigger_per_tenant ON qualification_workflows (IFNULL(tenant_id, 0), trigger_status) WHERE is_active = 1 AND deleted_at IS NULL');
         } else {
             DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS lead_contacts_one_primary_per_lead ON lead_contacts (lead_id) WHERE is_primary = true');
             DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS lead_sources_identity_unique ON lead_sources (lead_id, source_type, COALESCE(source_ref, ''))");
             if ($this->isPgsql()) {
                 DB::statement('ALTER TABLE integration_configs DROP CONSTRAINT IF EXISTS integration_configs_key_unique');
             }
-            DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS integration_configs_tenant_key_unique ON integration_configs (COALESCE(tenant_id, 0), key)");
+            DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS integration_configs_tenant_key_unique ON integration_configs (COALESCE(tenant_id, 0), key)');
             DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS qualification_parameter_sets_one_active_per_tenant ON qualification_parameter_sets (COALESCE(tenant_id, 0)) WHERE status = 'active' AND deleted_at IS NULL");
-            DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS qualification_workflows_active_trigger_per_tenant ON qualification_workflows (COALESCE(tenant_id, 0), trigger_status) WHERE is_active = true AND deleted_at IS NULL");
+            DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS qualification_workflows_active_trigger_per_tenant ON qualification_workflows (COALESCE(tenant_id, 0), trigger_status) WHERE is_active = true AND deleted_at IS NULL');
         }
 
         DB::statement('CREATE INDEX IF NOT EXISTS leads_operational_filter_idx ON leads (qualification_status, funnel_stage_id, lead_score, created_at)');
