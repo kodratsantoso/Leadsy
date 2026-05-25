@@ -84,11 +84,11 @@
 - `backend/app/Models/AiPromptTemplate.php` — added prompt template model with active-version linkage.
 - `backend/app/Models/AiPromptTemplateVersion.php` — added prompt template version model with activation history.
 - `backend/routes/api.php` — registered the centralized `settings/ai-default` API surface and applied `ai.manage` protection to AI configuration endpoints.
-- `backend/routes/api.php` — corrected `/settings/integrations` authorization to use `integrations.manage`, aligning route protection with the intended settings permission model.
+- `backend/routes/api.php` — corrected `/settings/integrations` authorization to use `integrations.manage`, aligning route protection with the intended settings permission model and supporting tenant-aware Lark integration configuration.
 - `app/settings/ai-defaults/page.tsx` — rebuilt the deprecated root AI Defaults page into one control center with Providers, Feature Routing, Prompt Templates, and Usage & Health sections.
 - `frontend/app/settings/ai-defaults/page.tsx` — moved the consolidated AI Defaults control center into the active frontend so the running app now matches the centralized provider, routing, prompt, and usage design.
 - `frontend/app/settings/page.tsx` — updated Settings card copy so AI credentials and routing point to `Settings → AI Default` instead of Integrations.
-- `frontend/app/settings/integrations/page.tsx` — added a deprecation notice clarifying that AI providers and AI API keys are managed under `Settings → AI Default`.
+- `frontend/app/settings/integrations/page.tsx` — added a deprecation notice clarifying that AI providers and AI API keys are managed under `Settings → AI Default`, while Lark integration settings now save tenant-aware config and module toggles.
 - `backend/bootstrap/app.php` — added centralized API error rendering for `/api/*` requests with a consistent failure envelope for validation, auth, authorization, not-found, and server errors.
 - `backend/app/Http/Middleware/CheckPermission.php` — aligned permission-denied responses with the standardized API error envelope while preserving audit logging of access denials.
 - `frontend/lib/permissions.ts` — tightened route-level permission mapping for settings sub-pages so frontend visibility better reflects backend RBAC.
@@ -101,6 +101,21 @@
 - `lib/hooks/use-whatsapp.ts` — now clears stale errors on successful status fetches and surfaces load errors for conversations, campaigns, and sync rules instead of failing silently.
 - `backend/.env.example` — documented local WhatsApp sidecar URL and session name settings.
 - `docker-compose.yml` — wired the backend container to the internal WhatsApp sidecar URL explicitly.
+- `backend/app/Services/Lark/LarkService.php` — aligned Lark tenant token calls with the Custom App endpoint, added larksuite/larkoffice OpenAPI fallback support, and hardened encrypted secret errors.
+- `backend/app/Services/Lark/LarkSsoService.php` — implemented Lark OAuth URL, token exchange, user info lookup, SSO user persistence, and role-preserving local user sync.
+- `backend/app/Http/Controllers/Api/AuthController.php` — added tenant-aware Lark auth URL, tenant list, and callback token issuance endpoints.
+- `backend/app/Http/Controllers/Api/LarkController.php` — added tenant-aware Lark integration config and connection test APIs without returning decrypted secrets.
+- `backend/database/migrations/2026_05_22_000001_create_lark_integration_tables.php` — added Lark integration, event, sync, and SSO identity tables.
+- `backend/database/migrations/2026_05_25_000001_import_leadsy_database_snapshot.php` — added guarded one-time deploy snapshot importer.
+- `backend/database/snapshots/leadsy_full_structure_and_data_2026_05_25.sql` — captured full PostgreSQL structure and data.
+- `backend/database/snapshots/leadsy_deploy_data_2026_05_25.sql` — captured deploy data used by the guarded snapshot migration.
+- `frontend/app/login/page.tsx` — added tenant-aware Lark login entrypoint.
+- `frontend/app/auth/lark/callback/page.tsx` — added callback page that stores the returned token before dashboard redirect.
+- `frontend/app/template.tsx` — treats `/auth/*` routes as public auth routes so callbacks are not redirected to login prematurely.
+- `frontend/app/settings/integrations/page.tsx` — added Lark App credentials, module toggles, redirect URL guidance, and connection test UI.
+- `backend/.env.example`, `docker-compose.yml`, and `docker-compose.production.yml` — documented Lark OpenAPI/accounts endpoints and OAuth scope defaults.
+- `docs/deployment/database-bootstrap.md` — documented the snapshot import migration and APP_KEY caveat for encrypted credentials.
+- `docs/deployment/coolify-setup.md` — documented first-deploy snapshot and Lark callback configuration.
 - `docs/execution/diff.md` — logged the revenue intelligence contract fix and lead detail regression repair.
 - `docs/execution/progress.md` — recorded the April 18 stability/spec-alignment pass.
 - `backend/database/migrations/2026_05_17_022000_add_closing_amounts_to_leads_table.php` — added estimated and realized closing amount columns to the `leads` table.

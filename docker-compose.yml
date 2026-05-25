@@ -64,6 +64,9 @@ services:
       FRONTEND_URL: http://localhost:3000
       WHATSAPP_SIDECAR_URL: http://whatsapp-service:3002
       WHATSAPP_SESSION_NAME: leads_platform_session
+      LARK_OPEN_API_BASE_URLS: https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis
+      LARK_ACCOUNTS_BASE_URL: https://accounts.larksuite.com
+      LARK_OAUTH_SCOPES: auth:user.id:read
     volumes:
       - ./backend:/var/www/html
     networks:

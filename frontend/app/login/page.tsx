@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Loader2, AlertCircle, CheckCircle2, Mail, ArrowLeft, RefreshCw } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, Mail, ArrowLeft, RefreshCw, LogIn } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/apiFetch";
 import { useTheme } from "@/lib/theme-context";
@@ -29,6 +29,7 @@ export default function LoginPage() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [tenantId, setTenantId] = useState<string | null>(null);
 
   // ── Register state ──
   const [registerStep, setRegisterStep] = useState<RegisterStep>("form");
@@ -40,8 +41,59 @@ export default function LoginPage() {
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [larkLoginLoading, setLarkLoginLoading] = useState(false);
+  const [tenants, setTenants] = useState<{ id: number; name: string; slug: string }[]>([]);
+  const [tenantsLoading, setTenantsLoading] = useState(false);
+  const [tenantFetchError, setTenantFetchError] = useState("");
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const queryTenantId = searchParams.get("tenant_id");
+    const savedTenantId = typeof window !== "undefined" ? window.localStorage.getItem("lark_tenant_id") : null;
+    const effectiveTenantId = queryTenantId ?? savedTenantId;
+
+    if (effectiveTenantId) {
+      setTenantId(effectiveTenantId);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("lark_tenant_id", effectiveTenantId);
+      }
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchTenants = async () => {
+      setTenantsLoading(true);
+      setTenantFetchError("");
+
+      try {
+        const res = await apiFetch("/auth/lark/tenants");
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.message || "Failed to load active Lark workspaces.");
+        }
+
+        const list = data?.data ?? [];
+        setTenants(list);
+
+        if (!tenantId && list.length === 1) {
+          const singleTenantId = String(list[0].id);
+          setTenantId(singleTenantId);
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem("lark_tenant_id", singleTenantId);
+          }
+        }
+      } catch (err: any) {
+        setTenantFetchError(err.message || "Unable to load workspaces.");
+      } finally {
+        setTenantsLoading(false);
+      }
+    };
+
+    fetchTenants();
+  }, [tenantId]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -82,6 +134,44 @@ export default function LoginPage() {
       );
     } finally {
       setLoginLoading(false);
+    }
+  };
+
+  const handleTenantChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTenantId(e.target.value || null);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("lark_tenant_id", e.target.value);
+    }
+  };
+
+  const handleLarkLogin = async () => {
+    setError("");
+    setLarkLoginLoading(true);
+
+    try {
+      if (tenants.length > 1 && !tenantId) {
+        throw new Error("Please select a workspace before logging in with Lark.");
+      }
+
+      const query = tenantId ? `?tenant_id=${encodeURIComponent(tenantId)}` : "";
+      const res = await apiFetch(`/auth/lark/auth-url${query}`);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to start Lark login.");
+      }
+
+      if (!data?.auth_url) {
+        throw new Error("Lark login URL not returned from server.");
+      }
+
+      if (tenantId && typeof window !== "undefined") {
+        window.localStorage.setItem("lark_tenant_id", tenantId);
+      }
+
+      window.location.href = data.auth_url;
+    } catch (err: any) {
+      setError(err.message || "Unable to continue with Lark SSO.");
+      setLarkLoginLoading(false);
     }
   };
 
@@ -247,10 +337,27 @@ export default function LoginPage() {
               <label className="text-xs font-medium text-muted-foreground">Password</label>
               <input type="password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className={inputCls} placeholder="••••••••" />
             </div>
-            <div className="pt-2">
+            {tenants.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Workspace</label>
+                <select value={tenantId ?? ""} onChange={handleTenantChange} className={inputCls}>
+                  <option value="">Select your workspace</option>
+                  {tenants.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                  ))}
+                </select>
+                {tenantsLoading && <p className="text-xs text-muted-foreground">Loading workspaces...</p>}
+                {tenantFetchError && <p className="text-xs text-destructive">{tenantFetchError}</p>}
+              </div>
+            )}
+            <div className="space-y-3">
               <button type="submit" disabled={loginLoading} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[color:var(--brand)] py-2.5 text-sm font-medium text-[color:var(--brand-foreground)] transition-colors hover:bg-[color:var(--brand-hover)] disabled:opacity-50">
                 {loginLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loginLoading ? "Signing in..." : "Sign In"}
+              </button>
+              <button type="button" onClick={handleLarkLogin} disabled={larkLoginLoading} className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/90 disabled:opacity-50">
+                {larkLoginLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
+                {larkLoginLoading ? "Redirecting to Lark..." : "Login with Lark"}
               </button>
             </div>
             <p className="text-center text-xs text-muted-foreground pt-1">

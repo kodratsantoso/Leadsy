@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Loader2, Key, MapPin, MessageSquare, CheckCircle2, AlertCircle } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 type IntegrationConfig = {
@@ -17,6 +22,16 @@ type IntegrationConfig = {
 
 const asBooleanString = (value: unknown) => (value === true || value === "true" || value === 1 || value === "1" ? "true" : "false");
 const asStringValue = (value: unknown) => (value == null ? "" : String(value));
+
+const normalizeLarkModuleValue = (value: unknown) => value === true || value === "true";
+const normalizeLarkModules = (modules: Record<string, unknown> | null | undefined) => ({
+  messenger: normalizeLarkModuleValue(modules?.messenger),
+  meeting: normalizeLarkModuleValue(modules?.meeting),
+  calendar: normalizeLarkModuleValue(modules?.calendar),
+  task: normalizeLarkModuleValue(modules?.task),
+  base: normalizeLarkModuleValue(modules?.base),
+  sso: normalizeLarkModuleValue(modules?.sso),
+});
 
 const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_MAPS_ENABLED:            { category: "maps", key: "GOOGLE_MAPS_ENABLED",            value: "true",    is_secret: false, is_active: true, value_type: "boolean" },
@@ -40,7 +55,7 @@ const DEFAULT_LUSHA: Record<string, IntegrationConfig> = {
 };
 
 export default function IntegrationsSettingsPage() {
-  const [tab, setTab] = useState<"maps" | "whatsapp" | "lusha" | "webhooks">("maps");
+  const [tab, setTab] = useState<"maps" | "whatsapp" | "lusha" | "webhooks" | "lark">("maps");
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -49,6 +64,21 @@ export default function IntegrationsSettingsPage() {
   const [mapsConfig, setMapsConfig]         = useState<Record<string, IntegrationConfig>>(DEFAULT_MAPS);
   const [whatsappConfig, setWhatsappConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_WHATSAPP);
   const [lushaConfig, setLushaConfig]       = useState<Record<string, IntegrationConfig>>(DEFAULT_LUSHA);
+  const [larkConfig, setLarkConfig] = useState({
+    app_id: '',
+    app_secret: '',
+    verification_token: '',
+    encrypt_key: '',
+    base_url: '',
+  });
+  const [larkModules, setLarkModules] = useState({
+    messenger: false,
+    meeting: false,
+    calendar: false,
+    task: false,
+    base: false,
+    sso: false,
+  });
 
   // ── Load saved configs from DB (authenticated) ──────────────────────────────
   useEffect(() => {
@@ -97,6 +127,103 @@ export default function IntegrationsSettingsPage() {
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const { data: larkConfigData, refetch: refetchLarkConfig } = useQuery({
+    queryKey: ['lark-config'],
+    queryFn: async () => {
+      const res = await apiFetch('/api/lark/config');
+      return res.json();
+    },
+  });
+
+  const { data: larkStatusData } = useQuery({
+    queryKey: ['lark-status'],
+    queryFn: async () => {
+      const res = await apiFetch('/api/lark/status');
+      return res.json();
+    },
+    refetchInterval: 5000,
+  });
+
+  const saveLarkConfigMutation = useMutation({
+    mutationFn: async (data: typeof larkConfig) => {
+      const res = await apiFetch('/api/lark/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          enabled_modules: larkModules,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || 'Failed to save Lark configuration');
+      }
+      return json;
+    },
+    onSuccess: () => {
+      refetchLarkConfig();
+      setSuccessMsg('Lark integration configured successfully!');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || 'Failed to save Lark configuration');
+      setTimeout(() => setErrorMsg(''), 5000);
+    },
+  });
+
+  const testLarkConnectionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch('/api/lark/test-connection', {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || 'Failed to verify Lark connection');
+      }
+      return json;
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || 'Failed to verify Lark connection');
+      setTimeout(() => setErrorMsg(''), 5000);
+    },
+  });
+
+  const toggleLarkModuleMutation = useMutation({
+    mutationFn: async ({ module, enabled }: { module: string; enabled: boolean }) => {
+      const res = await apiFetch('/api/lark/toggle-module', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ module, enabled }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || 'Failed to update Lark module state');
+      }
+      return json;
+    },
+    onSuccess: (data) => {
+      setLarkModules(data.enabled_modules || larkModules);
+      refetchLarkConfig();
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || 'Failed to update Lark module state');
+      setTimeout(() => setErrorMsg(''), 5000);
+    },
+  });
+
+  useEffect(() => {
+    if (larkConfigData?.configured) {
+      setLarkConfig({
+        app_id: larkConfigData.app_id || '',
+        app_secret: '',
+        verification_token: '',
+        encrypt_key: '',
+        base_url: larkConfigData.base_url || '',
+      });
+      setLarkModules(normalizeLarkModules(larkConfigData.enabled_modules));
+    }
+  }, [larkConfigData]);
 
   // ── Save configs to DB (authenticated) ──────────────────────────────────────
   const handleSave = async (category: string, configs: Record<string, IntegrationConfig>) => {
@@ -167,6 +294,7 @@ export default function IntegrationsSettingsPage() {
           { id: "maps",      label: "Google Maps", icon: MapPin },
           { id: "whatsapp",  label: "WhatsApp",    icon: MessageSquare },
           { id: "lusha",     label: "Lusha",       icon: Key },
+          { id: "lark",      label: "Lark",        icon: Key },
           { id: "webhooks",  label: "Webhooks",    icon: Key },
         ].map((t) => (
           <button
@@ -492,6 +620,175 @@ export default function IntegrationsSettingsPage() {
       )}
 
       {/* ── Webhooks tab — redirect to Settings → Webhooks ── */}
+      {tab === "lark" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex flex-col gap-2">
+              <div>
+                <h2 className="text-xl font-semibold mb-1">Lark Integration</h2>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Configure your Lark App ID, App Secret, and enable SSO from the Integration Settings page.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-[var(--background)] p-4">
+                <p className="text-sm font-semibold">Integration Status</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {larkStatusData?.configured ? (
+                    <span className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-600" />
+                      Configured and {larkStatusData?.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <X className="w-4 h-4 text-red-600" />
+                      Not Configured
+                    </span>
+                  )}
+                </p>
+                {larkStatusData?.last_sync_at && (
+                  <p className="text-xs text-muted-foreground mt-1">Last sync: {new Date(larkStatusData.last_sync_at).toLocaleString()}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Lark SSO Credentials</h3>
+            <div className="rounded-xl border border-border/50 bg-[var(--background)] p-4 mb-4">
+              <p className="text-sm font-medium">Redirect URL for Lark Custom App</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Daftarkan URL ini di Lark App → Redirect URLs. Leadsy akan menggunakan URL ini untuk menerima authorization code dari Lark.
+              </p>
+              <code className="mt-2 block rounded bg-slate-950/5 px-2 py-1 text-xs">
+                {typeof window !== 'undefined' ? `${window.location.origin}/auth/lark/callback` : 'https://your-domain.com/auth/lark/callback'}
+              </code>
+              <p className="text-xs text-muted-foreground mt-2">
+                Jangan tambahkan query string atau parameter tambahan. Tenant dipilih lewat state internal Leadsy.
+              </p>
+            </div>
+            <div className="grid gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">App ID</label>
+                <Input
+                  type="text"
+                  name="app_id"
+                  value={larkConfig.app_id}
+                  onChange={(e) => setLarkConfig({ ...larkConfig, app_id: e.target.value })}
+                  placeholder="Your Lark App ID"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">App Secret</label>
+                <Input
+                  type="password"
+                  name="app_secret"
+                  value={larkConfig.app_secret}
+                  onChange={(e) => setLarkConfig({ ...larkConfig, app_secret: e.target.value })}
+                  placeholder="Your Lark App Secret"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Verification Token (Optional)</label>
+                <Input
+                  type="password"
+                  name="verification_token"
+                  value={larkConfig.verification_token}
+                  onChange={(e) => setLarkConfig({ ...larkConfig, verification_token: e.target.value })}
+                  placeholder="For webhook verification"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Encrypt Key (Optional)</label>
+                <Input
+                  type="password"
+                  name="encrypt_key"
+                  value={larkConfig.encrypt_key}
+                  onChange={(e) => setLarkConfig({ ...larkConfig, encrypt_key: e.target.value })}
+                  placeholder="For encrypting webhook data"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Base URL (Optional)</label>
+                <Input
+                  type="url"
+                  name="base_url"
+                  value={larkConfig.base_url}
+                  onChange={(e) => setLarkConfig({ ...larkConfig, base_url: e.target.value })}
+                  placeholder="For Lark Base integration"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button onClick={() => saveLarkConfigMutation.mutate(larkConfig)} disabled={saveLarkConfigMutation.isPending}>
+                  {saveLarkConfigMutation.isPending ? (
+                    <>
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Configuration'
+                  )}
+                </Button>
+                <Button variant="outline" onClick={() => testLarkConnectionMutation.mutate()} disabled={testLarkConnectionMutation.isPending || !larkConfig.app_id}>
+                  {testLarkConnectionMutation.isPending ? (
+                    <>
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    'Test Connection'
+                  )}
+                </Button>
+              </div>
+              {successMsg && (
+                <div className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+                  {successMsg}
+                </div>
+              )}
+              {errorMsg && (
+                <div className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">
+                  {errorMsg}
+                </div>
+              )}
+              {testLarkConnectionMutation.data && (
+                <div className={`mt-3 p-3 rounded-lg ${testLarkConnectionMutation.data.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                  {testLarkConnectionMutation.data.success ? '✓ Connection successful!' : '✗ Connection failed: ' + testLarkConnectionMutation.data.error}
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">Enabled Lark Modules</h3>
+            <p className="text-sm text-muted-foreground mb-4">Enable Lark services by module, including SSO.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(larkModules).map(([module, enabled]) => (
+                <button
+                  key={module}
+                  type="button"
+                  onClick={() => toggleLarkModuleMutation.mutate({ module, enabled: !enabled })}
+                  className={`text-left p-4 rounded-lg border transition ${enabled ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300' : 'bg-gray-50 border-border hover:border-gray-300'}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="font-semibold capitalize">{module}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">{getLarkModuleDescription(module)}</p>
+                    </div>
+                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center ${enabled ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
+                      {enabled && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
       {tab === "webhooks" && (
         <div className="rounded-xl border border-border bg-card p-10 text-center shadow-sm">
           <Key className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
@@ -503,4 +800,16 @@ export default function IntegrationsSettingsPage() {
       )}
     </div>
   );
+}
+
+function getLarkModuleDescription(module: string): string {
+  const descriptions: Record<string, string> = {
+    messenger: 'Send notifications and messages via Lark',
+    meeting: 'Capture meeting transcripts and details',
+    calendar: 'Create follow-up calendar events',
+    task: 'Create and manage tasks for leads',
+    base: 'Sync leads with Lark Base tables',
+    sso: 'Log in users via Lark SSO',
+  };
+  return descriptions[module] || '';
 }

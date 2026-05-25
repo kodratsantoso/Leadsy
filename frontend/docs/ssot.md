@@ -48,6 +48,8 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/settings/currency/page.tsx`
 - `frontend/app/settings/users/page.tsx`
 - `frontend/app/settings/ai-defaults/page.tsx`
+- `frontend/app/settings/integrations/page.tsx`
+- `frontend/app/auth/lark/callback/page.tsx`
 - `frontend/app/audit-logs/page.tsx`
 
 ## Post-Refactor Cleanup Applied
@@ -55,6 +57,10 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/page.tsx` — Dashboard now includes database-backed lead geography, two horizontal conversion funnel blocks with drillable bars, product bars, Lead Sources & Channels aggregates, and sales achievement using user target revenue versus Closed Won realization.
 - `frontend/app/leads/page.tsx` — New Lead creation includes an Add Location map modal that geocodes a selected address and persists `lat`/`lng` to the lead record.
 - `frontend/app/settings/users/page.tsx` — Users now expose Direct Manager, target period, and target revenue fields for hierarchy-based visibility and sales achievement reporting.
+- `frontend/app/settings/integrations/page.tsx` — Integrations now owns Lark App credentials, module toggles, redirect URL guidance, and test connection feedback.
+- `frontend/app/login/page.tsx` — Login includes tenant-aware Lark SSO entrypoint.
+- `frontend/app/auth/lark/callback/page.tsx` — Lark callback stores the returned Sanctum token and user before redirecting to the dashboard.
+- `frontend/app/template.tsx` — `/auth/*` routes are public auth routes so SSO callbacks can complete without being bounced to `/login`.
 - `frontend/app/industries/page.tsx` — moved create/edit/delete flows onto shared `Card`, `Button`, `Input`, `Badge`, and `Modal` primitives.
 - `frontend/app/products/page.tsx` — replaced page-local form and destructive controls with shared `FilterBar`, `Card`, `Badge`, `Button`, `Input`, `Textarea`, `Select`, and `Modal`.
 - `frontend/app/settings/webhooks/page.tsx` — aligned settings actions to shared cards, inputs, buttons, badges, and governed delete confirmation modal.
@@ -156,3 +162,11 @@ Source of truth: `frontend/components/products/QuestionGuide.tsx`
 - Lead Detail Activities: `Meeting` activities capture Budget, Authority, Needs, Timeline, and Competitor fields; new Meeting logs prefill the latest saved BANTC values for iterative updates.
 - Lead Detail Transcripts: multiple transcripts can be stored per lead, linked to a related activity, and created from pasted text, TXT/VTT/SRT files, or attached audio/video files. AI transcript analysis requires text content and stores a summary plus sentiment, intent, interest, objections, buying signals, confidence, and next action.
 - User Settings: `direct_manager_id` defines hierarchy visibility; `target_period` and `target_revenue` define achievement tracking.
+
+## Lark SSO Module
+
+- Login uses `/api/auth/lark/tenants` and `/api/auth/lark/url` to start a tenant-aware Lark Custom App OAuth flow.
+- Callback route `/auth/lark/callback` posts `code` and `state` to the backend with plain `fetch`, bypassing authenticated API redirect behavior.
+- Successful callback calls `useAuthStore.setAuth(token, user)` before replacing the route with `/`.
+- Lark role changes remain owned by Leadsy `Settings -> Users`; SSO login must not overwrite the stored local role.
+- Integration configuration lives only in `Settings -> Integrations`; do not add a duplicate Lark settings page.

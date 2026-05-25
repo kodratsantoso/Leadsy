@@ -1,5 +1,24 @@
 # Architecture Decision Records (ADR)
 
+## ADR-2026-05-25: Lark SSO Uses Server-Side State and Preserves Leadsy Roles
+- **Status**: Active
+- **Decision**: Lark SSO follows the Custom App OAuth flow with backend-owned `state`, backend token exchange, backend user-info lookup, and Sanctum token issuance. Lark login must not overwrite an existing Leadsy role.
+- **Rationale**: The callback page starts unauthenticated, so the frontend cannot rely on authenticated `apiFetch` behavior. Role ownership belongs to Leadsy Settings, not the external identity provider.
+- **Impact**:
+  - `/auth/lark/callback` is a public frontend route.
+  - Backend callback accepts only `code` and `state`; tenant context is read from cache.
+  - Existing users keep their assigned `role_id`; default `sales_exec` applies only to new/no-role users.
+  - Lark endpoints are configurable and default to `open.larksuite.com`, with `open.larkoffice.com` fallback for tenant-token/user-info calls.
+
+## ADR-2026-05-25: Database Snapshot Imports Are Opt-In and Fresh-DB Only
+- **Status**: Active
+- **Decision**: Current database records are carried by committed SQL snapshots plus a guarded Laravel migration that runs only when `IMPORT_LEADSY_DB_SNAPSHOT=true`.
+- **Rationale**: Routine migrations/seeders remain the schema and baseline-data source of truth. Full data snapshots can contain business records and encrypted credentials, so importing them automatically on every deploy would risk duplicate IDs or unintended overwrite behavior.
+- **Impact**:
+  - Snapshot files live in `backend/database/snapshots/`.
+  - The import migration refuses to run when key business tables already contain data unless `IMPORT_LEADSY_DB_SNAPSHOT_FORCE=true`.
+  - Restored encrypted credentials require the same `APP_KEY` or manual re-entry in Settings.
+
 ## ADR-2026-05-19: Dashboard Geography, Split Funnels, and Hierarchy Revenue
 - **Status**: Active
 - **Decision**: Dashboard map, conversion funnels, and sales achievement are generated from backend DB queries and honor `Lead::visibleTo($user)`.
@@ -256,6 +275,7 @@
 - **Rationale**: Integration configuration is a settings concern, not an audit-log concern. Using `audit.view` created hidden authorization drift where the wrong roles could modify operational settings.
 - **Impact**:
   - Backend integration settings routes now match the permission seed and intended RBAC model.
+  - This alignment also supports the new tenant-aware Lark integration settings flow and frontend-first OAuth redirect behavior.
   - Frontend access checks distinguish AI, user, and integration settings more clearly.
 
 ## ADR-032: Runtime Admin UI Must Use Shared Primitives

@@ -54,6 +54,7 @@ Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create t
 | Feature | Location |
 |---------|----------|
 | Product Tour | `components/ProductTour/` — 14-step guided tour, auto-starts on first visit, minimizable, restartable via the `?` button in the header |
+| Lark SSO | `app/login/page.tsx`, `app/auth/lark/callback/page.tsx` — tenant-aware Lark login starts from the login screen; callback stores the returned Sanctum token before routing to the dashboard |
 | Product Question Guide | `components/products/QuestionGuide.tsx` — AI-generated + user-editable requirement question guide per product, shown in each product's expanded card |
 | Customer BANTC Question Guide | `components/leads/LeadBantcQuestionGuide.tsx` — AI-generated + user-editable BANTC discovery questions per Lead, shown on Lead Detail → Intelligence |
 | Dashboard Funnel Tracking | `app/page.tsx` — two cumulative/aggregate funnels for Leads → Won and Leads → Lost, with estimated amount conversion and drilldown via `funnel_min_sequence` |
@@ -64,6 +65,14 @@ Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create t
 | Theme system | `app/globals.css` (CSS tokens), `lib/theme-context.tsx` (React context) |
 | Auth store | `store/useAuthStore.ts` (Zustand + persist) |
 | API client | `lib/apiFetch.ts` — attaches Authorization header, reads `NEXT_PUBLIC_API_BASE_URL` |
+
+## Lark SSO frontend contract
+
+- `/login` requests available Lark tenants from `/api/auth/lark/tenants`.
+- Choosing a tenant calls `/api/auth/lark/url` and redirects the browser to Lark.
+- `/auth/lark/callback` is a public auth route; it posts only `code` and `state` to the backend callback endpoint.
+- The callback page uses plain `fetch`, not `apiFetch`, so an unauthenticated callback is not intercepted and redirected back to `/login`.
+- On success, `useAuthStore.setAuth(token, user)` persists the session before the router replaces the page with `/`.
 
 ## Documentation
 

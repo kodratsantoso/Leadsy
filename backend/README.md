@@ -1,66 +1,65 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Leadsy Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel API for Leadsy: authentication, RBAC, lead intelligence, maps, AI routing, WhatsApp bridge, and Lark integration.
 
-## About Laravel
+## Local setup
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed --class=ProductionSeeder
+php artisan serve --host=0.0.0.0 --port=8000
+```
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The default Docker Compose stack exposes the API through `http://localhost:3001/api` and PostgreSQL on `localhost:5435`.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Lark SSO and integration
 
-## Learning Laravel
+Lark is managed from `Settings -> Integrations` in the active frontend.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Required backend environment values:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```dotenv
+LARK_OPEN_API_BASE_URLS=https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis
+LARK_ACCOUNTS_BASE_URL=https://accounts.larksuite.com
+LARK_OAUTH_SCOPES=auth:user.id:read
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+The backend follows the Lark Custom App OAuth flow:
 
-## Laravel Sponsors
+- `GET /api/auth/lark/url` creates the authorization URL and stores OAuth `state` in cache.
+- `/auth/lark/callback` on the frontend posts `code` and `state` to `POST /api/auth/lark/callback`.
+- The backend exchanges the code at `/authen/v2/oauth/token`, fetches user info from `/authen/v1/user_info`, persists `lark_sso_users`, and returns a Sanctum token.
+- Existing local users keep their configured role on SSO login; `sales_exec` is assigned only when a new SSO user is first created or an existing user has no role.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Lark app secrets are encrypted with Laravel's `APP_KEY`. If a database snapshot is restored into an environment with a different `APP_KEY`, re-save the Lark App Secret from Settings before testing the connection.
 
-### Premium Partners
+## Database snapshot import
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Migrations are the source of truth for schema. The repository also includes one deploy snapshot for carrying current records into a fresh database:
 
-## Contributing
+- `database/snapshots/leadsy_full_structure_and_data_2026_05_25.sql`
+- `database/snapshots/leadsy_deploy_data_2026_05_25.sql`
+- `database/migrations/2026_05_25_000001_import_leadsy_database_snapshot.php`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Enable the guarded import only for an empty target database:
 
-## Code of Conduct
+```dotenv
+IMPORT_LEADSY_DB_SNAPSHOT=true
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+The migration refuses to import if business rows already exist. On an empty database, it truncates the tables covered by the snapshot before importing so baseline rows from older migrations do not collide with snapshot IDs. `IMPORT_LEADSY_DB_SNAPSHOT_FORCE=true` bypasses the existing-row guard for intentional rebuilds, but it should not be used on a live database with records you need to preserve.
 
-## Security Vulnerabilities
+## Production bootstrap
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+`docker-entrypoint.production.sh` supports:
 
-## License
+```dotenv
+AUTO_MIGRATE=true
+AUTO_SEED_BASELINE=true
+SEED_DEMO_DATA=false
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+For a snapshot-based first deploy, run migrations with `IMPORT_LEADSY_DB_SNAPSHOT=true`, keep `AUTO_SEED_BASELINE=true` for idempotent baseline safety, and verify `/api/health` after startup.

@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\EmailVerificationOtp;
 use App\Models\Role;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -153,5 +156,132 @@ class AuthController extends Controller
         return response()->json([
             'data' => $request->user()->load('role.permissions'),
         ]);
+    }
+
+    /** GET /api/auth/lark/auth-url — Get Lark OAuth2 authorization URL */
+    public function getLarkAuthUrl(Request $request): JsonResponse
+    {
+        $request->validate([
+            'tenant_id' => 'nullable|exists:tenants,id',
+        ]);
+
+        try {
+            if ($request->filled('tenant_id')) {
+                $integration = \App\Models\LarkIntegration::where('tenant_id', $request->tenant_id)
+                    ->where('is_active', true)
+                    ->firstOrFail();
+            } else {
+                $integration = \App\Models\LarkIntegration::where('is_active', true)
+                    ->orderBy('tenant_id')
+                    ->firstOrFail();
+            }
+
+            if (!$integration->isModuleEnabled('sso')) {
+                return response()->json([
+                    'message' => 'Lark SSO is disabled for this workspace',
+                ], 400);
+            }
+
+            $ssoService = new \App\Services\Lark\LarkSsoService($integration);
+            $frontendUrl = env('FRONTEND_URL', env('NEXT_PUBLIC_APP_URL', config('app.url')));
+            $redirectUri = rtrim($frontendUrl, '/') . '/auth/lark/callback';
+
+            $state = Str::random(48);
+            Cache::put('lark_oauth_state:' . $state, [
+                'tenant_id' => $integration->tenant_id,
+                'redirect_uri' => $redirectUri,
+            ], now()->addMinutes(10));
+
+            $authUrl = $ssoService->getAuthorizationUrl(
+                $redirectUri,
+                $state,
+                env('LARK_OAUTH_SCOPES', 'auth:user.id:read')
+            );
+
+            return response()->json([
+                'auth_url' => $authUrl,
+                'tenant_id' => $integration->tenant_id,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Lark SSO not configured',
+            ], 400);
+        }
+    }
+
+    /** GET /api/auth/lark/tenants — List active Lark tenants */
+    public function getLarkTenants(Request $request): JsonResponse
+    {
+        $tenants = Tenant::whereHas('larkIntegration', function ($query) {
+            $query->where('is_active', true);
+        })->get(['id', 'name', 'slug']);
+
+        return response()->json([
+            'data' => $tenants,
+        ]);
+    }
+
+    /** POST /api/auth/lark/callback — Handle Lark OAuth2 callback */
+    public function handleLarkCallback(Request $request): JsonResponse
+    {
+        $request->validate([
+            'code' => 'required|string',
+            'state' => 'required|string',
+        ]);
+
+        try {
+            $statePayload = Cache::pull('lark_oauth_state:' . $request->state);
+            $tenantId = (int) ($statePayload['tenant_id'] ?? 0);
+
+            if (!$statePayload || !$tenantId) {
+                return response()->json([
+                    'message' => 'Invalid or expired Lark login state',
+                ], 419);
+            }
+
+            $integration = \App\Models\LarkIntegration::where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->firstOrFail();
+
+            if (!$integration->isModuleEnabled('sso')) {
+                return response()->json([
+                    'message' => 'Lark SSO is disabled for this workspace',
+                ], 400);
+            }
+
+            $tenant = \App\Models\Tenant::findOrFail($tenantId);
+            $ssoService = new \App\Services\Lark\LarkSsoService($integration);
+
+            $callbackResult = $ssoService->handleCallback($request->code, $statePayload['redirect_uri']);
+
+            if (!$callbackResult || !$callbackResult['success']) {
+                return response()->json([
+                    'message' => 'Failed to authenticate with Lark',
+                ], 401);
+            }
+
+            $userInfo = $callbackResult['user_info'];
+
+            // Create or update user from Lark info
+            $user = $ssoService->createOrUpdateUserFromLark($userInfo, $tenant, 'sales_exec');
+
+            // Generate token
+            $token = $user->createToken('api')->plainTextToken;
+
+            AuditService::log('login_via_lark_sso', 'auth', $user);
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user->load('role.permissions'),
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Lark SSO callback failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Lark authentication failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

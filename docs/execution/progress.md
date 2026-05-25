@@ -1,5 +1,14 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-05-25 — Lark SSO and Deploy Snapshot
+- Lark Custom App SSO now uses the correct accounts authorization URL, authen v2 token exchange, authen v1 user info endpoint, and auth v3 tenant access token endpoint.
+- Callback state is resolved server-side from cache; the frontend callback stores the returned Sanctum token before routing to the dashboard.
+- Lark SSO user sync now preserves the role assigned in Leadsy Settings, fixing role changes that reverted after login.
+- Settings → Integrations now manages Lark App ID/Secret and module toggles without returning decrypted secrets to the browser.
+- Added PostgreSQL structure+data and deploy-data snapshots under `backend/database/snapshots/`.
+- Added an opt-in Laravel migration for one-time snapshot import on a fresh database.
+- Updated root, backend, frontend, platform, SSOT, task, and deployment documentation for Lark SSO and snapshot deploy behavior.
+
 ## 2026-05-20 — Product Question Guide
 - Added `product_questions` table and `ProductQuestion` model; one guide per product with JSON question array.
 - `ProductQuestionGenerationService` generates 12–18 contextual discovery questions using product metadata via AI.
@@ -330,6 +339,7 @@ GET    /api/leads/{id}/progress           — Get aggregated progress summary
 - Audited the declared SSOT/tasks/progress/decisions set against the active `frontend/` runtime and Laravel API routes.
 - Fixed a production-facing PostgreSQL mismatch in AI usage aggregation where `fallback_used` was compared as an integer instead of a boolean.
 - Corrected integration settings authorization so `/api/settings/integrations` now requires `integrations.manage` instead of the unrelated `audit.view` permission.
+- Fixed Lark integration settings flow by aligning backend permission guards with the frontend integrations page and generating the OAuth redirect URI from the active frontend base URL for tenant-aware Lark auth.
 - Added a centralized API error envelope in `backend/bootstrap/app.php` for validation, auth, authorization, not-found, and generic API failures while preserving current success payloads to avoid frontend breakage.
 - Tightened frontend permission gating so `Settings` sub-pages now reflect module-specific permissions instead of relying only on broad `/settings` access.
 - Verified the active runtime frontend (`frontend/`) passes both `npm run typecheck` and `npm run build`.
@@ -351,7 +361,7 @@ GET    /api/leads/{id}/progress           — Get aggregated progress summary
 - [ ] Unit tests for all services
 - [ ] Integration tests for A→B→C flows
 - [ ] Manual E2E testing with real leads
-- [ ] Documentation updates (BRD, SSOT, decisions)
+- [x] Documentation updates for SSOT, progress, and decisions (BRD pending)
 - [ ] Frontend Transcript Review UI (tab complete but viewer not built)
 
 ### Current Status
@@ -359,7 +369,7 @@ GET    /api/leads/{id}/progress           — Get aggregated progress summary
 **Module B**: ✅ Complete (production-ready)
 **Module C**: ✅ Complete (production-ready)
 **Frontend**: ✅ 95% Complete (Lead Detail + Settings integrated, Leads list enhanced)
-**Documentation**: ⏳ 60% Complete (tasks updated, progress updated, BRD/SSOT/decisions pending)
+**Documentation**: ⏳ 75% Complete (SSOT, progress, decisions updated; BRD pending)
 
 ## 2026-04-18 Enterprise-Grade Project Structure Refactor (Phase 1–3 Complete)
 

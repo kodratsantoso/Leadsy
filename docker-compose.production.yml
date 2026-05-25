@@ -71,6 +71,9 @@ services:
       # ── WhatsApp sidecar ──────────────────────────────────────────────────────
       WHATSAPP_SIDECAR_URL: "http://leadsy-whatsapp-${COOLIFY_RESOURCE_UUID:-local}:3002"
       WHATSAPP_SESSION_NAME: leads_platform_session
+      LARK_OPEN_API_BASE_URLS: "${LARK_OPEN_API_BASE_URLS:-https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis}"
+      LARK_ACCOUNTS_BASE_URL: "${LARK_ACCOUNTS_BASE_URL:-https://accounts.larksuite.com}"
+      LARK_OAUTH_SCOPES: "${LARK_OAUTH_SCOPES:-auth:user.id:read}"
       # ── Deployment controls ───────────────────────────────────────────────────
       # These are explicit here so Coolify never accidentally inherits wrong defaults.
       AUTO_MIGRATE: "true"

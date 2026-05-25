@@ -56,6 +56,8 @@ Open [http://localhost:3000](http://localhost:3000).
 - Customer BANTC Question Guide: Lead detail → Intelligence can generate customer-specific Budget, Authority, Need, Timeline, and Competition questions with AI. Generated questions remain draft-only until the user saves them.
 - Meeting BANTC capture: Lead detail → Activities → Log Activity shows Budget, Authority, Needs, Timeline, and Competitor fields when the activity type is `Meeting`; the next meeting preloads the latest BANTC notes for iterative updates.
 - Transcript management: Lead detail → Transcripts supports multiple transcripts, each linkable to an Activity. Users can paste text, upload TXT/VTT/SRT, or attach audio/video files; AI analysis summarizes text transcripts and extracts sentiment, intent, objections, buying signals, and next action.
+- Lark SSO integration is configured from Settings → Integrations and protected by backend `integrations.manage`; redirect URIs are generated from the active frontend base URL for tenant-aware login flows.
+- Lark SSO uses the Lark Custom App OAuth flow: frontend opens the authorization URL, backend stores OAuth `state` in cache, callback exchanges `code` for a user token, resolves Lark user info, persists the Lark identity link, then creates a Laravel Sanctum token before redirecting to the dashboard.
 - Revenue tracking: Settings → Users lets admins set Direct Manager, target period, and target revenue. Dashboard Achievement Sales compares target revenue against Closed Won realization for the user's visible hierarchy.
 - Hierarchy visibility: regular users see their own leads, managers/admin-like roles see their recursive team, and superadmin sees all leads.
 
@@ -83,6 +85,15 @@ These bindings are intentionally fixed in `docker-compose.yml`. Only change them
 ## Quick start — backend (Laravel)
 
 Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create the Laravel 12 project and configure `.env` for Postgres/Redis.
+
+## Deploying with database contents
+
+Schema lives in `backend/database/migrations/`. A deploy snapshot is also committed under `backend/database/snapshots/` for one-time fresh environment imports:
+
+- `leadsy_full_structure_and_data_2026_05_25.sql` — complete PostgreSQL structure + data archive.
+- `leadsy_deploy_data_2026_05_25.sql` — public-schema application data imported by the guarded Laravel migration.
+
+Set `IMPORT_LEADSY_DB_SNAPSHOT=true` only on a fresh database where application tables are empty. The snapshot carries encrypted secrets; keep the same `APP_KEY` from the source environment or re-enter AI/Lark credentials after deploy.
 
 ## Git Hooks
 
@@ -124,4 +135,4 @@ Audited exceptions:
 ## Documentation
 
 - Phase 1 plan: `docs/execution/phase-1/plan.md`
-- Decisions (append-only): `docs/decisions.md`
+- Decisions (append-only): `docs/execution/decisions.md`

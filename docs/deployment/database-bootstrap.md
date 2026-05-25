@@ -52,6 +52,28 @@ database data, so deleted products must not reappear after `db:seed --force`.
 
 ---
 
+## Snapshot Import for Fresh Deploys
+
+For environments that must start with the current application records, this repository includes a database snapshot generated on 2026-05-25:
+
+| File | Purpose |
+|------|---------|
+| `backend/database/snapshots/leadsy_full_structure_and_data_2026_05_25.sql` | Complete PostgreSQL structure + data archive for manual restore or audit. |
+| `backend/database/snapshots/leadsy_deploy_data_2026_05_25.sql` | Public-schema application data used by the guarded Laravel import migration. |
+| `backend/database/migrations/2026_05_25_000001_import_leadsy_database_snapshot.php` | Optional importer that runs during `php artisan migrate` only when enabled. |
+
+Enable it only for the first deploy into an empty database:
+
+```dotenv
+IMPORT_LEADSY_DB_SNAPSHOT=true
+```
+
+The migration counts key business tables (`users`, `products`, `leads`, Lark tables, and activity tables) and refuses to import if records already exist. On an empty database it truncates the tables covered by the snapshot before importing, which avoids conflicts with baseline rows created by older migrations. `IMPORT_LEADSY_DB_SNAPSHOT_FORCE=true` exists for deliberate rebuilds, not routine production starts.
+
+Snapshot data includes encrypted AI and Lark credentials. Those values can only be decrypted with the same Laravel `APP_KEY` used when the snapshot was created; otherwise re-enter the secrets in Settings after deploy.
+
+---
+
 ## Entrypoint Flow
 
 `backend/docker-entrypoint.production.sh` runs on every container start:
@@ -81,6 +103,8 @@ Add these to Coolify environment variables for the backend service:
 | `AUTO_MIGRATE`       | `true`    | `true`     | Run `migrate --force` on startup             |
 | `AUTO_SEED_BASELINE` | `true`    | `true`     | Run `ProductionSeeder` on startup            |
 | `SEED_DEMO_DATA`     | `false`   | optional   | Run `DemoSeeder` — NEVER true in production  |
+| `IMPORT_LEADSY_DB_SNAPSHOT` | optional | optional | One-time fresh DB import from committed snapshot |
+| `IMPORT_LEADSY_DB_SNAPSHOT_FORCE` | `false` | optional | Bypass existing-row guard for intentional rebuilds only |
 | `DB_HOST`            | `postgres` | `postgres` | Postgres service name in Docker network      |
 | `DB_PORT`            | `5432`    | `5432`     |                                              |
 | `DB_DATABASE`        | `leads`   | `leads`    |                                              |
@@ -156,6 +180,8 @@ docker exec -it leadsy-leads-pg psql -U leads -c "\dt"
 docker exec -it leadsy-leads-pg psql -U leads -c "SELECT name FROM roles;"
 docker exec -it leadsy-leads-pg psql -U leads -c "SELECT name FROM funnel_stages ORDER BY sequence;"
 docker exec -it leadsy-leads-pg psql -U leads -c "SELECT slug FROM ai_providers;"
+docker exec -it leadsy-leads-pg psql -U leads -c "SELECT email, role_id FROM users ORDER BY id;"
+docker exec -it leadsy-leads-pg psql -U leads -c "SELECT app_id, enabled_modules FROM lark_integrations;"
 
 # Confirm no demo leads (if SEED_DEMO_DATA=false)
 docker exec -it leadsy-leads-backend php artisan tinker --execute="echo App\Models\Lead::count();"

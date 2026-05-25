@@ -1,5 +1,14 @@
 # Real WhatsApp Mirroring Implementation Tasks
 
+## Lark SSO Frontend Flow (Completed ✅)
+- [x] Add tenant-aware Lark login entrypoint on `/login`.
+- [x] Add `/auth/lark/callback` route that posts `code` and `state` to the backend.
+- [x] Use plain `fetch` on callback so unauthenticated SSO completion is not intercepted by `apiFetch`.
+- [x] Persist returned Sanctum token and user via `useAuthStore.setAuth` before routing to `/`.
+- [x] Mark `/auth/*` as public auth routes in `frontend/app/template.tsx`.
+- [x] Keep Lark configuration in `Settings -> Integrations`; remove duplicate Lark settings page pattern.
+- [x] Update frontend README, SSOT, progress, and decisions.
+
 ## Product Question Guide (Completed ✅)
 - [x] Migration: `product_questions` table (product_id FK, questions JSON, ai_generated, ai_model, updated_by).
 - [x] Model: `ProductQuestion` with questions cast as array; `Product` model gets `questionGuide()` HasOne.

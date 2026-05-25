@@ -1,5 +1,18 @@
 # Progress Log — Leadsy Platform
 
+## Lark SSO Frontend Flow (Completed ✅)
+**Date completed**: 2026-05-25
+
+### What was built
+- Login now exposes a tenant-aware Lark SSO path backed by `/api/auth/lark/tenants` and `/api/auth/lark/url`.
+- `/auth/lark/callback` receives Lark `code` and `state`, calls the backend callback endpoint, stores the returned Sanctum token/user, and routes to the dashboard.
+- Auth routing treats `/auth/*` as public so callbacks are allowed to complete before a session exists.
+- Settings → Integrations owns Lark App credentials, module toggles, redirect URL guidance, and connection test feedback.
+
+### Validation
+- Frontend TypeScript passes with `cd frontend && ./node_modules/.bin/tsc --noEmit`.
+- Callback no longer uses `apiFetch`, preventing unauthenticated callback requests from being redirected back to `/login`.
+
 ## Product Question Guide (Completed ✅)
 **Date completed**: 2026-05-20
 

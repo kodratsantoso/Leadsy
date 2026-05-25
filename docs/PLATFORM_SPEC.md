@@ -1,7 +1,7 @@
 # Leadsy Platform — Spesifikasi & Alur Kerja
 
 > **Dokumen hidup.** Diperbarui setiap kali ada improvisasi fitur.
-> Versi terakhir: 2026-05-12
+> Versi terakhir: 2026-05-25
 
 ---
 
@@ -570,7 +570,7 @@ Pusat konfigurasi seluruh platform.
 |---|---|
 | **Users & Roles** | CRUD user, role assignment, permission management |
 | **AI Defaults** | Konfigurasi feature routes, provider, model, priority |
-| **Integrations** | Google Maps API key, Maps enabled/disabled, default center |
+| **Integrations** | Google Maps API key, Maps enabled/disabled, Lark SSO app credentials and enabled modules, default center |
 | **ICP Profiles** | Kelola profil ICP global |
 | **Webhooks** | Konfigurasi outbound webhooks |
 | **Environment** | Variabel environment |
@@ -584,6 +584,30 @@ Pusat konfigurasi seluruh platform.
 - `GOOGLE_MAPS_BROWSER_API_KEY` → digunakan MapPage untuk render Google Maps
 - `GOOGLE_MAPS_ENABLED` → tampilkan atau sembunyikan Maps
 - `GOOGLE_MAPS_DEFAULT_CENTER_LAT/LNG` → default center peta
+
+### Lark Integration in Settings
+
+`Settings → Integrations` juga memuat konfigurasi Lark tenant-aware, termasuk App ID/Secret, panduan redirect URI, dan toggle modul per-tenant. Manajemen integrasi Lark dilindungi oleh backend `permission:integrations.manage`.
+
+### Lark SSO Flow
+
+Leadsy menggunakan Lark Custom App OAuth untuk SSO.
+
+```
+Login page pilih tenant
+  → GET /api/auth/lark/url
+  → backend menyimpan OAuth state di cache
+  → browser redirect ke https://accounts.larksuite.com/open-apis/authen/v1/authorize
+  → Lark redirect ke /auth/lark/callback?code=...&state=...
+  → frontend callback POST code+state ke backend
+  → backend exchange code di /open-apis/authen/v2/oauth/token
+  → backend fetch /open-apis/authen/v1/user_info
+  → backend upsert lark_sso_users dan user lokal
+  → backend return Sanctum token + user role/permissions
+  → frontend menyimpan token lalu redirect dashboard
+```
+
+Role yang sudah diatur admin di Leadsy tidak ditimpa saat user login via Lark. Role default `sales_exec` hanya dipakai saat user baru dibuat atau user lama belum punya role.
 
 ---
 
@@ -808,6 +832,17 @@ Kedua sumber menghasilkan record di tabel `lead_product_matches` yang sama, sehi
 | POST | `/api/ai/feature-routes` | Update feature route |
 | GET | `/api/audit-logs` | Daftar audit log |
 
+### Lark
+
+| Method | Endpoint | Fungsi |
+|---|---|---|
+| GET | `/api/auth/lark/tenants` | Daftar tenant Lark yang aktif untuk login |
+| GET | `/api/auth/lark/url` | Buat URL OAuth Lark dan simpan state |
+| POST | `/api/auth/lark/callback` | Exchange callback code, simpan SSO user, return Sanctum token |
+| GET | `/api/lark/integration` | Ambil konfigurasi Lark tenant |
+| POST | `/api/lark/integration` | Simpan App ID/Secret dan enabled modules |
+| POST | `/api/lark/test-connection` | Test tenant access token Lark |
+
 ---
 
 ## 15. Tabel AI Feature Routes
@@ -831,6 +866,13 @@ Konfigurasi di **Settings → AI Defaults**. Setiap fitur bisa punya multiple mo
 ---
 
 ## 16. Changelog Spesifikasi
+
+### 2026-05-25 — Lark SSO, role preservation, dan snapshot deploy
+
+- Lark SSO distandarkan ke Custom App OAuth: auth URL accounts domain, token exchange `/authen/v2/oauth/token`, user info `/authen/v1/user_info`, dan tenant access token `/auth/v3/tenant_access_token/internal`.
+- Callback frontend dibuat sebagai public auth route dan menyimpan token sebelum redirect dashboard.
+- Sinkronisasi user Lark tidak lagi menimpa role lokal yang sudah disimpan admin.
+- Database snapshot deploy ditambahkan sebagai migration opt-in untuk fresh environment.
 
 ### 2026-05-12 — v1.0 (Dokumen dibuat)
 

@@ -1,5 +1,14 @@
 # Architecture Decision Records (ADR)
 
+## ADR-2026-05-25: Lark Callback Bypasses Authenticated API Client
+- **Status**: Active
+- **Decision**: `/auth/lark/callback` uses plain `fetch` for the backend callback request and persists the returned auth payload through `useAuthStore`.
+- **Rationale**: The callback route runs before the user has a Leadsy session. Using the authenticated API helper would treat the callback as an expired session and send the browser back to `/login`.
+- **Impact**:
+  - `/auth/*` is treated as a public auth route in `frontend/app/template.tsx`.
+  - The callback submits only `code` and `state`; tenant lookup remains backend-owned through cached OAuth state.
+  - Successful SSO must call `setAuth(token, user)` before dashboard navigation.
+
 ## ADR-2026-05-20: Product Revenue Outcomes Per Lead
 - **Status**: Active
 - **Decision**: Keep `leads.product_id` as the lead/customer's initial product interest, and store each realized product purchase on `lead_outcomes.product_id` with `sale_type`.

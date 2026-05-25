@@ -1,5 +1,18 @@
 # Real WhatsApp Mirroring Implementation Tasks
 
+## Lark SSO, Role Persistence, and Deploy Snapshot (Completed ✅)
+- [x] Verify Lark Custom App OAuth endpoints against the official OpenAPI method family.
+- [x] Fix tenant access token URL to `/open-apis/auth/v3/tenant_access_token/internal`.
+- [x] Add larksuite/larkoffice OpenAPI base URL fallback configuration.
+- [x] Build tenant-aware Lark login URL, callback, token exchange, and user-info flow.
+- [x] Make `/auth/lark/callback` a public frontend auth route and persist the returned Sanctum token before dashboard redirect.
+- [x] Persist Lark SSO identities in `lark_sso_users`.
+- [x] Preserve locally assigned Leadsy roles during Lark SSO login; default to `sales_exec` only for newly created/no-role users.
+- [x] Harden Lark Settings so encrypted App Secret values are not returned to the browser.
+- [x] Add Lark integration docs to README, platform spec, backend/frontend SSOT, and deployment docs.
+- [x] Capture PostgreSQL structure+data and deploy-data snapshots.
+- [x] Add guarded Laravel migration for one-time snapshot import on fresh deploys.
+
 ## Product Question Guide (Completed ✅)
 - [x] Migration `2026_05_20_000001_create_product_questions_table.php` — product_id FK, questions JSON, ai_generated, ai_model, updated_by.
 - [x] `ProductQuestion` model + `Product::questionGuide()` HasOne relation.

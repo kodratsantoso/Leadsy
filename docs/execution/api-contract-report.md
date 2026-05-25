@@ -113,3 +113,25 @@ The backend API surface is substantially ahead of the live frontend runtime. The
 - `POST /api/users` / `PUT /api/users/{user}`
   - Accepts `direct_manager_id`, `target_period`, and `target_revenue`.
   - Existing audit logging records permission/hierarchy/target changes through user update audit rows.
+
+## 2026-05-25 Contract Additions
+
+### Lark Auth
+- `GET /api/auth/lark/tenants`
+  - Returns active tenants with Lark SSO enabled.
+- `GET /api/auth/lark/url?tenant_id=ID&redirect_uri=URL`
+  - Returns `auth_url` and backend-generated `state`.
+  - Backend stores the tenant and redirect URI in cache using the `state`.
+- `POST /api/auth/lark/callback`
+  - Accepts `code` and `state`.
+  - Returns `token` and `user` with role/permissions after successful Lark OAuth exchange.
+  - Existing Leadsy user roles are preserved during SSO sync.
+
+### Lark Integration Settings
+- `GET /api/lark/integration`
+  - Returns saved App ID, module toggles, connection metadata, and boolean secret-presence flags.
+  - Does not return decrypted App Secret, Verification Token, or Encrypt Key values.
+- `POST /api/lark/integration`
+  - Saves Lark App credentials and enabled module toggles for the tenant.
+- `POST /api/lark/test-connection`
+  - Tests tenant access token retrieval and returns a success/error envelope without exposing tokens.

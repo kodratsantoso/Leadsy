@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\FunnelController;
 use App\Http\Controllers\Api\IcpProfileController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\IntegrationConfigController;
+use App\Http\Controllers\Api\LarkController;
 use App\Http\Controllers\Api\LeadChannelTypeController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\LeadSourceTypeController;
@@ -56,6 +57,9 @@ Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
     Route::post('send-otp', [AuthController::class, 'sendOtp']);
     Route::post('register', [AuthController::class, 'register']);
+    Route::get('lark/tenants', [AuthController::class, 'getLarkTenants']);
+    Route::get('lark/auth-url', [AuthController::class, 'getLarkAuthUrl']);
+    Route::post('lark/callback', [AuthController::class, 'handleLarkCallback']);
 });
 
 // ── Public Integrations (e.g. Browser Maps Key, APP_NAME, APP_ENV) ──
@@ -268,4 +272,20 @@ Route::middleware('auth:sanctum')->group(function () {
     // Revenue Intelligence — Analytics
     Route::get('analytics/pipeline-quality', [AnalyticsController::class, 'pipelineQuality'])->middleware('permission:leads.view');
     Route::get('analytics/source-quality', [AnalyticsController::class, 'sourceQuality'])->middleware('permission:leads.view');
+
+    // Lark Integration
+    Route::prefix('lark')->group(function () {
+        Route::get('config', [LarkController::class, 'getConfig']);
+        Route::post('config', [LarkController::class, 'saveConfig'])->middleware('permission:integrations.manage');
+        Route::post('test-connection', [LarkController::class, 'testConnection'])->middleware('permission:integrations.manage');
+        Route::post('toggle-module', [LarkController::class, 'toggleModule'])->middleware('permission:integrations.manage');
+        Route::get('status', [LarkController::class, 'getStatus']);
+        Route::get('sync-history', [LarkController::class, 'getSyncHistory'])->middleware('permission:audit.view');
+        Route::get('event-log', [LarkController::class, 'getEventLog'])->middleware('permission:audit.view');
+    });
+});
+
+// ── Lark Webhooks (Public) ──
+Route::prefix('webhooks')->group(function () {
+    Route::post('lark', [LarkController::class, 'handleWebhook']);
 });
