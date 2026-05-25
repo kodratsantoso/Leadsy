@@ -13,6 +13,13 @@
 - [x] Capture PostgreSQL structure+data and deploy-data snapshots.
 - [x] Add guarded Laravel migration for one-time snapshot import on fresh deploys.
 
+## Lark Base Two-Way Sync (Completed ✅)
+- [x] Add `lark_base_tables` and `lark_base_record_mappings` tables for Base table configuration and record identity mapping.
+- [x] Add Lark Base APIs for listing tables, listing fields, previewing records, saving a Lead mapping, and manual push/pull sync.
+- [x] Add Leadsy → Lark Base sync on lead create/update through the existing Lark action queue.
+- [x] Add Lark Base → Leadsy sync from webhook events and manual pull.
+- [x] Add Settings → Integrations → Lark Base UI for app token, table selection, preview, manual Leadsy Leads field mapping, Auto Match assistance, and saved mapping sync controls.
+
 ## Product Question Guide (Completed ✅)
 - [x] Migration `2026_05_20_000001_create_product_questions_table.php` — product_id FK, questions JSON, ai_generated, ai_model, updated_by.
 - [x] `ProductQuestion` model + `Product::questionGuide()` HasOne relation.

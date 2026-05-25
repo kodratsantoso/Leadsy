@@ -135,3 +135,17 @@ The backend API surface is substantially ahead of the live frontend runtime. The
   - Saves Lark App credentials and enabled module toggles for the tenant.
 - `POST /api/lark/test-connection`
   - Tests tenant access token retrieval and returns a success/error envelope without exposing tokens.
+
+### Lark Base
+- `GET /api/lark/base/tables?app_token=...`
+  - Lists tables inside a Lark Base app token.
+- `GET /api/lark/base/fields?app_token=...&table_id=...`
+  - Lists fields for one Base table.
+- `GET /api/lark/base/records/preview?app_token=...&table_id=...&page_size=10`
+  - Returns a bounded record preview for the selected Base table.
+- `GET /api/lark/base/mappings`
+  - Returns saved Base mappings and the default Lead field mapping.
+- `POST /api/lark/base/mappings`
+  - Saves a Lead ↔ Base table mapping with `sync_direction`, manually selected `field_mapping`, and active state.
+- `POST /api/lark/base/mappings/{baseTable}/sync`
+  - Runs manual `push` (Leadsy to Lark) or `pull` (Lark to Leadsy) sync.

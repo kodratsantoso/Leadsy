@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\LarkIntegration;
+use App\Models\Lead;
+use App\Models\LarkBaseTable;
 use App\Models\LarkEvent;
+use App\Models\LarkIntegration;
 use App\Services\Lark\LarkService;
 use App\Services\Lark\LarkMessengerService;
 use App\Services\Lark\LarkTaskService;
@@ -239,22 +241,34 @@ class LarkController extends Controller
         try {
             $payload = $request->all();
 
+            if (isset($payload['challenge'])) {
+                return response()->json(['challenge' => $payload['challenge']]);
+            }
+
             Log::info('Received Lark webhook', [
                 'payload' => $payload,
             ]);
 
             // Find integration by app_id
-            $appId = $payload['app_id'] ?? null;
+            $appId = $payload['header']['app_id'] ?? $payload['app_id'] ?? null;
             $integration = LarkIntegration::where('app_id', $appId)->firstOrFail();
+            $eventPayload = $payload['event'] ?? [];
+            $recordId = $eventPayload['record_id'] ?? $eventPayload['record']['record_id'] ?? null;
+            $appToken = $eventPayload['app_token'] ?? $eventPayload['base_id'] ?? null;
+            $tableId = $eventPayload['table_id'] ?? null;
 
             // Create event record
             $event = LarkEvent::create([
                 'tenant_id' => $integration->tenant_id,
                 'lark_integration_id' => $integration->id,
-                'event_type' => $payload['type'] ?? 'unknown',
-                'lark_entity_type' => $payload['event']['entity_type'] ?? null,
-                'lark_entity_id' => $payload['event']['entity_id'] ?? null,
-                'event_data' => $payload['event'] ?? null,
+                'event_type' => $payload['header']['event_type'] ?? $payload['type'] ?? 'unknown',
+                'lark_entity_type' => $eventPayload['entity_type'] ?? ($recordId ? 'bitable_record' : null),
+                'lark_entity_id' => $eventPayload['entity_id'] ?? $recordId,
+                'event_data' => array_merge($eventPayload, [
+                    '_app_token' => $appToken,
+                    '_table_id' => $tableId,
+                    '_raw' => $payload,
+                ]),
                 'status' => 'received',
             ]);
 
@@ -300,5 +314,151 @@ class LarkController extends Controller
             'last_sync_at' => $integration->last_sync_at,
             'sync_status' => $integration->sync_status,
         ]);
+    }
+
+    public function listBaseTables(Request $request)
+    {
+        $request->validate([
+            'app_token' => 'required|string',
+        ]);
+
+        $service = new LarkBaseService($this->tenantIntegration());
+
+        return response()->json($service->listTables($request->app_token));
+    }
+
+    public function listBaseFields(Request $request)
+    {
+        $request->validate([
+            'app_token' => 'required|string',
+            'table_id' => 'required|string',
+        ]);
+
+        $service = new LarkBaseService($this->tenantIntegration());
+
+        return response()->json($service->listFields($request->app_token, $request->table_id));
+    }
+
+    public function previewBaseRecords(Request $request)
+    {
+        $request->validate([
+            'app_token' => 'required|string',
+            'table_id' => 'required|string',
+            'page_size' => 'nullable|integer|min:1|max:100',
+            'page_token' => 'nullable|string',
+        ]);
+
+        $service = new LarkBaseService($this->tenantIntegration());
+
+        return response()->json($service->getRecords(
+            $request->app_token,
+            $request->table_id,
+            $request->only(['page_size', 'page_token'])
+        ));
+    }
+
+    public function getBaseMappings(Request $request)
+    {
+        $user = Auth::user();
+
+        return response()->json([
+            'data' => LarkBaseTable::where('tenant_id', $user->tenant_id)
+                ->withCount('recordMappings')
+                ->orderBy('created_at', 'desc')
+                ->get(),
+            'default_field_mapping' => LarkBaseService::DEFAULT_LEAD_FIELD_MAPPING,
+        ]);
+    }
+
+    public function saveBaseMapping(Request $request)
+    {
+        $request->validate([
+            'app_token' => 'required|string',
+            'table_id' => 'required|string',
+            'table_name' => 'nullable|string',
+            'sync_direction' => 'required|in:leadsy_to_lark,lark_to_leadsy,two_way',
+            'field_mapping' => 'nullable|array',
+            'is_active' => 'boolean',
+        ]);
+
+        $integration = $this->tenantIntegration();
+
+        $table = LarkBaseTable::updateOrCreate(
+            [
+                'tenant_id' => $integration->tenant_id,
+                'app_token' => $request->app_token,
+                'table_id' => $request->table_id,
+            ],
+            [
+                'lark_integration_id' => $integration->id,
+                'table_name' => $request->table_name,
+                'leadsy_entity_type' => 'lead',
+                'sync_direction' => $request->sync_direction,
+                'field_mapping' => $request->field_mapping ?: LarkBaseService::DEFAULT_LEAD_FIELD_MAPPING,
+                'is_active' => $request->boolean('is_active', true),
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $table->fresh()->loadCount('recordMappings'),
+        ]);
+    }
+
+    public function syncBaseMapping(Request $request, LarkBaseTable $baseTable)
+    {
+        $this->authorizeTenantTable($baseTable);
+
+        $request->validate([
+            'direction' => 'required|in:push,pull',
+            'limit' => 'nullable|integer|min:1|max:500',
+        ]);
+
+        $service = new LarkBaseService($this->tenantIntegration());
+        $count = 0;
+
+        if ($request->direction === 'push') {
+            Lead::where('tenant_id', $baseTable->tenant_id)
+                ->with(['industry', 'funnelStage', 'owner'])
+                ->limit($request->integer('limit', 100))
+                ->get()
+                ->each(function (Lead $lead) use ($service, $baseTable, &$count): void {
+                    $service->upsertLead($lead, $baseTable);
+                    $count++;
+                });
+        } else {
+            $records = $service->getRecords($baseTable->app_token, $baseTable->table_id, [
+                'page_size' => $request->integer('limit', 100),
+            ]);
+
+            foreach (($records['items'] ?? []) as $record) {
+                $recordId = $record['record_id'] ?? null;
+                if (! $recordId) {
+                    continue;
+                }
+
+                $service->syncRecordToLead($baseTable, $recordId, $record);
+                $count++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'synced_count' => $count,
+        ]);
+    }
+
+    private function tenantIntegration(): LarkIntegration
+    {
+        $user = Auth::user();
+
+        return LarkIntegration::where('tenant_id', $user->tenant_id)
+            ->where('is_active', true)
+            ->firstOrFail();
+    }
+
+    private function authorizeTenantTable(LarkBaseTable $baseTable): void
+    {
+        abort_unless($baseTable->tenant_id === Auth::user()->tenant_id, 404);
     }
 }

@@ -609,6 +609,22 @@ Login page pilih tenant
 
 Role yang sudah diatur admin di Leadsy tidak ditimpa saat user login via Lark. Role default `sales_exec` hanya dipakai saat user baru dibuat atau user lama belum punya role.
 
+### Lark Base Two-Way Sync
+
+Lark Base dapat dikonfigurasi per tenant dari `Settings → Integrations → Lark`.
+
+```
+Operator isi Base app_token
+  → Leadsy list tables dari /bitable/v1/apps/:app_token/tables
+  → Operator pilih table dan preview records
+  → Operator mapping manual field Leadsy Leads ↔ Lark Base
+  → Operator bisa pakai Auto Match untuk nama field yang sama/mirip
+  → Lead create/update di Leadsy queue push ke Base
+  → Webhook Base record create/update pull perubahan ke Leadsy
+```
+
+Mapping record disimpan di `lark_base_record_mappings`, sehingga update berikutnya memakai record yang sama dan tidak membuat duplikat. Pull dari Lark memakai `Lead::withoutEvents()` agar perubahan dari webhook tidak memicu push balik yang tidak perlu.
+
 ---
 
 ## 11. Modul: Audit Logs
@@ -842,6 +858,11 @@ Kedua sumber menghasilkan record di tabel `lead_product_matches` yang sama, sehi
 | GET | `/api/lark/integration` | Ambil konfigurasi Lark tenant |
 | POST | `/api/lark/integration` | Simpan App ID/Secret dan enabled modules |
 | POST | `/api/lark/test-connection` | Test tenant access token Lark |
+| GET | `/api/lark/base/tables` | List table pada Lark Base app token |
+| GET | `/api/lark/base/fields` | List field pada table Base |
+| GET | `/api/lark/base/records/preview` | Preview record table Base spesifik |
+| GET/POST | `/api/lark/base/mappings` | Lihat/simpan mapping Leadsy ↔ Base |
+| POST | `/api/lark/base/mappings/{baseTable}/sync` | Manual push/pull sync |
 
 ---
 
@@ -873,6 +894,7 @@ Konfigurasi di **Settings → AI Defaults**. Setiap fitur bisa punya multiple mo
 - Callback frontend dibuat sebagai public auth route dan menyimpan token sebelum redirect dashboard.
 - Sinkronisasi user Lark tidak lagi menimpa role lokal yang sudah disimpan admin.
 - Database snapshot deploy ditambahkan sebagai migration opt-in untuk fresh environment.
+- Lark Base two-way sync ditambahkan dengan table preview, manual field mapping, Auto Match, record mapping, manual push/pull, dan webhook pull ke Leadsy.
 
 ### 2026-05-12 — v1.0 (Dokumen dibuat)
 

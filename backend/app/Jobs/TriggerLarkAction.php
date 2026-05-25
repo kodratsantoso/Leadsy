@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\LarkIntegration;
+use App\Models\LarkBaseTable;
 use App\Models\Lead;
 use App\Services\Lark\LarkMessengerService;
 use App\Services\Lark\LarkTaskService;
@@ -179,48 +180,23 @@ class TriggerLarkAction implements ShouldQueue
 
     protected function syncLeadToBase(LarkIntegration $integration): void
     {
-        if (!$integration->isModuleEnabled('base') || !$this->leadId || !$integration->base_url) {
+        if (!$integration->isModuleEnabled('base') || !$this->leadId) {
             return;
         }
 
         try {
-            $lead = Lead::with(['industry', 'owner'])->findOrFail($this->leadId);
+            $lead = Lead::with(['industry', 'funnelStage', 'owner'])->findOrFail($this->leadId);
             $baseService = new LarkBaseService($integration);
 
-            // This would need base_id and table_id from configuration
-            $baseId = $this->data['base_id'] ?? null;
-            $tableId = $this->data['table_id'] ?? null;
-
-            if (!$baseId || !$tableId) {
-                Log::warning('Base ID or Table ID not provided for Lark Base sync');
-                return;
-            }
-
-            $fields = [
-                'company_name' => $lead->company_name,
-                'website' => $lead->website,
-                'email' => $lead->email,
-                'phone' => $lead->phone,
-                'industry' => $lead->industry?->name,
-                'address' => $lead->address,
-                'lead_score' => $lead->lead_score,
-                'funnel_stage' => $lead->funnelStage?->name,
-                'status' => $lead->qualification_status,
-                'owner' => $lead->owner?->name,
-            ];
-
-            // Check if record exists in Lark Base
-            $existingRecordId = $this->data['existing_record_id'] ?? null;
-
-            if ($existingRecordId) {
-                $baseService->updateRecord($baseId, $tableId, $existingRecordId, $fields);
-            } else {
-                $baseService->createRecord($baseId, $tableId, $fields, 'lead', $this->leadId);
-            }
+            LarkBaseTable::where('tenant_id', $integration->tenant_id)
+                ->where('lark_integration_id', $integration->id)
+                ->where('leadsy_entity_type', 'lead')
+                ->where('is_active', true)
+                ->get()
+                ->each(fn (LarkBaseTable $baseTable) => $baseService->upsertLead($lead, $baseTable));
 
             Log::info('Lark Base sync completed', [
                 'lead_id' => $this->leadId,
-                'base_id' => $baseId,
             ]);
         } catch (Exception $e) {
             Log::error('Failed to sync lead to Lark Base', [

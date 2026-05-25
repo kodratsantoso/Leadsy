@@ -196,6 +196,12 @@ class Lead extends Model
         return $this->hasMany(QualificationWorkflowReview::class);
     }
 
+    public function larkBaseRecordMappings(): HasMany
+    {
+        return $this->hasMany(LarkBaseRecordMapping::class, 'leadsy_entity_id')
+            ->where('leadsy_entity_type', 'lead');
+    }
+
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
         if (! $user || $user->isSuperAdmin()) {

@@ -58,6 +58,7 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/leads/page.tsx` — New Lead creation includes an Add Location map modal that geocodes a selected address and persists `lat`/`lng` to the lead record.
 - `frontend/app/settings/users/page.tsx` — Users now expose Direct Manager, target period, and target revenue fields for hierarchy-based visibility and sales achievement reporting.
 - `frontend/app/settings/integrations/page.tsx` — Integrations now owns Lark App credentials, module toggles, redirect URL guidance, and test connection feedback.
+- `frontend/app/settings/integrations/page.tsx` — Lark tab now includes Base app token, table loading, selected-table record preview, manual Leadsy Leads ↔ Lark Base field mapping, and manual push/pull controls for saved mappings.
 - `frontend/app/login/page.tsx` — Login includes tenant-aware Lark SSO entrypoint.
 - `frontend/app/auth/lark/callback/page.tsx` — Lark callback stores the returned Sanctum token and user before redirecting to the dashboard.
 - `frontend/app/template.tsx` — `/auth/*` routes are public auth routes so SSO callbacks can complete without being bounced to `/login`.
@@ -170,3 +171,11 @@ Source of truth: `frontend/components/products/QuestionGuide.tsx`
 - Successful callback calls `useAuthStore.setAuth(token, user)` before replacing the route with `/`.
 - Lark role changes remain owned by Leadsy `Settings -> Users`; SSO login must not overwrite the stored local role.
 - Integration configuration lives only in `Settings -> Integrations`; do not add a duplicate Lark settings page.
+
+## Lark Base Module
+
+- Base sync configuration is tenant-aware and starts from a Base `app_token`.
+- Table discovery uses Lark Base table listing; preview uses the selected table's records endpoint with a bounded page size.
+- Field mapping is edited through a manual mapping grid from Leadsy lead fields to Lark Base field names, then stored as JSON for the backend sync service.
+- Saved mappings expose manual `Pull from Lark` and `Push to Lark` actions.
+- Runtime two-way sync depends on backend record mappings; frontend must not infer record identity from table row order.

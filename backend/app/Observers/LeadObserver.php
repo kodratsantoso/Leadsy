@@ -15,6 +15,7 @@ class LeadObserver
     {
         // Trigger Lark notifications when a new lead is created
         $this->triggerLarkNotification($lead, 'created');
+        $this->triggerLarkBaseSync($lead);
     }
 
     /**
@@ -25,6 +26,22 @@ class LeadObserver
         // Trigger Lark notifications when a lead is updated
         if ($lead->wasChanged(['company_name', 'email', 'phone', 'funnel_stage_id', 'qualification_status'])) {
             $this->triggerLarkNotification($lead, 'updated');
+        }
+
+        if ($lead->wasChanged([
+            'company_name',
+            'website',
+            'email',
+            'phone',
+            'address',
+            'business_category',
+            'lead_score',
+            'funnel_stage_id',
+            'qualification_status',
+            'owner_id',
+            'external_place_id',
+        ])) {
+            $this->triggerLarkBaseSync($lead);
         }
     }
 
@@ -82,6 +99,32 @@ class LeadObserver
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to trigger Lark notification', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function triggerLarkBaseSync(Lead $lead): void
+    {
+        try {
+            $integration = LarkIntegration::where('tenant_id', $lead->tenant_id)
+                ->where('is_active', true)
+                ->first();
+
+            if (! $integration || ! $integration->isModuleEnabled('base')) {
+                return;
+            }
+
+            TriggerLarkAction::dispatch(
+                $lead->tenant_id,
+                'sync_lead_to_base',
+                [],
+                null,
+                (string) $lead->id
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to trigger Lark Base sync', [
                 'lead_id' => $lead->id,
                 'error' => $e->getMessage(),
             ]);

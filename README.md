@@ -58,6 +58,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Transcript management: Lead detail → Transcripts supports multiple transcripts, each linkable to an Activity. Users can paste text, upload TXT/VTT/SRT, or attach audio/video files; AI analysis summarizes text transcripts and extracts sentiment, intent, objections, buying signals, and next action.
 - Lark SSO integration is configured from Settings → Integrations and protected by backend `integrations.manage`; redirect URIs are generated from the active frontend base URL for tenant-aware login flows.
 - Lark SSO uses the Lark Custom App OAuth flow: frontend opens the authorization URL, backend stores OAuth `state` in cache, callback exchanges `code` for a user token, resolves Lark user info, persists the Lark identity link, then creates a Laravel Sanctum token before redirecting to the dashboard.
+- Lark Base two-way sync is configured from Settings → Integrations → Lark: enter a Base app token, load tables, preview a selected table, manually map Leadsy Leads fields to Lark Base fields, then push Leadsy leads to Base or pull Base records back into Leadsy.
 - Revenue tracking: Settings → Users lets admins set Direct Manager, target period, and target revenue. Dashboard Achievement Sales compares target revenue against Closed Won realization for the user's visible hierarchy.
 - Hierarchy visibility: regular users see their own leads, managers/admin-like roles see their recursive team, and superadmin sees all leads.
 

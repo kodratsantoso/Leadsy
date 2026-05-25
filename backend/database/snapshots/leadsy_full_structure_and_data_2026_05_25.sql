@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict HIdRjKhYxrTZzxy0x7RbkDk2veHNuhn4MfmIY7PdgLcR0qbLVvnKQc7gmlXH4KB
+\restrict JwmJUvJDnYFeLWFk8WgqbmqR02reDabxgArWZoopvMdLJLiZqIJn0PzmaNnZvO7
 
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 16.13 (Debian 16.13-1.pgdg13+1)
@@ -118,6 +118,10 @@ ALTER TABLE IF EXISTS ONLY public.lark_sso_users DROP CONSTRAINT IF EXISTS lark_
 ALTER TABLE IF EXISTS ONLY public.lark_integrations DROP CONSTRAINT IF EXISTS lark_integrations_tenant_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.lark_events DROP CONSTRAINT IF EXISTS lark_events_tenant_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.lark_events DROP CONSTRAINT IF EXISTS lark_events_lark_integration_id_foreign;
+ALTER TABLE IF EXISTS ONLY public.lark_base_tables DROP CONSTRAINT IF EXISTS lark_base_tables_tenant_id_foreign;
+ALTER TABLE IF EXISTS ONLY public.lark_base_tables DROP CONSTRAINT IF EXISTS lark_base_tables_lark_integration_id_foreign;
+ALTER TABLE IF EXISTS ONLY public.lark_base_record_mappings DROP CONSTRAINT IF EXISTS lark_base_record_mappings_tenant_id_foreign;
+ALTER TABLE IF EXISTS ONLY public.lark_base_record_mappings DROP CONSTRAINT IF EXISTS lark_base_record_mappings_lark_base_table_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.integration_configs DROP CONSTRAINT IF EXISTS integration_configs_tenant_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.icp_profiles DROP CONSTRAINT IF EXISTS icp_profiles_tenant_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.icp_profiles DROP CONSTRAINT IF EXISTS icp_profiles_created_by_foreign;
@@ -203,6 +207,8 @@ DROP INDEX IF EXISTS public.lead_analysis_logs_lead_type_idx;
 DROP INDEX IF EXISTS public.lead_ai_evaluations_source_type_source_id_index;
 DROP INDEX IF EXISTS public.lead_activities_tenant_id_index;
 DROP INDEX IF EXISTS public.lead_activities_related_entity_type_related_entity_id_index;
+DROP INDEX IF EXISTS public.lark_base_tables_entity_idx;
+DROP INDEX IF EXISTS public.lark_base_record_leadsy_idx;
 DROP INDEX IF EXISTS public.jobs_queue_index;
 DROP INDEX IF EXISTS public.integration_configs_tenant_key_unique;
 DROP INDEX IF EXISTS public.integration_configs_tenant_id_index;
@@ -323,6 +329,11 @@ ALTER TABLE IF EXISTS ONLY public.lark_sso_users DROP CONSTRAINT IF EXISTS lark_
 ALTER TABLE IF EXISTS ONLY public.lark_integrations DROP CONSTRAINT IF EXISTS lark_integrations_pkey;
 ALTER TABLE IF EXISTS ONLY public.lark_integrations DROP CONSTRAINT IF EXISTS lark_integrations_app_id_unique;
 ALTER TABLE IF EXISTS ONLY public.lark_events DROP CONSTRAINT IF EXISTS lark_events_pkey;
+ALTER TABLE IF EXISTS ONLY public.lark_base_tables DROP CONSTRAINT IF EXISTS lark_base_tables_unique_table;
+ALTER TABLE IF EXISTS ONLY public.lark_base_tables DROP CONSTRAINT IF EXISTS lark_base_tables_pkey;
+ALTER TABLE IF EXISTS ONLY public.lark_base_record_mappings DROP CONSTRAINT IF EXISTS lark_base_record_unique_leadsy;
+ALTER TABLE IF EXISTS ONLY public.lark_base_record_mappings DROP CONSTRAINT IF EXISTS lark_base_record_unique_lark;
+ALTER TABLE IF EXISTS ONLY public.lark_base_record_mappings DROP CONSTRAINT IF EXISTS lark_base_record_mappings_pkey;
 ALTER TABLE IF EXISTS ONLY public.jobs DROP CONSTRAINT IF EXISTS jobs_pkey;
 ALTER TABLE IF EXISTS ONLY public.job_batches DROP CONSTRAINT IF EXISTS job_batches_pkey;
 ALTER TABLE IF EXISTS ONLY public.integration_configs DROP CONSTRAINT IF EXISTS integration_configs_pkey;
@@ -434,6 +445,8 @@ ALTER TABLE IF EXISTS public.lark_syncs ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.lark_sso_users ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.lark_integrations ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.lark_events ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.lark_base_tables ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.lark_base_record_mappings ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.jobs ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.integration_configs ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.industries ALTER COLUMN id DROP DEFAULT;
@@ -574,6 +587,10 @@ DROP SEQUENCE IF EXISTS public.lark_integrations_id_seq;
 DROP TABLE IF EXISTS public.lark_integrations;
 DROP SEQUENCE IF EXISTS public.lark_events_id_seq;
 DROP TABLE IF EXISTS public.lark_events;
+DROP SEQUENCE IF EXISTS public.lark_base_tables_id_seq;
+DROP TABLE IF EXISTS public.lark_base_tables;
+DROP SEQUENCE IF EXISTS public.lark_base_record_mappings_id_seq;
+DROP TABLE IF EXISTS public.lark_base_record_mappings;
 DROP SEQUENCE IF EXISTS public.jobs_id_seq;
 DROP TABLE IF EXISTS public.jobs;
 DROP TABLE IF EXISTS public.job_batches;
@@ -1861,6 +1878,85 @@ CREATE SEQUENCE public.jobs_id_seq
 --
 
 ALTER SEQUENCE public.jobs_id_seq OWNED BY public.jobs.id;
+
+
+--
+-- Name: lark_base_record_mappings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.lark_base_record_mappings (
+    id bigint NOT NULL,
+    tenant_id bigint NOT NULL,
+    lark_base_table_id bigint NOT NULL,
+    leadsy_entity_type character varying(255) DEFAULT 'lead'::character varying NOT NULL,
+    leadsy_entity_id character varying(255) NOT NULL,
+    lark_record_id character varying(255) NOT NULL,
+    last_lark_updated_at timestamp(0) without time zone,
+    last_leadsy_updated_at timestamp(0) without time zone,
+    last_sync_source character varying(255),
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.lark_base_record_mappings_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.lark_base_record_mappings_id_seq OWNED BY public.lark_base_record_mappings.id;
+
+
+--
+-- Name: lark_base_tables; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.lark_base_tables (
+    id bigint NOT NULL,
+    tenant_id bigint NOT NULL,
+    lark_integration_id bigint NOT NULL,
+    app_token character varying(255) NOT NULL,
+    table_id character varying(255) NOT NULL,
+    table_name character varying(255),
+    leadsy_entity_type character varying(255) DEFAULT 'lead'::character varying NOT NULL,
+    sync_direction character varying(255) DEFAULT 'two_way'::character varying NOT NULL,
+    field_mapping json DEFAULT '{}'::json NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    last_pull_at timestamp(0) without time zone,
+    last_push_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: lark_base_tables_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.lark_base_tables_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: lark_base_tables_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.lark_base_tables_id_seq OWNED BY public.lark_base_tables.id;
 
 
 --
@@ -4328,6 +4424,20 @@ ALTER TABLE ONLY public.jobs ALTER COLUMN id SET DEFAULT nextval('public.jobs_id
 
 
 --
+-- Name: lark_base_record_mappings id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_record_mappings ALTER COLUMN id SET DEFAULT nextval('public.lark_base_record_mappings_id_seq'::regclass);
+
+
+--
+-- Name: lark_base_tables id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_tables ALTER COLUMN id SET DEFAULT nextval('public.lark_base_tables_id_seq'::regclass);
+
+
+--
 -- Name: lark_events id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -5985,6 +6095,22 @@ COPY public.integration_configs (id, category, key, value_encrypted, value_type,
 5	maps	GOOGLE_MAPS_BROWSER_API_KEY	eyJpdiI6InhKQlp4cnRweUpRa3FMVVBXQVQwOUE9PSIsInZhbHVlIjoiN2Z0ZVRBMkFQTk12TzBlM2FnNlEwUy9lVTNLM0VKcEV2YmVuQzhuRm9uN2U1M3hCdFNmUzJqb0ZHeVNKbGt2VyIsIm1hYyI6Ijg3OTM4MzBkNWVmYWY3ZGIyOThkNjY3MzI1ZTZhMmRiZjc0ZjhmYjM4YjM4ZDU0Y2FlNjA1MmIwNTliMjcxNjIiLCJ0YWciOiIifQ==	string	f	t	2026-04-20 14:39:30	2026-04-20 14:39:30	1
 6	maps	GOOGLE_MAPS_DEFAULT_CENTER_LAT	eyJpdiI6Im9PY28zdXVnYUwyN0pkeGZvYzZrV2c9PSIsInZhbHVlIjoiN0I2V2ZiVnZmK0w0VW40YmFPM0duUT09IiwibWFjIjoiMjY5OTk2ZmYwMjU5ODlhOWQ1NTM4MGYzMDM4ZTFmZjVlZWExNzFhNWU0OTQ0MTg3ODcxMWZmZWI5MzIzYzhjZiIsInRhZyI6IiJ9	number	f	t	2026-04-20 14:39:30	2026-04-20 14:39:30	1
 7	maps	GOOGLE_MAPS_DEFAULT_CENTER_LNG	eyJpdiI6ImI4Sk9JZlhXQ2lad2lWWnp3RFFqV1E9PSIsInZhbHVlIjoibm4xdGRtT2lNYjhRVjR5V3NJTm1nZz09IiwibWFjIjoiZjE3ZDRiNTk5ZjczMzdlYWE3MzVmMzA2NjM3YWQzMmE0NmE2NmJlZDM5MzIyOTEzMDlkMDVjMTQ4NTc5MTY3YiIsInRhZyI6IiJ9	number	f	t	2026-04-20 14:39:30	2026-04-20 14:39:30	1
+\.
+
+
+--
+-- Data for Name: lark_base_record_mappings; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.lark_base_record_mappings (id, tenant_id, lark_base_table_id, leadsy_entity_type, leadsy_entity_id, lark_record_id, last_lark_updated_at, last_leadsy_updated_at, last_sync_source, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: lark_base_tables; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.lark_base_tables (id, tenant_id, lark_integration_id, app_token, table_id, table_name, leadsy_entity_type, sync_direction, field_mapping, is_active, last_pull_at, last_push_at, created_at, updated_at) FROM stdin;
 \.
 
 
@@ -9977,6 +10103,8 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 55	2026_05_20_000007_add_summary_to_lead_ai_evaluations	19
 56	2026_05_20_000008_add_product_sales_fields_to_lead_outcomes	20
 57	2026_05_22_000001_create_lark_integration_tables	21
+58	2026_05_25_000001_import_leadsy_database_snapshot	22
+59	2026_05_25_000002_create_lark_base_sync_tables	22
 \.
 
 
@@ -10453,7 +10581,7 @@ SELECT pg_catalog.setval('public.ai_requests_id_seq', 234, true);
 -- Name: audit_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.audit_logs_id_seq', 415, true);
+SELECT pg_catalog.setval('public.audit_logs_id_seq', 419, true);
 
 
 --
@@ -10538,6 +10666,20 @@ SELECT pg_catalog.setval('public.integration_configs_id_seq', 7, true);
 --
 
 SELECT pg_catalog.setval('public.jobs_id_seq', 1, false);
+
+
+--
+-- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.lark_base_record_mappings_id_seq', 1, false);
+
+
+--
+-- Name: lark_base_tables_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.lark_base_tables_id_seq', 1, false);
 
 
 --
@@ -10761,7 +10903,7 @@ SELECT pg_catalog.setval('public.map_search_history_id_seq', 19, true);
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 57, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 59, true);
 
 
 --
@@ -10775,7 +10917,7 @@ SELECT pg_catalog.setval('public.permissions_id_seq', 14, true);
 -- Name: personal_access_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.personal_access_tokens_id_seq', 49, true);
+SELECT pg_catalog.setval('public.personal_access_tokens_id_seq', 51, true);
 
 
 --
@@ -11368,6 +11510,46 @@ ALTER TABLE ONLY public.job_batches
 
 ALTER TABLE ONLY public.jobs
     ADD CONSTRAINT jobs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lark_base_record_mappings lark_base_record_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_record_mappings
+    ADD CONSTRAINT lark_base_record_mappings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lark_base_record_mappings lark_base_record_unique_lark; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_record_mappings
+    ADD CONSTRAINT lark_base_record_unique_lark UNIQUE (lark_base_table_id, lark_record_id);
+
+
+--
+-- Name: lark_base_record_mappings lark_base_record_unique_leadsy; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_record_mappings
+    ADD CONSTRAINT lark_base_record_unique_leadsy UNIQUE (lark_base_table_id, leadsy_entity_type, leadsy_entity_id);
+
+
+--
+-- Name: lark_base_tables lark_base_tables_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_tables
+    ADD CONSTRAINT lark_base_tables_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lark_base_tables lark_base_tables_unique_table; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_tables
+    ADD CONSTRAINT lark_base_tables_unique_table UNIQUE (tenant_id, app_token, table_id);
 
 
 --
@@ -12296,6 +12478,20 @@ CREATE INDEX jobs_queue_index ON public.jobs USING btree (queue);
 
 
 --
+-- Name: lark_base_record_leadsy_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX lark_base_record_leadsy_idx ON public.lark_base_record_mappings USING btree (tenant_id, leadsy_entity_type, leadsy_entity_id);
+
+
+--
+-- Name: lark_base_tables_entity_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX lark_base_tables_entity_idx ON public.lark_base_tables USING btree (tenant_id, leadsy_entity_type, is_active);
+
+
+--
 -- Name: lead_activities_related_entity_type_related_entity_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -12934,6 +13130,38 @@ ALTER TABLE ONLY public.icp_profiles
 
 ALTER TABLE ONLY public.integration_configs
     ADD CONSTRAINT integration_configs_tenant_id_foreign FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE SET NULL;
+
+
+--
+-- Name: lark_base_record_mappings lark_base_record_mappings_lark_base_table_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_record_mappings
+    ADD CONSTRAINT lark_base_record_mappings_lark_base_table_id_foreign FOREIGN KEY (lark_base_table_id) REFERENCES public.lark_base_tables(id) ON DELETE CASCADE;
+
+
+--
+-- Name: lark_base_record_mappings lark_base_record_mappings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_record_mappings
+    ADD CONSTRAINT lark_base_record_mappings_tenant_id_foreign FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
+
+
+--
+-- Name: lark_base_tables lark_base_tables_lark_integration_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_tables
+    ADD CONSTRAINT lark_base_tables_lark_integration_id_foreign FOREIGN KEY (lark_integration_id) REFERENCES public.lark_integrations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: lark_base_tables lark_base_tables_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lark_base_tables
+    ADD CONSTRAINT lark_base_tables_tenant_id_foreign FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE;
 
 
 --
@@ -13740,5 +13968,5 @@ ALTER TABLE ONLY public.whatsapp_messages
 -- PostgreSQL database dump complete
 --
 
-\unrestrict HIdRjKhYxrTZzxy0x7RbkDk2veHNuhn4MfmIY7PdgLcR0qbLVvnKQc7gmlXH4KB
+\unrestrict JwmJUvJDnYFeLWFk8WgqbmqR02reDabxgArWZoopvMdLJLiZqIJn0PzmaNnZvO7
 

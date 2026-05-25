@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Models\LarkEvent;
 use App\Models\LarkIntegration;
+use App\Models\LarkBaseTable;
+use App\Services\Lark\LarkBaseService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -41,6 +43,7 @@ class ProcessLarkWebhookEvent implements ShouldQueue
                 'bitable.record_created' => $this->handleRecordCreated($eventData),
                 'bitable.record_updated' => $this->handleRecordUpdated($eventData),
                 'bitable.record_deleted' => $this->handleRecordDeleted($eventData),
+                'drive.file.bitable_record_changed' => $this->handleRecordUpdated($eventData),
                 default => Log::info('Unknown Lark event type: ' . $eventType),
             };
 
@@ -92,20 +95,12 @@ class ProcessLarkWebhookEvent implements ShouldQueue
 
     protected function handleRecordCreated(array $data): void
     {
-        // Handle Lark Base record creation - sync back to Leadsy
-        Log::info('Record created in Lark Base', [
-            'record_id' => $data['record_id'] ?? null,
-            'base_id' => $data['base_id'] ?? null,
-        ]);
+        $this->syncBaseRecordToLeadsy($data);
     }
 
     protected function handleRecordUpdated(array $data): void
     {
-        // Handle Lark Base record updates - sync back to Leadsy
-        Log::info('Record updated in Lark Base', [
-            'record_id' => $data['record_id'] ?? null,
-            'base_id' => $data['base_id'] ?? null,
-        ]);
+        $this->syncBaseRecordToLeadsy($data);
     }
 
     protected function handleRecordDeleted(array $data): void
@@ -114,6 +109,43 @@ class ProcessLarkWebhookEvent implements ShouldQueue
         Log::info('Record deleted in Lark Base', [
             'record_id' => $data['record_id'] ?? null,
             'base_id' => $data['base_id'] ?? null,
+        ]);
+    }
+
+    protected function syncBaseRecordToLeadsy(array $data): void
+    {
+        $recordId = $data['record_id'] ?? $data['record']['record_id'] ?? null;
+        $appToken = $data['_app_token'] ?? $data['app_token'] ?? $data['base_id'] ?? null;
+        $tableId = $data['_table_id'] ?? $data['table_id'] ?? null;
+
+        if (! $recordId || ! $appToken || ! $tableId) {
+            Log::warning('Skipping Lark Base webhook without record/table identifiers', [
+                'event_id' => $this->event->id,
+                'record_id' => $recordId,
+                'app_token' => $appToken,
+                'table_id' => $tableId,
+            ]);
+
+            return;
+        }
+
+        $baseTable = LarkBaseTable::where('tenant_id', $this->event->tenant_id)
+            ->where('app_token', $appToken)
+            ->where('table_id', $tableId)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $baseTable || ! $baseTable->allowsPull()) {
+            return;
+        }
+
+        $service = new LarkBaseService($baseTable->larkIntegration);
+        $lead = $service->syncRecordToLead($baseTable, $recordId, $data['record'] ?? null);
+
+        Log::info('Lark Base record synced to Leadsy', [
+            'event_id' => $this->event->id,
+            'record_id' => $recordId,
+            'lead_id' => $lead?->id,
         ]);
     }
 }

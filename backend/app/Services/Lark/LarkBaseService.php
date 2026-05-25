@@ -2,26 +2,29 @@
 
 namespace App\Services\Lark;
 
+use App\Models\Lead;
+use App\Models\LarkBaseRecordMapping;
+use App\Models\LarkBaseTable;
 use App\Models\LarkSync;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
 class LarkBaseService extends LarkService
 {
-    protected ?string $appToken = null;
-
-    /**
-     * Get Base app token for Base API calls
-     */
-    public function getBaseToken(): string
-    {
-        if (!$this->appToken) {
-            $this->appToken = $this->getAccessToken(
-                decrypt($this->integration->app_secret_encrypted)
-            );
-        }
-        return $this->appToken;
-    }
+    public const DEFAULT_LEAD_FIELD_MAPPING = [
+        'leadsy_id' => 'Leadsy ID',
+        'company_name' => 'Company Name',
+        'website' => 'Website',
+        'email' => 'Email',
+        'phone' => 'Phone',
+        'address' => 'Address',
+        'business_category' => 'Business Category',
+        'lead_score' => 'Lead Score',
+        'qualification_status' => 'Status',
+        'funnel_stage' => 'Funnel Stage',
+        'owner' => 'Owner',
+        'external_place_id' => 'External Place ID',
+    ];
 
     /**
      * Get Base details
@@ -38,6 +41,20 @@ class LarkBaseService extends LarkService
             ]);
             return null;
         }
+    }
+
+    public function listTables(string $appToken, array $query = []): array
+    {
+        return $this->request('GET', "/bitable/v1/apps/{$appToken}/tables", [], array_merge([
+            'page_size' => 100,
+        ], $query));
+    }
+
+    public function listFields(string $appToken, string $tableId, array $query = []): array
+    {
+        return $this->request('GET', "/bitable/v1/apps/{$appToken}/tables/{$tableId}/fields", [], array_merge([
+            'page_size' => 100,
+        ], $query));
     }
 
     /**
@@ -74,7 +91,7 @@ class LarkBaseService extends LarkService
                 'response_data' => $response,
             ]);
 
-            $sync->markSuccessful();
+            $sync->markSuccessful($response);
             
             Log::info('Lark Base record created', [
                 'base_id' => $baseId,
@@ -213,22 +230,188 @@ class LarkBaseService extends LarkService
         }
     }
 
+    public function upsertLead(Lead $lead, LarkBaseTable $baseTable): ?LarkBaseRecordMapping
+    {
+        if (! $baseTable->allowsPush()) {
+            return null;
+        }
+
+        $lead->loadMissing(['industry', 'funnelStage', 'owner']);
+
+        $fields = self::mapLeadToBaseFields($lead, $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
+        $mapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
+            ->where('leadsy_entity_type', 'lead')
+            ->where('leadsy_entity_id', (string) $lead->id)
+            ->first();
+
+        if ($mapping) {
+            $this->updateRecord($baseTable->app_token, $baseTable->table_id, $mapping->lark_record_id, $fields);
+        } else {
+            $sync = $this->createRecord($baseTable->app_token, $baseTable->table_id, $fields, 'lead', (string) $lead->id);
+
+            $mapping = LarkBaseRecordMapping::create([
+                'tenant_id' => $baseTable->tenant_id,
+                'lark_base_table_id' => $baseTable->id,
+                'leadsy_entity_type' => 'lead',
+                'leadsy_entity_id' => (string) $lead->id,
+                'lark_record_id' => $sync->lark_entity_id,
+            ]);
+        }
+
+        $mapping->update([
+            'last_leadsy_updated_at' => now(),
+            'last_sync_source' => 'leadsy',
+        ]);
+
+        $baseTable->update(['last_push_at' => now()]);
+
+        return $mapping;
+    }
+
+    public function syncRecordToLead(LarkBaseTable $baseTable, string $recordId, ?array $record = null): ?Lead
+    {
+        if (! $baseTable->allowsPull()) {
+            return null;
+        }
+
+        $record ??= $this->getRecord($baseTable->app_token, $baseTable->table_id, $recordId);
+        $fields = $record['fields'] ?? [];
+        $attributes = self::mapBaseFieldsToLead($fields, $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
+
+        if (($attributes['company_name'] ?? '') === '') {
+            Log::warning('Skipping Lark Base record without company name', [
+                'base_table_id' => $baseTable->id,
+                'record_id' => $recordId,
+            ]);
+
+            return null;
+        }
+
+        $mapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
+            ->where('lark_record_id', $recordId)
+            ->first();
+
+        $lead = $mapping
+            ? Lead::where('tenant_id', $baseTable->tenant_id)->find($mapping->leadsy_entity_id)
+            : null;
+
+        if (! $lead && isset($attributes['leadsy_id'])) {
+            $lead = Lead::where('tenant_id', $baseTable->tenant_id)->find($attributes['leadsy_id']);
+        }
+
+        unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner']);
+
+        if ($lead) {
+            Lead::withoutEvents(fn () => $lead->update($attributes));
+        } else {
+            $lead = Lead::withoutEvents(fn () => Lead::create(array_merge($attributes, [
+                'tenant_id' => $baseTable->tenant_id,
+                'qualification_status' => $attributes['qualification_status'] ?? 'pending',
+                'duplicate_status' => 'new',
+                'ai_mode' => 'manual',
+            ])));
+        }
+
+        LarkBaseRecordMapping::updateOrCreate(
+            [
+                'lark_base_table_id' => $baseTable->id,
+                'lark_record_id' => $recordId,
+            ],
+            [
+                'tenant_id' => $baseTable->tenant_id,
+                'leadsy_entity_type' => 'lead',
+                'leadsy_entity_id' => (string) $lead->id,
+                'last_lark_updated_at' => now(),
+                'last_sync_source' => 'lark',
+            ]
+        );
+
+        $baseTable->update(['last_pull_at' => now()]);
+
+        return $lead;
+    }
+
+    public function getRecord(string $baseId, string $tableId, string $recordId): array
+    {
+        return $this->request('GET', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records/{$recordId}");
+    }
+
     /**
      * Map Leadsy lead to Lark Base record fields
      */
-    public static function mapLeadToBaseFields(array $leadData): array
+    public static function mapLeadToBaseFields(Lead $lead, array $fieldMapping = self::DEFAULT_LEAD_FIELD_MAPPING): array
     {
-        return [
-            'Company Name' => $leadData['company_name'] ?? '',
-            'Website' => $leadData['website'] ?? '',
-            'Email' => $leadData['email'] ?? '',
-            'Phone' => $leadData['phone'] ?? '',
-            'Industry' => $leadData['industry'] ?? '',
-            'Address' => $leadData['address'] ?? '',
-            'Lead Score' => $leadData['lead_score'] ?? 0,
-            'Funnel Stage' => $leadData['funnel_stage'] ?? 'Not Classified',
-            'Status' => $leadData['qualification_status'] ?? 'Pending',
-            'Owner' => $leadData['owner_name'] ?? '',
+        $values = [
+            'leadsy_id' => (string) $lead->id,
+            'company_name' => $lead->company_name,
+            'website' => $lead->website,
+            'email' => $lead->email,
+            'phone' => $lead->phone,
+            'address' => $lead->address,
+            'business_category' => $lead->business_category,
+            'lead_score' => $lead->lead_score,
+            'qualification_status' => $lead->qualification_status,
+            'funnel_stage' => $lead->funnelStage?->name,
+            'owner' => $lead->owner?->name,
+            'external_place_id' => $lead->external_place_id,
         ];
+
+        return collect($fieldMapping)
+            ->mapWithKeys(fn (string $larkField, string $leadsyField): array => [$larkField => $values[$leadsyField] ?? null])
+            ->filter(fn ($value): bool => $value !== null)
+            ->all();
+    }
+
+    public static function mapBaseFieldsToLead(array $fields, array $fieldMapping = self::DEFAULT_LEAD_FIELD_MAPPING): array
+    {
+        $reverse = array_flip($fieldMapping);
+        $attributes = [];
+
+        foreach ($fields as $larkField => $value) {
+            $leadsyField = $reverse[$larkField] ?? null;
+            if (! $leadsyField) {
+                continue;
+            }
+
+            $attributes[$leadsyField] = self::normalizeBaseValue($value);
+        }
+
+        return collect($attributes)
+            ->only([
+                'leadsy_id',
+                'company_name',
+                'website',
+                'email',
+                'phone',
+                'address',
+                'business_category',
+                'lead_score',
+                'qualification_status',
+                'external_place_id',
+                'funnel_stage',
+                'owner',
+            ])
+            ->all();
+    }
+
+    private static function normalizeBaseValue($value)
+    {
+        if (is_array($value)) {
+            if (array_key_exists('text', $value)) {
+                return $value['text'];
+            }
+
+            if (isset($value[0]['text'])) {
+                return collect($value)->pluck('text')->implode(', ');
+            }
+
+            if (isset($value[0]['name'])) {
+                return collect($value)->pluck('name')->implode(', ');
+            }
+
+            return json_encode($value);
+        }
+
+        return $value;
     }
 }

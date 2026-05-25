@@ -53,6 +53,11 @@ class LarkIntegration extends Model
         return $this->hasMany(LarkSsoUser::class);
     }
 
+    public function baseTables(): HasMany
+    {
+        return $this->hasMany(LarkBaseTable::class);
+    }
+
     /**
      * Check if a specific module is enabled
      */

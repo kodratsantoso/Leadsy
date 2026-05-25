@@ -1,5 +1,17 @@
 # Progress Log — Leadsy Platform
 
+## Lark Base Manual Mapping UI (Completed ✅)
+**Date completed**: 2026-05-25
+
+### What was built
+- Settings → Integrations → Lark now supports a manual mapping grid between Leadsy Leads fields and Lark Base fields.
+- Operators can load Base tables, select a table, load fields, preview table records, and map only the fields they want to sync.
+- Auto Match Fields now loads Lark Base fields when needed and reports how many Leadsy fields were matched.
+- Saved mappings expose manual Pull from Lark and Push to Lark controls.
+
+### Validation
+- Frontend TypeScript passes with `cd frontend && ./node_modules/.bin/tsc --noEmit`.
+
 ## Lark SSO Frontend Flow (Completed ✅)
 **Date completed**: 2026-05-25
 

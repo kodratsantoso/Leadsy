@@ -33,6 +33,7 @@ The backend follows the Lark Custom App OAuth flow:
 - `/auth/lark/callback` on the frontend posts `code` and `state` to `POST /api/auth/lark/callback`.
 - The backend exchanges the code at `/authen/v2/oauth/token`, fetches user info from `/authen/v1/user_info`, persists `lark_sso_users`, and returns a Sanctum token.
 - Existing local users keep their configured role on SSO login; `sales_exec` is assigned only when a new SSO user is first created or an existing user has no role.
+- Lark Base sync stores table configuration in `lark_base_tables` and record identity in `lark_base_record_mappings`. Operators map Leadsy Leads fields to Lark Base fields from Settings. Lead create/update queues Leadsy-to-Base pushes; Base webhook/manual pull uses the same mapping to update Leadsy without creating duplicate leads.
 
 Lark app secrets are encrypted with Laravel's `APP_KEY`. If a database snapshot is restored into an environment with a different `APP_KEY`, re-save the Lark App Secret from Settings before testing the connection.
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict rVaVtxvqMv0fgeb9RSBJjbMipoyfwmjGAQ9h0nVW1azLfWw9rao3sz6hPiCLNVq
+\restrict aaYCISAfzyflcIsakMBnC2uDccy61aTS8aMs424LYgkdkG8W5TSz0ApcHt7WSCt
 
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 16.13 (Debian 16.13-1.pgdg13+1)
@@ -2412,6 +2412,26 @@ INSERT INTO public.lark_integrations VALUES (1, 1, 'cli_a82a3eda2278102f', 'eyJp
 
 
 ALTER TABLE public.lark_integrations ENABLE TRIGGER ALL;
+
+--
+-- Data for Name: lark_base_tables; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+ALTER TABLE public.lark_base_tables DISABLE TRIGGER ALL;
+
+
+
+ALTER TABLE public.lark_base_tables ENABLE TRIGGER ALL;
+
+--
+-- Data for Name: lark_base_record_mappings; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+ALTER TABLE public.lark_base_record_mappings DISABLE TRIGGER ALL;
+
+
+
+ALTER TABLE public.lark_base_record_mappings ENABLE TRIGGER ALL;
 
 --
 -- Data for Name: lark_events; Type: TABLE DATA; Schema: public; Owner: -
@@ -6837,7 +6857,7 @@ SELECT pg_catalog.setval('public.ai_requests_id_seq', 234, true);
 -- Name: audit_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.audit_logs_id_seq', 415, true);
+SELECT pg_catalog.setval('public.audit_logs_id_seq', 419, true);
 
 
 --
@@ -6922,6 +6942,20 @@ SELECT pg_catalog.setval('public.integration_configs_id_seq', 7, true);
 --
 
 SELECT pg_catalog.setval('public.jobs_id_seq', 1, false);
+
+
+--
+-- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.lark_base_record_mappings_id_seq', 1, false);
+
+
+--
+-- Name: lark_base_tables_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.lark_base_tables_id_seq', 1, false);
 
 
 --
@@ -7145,7 +7179,7 @@ SELECT pg_catalog.setval('public.map_search_history_id_seq', 19, true);
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 57, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 59, true);
 
 
 --
@@ -7159,7 +7193,7 @@ SELECT pg_catalog.setval('public.permissions_id_seq', 14, true);
 -- Name: personal_access_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.personal_access_tokens_id_seq', 49, true);
+SELECT pg_catalog.setval('public.personal_access_tokens_id_seq', 51, true);
 
 
 --
@@ -7334,5 +7368,5 @@ SELECT pg_catalog.setval('public.whatsapp_sync_rules_id_seq', 1, false);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict rVaVtxvqMv0fgeb9RSBJjbMipoyfwmjGAQ9h0nVW1azLfWw9rao3sz6hPiCLNVq
+\unrestrict aaYCISAfzyflcIsakMBnC2uDccy61aTS8aMs424LYgkdkG8W5TSz0ApcHt7WSCt
 

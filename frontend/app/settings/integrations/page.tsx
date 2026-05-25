@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,64 @@ const normalizeLarkModules = (modules: Record<string, unknown> | null | undefine
   base: normalizeLarkModuleValue(modules?.base),
   sso: normalizeLarkModuleValue(modules?.sso),
 });
+
+const DEFAULT_LARK_BASE_FIELD_MAPPING = {
+  leadsy_id: "Leadsy ID",
+  company_name: "Company Name",
+  website: "Website",
+  email: "Email",
+  phone: "Phone",
+  address: "Address",
+  business_category: "Business Category",
+  lead_score: "Lead Score",
+  qualification_status: "Status",
+  funnel_stage: "Funnel Stage",
+  owner: "Owner",
+  external_place_id: "External Place ID",
+};
+
+const LEADSY_LEAD_FIELDS = [
+  { key: "leadsy_id", label: "Leadsy ID", description: "Internal Leadsy lead ID" },
+  { key: "company_name", label: "Company Name", description: "Lead company or account name" },
+  { key: "website", label: "Website", description: "Company website" },
+  { key: "email", label: "Email", description: "Primary company email" },
+  { key: "phone", label: "Phone", description: "Primary phone number" },
+  { key: "address", label: "Address", description: "Company address" },
+  { key: "business_category", label: "Business Category", description: "Business category from discovery or manual input" },
+  { key: "lead_score", label: "Lead Score", description: "Leadsy score value" },
+  { key: "qualification_status", label: "Qualification Status", description: "pending, eligible, potential, or not eligible" },
+  { key: "funnel_stage", label: "Funnel Stage", description: "Current funnel stage name" },
+  { key: "owner", label: "Owner", description: "Lead owner display name" },
+  { key: "external_place_id", label: "External Place ID", description: "Google Maps Place ID or external source ID" },
+] as const;
+
+type LeadsyLeadFieldKey = (typeof LEADSY_LEAD_FIELDS)[number]["key"];
+
+type LarkBaseTable = {
+  table_id: string;
+  name?: string;
+  revision?: number;
+};
+
+type LarkBaseField = {
+  field_id: string;
+  field_name: string;
+  type?: number;
+  property?: unknown;
+};
+
+type LarkBaseMapping = {
+  id: number;
+  app_token: string;
+  table_id: string;
+  table_name?: string;
+  sync_direction: "leadsy_to_lark" | "lark_to_leadsy" | "two_way";
+  field_mapping: Record<string, string>;
+  is_active: boolean;
+  record_mappings_count?: number;
+  last_pull_at?: string | null;
+  last_push_at?: string | null;
+};
 
 const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_MAPS_ENABLED:            { category: "maps", key: "GOOGLE_MAPS_ENABLED",            value: "true",    is_secret: false, is_active: true, value_type: "boolean" },
@@ -79,6 +137,10 @@ export default function IntegrationsSettingsPage() {
     base: false,
     sso: false,
   });
+  const [baseAppToken, setBaseAppToken] = useState("");
+  const [selectedBaseTable, setSelectedBaseTable] = useState<LarkBaseTable | null>(null);
+  const [baseSyncDirection, setBaseSyncDirection] = useState<"leadsy_to_lark" | "lark_to_leadsy" | "two_way">("two_way");
+  const [baseFieldMapping, setBaseFieldMapping] = useState<Record<LeadsyLeadFieldKey, string>>({ ...DEFAULT_LARK_BASE_FIELD_MAPPING });
 
   // ── Load saved configs from DB (authenticated) ──────────────────────────────
   useEffect(() => {
@@ -144,6 +206,16 @@ export default function IntegrationsSettingsPage() {
     },
     refetchInterval: 5000,
   });
+
+  const { data: baseMappingsData, refetch: refetchBaseMappings } = useQuery({
+    queryKey: ['lark-base-mappings'],
+    queryFn: async () => {
+      const res = await apiFetch('/api/lark/base/mappings');
+      return res.json();
+    },
+  });
+
+  const baseMappings: LarkBaseMapping[] = baseMappingsData?.data || [];
 
   const saveLarkConfigMutation = useMutation({
     mutationFn: async (data: typeof larkConfig) => {
@@ -212,6 +284,123 @@ export default function IntegrationsSettingsPage() {
     },
   });
 
+  const listBaseTablesMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/api/lark/base/tables?app_token=${encodeURIComponent(baseAppToken)}`);
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || 'Failed to load Lark Base tables');
+      }
+      return json;
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || 'Failed to load Lark Base tables');
+      setTimeout(() => setErrorMsg(''), 5000);
+    },
+  });
+
+  const listBaseFieldsMutation = useMutation({
+    mutationFn: async ({ appToken, tableId }: { appToken: string; tableId: string }) => {
+      const res = await apiFetch(`/api/lark/base/fields?app_token=${encodeURIComponent(appToken)}&table_id=${encodeURIComponent(tableId)}`);
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || 'Failed to load Lark Base fields');
+      }
+      return json;
+    },
+    onSuccess: (data) => {
+      const count = Array.isArray(data?.items) ? data.items.length : 0;
+      setSuccessMsg(`Loaded ${count} Lark Base fields`);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || 'Failed to load Lark Base fields');
+      setTimeout(() => setErrorMsg(''), 5000);
+    },
+  });
+
+  const previewBaseRecordsMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedBaseTable) throw new Error('Select a Base table first');
+      const res = await apiFetch(`/api/lark/base/records/preview?app_token=${encodeURIComponent(baseAppToken)}&table_id=${encodeURIComponent(selectedBaseTable.table_id)}&page_size=10`);
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || 'Failed to preview Lark Base records');
+      }
+      return json;
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || 'Failed to preview Lark Base records');
+      setTimeout(() => setErrorMsg(''), 5000);
+    },
+  });
+
+  const larkBaseFields: LarkBaseField[] = listBaseFieldsMutation.data?.items || [];
+  const previewFieldNames = Object.keys(previewBaseRecordsMutation.data?.items?.[0]?.fields || {});
+  const larkBaseFieldNames = larkBaseFields.length > 0
+    ? larkBaseFields.map((field) => field.field_name)
+    : previewFieldNames;
+
+  const saveBaseMappingMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedBaseTable) throw new Error('Select a Base table first');
+      const fieldMapping = Object.fromEntries(
+        Object.entries(baseFieldMapping).filter(([, larkField]) => larkField.trim() !== "")
+      );
+
+      const res = await apiFetch('/api/lark/base/mappings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_token: baseAppToken,
+          table_id: selectedBaseTable.table_id,
+          table_name: selectedBaseTable.name,
+          sync_direction: baseSyncDirection,
+          field_mapping: fieldMapping,
+          is_active: true,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || 'Failed to save Lark Base mapping');
+      }
+      return json;
+    },
+    onSuccess: () => {
+      refetchBaseMappings();
+      setSuccessMsg('Lark Base mapping saved');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || 'Failed to save Lark Base mapping');
+      setTimeout(() => setErrorMsg(''), 5000);
+    },
+  });
+
+  const syncBaseMappingMutation = useMutation({
+    mutationFn: async ({ mappingId, direction }: { mappingId: number; direction: 'push' | 'pull' }) => {
+      const res = await apiFetch(`/api/lark/base/mappings/${mappingId}/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction, limit: 100 }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.message || 'Failed to sync Lark Base mapping');
+      }
+      return json;
+    },
+    onSuccess: (data) => {
+      refetchBaseMappings();
+      setSuccessMsg(`Sync complete: ${data.synced_count || 0} records`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || 'Failed to sync Lark Base mapping');
+      setTimeout(() => setErrorMsg(''), 5000);
+    },
+  });
+
   useEffect(() => {
     if (larkConfigData?.configured) {
       setLarkConfig({
@@ -224,6 +413,95 @@ export default function IntegrationsSettingsPage() {
       setLarkModules(normalizeLarkModules(larkConfigData.enabled_modules));
     }
   }, [larkConfigData]);
+
+  useEffect(() => {
+    const firstMapping = baseMappings[0];
+    if (!firstMapping || baseAppToken) {
+      return;
+    }
+
+    setBaseAppToken(firstMapping.app_token);
+    setSelectedBaseTable({
+      table_id: firstMapping.table_id,
+      name: firstMapping.table_name,
+    });
+    setBaseSyncDirection(firstMapping.sync_direction);
+    setBaseFieldMapping({ ...DEFAULT_LARK_BASE_FIELD_MAPPING, ...(firstMapping.field_mapping || {}) });
+  }, [baseMappings, baseAppToken]);
+
+  const handleSelectBaseTable = (table: LarkBaseTable) => {
+    setSelectedBaseTable(table);
+    const saved = baseMappings.find((mapping) => mapping.app_token === baseAppToken && mapping.table_id === table.table_id);
+    if (saved) {
+      setBaseSyncDirection(saved.sync_direction);
+      setBaseFieldMapping({ ...DEFAULT_LARK_BASE_FIELD_MAPPING, ...(saved.field_mapping || {}) });
+    }
+
+    if (baseAppToken && larkModules.base) {
+      listBaseFieldsMutation.mutate({ appToken: baseAppToken, tableId: table.table_id });
+    }
+  };
+
+  const updateBaseFieldMapping = (leadsyField: LeadsyLeadFieldKey, larkField: string) => {
+    setBaseFieldMapping((current) => ({
+      ...current,
+      [leadsyField]: larkField,
+    }));
+  };
+
+  const applyAutoMapping = (fieldNames: string[]) => {
+    let matchCount = 0;
+
+    setBaseFieldMapping((current) => {
+      const next = { ...current };
+      LEADSY_LEAD_FIELDS.forEach((field) => {
+        const preferred = DEFAULT_LARK_BASE_FIELD_MAPPING[field.key];
+        const matched = fieldNames.find((name) => normalizeFieldName(name) === normalizeFieldName(preferred))
+          || fieldNames.find((name) => normalizeFieldName(name) === normalizeFieldName(field.label))
+          || fieldNames.find((name) => normalizeFieldName(name) === normalizeFieldName(field.key))
+          || fieldNames.find((name) => normalizeFieldName(name).includes(normalizeFieldName(field.key)))
+          || fieldNames.find((name) => normalizeFieldName(field.key).includes(normalizeFieldName(name)));
+        if (matched) {
+          next[field.key] = matched;
+          matchCount++;
+        }
+      });
+      return next;
+    });
+
+    return matchCount;
+  };
+
+  const autoMapBaseFields = async () => {
+    let fieldNames = larkBaseFieldNames;
+
+    if (fieldNames.length === 0) {
+      if (!baseAppToken || !selectedBaseTable) {
+        setErrorMsg('Select a Lark Base table before running Auto Match');
+        setTimeout(() => setErrorMsg(''), 5000);
+        return;
+      }
+
+      try {
+        const data = await listBaseFieldsMutation.mutateAsync({
+          appToken: baseAppToken,
+          tableId: selectedBaseTable.table_id,
+        });
+        fieldNames = (data?.items || []).map((field: LarkBaseField) => field.field_name);
+      } catch {
+        return;
+      }
+    }
+
+    const matchCount = applyAutoMapping(fieldNames);
+    if (matchCount > 0) {
+      setSuccessMsg(`Auto matched ${matchCount} Leadsy fields`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } else {
+      setErrorMsg('No matching Lark Base field names found. Please map the fields manually.');
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
+  };
 
   // ── Save configs to DB (authenticated) ──────────────────────────────────────
   const handleSave = async (category: string, configs: Record<string, IntegrationConfig>) => {
@@ -786,6 +1064,210 @@ export default function IntegrationsSettingsPage() {
               ))}
             </div>
           </Card>
+
+          <Card className="p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Database className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <h3 className="text-lg font-semibold">Lark Base Two-Way Sync</h3>
+                <p className="text-sm text-muted-foreground">Connect a specific Base table, preview its records, then sync Leads in both directions.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Base App Token</label>
+                <Input
+                  value={baseAppToken}
+                  onChange={(e) => {
+                    setBaseAppToken(e.target.value);
+                    setSelectedBaseTable(null);
+                  }}
+                  placeholder="Example: appbcbWCzen6D8dezhoCH2RpMAh"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => listBaseTablesMutation.mutate()}
+                  disabled={!baseAppToken || listBaseTablesMutation.isPending || !larkModules.base}
+                >
+                  {listBaseTablesMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  Load Tables
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => previewBaseRecordsMutation.mutate()}
+                  disabled={!baseAppToken || !selectedBaseTable || previewBaseRecordsMutation.isPending}
+                >
+                  {previewBaseRecordsMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Eye className="mr-2 h-4 w-4" />}
+                  Preview Selected Table
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => selectedBaseTable && listBaseFieldsMutation.mutate({ appToken: baseAppToken, tableId: selectedBaseTable.table_id })}
+                  disabled={!baseAppToken || !selectedBaseTable || listBaseFieldsMutation.isPending}
+                >
+                  {listBaseFieldsMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  Load Fields
+                </Button>
+                <Button
+                  onClick={() => saveBaseMappingMutation.mutate()}
+                  disabled={!baseAppToken || !selectedBaseTable || saveBaseMappingMutation.isPending}
+                >
+                  {saveBaseMappingMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save Base Mapping
+                </Button>
+              </div>
+
+              {!larkModules.base && (
+                <div className="rounded-lg border border-border bg-[var(--background)] p-3 text-sm text-muted-foreground">
+                  Enable the Base module above before loading tables or syncing records.
+                </div>
+              )}
+
+              {listBaseTablesMutation.data?.items?.length > 0 && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(listBaseTablesMutation.data.items as LarkBaseTable[]).map((table) => (
+                    <button
+                  key={table.table_id}
+                  type="button"
+                      onClick={() => handleSelectBaseTable(table)}
+                      className={`rounded-lg border p-3 text-left transition ${selectedBaseTable?.table_id === table.table_id ? 'border-[var(--brand)] bg-[var(--brand)]/10' : 'border-border bg-[var(--background)] hover:border-[var(--brand)]/50'}`}
+                    >
+                      <p className="text-sm font-semibold">{table.name || table.table_id}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{table.table_id}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Sync Direction</label>
+                  <select
+                    value={baseSyncDirection}
+                    onChange={(e) => setBaseSyncDirection(e.target.value as typeof baseSyncDirection)}
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="two_way">Two-way</option>
+                    <option value="leadsy_to_lark">Leadsy to Lark</option>
+                    <option value="lark_to_leadsy">Lark to Leadsy</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="block text-sm font-medium">Manual Lead Field Mapping</label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={autoMapBaseFields}
+                      disabled={!baseAppToken || !selectedBaseTable || listBaseFieldsMutation.isPending}
+                    >
+                      {listBaseFieldsMutation.isPending ? 'Matching...' : 'Auto Match Fields'}
+                    </Button>
+                  </div>
+                  <div className="mt-2 overflow-hidden rounded-lg border border-border">
+                    <div className="grid grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)] border-b border-border bg-[var(--background)] px-3 py-2 text-xs font-semibold text-muted-foreground">
+                      <span>Leadsy Leads Field</span>
+                      <span>Lark Base Field</span>
+                    </div>
+                    <div className="divide-y divide-border/70">
+                      {LEADSY_LEAD_FIELDS.map((field) => (
+                        <div key={field.key} className="grid gap-3 px-3 py-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)] md:items-center">
+                          <div>
+                            <p className="text-sm font-semibold">{field.label}</p>
+                            <p className="text-xs text-muted-foreground">{field.key} · {field.description}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <select
+                              value={baseFieldMapping[field.key] || ""}
+                              onChange={(e) => updateBaseFieldMapping(field.key, e.target.value)}
+                              className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm"
+                            >
+                              <option value="">Do not sync</option>
+                              {larkBaseFieldNames.map((name) => (
+                                <option key={`${field.key}-${name}`} value={name}>{name}</option>
+                              ))}
+                            </select>
+                            {baseFieldMapping[field.key] && !larkBaseFieldNames.includes(baseFieldMapping[field.key]) && (
+                              <Input
+                                value={baseFieldMapping[field.key]}
+                                onChange={(e) => updateBaseFieldMapping(field.key, e.target.value)}
+                                className="w-44"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{Object.values(baseFieldMapping).filter(Boolean).length} mapped</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Load fields or preview records to populate the dropdown from the selected Lark Base table.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {previewBaseRecordsMutation.data?.items?.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="border-b border-border bg-[var(--background)] px-3 py-2 text-sm font-semibold">
+                    Preview: {selectedBaseTable?.name || selectedBaseTable?.table_id}
+                  </div>
+                  <div className="max-h-80 overflow-auto">
+                    <table className="w-full min-w-[720px] text-left text-xs">
+                      <thead className="sticky top-0 bg-card">
+                        <tr>
+                          <th className="border-b border-border px-3 py-2">Record ID</th>
+                          {Object.keys(previewBaseRecordsMutation.data.items[0]?.fields || {}).slice(0, 8).map((field) => (
+                            <th key={field} className="border-b border-border px-3 py-2">{field}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewBaseRecordsMutation.data.items.map((record: any) => (
+                          <tr key={record.record_id} className="border-b border-border/60">
+                            <td className="px-3 py-2 font-mono text-muted-foreground">{record.record_id}</td>
+                            {Object.keys(previewBaseRecordsMutation.data.items[0]?.fields || {}).slice(0, 8).map((field) => (
+                              <td key={field} className="max-w-48 truncate px-3 py-2">
+                                {formatLarkBaseValue(record.fields?.[field])}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {baseMappings.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">Saved Base Mappings</p>
+                  {baseMappings.map((mapping) => (
+                    <div key={mapping.id} className="flex flex-col gap-3 rounded-lg border border-border bg-[var(--background)] p-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">{mapping.table_name || mapping.table_id}</p>
+                        <p className="text-xs text-muted-foreground">{mapping.app_token} · {mapping.table_id} · {mapping.sync_direction} · {mapping.record_mappings_count || 0} linked records</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction: 'pull' })} disabled={syncBaseMappingMutation.isPending}>
+                          Pull from Lark
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction: 'push' })} disabled={syncBaseMappingMutation.isPending}>
+                          Push to Lark
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
       )}
 
@@ -812,4 +1294,24 @@ function getLarkModuleDescription(module: string): string {
     sso: 'Log in users via Lark SSO',
   };
   return descriptions[module] || '';
+}
+
+function formatLarkBaseValue(value: unknown): string {
+  if (value == null) return "—";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object" && "text" in item) return String((item as { text: unknown }).text);
+        if (item && typeof item === "object" && "name" in item) return String((item as { name: unknown }).name);
+        return JSON.stringify(item);
+      })
+      .join(", ");
+  }
+  return JSON.stringify(value);
+}
+
+function normalizeFieldName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }

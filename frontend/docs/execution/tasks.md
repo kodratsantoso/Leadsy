@@ -9,6 +9,13 @@
 - [x] Keep Lark configuration in `Settings -> Integrations`; remove duplicate Lark settings page pattern.
 - [x] Update frontend README, SSOT, progress, and decisions.
 
+## Lark Base Manual Mapping UI (Completed ✅)
+- [x] Add Base app token input and table loading inside Settings → Integrations → Lark.
+- [x] Add selected-table record preview.
+- [x] Add manual mapping grid between Leadsy Leads fields and Lark Base fields.
+- [x] Add Auto Match Fields behavior that loads Lark fields when needed and reports match count.
+- [x] Add saved mapping list with manual Pull from Lark and Push to Lark actions.
+
 ## Product Question Guide (Completed ✅)
 - [x] Migration: `product_questions` table (product_id FK, questions JSON, ai_generated, ai_model, updated_by).
 - [x] Model: `ProductQuestion` with questions cast as array; `Product` model gets `questionGuide()` HasOne.

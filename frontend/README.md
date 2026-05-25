@@ -55,6 +55,7 @@ Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create t
 |---------|----------|
 | Product Tour | `components/ProductTour/` — 14-step guided tour, auto-starts on first visit, minimizable, restartable via the `?` button in the header |
 | Lark SSO | `app/login/page.tsx`, `app/auth/lark/callback/page.tsx` — tenant-aware Lark login starts from the login screen; callback stores the returned Sanctum token before routing to the dashboard |
+| Lark Base Mapping | `app/settings/integrations/page.tsx` — maps Leadsy Leads fields to Lark Base fields, previews selected table records, and triggers manual pull/push sync |
 | Product Question Guide | `components/products/QuestionGuide.tsx` — AI-generated + user-editable requirement question guide per product, shown in each product's expanded card |
 | Customer BANTC Question Guide | `components/leads/LeadBantcQuestionGuide.tsx` — AI-generated + user-editable BANTC discovery questions per Lead, shown on Lead Detail → Intelligence |
 | Dashboard Funnel Tracking | `app/page.tsx` — two cumulative/aggregate funnels for Leads → Won and Leads → Lost, with estimated amount conversion and drilldown via `funnel_min_sequence` |

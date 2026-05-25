@@ -282,6 +282,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('status', [LarkController::class, 'getStatus']);
         Route::get('sync-history', [LarkController::class, 'getSyncHistory'])->middleware('permission:audit.view');
         Route::get('event-log', [LarkController::class, 'getEventLog'])->middleware('permission:audit.view');
+        Route::get('base/tables', [LarkController::class, 'listBaseTables'])->middleware('permission:integrations.manage');
+        Route::get('base/fields', [LarkController::class, 'listBaseFields'])->middleware('permission:integrations.manage');
+        Route::get('base/records/preview', [LarkController::class, 'previewBaseRecords'])->middleware('permission:integrations.manage');
+        Route::get('base/mappings', [LarkController::class, 'getBaseMappings'])->middleware('permission:integrations.manage');
+        Route::post('base/mappings', [LarkController::class, 'saveBaseMapping'])->middleware('permission:integrations.manage');
+        Route::post('base/mappings/{baseTable}/sync', [LarkController::class, 'syncBaseMapping'])->middleware('permission:integrations.manage');
     });
 });
 

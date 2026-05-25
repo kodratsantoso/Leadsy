@@ -1,5 +1,12 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-05-25 — Lark Base Two-Way Sync
+- Added Base table configuration and record mapping tables so Leadsy can link a lead to a specific Lark Base record without duplicate creation.
+- Added backend endpoints to list Base tables/fields, preview records for a selected table, save mapping configuration, and run manual push/pull sync.
+- Lead create/update now queues Leadsy → Lark Base sync when the Base module and mapping are active.
+- Lark Base webhook processing can pull record changes back into Leadsy without re-triggering Lead observers.
+- Settings → Integrations → Lark now includes Base app token, table picker, record preview, manual Leadsy Leads ↔ Lark Base field mapping, Auto Match field assistance, and saved mapping sync controls.
+
 ## 2026-05-25 — Lark SSO and Deploy Snapshot
 - Lark Custom App SSO now uses the correct accounts authorization URL, authen v2 token exchange, authen v1 user info endpoint, and auth v3 tenant access token endpoint.
 - Callback state is resolved server-side from cache; the frontend callback stores the returned Sanctum token before routing to the dashboard.
