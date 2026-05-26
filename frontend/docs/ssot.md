@@ -153,6 +153,7 @@ Source of truth: `frontend/components/products/QuestionGuide.tsx`
 
 - Lead Geography: renders DB-backed lead coordinates with POI marker colors sourced from each lead's funnel stage color.
 - Funnel Tracking: renders horizontal conversion bars starting from `Belum Di Klasifikasi`, including lead-count and estimated amount conversion, plus product-level Sales Volume and Total Market bars. Stage conversion is cumulative/aggregate: each stage counts leads whose current stage sequence is at that stage or beyond. Stage drilldown uses `funnel_min_sequence`; terminal rows use `outcome=won|lost`.
+- Dashboard drilldowns open a filtered lead-list modal in place. KPI cards, funnel rows, product bars, and source/channel rows must not redirect users to `/leads` for primary drilldown.
 - Lead Sources & Channels: renders DB-backed lead origin aggregates with source and channel bars; all rows route to filtered Leads and respect hierarchy visibility.
 - Achievement Sales: compares the signed-in user's target revenue against Closed Won realization for the configured target period.
 - Sales metric contract: Achievement Sales uses realized `lead_outcomes.deal_size` inside the configured target period. Funnel Won uses pipeline/terminal membership and `leads.estimated_closing_amount`, so the two dashboard blocks can show different values by design.

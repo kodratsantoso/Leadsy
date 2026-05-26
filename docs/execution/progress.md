@@ -8,6 +8,11 @@
 - Backend now records visit coordinates, GPS accuracy, distance from lead location, risk status, risk signals, device metadata, photos, and signatures for audit/review.
 - Added root mobile scripts and docs for local Expo run plus Android/iOS distribution via Google Play/internal testing, APK/AAB, TestFlight, or App Store.
 
+## 2026-05-26 — Dashboard Popup Drilldowns
+- Dashboard KPI, funnel, product, and source/channel drilldowns now open a filtered lead-list modal in place instead of routing users to Leads.
+- The drilldown modal supports search and pagination while preserving the selected dashboard condition.
+- Leads API now supports `closed_from` and `closed_to` outcome-date filters for Achievement Sales period drilldowns.
+
 ## 2026-05-25 — Lark Base Two-Way Sync
 - Added Base table configuration and record mapping tables so Leadsy can link a lead to a specific Lark Base record without duplicate creation.
 - Added backend endpoints to list Base tables/fields, preview records for a selected table, save mapping configuration, and run manual push/pull sync.

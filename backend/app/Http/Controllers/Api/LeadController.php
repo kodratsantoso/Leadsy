@@ -53,6 +53,9 @@ class LeadController extends Controller
         if ($request->filled('funnel_stage_id')) {
             $query->where('funnel_stage_id', $request->funnel_stage_id);
         }
+        if ($request->get('pipeline_status') === 'active') {
+            $query->whereHas('funnelStage', fn ($stageQuery) => $stageQuery->whereNotIn('name', ['Won', 'Lost']));
+        }
         if ($request->filled('funnel_min_sequence')) {
             $minimumSequence = (int) $request->funnel_min_sequence;
             $query->whereHas('funnelStage', fn ($stageQuery) => $stageQuery
@@ -62,7 +65,10 @@ class LeadController extends Controller
         if ($request->filled('qualification_status')) {
             $query->where('qualification_status', $request->qualification_status);
         }
-        if ($request->filled('product_id')) {
+        if ($request->get('product_id') === 'unassigned') {
+            $query->whereNull('product_id')
+                ->whereDoesntHave('outcomes', fn ($outcomeQuery) => $outcomeQuery->whereNotNull('product_id'));
+        } elseif ($request->filled('product_id')) {
             $productId = $request->product_id;
             $query->where(function ($productQuery) use ($productId) {
                 $productQuery
@@ -73,7 +79,9 @@ class LeadController extends Controller
         if ($request->filled('territory_id')) {
             $query->where('territory_id', $request->territory_id);
         }
-        if ($request->filled('duplicate_status')) {
+        if ($request->get('duplicate_status') === 'duplicates') {
+            $query->where('duplicate_status', '!=', 'new');
+        } elseif ($request->filled('duplicate_status')) {
             $query->where('duplicate_status', $request->duplicate_status);
         }
         if ($request->filled('owner_id')) {
@@ -96,6 +104,19 @@ class LeadController extends Controller
         }
         if ($request->filled('outcome')) {
             $query->whereHas('outcomes', fn ($outcomeQuery) => $outcomeQuery->where('outcome', $request->outcome));
+        }
+        if ($request->filled('closed_from') || $request->filled('closed_to')) {
+            $query->whereHas('outcomes', function ($outcomeQuery) use ($request) {
+                if ($request->filled('outcome')) {
+                    $outcomeQuery->where('outcome', $request->outcome);
+                }
+                if ($request->filled('closed_from')) {
+                    $outcomeQuery->whereDate('closed_at', '>=', $request->date('closed_from')->toDateString());
+                }
+                if ($request->filled('closed_to')) {
+                    $outcomeQuery->whereDate('closed_at', '<=', $request->date('closed_to')->toDateString());
+                }
+            });
         }
         if ($request->filled('search')) {
             $s = '%'.$request->search.'%';

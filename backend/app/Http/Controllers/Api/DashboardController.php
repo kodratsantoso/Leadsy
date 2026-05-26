@@ -332,13 +332,13 @@ class DashboardController extends Controller
                 'label' => $row['product_name'],
                 'value' => (float) $row['sales_volume'],
                 'count' => (int) $row['total_market'],
-                'href' => $row['product_id'] ? '/leads?product_id='.$row['product_id'] : '/leads',
+                'href' => $row['product_id'] ? '/leads?product_id='.$row['product_id'] : '/leads?product_id=unassigned',
             ])->values(),
             'total_market' => collect($productAggregates)->map(fn ($row) => [
                 'label' => $row['product_name'],
                 'value' => (int) $row['total_market'],
                 'estimated_volume' => (float) $row['estimated_volume'],
-                'href' => $row['product_id'] ? '/leads?product_id='.$row['product_id'] : '/leads',
+                'href' => $row['product_id'] ? '/leads?product_id='.$row['product_id'] : '/leads?product_id=unassigned',
             ])->values(),
         ];
     }

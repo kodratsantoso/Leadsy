@@ -2,14 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { APIProvider, AdvancedMarker, InfoWindow, Map } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import Link from "next/link";
 import { resolveStageColor } from "@/lib/stage-colors";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
+import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeaderCell, TableRow, TableShell } from "@/components/ui/table";
 
 const DEFAULT_CENTER = { lat: -6.2088, lng: 106.8456 };
 
@@ -33,6 +37,32 @@ type TrackingFunnelStep = {
   estimated_percentage?: number;
   color: string;
   href: string;
+};
+
+type DrilldownState = {
+  title: string;
+  description: string;
+  href: string;
+} | null;
+
+type DrilldownLead = {
+  id: number;
+  company_name: string;
+  address?: string | null;
+  lead_score?: number | null;
+  qualification_status?: string | null;
+  estimated_closing_amount?: number | string | null;
+  realized_closing_amount?: number | string | null;
+  funnel_stage?: { name?: string | null } | null;
+  funnelStage?: { name?: string | null } | null;
+  owner?: { name?: string | null } | null;
+};
+
+type PaginatedLeads = {
+  data: DrilldownLead[];
+  current_page: number;
+  last_page: number;
+  total: number;
 };
 
 type ProductAggregate = {
@@ -74,11 +104,38 @@ function ScoreMeter({ value, max = 100, color }: { value: number; max?: number; 
   );
 }
 
+function leadsApiPathFromHref(href: string, page: number, search: string): string {
+  const url = new URL(href, "https://leadsy.local");
+  const params = new URLSearchParams(url.search);
+  params.set("per_page", "10");
+  params.set("page", String(page));
+  params.set("sort", "created_at");
+  params.set("dir", "desc");
+
+  if (search.trim()) {
+    params.set("search", search.trim());
+  } else {
+    params.delete("search");
+  }
+
+  return `/leads?${params.toString()}`;
+}
+
+function hrefWithParam(href: string, key: string, value: string): string {
+  const url = new URL(href, "https://leadsy.local");
+  url.searchParams.set(key, value);
+
+  return `${url.pathname}${url.search}`;
+}
+
 export default function DashboardPage() {
   const { formatNumber, formatCurrency } = useNumberFormat();
   const [mapsApiKey, setMapsApiKey] = useState("");
   const [mapsEnabled, setMapsEnabled] = useState(true);
   const [selectedMapPoint, setSelectedMapPoint] = useState<DashboardMapPoint | null>(null);
+  const [drilldown, setDrilldown] = useState<DrilldownState>(null);
+  const [drilldownSearch, setDrilldownSearch] = useState("");
+  const [drilldownPage, setDrilldownPage] = useState(1);
 
   useEffect(() => {
     apiFetch("/settings/public")
@@ -102,6 +159,16 @@ export default function DashboardPage() {
   const { data: pqData } = useQuery({
     queryKey: ["pipeline-quality"],
     queryFn: async () => { const r = await apiFetch("/analytics/pipeline-quality"); return r.json(); },
+  });
+
+  const drilldownApiPath = drilldown ? leadsApiPathFromHref(drilldown.href, drilldownPage, drilldownSearch) : null;
+  const { data: drilldownData, isFetching: isDrilldownLoading } = useQuery({
+    queryKey: ["dashboard-lead-drilldown", drilldownApiPath],
+    enabled: Boolean(drilldownApiPath),
+    queryFn: async () => {
+      const response = await apiFetch(drilldownApiPath as string);
+      return response.json();
+    },
   });
 
   const pq = pqData?.data;
@@ -142,7 +209,7 @@ export default function DashboardPage() {
       icon: TrendingUp,
       change: null,
       color: "from-[var(--status-info)] to-[oklch(0.527_0.183_249)]",
-      href: "/leads",
+      href: "/leads?pipeline_status=active",
     },
     {
       label: "Duplicate Rate",
@@ -150,13 +217,22 @@ export default function DashboardPage() {
       icon: AlertTriangle,
       change: null,
       color: "from-[var(--status-warning)] to-[oklch(0.65_0.22_50)]",
-      href: "/leads?duplicate_status=probable_duplicate",
+      href: "/leads?duplicate_status=duplicates",
     },
   ];
 
   const recentLeads = dashboard.recent_leads || [];
   const scoreDistribution = pq?.score_distribution ?? [];
   const qualityInsights: string[] = pq?.insights ?? [];
+  const drilldownLeads: PaginatedLeads = drilldownData?.data?.data
+    ? drilldownData.data
+    : (drilldownData?.data ? drilldownData : { data: [], current_page: 1, last_page: 1, total: 0 });
+
+  function openDrilldown(next: NonNullable<DrilldownState>) {
+    setDrilldown(next);
+    setDrilldownSearch("");
+    setDrilldownPage(1);
+  }
 
   const renderFunnelCard = (
     funnelKey: "won" | "lost",
@@ -183,12 +259,17 @@ export default function DashboardPage() {
             : count <= 0
               ? 0
               : Math.max(3, Math.min(100, percentage));
-          const tooltip = `${step.label}: ${formatNumber(step.value, { decimals: 0 })} leads, ${formatNumber(percentage, { decimals: 1 })}% conversion. Click to drill down.`;
+          const tooltip = `${step.label}: ${formatNumber(step.value, { decimals: 0 })} leads, ${formatNumber(percentage, { decimals: 1 })}% conversion. Click to open filtered data.`;
           return (
-            <Link
+            <button
+              type="button"
               key={`${funnelKey}-${step.id ?? step.label}`}
-              href={step.href}
-              className="group grid grid-cols-[112px_minmax(0,1fr)_116px] items-center gap-3 text-sm sm:grid-cols-[150px_minmax(0,1fr)_144px]"
+              onClick={() => openDrilldown({
+                title: `${title} · ${step.label}`,
+                description: tooltip,
+                href: step.href,
+              })}
+              className="group grid w-full grid-cols-[112px_minmax(0,1fr)_116px] items-center gap-3 text-left text-sm sm:grid-cols-[150px_minmax(0,1fr)_144px]"
               aria-label={tooltip}
               title={tooltip}
             >
@@ -219,7 +300,7 @@ export default function DashboardPage() {
                   Est. {formatNumber(step.estimated_percentage ?? 0, { decimals: 1 })}%
                 </span>
               </span>
-            </Link>
+            </button>
           );
         })}
       </div>
@@ -235,13 +316,18 @@ export default function DashboardPage() {
       {items.length > 0 ? items.map((item, index) => {
         const value = Number(item.value) || 0;
         const pct = value <= 0 ? 0 : Math.max(4, Math.min(100, (value / maxValue) * 100));
-        const tooltip = `${item.label}: ${formatNumber(value, { decimals: 0 })} leads. Click to drill down.`;
+        const tooltip = `${item.label}: ${formatNumber(value, { decimals: 0 })} leads. Click to open filtered data.`;
 
         return (
-          <Link
+          <button
+            type="button"
             key={`${item.source_type ?? "source"}-${item.channel_type_id ?? "all"}-${item.href}-${item.label}-${index}`}
-            href={item.href}
-            className="group block rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/30"
+            onClick={() => openDrilldown({
+              title: options?.showSource ? `Lead Channel · ${item.label}` : `Lead Source · ${item.label}`,
+              description: tooltip,
+              href: item.href,
+            })}
+            className="group block w-full rounded-lg border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/30"
             aria-label={tooltip}
             title={tooltip}
           >
@@ -260,7 +346,7 @@ export default function DashboardPage() {
                 style={{ width: `${pct}%` }}
               />
             </div>
-          </Link>
+          </button>
         );
       }) : (
         <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead origin data yet.</p>
@@ -280,7 +366,7 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-          {/* Stat cards — each is a drilldown link */}
+          {/* Stat cards — each opens an in-dashboard filtered drilldown */}
           <div className="md:col-span-12" data-tour="dashboard-kpis">
             <Card className="h-full">
               <CardHeader>
@@ -292,7 +378,16 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {stats.map((s) => (
-                    <Link key={s.label} href={s.href} className="group relative block overflow-hidden rounded-xl border border-border bg-background p-4 transition-all hover:border-[var(--brand)]/40">
+                    <button
+                      key={s.label}
+                      type="button"
+                      onClick={() => openDrilldown({
+                        title: s.label,
+                        description: `${s.label} leads filtered from the dashboard metric.`,
+                        href: s.href,
+                      })}
+                      className="group relative block overflow-hidden rounded-xl border border-border bg-background p-4 text-left transition-all hover:border-[var(--brand)]/40"
+                    >
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
@@ -302,7 +397,7 @@ export default function DashboardPage() {
                           <s.icon className="h-5 w-5 text-white" />
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               </CardContent>
@@ -334,7 +429,16 @@ export default function DashboardPage() {
                       const maxValue = Math.max(...salesVolumeRows.map((row) => Number(row.value) || 0), 1);
                       const pct = Number(item.value) <= 0 ? 0 : Math.max(3, (Number(item.value) / maxValue) * 100);
                       return (
-                        <Link key={item.href} href={item.href} className="group block rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/30">
+                        <button
+                          key={item.href}
+                          type="button"
+                          onClick={() => openDrilldown({
+                            title: `Sales Volume · ${item.label}`,
+                            description: `Closed Won leads for ${item.label}.`,
+                            href: hrefWithParam(item.href, "outcome", "won"),
+                          })}
+                          className="group block w-full rounded-lg border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/30"
+                        >
                           <div className="mb-2 flex items-center justify-between gap-3 text-sm">
                             <span className="min-w-0 truncate text-muted-foreground">{item.label}</span>
                             <span className="shrink-0 whitespace-nowrap text-xs font-semibold">{formatCurrency(item.value)}</span>
@@ -342,7 +446,7 @@ export default function DashboardPage() {
                           <div className="h-2 overflow-hidden rounded-full bg-muted/50">
                             <div className="h-full rounded-full bg-[color:var(--status-info)] transition-all duration-500 group-hover:bg-[color:var(--brand)]" style={{ width: `${pct}%` }} />
                           </div>
-                        </Link>
+                        </button>
                       );
                     }) : (
                       <p className="py-6 text-center text-sm text-muted-foreground">No Closed Won sales volume yet.</p>
@@ -367,7 +471,16 @@ export default function DashboardPage() {
                       const maxValue = Math.max(...totalMarket.map((row) => Number(row.value) || 0), 1);
                       const pct = Number(item.value) <= 0 ? 0 : Math.max(4, (Number(item.value) / maxValue) * 100);
                       return (
-                        <Link key={item.href} href={item.href} className="group block rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/30">
+                        <button
+                          key={item.href}
+                          type="button"
+                          onClick={() => openDrilldown({
+                            title: `Total Market · ${item.label}`,
+                            description: `Leads grouped under ${item.label}.`,
+                            href: item.href,
+                          })}
+                          className="group block w-full rounded-lg border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/30"
+                        >
                           <div className="mb-2 flex items-start justify-between gap-3 text-sm">
                             <div className="min-w-0">
                               <p className="truncate text-muted-foreground">{item.label}</p>
@@ -378,7 +491,7 @@ export default function DashboardPage() {
                           <div className="h-2 overflow-hidden rounded-full bg-muted/50">
                             <div className="h-full rounded-full bg-[color:var(--brand)] transition-all duration-500 group-hover:bg-[color:var(--status-info)]" style={{ width: `${pct}%` }} />
                           </div>
-                        </Link>
+                        </button>
                       );
                     }) : (
                       <p className="py-6 text-center text-sm text-muted-foreground">No product market aggregate yet.</p>
@@ -605,10 +718,23 @@ export default function DashboardPage() {
                       <p className="text-xs text-muted-foreground">Target Revenue</p>
                       <p className="font-semibold">{formatCurrency(salesAchievement.target_revenue)}</p>
                     </div>
-                    <Link href="/leads?outcome=won" className="rounded-lg bg-muted/40 p-3 transition-colors hover:bg-muted/70">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const params = new URLSearchParams({ outcome: "won" });
+                        if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
+                        if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
+                        openDrilldown({
+                          title: "Achievement Sales · Closed Won",
+                          description: "Closed Won leads inside the active target period.",
+                          href: `/leads?${params.toString()}`,
+                        });
+                      }}
+                      className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70"
+                    >
                       <p className="text-xs text-muted-foreground">Closed Won</p>
                       <p className="font-semibold">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
-                    </Link>
+                    </button>
                   </div>
                   <div className="space-y-2">
                     {(salesAchievement.trend ?? []).slice(-6).map((item: { date: string; total: number }) => (
@@ -664,6 +790,106 @@ export default function DashboardPage() {
           </div>
         </>
       )}
+      <Modal
+        open={Boolean(drilldown)}
+        onOpenChange={(open) => {
+          if (!open) setDrilldown(null);
+        }}
+        title={drilldown?.title ?? "Lead Drilldown"}
+        description={drilldown?.description}
+        size="xl"
+      >
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold">{formatNumber(drilldownLeads.total ?? 0, { decimals: 0 })} filtered leads</p>
+              <p className="text-xs text-muted-foreground">Data is filtered directly from the dashboard condition you selected.</p>
+            </div>
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                hasIcon
+                value={drilldownSearch}
+                onChange={(event) => {
+                  setDrilldownSearch(event.target.value);
+                  setDrilldownPage(1);
+                }}
+                placeholder="Search filtered leads"
+              />
+            </div>
+          </div>
+
+          <TableShell>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableHeaderCell>Lead</TableHeaderCell>
+                  <TableHeaderCell>Stage</TableHeaderCell>
+                  <TableHeaderCell>Qualification</TableHeaderCell>
+                  <TableHeaderCell>Score</TableHeaderCell>
+                  <TableHeaderCell>Estimated</TableHeaderCell>
+                  <TableHeaderCell>Owner</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {isDrilldownLoading ? (
+                  <TableEmpty colSpan={6}>
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading filtered leads...
+                    </span>
+                  </TableEmpty>
+                ) : drilldownLeads.data.length > 0 ? (
+                  drilldownLeads.data.map((lead) => {
+                    const stage = lead.funnel_stage ?? lead.funnelStage;
+                    return (
+                      <TableRow key={lead.id}>
+                        <TableCell>
+                          <Link href={`/leads/${lead.id}`} className="font-medium text-[color:var(--brand)] hover:underline">
+                            {lead.company_name}
+                          </Link>
+                          <p className="mt-1 max-w-xs truncate text-xs text-muted-foreground">{lead.address ?? "No address"}</p>
+                        </TableCell>
+                        <TableCell>{stage?.name ?? "Unassigned"}</TableCell>
+                        <TableCell>
+                          <Badge variant={lead.qualification_status === "eligible" ? "success" : lead.qualification_status === "potential" ? "warning" : "neutral"}>
+                            {(lead.qualification_status ?? "pending").replace("_", " ")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-semibold tabular-nums">{lead.lead_score ?? "—"}</TableCell>
+                        <TableCell className="font-medium tabular-nums">{formatCurrency(lead.estimated_closing_amount ?? 0)}</TableCell>
+                        <TableCell>{lead.owner?.name ?? "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableEmpty colSpan={6}>No leads match this dashboard condition.</TableEmpty>
+                )}
+              </TableBody>
+            </Table>
+          </TableShell>
+
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              variant="outline"
+              disabled={drilldownPage <= 1 || isDrilldownLoading}
+              onClick={() => setDrilldownPage((page) => Math.max(1, page - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {formatNumber(drilldownLeads.current_page ?? 1, { decimals: 0 })} of {formatNumber(drilldownLeads.last_page ?? 1, { decimals: 0 })}
+            </span>
+            <Button
+              variant="outline"
+              disabled={drilldownPage >= (drilldownLeads.last_page ?? 1) || isDrilldownLoading}
+              onClick={() => setDrilldownPage((page) => page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -40,6 +40,12 @@
 - [x] Refresh PostgreSQL full structure+data and deploy data-only snapshots.
 - [x] Keep snapshot import guarded by `IMPORT_LEADSY_DB_SNAPSHOT=true` for fresh deploys.
 
+## Dashboard Drilldown UX (Completed ✅)
+- [x] Replace dashboard direct-to-Leads drilldown links with an in-dashboard lead-list popup.
+- [x] Reuse each dashboard row's existing filter query for modal data loading.
+- [x] Add modal search and pagination for filtered drilldown results.
+- [x] Add `closed_from` and `closed_to` Leads API filters for target-period Achievement Sales drilldowns.
+
 ## Product Question Guide (Completed ✅)
 - [x] Migration `2026_05_20_000001_create_product_questions_table.php` — product_id FK, questions JSON, ai_generated, ai_model, updated_by.
 - [x] `ProductQuestion` model + `Product::questionGuide()` HasOne relation.

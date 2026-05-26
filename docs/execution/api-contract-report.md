@@ -172,3 +172,23 @@ The backend API surface is substantially ahead of the live frontend runtime. The
   - `data.sales_achievement` is target-period realization from `lead_outcomes` where `outcome=won`; amount uses `deal_size`.
   - `data.sales_funnel_tracking.funnels.won[]` remains a pipeline/terminal conversion funnel; terminal amount uses `leads.estimated_closing_amount`.
   - These two values can differ by design because one is realized revenue and the other is estimated pipeline value.
+
+## 2026-05-26 Dashboard Drilldown Update
+
+### Dashboard
+- Dashboard KPI cards, funnel bars, product bars, and source/channel bars now open an in-page lead drilldown modal instead of navigating directly to `/leads`.
+- The modal reuses the same filter query represented by each dashboard row's `href`, calls `GET /api/leads`, and adds modal-level pagination/search.
+
+### Leads
+- `GET /api/leads?pipeline_status=active`
+  - Filters to leads whose current funnel stage is not `Won` or `Lost`.
+  - Used by the Dashboard In Pipeline drilldown.
+- `GET /api/leads?duplicate_status=duplicates`
+  - Filters to all duplicate statuses where `duplicate_status != new`.
+  - Used by the Dashboard Duplicate Rate drilldown.
+- `GET /api/leads?product_id=unassigned`
+  - Filters leads without an initial product and without product-specific outcomes.
+  - Used by Dashboard product aggregate drilldowns when the row is `Unassigned`.
+- `GET /api/leads?closed_from=YYYY-MM-DD&closed_to=YYYY-MM-DD&outcome=won`
+  - Filters leads by related outcome close date.
+  - Used by the Achievement Sales drilldown so the popup matches the active target period.
