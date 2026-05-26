@@ -1,5 +1,10 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-05-26 — v1.2 Sales Execution Pro Kickoff
+- Added Lead Pool ownership controls as the first roadmap execution slice after the Beyond ShareCRM plan.
+- Leads API now supports `owner_id=unassigned`, assignable user lookup, lead claim, and lead assign/reassign actions.
+- Leads workspace now shows owner status, filters unassigned pool records, and exposes claim/reassign actions without leaving the table.
+
 ## 2026-05-25 — Mobile Field Sales MVP
 - Added `mobile/` Expo/React Native app for Android and iOS field-sales workflows.
 - Added mobile login using existing Laravel Sanctum auth, plus lead inbox, lead detail, one-tap call/WhatsApp/email/Maps actions, and sales visit flow.

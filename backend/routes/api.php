@@ -100,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/export', [LeadController::class, 'export'])->middleware('permission:leads.export');
     Route::post('leads/discover', [LeadController::class, 'discover'])->middleware('permission:leads.create');
     Route::post('leads/bulk-import', [LeadController::class, 'bulkImport'])->middleware('permission:leads.create');
+    Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');
     Route::apiResource('leads', LeadController::class);
     Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['show'])->middleware('permission:leads.edit');
     Route::apiResource('settings/lead-channels', LeadChannelTypeController::class)->except(['show'])->middleware('permission:leads.edit');
@@ -107,6 +108,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
     Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/assign', [LeadController::class, 'assign'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/rescore', [LeadController::class, 'rescore'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/meetings', [LeadController::class, 'logMeeting'])->middleware('permission:leads.edit');

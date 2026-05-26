@@ -5,6 +5,15 @@
 - [x] Define phased roadmap from Sales Execution Pro through Predictive Revenue OS.
 - [x] Capture recommended next major improvement scope for v1.2.
 
+## v1.2 Sales Execution Pro (In Progress)
+- [x] Add Lead Pool filter for unassigned leads.
+- [x] Add backend claim and assign/reassign endpoints with audit logs.
+- [x] Add Leads workspace owner column, claim action, and assign modal.
+- [ ] Add weighted assignment rules by territory, workload, product fit, source, and score.
+- [ ] Add follow-up command center and SLA overdue views.
+- [ ] Add mobile push notifications for lead assignment and follow-up reminders.
+- [ ] Add admin visit evidence review, visit policy settings, and visit map report.
+
 ## Lark SSO, Role Persistence, and Deploy Snapshot (Completed ✅)
 - [x] Verify Lark Custom App OAuth endpoints against the official OpenAPI method family.
 - [x] Fix tenant access token URL to `/open-apis/auth/v3/tenant_access_token/internal`.

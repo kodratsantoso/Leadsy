@@ -347,3 +347,20 @@ Recommended v1.2 scope:
 
 This scope builds directly on the current Leadsy foundation and creates the most immediate operational value before moving into Account and Opportunity CRM.
 
+## 8. Execution Log
+
+### 2026-05-26: v1.2 kickoff
+
+Implemented the first Sales Execution Pro slice:
+
+- Lead Pool filter for unassigned leads.
+- Assignable user lookup scoped to the current user's hierarchy, or all active users for superadmin.
+- Claim action for unassigned visible leads.
+- Assign/reassign action with audit logging.
+- Leads workspace owner column and assignment modal.
+
+Next recommended slice:
+
+1. Assignment rule settings.
+2. Auto assignment candidate scoring.
+3. Follow-up command center and SLA tracking.

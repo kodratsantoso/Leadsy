@@ -192,3 +192,20 @@ The backend API surface is substantially ahead of the live frontend runtime. The
 - `GET /api/leads?closed_from=YYYY-MM-DD&closed_to=YYYY-MM-DD&outcome=won`
   - Filters leads by related outcome close date.
   - Used by the Achievement Sales drilldown so the popup matches the active target period.
+
+## 2026-05-26 Lead Pool Ownership Update
+
+### Leads
+- `GET /api/leads?owner_id=unassigned`
+  - Filters to leads without an assigned owner.
+  - Used by the Leads workspace Lead Pool filter.
+- `GET /api/leads/assignable-users`
+  - Returns active users that the current user can assign leads to.
+  - Superadmin receives all active users; non-superadmin users receive their hierarchy scope.
+- `POST /api/leads/{lead}/claim`
+  - Assigns an unassigned visible lead to the current user.
+  - Returns `422` when the lead already has an owner.
+- `POST /api/leads/{lead}/assign`
+  - Accepts `owner_id` as a nullable user id.
+  - Assigns/reassigns the lead to an allowed user or returns it to the Lead Pool when `owner_id` is null.
+  - Writes an audit log entry with before/after owner ids.

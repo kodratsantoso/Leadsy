@@ -18,6 +18,8 @@ import {
   Plus,
   Trash2,
   Upload,
+  UserCheck,
+  UserPlus,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -65,6 +67,7 @@ type LeadRecord = {
   current_funnel_stage?: { id: number; name: string } | null;
   industry?: { name: string } | null;
   product?: { id: number; name: string } | null;
+  owner?: { id: number; name: string; email?: string | null } | null;
   sources?: LeadSource[];
 };
 
@@ -91,6 +94,12 @@ type LeadSourceType = {
   slug: string;
   is_active: boolean;
   channels?: LeadChannelType[];
+};
+type AssignableUser = {
+  id: number;
+  name: string;
+  email?: string | null;
+  role?: { name: string; display_name?: string | null } | null;
 };
 
 type LeadFormState = {
@@ -589,6 +598,7 @@ export default function LeadsPage() {
   const [sourceFilter, setSourceFilter] = useState(searchParams.get("source_type") ?? "");
   const [channelFilter, setChannelFilter] = useState(searchParams.get("channel_type_id") ?? "");
   const [productFilter] = useState(searchParams.get("product_id") ?? "");
+  const [ownerFilter, setOwnerFilter] = useState(searchParams.get("owner_id") ?? "");
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
   const [feedback, setFeedback] = useState("");
@@ -608,6 +618,8 @@ export default function LeadsPage() {
   const [importChannelTypeId, setImportChannelTypeId] = useState("");
   const [editLead, setEditLead] = useState<LeadRecord | null>(null);
   const [deleteLead, setDeleteLead] = useState<LeadRecord | null>(null);
+  const [assignLead, setAssignLead] = useState<LeadRecord | null>(null);
+  const [assignOwnerId, setAssignOwnerId] = useState("");
 
   const normalizeAmountInput = (value: string) => {
     const trimmed = value.trim();
@@ -693,8 +705,16 @@ export default function LeadsPage() {
     },
   });
 
+  const { data: assignableUsersData } = useQuery({
+    queryKey: ["lead-assignable-users"],
+    queryFn: async () => {
+      const response = await apiFetch("/leads/assignable-users");
+      return response.json();
+    },
+  });
+
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, search, funnelStageId, funnelMinSequence, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, minScore, maxScore],
+    queryKey: ["leads", page, search, funnelStageId, funnelMinSequence, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, ownerFilter, minScore, maxScore],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page) });
       if (search) params.set("search", search);
@@ -705,6 +725,7 @@ export default function LeadsPage() {
       if (sourceFilter) params.set("source_type", sourceFilter);
       if (channelFilter) params.set("channel_type_id", channelFilter);
       if (productFilter) params.set("product_id", productFilter);
+      if (ownerFilter) params.set("owner_id", ownerFilter);
       if (minScore) params.set("min_score", minScore);
       if (maxScore) params.set("max_score", maxScore);
       const response = await apiFetch(`/leads?${params.toString()}`);
@@ -719,6 +740,7 @@ export default function LeadsPage() {
     allIndustries.find((i) => String(i.id) === formState.industry_id)?.sub_industries ?? [];
   const leads: LeadRecord[] = data?.data ?? [];
   const products: ProductOption[] = productsData?.data ?? [];
+  const assignableUsers: AssignableUser[] = assignableUsersData?.data ?? [];
   const leadSources: LeadSourceType[] = leadSourcesData?.data ?? [];
   const activeLeadSources = leadSources.filter((source) => source.is_active);
   const activeLeadChannels = activeLeadSources.flatMap((source) =>
@@ -888,6 +910,52 @@ export default function LeadsPage() {
     },
   });
 
+  const claimLeadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiFetch(`/leads/${id}/claim`, { method: "POST" });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? "Lead could not be claimed.");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setFeedback("Lead claimed successfully.");
+    },
+    onError: (error: Error) => {
+      setFeedback(error.message);
+    },
+  });
+
+  const assignLeadMutation = useMutation({
+    mutationFn: async ({ id, ownerId }: { id: number; ownerId: string }) => {
+      const response = await apiFetch(`/leads/${id}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ owner_id: ownerId ? Number(ownerId) : null }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? "Lead could not be assigned.");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setAssignLead(null);
+      setAssignOwnerId("");
+      setFeedback("Lead assignment updated.");
+    },
+    onError: (error: Error) => {
+      setFeedback(error.message);
+    },
+  });
+
   const openEdit = (lead: LeadRecord) => {
     setEditLead(lead);
     setLocationSearch(lead.address || "");
@@ -921,6 +989,7 @@ export default function LeadsPage() {
     setDuplicateFilter("");
     setSourceFilter("");
     setChannelFilter("");
+    setOwnerFilter("");
     setMinScore("");
     setMaxScore("");
     setPage(1);
@@ -1136,8 +1205,13 @@ export default function LeadsPage() {
   };
 
   const hasActiveFilter = Boolean(
-    search || funnelStageId || funnelMinSequence || qualificationFilter || duplicateFilter || sourceFilter || channelFilter || minScore || maxScore
+    search || funnelStageId || funnelMinSequence || qualificationFilter || duplicateFilter || sourceFilter || channelFilter || ownerFilter || minScore || maxScore
   );
+
+  const openAssign = (lead: LeadRecord) => {
+    setAssignLead(lead);
+    setAssignOwnerId(lead.owner?.id ? String(lead.owner.id) : "");
+  };
 
   const getNextFunnelStageId = (lead: LeadRecord) => {
     const ordered = [...funnelStages].sort((a, b) => a.sequence - b.sequence);
@@ -1248,6 +1322,21 @@ export default function LeadsPage() {
           <option value="exact_duplicate">Exact duplicate</option>
         </Select>
         <Select
+          value={ownerFilter}
+          onChange={(event) => {
+            setOwnerFilter(event.target.value);
+            setPage(1);
+          }}
+          placeholder="All owners"
+        >
+          <option value="unassigned">Lead Pool</option>
+          {assignableUsers.map((user) => (
+            <option key={user.id} value={String(user.id)}>
+              {user.name}
+            </option>
+          ))}
+        </Select>
+        <Select
           value={sourceFilter}
           onChange={(event) => {
             const nextSource = event.target.value;
@@ -1322,18 +1411,19 @@ export default function LeadsPage() {
               <TableHeaderCell className="w-[120px]">Qualification</TableHeaderCell>
               <TableHeaderCell className="min-w-[150px]">Est. Closing</TableHeaderCell>
               <TableHeaderCell className="min-w-[150px]">Realized</TableHeaderCell>
+              <TableHeaderCell className="min-w-[140px]">Owner</TableHeaderCell>
               <TableHeaderCell className="w-[120px]">Stage</TableHeaderCell>
               <TableHeaderCell className="w-[160px]">Actions</TableHeaderCell>
             </tr>
           </TableHead>
           <TableBody>
             {isLoading ? (
-              <TableEmpty colSpan={13}>
+              <TableEmpty colSpan={14}>
                 <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                 Loading leads...
               </TableEmpty>
             ) : leads.length === 0 ? (
-              <TableEmpty colSpan={13}>No leads found.</TableEmpty>
+              <TableEmpty colSpan={14}>No leads found.</TableEmpty>
             ) : (
               leads.map((lead) => (
                 <TableRow key={lead.id}>
@@ -1393,6 +1483,16 @@ export default function LeadsPage() {
                     <span className="text-sm font-medium">{formatCurrency(lead.realized_closing_amount)}</span>
                   </TableCell>
                   <TableCell>
+                    {lead.owner ? (
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{lead.owner.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{lead.owner.email ?? "Assigned"}</p>
+                      </div>
+                    ) : (
+                      <Badge variant="warning">Lead Pool</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <button
                       onClick={() => {
                         setFunnelStageId(String(lead.funnel_stage_id ?? ""));
@@ -1411,6 +1511,21 @@ export default function LeadsPage() {
 
                       return (
                         <div className="flex items-center gap-1 whitespace-nowrap">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => {
+                              if (lead.owner) {
+                                openAssign(lead);
+                                return;
+                              }
+                              claimLeadMutation.mutate(lead.id);
+                            }}
+                            disabled={claimLeadMutation.isPending || assignLeadMutation.isPending}
+                            tooltip={lead.owner ? "Reassign owner" : "Claim lead"}
+                          >
+                            {lead.owner ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon-sm"
@@ -2098,6 +2213,58 @@ export default function LeadsPage() {
               </Select>
             </div>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(assignLead)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAssignLead(null);
+            setAssignOwnerId("");
+          }
+        }}
+        title="Assign Lead"
+        description={assignLead ? `Update owner for ${assignLead.company_name}.` : undefined}
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAssignLead(null);
+                setAssignOwnerId("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => assignLead && assignLeadMutation.mutate({ id: assignLead.id, ownerId: assignOwnerId })}
+              disabled={assignLeadMutation.isPending || !assignLead}
+            >
+              {assignLeadMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Save Assignment
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-3">
+          <label className="text-sm font-medium">Owner</label>
+          <Select
+            value={assignOwnerId}
+            onChange={(event) => setAssignOwnerId(event.target.value)}
+            placeholder="Lead Pool"
+          >
+            {assignableUsers.map((user) => (
+              <option key={user.id} value={String(user.id)}>
+                {user.name}
+                {user.role?.display_name ? ` · ${user.role.display_name}` : ""}
+              </option>
+            ))}
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Leaving owner empty returns this record to the Lead Pool for later assignment.
+          </p>
         </div>
       </Modal>
 

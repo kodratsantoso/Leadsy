@@ -6,6 +6,10 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 Current release: **v1.1.0** — 2026-05-26
 
+## What's New in Active Development
+
+- Started the v1.2 Sales Execution Pro roadmap with Lead Pool ownership controls: filter unassigned leads, claim leads, and assign/reassign owners from the Leads workspace.
+
 ## What's New in v1.1.0
 
 - Mobile Field Sales MVP under `mobile/` for Android/iOS with Lead Inbox, Lead Detail, one-tap sales actions, Sales Visit, GPS Clock In/Out, photo evidence, client signature, visit result, and notes.

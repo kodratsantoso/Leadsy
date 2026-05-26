@@ -13,6 +13,7 @@ use App\Models\LeadChannelType;
 use App\Models\LeadContact;
 use App\Models\LeadOutcome;
 use App\Models\LeadSourceType;
+use App\Models\User;
 use App\Services\AuditService;
 use App\Services\DeduplicationService;
 use App\Services\Lead\HumanVerificationWorkflowService;
@@ -85,7 +86,11 @@ class LeadController extends Controller
             $query->where('duplicate_status', $request->duplicate_status);
         }
         if ($request->filled('owner_id')) {
-            $query->where('owner_id', $request->owner_id);
+            if ($request->owner_id === 'unassigned') {
+                $query->whereNull('owner_id');
+            } else {
+                $query->where('owner_id', $request->owner_id);
+            }
         }
         if ($request->filled('source_type')) {
             $query->whereHas('sources', fn ($sourceQuery) => $sourceQuery->where('source_type', $request->source_type));
@@ -138,6 +143,23 @@ class LeadController extends Controller
         $leads = $query->paginate($request->get('per_page', 25));
 
         return response()->json($leads);
+    }
+
+    public function assignableUsers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $query = User::query()
+            ->with('role:id,name,display_name')
+            ->where('is_active', true)
+            ->orderBy('name');
+
+        if ($user && ! $user->isSuperAdmin()) {
+            $query->whereIn('id', $user->hierarchyUserIds());
+        }
+
+        return response()->json([
+            'data' => $query->get(['id', 'name', 'email', 'role_id']),
+        ]);
     }
 
     public function show(Lead $lead): JsonResponse
@@ -336,6 +358,10 @@ class LeadController extends Controller
     /** PUT /api/leads/{lead} */
     public function update(Request $request, Lead $lead): JsonResponse
     {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
+
         $original = $lead->getAttributes();
 
         $data = $request->validate([
@@ -392,6 +418,70 @@ class LeadController extends Controller
         AuditService::logUpdated('leads', $lead, $original);
 
         return response()->json(['data' => $lead->fresh(['industry', 'funnelStage', 'sources.channelType'])]);
+    }
+
+    public function claim(Request $request, Lead $lead): JsonResponse
+    {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
+
+        if ($lead->owner_id) {
+            return response()->json(['message' => 'Lead is already assigned.'], 422);
+        }
+
+        $original = $lead->getAttributes();
+        $lead->update(['owner_id' => $request->user()?->id]);
+
+        AuditService::log(
+            'lead_claimed',
+            'leads',
+            $lead,
+            ['owner_id' => $original['owner_id'] ?? null],
+            ['owner_id' => $lead->owner_id],
+        );
+
+        return response()->json([
+            'data' => $lead->fresh(['industry', 'funnelStage', 'owner', 'sources.channelType']),
+        ]);
+    }
+
+    public function assign(Request $request, Lead $lead): JsonResponse
+    {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'owner_id' => 'nullable|exists:users,id',
+        ]);
+
+        $ownerId = $data['owner_id'] ?? null;
+
+        if ($ownerId) {
+            $assignableIds = $request->user()?->isSuperAdmin()
+                ? User::where('is_active', true)->pluck('id')->all()
+                : $request->user()?->hierarchyUserIds() ?? [];
+
+            if (! in_array((int) $ownerId, $assignableIds, true)) {
+                return response()->json(['message' => 'Selected owner is outside your assignable team.'], 422);
+            }
+        }
+
+        $original = $lead->getAttributes();
+        $lead->update(['owner_id' => $ownerId]);
+
+        AuditService::log(
+            'lead_assigned',
+            'leads',
+            $lead,
+            ['owner_id' => $original['owner_id'] ?? null],
+            ['owner_id' => $lead->owner_id],
+        );
+
+        return response()->json([
+            'data' => $lead->fresh(['industry', 'funnelStage', 'owner', 'sources.channelType']),
+        ]);
     }
 
     private function syncLeadSource(Lead $lead, ?string $sourceType, ?int $channelTypeId = null): void
