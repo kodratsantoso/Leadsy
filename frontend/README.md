@@ -2,6 +2,8 @@
 
 Web application for map-based lead discovery, AI-assisted qualification, funnel management, and governance (see `BRD`).
 
+Current release: **v1.1.0** — includes Lark SSO/Base integration, deploy snapshot refresh, and the companion Mobile Field Sales MVP in `mobile/`.
+
 ## Repository layout
 
 | Path | Purpose |
@@ -59,6 +61,7 @@ Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create t
 | Product Question Guide | `components/products/QuestionGuide.tsx` — AI-generated + user-editable requirement question guide per product, shown in each product's expanded card |
 | Customer BANTC Question Guide | `components/leads/LeadBantcQuestionGuide.tsx` — AI-generated + user-editable BANTC discovery questions per Lead, shown on Lead Detail → Intelligence |
 | Dashboard Funnel Tracking | `app/page.tsx` — two cumulative/aggregate funnels for Leads → Won and Leads → Lost, with estimated amount conversion and drilldown via `funnel_min_sequence` |
+| Dashboard Achievement Sales | `app/page.tsx` — target-period Closed Won realization from `lead_outcomes.deal_size`; this is intentionally distinct from funnel estimated amount |
 | Lead Product Revenue | `app/leads/page.tsx`, `app/leads/[id]/page.tsx` — lead initial product selection plus product-specific deal outcomes for new sales and upsales amounts |
 | Meeting BANTC & Transcripts | `app/leads/[id]/page.tsx` — Activities capture evolving BANTC notes for Meeting records; Transcripts can link to activities, accept text/files, and run AI analysis summaries |
 | App Shell | `components/layout/app-shell.tsx` — sidebar nav, global search, user menu, tour trigger |

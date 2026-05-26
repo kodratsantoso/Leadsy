@@ -2,6 +2,20 @@
 
 Web application for map-based lead discovery, AI-assisted qualification, funnel management, and governance (see `BRD`).
 
+## Version
+
+Current release: **v1.1.0** — 2026-05-26
+
+## What's New in v1.1.0
+
+- Mobile Field Sales MVP under `mobile/` for Android/iOS with Lead Inbox, Lead Detail, one-tap sales actions, Sales Visit, GPS Clock In/Out, photo evidence, client signature, visit result, and notes.
+- Sales Visit backend tables and APIs for visit audit trails, GPS distance checks, evidence media, and fake-location risk signals.
+- Expo Go testing helper: run `npm run mobile:expo-go`, scan the QR, and test on a phone on the same Wi-Fi.
+- Lark SSO Custom App login flow with backend callback, Sanctum token persistence, and role preservation.
+- Lark Base two-way sync with table preview, manual Leadsy Leads ↔ Lark Base field mapping, Auto Match assistance, and manual push/pull controls.
+- Deploy database snapshots refreshed so fresh environments can import current schema and data.
+- Dashboard sales metrics documented: Achievement Sales uses realized Closed Won deal value, while funnel Won remains a pipeline/terminal estimate unless explicitly changed.
+
 ## Repository layout
 
 | Path | Purpose |
@@ -9,6 +23,7 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 | `BRD` | Single source of truth for requirements |
 | `docs/` | Phase plans, ADRs (`decisions.md`), progress, risks |
 | `frontend/` | Active Next.js UI source of truth (App Router, Tailwind, React Query, Zustand) |
+| `mobile/` | Expo/React Native field-sales app for Android and iOS |
 | `backend/` | Laravel API (bootstrap when PHP/Composer or Docker available) |
 | `app/`, `components/`, `lib/`, `store/` | Deprecated root UI mirror kept only as a compatibility layer |
 
@@ -47,6 +62,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Feature Usage Notes
 
+- Mobile field sales app: `mobile/` provides the Android/iOS companion for sales users, focused on lead inbox, lead detail, one-tap call/WhatsApp/email/Maps actions, sales visit clock-in/out, photo evidence, client signature, GPS capture, and fake-location risk signals.
 - Dashboard map: open Dashboard to view lead/customer POIs for records with `lat` and `lng`. Marker colors follow each lead's funnel stage color, and clicking a marker shows a lead summary.
 - Add Location: in Leads → New Lead, use `Add Location` to search an address on the map and save latitude/longitude with the lead.
 - Dashboard funnel tracking: Dashboard shows horizontal conversion funnels that start from `Belum Di Klasifikasi`, with drillable stage bars, lead conversion, estimated amount conversion, sales volume bars, and total market bars.
@@ -59,6 +75,8 @@ Open [http://localhost:3000](http://localhost:3000).
 - Lark SSO integration is configured from Settings → Integrations and protected by backend `integrations.manage`; redirect URIs are generated from the active frontend base URL for tenant-aware login flows.
 - Lark SSO uses the Lark Custom App OAuth flow: frontend opens the authorization URL, backend stores OAuth `state` in cache, callback exchanges `code` for a user token, resolves Lark user info, persists the Lark identity link, then creates a Laravel Sanctum token before redirecting to the dashboard.
 - Lark Base two-way sync is configured from Settings → Integrations → Lark: enter a Base app token, load tables, preview a selected table, manually map Leadsy Leads fields to Lark Base fields, then push Leadsy leads to Base or pull Base records back into Leadsy.
+- Mobile Field Sales: `mobile/` provides the Android/iOS field app for sales users. It supports Expo Go testing, lead inbox/detail, one-tap actions, GPS visit clock-in/out, photo evidence, client signature, and visit risk signals.
+- Dashboard sales metric contract: Achievement Sales uses `lead_outcomes.deal_size` for Closed Won realization inside the user's target period. Funnel Won uses terminal/pipeline lead membership and `leads.estimated_closing_amount`, so it can intentionally differ unless the funnel contract is changed.
 - Revenue tracking: Settings → Users lets admins set Direct Manager, target period, and target revenue. Dashboard Achievement Sales compares target revenue against Closed Won realization for the user's visible hierarchy.
 - Hierarchy visibility: regular users see their own leads, managers/admin-like roles see their recursive team, and superadmin sees all leads.
 
@@ -86,6 +104,18 @@ These bindings are intentionally fixed in `docker-compose.yml`. Only change them
 ## Quick start — backend (Laravel)
 
 Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create the Laravel 12 project and configure `.env` for Postgres/Redis.
+
+## Quick start — mobile
+
+The mobile app is an Expo app under `mobile/`.
+
+```bash
+npm --prefix mobile install
+cp mobile/.env.example mobile/.env
+npm run mobile:start
+```
+
+Use `EXPO_PUBLIC_API_BASE_URL` to point the app at the local backend, LAN backend, or deployed VPS API. Android can be distributed through Google Play/internal testing or signed APK/AAB, while iOS distribution goes through TestFlight or the Apple App Store.
 
 ## Deploying with database contents
 

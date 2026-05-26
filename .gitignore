@@ -8,6 +8,7 @@ whatsapp-service/node_modules/
 # Build / cache
 .next/
 frontend/.next/
+mobile/.expo/
 dist/
 build/
 tmp/

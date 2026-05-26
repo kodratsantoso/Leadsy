@@ -113,6 +113,12 @@
 - `backend/app/Models/LarkBaseTable.php` and `backend/app/Models/LarkBaseRecordMapping.php` — added tenant-aware models for Base sync configuration and record identity.
 - `backend/app/Services/Lark/LarkBaseService.php` — added table/field/record preview, Leadsy-to-Base upsert, and Base-to-Leadsy pull mapping.
 - `frontend/app/settings/integrations/page.tsx` — added Lark Base manual Leadsy Leads field mapping, Auto Match assistance, table preview, and push/pull controls.
+- `mobile/` — added Expo/React Native Mobile Field Sales MVP for Android/iOS with login, Lead Inbox, Lead Detail, one-tap actions, Sales Visit, GPS Clock In/Out, camera evidence, client signature, and visit notes.
+- `scripts/mobile-expo-go.sh` — added Expo Go helper that detects the machine LAN IP, sets `EXPO_PUBLIC_API_BASE_URL`, and starts Expo in LAN mode for QR-based device testing.
+- `backend/database/migrations/2026_05_25_000000_create_sales_visit_tables.php` — added `sales_visits` and `sales_visit_media` before the snapshot import migration.
+- `backend/app/Http/Controllers/Api/SalesVisitController.php` — added field-sales visit list, clock-in, clock-out, and media upload APIs.
+- `backend/app/Models/SalesVisit.php` and `backend/app/Models/SalesVisitMedia.php` — added visit/evidence persistence models.
+- `version.json`, `backend/config/version.php`, and `CHANGELOG.md` — bumped release metadata to v1.1.0 and documented What's New.
 - `frontend/app/login/page.tsx` — added tenant-aware Lark login entrypoint.
 - `frontend/app/auth/lark/callback/page.tsx` — added callback page that stores the returned token before dashboard redirect.
 - `frontend/app/template.tsx` — treats `/auth/*` routes as public auth routes so callbacks are not redirected to login prematurely.

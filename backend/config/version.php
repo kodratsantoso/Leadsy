@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.0.0',
-    'released_at' => '2026-05-12',
-    'type' => 'major',   // major | minor | patch
-    'notes' => 'First stable production release',
+    'version' => '1.1.0',
+    'released_at' => '2026-05-26',
+    'type' => 'minor',   // major | minor | patch
+    'notes' => 'Mobile Field Sales MVP, Lark SSO/Base integration, deploy snapshot refresh, and sales dashboard contract clarification',
 ];

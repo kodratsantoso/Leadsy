@@ -1,6 +1,6 @@
 {
   "name": "leadsy-ui-compat",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "npm --prefix frontend run dev",
@@ -8,6 +8,11 @@
     "start": "npm --prefix frontend run start",
     "lint": "npm --prefix frontend run lint",
     "typecheck": "cd frontend && ./node_modules/.bin/tsc --noEmit",
+    "mobile:start": "npm --prefix mobile run start",
+    "mobile:expo-go": "sh scripts/mobile-expo-go.sh",
+    "mobile:android": "npm --prefix mobile run android",
+    "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:typecheck": "npm --prefix mobile run typecheck",
     "validate:pre-commit": "sh scripts/validate-pre-commit.sh",
     "validate:pre-push": "sh scripts/validate-pre-push.sh",
     "setup:githooks": "sh scripts/setup-githooks.sh",

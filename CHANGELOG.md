@@ -9,6 +9,26 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.1.0] — 2026-05-26 · Minor Release
+
+### What's New
+- **Mobile Field Sales MVP** — aplikasi Expo/React Native baru di `mobile/` untuk Android dan iOS, dengan login Leadsy, Lead Inbox, Lead Detail, one-tap Call/WhatsApp/Email/Maps, Sales Visit, GPS Clock In/Out, foto evidence, client signature, visit result, notes, dan fake-location risk signal dasar.
+- **Sales Visit Backend** — tabel `sales_visits` dan `sales_visit_media`, API protected untuk list visit, clock-in, clock-out, dan upload media, plus audit trail untuk koordinat, jarak dari lead, akurasi GPS, risk status, dan device metadata.
+- **Expo Go Testing Helper** — script `npm run mobile:expo-go` mendeteksi IP LAN otomatis, mengarah ke API lokal `:3001`, dan membuka Expo LAN mode agar tester tinggal scan QR.
+- **Lark SSO Production Flow** — Lark Custom App OAuth diperbaiki dari auth URL, callback, token exchange, user info, hingga penyimpanan Sanctum token sebelum redirect dashboard.
+- **Lark Role Persistence** — user yang login via Lark tidak lagi menimpa role yang diatur di Leadsy Settings.
+- **Lark Base Two-Way Sync** — Settings → Integrations kini mendukung Base app token, table/field discovery, record preview, manual Leadsy Leads ↔ Lark Base field mapping, Auto Match assistance, dan manual push/pull sync.
+- **Deploy Database Snapshot Refresh** — snapshot PostgreSQL struktur dan data diperbarui untuk membawa record production/local baseline saat deploy fresh environment.
+- **Dashboard Sales Contract Clarification** — dokumentasi menjelaskan perbedaan `Achievement Sales` sebagai realisasi `lead_outcomes.deal_size` per target period, versus funnel `Won` sebagai pipeline/terminal estimate dari `leads.estimated_closing_amount`.
+
+### Dokumentasi
+- README root, backend, frontend, mobile, platform spec, SSOT, API contract, task list, dan progress log diperbarui untuk release 1.1.0.
+- Catatan distribusi mobile ditambahkan: Android via Google Play/internal testing/APK/AAB, iOS via TestFlight/App Store.
+
+### Deployment
+- Snapshot importer tetap opt-in via `IMPORT_LEADSY_DB_SNAPSHOT=true`.
+- Snapshot membawa encrypted secrets yang tetap bergantung pada Laravel `APP_KEY`; jika APP_KEY berbeda, credentials AI/Lark harus diinput ulang.
+
 ## [1.0.0] — 2026-05-12 · Major Release
 
 **First stable production release.** Semua modul inti selesai dan deployed ke production.

@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\QualificationParameterSetController;
 use App\Http\Controllers\Api\QualificationWorkflowController;
 use App\Http\Controllers\Api\QualificationWorkflowReviewController;
 use App\Http\Controllers\Api\RevenueRuleController;
+use App\Http\Controllers\Api\SalesVisitController;
 use App\Http\Controllers\Api\TerritoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -158,6 +159,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/evaluations', [LeadController::class, 'getEvaluations'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/follow-ups', [LeadController::class, 'getFollowUps'])->middleware('permission:leads.view');
+
+    // Mobile field sales visits
+    Route::get('sales-visits', [SalesVisitController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/sales-visits/clock-in', [SalesVisitController::class, 'clockIn'])->middleware('permission:leads.edit');
+    Route::post('sales-visits/{visit}/clock-out', [SalesVisitController::class, 'clockOut'])->middleware('permission:leads.edit');
+    Route::post('sales-visits/{visit}/media', [SalesVisitController::class, 'uploadMedia'])->middleware('permission:leads.edit');
 
     // Territories
     Route::apiResource('territories', TerritoryController::class);

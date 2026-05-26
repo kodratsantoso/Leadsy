@@ -20,6 +20,26 @@
 - [x] Add Lark Base → Leadsy sync from webhook events and manual pull.
 - [x] Add Settings → Integrations → Lark Base UI for app token, table selection, preview, manual Leadsy Leads field mapping, Auto Match assistance, and saved mapping sync controls.
 
+## Mobile Field Sales App (In Progress)
+- [x] Define MVP scope for Android/iOS field sales workflows.
+- [x] Add backend sales visit schema for clock-in/out, GPS coordinates, distance from lead, risk signals, evidence media, and client signature metadata.
+- [x] Add protected sales visit API endpoints for visit list, lead clock-in, visit clock-out, and visit media upload.
+- [x] Scaffold Expo/React Native app under `mobile/`.
+- [x] Add mobile login using existing Laravel Sanctum token flow.
+- [x] Add mobile lead inbox, lead detail, one-tap call/WhatsApp/email/Maps actions, and sales visit flow.
+- [x] Add mobile camera photo capture, signature capture, GPS capture, and mock-location risk signal forwarding.
+- [ ] Add production push notifications for assigned leads and follow-up reminders.
+- [ ] Add offline sync queue for visit notes/media when network is unavailable.
+- [ ] Add admin web visit evidence review, visit policy settings, and map-based visit report.
+- [ ] Configure EAS Build profiles for Android AAB/APK and iOS TestFlight/App Store releases.
+
+## Release 1.1.0 Packaging (Completed ✅)
+- [x] Update root/backend/frontend/mobile README files with Mobile Field Sales, Lark SSO/Base, deploy snapshot, and dashboard sales metric notes.
+- [x] Update platform specification, API contract report, SSOT, task list, and progress log.
+- [x] Add What's New and version metadata for v1.1.0.
+- [x] Refresh PostgreSQL full structure+data and deploy data-only snapshots.
+- [x] Keep snapshot import guarded by `IMPORT_LEADSY_DB_SNAPSHOT=true` for fresh deploys.
+
 ## Product Question Guide (Completed ✅)
 - [x] Migration `2026_05_20_000001_create_product_questions_table.php` — product_id FK, questions JSON, ai_generated, ai_model, updated_by.
 - [x] `ProductQuestion` model + `Product::questionGuide()` HasOne relation.

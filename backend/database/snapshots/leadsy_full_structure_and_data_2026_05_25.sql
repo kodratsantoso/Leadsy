@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict JwmJUvJDnYFeLWFk8WgqbmqR02reDabxgArWZoopvMdLJLiZqIJn0PzmaNnZvO7
+\restrict gIa57LcfhrjDxUo4vSUOho7w0nqVrL9VkTKpQ1gSKTmoJZuMEW5JUYjR9Lief0J
 
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 16.13 (Debian 16.13-1.pgdg13+1)
@@ -30,6 +30,10 @@ ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_direct_m
 ALTER TABLE IF EXISTS ONLY public.territories DROP CONSTRAINT IF EXISTS territories_tenant_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.territories DROP CONSTRAINT IF EXISTS territories_created_by_foreign;
 ALTER TABLE IF EXISTS ONLY public.sub_industries DROP CONSTRAINT IF EXISTS sub_industries_industry_id_foreign;
+ALTER TABLE IF EXISTS ONLY public.sales_visits DROP CONSTRAINT IF EXISTS sales_visits_user_id_foreign;
+ALTER TABLE IF EXISTS ONLY public.sales_visits DROP CONSTRAINT IF EXISTS sales_visits_lead_id_foreign;
+ALTER TABLE IF EXISTS ONLY public.sales_visit_media DROP CONSTRAINT IF EXISTS sales_visit_media_uploaded_by_foreign;
+ALTER TABLE IF EXISTS ONLY public.sales_visit_media DROP CONSTRAINT IF EXISTS sales_visit_media_sales_visit_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.role_permission DROP CONSTRAINT IF EXISTS role_permission_role_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.role_permission DROP CONSTRAINT IF EXISTS role_permission_permission_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.revenue_rules DROP CONSTRAINT IF EXISTS revenue_rules_tenant_id_foreign;
@@ -146,33 +150,15 @@ ALTER TABLE IF EXISTS ONLY public.ai_model_routes DROP CONSTRAINT IF EXISTS ai_m
 ALTER TABLE IF EXISTS ONLY public.ai_feature_routes DROP CONSTRAINT IF EXISTS ai_feature_routes_ai_model_id_foreign;
 ALTER TABLE IF EXISTS ONLY public.ai_connection_tests DROP CONSTRAINT IF EXISTS ai_connection_tests_tested_by_foreign;
 ALTER TABLE IF EXISTS ONLY public.ai_connection_tests DROP CONSTRAINT IF EXISTS ai_connection_tests_ai_provider_id_foreign;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.users DROP CONSTRAINT IF EXISTS users_role_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.product_questions DROP CONSTRAINT IF EXISTS product_questions_product_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.parameters DROP CONSTRAINT IF EXISTS parameters_product_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.parameters DROP CONSTRAINT IF EXISTS parameters_dimension_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.parameter_options DROP CONSTRAINT IF EXISTS parameter_options_parameter_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.leads DROP CONSTRAINT IF EXISTS leads_source_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.leads DROP CONSTRAINT IF EXISTS leads_created_by_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_scores DROP CONSTRAINT IF EXISTS lead_scores_parameter_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_scores DROP CONSTRAINT IF EXISTS lead_scores_option_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_scores DROP CONSTRAINT IF EXISTS lead_scores_lead_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_scores DROP CONSTRAINT IF EXISTS lead_scores_evaluation_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_evaluations DROP CONSTRAINT IF EXISTS lead_evaluations_recommended_product_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_evaluations DROP CONSTRAINT IF EXISTS lead_evaluations_lead_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_evaluations DROP CONSTRAINT IF EXISTS lead_evaluations_evaluated_by_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_activities DROP CONSTRAINT IF EXISTS lead_activities_user_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_activities DROP CONSTRAINT IF EXISTS lead_activities_lead_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.evaluation_overrides DROP CONSTRAINT IF EXISTS evaluation_overrides_overridden_by_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.evaluation_overrides DROP CONSTRAINT IF EXISTS evaluation_overrides_evaluation_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.audit_logs DROP CONSTRAINT IF EXISTS audit_logs_user_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.ai_provider_settings DROP CONSTRAINT IF EXISTS ai_provider_settings_user_id_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.ai_provider_settings DROP CONSTRAINT IF EXISTS ai_provider_settings_updated_by_fkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.ai_parameter_suggestions DROP CONSTRAINT IF EXISTS ai_parameter_suggestions_product_id_fkey;
 DROP INDEX IF EXISTS public.whatsapp_contacts_normalized_phone_number_index;
 DROP INDEX IF EXISTS public.users_tenant_id_index;
 DROP INDEX IF EXISTS public.territories_tenant_id_index;
 DROP INDEX IF EXISTS public.sessions_user_id_index;
 DROP INDEX IF EXISTS public.sessions_last_activity_index;
+DROP INDEX IF EXISTS public.sales_visits_user_id_clock_in_at_index;
+DROP INDEX IF EXISTS public.sales_visits_risk_status_created_at_index;
+DROP INDEX IF EXISTS public.sales_visits_lead_id_status_index;
+DROP INDEX IF EXISTS public.sales_visit_media_sales_visit_id_media_type_index;
 DROP INDEX IF EXISTS public.revenue_rules_tenant_id_index;
 DROP INDEX IF EXISTS public.qwr_status_decision_idx;
 DROP INDEX IF EXISTS public.qwr_lead_status_idx;
@@ -224,26 +210,6 @@ DROP INDEX IF EXISTS public.audit_logs_record_type_record_id_index;
 DROP INDEX IF EXISTS public.audit_logs_module_created_at_index;
 DROP INDEX IF EXISTS public.ai_prompt_templates_feature_name_index;
 DROP INDEX IF EXISTS public.ai_feature_routes_feature_name_index;
-DROP INDEX IF EXISTS legacy_mgmt.users_email_key;
-DROP INDEX IF EXISTS legacy_mgmt.scoring_dimensions_key_key;
-DROP INDEX IF EXISTS legacy_mgmt.roles_name_key;
-DROP INDEX IF EXISTS legacy_mgmt.product_questions_product_id_idx;
-DROP INDEX IF EXISTS legacy_mgmt.parameters_dimension_id_key_key;
-DROP INDEX IF EXISTS legacy_mgmt.leads_tenant_id_idx;
-DROP INDEX IF EXISTS legacy_mgmt.leads_status_idx;
-DROP INDEX IF EXISTS legacy_mgmt.leads_created_at_idx;
-DROP INDEX IF EXISTS legacy_mgmt.leads_company_name_idx;
-DROP INDEX IF EXISTS legacy_mgmt.lead_sources_name_key;
-DROP INDEX IF EXISTS legacy_mgmt.lead_scores_evaluation_id_idx;
-DROP INDEX IF EXISTS legacy_mgmt.lead_evaluations_lead_id_is_latest_idx;
-DROP INDEX IF EXISTS legacy_mgmt.lead_evaluations_lead_id_idx;
-DROP INDEX IF EXISTS legacy_mgmt.lead_activities_lead_id_created_at_idx;
-DROP INDEX IF EXISTS legacy_mgmt.audit_logs_user_id_created_at_idx;
-DROP INDEX IF EXISTS legacy_mgmt.audit_logs_entity_type_entity_id_idx;
-DROP INDEX IF EXISTS legacy_mgmt.ai_provider_settings_user_id_provider_name_key;
-DROP INDEX IF EXISTS legacy_mgmt.ai_provider_settings_user_id_idx;
-DROP INDEX IF EXISTS legacy_mgmt.ai_provider_settings_is_active_idx;
-DROP INDEX IF EXISTS legacy_mgmt.ai_parameter_suggestions_product_id_idx;
 ALTER TABLE IF EXISTS ONLY public.whatsapp_sync_rules DROP CONSTRAINT IF EXISTS whatsapp_sync_rules_pkey;
 ALTER TABLE IF EXISTS ONLY public.whatsapp_sessions DROP CONSTRAINT IF EXISTS whatsapp_sessions_session_name_unique;
 ALTER TABLE IF EXISTS ONLY public.whatsapp_sessions DROP CONSTRAINT IF EXISTS whatsapp_sessions_pkey;
@@ -264,6 +230,8 @@ ALTER TABLE IF EXISTS ONLY public.tenants DROP CONSTRAINT IF EXISTS tenants_pkey
 ALTER TABLE IF EXISTS ONLY public.sub_industries DROP CONSTRAINT IF EXISTS sub_industries_pkey;
 ALTER TABLE IF EXISTS ONLY public.sub_industries DROP CONSTRAINT IF EXISTS sub_industries_industry_id_name_unique;
 ALTER TABLE IF EXISTS ONLY public.sessions DROP CONSTRAINT IF EXISTS sessions_pkey;
+ALTER TABLE IF EXISTS ONLY public.sales_visits DROP CONSTRAINT IF EXISTS sales_visits_pkey;
+ALTER TABLE IF EXISTS ONLY public.sales_visit_media DROP CONSTRAINT IF EXISTS sales_visit_media_pkey;
 ALTER TABLE IF EXISTS ONLY public.roles DROP CONSTRAINT IF EXISTS roles_pkey;
 ALTER TABLE IF EXISTS ONLY public.roles DROP CONSTRAINT IF EXISTS roles_name_unique;
 ALTER TABLE IF EXISTS ONLY public.role_permission DROP CONSTRAINT IF EXISTS role_permission_role_id_permission_id_unique;
@@ -371,22 +339,6 @@ ALTER TABLE IF EXISTS ONLY public.ai_model_routes DROP CONSTRAINT IF EXISTS ai_m
 ALTER TABLE IF EXISTS ONLY public.ai_feature_routes DROP CONSTRAINT IF EXISTS ai_feature_routes_pkey;
 ALTER TABLE IF EXISTS ONLY public.ai_feature_routes DROP CONSTRAINT IF EXISTS ai_feature_routes_feature_name_priority_unique;
 ALTER TABLE IF EXISTS ONLY public.ai_connection_tests DROP CONSTRAINT IF EXISTS ai_connection_tests_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.users DROP CONSTRAINT IF EXISTS users_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.scoring_dimensions DROP CONSTRAINT IF EXISTS scoring_dimensions_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.roles DROP CONSTRAINT IF EXISTS roles_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.products DROP CONSTRAINT IF EXISTS products_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.product_questions DROP CONSTRAINT IF EXISTS product_questions_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.parameters DROP CONSTRAINT IF EXISTS parameters_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.parameter_options DROP CONSTRAINT IF EXISTS parameter_options_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.leads DROP CONSTRAINT IF EXISTS leads_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_sources DROP CONSTRAINT IF EXISTS lead_sources_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_scores DROP CONSTRAINT IF EXISTS lead_scores_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_evaluations DROP CONSTRAINT IF EXISTS lead_evaluations_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.lead_activities DROP CONSTRAINT IF EXISTS lead_activities_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.evaluation_overrides DROP CONSTRAINT IF EXISTS evaluation_overrides_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.audit_logs DROP CONSTRAINT IF EXISTS audit_logs_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.ai_provider_settings DROP CONSTRAINT IF EXISTS ai_provider_settings_pkey;
-ALTER TABLE IF EXISTS ONLY legacy_mgmt.ai_parameter_suggestions DROP CONSTRAINT IF EXISTS ai_parameter_suggestions_pkey;
 ALTER TABLE IF EXISTS public.whatsapp_sync_rules ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.whatsapp_sessions ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.whatsapp_messages ALTER COLUMN id DROP DEFAULT;
@@ -399,6 +351,8 @@ ALTER TABLE IF EXISTS public.users ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.territories ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.tenants ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.sub_industries ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.sales_visits ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.sales_visit_media ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.roles ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.role_permission ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.revenue_rules ALTER COLUMN id DROP DEFAULT;
@@ -493,6 +447,10 @@ DROP TABLE IF EXISTS public.tenants;
 DROP SEQUENCE IF EXISTS public.sub_industries_id_seq;
 DROP TABLE IF EXISTS public.sub_industries;
 DROP TABLE IF EXISTS public.sessions;
+DROP SEQUENCE IF EXISTS public.sales_visits_id_seq;
+DROP TABLE IF EXISTS public.sales_visits;
+DROP SEQUENCE IF EXISTS public.sales_visit_media_id_seq;
+DROP TABLE IF EXISTS public.sales_visit_media;
 DROP SEQUENCE IF EXISTS public.roles_id_seq;
 DROP TABLE IF EXISTS public.roles;
 DROP SEQUENCE IF EXISTS public.role_permission_id_seq;
@@ -636,399 +594,24 @@ DROP SEQUENCE IF EXISTS public.ai_feature_routes_id_seq;
 DROP TABLE IF EXISTS public.ai_feature_routes;
 DROP SEQUENCE IF EXISTS public.ai_connection_tests_id_seq;
 DROP TABLE IF EXISTS public.ai_connection_tests;
-DROP TABLE IF EXISTS legacy_mgmt.users;
-DROP TABLE IF EXISTS legacy_mgmt.scoring_dimensions;
-DROP TABLE IF EXISTS legacy_mgmt.roles;
-DROP TABLE IF EXISTS legacy_mgmt.products;
-DROP TABLE IF EXISTS legacy_mgmt.product_questions;
-DROP TABLE IF EXISTS legacy_mgmt.parameters;
-DROP TABLE IF EXISTS legacy_mgmt.parameter_options;
-DROP TABLE IF EXISTS legacy_mgmt.leads;
-DROP TABLE IF EXISTS legacy_mgmt.lead_sources;
-DROP TABLE IF EXISTS legacy_mgmt.lead_scores;
-DROP TABLE IF EXISTS legacy_mgmt.lead_evaluations;
-DROP TABLE IF EXISTS legacy_mgmt.lead_activities;
-DROP TABLE IF EXISTS legacy_mgmt.evaluation_overrides;
-DROP TABLE IF EXISTS legacy_mgmt.audit_logs;
-DROP TABLE IF EXISTS legacy_mgmt.ai_provider_settings;
-DROP TABLE IF EXISTS legacy_mgmt.ai_parameter_suggestions;
-DROP TYPE IF EXISTS legacy_mgmt."ParameterDataType";
-DROP TYPE IF EXISTS legacy_mgmt."LeadStatus";
-DROP TYPE IF EXISTS legacy_mgmt."EvaluationStatus";
-DROP TYPE IF EXISTS legacy_mgmt."AuditAction";
-DROP TYPE IF EXISTS legacy_mgmt."ActivityType";
-DROP EXTENSION IF EXISTS pgcrypto;
-DROP SCHEMA IF EXISTS legacy_mgmt;
+DROP SCHEMA IF EXISTS public;
 --
--- Name: legacy_mgmt; Type: SCHEMA; Schema: -; Owner: -
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE SCHEMA legacy_mgmt;
+CREATE SCHEMA public;
 
 
 --
--- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
 --
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA legacy_mgmt;
-
-
---
--- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
-
-
---
--- Name: ActivityType; Type: TYPE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TYPE legacy_mgmt."ActivityType" AS ENUM (
-    'NOTE',
-    'EVALUATION',
-    'STATUS_CHANGE',
-    'OVERRIDE',
-    'APPROVAL'
-);
-
-
---
--- Name: AuditAction; Type: TYPE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TYPE legacy_mgmt."AuditAction" AS ENUM (
-    'CREATE',
-    'UPDATE',
-    'DELETE',
-    'EVALUATE',
-    'OVERRIDE',
-    'SETTINGS_UPDATE'
-);
-
-
---
--- Name: EvaluationStatus; Type: TYPE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TYPE legacy_mgmt."EvaluationStatus" AS ENUM (
-    'ELIGIBLE',
-    'POTENTIAL',
-    'NOT_ELIGIBLE',
-    'NEED_REVIEW'
-);
-
-
---
--- Name: LeadStatus; Type: TYPE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TYPE legacy_mgmt."LeadStatus" AS ENUM (
-    'NEW',
-    'EVALUATING',
-    'ELIGIBLE',
-    'POTENTIAL',
-    'NOT_ELIGIBLE',
-    'NEED_REVIEW',
-    'ARCHIVED'
-);
-
-
---
--- Name: ParameterDataType; Type: TYPE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TYPE legacy_mgmt."ParameterDataType" AS ENUM (
-    'SELECT',
-    'NUMBER',
-    'BOOLEAN',
-    'TEXT'
-);
+COMMENT ON SCHEMA public IS 'standard public schema';
 
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
-
---
--- Name: ai_parameter_suggestions; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.ai_parameter_suggestions (
-    id text NOT NULL,
-    product_id text NOT NULL,
-    suggested_name character varying(150) NOT NULL,
-    suggested_key character varying(100) NOT NULL,
-    description text,
-    reasoning text,
-    status character varying(50) DEFAULT 'PENDING'::character varying NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: ai_provider_settings; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.ai_provider_settings (
-    id text NOT NULL,
-    user_id text NOT NULL,
-    provider_name character varying(50) NOT NULL,
-    model_name character varying(50),
-    api_key_encrypted text NOT NULL,
-    base_url character varying(255),
-    is_active boolean DEFAULT false NOT NULL,
-    validation_status character varying(50),
-    last_validated_at timestamp(3) without time zone,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL,
-    updated_by text
-);
-
-
---
--- Name: audit_logs; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.audit_logs (
-    id text NOT NULL,
-    user_id text NOT NULL,
-    entity_type character varying(50) NOT NULL,
-    entity_id text NOT NULL,
-    action legacy_mgmt."AuditAction" NOT NULL,
-    changes jsonb,
-    ip_address character varying(45),
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: evaluation_overrides; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.evaluation_overrides (
-    id text NOT NULL,
-    evaluation_id text NOT NULL,
-    original_status legacy_mgmt."EvaluationStatus" NOT NULL,
-    new_status legacy_mgmt."EvaluationStatus" NOT NULL,
-    justification text NOT NULL,
-    overridden_by text NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: lead_activities; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.lead_activities (
-    id text NOT NULL,
-    lead_id text NOT NULL,
-    user_id text NOT NULL,
-    type legacy_mgmt."ActivityType" NOT NULL,
-    title character varying(255) NOT NULL,
-    description text,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: lead_evaluations; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.lead_evaluations (
-    id text NOT NULL,
-    lead_id text NOT NULL,
-    total_score numeric(5,2) NOT NULL,
-    status legacy_mgmt."EvaluationStatus" NOT NULL,
-    dimension_scores jsonb NOT NULL,
-    reasoning jsonb NOT NULL,
-    risk_flags jsonb NOT NULL,
-    recommendation text,
-    recommended_product_id text,
-    confidence_score integer,
-    estimated_closing_days integer,
-    hard_stop_triggered boolean DEFAULT false NOT NULL,
-    hard_stop_rule character varying(50),
-    evaluated_by text NOT NULL,
-    evaluated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    is_latest boolean DEFAULT true NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: lead_scores; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.lead_scores (
-    id text NOT NULL,
-    lead_id text NOT NULL,
-    evaluation_id text NOT NULL,
-    parameter_id text NOT NULL,
-    option_id text,
-    raw_value text,
-    points integer NOT NULL,
-    reasoning text,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: lead_sources; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.lead_sources (
-    id text NOT NULL,
-    name character varying(100) NOT NULL,
-    description text,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: leads; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.leads (
-    id text NOT NULL,
-    company_name character varying(255) NOT NULL,
-    contact_name character varying(255) NOT NULL,
-    contact_email character varying(255),
-    contact_phone character varying(50),
-    company_size character varying(50),
-    industry character varying(100),
-    annual_revenue character varying(50),
-    geography character varying(100),
-    source_id text,
-    status legacy_mgmt."LeadStatus" DEFAULT 'NEW'::legacy_mgmt."LeadStatus" NOT NULL,
-    notes text,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    created_by text NOT NULL,
-    tenant_id text,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL,
-    deleted_at timestamp(3) without time zone
-);
-
-
---
--- Name: parameter_options; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.parameter_options (
-    id text NOT NULL,
-    parameter_id text NOT NULL,
-    label character varying(255) NOT NULL,
-    value character varying(100) NOT NULL,
-    points integer NOT NULL,
-    sort_order integer DEFAULT 0 NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: parameters; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.parameters (
-    id text NOT NULL,
-    dimension_id text NOT NULL,
-    product_id text,
-    name character varying(100) NOT NULL,
-    key character varying(50) NOT NULL,
-    description text,
-    data_type legacy_mgmt."ParameterDataType" DEFAULT 'SELECT'::legacy_mgmt."ParameterDataType" NOT NULL,
-    is_required boolean DEFAULT false NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    sort_order integer DEFAULT 0 NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL
-);
-
-
---
--- Name: product_questions; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.product_questions (
-    id text NOT NULL,
-    product_id text NOT NULL,
-    question_text text NOT NULL,
-    expected_intent text,
-    sort_order integer DEFAULT 0 NOT NULL
-);
-
-
---
--- Name: products; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.products (
-    id text NOT NULL,
-    name character varying(150) NOT NULL,
-    category character varying(100),
-    description text NOT NULL,
-    reference_link character varying(500),
-    attachment_url character varying(500),
-    is_active boolean DEFAULT true NOT NULL,
-    base_closing_days integer DEFAULT 30 NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL
-);
-
-
---
--- Name: roles; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.roles (
-    id text NOT NULL,
-    name character varying(50) NOT NULL,
-    description text,
-    permissions jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL
-);
-
-
---
--- Name: scoring_dimensions; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.scoring_dimensions (
-    id text NOT NULL,
-    name character varying(100) NOT NULL,
-    key character varying(50) NOT NULL,
-    description text,
-    weight numeric(5,4) NOT NULL,
-    sort_order integer DEFAULT 0 NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL
-);
-
-
---
--- Name: users; Type: TABLE; Schema: legacy_mgmt; Owner: -
---
-
-CREATE TABLE legacy_mgmt.users (
-    id text NOT NULL,
-    email character varying(255) NOT NULL,
-    password_hash character varying(255) NOT NULL,
-    full_name character varying(255) NOT NULL,
-    role_id text NOT NULL,
-    is_active boolean DEFAULT true NOT NULL,
-    tenant_id text,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL,
-    deleted_at timestamp(3) without time zone
-);
-
 
 --
 -- Name: ai_connection_tests; Type: TABLE; Schema: public; Owner: -
@@ -3821,6 +3404,99 @@ ALTER SEQUENCE public.roles_id_seq OWNED BY public.roles.id;
 
 
 --
+-- Name: sales_visit_media; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_visit_media (
+    id bigint NOT NULL,
+    sales_visit_id bigint NOT NULL,
+    uploaded_by bigint,
+    media_type character varying(40) NOT NULL,
+    disk character varying(255) DEFAULT 'public'::character varying NOT NULL,
+    path character varying(255) NOT NULL,
+    mime_type character varying(255),
+    size_bytes bigint,
+    lat numeric(10,7),
+    lng numeric(10,7),
+    accuracy_m integer,
+    captured_at timestamp(0) without time zone,
+    metadata json,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: sales_visit_media_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.sales_visit_media_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: sales_visit_media_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.sales_visit_media_id_seq OWNED BY public.sales_visit_media.id;
+
+
+--
+-- Name: sales_visits; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_visits (
+    id bigint NOT NULL,
+    lead_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    status character varying(40) DEFAULT 'in_progress'::character varying NOT NULL,
+    clock_in_at timestamp(0) without time zone,
+    clock_out_at timestamp(0) without time zone,
+    clock_in_lat numeric(10,7),
+    clock_in_lng numeric(10,7),
+    clock_out_lat numeric(10,7),
+    clock_out_lng numeric(10,7),
+    clock_in_accuracy_m integer,
+    clock_out_accuracy_m integer,
+    clock_in_distance_m integer,
+    clock_out_distance_m integer,
+    risk_status character varying(40) DEFAULT 'verified'::character varying NOT NULL,
+    risk_signals json,
+    device_metadata json,
+    visit_result character varying(80),
+    notes text,
+    client_name character varying(255),
+    client_title character varying(255),
+    signature_captured_at timestamp(0) without time zone,
+    created_at timestamp(0) without time zone,
+    updated_at timestamp(0) without time zone
+);
+
+
+--
+-- Name: sales_visits_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.sales_visits_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: sales_visits_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.sales_visits_id_seq OWNED BY public.sales_visits.id;
+
+
+--
 -- Name: sessions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4760,6 +4436,20 @@ ALTER TABLE ONLY public.roles ALTER COLUMN id SET DEFAULT nextval('public.roles_
 
 
 --
+-- Name: sales_visit_media id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_visit_media ALTER COLUMN id SET DEFAULT nextval('public.sales_visit_media_id_seq'::regclass);
+
+
+--
+-- Name: sales_visits id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_visits ALTER COLUMN id SET DEFAULT nextval('public.sales_visits_id_seq'::regclass);
+
+
+--
 -- Name: sub_industries id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4841,252 +4531,6 @@ ALTER TABLE ONLY public.whatsapp_sessions ALTER COLUMN id SET DEFAULT nextval('p
 --
 
 ALTER TABLE ONLY public.whatsapp_sync_rules ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_sync_rules_id_seq'::regclass);
-
-
---
--- Data for Name: ai_parameter_suggestions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.ai_parameter_suggestions (id, product_id, suggested_name, suggested_key, description, reasoning, status, created_at) FROM stdin;
-7313175c-73f5-4f68-8e0a-09e4bbe28243	1e23148a-af5c-410e-ba24-d3dd367372c7	Current Collaboration Tools	current_collaboration_tools	Existing tools and platforms used for team collaboration	Companies using multiple disjointed tools may seek an integrated solution like Lark to streamline their processes.	PENDING	2026-04-14 14:27:30.172
-ea9d4672-b862-49cf-81a7-1d10acbf26a5	1e23148a-af5c-410e-ba24-d3dd367372c7	Workflow Automation Needs	workflow_automation_needs	The extent to which the company relies on automated workflows	Organizations looking to enhance efficiency through automation are prime candidates for Lark's capabilities.	APPROVED	2026-04-14 14:27:30.179
-d81abd25-e03d-4e08-91b7-b8110623aa98	1e23148a-af5c-410e-ba24-d3dd367372c7	Digital Transformation Initiatives	digital_transformation_initiatives	Ongoing or planned initiatives to modernize workplace technology	Companies actively pursuing digital transformation are more likely to invest in comprehensive solutions like Lark.	APPROVED	2026-04-14 14:27:30.178
-e573eae0-7bb6-402d-8000-b17698a0e137	1e23148a-af5c-410e-ba24-d3dd367372c7	Team Size	team_size	Number of employees or teams that require collaboration	Larger teams often face more challenges in coordination and may benefit significantly from a unified platform.	APPROVED	2026-04-14 14:27:30.177
-b84f9c6b-3ee1-4e72-84b9-c955ecf24651	1e23148a-af5c-410e-ba24-d3dd367372c7	Existing Collaboration Tools	existing_collaboration_tools	Current tools and platforms used for team collaboration and communication.	Companies using multiple disjointed tools may seek a unified solution like Lark to streamline their processes.	PENDING	2026-04-17 02:36:39.186
-fb372a74-4db0-4328-918c-96f78bcd4ac4	1e23148a-af5c-410e-ba24-d3dd367372c7	Need for Workflow Automation	need_for_workflow_automation	The extent to which the company requires automation in their workflows.	Organizations looking to enhance efficiency and reduce manual tasks are more likely to invest in a comprehensive platform.	PENDING	2026-04-17 02:36:39.19
-3bbc38f9-8978-446d-a6db-d0de4a1377e3	1e23148a-af5c-410e-ba24-d3dd367372c7	Size of the Team	size_of_the_team	Number of employees or teams that will utilize the platform.	Larger teams often face more challenges in collaboration and may benefit significantly from an integrated solution.	PENDING	2026-04-17 02:36:39.191
-19848151-0a15-48ff-b0d1-5a481d9c2a74	1e23148a-af5c-410e-ba24-d3dd367372c7	Digital Transformation Initiatives	digital_transformation_initiatives	Current efforts or strategies aimed at digital transformation within the company.	Companies actively pursuing digital transformation are more inclined to adopt modern productivity tools like Lark.	PENDING	2026-04-17 02:36:39.192
-\.
-
-
---
--- Data for Name: ai_provider_settings; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.ai_provider_settings (id, user_id, provider_name, model_name, api_key_encrypted, base_url, is_active, validation_status, last_validated_at, created_at, updated_at, updated_by) FROM stdin;
-cf3e795a-6219-4b06-acdd-6a3a3d4c2054	072db61f-4708-44c7-8e3d-f06de866de31	OpenAI	gpt-4o-mini	b69758a321ef5e2de2303284b1c146ed:05fddeba840b3c98ac168236c2def292:6eb14a468bd030b7c0d7d0d10349dbe8b4a8136e48b9a2267bc23ca2e8a40214fd3df3ba82e7047080efba8f5e9e9d274fd8b88cbc2e6c15c35ad090fc474359a8ba4a1cfee8d812a61f0462a5ed2afc245abd0f1b2f43ef7848b706a2c39dffc3e3a1031c752e92e99517c1d1ef46f6b854216b0394b0454845edf727528e1a8ea9905bd07bfb11c180ca0adca706fa1a26da4e041e762b10afc69498e991822a5415e7	\N	t	SUCCESS	2026-04-14 14:24:34.224	2026-04-14 14:24:34.225	2026-04-14 14:24:34.225	072db61f-4708-44c7-8e3d-f06de866de31
-\.
-
-
---
--- Data for Name: audit_logs; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.audit_logs (id, user_id, entity_type, entity_id, action, changes, ip_address, created_at) FROM stdin;
-13b011f3-bd6d-4e3a-ae64-34d81e0d4cac	072db61f-4708-44c7-8e3d-f06de866de31	Product	afd3896e-87b2-4ee7-824a-cfdf3a47ed83	CREATE	{"data": {"id": "afd3896e-87b2-4ee7-824a-cfdf3a47ed83", "name": "Test Product", "category": "Testing", "isActive": true, "createdAt": "2026-04-14T14:09:24.970Z", "updatedAt": "2026-04-14T14:09:24.970Z", "description": "Test description", "attachmentUrl": null, "referenceLink": null, "baseClosingDays": 30}}	::ffff:127.0.0.1	2026-04-14 14:09:24.975
-0210d947-913f-42c9-8ae7-f9434d920ed0	072db61f-4708-44c7-8e3d-f06de866de31	Product	1e23148a-af5c-410e-ba24-d3dd367372c7	CREATE	{"data": {"id": "1e23148a-af5c-410e-ba24-d3dd367372c7", "name": "Larksuite", "category": "Productivity & Collaboration Platform / Digital Workplace / Workflow & Operations Platform", "isActive": true, "createdAt": "2026-04-14T14:10:05.960Z", "updatedAt": "2026-04-14T14:10:05.960Z", "description": "Lark adalah platform kerja terpadu yang menggabungkan chat, meeting, kalender, dokumen, penyimpanan cloud, workflow automation, dan AI dalam satu ekosistem kerja. Nilai utamanya bukan hanya komunikasi tim, tetapi juga penyatuan proses kerja agar koordinasi, dokumentasi, pengambilan keputusan, dan eksekusi operasional dapat berjalan dalam satu platform yang saling terhubung. Untuk perusahaan, Lark relevan sebagai fondasi digital workplace modern yang mampu mengurangi silo antar aplikasi, mempercepat kolaborasi lintas divisi, dan mendukung pembuatan workflow operasional maupun dashboard kerja yang lebih terstruktur.", "attachmentUrl": null, "referenceLink": "", "baseClosingDays": 30}}	::ffff:172.19.0.1	2026-04-14 14:10:05.963
-388f9d6e-fc47-4963-b58d-4f7bed19a391	072db61f-4708-44c7-8e3d-f06de866de31	Lead	7ba83b2a-38ea-46e1-8a7c-b4c056780c7d	CREATE	{"status": "NEW", "companyName": "Future Creative Network"}	\N	2026-04-14 14:11:09.416
-1f1b2c25-3926-488f-bcd3-02a26570a7f2	072db61f-4708-44c7-8e3d-f06de866de31	Role	467a69b5-a4db-430e-8f53-3e4852c44b21	UPDATE	{"name": "admin", "description": "System administrator with full access", "permissions": ["users.read", "users.write", "roles.read", "roles.write", "leads.read", "leads.write", "evaluations.read", "evaluations.execute", "dashboard.read", "settings.read", "settings.write", "audit_logs.read", "ai_engines.read", "ai_engines.write"]}	\N	2026-04-14 14:15:57.525
-d17245bb-8565-4592-9446-b6f0086b0f04	072db61f-4708-44c7-8e3d-f06de866de31	Role	467a69b5-a4db-430e-8f53-3e4852c44b21	UPDATE	{"name": "admin", "description": "System administrator with full access", "permissions": ["users.read", "users.write", "roles.read", "roles.write", "leads.read", "leads.write", "evaluations.read", "evaluations.execute", "dashboard.read", "settings.read", "settings.write", "audit_logs.read", "ai_engines.read", "ai_engines.write"]}	\N	2026-04-14 14:18:42.202
-cddf7197-c1ed-40e3-89a1-784f275990fd	072db61f-4708-44c7-8e3d-f06de866de31	Role	467a69b5-a4db-430e-8f53-3e4852c44b21	UPDATE	{"name": "admin", "description": "System administrator with full access", "permissions": ["users.read", "users.write", "roles.read", "roles.write", "leads.read", "leads.write", "evaluations.read", "evaluations.execute", "dashboard.read", "settings.read", "settings.write", "audit_logs.read", "ai_engines.read", "ai_engines.write"]}	\N	2026-04-14 14:19:57.092
-fc8e1616-4e86-4eaa-b512-91746ae89429	072db61f-4708-44c7-8e3d-f06de866de31	AiProviderSetting	cf3e795a-6219-4b06-acdd-6a3a3d4c2054	SETTINGS_UPDATE	{"isValid": true, "providerName": "OpenAI"}	\N	2026-04-14 14:24:34.233
-5c257f04-a370-4e00-ac1b-2cc0aac519d5	072db61f-4708-44c7-8e3d-f06de866de31	Product	afd3896e-87b2-4ee7-824a-cfdf3a47ed83	DELETE	{"data": {"id": "afd3896e-87b2-4ee7-824a-cfdf3a47ed83", "name": "Test Product", "category": "Testing", "isActive": true, "createdAt": "2026-04-14T14:09:24.970Z", "updatedAt": "2026-04-14T14:09:24.970Z", "description": "Test description", "attachmentUrl": null, "referenceLink": null, "baseClosingDays": 30}}	::ffff:172.19.0.1	2026-04-14 14:24:41.246
-ee725bd8-adce-471e-80ca-0788f1ab8009	072db61f-4708-44c7-8e3d-f06de866de31	Lead	1144dba7-087f-472e-91ca-3ebc14745325	CREATE	{"status": "NEW", "companyName": "Menara Rajawali"}	\N	2026-04-17 02:30:48.203
-\.
-
-
---
--- Data for Name: evaluation_overrides; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.evaluation_overrides (id, evaluation_id, original_status, new_status, justification, overridden_by, created_at) FROM stdin;
-\.
-
-
---
--- Data for Name: lead_activities; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.lead_activities (id, lead_id, user_id, type, title, description, metadata, created_at) FROM stdin;
-46390288-ca9e-42d3-8427-a24e5004f46d	1144dba7-087f-472e-91ca-3ebc14745325	072db61f-4708-44c7-8e3d-f06de866de31	EVALUATION	Lead evaluated: POTENTIAL (Score: 88.1)	🤖 AI Generated: Menara Rajawali shows a strong interest in adopting collaboration tools, making Lark a relevant solution for their needs. The company has a clearly defined problem and an immediate urgency for implementation, which aligns well with Lark's capabilities as a productivity and collaboration platform. However, the firmographic fit indicates a slight mismatch in company size, which may require further discussion to ensure Lark can fully meet their needs. The next steps should involve a deeper engagement with the decision-makers to explore their specific requirements and demonstrate how Lark can address their collaboration challenges effectively.	{"score": 88.1, "status": "POTENTIAL"}	2026-04-17 02:33:02.119
-\.
-
-
---
--- Data for Name: lead_evaluations; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.lead_evaluations (id, lead_id, total_score, status, dimension_scores, reasoning, risk_flags, recommendation, recommended_product_id, confidence_score, estimated_closing_days, hard_stop_triggered, hard_stop_rule, evaluated_by, evaluated_at, is_latest, created_at) FROM stdin;
-e404bfa5-bd4b-497e-a7dd-70da70191fcb	1144dba7-087f-472e-91ca-3ebc14745325	88.10	POTENTIAL	[{"key": "firmographic", "name": "Firmographic Fit", "score": 11.67, "maxScore": 20, "rawScore": 35, "maxRawScore": 60}, {"key": "need_relevance", "name": "Need Relevance", "score": 21.43, "maxScore": 25, "rawScore": 60, "maxRawScore": 70}, {"key": "budget_commercial", "name": "Budget & Commercial Readiness", "score": 20, "maxScore": 20, "rawScore": 45, "maxRawScore": 45}, {"key": "stakeholder_access", "name": "Stakeholder Access", "score": 20, "maxScore": 20, "rawScore": 50, "maxRawScore": 50}, {"key": "technical_fit", "name": "Technical Fit", "score": 15, "maxScore": 15, "rawScore": 35, "maxRawScore": 35}]	["+5: Company Size — 10–49 employees (Small)", "+20: Industry Match — Exact ICP match", "+10: Geography — Serviceable market", "+25: Problem Clarity — Clearly defined", "+15: Solution Alignment — Partial match", "+20: Urgency — Immediate (< 1 month)", "+20: Budget Status — Confirmed & allocated", "+15: Timeline — < 3 months", "+10: Procurement — Simple process", "+20: Decision Maker — Engaged & accessible", "+15: Champion — Internal champion exists", "+15: Engagement Level — Multiple touchpoints", "+20: Infrastructure — Modern cloud/SaaS", "+15: Integration Complexity — Simple API", "------ AI Analysis ------", "🤖 The lead has a clearly defined need for collaboration tools, indicating strong relevance for Lark.", "🤖 The urgency for implementation is immediate, suggesting a high likelihood of a quick decision.", "🤖 The budget status is confirmed and allocated, which supports a favorable purchasing decision.", "🤖 While the industry match is exact, the company size does not fully align with the ideal customer profile, which may require further exploration."]	[]	🤖 AI Generated: Menara Rajawali shows a strong interest in adopting collaboration tools, making Lark a relevant solution for their needs. The company has a clearly defined problem and an immediate urgency for implementation, which aligns well with Lark's capabilities as a productivity and collaboration platform. However, the firmographic fit indicates a slight mismatch in company size, which may require further discussion to ensure Lark can fully meet their needs. The next steps should involve a deeper engagement with the decision-makers to explore their specific requirements and demonstrate how Lark can address their collaboration challenges effectively.	1e23148a-af5c-410e-ba24-d3dd367372c7	75	30	f	\N	072db61f-4708-44c7-8e3d-f06de866de31	2026-04-17 02:33:02.106	t	2026-04-17 02:33:02.106
-\.
-
-
---
--- Data for Name: lead_scores; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.lead_scores (id, lead_id, evaluation_id, parameter_id, option_id, raw_value, points, reasoning, created_at) FROM stdin;
-d218c11d-c750-4571-b397-48b3ef064261	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	950ac6f9-9711-4062-b546-e9fdb87ac4ef	7dc42c0d-1a04-4eaf-bc9b-393eea5ab987	small	5	Company Size: 10–49 employees (Small) = 5 points	2026-04-17 02:33:02.106
-ec9d7570-1c96-4635-8fb6-131c78d00788	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	b32f5a6e-f57a-47bb-a98b-69fa47d626c3	35675295-9f50-4dc1-8dc3-7afb5b29c1bf	exact	20	Industry Match: Exact ICP match = 20 points	2026-04-17 02:33:02.106
-a59b28ee-eb56-4a1c-9a57-3f3a7336a463	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	4798b69b-ccb7-4b2b-a2be-dc391880254a	59d6db30-7f3f-4eb8-9f6e-1170b310ec89	serviceable	10	Geography: Serviceable market = 10 points	2026-04-17 02:33:02.106
-00f73807-949b-4b22-a53c-c7f446f92b05	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	a1c73bd6-c302-4a89-a4ae-d7d9c68a9762	77a89514-764a-4e57-8f7f-e7a6c9929073	clear	25	Problem Clarity: Clearly defined = 25 points	2026-04-17 02:33:02.106
-3baf9847-505f-4b0e-8c15-5d34f1cc504b	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	904b10d5-72e9-4c16-af07-1012c3726134	b09a247d-1a55-46a9-8b07-7e1169a815d9	partial	15	Solution Alignment: Partial match = 15 points	2026-04-17 02:33:02.106
-8c245bb2-09c4-4f69-a21e-272a4926981c	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	2b955c5d-8b61-4d8b-92b1-8acd9d5141be	51694eee-076c-404b-9016-5d32f8581b1a	immediate	20	Urgency: Immediate (< 1 month) = 20 points	2026-04-17 02:33:02.106
-319d9a69-a37e-4666-880e-eef6f04aee7d	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	5bbe8fda-99eb-4a97-bd2e-8f2f8e8d995f	35f41973-d78c-495f-b12e-3e7ad303f7a2	confirmed	20	Budget Status: Confirmed & allocated = 20 points	2026-04-17 02:33:02.106
-d8eb6487-93fd-4637-adeb-681e438fbc40	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	36c7494b-0ae5-4c91-ae76-08b2d6bb490b	90bba764-92a5-4770-b3a8-26b184be4b50	short	15	Timeline: < 3 months = 15 points	2026-04-17 02:33:02.106
-776650ff-8425-4646-9811-f7c5628aaaeb	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	4b1a0d0a-0b5b-4666-9910-a512e2f2513f	51b7411d-cb34-4faf-b5f2-2c4d4c442f0c	simple	10	Procurement: Simple process = 10 points	2026-04-17 02:33:02.106
-c642e636-6354-4a4c-8fb0-e491af735a73	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	a0f188e9-6acb-4259-93b8-e0130aeb6cac	d1c29275-6e33-483c-adcf-413e8edb98c7	engaged	20	Decision Maker: Engaged & accessible = 20 points	2026-04-17 02:33:02.106
-d459272d-483a-473c-bfd5-a9ee8cafe49f	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	0f39705a-ef2d-4181-b262-67518fafc6d2	6aefea2c-0efa-4a9c-82ab-2da9f4b863b0	exists	15	Champion: Internal champion exists = 15 points	2026-04-17 02:33:02.106
-c2c43a73-2bb3-4f68-8bec-c7f4a0d83291	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	5e7d52e6-b845-4a4a-9c11-878e7f4dfba2	cd3bef9b-c9a3-42c5-98ef-1458ef3a9bbc	multiple	15	Engagement Level: Multiple touchpoints = 15 points	2026-04-17 02:33:02.106
-2ffd6aee-dc66-45cb-b025-0cd1a00902c8	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	e4eda124-e649-43a8-beb8-dfb3ee3efa96	22ba08b9-968c-46c9-b0cb-bf5d63db4cc6	modern	20	Infrastructure: Modern cloud/SaaS = 20 points	2026-04-17 02:33:02.106
-583dd108-1538-4b45-bc67-60cee113de57	1144dba7-087f-472e-91ca-3ebc14745325	e404bfa5-bd4b-497e-a7dd-70da70191fcb	d10265d8-8081-456d-a837-8bef86a743c8	6b32382f-acff-401b-b710-89d4c5be73e4	simple	15	Integration Complexity: Simple API = 15 points	2026-04-17 02:33:02.106
-\.
-
-
---
--- Data for Name: lead_sources; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.lead_sources (id, name, description, is_active, created_at) FROM stdin;
-src_website	Website	\N	t	2026-04-13 14:38:41.679
-src_inbound	Inbound	\N	t	2026-04-13 14:38:41.679
-src_outbound	Outbound	\N	t	2026-04-13 14:38:41.679
-src_referral	Referral	\N	t	2026-04-13 14:38:41.679
-a5b4dbca-52bd-4d17-8836-3e28820fffaa	Event	Event source	t	2026-04-13 14:43:37.601
-43843012-7cc3-45df-9d9d-2e8bf542855b	Partner	Partner source	t	2026-04-13 14:43:37.601
-475a150e-e0f5-4016-b74b-bbd647870eaf	Cold Outreach	Cold Outreach source	t	2026-04-13 14:43:37.601
-\.
-
-
---
--- Data for Name: leads; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.leads (id, company_name, contact_name, contact_email, contact_phone, company_size, industry, annual_revenue, geography, source_id, status, notes, metadata, created_by, tenant_id, created_at, updated_at, deleted_at) FROM stdin;
-7ba83b2a-38ea-46e1-8a7c-b4c056780c7d	Future Creative Network	Kodrat Santoso	kodrat.santoso@virtuenet.space	087884701947	250-999	Professional Services	$10M–$50M	Indonesia	src_inbound	NEW	Testing	{}	072db61f-4708-44c7-8e3d-f06de866de31	\N	2026-04-14 14:11:09.407	2026-04-14 14:11:09.407	\N
-1144dba7-087f-472e-91ca-3ebc14745325	Menara Rajawali	Mella	mella.refina@prasetia.co.id	0977127371273	50-249	Other	$10M–$50M	Indonesia	src_inbound	POTENTIAL	Need to adopt collaboration tools	{}	072db61f-4708-44c7-8e3d-f06de866de31	\N	2026-04-17 02:30:48.195	2026-04-17 02:33:02.117	\N
-\.
-
-
---
--- Data for Name: parameter_options; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.parameter_options (id, parameter_id, label, value, points, sort_order, is_active, created_at) FROM stdin;
-5655987f-3e2a-4133-8fad-85f919da1f0a	950ac6f9-9711-4062-b546-e9fdb87ac4ef	1–9 employees (Micro)	micro	2	1	t	2026-04-14 13:53:53.537
-7dc42c0d-1a04-4eaf-bc9b-393eea5ab987	950ac6f9-9711-4062-b546-e9fdb87ac4ef	10–49 employees (Small)	small	5	2	t	2026-04-14 13:53:53.538
-f4bf0d8f-aaa8-409b-b9c3-a84305ee8c61	950ac6f9-9711-4062-b546-e9fdb87ac4ef	50–249 employees (Medium)	medium	15	3	t	2026-04-14 13:53:53.538
-e054c27c-7c82-4dff-893c-4ca61aff1a4a	950ac6f9-9711-4062-b546-e9fdb87ac4ef	250–999 employees (Large)	large	20	4	t	2026-04-14 13:53:53.539
-1c83e9c2-ff86-4c9d-b406-4d241005e054	950ac6f9-9711-4062-b546-e9fdb87ac4ef	1000+ employees (Enterprise)	enterprise	15	5	t	2026-04-14 13:53:53.54
-35675295-9f50-4dc1-8dc3-7afb5b29c1bf	b32f5a6e-f57a-47bb-a98b-69fa47d626c3	Exact ICP match	exact	20	1	t	2026-04-14 13:53:53.541
-fbef8c7a-04ea-4335-882b-2fe17e3378ba	b32f5a6e-f57a-47bb-a98b-69fa47d626c3	Adjacent industry	adjacent	10	2	t	2026-04-14 13:53:53.541
-09c72c32-d94d-42f8-977c-c0921b4ff992	b32f5a6e-f57a-47bb-a98b-69fa47d626c3	No match	no_match	0	3	t	2026-04-14 13:53:53.542
-eaa3ded3-afda-4868-bdbb-4b75e6cff38e	4798b69b-ccb7-4b2b-a2be-dc391880254a	Target market	target	20	1	t	2026-04-14 13:53:53.543
-59d6db30-7f3f-4eb8-9f6e-1170b310ec89	4798b69b-ccb7-4b2b-a2be-dc391880254a	Serviceable market	serviceable	10	2	t	2026-04-14 13:53:53.544
-fe49b9b4-83b9-4ec9-9966-bf8d71cdd900	4798b69b-ccb7-4b2b-a2be-dc391880254a	Outside market	outside	0	3	t	2026-04-14 13:53:53.544
-77a89514-764a-4e57-8f7f-e7a6c9929073	a1c73bd6-c302-4a89-a4ae-d7d9c68a9762	Clearly defined	clear	25	1	t	2026-04-14 13:53:53.546
-53a3f63d-843b-438f-a35e-b464b3724577	a1c73bd6-c302-4a89-a4ae-d7d9c68a9762	Somewhat defined	somewhat	15	2	t	2026-04-14 13:53:53.546
-3fca7e53-7f1a-4b4d-b021-222c800a2fd7	a1c73bd6-c302-4a89-a4ae-d7d9c68a9762	Vague/unclear	vague	5	3	t	2026-04-14 13:53:53.547
-ce6ab1a6-7272-4ed9-ac99-ed59756255d5	a1c73bd6-c302-4a89-a4ae-d7d9c68a9762	No clear problem	none	-15	4	t	2026-04-14 13:53:53.547
-77689a22-6c6b-4649-bd60-8af289be88dc	904b10d5-72e9-4c16-af07-1012c3726134	Direct match	direct	25	1	t	2026-04-14 13:53:53.548
-b09a247d-1a55-46a9-8b07-7e1169a815d9	904b10d5-72e9-4c16-af07-1012c3726134	Partial match	partial	15	2	t	2026-04-14 13:53:53.549
-9b019cd5-bb5a-46fc-979c-39a5844567d3	904b10d5-72e9-4c16-af07-1012c3726134	No match	no_match	0	3	t	2026-04-14 13:53:53.549
-51694eee-076c-404b-9016-5d32f8581b1a	2b955c5d-8b61-4d8b-92b1-8acd9d5141be	Immediate (< 1 month)	immediate	20	1	t	2026-04-14 13:53:53.551
-bcf48ed8-8776-49c2-9386-09dfecfbbeb1	2b955c5d-8b61-4d8b-92b1-8acd9d5141be	Short-term (1–3 months)	short	15	2	t	2026-04-14 13:53:53.551
-f01d34e0-338c-4d6c-b0e4-d6aa02375d53	2b955c5d-8b61-4d8b-92b1-8acd9d5141be	Medium-term (3–6 months)	medium	10	3	t	2026-04-14 13:53:53.552
-5f9f379c-5aed-4edc-a08e-36761c108956	2b955c5d-8b61-4d8b-92b1-8acd9d5141be	Long-term (> 6 months)	long	5	4	t	2026-04-14 13:53:53.552
-35f41973-d78c-495f-b12e-3e7ad303f7a2	5bbe8fda-99eb-4a97-bd2e-8f2f8e8d995f	Confirmed & allocated	confirmed	20	1	t	2026-04-14 13:53:53.554
-a0354165-f70c-4f51-b383-b66a26142fb9	5bbe8fda-99eb-4a97-bd2e-8f2f8e8d995f	Planned, not allocated	planned	12	2	t	2026-04-14 13:53:53.554
-ce64658f-034e-4633-860c-782599c28272	5bbe8fda-99eb-4a97-bd2e-8f2f8e8d995f	Exploring	exploring	5	3	t	2026-04-14 13:53:53.555
-62bed1d6-bd7d-4316-9e04-c53fe0350b86	5bbe8fda-99eb-4a97-bd2e-8f2f8e8d995f	No budget	no_budget	0	4	t	2026-04-14 13:53:53.555
-90bba764-92a5-4770-b3a8-26b184be4b50	36c7494b-0ae5-4c91-ae76-08b2d6bb490b	< 3 months	short	15	1	t	2026-04-14 13:53:53.556
-79c908c2-61d5-4c01-b8ef-25b210323269	36c7494b-0ae5-4c91-ae76-08b2d6bb490b	3–6 months	medium	10	2	t	2026-04-14 13:53:53.557
-9dfcc6e7-5baa-4a97-90af-937348f51bea	36c7494b-0ae5-4c91-ae76-08b2d6bb490b	> 6 months	long_term	5	3	t	2026-04-14 13:53:53.557
-51b7411d-cb34-4faf-b5f2-2c4d4c442f0c	4b1a0d0a-0b5b-4666-9910-a512e2f2513f	Simple process	simple	10	1	t	2026-04-14 13:53:53.559
-ab537111-4a03-4a09-8c99-b28b443e9cd8	4b1a0d0a-0b5b-4666-9910-a512e2f2513f	Standard RFP	standard	5	2	t	2026-04-14 13:53:53.559
-7388d541-2727-47f2-8859-17fec0cc87a5	4b1a0d0a-0b5b-4666-9910-a512e2f2513f	Complex/government	complex	2	3	t	2026-04-14 13:53:53.56
-d1c29275-6e33-483c-adcf-413e8edb98c7	a0f188e9-6acb-4259-93b8-e0130aeb6cac	Engaged & accessible	engaged	20	1	t	2026-04-14 13:53:53.561
-341dc917-1c2f-4f3c-9375-8409aea46c7d	a0f188e9-6acb-4259-93b8-e0130aeb6cac	Identified, not engaged	identified	10	2	t	2026-04-14 13:53:53.561
-b47b815a-5d55-483e-a345-cea89305d38f	a0f188e9-6acb-4259-93b8-e0130aeb6cac	Unknown	unknown	0	3	t	2026-04-14 13:53:53.562
-6aefea2c-0efa-4a9c-82ab-2da9f4b863b0	0f39705a-ef2d-4181-b262-67518fafc6d2	Internal champion exists	exists	15	1	t	2026-04-14 13:53:53.563
-a2ab612e-d91a-4dc0-be22-6f6ca3133a40	0f39705a-ef2d-4181-b262-67518fafc6d2	Potential champion	potential	8	2	t	2026-04-14 13:53:53.564
-d99931e1-4f93-4d01-92c3-97809f47f277	0f39705a-ef2d-4181-b262-67518fafc6d2	No champion	no_champion	0	3	t	2026-04-14 13:53:53.564
-cd3bef9b-c9a3-42c5-98ef-1458ef3a9bbc	5e7d52e6-b845-4a4a-9c11-878e7f4dfba2	Multiple touchpoints	multiple	15	1	t	2026-04-14 13:53:53.565
-8e059dee-7714-47fe-b5b2-1ddab41e0ab7	5e7d52e6-b845-4a4a-9c11-878e7f4dfba2	Single touchpoint	single	8	2	t	2026-04-14 13:53:53.566
-756385a7-081f-447d-90c1-9a581fbb05a5	5e7d52e6-b845-4a4a-9c11-878e7f4dfba2	Cold/unresponsive	cold	0	3	t	2026-04-14 13:53:53.566
-22ba08b9-968c-46c9-b0cb-bf5d63db4cc6	e4eda124-e649-43a8-beb8-dfb3ee3efa96	Modern cloud/SaaS	modern	20	1	t	2026-04-14 13:53:53.568
-5ad22524-9189-4fcc-8568-fff78b9faa93	e4eda124-e649-43a8-beb8-dfb3ee3efa96	Hybrid	hybrid	12	2	t	2026-04-14 13:53:53.568
-d8c7ad92-d38a-4525-aaf4-0f5ebba5b6da	e4eda124-e649-43a8-beb8-dfb3ee3efa96	Legacy only	legacy	5	3	t	2026-04-14 13:53:53.569
-6b32382f-acff-401b-b710-89d4c5be73e4	d10265d8-8081-456d-a837-8bef86a743c8	Simple API	simple	15	1	t	2026-04-14 13:53:53.57
-cf9e7f39-ed1e-44ef-85d9-262b48058f44	d10265d8-8081-456d-a837-8bef86a743c8	Moderate	moderate	10	2	t	2026-04-14 13:53:53.57
-23c0ccdb-0864-40f0-b545-4ff19d5a0eaf	d10265d8-8081-456d-a837-8bef86a743c8	Complex/custom	complex	3	3	t	2026-04-14 13:53:53.57
-\.
-
-
---
--- Data for Name: parameters; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.parameters (id, dimension_id, product_id, name, key, description, data_type, is_required, is_active, sort_order, created_at, updated_at) FROM stdin;
-950ac6f9-9711-4062-b546-e9fdb87ac4ef	aa7f9b56-4d01-4b4a-b822-2cc6726e3fb9	\N	Company Size	company_size	\N	SELECT	t	t	1	2026-04-14 13:53:53.535	2026-04-14 13:53:53.535
-b32f5a6e-f57a-47bb-a98b-69fa47d626c3	aa7f9b56-4d01-4b4a-b822-2cc6726e3fb9	\N	Industry Match	industry_match	\N	SELECT	t	t	2	2026-04-14 13:53:53.54	2026-04-14 13:53:53.54
-4798b69b-ccb7-4b2b-a2be-dc391880254a	aa7f9b56-4d01-4b4a-b822-2cc6726e3fb9	\N	Geography	geography	\N	SELECT	t	t	3	2026-04-14 13:53:53.543	2026-04-14 13:53:53.543
-a1c73bd6-c302-4a89-a4ae-d7d9c68a9762	0779d204-ae51-499e-b826-86f40c332b3d	\N	Problem Clarity	problem_clarity	\N	SELECT	t	t	1	2026-04-14 13:53:53.545	2026-04-14 13:53:53.545
-904b10d5-72e9-4c16-af07-1012c3726134	0779d204-ae51-499e-b826-86f40c332b3d	\N	Solution Alignment	solution_alignment	\N	SELECT	t	t	2	2026-04-14 13:53:53.548	2026-04-14 13:53:53.548
-2b955c5d-8b61-4d8b-92b1-8acd9d5141be	0779d204-ae51-499e-b826-86f40c332b3d	\N	Urgency	urgency	\N	SELECT	t	t	3	2026-04-14 13:53:53.55	2026-04-14 13:53:53.55
-5bbe8fda-99eb-4a97-bd2e-8f2f8e8d995f	fbfa44bc-7a8b-4c20-8c2c-c5cce76f76d6	\N	Budget Status	budget_status	\N	SELECT	t	t	1	2026-04-14 13:53:53.553	2026-04-14 13:53:53.553
-36c7494b-0ae5-4c91-ae76-08b2d6bb490b	fbfa44bc-7a8b-4c20-8c2c-c5cce76f76d6	\N	Timeline	timeline	\N	SELECT	t	t	2	2026-04-14 13:53:53.556	2026-04-14 13:53:53.556
-4b1a0d0a-0b5b-4666-9910-a512e2f2513f	fbfa44bc-7a8b-4c20-8c2c-c5cce76f76d6	\N	Procurement	procurement	\N	SELECT	t	t	3	2026-04-14 13:53:53.558	2026-04-14 13:53:53.558
-a0f188e9-6acb-4259-93b8-e0130aeb6cac	31149874-8559-4529-a1a5-33edff254a4b	\N	Decision Maker	decision_maker	\N	SELECT	t	t	1	2026-04-14 13:53:53.56	2026-04-14 13:53:53.56
-0f39705a-ef2d-4181-b262-67518fafc6d2	31149874-8559-4529-a1a5-33edff254a4b	\N	Champion	champion	\N	SELECT	t	t	2	2026-04-14 13:53:53.563	2026-04-14 13:53:53.563
-5e7d52e6-b845-4a4a-9c11-878e7f4dfba2	31149874-8559-4529-a1a5-33edff254a4b	\N	Engagement Level	engagement_level	\N	SELECT	t	t	3	2026-04-14 13:53:53.565	2026-04-14 13:53:53.565
-e4eda124-e649-43a8-beb8-dfb3ee3efa96	8760b5f8-caf6-4895-af8f-0d009a2584c5	\N	Infrastructure	infrastructure	\N	SELECT	t	t	1	2026-04-14 13:53:53.567	2026-04-14 13:53:53.567
-d10265d8-8081-456d-a837-8bef86a743c8	8760b5f8-caf6-4895-af8f-0d009a2584c5	\N	Integration Complexity	integration_complexity	\N	SELECT	t	t	2	2026-04-14 13:53:53.569	2026-04-14 13:53:53.569
-52748ae8-fafe-4ca5-8b74-1559d9ece327	8760b5f8-caf6-4895-af8f-0d009a2584c5	1e23148a-af5c-410e-ba24-d3dd367372c7	Workflow Automation Needs	workflow_automation_needs	The extent to which the company relies on automated workflows	SELECT	f	t	0	2026-04-14 14:27:43.607	2026-04-14 14:27:43.607
-7aaf4537-c6ed-41e9-861b-69ca224974ef	8760b5f8-caf6-4895-af8f-0d009a2584c5	1e23148a-af5c-410e-ba24-d3dd367372c7	Digital Transformation Initiatives	digital_transformation_initiatives	Ongoing or planned initiatives to modernize workplace technology	SELECT	f	t	0	2026-04-14 14:27:50.458	2026-04-14 14:27:50.458
-64667103-f646-4c51-81b3-bc1f27981e0c	8760b5f8-caf6-4895-af8f-0d009a2584c5	1e23148a-af5c-410e-ba24-d3dd367372c7	Team Size	team_size	Number of employees or teams that require collaboration	SELECT	f	t	0	2026-04-14 14:27:59.463	2026-04-14 14:27:59.463
-\.
-
-
---
--- Data for Name: product_questions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.product_questions (id, product_id, question_text, expected_intent, sort_order) FROM stdin;
-\.
-
-
---
--- Data for Name: products; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.products (id, name, category, description, reference_link, attachment_url, is_active, base_closing_days, created_at, updated_at) FROM stdin;
-1e23148a-af5c-410e-ba24-d3dd367372c7	Larksuite	Productivity & Collaboration Platform / Digital Workplace / Workflow & Operations Platform	Lark adalah platform kerja terpadu yang menggabungkan chat, meeting, kalender, dokumen, penyimpanan cloud, workflow automation, dan AI dalam satu ekosistem kerja. Nilai utamanya bukan hanya komunikasi tim, tetapi juga penyatuan proses kerja agar koordinasi, dokumentasi, pengambilan keputusan, dan eksekusi operasional dapat berjalan dalam satu platform yang saling terhubung. Untuk perusahaan, Lark relevan sebagai fondasi digital workplace modern yang mampu mengurangi silo antar aplikasi, mempercepat kolaborasi lintas divisi, dan mendukung pembuatan workflow operasional maupun dashboard kerja yang lebih terstruktur.		\N	t	30	2026-04-14 14:10:05.96	2026-04-14 14:10:05.96
-\.
-
-
---
--- Data for Name: roles; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.roles (id, name, description, permissions, created_at, updated_at) FROM stdin;
-f4b088a6-a777-4790-bf5c-bd50d4bcdc96	super_admin	Super Admin	["*"]	2026-04-13 14:18:45.036	2026-04-13 14:18:45.036
-eb37e9d2-3804-4704-b667-aaf916c12947	manager	Sales manager with approval capabilities	["leads.read", "leads.write", "evaluations.read", "evaluations.execute", "dashboard.read", "users.read", "audit_logs.read"]	2026-04-14 13:53:53.341	2026-04-14 14:17:05.7
-d25d56e0-eca1-4e6b-8092-f68b871b3112	analyst	Lead analyst with evaluation capabilities	["leads.read", "evaluations.read", "evaluations.execute", "dashboard.read"]	2026-04-14 13:53:53.342	2026-04-14 14:17:05.701
-467a69b5-a4db-430e-8f53-3e4852c44b21	admin	System administrator with full access	["users.read", "users.write", "roles.read", "roles.write", "leads.read", "leads.write", "evaluations.read", "evaluations.execute", "dashboard.read", "settings.read", "settings.write", "audit_logs.read", "ai_engines.read", "ai_engines.write", "ai_settings.read", "ai_settings.write"]	2026-04-14 13:53:53.318	2026-04-18 14:00:28.418
-\.
-
-
---
--- Data for Name: scoring_dimensions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.scoring_dimensions (id, name, key, description, weight, sort_order, is_active, created_at, updated_at) FROM stdin;
-aa7f9b56-4d01-4b4a-b822-2cc6726e3fb9	Firmographic Fit	firmographic	\N	0.2000	1	t	2026-04-14 13:53:53.533	2026-04-14 14:17:05.89
-0779d204-ae51-499e-b826-86f40c332b3d	Need Relevance	need_relevance	\N	0.2500	2	t	2026-04-14 13:53:53.544	2026-04-14 14:17:05.895
-fbfa44bc-7a8b-4c20-8c2c-c5cce76f76d6	Budget & Commercial Readiness	budget_commercial	\N	0.2000	3	t	2026-04-14 13:53:53.553	2026-04-14 14:17:05.899
-31149874-8559-4529-a1a5-33edff254a4b	Stakeholder Access	stakeholder_access	\N	0.2000	4	t	2026-04-14 13:53:53.56	2026-04-14 14:17:05.902
-8760b5f8-caf6-4895-af8f-0d009a2584c5	Technical Fit	technical_fit	\N	0.1500	5	t	2026-04-14 13:53:53.566	2026-04-14 14:17:05.905
-\.
-
-
---
--- Data for Name: users; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
---
-
-COPY legacy_mgmt.users (id, email, password_hash, full_name, role_id, is_active, tenant_id, created_at, updated_at, deleted_at) FROM stdin;
-072db61f-4708-44c7-8e3d-f06de866de31	admin@prasetia.com	$2b$12$QNrt4UaYB..vgFpPbMddnu1RWULww60uOBugrse4U/zSdILXnXC0a	System Admin	467a69b5-a4db-430e-8f53-3e4852c44b21	t	\N	2026-04-13 14:18:45.085	2026-04-14 14:17:05.883	\N
-\.
 
 
 --
@@ -5493,6 +4937,419 @@ COPY public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadat
 
 
 --
+-- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.audit_logs (id, user_id, action, module, record_type, record_id, before_value, after_value, ip_address, user_agent, created_at, updated_at, request_method, route_path, status, metadata_json, tenant_id) FROM stdin;
+1	\N	login_failed	auth	\N	\N	\N	{"email":"kodratsantoso@prasetia.co.id"}	172.18.0.4	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-04-20 14:07:08	2026-04-20 14:07:08	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+2	\N	login_failed	auth	\N	\N	\N	{"email":"kodratsantoso@prasetia.co.id"}	172.18.0.4	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-04-20 14:28:08	2026-04-20 14:28:08	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+3	\N	login_failed	auth	\N	\N	\N	{"email":"admin@prasetia.com"}	172.18.0.4	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-04-20 14:28:17	2026-04-20 14:28:17	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+4	\N	login_failed	auth	\N	\N	\N	{"email":"admin@prasetia.com"}	172.18.0.4	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-04-20 14:28:20	2026-04-20 14:28:20	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+35	\N	login	auth	App\\Models\\User	1	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:36:51	2026-04-20 14:36:51	POST	api/auth/login	success	\N	\N
+36	1	api_key_revealed	ai_providers	App\\Models\\AiProvider	1	\N	{"provider_id":1,"provider":"openai"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:37:47	2026-04-20 14:37:47	POST	api/settings/ai-default/providers/1/reveal-key	success	\N	1
+37	1	created	integration_configs	App\\Models\\IntegrationConfig	4	\N	{"tenant_id":1,"key":"GOOGLE_MAPS_ENABLED","category":"maps","value_encrypted":"eyJpdiI6IkNoWk5vWG9pRHpiVzJZeFROdXphZXc9PSIsInZhbHVlIjoiWVoyajRzdlpSYktwbG5QOVVFYTZoQT09IiwibWFjIjoiZjk4NDdmNWJiMzJiNTMwOTNmOTJiMmNiMjEyNjZkNTcyZGQ4OTUzZjZjMmE0MmMzZjFhMzk2ODE0YWFkY2M5NSIsInRhZyI6IiJ9","is_secret":false,"value_type":"boolean","is_active":true,"updated_at":"2026-04-20T14:39:30.000000Z","created_at":"2026-04-20T14:39:30.000000Z","id":4}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:39:30	2026-04-20 14:39:30	POST	api/settings/integrations	success	\N	1
+38	1	created	integration_configs	App\\Models\\IntegrationConfig	5	\N	{"tenant_id":1,"key":"GOOGLE_MAPS_BROWSER_API_KEY","category":"maps","value_encrypted":"eyJpdiI6InhKQlp4cnRweUpRa3FMVVBXQVQwOUE9PSIsInZhbHVlIjoiN2Z0ZVRBMkFQTk12TzBlM2FnNlEwUy9lVTNLM0VKcEV2YmVuQzhuRm9uN2U1M3hCdFNmUzJqb0ZHeVNKbGt2VyIsIm1hYyI6Ijg3OTM4MzBkNWVmYWY3ZGIyOThkNjY3MzI1ZTZhMmRiZjc0ZjhmYjM4YjM4ZDU0Y2FlNjA1MmIwNTliMjcxNjIiLCJ0YWciOiIifQ==","is_secret":false,"value_type":"string","is_active":true,"updated_at":"2026-04-20T14:39:30.000000Z","created_at":"2026-04-20T14:39:30.000000Z","id":5}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:39:30	2026-04-20 14:39:30	POST	api/settings/integrations	success	\N	1
+39	1	created	integration_configs	App\\Models\\IntegrationConfig	6	\N	{"tenant_id":1,"key":"GOOGLE_MAPS_DEFAULT_CENTER_LAT","category":"maps","value_encrypted":"eyJpdiI6Im9PY28zdXVnYUwyN0pkeGZvYzZrV2c9PSIsInZhbHVlIjoiN0I2V2ZiVnZmK0w0VW40YmFPM0duUT09IiwibWFjIjoiMjY5OTk2ZmYwMjU5ODlhOWQ1NTM4MGYzMDM4ZTFmZjVlZWExNzFhNWU0OTQ0MTg3ODcxMWZmZWI5MzIzYzhjZiIsInRhZyI6IiJ9","is_secret":false,"value_type":"number","is_active":true,"updated_at":"2026-04-20T14:39:30.000000Z","created_at":"2026-04-20T14:39:30.000000Z","id":6}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:39:30	2026-04-20 14:39:30	POST	api/settings/integrations	success	\N	1
+40	1	created	integration_configs	App\\Models\\IntegrationConfig	7	\N	{"tenant_id":1,"key":"GOOGLE_MAPS_DEFAULT_CENTER_LNG","category":"maps","value_encrypted":"eyJpdiI6ImI4Sk9JZlhXQ2lad2lWWnp3RFFqV1E9PSIsInZhbHVlIjoibm4xdGRtT2lNYjhRVjR5V3NJTm1nZz09IiwibWFjIjoiZjE3ZDRiNTk5ZjczMzdlYWE3MzVmMzA2NjM3YWQzMmE0NmE2NmJlZDM5MzIyOTEzMDlkMDVjMTQ4NTc5MTY3YiIsInRhZyI6IiJ9","is_secret":false,"value_type":"number","is_active":true,"updated_at":"2026-04-20T14:39:30.000000Z","created_at":"2026-04-20T14:39:30.000000Z","id":7}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:39:30	2026-04-20 14:39:30	POST	api/settings/integrations	success	\N	1
+41	1	api_key_revealed	ai_providers	App\\Models\\AiProvider	1	\N	{"provider_id":1,"provider":"openai"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:40:21	2026-04-20 14:40:21	POST	api/settings/ai-default/providers/1/reveal-key	success	\N	1
+42	1	updated	ai_providers	App\\Models\\AiProvider	1	{"api_key_encrypted":"eyJpdiI6Ii9qSFZOYTE3Z0RncVV3UDh2Uk9XcHc9PSIsInZhbHVlIjoic05lbnJZWVRCVzdTeUFhYXlsckIxRVM5aWE5VmRqNTBIMEJ6VU9Ea3lwdDJqNENNczR5MzRPRVFnT3JMQnVHeiIsIm1hYyI6ImZkZjY5YjgzN2VkYWNkN2I3NzJhYTExYWVhYzJmODBmMDljMDA2NjMwOTNlNmU3ODc1N2UxOGIzMGI3NmRjNjAiLCJ0YWciOiIifQ==","updated_at":"2026-04-20 14:35:47","api_key_last4":"INGS"}	{"api_key_encrypted":"eyJpdiI6InJRMVJMOHRIeEpoQjQySTdDMEZqZGc9PSIsInZhbHVlIjoiK2dGdFcwaDB0VXlUcEE0THpKT2hBbFJSWWoyS21hQml3OW5qeVBuc1N6TWpyMDdDdVlzYi9xaXJSUGthVm1yWHVRKzczc3lzbHJCQzVOdktwVE0xNFNjRllUWTIvN1ByRXovcE1uckdBWFF5RUxPbmJXVTRpd0xFQ1c0RWZnOWkxSmN6aWxPWGRmeGFKaVFHa25SOXk3WEkrczdxS2x2bnNHTjgvaW1wQzZyUkdONDJvZVZxTXNJeHJ6UnpqMndIN2ErTVBqWXpDZkt2eHZNTVkvSEVKczVyY3dnTEhwZG1GVFdOUzQ3ZzNNYz0iLCJtYWMiOiJmMWU2MWIxNGI4NDg5MDg2NTQzODEwYmE2ODk1YjIyOTMyYzk4ODIyNWNlNGRiYmQ3NTk4OWQ2ZmU2ZjgzMDE1IiwidGFnIjoiIn0=","updated_at":"2026-04-20 14:40:32","api_key_last4":"o8MA"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:40:32	2026-04-20 14:40:32	PUT	api/settings/ai-default/providers/1	success	\N	1
+43	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":859}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:40:35	2026-04-20 14:40:35	POST	api/settings/ai-default/providers/1/test	success	\N	1
+44	1	deleted	ai_models	App\\Models\\AiModel	3	{"id":3,"ai_provider_id":1,"name":"gpt-3.5-turbo","context_window":16385,"capabilities":null,"cost_tier":"low","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:40:58	2026-04-20 14:40:58	DELETE	api/settings/ai-default/providers/1/models/3	success	\N	1
+45	1	deleted	ai_models	App\\Models\\AiModel	1	{"id":1,"ai_provider_id":1,"name":"gpt-4o","context_window":128000,"capabilities":null,"cost_tier":"high","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:40:59	2026-04-20 14:40:59	DELETE	api/settings/ai-default/providers/1/models/1	success	\N	1
+46	1	deleted	ai_models	App\\Models\\AiModel	2	{"id":2,"ai_provider_id":1,"name":"gpt-4o-mini","context_window":128000,"capabilities":null,"cost_tier":"low","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:41:00	2026-04-20 14:41:00	DELETE	api/settings/ai-default/providers/1/models/2	success	\N	1
+47	1	updated	ai_providers	App\\Models\\AiProvider	1	{"status":"inactive","updated_at":"2026-04-20 14:40:35"}	{"status":"active","updated_at":"2026-04-20 14:41:13"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:41:13	2026-04-20 14:41:13	PUT	api/settings/ai-default/providers/1	success	\N	1
+48	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":1103}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:41:16	2026-04-20 14:41:16	POST	api/settings/ai-default/providers/1/test	success	\N	1
+49	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":1073}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:41:18	2026-04-20 14:41:18	POST	api/settings/ai-default/providers/1/test	success	\N	1
+50	1	api_key_revealed	ai_providers	App\\Models\\AiProvider	1	\N	{"provider_id":1,"provider":"openai"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:41:23	2026-04-20 14:41:23	POST	api/settings/ai-default/providers/1/reveal-key	success	\N	1
+51	1	created	ai_models	App\\Models\\AiModel	8	\N	{"name":"GPT-5.4,","cost_tier":"low","status":"active","ai_provider_id":1,"updated_at":"2026-04-20T14:42:16.000000Z","created_at":"2026-04-20T14:42:16.000000Z","id":8}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:42:16	2026-04-20 14:42:16	POST	api/settings/ai-default/providers/1/models	success	\N	1
+52	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":1070}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:42:20	2026-04-20 14:42:20	POST	api/settings/ai-default/providers/1/test	success	\N	1
+53	1	created	leads	App\\Models\\Lead	3	\N	{"company_name":"Anugrah Lestari Terpadu, PT","address":"JL. Kelapa Dua Wetan No.8, Ciracas, Jakarta Timur","phone":null,"email":null,"business_category":"Technology","created_by":1,"tenant_id":1,"funnel_stage_id":1,"duplicate_status":"new","duplicate_of_id":null,"updated_at":"2026-04-20T14:47:24.000000Z","created_at":"2026-04-20T14:47:24.000000Z","id":3}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:47:24	2026-04-20 14:47:24	POST	api/leads	success	\N	1
+54	1	verification_requested	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	1	\N	{"lead_id":3,"workflow_id":1,"recommended_status":"pending"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:47:56	2026-04-20 14:47:56	POST	api/leads/3/verification/request	success	\N	1
+55	1	verification_decision	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	1	{"id":1,"workflow_id":1,"lead_id":3,"lead_qualification_id":null,"status":"pending","current_stage_code":"triage","recommended_status":"pending","final_status":null,"requested_by":1,"reviewed_by":null,"justification":"Manual verification requested from lead detail.","override_reason":null,"review_payload":{"lead_score":null,"qualification_status":"pending","ai_explanation":null,"current_funnel_stage_id":1,"current_funnel_stage":"New Lead","latest_qualification":null},"due_at":"2026-04-21T14:47:56.000000Z","reviewed_at":null,"created_at":"2026-04-20T14:47:56.000000Z","updated_at":"2026-04-20T14:47:56.000000Z","tenant_id":1,"decision":"pending","decision_reason":null,"original_score":null,"score_override":null,"decisioned_at":null,"lead":{"id":3,"company_name":"Anugrah Lestari Terpadu, PT","address":"JL. Kelapa Dua Wetan No.8, Ciracas, Jakarta Timur","lat":null,"lng":null,"website":null,"website_domain":null,"phone":null,"email":null,"industry_id":null,"sub_industry_id":null,"business_category":"Technology","company_size_estimate":null,"branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":null,"qualification_status":"pending","ai_explanation":null,"duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-20T14:47:24.000000Z","updated_at":"2026-04-20T14:47:24.000000Z","deleted_at":null,"tenant_id":1},"workflow":{"id":1,"name":"Need Review Gate","slug":"need-review-gate","trigger_status":"need_review","requires_approval":true,"override_enabled":true,"sla_hours":24,"is_active":true,"created_by":null,"updated_by":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z","deleted_at":null,"tenant_id":1,"stages":[{"id":1,"workflow_id":1,"code":"triage","label":"RevOps Triage","sequence":1,"assigned_role":"sales_manager","decision_type":"review","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"},{"id":2,"workflow_id":1,"code":"approval","label":"Manager Approval","sequence":2,"assigned_role":"admin","decision_type":"approve","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"}]},"qualification":null}	{"decision":"override_score","lead_id":3,"score_override":80,"final_status":null}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:49:34	2026-04-20 14:49:34	POST	api/qualification/reviews/1/decision	success	\N	1
+56	1	verification_decision	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	1	{"id":1,"workflow_id":1,"lead_id":3,"lead_qualification_id":null,"status":"in_review","current_stage_code":"triage","recommended_status":"pending","final_status":null,"requested_by":1,"reviewed_by":1,"justification":"Manual verification requested from lead detail.","override_reason":"Continue","review_payload":{"lead_score":null,"qualification_status":"pending","ai_explanation":null,"current_funnel_stage_id":1,"current_funnel_stage":"New Lead","latest_qualification":null},"due_at":"2026-04-21T14:47:56.000000Z","reviewed_at":"2026-04-20T14:49:34.000000Z","created_at":"2026-04-20T14:47:56.000000Z","updated_at":"2026-04-20T14:49:34.000000Z","tenant_id":1,"decision":"override_score","decision_reason":"Continue","original_score":null,"score_override":80,"decisioned_at":"2026-04-20T14:49:34.000000Z","lead":{"id":3,"company_name":"Anugrah Lestari Terpadu, PT","address":"JL. Kelapa Dua Wetan No.8, Ciracas, Jakarta Timur","lat":null,"lng":null,"website":null,"website_domain":null,"phone":null,"email":null,"industry_id":null,"sub_industry_id":null,"business_category":"Technology","company_size_estimate":null,"branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":80,"qualification_status":"pending","ai_explanation":"Human reviewer override applied. Continue","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-20T14:47:24.000000Z","updated_at":"2026-04-20T14:49:34.000000Z","deleted_at":null,"tenant_id":1},"workflow":{"id":1,"name":"Need Review Gate","slug":"need-review-gate","trigger_status":"need_review","requires_approval":true,"override_enabled":true,"sla_hours":24,"is_active":true,"created_by":null,"updated_by":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z","deleted_at":null,"tenant_id":1,"stages":[{"id":1,"workflow_id":1,"code":"triage","label":"RevOps Triage","sequence":1,"assigned_role":"sales_manager","decision_type":"review","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"},{"id":2,"workflow_id":1,"code":"approval","label":"Manager Approval","sequence":2,"assigned_role":"admin","decision_type":"approve","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"}]},"qualification":null}	{"decision":"approve","lead_id":3,"score_override":80,"final_status":"pending"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:49:40	2026-04-20 14:49:40	POST	api/qualification/reviews/1/decision	success	\N	1
+57	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:11	2026-04-20 14:50:11	POST	api/leads/3/icp-match	success	\N	1
+271	\N	login	auth	App\\Models\\User	1	\N	\N	172.217.194.95	curl/8.7.1	2026-05-17 02:25:25	2026-05-17 02:25:25	POST	api/auth/login	success	\N	\N
+58	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:14	2026-04-20 14:50:14	POST	api/leads/3/icp-match	success	\N	1
+59	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:15	2026-04-20 14:50:15	POST	api/leads/3/icp-match	success	\N	1
+60	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:15	2026-04-20 14:50:15	POST	api/leads/3/icp-match	success	\N	1
+61	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:15	2026-04-20 14:50:15	POST	api/leads/3/icp-match	success	\N	1
+62	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:15	2026-04-20 14:50:15	POST	api/leads/3/icp-match	success	\N	1
+63	1	deleted	ai_models	App\\Models\\AiModel	8	{"id":8,"ai_provider_id":1,"name":"GPT-5.4,","context_window":null,"capabilities":null,"cost_tier":"low","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:42:16.000000Z","updated_at":"2026-04-20T14:42:16.000000Z"}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:35	2026-04-20 14:50:35	DELETE	api/settings/ai-default/providers/1/models/8	success	\N	1
+64	1	deleted	ai_models	App\\Models\\AiModel	11	{"id":11,"ai_provider_id":1,"name":"gpt-3.5-turbo","context_window":16385,"capabilities":null,"cost_tier":"low","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:45:17.000000Z","updated_at":"2026-04-20T14:45:17.000000Z"}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:36	2026-04-20 14:50:36	DELETE	api/settings/ai-default/providers/1/models/11	success	\N	1
+65	1	deleted	ai_models	App\\Models\\AiModel	9	{"id":9,"ai_provider_id":1,"name":"gpt-4o","context_window":128000,"capabilities":null,"cost_tier":"high","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:45:17.000000Z","updated_at":"2026-04-20T14:45:17.000000Z"}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:38	2026-04-20 14:50:38	DELETE	api/settings/ai-default/providers/1/models/9	success	\N	1
+66	1	deleted	ai_models	App\\Models\\AiModel	10	{"id":10,"ai_provider_id":1,"name":"gpt-4o-mini","context_window":128000,"capabilities":null,"cost_tier":"low","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:45:17.000000Z","updated_at":"2026-04-20T14:45:17.000000Z"}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:50:38	2026-04-20 14:50:38	DELETE	api/settings/ai-default/providers/1/models/10	success	\N	1
+67	1	created	ai_models	App\\Models\\AiModel	12	\N	{"name":"GPT-5.4","cost_tier":"low","status":"active","ai_provider_id":1,"updated_at":"2026-04-20T14:51:23.000000Z","created_at":"2026-04-20T14:51:23.000000Z","id":12}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:51:23	2026-04-20 14:51:23	POST	api/settings/ai-default/providers/1/models	success	\N	1
+68	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:53:50	2026-04-20 14:53:50	POST	api/leads/3/icp-match	success	\N	1
+69	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:53:52	2026-04-20 14:53:52	POST	api/leads/3/icp-match	success	\N	1
+70	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:53:52	2026-04-20 14:53:52	POST	api/leads/3/icp-match	success	\N	1
+71	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:53:52	2026-04-20 14:53:52	POST	api/leads/3/icp-match	success	\N	1
+72	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:53:52	2026-04-20 14:53:52	POST	api/leads/3/icp-match	success	\N	1
+73	1	revenue_analysis	leads	App\\Models\\Lead	3	\N	{"intent_level":"low","probability_to_close":20,"confidence":0.1,"status":"failed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:53:56	2026-04-20 14:53:56	POST	api/leads/3/revenue-analysis	success	\N	1
+272	\N	login	auth	App\\Models\\User	1	\N	\N	172.217.194.95	curl/8.7.1	2026-05-17 02:25:38	2026-05-17 02:25:38	POST	api/auth/login	success	\N	\N
+74	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:53:59	2026-04-20 14:53:59	POST	api/leads/3/icp-match	success	\N	1
+75	1	prescribe	leads	App\\Models\\Lead	3	\N	{"next_action":"Make first contact \\u2014 introduce product and qualify interest","priority":8}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:54:10	2026-04-20 14:54:10	POST	api/leads/3/prescribe	success	\N	1
+76	1	predict_conversion	leads	App\\Models\\Lead	3	\N	{"probability":37.5}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:54:14	2026-04-20 14:54:14	POST	api/leads/3/predict-conversion	success	\N	1
+77	1	verification_requested	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	2	\N	{"lead_id":3,"workflow_id":1,"recommended_status":"pending"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:54:33	2026-04-20 14:54:33	POST	api/leads/3/qualify	success	\N	1
+78	1	qualify	leads	App\\Models\\Lead	3	{"id":3,"company_name":"Anugrah Lestari Terpadu, PT","address":"JL. Kelapa Dua Wetan No.8, Ciracas, Jakarta Timur","lat":null,"lng":null,"website":null,"website_domain":null,"phone":null,"email":null,"industry_id":null,"sub_industry_id":null,"business_category":"Technology","company_size_estimate":null,"branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":80,"qualification_status":"pending","ai_explanation":"Human reviewer override applied. Continue","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-20T14:47:24.000000Z","updated_at":"2026-04-20T14:49:34.000000Z","deleted_at":null,"tenant_id":1,"industry":null,"contacts":[],"activities":[],"product":null,"territory":null}	{"qualified":"maybe","business_type":"mixed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:54:33	2026-04-20 14:54:33	POST	api/leads/3/qualify	success	\N	1
+79	1	verification_decision	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	2	{"id":2,"workflow_id":1,"lead_id":3,"lead_qualification_id":1,"status":"pending","current_stage_code":"triage","recommended_status":"pending","final_status":null,"requested_by":1,"reviewed_by":null,"justification":"Firmographic: Firmographic fit based on industry, size, and territory. (4\\/25); Need relevance: Business problem articulated (10\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (3\\/20); Stakeholder access: Stakeholder access reflects buyer access and contact quality. (2\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)","override_reason":null,"review_payload":{"lead_score":80,"qualification_status":"pending","ai_explanation":"Human reviewer override applied. Continue","current_funnel_stage_id":1,"current_funnel_stage":"New Lead","latest_qualification":{"id":1,"qualified":"maybe","classification":"need_review","score":22,"business_type":"mixed","company_size_band":"unknown","qualification_reason":"Firmographic: Firmographic fit based on industry, size, and territory. (4\\/25); Need relevance: Business problem articulated (10\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (3\\/20); Stakeholder access: Stakeholder access reflects buyer access and contact quality. (2\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)"}},"due_at":"2026-04-21T14:54:33.000000Z","reviewed_at":null,"created_at":"2026-04-20T14:54:33.000000Z","updated_at":"2026-04-20T14:54:33.000000Z","tenant_id":1,"decision":"pending","decision_reason":null,"original_score":null,"score_override":null,"decisioned_at":null,"lead":{"id":3,"company_name":"Anugrah Lestari Terpadu, PT","address":"JL. Kelapa Dua Wetan No.8, Ciracas, Jakarta Timur","lat":null,"lng":null,"website":null,"website_domain":null,"phone":null,"email":null,"industry_id":null,"sub_industry_id":null,"business_category":"Technology","company_size_estimate":null,"branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":80,"qualification_status":"pending","ai_explanation":"Human reviewer override applied. Continue","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-20T14:47:24.000000Z","updated_at":"2026-04-20T14:49:34.000000Z","deleted_at":null,"tenant_id":1},"workflow":{"id":1,"name":"Need Review Gate","slug":"need-review-gate","trigger_status":"need_review","requires_approval":true,"override_enabled":true,"sla_hours":24,"is_active":true,"created_by":null,"updated_by":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z","deleted_at":null,"tenant_id":1,"stages":[{"id":1,"workflow_id":1,"code":"triage","label":"RevOps Triage","sequence":1,"assigned_role":"sales_manager","decision_type":"review","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"},{"id":2,"workflow_id":1,"code":"approval","label":"Manager Approval","sequence":2,"assigned_role":"admin","decision_type":"approve","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"}]},"qualification":{"id":1,"lead_id":3,"qualified":"maybe","business_type":"mixed","company_size_band":"unknown","qualification_reason":"Firmographic: Firmographic fit based on industry, size, and territory. (4\\/25); Need relevance: Business problem articulated (10\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (3\\/20); Stakeholder access: Stakeholder access reflects buyer access and contact quality. (2\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)","last_qualified_at":"2026-04-20T14:54:33.000000Z","created_at":"2026-04-20T14:54:33.000000Z","updated_at":"2026-04-20T14:54:33.000000Z","classification":"need_review","score":22,"dimension_breakdown":{"firmographic":{"points":4,"max_points":25,"signals":[],"risk_flags":[],"summary":"Firmographic fit based on industry, size, and territory."},"need_relevance":{"points":10,"max_points":25,"signals":["Business problem articulated"],"risk_flags":[],"summary":"Business problem articulated"},"commercial_readiness":{"points":3,"max_points":20,"signals":[],"risk_flags":["Budget is not yet validated."],"summary":"Commercial readiness reflects budget, timing, and urgency."},"stakeholder_access":{"points":2,"max_points":15,"signals":[],"risk_flags":["Decision-maker access is not confirmed.","No stakeholder coverage captured."],"summary":"Stakeholder access reflects buyer access and contact quality."},"technical_fit":{"points":3,"max_points":15,"signals":[],"risk_flags":["Technical fit has not been validated."],"summary":"Technical fit reflects compatibility and delivery feasibility."}},"risk_flags":["Budget is not yet validated.","Decision-maker access is not confirmed.","No stakeholder coverage captured.","Technical fit has not been validated.","Missing critical field: budget_status","Missing critical field: decision_maker_engaged","Missing critical field: target_industry_fit","Missing critical field: technical_fit"],"hard_stops":[],"recommendation":"Route to a reviewer to close critical data gaps before progression.","evaluation_snapshot":{"source":"lead_record","lead_id":3,"company_name":"Anugrah Lestari Terpadu, PT","industry":"Technology","company_size_band":"unknown","territory_fit":null,"target_industry_fit":"unknown","problem_statement":"Human reviewer override applied. Continue","pain_level":"unknown","use_case_fit":"unknown","budget_status":"unknown","timeline_months":null,"commercial_urgency":"unknown","decision_maker_engaged":null,"stakeholder_count":0,"contact_quality":"absent","technical_fit":"unknown","integration_complexity":"unknown","required_capabilities":[],"notes":null},"tenant_id":null}}	{"decision":"approve","lead_id":3,"score_override":null,"final_status":"pending"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:56:16	2026-04-20 14:56:16	POST	api/qualification/reviews/2/decision	success	\N	1
+80	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:26	2026-04-20 14:59:26	POST	api/leads/3/icp-match	success	\N	1
+81	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:27	2026-04-20 14:59:27	POST	api/leads/3/icp-match	success	\N	1
+82	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:27	2026-04-20 14:59:27	POST	api/leads/3/icp-match	success	\N	1
+83	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:28	2026-04-20 14:59:28	POST	api/leads/3/icp-match	success	\N	1
+84	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:28	2026-04-20 14:59:28	POST	api/leads/3/icp-match	success	\N	1
+85	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:30	2026-04-20 14:59:30	POST	api/leads/3/icp-match	success	\N	1
+86	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:30	2026-04-20 14:59:30	POST	api/leads/3/icp-match	success	\N	1
+87	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:30	2026-04-20 14:59:30	POST	api/leads/3/icp-match	success	\N	1
+88	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-20 14:59:31	2026-04-20 14:59:31	POST	api/leads/3/icp-match	success	\N	1
+108	1	log_activity	lead_activities	App\\Models\\LeadActivity	1	\N	{"activity_type":"Meeting"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:11:20	2026-04-25 06:11:20	POST	api/leads/58/activities	success	\N	1
+89	1	icp_match	leads	App\\Models\\Lead	3	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-21 02:43:02	2026-04-21 02:43:02	POST	api/leads/3/icp-match	success	\N	1
+90	\N	login_failed	auth	\N	\N	\N	{"email":"kodratsantoso@prasetia.co.id"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-04-23 15:43:33	2026-04-23 15:43:33	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+91	\N	login_failed	auth	\N	\N	\N	{"email":"kodratsantoso@prasetia.co.id"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-04-23 15:43:36	2026-04-23 15:43:36	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+92	\N	login_failed	auth	\N	\N	\N	{"email":"kodratsantoso@prasetia.co.id"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-04-23 15:43:37	2026-04-23 15:43:37	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+93	\N	login	auth	App\\Models\\User	1	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-04-23 15:43:44	2026-04-23 15:43:44	POST	api/auth/login	success	\N	\N
+94	1	updated	users	App\\Models\\User	1	{"name":"Rizub","email":"admin@prasetia.com","password":"$2y$12$R5qPn4ojcGHtmQusgsJTvuDDCI14NiJtmz5gjeE3x.\\/5Ex3NTbYnG","phone":null,"updated_at":"2026-04-20 14:35:47"}	{"name":"superadmin","email":"admin@prasetia.co.id","password":"$2y$12$\\/3pB9CMNqPgUDpjueDRtFOShMTbLF9oCm7yBGweQlzqst1HXnEw5a","phone":"6287884701947","updated_at":"2026-04-25 04:29:27"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 04:29:27	2026-04-25 04:29:27	PUT	api/users/1	success	\N	1
+95	1	logout	auth	App\\Models\\User	1	\N	\N	172.253.118.94	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 04:29:30	2026-04-25 04:29:30	POST	api/auth/logout	success	\N	1
+96	\N	login	auth	App\\Models\\User	1	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 04:29:40	2026-04-25 04:29:40	POST	api/auth/login	success	\N	\N
+97	1	updated	leads	App\\Models\\Lead	10	{"industry_id":null,"sub_industry_id":null,"updated_at":"2026-04-25 04:34:28"}	{"industry_id":3,"sub_industry_id":5,"updated_at":"2026-04-25 05:02:24"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:02:24	2026-04-25 05:02:24	PUT	api/leads/10	success	\N	1
+98	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":1682}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:03:41	2026-04-25 05:03:41	POST	api/settings/ai-default/providers/1/test	success	\N	1
+99	1	updated	leads	App\\Models\\Lead	57	{"industry_id":null,"sub_industry_id":null,"updated_at":"2026-04-25 05:28:01"}	{"industry_id":12,"sub_industry_id":39,"updated_at":"2026-04-25 05:58:08"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:58:08	2026-04-25 05:58:08	PUT	api/leads/57	success	\N	1
+100	1	icp_match	leads	App\\Models\\Lead	57	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:58:43	2026-04-25 05:58:43	POST	api/leads/57/icp-match	success	\N	1
+101	1	icp_match	leads	App\\Models\\Lead	57	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:58:44	2026-04-25 05:58:44	POST	api/leads/57/icp-match	success	\N	1
+102	1	predict_conversion	leads	App\\Models\\Lead	57	\N	{"probability":10}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:58:45	2026-04-25 05:58:45	POST	api/leads/57/predict-conversion	success	\N	1
+103	1	prescribe	leads	App\\Models\\Lead	57	\N	{"next_action":"Make first contact \\u2014 introduce product and qualify interest","priority":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:58:51	2026-04-25 05:58:51	POST	api/leads/57/prescribe	success	\N	1
+104	1	revenue_analysis	leads	App\\Models\\Lead	57	\N	{"intent_level":"low","probability_to_close":20,"confidence":0.1,"status":"failed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:58:57	2026-04-25 05:58:57	POST	api/leads/57/revenue-analysis	success	\N	1
+105	1	icp_match	leads	App\\Models\\Lead	57	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 05:59:02	2026-04-25 05:59:02	POST	api/leads/57/icp-match	success	\N	1
+106	1	created	leads	App\\Models\\Lead	58	\N	{"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","phone":null,"email":null,"business_category":null,"created_by":1,"tenant_id":1,"funnel_stage_id":1,"duplicate_status":"new","duplicate_of_id":null,"updated_at":"2026-04-25T06:01:32.000000Z","created_at":"2026-04-25T06:01:32.000000Z","id":58}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:01:32	2026-04-25 06:01:32	POST	api/leads	success	\N	1
+107	1	updated	leads	App\\Models\\Lead	58	{"phone":null,"industry_id":null,"sub_industry_id":null,"business_category":null,"company_size_estimate":null,"updated_at":"2026-04-25 06:01:32"}	{"phone":"62085165596811","industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","updated_at":"2026-04-25 06:04:12"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:04:12	2026-04-25 06:04:12	PUT	api/leads/58	success	\N	1
+273	\N	login	auth	App\\Models\\User	1	\N	\N	172.217.194.95	curl/8.7.1	2026-05-17 02:26:14	2026-05-17 02:26:14	POST	api/auth/login	success	\N	\N
+109	1	verification_requested	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	3	\N	{"lead_id":58,"workflow_id":1,"recommended_status":"pending"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:11:35	2026-04-25 06:11:35	POST	api/leads/58/qualify	success	\N	1
+110	1	qualify	leads	App\\Models\\Lead	58	{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":null,"qualification_status":"pending","ai_explanation":null,"duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:04:12.000000Z","deleted_at":null,"tenant_id":1,"industry":{"id":7,"name":"Property & Construction","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":3,"lead_id":58,"name":"Lamhot","title":"Project Manager","email":null,"phone":"6285165596811","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-04-25T06:04:45.000000Z","updated_at":"2026-04-25T06:04:45.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[{"id":1,"lead_id":58,"activity_type":"Meeting","description":"Legacy Tools\\n- WhatsApp\\n- Microsoft Office (Finance, Accounting)\\n- Meeting Link: Zoom\\n- Mekari Talenta\\n\\nCondition:\\n- Tidak ada team IT\\n- Masih Establish\\n- Fokus ke revenue dulu daripada untuk akuisisi tools","activity_date":"2026-04-25T06:11:20.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-04-25T06:11:20.000000Z","updated_at":"2026-04-25T06:11:20.000000Z","tenant_id":null,"outcome":"Follow up to next schedule meeting & demo with another Decission Maker","activity_date_override":null,"next_follow_up_date":"2026-04-30T00:00:00.000000Z"}],"product":null,"territory":null}	{"qualified":"maybe","business_type":"mixed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:11:35	2026-04-25 06:11:35	POST	api/leads/58/qualify	success	\N	1
+111	1	verification_decision	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	3	{"id":3,"workflow_id":1,"lead_id":58,"lead_qualification_id":3,"status":"pending","current_stage_code":"triage","recommended_status":"pending","final_status":null,"requested_by":1,"reviewed_by":null,"justification":"Firmographic: Industry fit assessed; Company size band identified (7\\/25); Need relevance: Pain level is material (8\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (5\\/20); Stakeholder access: Named contact is usable for follow-up (5\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)","override_reason":null,"review_payload":{"lead_score":null,"qualification_status":"pending","ai_explanation":null,"current_funnel_stage_id":1,"current_funnel_stage":"New Lead","latest_qualification":{"id":3,"qualified":"maybe","classification":"need_review","score":28,"business_type":"mixed","company_size_band":"small","qualification_reason":"Firmographic: Industry fit assessed; Company size band identified (7\\/25); Need relevance: Pain level is material (8\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (5\\/20); Stakeholder access: Named contact is usable for follow-up (5\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)"}},"due_at":"2026-04-26T06:11:35.000000Z","reviewed_at":null,"created_at":"2026-04-25T06:11:35.000000Z","updated_at":"2026-04-25T06:11:35.000000Z","tenant_id":1,"decision":"pending","decision_reason":null,"original_score":null,"score_override":null,"decisioned_at":null,"lead":{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":null,"qualification_status":"pending","ai_explanation":null,"duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:04:12.000000Z","deleted_at":null,"tenant_id":1},"workflow":{"id":1,"name":"Need Review Gate","slug":"need-review-gate","trigger_status":"need_review","requires_approval":true,"override_enabled":true,"sla_hours":24,"is_active":true,"created_by":null,"updated_by":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z","deleted_at":null,"tenant_id":1,"stages":[{"id":1,"workflow_id":1,"code":"triage","label":"RevOps Triage","sequence":1,"assigned_role":"sales_manager","decision_type":"review","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"},{"id":2,"workflow_id":1,"code":"approval","label":"Manager Approval","sequence":2,"assigned_role":"admin","decision_type":"approve","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"}]},"qualification":{"id":3,"lead_id":58,"qualified":"maybe","business_type":"mixed","company_size_band":"small","qualification_reason":"Firmographic: Industry fit assessed; Company size band identified (7\\/25); Need relevance: Pain level is material (8\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (5\\/20); Stakeholder access: Named contact is usable for follow-up (5\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)","last_qualified_at":"2026-04-25T06:11:35.000000Z","created_at":"2026-04-25T06:11:35.000000Z","updated_at":"2026-04-25T06:11:35.000000Z","classification":"need_review","score":28,"dimension_breakdown":{"firmographic":{"points":7,"max_points":25,"signals":["Industry fit assessed","Company size band identified"],"risk_flags":[],"summary":"Industry fit assessed; Company size band identified"},"need_relevance":{"points":8,"max_points":25,"signals":["Pain level is material"],"risk_flags":["Problem statement is missing."],"summary":"Pain level is material"},"commercial_readiness":{"points":5,"max_points":20,"signals":[],"risk_flags":["Budget is not yet validated."],"summary":"Commercial readiness reflects budget, timing, and urgency."},"stakeholder_access":{"points":5,"max_points":15,"signals":["Named contact is usable for follow-up"],"risk_flags":["Decision-maker access is not confirmed."],"summary":"Named contact is usable for follow-up"},"technical_fit":{"points":3,"max_points":15,"signals":[],"risk_flags":["Technical fit has not been validated."],"summary":"Technical fit reflects compatibility and delivery feasibility."}},"risk_flags":["Problem statement is missing.","Budget is not yet validated.","Decision-maker access is not confirmed.","Technical fit has not been validated.","Missing critical field: budget_status","Missing critical field: problem_statement","Missing critical field: technical_fit"],"hard_stops":[],"recommendation":"Route to a reviewer to close critical data gaps before progression.","evaluation_snapshot":{"source":"lead_record","lead_id":58,"company_name":"PT Artha Solusi Global","industry":"Property & Construction","company_size_band":"small","territory_fit":null,"target_industry_fit":"medium","problem_statement":null,"pain_level":"medium","use_case_fit":"unknown","budget_status":"unknown","timeline_months":null,"commercial_urgency":"medium","decision_maker_engaged":false,"stakeholder_count":1,"contact_quality":"strong","technical_fit":"unknown","integration_complexity":"unknown","required_capabilities":[],"notes":null},"tenant_id":null}}	{"decision":"approve","lead_id":58,"score_override":null,"final_status":"pending"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:12:19	2026-04-25 06:12:19	POST	api/qualification/reviews/3/decision	success	\N	1
+112	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:12:30	2026-04-25 06:12:30	POST	api/leads/58/icp-match	success	\N	1
+113	1	predict_conversion	leads	App\\Models\\Lead	58	\N	{"probability":26.5}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:12:31	2026-04-25 06:12:31	POST	api/leads/58/predict-conversion	success	\N	1
+114	1	prescribe	leads	App\\Models\\Lead	58	\N	{"next_action":"Continue current engagement \\u2014 track progress toward next funnel stage","priority":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:12:35	2026-04-25 06:12:35	POST	api/leads/58/prescribe	success	\N	1
+115	1	revenue_analysis	leads	App\\Models\\Lead	58	\N	{"intent_level":"low","probability_to_close":20,"confidence":0.1,"status":"failed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:12:41	2026-04-25 06:12:41	POST	api/leads/58/revenue-analysis	success	\N	1
+116	1	verification_requested	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	4	\N	{"lead_id":58,"workflow_id":1,"recommended_status":"pending"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:15:42	2026-04-25 06:15:42	POST	api/leads/58/qualify	success	\N	1
+117	1	qualify	leads	App\\Models\\Lead	58	{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":null,"qualification_status":"pending","ai_explanation":null,"duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:04:12.000000Z","deleted_at":null,"tenant_id":1,"industry":{"id":7,"name":"Property & Construction","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":3,"lead_id":58,"name":"Lamhot","title":"Project Manager","email":null,"phone":"6285165596811","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-04-25T06:04:45.000000Z","updated_at":"2026-04-25T06:04:45.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[{"id":1,"lead_id":58,"activity_type":"Meeting","description":"Legacy Tools\\n- WhatsApp\\n- Microsoft Office (Finance, Accounting)\\n- Meeting Link: Zoom\\n- Mekari Talenta\\n\\nCondition:\\n- Tidak ada team IT\\n- Masih Establish\\n- Fokus ke revenue dulu daripada untuk akuisisi tools","activity_date":"2026-04-25T06:11:20.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-04-25T06:11:20.000000Z","updated_at":"2026-04-25T06:11:20.000000Z","tenant_id":null,"outcome":"Follow up to next schedule meeting & demo with another Decission Maker","activity_date_override":null,"next_follow_up_date":"2026-04-30T00:00:00.000000Z"}],"product":null,"territory":null}	{"qualified":"maybe","business_type":"mixed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:15:42	2026-04-25 06:15:42	POST	api/leads/58/qualify	success	\N	1
+118	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:15:49	2026-04-25 06:15:49	POST	api/leads/58/icp-match	success	\N	1
+119	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:15:49	2026-04-25 06:15:49	POST	api/leads/58/icp-match	success	\N	1
+120	1	revenue_analysis	leads	App\\Models\\Lead	58	\N	{"intent_level":"low","probability_to_close":20,"confidence":0.1,"status":"failed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:15:51	2026-04-25 06:15:51	POST	api/leads/58/revenue-analysis	success	\N	1
+130	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:33	2026-04-25 06:21:33	POST	api/leads/58/icp-match	success	\N	1
+121	1	qualify	leads	App\\Models\\Lead	58	{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":null,"qualification_status":"pending","ai_explanation":null,"duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:04:12.000000Z","deleted_at":null,"tenant_id":1,"industry":{"id":7,"name":"Property & Construction","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":3,"lead_id":58,"name":"Lamhot","title":"Project Manager","email":null,"phone":"6285165596811","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-04-25T06:04:45.000000Z","updated_at":"2026-04-25T06:04:45.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[{"id":1,"lead_id":58,"activity_type":"Meeting","description":"Legacy Tools\\n- WhatsApp\\n- Microsoft Office (Finance, Accounting)\\n- Meeting Link: Zoom\\n- Mekari Talenta\\n\\nCondition:\\n- Tidak ada team IT\\n- Masih Establish\\n- Fokus ke revenue dulu daripada untuk akuisisi tools","activity_date":"2026-04-25T06:11:20.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-04-25T06:11:20.000000Z","updated_at":"2026-04-25T06:11:20.000000Z","tenant_id":null,"outcome":"Follow up to next schedule meeting & demo with another Decission Maker","activity_date_override":null,"next_follow_up_date":"2026-04-30T00:00:00.000000Z"}],"product":null,"territory":null}	{"qualified":"maybe","business_type":"mixed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:16:04	2026-04-25 06:16:04	POST	api/leads/58/qualify	success	\N	1
+122	1	deleted	users	App\\Models\\User	2	{"id":2,"name":"Rizub","email":"admin@prasetia.com","email_verified_at":null,"role_id":1,"phone":null,"is_active":true,"created_at":"2026-04-25T05:30:10.000000Z","updated_at":"2026-04-25T05:30:10.000000Z","tenant_id":1}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:20:04	2026-04-25 06:20:04	DELETE	api/users/2	success	\N	1
+123	1	deleted	users	App\\Models\\User	2	{"id":2,"name":"Rizub","email":"admin@prasetia.com","email_verified_at":null,"role_id":1,"phone":null,"is_active":false,"created_at":"2026-04-25T05:30:10.000000Z","updated_at":"2026-04-25T06:20:04.000000Z","tenant_id":1}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:20:15	2026-04-25 06:20:15	DELETE	api/users/2	success	\N	1
+124	1	rescore	leads	App\\Models\\Lead	58	\N	{"score":60,"grade":"Warm"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:20:49	2026-04-25 06:20:49	POST	api/leads/58/rescore	success	\N	1
+125	1	qualify	leads	App\\Models\\Lead	58	{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":60,"qualification_status":"not_eligible","ai_explanation":"Strong on Activity Signal. Needs improvement in Source Reliability.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:20:55.000000Z","deleted_at":null,"tenant_id":1,"industry":{"id":7,"name":"Property & Construction","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":3,"lead_id":58,"name":"Lamhot","title":"Project Manager","email":null,"phone":"6285165596811","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-04-25T06:04:45.000000Z","updated_at":"2026-04-25T06:04:45.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[{"id":1,"lead_id":58,"activity_type":"Meeting","description":"Legacy Tools\\n- WhatsApp\\n- Microsoft Office (Finance, Accounting)\\n- Meeting Link: Zoom\\n- Mekari Talenta\\n\\nCondition:\\n- Tidak ada team IT\\n- Masih Establish\\n- Fokus ke revenue dulu daripada untuk akuisisi tools","activity_date":"2026-04-25T06:11:20.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-04-25T06:11:20.000000Z","updated_at":"2026-04-25T06:11:20.000000Z","tenant_id":null,"outcome":"Follow up to next schedule meeting & demo with another Decission Maker","activity_date_override":null,"next_follow_up_date":"2026-04-30T00:00:00.000000Z"}],"product":null,"territory":null}	{"qualified":"no","business_type":"mixed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:20:55	2026-04-25 06:20:55	POST	api/leads/58/qualify	success	\N	1
+126	1	qualify	leads	App\\Models\\Lead	58	{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":60,"qualification_status":"not_eligible","ai_explanation":"Strong on Activity Signal. Needs improvement in Source Reliability.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:20:55.000000Z","deleted_at":null,"tenant_id":1,"industry":{"id":7,"name":"Property & Construction","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":3,"lead_id":58,"name":"Lamhot","title":"Project Manager","email":null,"phone":"6285165596811","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-04-25T06:04:45.000000Z","updated_at":"2026-04-25T06:04:45.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[{"id":1,"lead_id":58,"activity_type":"Meeting","description":"Legacy Tools\\n- WhatsApp\\n- Microsoft Office (Finance, Accounting)\\n- Meeting Link: Zoom\\n- Mekari Talenta\\n\\nCondition:\\n- Tidak ada team IT\\n- Masih Establish\\n- Fokus ke revenue dulu daripada untuk akuisisi tools","activity_date":"2026-04-25T06:11:20.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-04-25T06:11:20.000000Z","updated_at":"2026-04-25T06:11:20.000000Z","tenant_id":null,"outcome":"Follow up to next schedule meeting & demo with another Decission Maker","activity_date_override":null,"next_follow_up_date":"2026-04-30T00:00:00.000000Z"}],"product":null,"territory":null}	{"qualified":"no","business_type":"mixed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:18	2026-04-25 06:21:18	POST	api/leads/58/qualify	success	\N	1
+127	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:22	2026-04-25 06:21:22	POST	api/leads/58/icp-match	success	\N	1
+128	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:33	2026-04-25 06:21:33	POST	api/leads/58/icp-match	success	\N	1
+129	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:33	2026-04-25 06:21:33	POST	api/leads/58/icp-match	success	\N	1
+274	\N	login	auth	App\\Models\\User	1	\N	\N	172.217.194.95	curl/8.7.1	2026-05-17 02:33:51	2026-05-17 02:33:51	POST	api/auth/login	success	\N	\N
+131	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:34	2026-04-25 06:21:34	POST	api/leads/58/icp-match	success	\N	1
+132	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:34	2026-04-25 06:21:34	POST	api/leads/58/icp-match	success	\N	1
+133	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:34	2026-04-25 06:21:34	POST	api/leads/58/icp-match	success	\N	1
+134	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:34	2026-04-25 06:21:34	POST	api/leads/58/icp-match	success	\N	1
+135	1	revenue_analysis	leads	App\\Models\\Lead	58	\N	{"intent_level":"low","probability_to_close":20,"confidence":0.1,"status":"failed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:37	2026-04-25 06:21:37	POST	api/leads/58/revenue-analysis	success	\N	1
+136	1	qualify	leads	App\\Models\\Lead	58	{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":60,"qualification_status":"not_eligible","ai_explanation":"Strong on Activity Signal. Needs improvement in Source Reliability.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:20:55.000000Z","deleted_at":null,"tenant_id":1,"industry":{"id":7,"name":"Property & Construction","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":3,"lead_id":58,"name":"Lamhot","title":"Project Manager","email":null,"phone":"6285165596811","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-04-25T06:04:45.000000Z","updated_at":"2026-04-25T06:04:45.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[{"id":1,"lead_id":58,"activity_type":"Meeting","description":"Legacy Tools\\n- WhatsApp\\n- Microsoft Office (Finance, Accounting)\\n- Meeting Link: Zoom\\n- Mekari Talenta\\n\\nCondition:\\n- Tidak ada team IT\\n- Masih Establish\\n- Fokus ke revenue dulu daripada untuk akuisisi tools","activity_date":"2026-04-25T06:11:20.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-04-25T06:11:20.000000Z","updated_at":"2026-04-25T06:11:20.000000Z","tenant_id":null,"outcome":"Follow up to next schedule meeting & demo with another Decission Maker","activity_date_override":null,"next_follow_up_date":"2026-04-30T00:00:00.000000Z"}],"product":null,"territory":null}	{"qualified":"no","business_type":"mixed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:46	2026-04-25 06:21:46	POST	api/leads/58/qualify	success	\N	1
+137	1	revenue_analysis	leads	App\\Models\\Lead	58	\N	{"intent_level":"low","probability_to_close":20,"confidence":0.1,"status":"failed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:21:49	2026-04-25 06:21:49	POST	api/leads/58/revenue-analysis	success	\N	1
+138	1	qualify	leads	App\\Models\\Lead	58	{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":60,"qualification_status":"not_eligible","ai_explanation":"Strong on Activity Signal. Needs improvement in Source Reliability.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:20:55.000000Z","deleted_at":null,"tenant_id":1,"industry":{"id":7,"name":"Property & Construction","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":3,"lead_id":58,"name":"Lamhot","title":"Project Manager","email":null,"phone":"6285165596811","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-04-25T06:04:45.000000Z","updated_at":"2026-04-25T06:04:45.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[{"id":1,"lead_id":58,"activity_type":"Meeting","description":"Legacy Tools\\n- WhatsApp\\n- Microsoft Office (Finance, Accounting)\\n- Meeting Link: Zoom\\n- Mekari Talenta\\n\\nCondition:\\n- Tidak ada team IT\\n- Masih Establish\\n- Fokus ke revenue dulu daripada untuk akuisisi tools","activity_date":"2026-04-25T06:11:20.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-04-25T06:11:20.000000Z","updated_at":"2026-04-25T06:11:20.000000Z","tenant_id":null,"outcome":"Follow up to next schedule meeting & demo with another Decission Maker","activity_date_override":null,"next_follow_up_date":"2026-04-30T00:00:00.000000Z"}],"product":null,"territory":null}	{"qualified":"no","business_type":"mixed"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:16	2026-04-25 06:22:16	POST	api/leads/58/qualify	success	\N	1
+139	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:20	2026-04-25 06:22:20	POST	api/leads/58/icp-match	success	\N	1
+140	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:25	2026-04-25 06:22:25	POST	api/leads/58/icp-match	success	\N	1
+141	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:25	2026-04-25 06:22:25	POST	api/leads/58/icp-match	success	\N	1
+142	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:25	2026-04-25 06:22:25	POST	api/leads/58/icp-match	success	\N	1
+143	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:26	2026-04-25 06:22:26	POST	api/leads/58/icp-match	success	\N	1
+144	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:26	2026-04-25 06:22:26	POST	api/leads/58/icp-match	success	\N	1
+145	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:26	2026-04-25 06:22:26	POST	api/leads/58/icp-match	success	\N	1
+146	1	predict_conversion	leads	App\\Models\\Lead	58	\N	{"probability":53.5}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:27	2026-04-25 06:22:27	POST	api/leads/58/predict-conversion	success	\N	1
+147	1	predict_conversion	leads	App\\Models\\Lead	58	\N	{"probability":53.5}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:29	2026-04-25 06:22:29	POST	api/leads/58/predict-conversion	success	\N	1
+148	1	predict_conversion	leads	App\\Models\\Lead	58	\N	{"probability":53.5}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:30	2026-04-25 06:22:30	POST	api/leads/58/predict-conversion	success	\N	1
+149	1	prescribe	leads	App\\Models\\Lead	58	\N	{"next_action":"Continue current engagement \\u2014 track progress toward next funnel stage","priority":6}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:32	2026-04-25 06:22:32	POST	api/leads/58/prescribe	success	\N	1
+150	1	prescribe	leads	App\\Models\\Lead	58	\N	{"next_action":"Continue current engagement \\u2014 track progress toward next funnel stage","priority":6}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:22:33	2026-04-25 06:22:33	POST	api/leads/58/prescribe	success	\N	1
+151	1	trigger_contact_enrichment	leads	App\\Models\\Lead	58	\N	{"triggered_by":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:23:22	2026-04-25 06:23:22	POST	api/leads/58/enrich-contacts	success	\N	1
+152	1	verification_decision	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	4	{"id":4,"workflow_id":1,"lead_id":58,"lead_qualification_id":4,"status":"pending","current_stage_code":"triage","recommended_status":"pending","final_status":null,"requested_by":1,"reviewed_by":null,"justification":"Firmographic: Industry fit assessed; Company size band identified (7\\/25); Need relevance: Pain level is material (8\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (5\\/20); Stakeholder access: Named contact is usable for follow-up (5\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)","override_reason":null,"review_payload":{"lead_score":null,"qualification_status":"pending","ai_explanation":null,"current_funnel_stage_id":1,"current_funnel_stage":"New Lead","latest_qualification":{"id":4,"qualified":"maybe","classification":"need_review","score":28,"business_type":"mixed","company_size_band":"small","qualification_reason":"Firmographic: Industry fit assessed; Company size band identified (7\\/25); Need relevance: Pain level is material (8\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (5\\/20); Stakeholder access: Named contact is usable for follow-up (5\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)"}},"due_at":"2026-04-26T06:15:42.000000Z","reviewed_at":null,"created_at":"2026-04-25T06:15:42.000000Z","updated_at":"2026-04-25T06:15:42.000000Z","tenant_id":1,"decision":"pending","decision_reason":null,"original_score":null,"score_override":null,"decisioned_at":null,"lead":{"id":58,"company_name":"PT Artha Solusi Global","address":"Grand Duren Tiga (Lantai 4 Blok B) Jl. Duren Tiga Raya No.9","lat":null,"lng":null,"website":null,"website_domain":null,"phone":"62085165596811","email":null,"industry_id":7,"sub_industry_id":21,"business_category":"Property Management","company_size_estimate":"11-50","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":60,"qualification_status":"not_eligible","ai_explanation":"Strong on Activity Signal. Needs improvement in Source Reliability.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T06:01:32.000000Z","updated_at":"2026-04-25T06:20:55.000000Z","deleted_at":null,"tenant_id":1},"workflow":{"id":1,"name":"Need Review Gate","slug":"need-review-gate","trigger_status":"need_review","requires_approval":true,"override_enabled":true,"sla_hours":24,"is_active":true,"created_by":null,"updated_by":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z","deleted_at":null,"tenant_id":1,"stages":[{"id":1,"workflow_id":1,"code":"triage","label":"RevOps Triage","sequence":1,"assigned_role":"sales_manager","decision_type":"review","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"},{"id":2,"workflow_id":1,"code":"approval","label":"Manager Approval","sequence":2,"assigned_role":"admin","decision_type":"approve","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"}]},"qualification":{"id":4,"lead_id":58,"qualified":"maybe","business_type":"mixed","company_size_band":"small","qualification_reason":"Firmographic: Industry fit assessed; Company size band identified (7\\/25); Need relevance: Pain level is material (8\\/25); Commercial readiness: Commercial readiness reflects budget, timing, and urgency. (5\\/20); Stakeholder access: Named contact is usable for follow-up (5\\/15); Technical fit: Technical fit reflects compatibility and delivery feasibility. (3\\/15)","last_qualified_at":"2026-04-25T06:15:42.000000Z","created_at":"2026-04-25T06:15:42.000000Z","updated_at":"2026-04-25T06:15:42.000000Z","classification":"need_review","score":28,"dimension_breakdown":{"firmographic":{"points":7,"max_points":25,"signals":["Industry fit assessed","Company size band identified"],"risk_flags":[],"summary":"Industry fit assessed; Company size band identified"},"need_relevance":{"points":8,"max_points":25,"signals":["Pain level is material"],"risk_flags":["Problem statement is missing."],"summary":"Pain level is material"},"commercial_readiness":{"points":5,"max_points":20,"signals":[],"risk_flags":["Budget is not yet validated."],"summary":"Commercial readiness reflects budget, timing, and urgency."},"stakeholder_access":{"points":5,"max_points":15,"signals":["Named contact is usable for follow-up"],"risk_flags":["Decision-maker access is not confirmed."],"summary":"Named contact is usable for follow-up"},"technical_fit":{"points":3,"max_points":15,"signals":[],"risk_flags":["Technical fit has not been validated."],"summary":"Technical fit reflects compatibility and delivery feasibility."}},"risk_flags":["Problem statement is missing.","Budget is not yet validated.","Decision-maker access is not confirmed.","Technical fit has not been validated.","Missing critical field: budget_status","Missing critical field: problem_statement","Missing critical field: technical_fit"],"hard_stops":[],"recommendation":"Route to a reviewer to close critical data gaps before progression.","evaluation_snapshot":{"source":"lead_record","lead_id":58,"company_name":"PT Artha Solusi Global","industry":"Property & Construction","company_size_band":"small","territory_fit":null,"target_industry_fit":"medium","problem_statement":null,"pain_level":"medium","use_case_fit":"unknown","budget_status":"unknown","timeline_months":null,"commercial_urgency":"medium","decision_maker_engaged":false,"stakeholder_count":1,"contact_quality":"strong","technical_fit":"unknown","integration_complexity":"unknown","required_capabilities":[],"notes":null},"tenant_id":null}}	{"decision":"approve","lead_id":58,"score_override":null,"final_status":"potential"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 06:23:43	2026-04-25 06:23:43	POST	api/qualification/reviews/4/decision	success	\N	1
+153	\N	create_transcript	lead_transcripts	App\\Models\\LeadTranscript	2	\N	{"source_type":"manual"}	127.0.0.1	Symfony	2026-04-25 10:47:37	2026-04-25 10:47:37	GET	/	success	\N	\N
+154	1	deleted	products	App\\Models\\Product	1	{"id":1,"name":"Enterprise ERP Solution","category":"Enterprise Software","description":"End-to-end enterprise resource planning system covering finance, HR, inventory, and supply chain.","target_industry":"Manufacturing, Retail & Distribution","target_pain_points":"Manual processes, siloed data, poor inventory visibility","target_buyer_persona":"CEO, CFO, Operations Director","ideal_company_profile":"Mid-to-large manufacturers and distributors with 100+ employees","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z","tenant_id":1}	\N	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:49:26	2026-04-25 10:49:26	DELETE	api/products/1	success	\N	1
+155	1	deleted	products	App\\Models\\Product	3	{"id":3,"name":"Fleet Management System","category":"Logistics Technology","description":"Real-time GPS tracking, route optimization, maintenance scheduling, and driver behavior monitoring.","target_industry":"Logistics & Transportation","target_pain_points":"High fuel costs, untracked vehicles, unplanned maintenance","target_buyer_persona":"Operations Manager, Fleet Manager, Logistics Director","ideal_company_profile":"Companies operating 10+ commercial vehicles","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z","tenant_id":1}	\N	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:49:29	2026-04-25 10:49:29	DELETE	api/products/3	success	\N	1
+156	1	deleted	products	App\\Models\\Product	2	{"id":2,"name":"Sales Intelligence Platform","category":"Sales Technology","description":"AI-powered lead scoring, territory management, and CRM integration. Helps sales teams prioritize high-value prospects.","target_industry":"Technology & IT Services, Finance & Banking","target_pain_points":"Low conversion rates, poor lead visibility, territory conflicts","target_buyer_persona":"Sales Director, VP Sales, Business Development Manager","ideal_company_profile":"B2B companies with active outbound sales teams","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z","tenant_id":1}	\N	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:49:32	2026-04-25 10:49:32	DELETE	api/products/2	success	\N	1
+157	1	created	products	App\\Models\\Product	4	\N	{"name":"OceanBase Distributed Database","category":"Database & Data Infrastructure","description":"High-performance distributed database designed for mission-critical workloads with strong consistency, scalability, and compatibility with enterprise database systems.","target_industry":"Financial Services, Large Enterprise, Technology, E-commerce","status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-25T10:50:09.000000Z","created_at":"2026-04-25T10:50:09.000000Z","id":4}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:50:09	2026-04-25 10:50:09	POST	api/products	success	\N	1
+275	\N	login	auth	App\\Models\\User	1	\N	\N	172.217.194.95	curl/8.7.1	2026-05-17 02:34:14	2026-05-17 02:34:14	POST	api/auth/login	success	\N	\N
+158	1	created	products	App\\Models\\Product	5	\N	{"name":"Qiscus Omnichannel Customer Engagement","category":"Customer Engagement & Communication Platform","description":"Unified communication platform that enables businesses to manage customer interactions, chatbot automation, and support operations across multiple channels.","target_industry":"Retail, E-commerce, Banking, Insurance, Telco","status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-25T10:50:33.000000Z","created_at":"2026-04-25T10:50:33.000000Z","id":5}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:50:33	2026-04-25 10:50:33	POST	api/products	success	\N	1
+159	1	created	products	App\\Models\\Product	6	\N	{"name":"SealSuite IT Security & Governance Platform","category":"Cybersecurity & IT Governance","description":"Integrated security platform that manages user access, endpoint protection, network security, and SaaS governance under a unified zero-trust framework.","target_industry":"Enterprise, Financial Services, Technology \\u0915\\u0902\\u092a\\u0928ies, Government","status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-25T10:50:56.000000Z","created_at":"2026-04-25T10:50:56.000000Z","id":6}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:50:56	2026-04-25 10:50:56	POST	api/products	success	\N	1
+160	1	created	products	App\\Models\\Product	7	\N	{"name":"Jedox Planning & Analytics Platform","category":"Data Analytics & Performance Management","description":"Enterprise performance management platform for budgeting, forecasting, and data-driven decision-making with real-time analytics and integrated planning.","target_industry":"Enterprise, Manufacturing, Finance, Retail, FMCG","status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-25T10:51:19.000000Z","created_at":"2026-04-25T10:51:19.000000Z","id":7}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:51:19	2026-04-25 10:51:19	POST	api/products	success	\N	1
+161	1	created	products	App\\Models\\Product	8	\N	{"name":"Mekari Sign Digital Signature","category":"Digital Signature & Document Management","description":"Secure and legally compliant digital signature platform that enables fast, paperless document approval and signing processes","target_industry":"Financial Services, Legal, Enterprise, Government, Corporate","status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-25T10:51:43.000000Z","created_at":"2026-04-25T10:51:43.000000Z","id":8}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:51:43	2026-04-25 10:51:43	POST	api/products	success	\N	1
+162	1	created	products	App\\Models\\Product	9	\N	{"name":"Mekari Talenta HRIS Platform","category":"HR & Payroll Software","description":"Cloud-based HR management system that automates payroll, attendance, employee data, and performance management for efficient workforce administration.","target_industry":"All Industries (SME to Enterprise)","status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-25T10:52:04.000000Z","created_at":"2026-04-25T10:52:04.000000Z","id":9}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:52:04	2026-04-25 10:52:04	POST	api/products	success	\N	1
+163	1	created	products	App\\Models\\Product	10	\N	{"name":"Oracle NetSuite Cloud ERP","category":"Enterprise Software (ERP)","description":"Comprehensive cloud ERP solution that streamlines financial management, inventory, procurement, CRM, and business operations with real-time visibility and scalability.","target_industry":"Manufacturing, Retail, Distribution, Professional Services","status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-25T10:52:36.000000Z","created_at":"2026-04-25T10:52:36.000000Z","id":10}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:52:36	2026-04-25 10:52:36	POST	api/products	success	\N	1
+164	1	created	products	App\\Models\\Product	11	\N	{"name":"Lark Collaboration & Operations Platform","category":"Productivity & Collaboration Software","description":"All-in-one digital workplace platform that unifies communication, collaboration, workflow automation, and business operations into a single integrated ecosystem.","target_industry":"All Industries (Enterprise, Startups, Manufacturing, Retail, Services)","status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-25T10:52:59.000000Z","created_at":"2026-04-25T10:52:59.000000Z","id":11}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:52:59	2026-04-25 10:52:59	POST	api/products	success	\N	1
+165	1	create_transcript	lead_transcripts	App\\Models\\LeadTranscript	3	\N	{"source_type":"manual"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 10:53:46	2026-04-25 10:53:46	POST	api/leads/58/transcripts	success	\N	1
+166	1	match_products	leads	App\\Models\\Lead	58	\N	{"matches_count":8,"recommended_count":0}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:12:16	2026-04-25 11:12:16	POST	api/leads/58/match-products	success	\N	1
+167	1	icp_match	leads	App\\Models\\Lead	58	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:20:48	2026-04-25 11:20:48	POST	api/leads/58/icp-match	success	\N	1
+168	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":8,"suggestions_count":0,"ai_model":null}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:43:33	2026-04-25 11:43:33	POST	api/icp-profiles/generate	success	\N	1
+169	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":8,"suggestions_count":0,"ai_model":null}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:43:44	2026-04-25 11:43:44	POST	api/icp-profiles/generate	success	\N	1
+170	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":8,"suggestions_count":0,"ai_model":null}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:46:50	2026-04-25 11:46:50	POST	api/icp-profiles/generate	success	\N	1
+171	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":8,"suggestions_count":0,"ai_model":null}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:47:40	2026-04-25 11:47:40	POST	api/icp-profiles/generate	success	\N	1
+172	1	api_key_revealed	ai_providers	App\\Models\\AiProvider	1	\N	{"provider_id":1,"provider":"openai"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:48:12	2026-04-25 11:48:12	POST	api/settings/ai-default/providers/1/reveal-key	success	\N	1
+173	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":1159}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:48:16	2026-04-25 11:48:16	POST	api/settings/ai-default/providers/1/test	success	\N	1
+174	1	updated	ai_providers	App\\Models\\AiProvider	3	{"api_key_encrypted":"eyJpdiI6IjR0VnNPbTBoSXJvZHRZWWM2MTZXZlE9PSIsInZhbHVlIjoiSnpaN25vZGRoSlRVblBoS0ZKWmRnWHR1N29jd0NpbkFJemZNMG1rWUkvQ0lhVTZzNDROR2YvaDcwRmlkQS9PaiIsIm1hYyI6ImZmYzY0YTA5NzEzNzI3ZDU2ZjIzMmIzMTg0YmQ3ZWUyZjg3ZmViYjVhZTAwZTQ5MWExZTE0ZDQzOTBhYjgwZjYiLCJ0YWciOiIifQ==","updated_at":"2026-04-20 14:35:47","api_key_last4":"INGS"}	{"api_key_encrypted":"eyJpdiI6IjBJaXJxYmI0SVhleVpnNFBSZ00xWkE9PSIsInZhbHVlIjoid29oVDA1a2FqQ0RkNExWZmRnT1g2RWVPTDcrYlRlQXpMN1YzTDBjeFFvSnFTYVF6M3BZd1cyVTVuNHN5dWZ6YyIsIm1hYyI6ImI2MWU2N2UzYzU2YmQwMjA4ODEwOTI4NTg0MGYxYjg1MzFhMGYxZDFhMjUwMTNiN2VmYmI4MDczNTI3NGEyNDYiLCJ0YWciOiIifQ==","updated_at":"2026-04-25 11:49:06","api_key_last4":"garA"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:49:06	2026-04-25 11:49:06	PUT	api/settings/ai-default/providers/3	success	\N	1
+175	1	connection_tested	ai_providers	App\\Models\\AiProvider	3	\N	{"success":false,"http_status":401,"latency_ms":274}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:49:09	2026-04-25 11:49:09	POST	api/settings/ai-default/providers/3/test	success	\N	1
+176	1	connection_tested	ai_providers	App\\Models\\AiProvider	3	\N	{"success":false,"http_status":401,"latency_ms":240}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:49:12	2026-04-25 11:49:12	POST	api/settings/ai-default/providers/3/test	success	\N	1
+177	1	api_key_revealed	ai_providers	App\\Models\\AiProvider	3	\N	{"provider_id":3,"provider":"google"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:49:17	2026-04-25 11:49:17	POST	api/settings/ai-default/providers/3/reveal-key	success	\N	1
+178	1	updated	ai_providers	App\\Models\\AiProvider	3	{"status":"inactive","updated_at":"2026-04-25 11:49:12","provider_type":"custom"}	{"status":"active","updated_at":"2026-04-25 11:49:32","provider_type":"gemini"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:49:32	2026-04-25 11:49:32	PUT	api/settings/ai-default/providers/3	success	\N	1
+179	1	connection_tested	ai_providers	App\\Models\\AiProvider	3	\N	{"success":true,"http_status":200,"latency_ms":285}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:49:34	2026-04-25 11:49:34	POST	api/settings/ai-default/providers/3/test	success	\N	1
+180	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":8,"suggestions_count":0,"ai_model":null}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:49:52	2026-04-25 11:49:52	POST	api/icp-profiles/generate	success	\N	1
+181	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":8,"suggestions_count":0,"ai_model":null}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 11:49:56	2026-04-25 11:49:56	POST	api/icp-profiles/generate	success	\N	1
+182	1	export	leads	\N	\N	\N	{"count":56}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 14:39:01	2026-04-25 14:39:01	GET	api/leads/export	success	\N	1
+183	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":11,"suggestions_count":0,"ai_model":null}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:37:55	2026-04-25 15:37:55	POST	api/icp-profiles/generate	success	\N	1
+184	1	deleted	ai_models	App\\Models\\AiModel	12	{"id":12,"ai_provider_id":1,"name":"GPT-5.4","context_window":null,"capabilities":null,"cost_tier":"low","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:51:23.000000Z","updated_at":"2026-04-20T14:51:23.000000Z"}	\N	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:38:20	2026-04-25 15:38:20	DELETE	api/settings/ai-default/providers/1/models/12	success	\N	1
+185	1	deleted	ai_models	App\\Models\\AiModel	15	{"id":15,"ai_provider_id":1,"name":"gpt-3.5-turbo","context_window":16385,"capabilities":null,"cost_tier":"low","default_usage_type":null,"status":"active","created_at":"2026-04-20T14:58:40.000000Z","updated_at":"2026-04-20T14:58:40.000000Z"}	\N	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:38:25	2026-04-25 15:38:25	DELETE	api/settings/ai-default/providers/1/models/15	success	\N	1
+186	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":886}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:38:30	2026-04-25 15:38:30	POST	api/settings/ai-default/providers/1/test	success	\N	1
+187	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":11,"suggestions_count":1,"ai_model":"gpt-4o"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:40:26	2026-04-25 15:40:26	POST	api/icp-profiles/generate	success	\N	1
+188	1	rescore	leads	App\\Models\\Lead	57	\N	{"score":56,"grade":"Cold"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:41:09	2026-04-25 15:41:09	POST	api/leads/57/rescore	success	\N	1
+189	1	match_products	leads	App\\Models\\Lead	57	\N	{"matches_count":11,"recommended_count":0}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:42:06	2026-04-25 15:42:06	POST	api/leads/57/match-products	success	\N	1
+190	1	rescore	leads	App\\Models\\Lead	57	\N	{"score":56,"grade":"Cold"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:42:06	2026-04-25 15:42:06	POST	api/leads/57/rescore	success	\N	1
+191	1	qualify	leads	App\\Models\\Lead	57	{"id":57,"company_name":"PT Perusahaan Gas Negara, Tbk. - Sales and Operation Region III","address":"Jl. Pemuda No.56-58, Embong Kaliasin, Kec. Genteng, Surabaya, Jawa Timur 60271, Indonesia","lat":-7.2649906,"lng":112.7467566,"website":"http:\\/\\/pgn.co.id\\/","website_domain":"pgn.co.id","phone":"+62 815-1150-0645","email":null,"industry_id":12,"sub_industry_id":39,"business_category":"establishment, point_of_interest","company_size_estimate":null,"branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":56,"qualification_status":"potential","ai_explanation":"Strong on Data Completeness and Source Reliability. Needs improvement in Company Size and Activity Signal.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":"ChIJERjhN1Dj1y0R6-wLabZwsaw","use_ai_reference":false,"ai_mode":"full_ai","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":null,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T05:28:01.000000Z","updated_at":"2026-04-25T15:42:11.000000Z","deleted_at":null,"tenant_id":null,"industry":{"id":12,"name":"Energy & Utilities","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":2,"lead_id":57,"name":"Kodrat Santoso","title":"CEO","email":"santosokodrat@gmail.com","phone":"6287884701947","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-04-25T05:58:31.000000Z","updated_at":"2026-04-25T05:58:31.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[],"product":null,"territory":null}	{"qualified":"maybe","business_type":"B2B"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:42:11	2026-04-25 15:42:11	POST	api/leads/57/qualify	success	\N	1
+192	1	icp_match	leads	App\\Models\\Lead	57	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:42:13	2026-04-25 15:42:13	POST	api/leads/57/icp-match	success	\N	1
+193	1	revenue_analysis	leads	App\\Models\\Lead	57	\N	{"intent_level":"low","probability_to_close":30,"confidence":0.4,"status":"success"}	172.18.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-25 15:42:23	2026-04-25 15:42:23	POST	api/leads/57/revenue-analysis	success	\N	1
+194	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":11,"suggestions_count":1,"ai_model":"gpt-4o"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:11:12	2026-04-26 13:11:12	POST	api/icp-profiles/generate	success	\N	1
+195	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":11,"suggestions_count":1,"ai_model":"gpt-4o"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:11:33	2026-04-26 13:11:33	POST	api/icp-profiles/generate	success	\N	1
+196	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":11,"suggestions_count":1,"ai_model":"gpt-4o"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:11:42	2026-04-26 13:11:42	POST	api/icp-profiles/generate	success	\N	1
+197	1	rescore	leads	App\\Models\\Lead	56	\N	{"score":54,"grade":"Cold"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:12:11	2026-04-26 13:12:11	POST	api/leads/56/rescore	success	\N	1
+198	1	match_products	leads	App\\Models\\Lead	56	\N	{"matches_count":11,"recommended_count":0}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:13:08	2026-04-26 13:13:08	POST	api/leads/56/match-products	success	\N	1
+199	1	trigger_contact_enrichment	leads	App\\Models\\Lead	56	\N	{"triggered_by":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:14:08	2026-04-26 13:14:08	POST	api/leads/56/enrich-contacts	success	\N	1
+200	1	trigger_contact_enrichment	leads	App\\Models\\Lead	56	\N	{"triggered_by":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:14:13	2026-04-26 13:14:13	POST	api/leads/56/enrich-contacts	success	\N	1
+201	1	updated	leads	App\\Models\\Lead	56	{"website":null,"website_domain":null,"industry_id":null,"sub_industry_id":null,"business_category":"establishment, point_of_interest","company_size_estimate":null,"updated_at":"2026-04-26 13:12:11"}	{"website":"https:\\/\\/www.sekarlaut.com\\/","website_domain":"www.sekarlaut.com","industry_id":3,"sub_industry_id":1,"business_category":"Food & Beverage Manufacturing (FMCG)","company_size_estimate":"1000+","updated_at":"2026-04-26 13:16:59"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:16:59	2026-04-26 13:16:59	PUT	api/leads/56	success	\N	1
+202	1	rescore	leads	App\\Models\\Lead	56	\N	{"score":60,"grade":"Warm"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:17:49	2026-04-26 13:17:49	POST	api/leads/56/rescore	success	\N	1
+203	1	match_products	leads	App\\Models\\Lead	56	\N	{"matches_count":11,"recommended_count":4}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:18:44	2026-04-26 13:18:44	POST	api/leads/56/match-products	success	\N	1
+204	1	qualify	leads	App\\Models\\Lead	56	{"id":56,"company_name":"PT. Sekar Laut, Tbk","address":"Jl. Jenggolo II No.17, Pucang, Kec. Sidoarjo, Kabupaten Sidoarjo, Jawa Timur 61219, Indonesia","lat":-7.4392704,"lng":112.724517,"website":"https:\\/\\/www.sekarlaut.com\\/","website_domain":"www.sekarlaut.com","phone":"+62 31 8921036","email":null,"industry_id":3,"sub_industry_id":1,"business_category":"Food & Beverage Manufacturing (FMCG)","company_size_estimate":"1000+","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":60,"qualification_status":"potential","ai_explanation":"Strong on Data Completeness and Source Reliability. Needs improvement in Activity Signal.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":"ChIJVfKKURHn1y0R89ik443h7_Q","use_ai_reference":false,"ai_mode":"full_ai","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":null,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-25T05:28:00.000000Z","updated_at":"2026-04-26T13:18:51.000000Z","deleted_at":null,"tenant_id":null,"industry":{"id":3,"name":"Manufacturing","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[],"activities":[],"product":null,"territory":null}	{"qualified":"maybe","business_type":"B2B"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:18:51	2026-04-26 13:18:51	POST	api/leads/56/qualify	success	\N	1
+205	1	icp_match	leads	App\\Models\\Lead	56	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:18:53	2026-04-26 13:18:53	POST	api/leads/56/icp-match	success	\N	1
+206	1	icp_match	leads	App\\Models\\Lead	56	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:19:14	2026-04-26 13:19:14	POST	api/leads/56/icp-match	success	\N	1
+207	1	revenue_analysis	leads	App\\Models\\Lead	56	\N	{"intent_level":"low","probability_to_close":20,"confidence":0.4,"status":"success"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:19:21	2026-04-26 13:19:21	POST	api/leads/56/revenue-analysis	success	\N	1
+208	1	icp_match	leads	App\\Models\\Lead	56	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:20:23	2026-04-26 13:20:23	POST	api/leads/56/icp-match	success	\N	1
+209	1	icp_match	leads	App\\Models\\Lead	56	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:20:24	2026-04-26 13:20:24	POST	api/leads/56/icp-match	success	\N	1
+210	1	predict_conversion	leads	App\\Models\\Lead	56	\N	{"probability":27}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:20:25	2026-04-26 13:20:25	POST	api/leads/56/predict-conversion	success	\N	1
+211	1	prescribe	leads	App\\Models\\Lead	56	\N	{"next_action":"Make first contact \\u2014 introduce product and qualify interest","priority":6}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:20:27	2026-04-26 13:20:27	POST	api/leads/56/prescribe	success	\N	1
+212	1	revenue_analysis	leads	App\\Models\\Lead	56	\N	{"intent_level":"low","probability_to_close":20,"confidence":0.5,"status":"success"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:20:32	2026-04-26 13:20:32	POST	api/leads/56/revenue-analysis	success	\N	1
+213	1	deleted	products	App\\Models\\Product	12	{"id":12,"name":"Enterprise ERP Solution","category":"Enterprise Software","description":"End-to-end enterprise resource planning system covering finance, HR, inventory, and supply chain.","target_industry":"Manufacturing, Retail & Distribution","target_pain_points":"Manual processes, siloed data, poor inventory visibility","target_buyer_persona":"CEO, CFO, Operations Director","ideal_company_profile":"Mid-to-large manufacturers and distributors with 100+ employees","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-04-25T14:37:05.000000Z","updated_at":"2026-04-25T14:37:05.000000Z","tenant_id":1,"supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:42:16	2026-04-26 13:42:16	DELETE	api/products/12	success	\N	1
+214	1	deleted	products	App\\Models\\Product	14	{"id":14,"name":"Fleet Management System","category":"Logistics Technology","description":"Real-time GPS tracking, route optimization, maintenance scheduling, and driver behavior monitoring.","target_industry":"Logistics & Transportation","target_pain_points":"High fuel costs, untracked vehicles, unplanned maintenance","target_buyer_persona":"Operations Manager, Fleet Manager, Logistics Director","ideal_company_profile":"Companies operating 10+ commercial vehicles","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-04-25T14:37:05.000000Z","updated_at":"2026-04-25T14:37:05.000000Z","tenant_id":1,"supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:42:19	2026-04-26 13:42:19	DELETE	api/products/14	success	\N	1
+215	1	updated	products	App\\Models\\Product	11	{"target_buyer_persona":null,"updated_at":"2026-04-25 10:52:59","use_cases":null,"keywords":null}	{"target_buyer_persona":"COO, CIO, Head of Operations, HR Director, Digital Transformation Lead","updated_at":"2026-04-26 13:42:57","use_cases":"[]","keywords":"[]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:42:57	2026-04-26 13:42:57	PUT	api/products/11	success	\N	1
+216	1	updated	products	App\\Models\\Product	10	{"target_buyer_persona":null,"updated_at":"2026-04-25 10:52:36","use_cases":null,"keywords":null}	{"target_buyer_persona":"CFO, Finance Director, COO, ERP Manager, Business Owner","updated_at":"2026-04-26 13:43:12","use_cases":"[]","keywords":"[]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:43:12	2026-04-26 13:43:12	PUT	api/products/10	success	\N	1
+217	1	created	products	App\\Models\\Product	15	\N	{"name":"Mekari Qontak Omnichannel CRM","category":"Customer Engagement & CRM Software","description":"Omnichannel customer engagement platform that integrates CRM, sales automation, chatbot, and multi-channel communication to improve customer experience and conversion rates.","target_industry":"Retail, E-commerce, Financial Services, Telco, Hospitality","target_company_size":null,"target_pain_points":null,"target_buyer_persona":"Head of Sales, Head of Customer Service, Marketing Manager, CRM Manager","ideal_company_profile":null,"supported_regions":null,"budget_range":null,"use_cases":[],"competitor_notes":null,"keywords":[],"status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-04-26T13:44:05.000000Z","created_at":"2026-04-26T13:44:05.000000Z","id":15}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 13:44:05	2026-04-26 13:44:05	POST	api/products	success	\N	1
+218	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Jedox Planning & Analytics Platform","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:21:35	2026-04-26 14:21:35	POST	api/products/ai-generate	success	\N	1
+219	1	updated	products	App\\Models\\Product	7	{"description":"Enterprise performance management platform for budgeting, forecasting, and data-driven decision-making with real-time analytics and integrated planning.","target_industry":"Enterprise, Manufacturing, Finance, Retail, FMCG","target_pain_points":null,"target_buyer_persona":null,"ideal_company_profile":null,"updated_at":"2026-04-25 10:51:19","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	{"description":"The Jedox Planning & Analytics Platform is a comprehensive solution for advanced budgeting, forecasting, and business intelligence. It helps enterprises streamline decision-making processes and optimize performance management by providing actionable insights and data-driven strategies.","target_industry":"Manufacturing, Retail & Distribution, Finance & Banking","target_pain_points":"Inefficient budgeting processes\\nLack of real-time data insights\\nDifficulty in forecasting financial performance","target_buyer_persona":"Chief Financial Officer, Business Analyst, IT Manager","ideal_company_profile":"A mid-sized to large-scale company looking to enhance its financial planning and performance management capabilities with streamlined processes and deep data analytics.","updated_at":"2026-04-26 14:21:51","supported_regions":"Indonesia, Malaysia","budget_range":"IDR 200M - 1B \\/ year","target_company_size":"201-500 employees","use_cases":"[\\"Streamlining financial planning\\",\\"Enhancing data-driven decision making\\",\\"Improving performance through KPI tracking\\"]","competitor_notes":"Key competitors include IBM Planning Analytics and Anaplan, but Jedox differentiates with its user-friendly interface and robust integration capabilities with existing IT systems.","keywords":"[\\"business intelligence\\",\\"performance management\\",\\"financial planning\\",\\"budgeting\\",\\"forecasting\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:21:51	2026-04-26 14:21:51	PUT	api/products/7	success	\N	1
+220	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Lark Collaboration & Operations Platform","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:21:58	2026-04-26 14:21:58	POST	api/products/ai-generate	success	\N	1
+221	1	updated	products	App\\Models\\Product	11	{"category":"Productivity & Collaboration Software","description":"All-in-one digital workplace platform that unifies communication, collaboration, workflow automation, and business operations into a single integrated ecosystem.","target_industry":"All Industries (Enterprise, Startups, Manufacturing, Retail, Services)","target_pain_points":null,"target_buyer_persona":"COO, CIO, Head of Operations, HR Director, Digital Transformation Lead","ideal_company_profile":null,"updated_at":"2026-04-26 13:42:57","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":"[]","competitor_notes":null,"keywords":"[]"}	{"category":"Productivity & Collaboration Software, Customer Engagement & Communication Platform","description":"Lark Collaboration & Operations Platform is a comprehensive tool designed to enhance productivity and streamline operations for businesses. It provides features such as chat, video conferencing, and task management, helping teams collaborate efficiently across various industries, including technology and logistics.","target_industry":"Technology & IT Services, Logistics & Transportation","target_pain_points":"Inefficient team communication\\nLack of centralized task management\\nDifficulty in virtual collaboration","target_buyer_persona":"Chief Technology Officer, Operations Manager, Project Manager","ideal_company_profile":"The ideal target company is mid-sized, operating in tech or logistics sectors, seeking to improve their team collaboration and operational efficiency through an integrated software solution.","updated_at":"2026-04-26 14:22:07","supported_regions":"Indonesia, Malaysia","budget_range":"IDR 100M - 500M \\/ year","target_company_size":"201-500 employees","use_cases":"[\\"Enhancing remote team collaboration\\",\\"Centralizing project management tasks\\",\\"Facilitating virtual meetings\\"]","competitor_notes":"Competitors include Microsoft Teams and Slack; however, Lark differentiates itself with an integrated approach combining productivity tools and communication features in a single platform.","keywords":"[\\"collaboration\\",\\"productivity\\",\\"team communication\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:22:07	2026-04-26 14:22:07	PUT	api/products/11	success	\N	1
+222	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Mekari Qontak Omnichannel CRM","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:22:15	2026-04-26 14:22:15	POST	api/products/ai-generate	success	\N	1
+223	1	updated	products	App\\Models\\Product	15	{"category":"Customer Engagement & CRM Software","description":"Omnichannel customer engagement platform that integrates CRM, sales automation, chatbot, and multi-channel communication to improve customer experience and conversion rates.","target_industry":"Retail, E-commerce, Financial Services, Telco, Hospitality","target_pain_points":null,"target_buyer_persona":"Head of Sales, Head of Customer Service, Marketing Manager, CRM Manager","ideal_company_profile":null,"updated_at":"2026-04-26 13:44:05","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":"[]","competitor_notes":null,"keywords":"[]"}	{"category":"Customer Engagement & CRM Software, Customer Engagement & Communication Platform","description":"Mekari Qontak Omnichannel CRM is an integrated customer relationship management platform designed to enhance customer engagement and streamline communication across multiple channels. It helps businesses in Indonesia improve customer interaction, boost sales efficiency, and drive business growth.","target_industry":"Retail & Distribution, Technology & IT Services, Finance & Banking","target_pain_points":"Disjointed customer communication channels\\nInefficient sales processes\\nDifficulty in tracking customer interactions","target_buyer_persona":"Sales Manager, Customer Service Director, Business Development Manager","ideal_company_profile":"The ideal target company is a medium-sized enterprise in the retail or technology sector in Indonesia, looking for a comprehensive CRM solution to unify communication and improve customer loyalty.","updated_at":"2026-04-26 14:22:22","supported_regions":"Indonesia","budget_range":"IDR 100M - 300M \\/ year","target_company_size":"51-200 employees","use_cases":"[\\"Integrate multiple communication channels into a single platform\\",\\"Enhance customer service efficiency\\",\\"Automate sales tracking and reporting\\"]","competitor_notes":"Key competitors include Salesforce and HubSpot, but Mekari Qontak differentiates itself by offering a localized solution tailored to the Indonesian market with easy integration and competitive pricing.","keywords":"[\\"CRM\\",\\"Omnichannel Communication\\",\\"Customer Engagement\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:22:22	2026-04-26 14:22:22	PUT	api/products/15	success	\N	1
+224	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Mekari Sign Digital Signature","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:22:43	2026-04-26 14:22:43	POST	api/products/ai-generate	success	\N	1
+225	1	updated	products	App\\Models\\Product	8	{"category":"Digital Signature & Document Management","description":"Secure and legally compliant digital signature platform that enables fast, paperless document approval and signing processes","target_industry":"Financial Services, Legal, Enterprise, Government, Corporate","target_pain_points":null,"target_buyer_persona":null,"ideal_company_profile":null,"updated_at":"2026-04-25 10:51:43","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	{"category":"Digital Signature & Document Management, Productivity & Collaboration Software","description":"Mekari Sign Digital Signature is an advanced electronic signing solution designed to streamline document approval processes for businesses in Indonesia, increasing efficiency and ensuring document integrity. It aids organizations across various sectors by reducing the time and cost associated with manual signatures and physical document management.","target_industry":"Finance & Banking, Technology & IT Services, Education & Training","target_pain_points":"Time-consuming document processes\\nHigh costs of paper-based approvals\\nSecurity concerns with manual signatures","target_buyer_persona":"IT Manager, Operations Manager, Compliance Officer","ideal_company_profile":"The ideal target company is a mid-sized enterprise in the finance, technology, or education sectors that deals with a high volume of document processing and seeks to enhance operational efficiency through digital transformation.","updated_at":"2026-04-26 14:22:47","supported_regions":"Indonesia","budget_range":"IDR 50M - 500M \\/ year","target_company_size":"201-500 employees","use_cases":"[\\"Automating signature workflows for contracts\\",\\"Streamlining internal approvals in finance departments\\",\\"Enhancing document security for sensitive information\\"]","competitor_notes":"Key competitors include DocuSign and SignRequest, but Mekari Sign differentiates itself by offering localized support and compliance with Indonesian regulations, providing a seamless user experience for domestic businesses.","keywords":"[\\"digital signature\\",\\"electronic document management\\",\\"efficiency\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:22:47	2026-04-26 14:22:47	PUT	api/products/8	success	\N	1
+226	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Mekari Talenta HRIS Platform","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:22:55	2026-04-26 14:22:55	POST	api/products/ai-generate	success	\N	1
+243	1	updated	leads	App\\Models\\Lead	59	{"company_size_estimate":null,"updated_at":"2026-04-26 14:49:01"}	{"company_size_estimate":"51-200","updated_at":"2026-05-12 09:32:35"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:32:35	2026-05-12 09:32:35	PUT	api/leads/59	success	\N	1
+244	1	rescore	leads	App\\Models\\Lead	59	\N	{"score":55,"grade":"Cold"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:32:38	2026-05-12 09:32:38	POST	api/leads/59/rescore	success	\N	1
+304	\N	login_failed	auth	\N	\N	\N	{"email":"admin@prasetia.co.id"}	185.199.110.133	curl/8.7.1	2026-05-19 14:33:12	2026-05-19 14:33:12	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+227	1	updated	products	App\\Models\\Product	9	{"description":"Cloud-based HR management system that automates payroll, attendance, employee data, and performance management for efficient workforce administration.","target_industry":"All Industries (SME to Enterprise)","target_pain_points":null,"target_buyer_persona":null,"ideal_company_profile":null,"updated_at":"2026-04-25 10:52:04","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	{"description":"Mekari Talenta HRIS Platform is a comprehensive human resource information system designed to streamline HR & payroll processes, attendance tracking, and performance management for businesses in Indonesia. It supports growing companies by simplifying employee management and ensuring compliance with local regulations.","target_industry":"Technology & IT Services, Retail & Distribution","target_pain_points":"Manual payroll processing\\nNon-compliance with local HR regulations\\nInefficient attendance tracking","target_buyer_persona":"HR Manager, Payroll Specialist, Operations Director","ideal_company_profile":"The ideal company utilizing Mekari Talenta HRIS Platform typically operates within the Indonesian market, has between 51 and 500 employees, and is looking to optimize its HR and payroll operations while ensuring regulatory compliance.","updated_at":"2026-04-26 14:22:57","supported_regions":"Indonesia","budget_range":"IDR 100M - 1B \\/ year","target_company_size":"51-200, 201-500 employees","use_cases":"[\\"Automated payroll calculations\\",\\"Real-time attendance monitoring\\",\\"Performance data analytics\\"]","competitor_notes":"Key competitors include similar local and international HRIS providers. Mekari Talenta differentiates with enhanced local support and tailored features for Indonesian businesses.","keywords":"[\\"HRIS\\",\\"payroll management\\",\\"employee management\\",\\"HR software\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:22:57	2026-04-26 14:22:57	PUT	api/products/9	success	\N	1
+228	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"OceanBase Distributed Database","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:06	2026-04-26 14:23:06	POST	api/products/ai-generate	success	\N	1
+229	1	updated	products	App\\Models\\Product	4	{"description":"High-performance distributed database designed for mission-critical workloads with strong consistency, scalability, and compatibility with enterprise database systems.","target_industry":"Financial Services, Large Enterprise, Technology, E-commerce","target_pain_points":null,"target_buyer_persona":null,"ideal_company_profile":null,"updated_at":"2026-04-25 10:50:09","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	{"description":"OceanBase Distributed Database is a cutting-edge database solution designed to manage massive volumes of data with high availability and strong consistency across distributed systems. It caters to businesses needing reliable and scalable data infrastructure, aiding industries that require robust data management solutions.","target_industry":"Finance & Banking, Retail & Distribution","target_pain_points":"Difficulty in managing large-scale distributed data\\nNeed for consistent and available data systems\\nChallenges in achieving high-performance data processing","target_buyer_persona":"IT Manager, Database Administrator, CTO","ideal_company_profile":"An Indonesian mid-sized enterprise in finance or retail, seeking to enhance its data infrastructure to support growing data needs and ensure seamless business operations.","updated_at":"2026-04-26 14:23:10","supported_regions":"Indonesia","budget_range":"IDR 100M - 1B \\/ year","target_company_size":"201-500 employees","use_cases":"[\\"Financial transaction processing\\",\\"Retail inventory management\\",\\"Real-time data analytics\\"]","competitor_notes":"Competes with solutions like Oracle and MongoDB, differentiating with higher scalability and more cost-efficient data management for Indonesian enterprises.","keywords":"[\\"distributed database\\",\\"data management\\",\\"high availability\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:10	2026-04-26 14:23:10	PUT	api/products/4	success	\N	1
+230	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Oracle NetSuite Cloud ERP","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:17	2026-04-26 14:23:17	POST	api/products/ai-generate	success	\N	1
+231	1	updated	products	App\\Models\\Product	10	{"description":"Comprehensive cloud ERP solution that streamlines financial management, inventory, procurement, CRM, and business operations with real-time visibility and scalability.","target_industry":"Manufacturing, Retail, Distribution, Professional Services","target_pain_points":null,"target_buyer_persona":"CFO, Finance Director, COO, ERP Manager, Business Owner","ideal_company_profile":null,"updated_at":"2026-04-26 13:43:12","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":"[]","competitor_notes":null,"keywords":"[]"}	{"description":"Oracle NetSuite Cloud ERP is a comprehensive enterprise software solution designed to streamline business processes and improve operational efficiency for medium to large companies. It assists businesses in finance, inventory management, and customer relationship management, empowering companies to optimize workflows and enhance decision-making.","target_industry":"Manufacturing, Retail & Distribution, Finance & Banking","target_pain_points":"Complex financial management\\nInefficient manual processes\\nLack of real-time data access","target_buyer_persona":"CFO, IT Manager, Operations Director","ideal_company_profile":"The ideal company is a medium to large enterprise with a need for robust ERP solutions to automate and unify business processes, ideally operating in sectors like manufacturing, retail, or finance, and focused on digital transformation.","updated_at":"2026-04-26 14:23:21","supported_regions":"Indonesia, Malaysia","budget_range":"IDR 100M - 1B \\/ year","target_company_size":"201-500 employees","use_cases":"[\\"Automate financial reporting\\",\\"Streamline inventory management\\",\\"Improve customer relationship management\\"]","competitor_notes":"NetSuite competes with SAP S\\/4HANA and Microsoft Dynamics 365 but differentiates through its cloud-first architecture and comprehensive suite that integrates seamlessly across business functions, offering superior flexibility and scalability.","keywords":"[\\"ERP\\",\\"Cloud Software\\",\\"Business Process Optimization\\",\\"Financial Management\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:21	2026-04-26 14:23:21	PUT	api/products/10	success	\N	1
+232	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Qiscus Omnichannel Customer Engagement","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:31	2026-04-26 14:23:31	POST	api/products/ai-generate	success	\N	1
+233	1	updated	products	App\\Models\\Product	5	{"category":"Customer Engagement & Communication Platform","description":"Unified communication platform that enables businesses to manage customer interactions, chatbot automation, and support operations across multiple channels.","target_industry":"Retail, E-commerce, Banking, Insurance, Telco","target_pain_points":null,"target_buyer_persona":null,"ideal_company_profile":null,"updated_at":"2026-04-25 10:50:33","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	{"category":"Customer Engagement & Communication Platform, Customer Engagement & CRM Software","description":"Qiscus Omnichannel Customer Engagement is a comprehensive communication platform that consolidates customer interactions across multiple channels into a single, seamless interface. It is designed to enhance business communication efficiency, increase customer satisfaction, and support data-driven decision-making for businesses focused on customer engagement.","target_industry":"Retail & Distribution, Technology & IT Services, Finance & Banking","target_pain_points":"Disjointed communication channels\\nLack of customer interaction insights\\nInefficient customer service response","target_buyer_persona":"Customer Service Manager, Marketing Director, IT Manager","ideal_company_profile":"The ideal target company is a mid-sized enterprise in Indonesia that prioritizes customer experience and aims to unify all customer interaction channels for enhanced service delivery.","updated_at":"2026-04-26 14:23:37","supported_regions":"Indonesia","budget_range":"IDR 100M - 1B \\/ year","target_company_size":"201-500 employees","use_cases":"[\\"Centralized customer communication management\\",\\"Insightful analytics on customer interactions\\",\\"Automated response solutions to improve customer service\\"]","competitor_notes":"Key competitors include Zendesk and Freshdesk. Qiscus differentiates by offering localized solutions tailored to the Indonesian market and providing stronger integration capabilities with popular regional platforms.","keywords":"[\\"omnichannel communication\\",\\"customer engagement\\",\\"customer service\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:37	2026-04-26 14:23:37	PUT	api/products/5	success	\N	1
+234	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Sales Intelligence Platform","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:46	2026-04-26 14:23:46	POST	api/products/ai-generate	success	\N	1
+235	1	updated	products	App\\Models\\Product	13	{"category":"Sales Technology","description":"AI-powered lead scoring, territory management, and CRM integration. Helps sales teams prioritize high-value prospects.","target_pain_points":"Low conversion rates, poor lead visibility, territory conflicts","target_buyer_persona":"Sales Director, VP Sales, Business Development Manager","ideal_company_profile":"B2B companies with active outbound sales teams","updated_at":"2026-04-25 14:37:05","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	{"category":"Sales Technology, Customer Engagement & CRM Software","description":"A robust Sales Intelligence Platform designed to enhance sales strategies and performance by providing actionable insights and data analytics. This platform is tailored for businesses looking to streamline their sales processes and boost customer engagement.","target_pain_points":"High customer churn\\nInefficient sales processes\\nLack of actionable data insights","target_buyer_persona":"Sales Manager, Business Development Director, VP of Sales","ideal_company_profile":"Mid-sized companies in growth sectors like technology and finance, looking to enhance their sales strategies with data-driven insights.","updated_at":"2026-04-26 14:23:49","supported_regions":"Indonesia","budget_range":"IDR 100M - 1B \\/ year","target_company_size":"201-500 employees","use_cases":"[\\"Improve lead conversion rates\\",\\"Enhance customer engagement and retention\\",\\"Automate sales reporting\\"]","competitor_notes":"Competes with platforms like Salesforce and HubSpot by offering localized customer support and tailored solutions for the Indonesian market, providing a unique advantage in regional knowledge.","keywords":"[\\"sales automation\\",\\"customer insights\\",\\"performance analytics\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:49	2026-04-26 14:23:49	PUT	api/products/13	success	\N	1
+236	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"SealSuite IT Security & Governance Platform","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:23:57	2026-04-26 14:23:57	POST	api/products/ai-generate	success	\N	1
+237	1	updated	products	App\\Models\\Product	6	{"description":"Integrated security platform that manages user access, endpoint protection, network security, and SaaS governance under a unified zero-trust framework.","target_industry":"Enterprise, Financial Services, Technology \\u0915\\u0902\\u092a\\u0928ies, Government","target_pain_points":null,"target_buyer_persona":null,"ideal_company_profile":null,"updated_at":"2026-04-25 10:50:56","supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	{"description":"SealSuite IT Security & Governance Platform provides comprehensive security and governance solutions to protect IT infrastructures and ensure compliance with industry standards. It is designed for businesses that require robust cybersecurity measures and effective IT governance strategies.","target_industry":"Finance & Banking, Technology & IT Services","target_pain_points":"Increasing regulatory compliance demands\\nGrowing cybersecurity threats\\nComplex IT infrastructure management","target_buyer_persona":"Chief Information Security Officer, IT Manager, Compliance Officer","ideal_company_profile":"The ideal target company is a mid-sized enterprise in the finance or technology sector, seeking to enhance its IT security and governance frameworks to meet both local and international standards.","updated_at":"2026-04-26 14:24:00","supported_regions":"Indonesia","budget_range":"IDR 100M - 1B \\/ year","target_company_size":"201-500 employees","use_cases":"[\\"Ensuring regulatory compliance in financial industries\\",\\"Implementing comprehensive cybersecurity measures\\",\\"Optimizing IT governance processes\\"]","competitor_notes":"Key competitors include Symantec and McAfee, but SealSuite differentiates with its localized expertise and tailored solutions for the Indonesian market.","keywords":"[\\"IT security\\",\\"governance\\",\\"cybersecurity management\\"]"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:24:00	2026-04-26 14:24:00	PUT	api/products/6	success	\N	1
+238	1	created	leads	App\\Models\\Lead	59	\N	{"company_name":"PT Nova Digital Perkasa","address":"Jl. M.H. Thamrin No.10, RT.7\\/RW.20, Kebon Sirih, Kecamatan Tanah Abang, Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10230","website":"https:\\/\\/nova.co.id\\/id\\/","phone":"62087880144831","industry_id":5,"sub_industry_id":10,"business_category":"Information Technology & Services","website_domain":"nova.co.id","created_by":1,"tenant_id":1,"funnel_stage_id":1,"duplicate_status":"new","duplicate_of_id":null,"updated_at":"2026-04-26T14:47:44.000000Z","created_at":"2026-04-26T14:47:44.000000Z","id":59}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:47:44	2026-04-26 14:47:44	POST	api/leads	success	\N	1
+239	1	updated	leads	App\\Models\\Lead	59	{"phone":"62087880144831","updated_at":"2026-04-26 14:47:44"}	{"phone":"6287880144831","updated_at":"2026-04-26 14:48:23"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:48:23	2026-04-26 14:48:23	PUT	api/leads/59	success	\N	1
+240	1	rescore	leads	App\\Models\\Lead	59	\N	{"score":50,"grade":"Cold"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:48:30	2026-04-26 14:48:30	POST	api/leads/59/rescore	success	\N	1
+241	1	verification_requested	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	5	\N	{"lead_id":59,"workflow_id":1,"recommended_status":"pending"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:48:39	2026-04-26 14:48:39	POST	api/leads/59/verification/request	success	\N	1
+242	1	verification_decision	qualification_workflow_reviews	App\\Models\\QualificationWorkflowReview	5	{"id":5,"workflow_id":1,"lead_id":59,"lead_qualification_id":null,"status":"pending","current_stage_code":"triage","recommended_status":"pending","final_status":null,"requested_by":1,"reviewed_by":null,"justification":"Manual verification requested from lead detail.","override_reason":null,"review_payload":{"lead_score":50,"qualification_status":"pending","ai_explanation":"Needs improvement in Company Size and Activity Signal.","current_funnel_stage_id":1,"current_funnel_stage":"New Lead","latest_qualification":null},"due_at":"2026-04-27T14:48:39.000000Z","reviewed_at":null,"created_at":"2026-04-26T14:48:39.000000Z","updated_at":"2026-04-26T14:48:39.000000Z","tenant_id":1,"decision":"pending","decision_reason":null,"original_score":null,"score_override":null,"decisioned_at":null,"lead":{"id":59,"company_name":"PT Nova Digital Perkasa","address":"Jl. M.H. Thamrin No.10, RT.7\\/RW.20, Kebon Sirih, Kecamatan Tanah Abang, Kota Jakarta Pusat, Daerah Khusus Ibukota Jakarta 10230","lat":null,"lng":null,"website":"https:\\/\\/nova.co.id\\/id\\/","website_domain":"nova.co.id","phone":"6287880144831","email":null,"industry_id":5,"sub_industry_id":10,"business_category":"Information Technology & Services","company_size_estimate":null,"branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":50,"qualification_status":"pending","ai_explanation":"Needs improvement in Company Size and Activity Signal.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-04-26T14:47:44.000000Z","updated_at":"2026-04-26T14:48:30.000000Z","deleted_at":null,"tenant_id":1},"workflow":{"id":1,"name":"Need Review Gate","slug":"need-review-gate","trigger_status":"need_review","requires_approval":true,"override_enabled":true,"sla_hours":24,"is_active":true,"created_by":null,"updated_by":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z","deleted_at":null,"tenant_id":1,"stages":[{"id":1,"workflow_id":1,"code":"triage","label":"RevOps Triage","sequence":1,"assigned_role":"sales_manager","decision_type":"review","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"},{"id":2,"workflow_id":1,"code":"approval","label":"Manager Approval","sequence":2,"assigned_role":"admin","decision_type":"approve","is_required":true,"metadata":null,"created_at":"2026-04-20T14:06:25.000000Z","updated_at":"2026-04-20T14:06:25.000000Z"}]},"qualification":null}	{"decision":"approve","lead_id":59,"score_override":null,"final_status":"eligible"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-04-26 14:49:01	2026-04-26 14:49:01	POST	api/qualification/reviews/5/decision	success	\N	1
+325	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:41:56	2026-05-19 14:41:56	POST	api/auth/login	success	\N	\N
+245	1	match_products	leads	App\\Models\\Lead	59	\N	{"matches_count":12,"recommended_count":7}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:34:16	2026-05-12 09:34:16	POST	api/leads/59/match-products	success	\N	1
+246	1	map_lead_added	maps	App\\Models\\Lead	60	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:34:49	2026-05-12 09:34:49	POST	api/maps/add-to-leads	success	{"place_id":"ChIJRxSSAkL1aS4R2I-hbrdxy78","product_id":null,"fit_score":null}	1
+247	1	updated	leads	App\\Models\\Lead	60	{"industry_id":null,"sub_industry_id":null,"company_size_estimate":null,"updated_at":"2026-05-12 09:34:48"}	{"industry_id":10,"sub_industry_id":32,"company_size_estimate":"51-200","updated_at":"2026-05-12 09:35:15"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:35:15	2026-05-12 09:35:15	PUT	api/leads/60	success	\N	1
+248	1	rescore	leads	App\\Models\\Lead	60	\N	{"score":60,"grade":"Warm"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:35:19	2026-05-12 09:35:19	POST	api/leads/60/rescore	success	\N	1
+249	1	rescore	leads	App\\Models\\Lead	60	\N	{"score":60,"grade":"Warm"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:36:34	2026-05-12 09:36:34	POST	api/leads/60/rescore	success	\N	1
+250	1	rescore	leads	App\\Models\\Lead	60	\N	{"score":60,"grade":"Warm"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:36:35	2026-05-12 09:36:35	POST	api/leads/60/rescore	success	\N	1
+251	1	rescore	leads	App\\Models\\Lead	60	\N	{"score":60,"grade":"Warm"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:36:41	2026-05-12 09:36:41	POST	api/leads/60/rescore	success	\N	1
+252	1	qualify	leads	App\\Models\\Lead	60	{"id":60,"company_name":"PT Citra Marga Nusaphala Persada Tbk","address":"Jl. Yos Sudarso Kavling No.28 3, RT.3\\/RW.11, Sunter Jaya, Kec. Tj. Priok, Jkt Utara, Daerah Khusus Ibukota Jakarta 14350, Indonesia","lat":-6.1580332,"lng":106.8831566,"website":"http:\\/\\/id.citramarga.com\\/","website_domain":"id.citramarga.com","phone":"+62 21 65306930","email":null,"industry_id":10,"sub_industry_id":32,"business_category":"establishment, point_of_interest","company_size_estimate":"51-200","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":60,"qualification_status":"not_eligible","ai_explanation":"Strong on Data Completeness and Source Reliability. Needs improvement in Activity Signal.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":"ChIJRxSSAkL1aS4R2I-hbrdxy78","use_ai_reference":false,"ai_mode":"full_ai","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":null,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-05-12T09:34:48.000000Z","updated_at":"2026-05-12T09:36:44.000000Z","deleted_at":null,"tenant_id":null,"industry":{"id":10,"name":"Education & Training","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":5,"lead_id":60,"name":"Kodrat Santoso","title":"CFO","email":"kodratsantoso@prasetia.co.id","phone":"6287884701947","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-05-12T09:35:55.000000Z","updated_at":"2026-05-12T09:35:55.000000Z","is_primary":false,"source":"manual","confidence_score":100}],"activities":[],"product":null,"territory":null}	{"qualified":"no","business_type":"unknown"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:36:44	2026-05-12 09:36:44	POST	api/leads/60/qualify	success	\N	1
+253	1	stage_change_via_activity	leads	App\\Models\\Lead	60	\N	{"from_stage_id":1,"to_stage_id":1,"activity_id":2}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:37:16	2026-05-12 09:37:16	POST	api/leads/60/activities	success	\N	1
+254	1	log_activity	lead_activities	App\\Models\\LeadActivity	2	\N	{"activity_type":"Follow Up"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:37:16	2026-05-12 09:37:16	POST	api/leads/60/activities	success	\N	1
+255	1	icp_match	leads	App\\Models\\Lead	60	\N	{"matched":false,"icp_score":0,"match_score":0,"match_status":"weak_match","match_level":"weak_match","reasoning":"No ICP config or active ICP profile is configured.","score_breakdown":[]}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:37:35	2026-05-12 09:37:35	POST	api/leads/60/icp-match	success	\N	1
+256	1	rescore	leads	App\\Models\\Lead	60	\N	{"score":70,"grade":"Warm"}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:37:43	2026-05-12 09:37:43	POST	api/leads/60/rescore	success	\N	1
+257	1	match_products	leads	App\\Models\\Lead	60	\N	{"matches_count":12,"recommended_count":4}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 09:38:42	2026-05-12 09:38:42	POST	api/leads/60/match-products	success	\N	1
+258	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Lark Collaboration & Operations Platform","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 14:46:33	2026-05-12 14:46:33	POST	api/products/ai-generate	success	\N	1
+259	1	prompt_version_created	ai_prompt_templates	App\\Models\\AiPromptTemplate	14	\N	{"feature_name":"product_metadata_generation","version_id":15,"version":2}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:14:23	2026-05-12 15:14:23	POST	api/settings/ai-default/prompt-templates/versions	success	\N	1
+260	1	prompt_version_activated	ai_prompt_templates	App\\Models\\AiPromptTemplate	14	\N	{"feature_name":"product_metadata_generation","version_id":15,"version":2}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:14:27	2026-05-12 15:14:27	POST	api/settings/ai-default/prompt-templates/versions/15/activate	success	\N	1
+261	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Lark Collaboration & Operations Platform","ai_model":"gpt-4o","user_id":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:14:48	2026-05-12 15:14:48	POST	api/products/ai-generate	success	\N	1
+262	1	prompt_version_activated	ai_prompt_templates	App\\Models\\AiPromptTemplate	14	\N	{"feature_name":"product_metadata_generation","version_id":14,"version":1}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:15:10	2026-05-12 15:15:10	POST	api/settings/ai-default/prompt-templates/versions/14/activate	success	\N	1
+263	1	prompt_version_created	ai_prompt_templates	App\\Models\\AiPromptTemplate	14	\N	{"feature_name":"product_metadata_generation","version_id":16,"version":3}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:46:38	2026-05-12 15:46:38	POST	api/settings/ai-default/prompt-templates/versions	success	\N	1
+264	1	prompt_version_activated	ai_prompt_templates	App\\Models\\AiPromptTemplate	14	\N	{"feature_name":"product_metadata_generation","version_id":16,"version":3}	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:46:41	2026-05-12 15:46:41	POST	api/settings/ai-default/prompt-templates/versions/16/activate	success	\N	1
+265	1	updated	products	App\\Models\\Product	11	[]	[]	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:51:24	2026-05-12 15:51:24	PUT	api/products/11	success	\N	1
+266	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	11	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:52:20	2026-05-12 15:52:20	POST	api/maps/geo-product-fit/analyze	success	{"places_count":19,"ai_limit":10}	1
+267	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	11	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:53:26	2026-05-12 15:53:26	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":10}	1
+268	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	10	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:54:07	2026-05-12 15:54:07	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":10}	1
+269	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	15	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36	2026-05-12 15:55:05	2026-05-12 15:55:05	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":10}	1
+270	\N	login	auth	App\\Models\\User	1	\N	\N	172.18.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 02:01:48	2026-05-17 02:01:48	POST	api/auth/login	success	\N	\N
+276	1	created	currency_settings	App\\Models\\CurrencySetting	2	\N	{"tenant_id":1,"currency_id":59,"thousands_separator":".","decimal_separator":",","decimal_digits":0,"symbol_position":"before","space_between_symbol":true,"updated_at":"2026-05-17T03:00:15.000000Z","created_at":"2026-05-17T03:00:15.000000Z","id":2}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 03:00:15	2026-05-17 03:00:15	PUT	api/settings/currency	success	\N	1
+279	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	11	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 15:26:07	2026-05-17 15:26:07	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":10}	1
+289	1	rescore	leads	App\\Models\\Lead	61	\N	{"score":54,"grade":"Cold"}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-18 07:28:15	2026-05-18 07:28:15	POST	api/leads/61/rescore	success	\N	1
+293	1	stage_change_via_activity	leads	App\\Models\\Lead	61	\N	{"from_stage_id":2,"to_stage_id":2,"activity_id":3}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 11:57:19	2026-05-19 11:57:19	POST	api/leads/61/activities	success	\N	1
+294	1	log_activity	lead_activities	App\\Models\\LeadActivity	3	\N	{"activity_type":"Follow Up"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 11:57:19	2026-05-19 11:57:19	POST	api/leads/61/activities	success	\N	1
+305	1	created	users	App\\Models\\User	5	\N	{"name":"User Test General Manager","email":"generalmanager@prasetia.co.id","role_id":3,"direct_manager_id":null,"phone":null,"target_period":"monthly","target_revenue":null,"updated_at":"2026-05-19T14:33:33.000000Z","created_at":"2026-05-19T14:33:33.000000Z","id":5}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:33:33	2026-05-19 14:33:33	POST	api/users	success	\N	1
+315	1	updated	users	App\\Models\\User	6	{"name":"User Test Sales Director","updated_at":"2026-05-19 14:34:30"}	{"name":"Director","updated_at":"2026-05-19 14:35:45"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:35:45	2026-05-19 14:35:45	PUT	api/users/6	success	\N	1
+326	1	updated	ai_providers	App\\Models\\AiProvider	1	{"api_key_encrypted":"eyJpdiI6InJRMVJMOHRIeEpoQjQySTdDMEZqZGc9PSIsInZhbHVlIjoiK2dGdFcwaDB0VXlUcEE0THpKT2hBbFJSWWoyS21hQml3OW5qeVBuc1N6TWpyMDdDdVlzYi9xaXJSUGthVm1yWHVRKzczc3lzbHJCQzVOdktwVE0xNFNjRllUWTIvN1ByRXovcE1uckdBWFF5RUxPbmJXVTRpd0xFQ1c0RWZnOWkxSmN6aWxPWGRmeGFKaVFHa25SOXk3WEkrczdxS2x2bnNHTjgvaW1wQzZyUkdONDJvZVZxTXNJeHJ6UnpqMndIN2ErTVBqWXpDZkt2eHZNTVkvSEVKczVyY3dnTEhwZG1GVFdOUzQ3ZzNNYz0iLCJtYWMiOiJmMWU2MWIxNGI4NDg5MDg2NTQzODEwYmE2ODk1YjIyOTMyYzk4ODIyNWNlNGRiYmQ3NTk4OWQ2ZmU2ZjgzMDE1IiwidGFnIjoiIn0=","updated_at":"2026-05-19 14:41:01"}	{"api_key_encrypted":"eyJpdiI6IkttT25OcEk4c1pDaldxZU1ZT1Q4aFE9PSIsInZhbHVlIjoiS1NTTU9qS290UjVmWW5NcTV3d1NGT0ZhTlppL2ZmQVRxQnlkTUFKckxqY0c0N2ZGM3Q3SGFZRnBzdzgxTzVneUpxWXpuYmhPaG9HOHlhSjgwNkkvVTVKMnBENVFNckZXNG5RU3FGdllPTW9RZEJrMVlpNjhmWS9WTmtyYk1Wc3NOVlZENmgyVWVFcFBqbjZ3ZEZwbTZsenhxbkhaeVFEb2J1VjZDdlpFRXJZcUJCQkx2cXBLQlFiT2R4cjZDVTRUZHVNcytQUVRCbWhCSkJHSXRGUVFUTDNxaXZWOTRPL211SFVaQUtvMDdQRT0iLCJtYWMiOiI3MmFkZmRkNDBmODUxZTE0YTYyZGMzYjNkNTk2ZGJlZWE5ZWRjYjM1ZTIzM2RlNDJiMmUzYzFhYjM3Y2ZjZWFmIiwidGFnIjoiIn0=","updated_at":"2026-05-19 14:46:50"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:46:50	2026-05-19 14:46:50	PUT	api/settings/ai-default/providers/1	success	\N	1
+336	2	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Google Workspace","source":"url","reference_url":"https:\\/\\/workspace.google.com\\/intl\\/id\\/","ai_model":"gpt-4o","user_id":2}	162.159.140.245	curl/8.7.1	2026-05-19 15:02:32	2026-05-19 15:02:32	POST	api/products/ai-generate	success	\N	1
+338	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Google Workspace","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 15:05:50	2026-05-19 15:05:50	POST	api/products/ai-generate	success	\N	1
+348	1	updated	product_questions	App\\Models\\ProductQuestion	2	[]	[]	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 09:03:44	2026-05-20 09:03:44	PUT	api/products/24/questions	success	\N	1
+359	1	rescore	leads	App\\Models\\Lead	61	\N	{"score":67,"grade":"Warm"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 10:39:25	2026-05-20 10:39:25	POST	api/leads/61/rescore	success	\N	1
+369	2	record_outcome	leads	App\\Models\\Lead	62	\N	{"outcome":"won","product_id":9,"sale_type":"new_sales","deal_size":100000}	172.66.0.243	curl/8.7.1	2026-05-20 15:17:36	2026-05-20 15:17:36	POST	api/leads/62/outcome	success	\N	1
+379	1	updated	leads	App\\Models\\Lead	64	{"industry_id":null,"sub_industry_id":null,"company_size_estimate":null,"updated_at":"2026-05-21 06:25:28"}	{"industry_id":8,"sub_industry_id":24,"company_size_estimate":"11-50","updated_at":"2026-05-21 07:11:00"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-21 07:11:00	2026-05-21 07:11:00	PUT	api/leads/64	success	\N	1
+400	7	logout	auth	App\\Models\\User	7	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:12:06	2026-05-25 09:12:06	POST	api/auth/logout	success	\N	1
+410	1	logout	auth	App\\Models\\User	1	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:15:36	2026-05-25 09:15:36	POST	api/auth/logout	success	\N	1
+277	1	updated	leads	App\\Models\\Lead	60	{"updated_at":"2026-05-12 09:37:43","estimated_closing_amount":null}	{"updated_at":"2026-05-17 03:00:46","estimated_closing_amount":250000000}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 03:00:46	2026-05-17 03:00:46	PUT	api/leads/60	success	\N	1
+280	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	11	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 15:28:20	2026-05-17 15:28:20	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":10}	1
+290	1	updated	leads	App\\Models\\Lead	61	{"industry_id":null,"sub_industry_id":null,"company_size_estimate":null,"updated_at":"2026-05-18 07:28:15"}	{"industry_id":11,"sub_industry_id":36,"company_size_estimate":"1-10","updated_at":"2026-05-18 07:28:49"}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-18 07:28:49	2026-05-18 07:28:49	PUT	api/leads/61	success	\N	1
+295	1	updated	leads	App\\Models\\Lead	61	{"lat":"-6.1952922","lng":"106.8953394","updated_at":"2026-05-19 11:57:19"}	{"lat":-6.1657246,"lng":106.833463,"updated_at":"2026-05-19 12:00:04"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 12:00:04	2026-05-19 12:00:04	PUT	api/leads/61	success	\N	1
+306	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Whale AI CCTV","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	185.199.110.133	curl/8.7.1	2026-05-19 14:33:59	2026-05-19 14:33:59	POST	api/products/ai-generate	success	\N	1
+316	1	updated	users	App\\Models\\User	5	{"updated_at":"2026-05-19 14:34:42","direct_manager_id":null}	{"updated_at":"2026-05-19 14:35:59","direct_manager_id":6}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:35:59	2026-05-19 14:35:59	PUT	api/users/5	success	\N	1
+327	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":1694}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:46:54	2026-05-19 14:46:54	POST	api/settings/ai-default/providers/1/test	success	\N	1
+337	2	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Google Workspace","source":"pdf","reference_url":null,"ai_model":"gpt-4o","user_id":2}	172.66.0.243	curl/8.7.1	2026-05-19 15:04:07	2026-05-19 15:04:07	POST	api/products/ai-generate	success	\N	1
+339	1	created	products	App\\Models\\Product	24	\N	{"name":"Google Workspace","category":"Productivity & Collaboration Software, Enterprise Software","description":"Google Workspace is a B2B product for organizations that need clearer operations, collaboration, and measurable business outcomes. Review the generated targeting, pain points, and use cases, then refine this description before saving.","target_industry":"Technology & IT Services, Education & Training, Finance & Banking","target_company_size":"small, medium, enterprise","target_pain_points":"Manual or fragmented business processes reduce team productivity\\nDecision makers lack consolidated visibility into performance and adoption\\nTeams need a scalable solution with clear implementation ownership","target_buyer_persona":"IT Manager, Chief Information Officer, Head of IT, IT Director, decision_maker, Responsible for adopting technology solutions that enhance efficiency and security., Operations Manager, COO, Head of Operations, Operations Director, influencer, Focuses on optimizing business processes and improving team productivity., CEO \\/ Director, CEO, Managing Director, General Manager, Interested in overarching business growth and technological advancements.","ideal_company_profile":"The ideal company is growth-oriented, prioritizes digital transformation, has a workforce distributed across multiple locations, and shows a willingness to invest in cloud-based technologies., Technology & IT Services, Finance & Banking, Education & Training, small, medium, enterprise, Jakarta, Surabaya, Bandung, B2B, B2C, expanding workforce, opening new branches, pursuing digital tools, adopting cloud solutions, current use of Google tools, seeking collaboration software, budget increase for IT, interest in remote work solutions, participation in tech events, strictly offline operations, no IT budget, resistant to change, corporate office, training centers, financial institutions, business center Jakarta, tech startups Surabaya, corporate training Bandung, urban centers with high business density, Focus on metropolitan areas with thriving business activities.","supported_regions":"Indonesia","budget_range":"medium, IDR 1M - 10M, The budget varies according to the number of users and specific business needs.","use_cases":["Business process improvement","Team productivity and collaboration","Management visibility and reporting"],"competitor_notes":"Microsoft 365, Zoho Workplace, Slack, Email chains, Offline documents, Face-to-face meetings, Need for digital transformation, Remote work adoption, Security concerns, Seamless integration with Google services, High user familiarity, Strong data security standards, Dependency on Google ecosystem, Internet-reliant services","keywords":["cloud productivity","business collaboration tools","remote work solutions","Google Workspace distributor Jakarta","business suite provider Surabaya","collaboration software Medan","IT services","financial technology","educational tools","team collaboration issues","remote work challenges","file sharing problems","personal use","non-profit only","offline solutions"],"status":"active","created_by":1,"tenant_id":1,"updated_at":"2026-05-19T15:06:05.000000Z","created_at":"2026-05-19T15:06:05.000000Z","id":24}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 15:06:05	2026-05-19 15:06:05	POST	api/products	success	\N	1
+349	1	ai_product_questions_generated	products	App\\Models\\Product	7	\N	{"ai_model":"gpt-4.1","count":19}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 09:09:53	2026-05-20 09:09:53	POST	api/products/7/questions/generate	success	\N	1
+360	1	qualify	leads	App\\Models\\Lead	61	{"id":61,"company_name":"TBK Kembang Loyang","address":"Jl. Lodan I No.3, RT.5\\/RW.5, Jati, Kec. Pulo Gadung, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13220, Indonesia","lat":-6.1657246,"lng":106.833463,"website":null,"website_domain":null,"phone":"+62 21 4722101","email":null,"industry_id":11,"sub_industry_id":36,"business_category":"establishment, food, point_of_interest","company_size_estimate":"1-10","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":67,"qualification_status":"not_eligible","ai_explanation":"Strong on Data Completeness and Source Reliability.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":"ChIJ9d21kLj0aS4RLTcM81XBIFo","use_ai_reference":false,"ai_mode":"full_ai","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-05-18T07:28:04.000000Z","updated_at":"2026-05-20T10:39:30.000000Z","deleted_at":null,"tenant_id":null,"estimated_closing_amount":null,"realized_closing_amount":null,"industry":{"id":11,"name":"Food & Beverage (F&B)","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[],"activities":[{"id":3,"lead_id":61,"activity_type":"Follow Up","description":"-","activity_date":"2026-05-19T18:57:00.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-05-19T11:57:19.000000Z","updated_at":"2026-05-19T11:57:19.000000Z","tenant_id":null,"outcome":"-","activity_date_override":null,"next_follow_up_date":"2026-05-21T00:00:00.000000Z","budget":null,"authority":null,"needs":null,"timeline":null,"competitor":null},{"id":6,"lead_id":61,"activity_type":"Meeting","description":"-","activity_date":"2026-05-20T17:24:00.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-05-20T10:24:57.000000Z","updated_at":"2026-05-20T10:24:57.000000Z","tenant_id":null,"outcome":"-","activity_date_override":null,"next_follow_up_date":"2026-05-25T00:00:00.000000Z","budget":"Budget","authority":"Auth","needs":"Needs","timeline":"Timeline","competitor":"Competitor"}],"product":null,"territory":null}	{"qualified":"no","business_type":"B2C"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 10:39:30	2026-05-20 10:39:30	POST	api/leads/61/qualify	success	\N	1
+370	2	record_outcome	leads	App\\Models\\Lead	62	\N	{"outcome":"won","product_id":11,"sale_type":"upsales","deal_size":50000}	172.66.0.243	curl/8.7.1	2026-05-20 15:17:36	2026-05-20 15:17:36	POST	api/leads/62/outcome	success	\N	1
+380	1	rescore	leads	App\\Models\\Lead	64	\N	{"score":60,"grade":"Warm"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-21 07:11:04	2026-05-21 07:11:04	POST	api/leads/64/rescore	success	\N	1
+401	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:12:08	2026-05-25 09:12:08	POST	api/auth/login	success	\N	\N
+411	\N	login_via_lark_sso	auth	App\\Models\\User	7	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:15:42	2026-05-25 09:15:42	POST	api/auth/lark/callback	success	\N	\N
+278	1	updated	leads	App\\Models\\Lead	60	{"updated_at":"2026-05-17 03:00:46","estimated_closing_amount":"250000000.00"}	{"updated_at":"2026-05-17 12:50:28","estimated_closing_amount":100000000}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 12:50:28	2026-05-17 12:50:28	PUT	api/leads/60	success	\N	1
+281	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	11	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 15:30:00	2026-05-17 15:30:00	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":10}	1
+291	1	rescore	leads	App\\Models\\Lead	61	\N	{"score":59,"grade":"Cold"}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-18 07:28:51	2026-05-18 07:28:51	POST	api/leads/61/rescore	success	\N	1
+296	1	generate_icp	icp_profiles	\N	\N	\N	{"mode":"combined","products_analysed":12,"suggestions_count":1,"ai_model":"gpt-4o"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 12:32:10	2026-05-19 12:32:10	POST	api/icp-profiles/generate	success	\N	1
+307	1	created	users	App\\Models\\User	6	\N	{"name":"User Test Sales Director","email":"salesdirector@prasetia.co.id","role_id":3,"direct_manager_id":null,"phone":null,"target_period":"monthly","target_revenue":null,"updated_at":"2026-05-19T14:34:04.000000Z","created_at":"2026-05-19T14:34:04.000000Z","id":6}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:34:04	2026-05-19 14:34:04	POST	api/users	success	\N	1
+317	1	updated	users	App\\Models\\User	4	[]	[]	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:36:03	2026-05-19 14:36:03	PUT	api/users/4	success	\N	1
+328	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"AI Model Catalog Smoke Test","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	162.159.140.245	curl/8.7.1	2026-05-19 14:51:09	2026-05-19 14:51:09	POST	api/products/ai-generate	success	\N	1
+340	2	created	funnel_stages	App\\Models\\FunnelStage	12	\N	{"name":"Codex Temporary Stage","sequence":99,"color":"#6366f1","probability":12,"is_active":false,"updated_at":"2026-05-19T15:16:04.000000Z","created_at":"2026-05-19T15:16:04.000000Z","id":12}	172.66.0.243	curl/8.7.1	2026-05-19 15:16:04	2026-05-19 15:16:04	POST	api/funnel/stages	success	\N	1
+350	1	updated	product_questions	App\\Models\\ProductQuestion	3	[]	[]	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 09:10:18	2026-05-20 09:10:18	PUT	api/products/7/questions	success	\N	1
+361	1	qualify	leads	App\\Models\\Lead	61	{"id":61,"company_name":"TBK Kembang Loyang","address":"Jl. Lodan I No.3, RT.5\\/RW.5, Jati, Kec. Pulo Gadung, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13220, Indonesia","lat":-6.1657246,"lng":106.833463,"website":null,"website_domain":null,"phone":"+62 21 4722101","email":"info@kembangloyang.co.id","industry_id":11,"sub_industry_id":35,"business_category":"establishment, food, point_of_interest","company_size_estimate":"small","branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":27,"qualification_status":"potential","ai_explanation":"Strong on Data Completeness and Source Reliability.","duplicate_status":"new","duplicate_of_id":null,"external_place_id":"ChIJ9d21kLj0aS4RLTcM81XBIFo","use_ai_reference":false,"ai_mode":"full_ai","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":"completed","funnel_stage_id":1,"owner_id":3,"territory_id":null,"product_id":null,"created_by":1,"created_at":"2026-05-18T07:28:04.000000Z","updated_at":"2026-05-20T14:50:00.000000Z","deleted_at":null,"tenant_id":null,"estimated_closing_amount":"60000000.00","realized_closing_amount":null,"industry":{"id":11,"name":"Food & Beverage (F&B)","synonyms":null,"scoring_hints":null,"is_active":true,"created_at":"2026-04-20T14:35:47.000000Z","updated_at":"2026-04-20T14:35:47.000000Z"},"contacts":[{"id":80,"lead_id":61,"name":"Loyang Kembang","title":"Manajer","email":"loyang@kembangloyang.co.id","phone":"+62 31 7891234","linkedin_url":null,"contact_source_id":null,"confidence":"high","last_verified_at":null,"do_not_contact":false,"created_at":"2026-05-20T14:43:32.000000Z","updated_at":"2026-05-20T14:43:32.000000Z","is_primary":true,"source":"manual","confidence_score":90}],"activities":[{"id":3,"lead_id":61,"activity_type":"Follow Up","description":"-","activity_date":"2026-05-19T18:57:00.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-05-19T11:57:19.000000Z","updated_at":"2026-05-19T11:57:19.000000Z","tenant_id":null,"outcome":"-","activity_date_override":null,"next_follow_up_date":"2026-05-21T00:00:00.000000Z","budget":null,"authority":null,"needs":null,"timeline":null,"competitor":null},{"id":6,"lead_id":61,"activity_type":"Meeting","description":"-","activity_date":"2026-05-20T17:24:00.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":1,"created_at":"2026-05-20T10:24:57.000000Z","updated_at":"2026-05-20T10:24:57.000000Z","tenant_id":null,"outcome":"-","activity_date_override":null,"next_follow_up_date":"2026-05-25T00:00:00.000000Z","budget":"Budget","authority":"Auth","needs":"Needs","timeline":"Timeline","competitor":"Competitor"},{"id":371,"lead_id":61,"activity_type":"Note","description":"Lead ditemukan dari pencarian Google Maps wilayah Jawa Timur. Data awal diverifikasi.","activity_date":"2026-05-18T14:43:32.000000Z","related_entity_type":null,"related_entity_id":null,"user_id":3,"created_at":"2026-05-18T14:43:32.000000Z","updated_at":"2026-05-18T14:43:32.000000Z","tenant_id":null,"outcome":"Lead terdaftar di pipeline.","activity_date_override":null,"next_follow_up_date":null,"budget":null,"authority":null,"needs":null,"timeline":null,"competitor":null}],"product":null,"territory":null}	{"qualified":"maybe","business_type":"B2C"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 14:50:00	2026-05-20 14:50:00	POST	api/leads/61/qualify	success	\N	1
+371	2	deleted	leads	App\\Models\\Lead	62	{"id":62,"company_name":"Codex Product Revenue Smoke","address":null,"lat":null,"lng":null,"website":null,"website_domain":null,"phone":null,"email":null,"industry_id":null,"sub_industry_id":null,"business_category":null,"company_size_estimate":null,"branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":null,"qualification_status":"eligible","ai_explanation":null,"duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":9,"created_by":2,"created_at":"2026-05-20T15:17:35.000000Z","updated_at":"2026-05-20T15:17:36.000000Z","deleted_at":null,"tenant_id":1,"estimated_closing_amount":"123000.00","realized_closing_amount":null}	\N	172.66.0.243	curl/8.7.1	2026-05-20 15:17:36	2026-05-20 15:17:36	DELETE	api/leads/62	success	\N	1
+381	1	logout	auth	App\\Models\\User	1	\N	\N	172.66.0.243	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 05:54:14	2026-05-23 05:54:14	POST	api/auth/logout	success	\N	1
+402	1	updated	users	App\\Models\\User	7	{"password":"$2y$12$TEO7Kf\\/KwNCtA7x6JlaOx.8gW86wc.9OIQmUptJjUdAz0v3OE0Ay6","role_id":4,"updated_at":"2026-05-25 09:11:55"}	{"password":"$2y$12$fEPnsVEHsKIJ4qM0Hp8CIuG3KKKGFpJfpPe2TswsbmtTCunhC.J2K","role_id":1,"updated_at":"2026-05-25 09:12:20"}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:12:20	2026-05-25 09:12:20	PUT	api/users/7	success	\N	1
+412	7	logout	auth	App\\Models\\User	7	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:15:51	2026-05-25 09:15:51	POST	api/auth/logout	success	\N	1
+282	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":1791}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 15:30:19	2026-05-17 15:30:19	POST	api/settings/ai-default/providers/1/test	success	\N	1
+292	1	match_products	leads	App\\Models\\Lead	61	\N	{"matches_count":12,"recommended_count":0}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-18 07:31:12	2026-05-18 07:31:12	POST	api/leads/61/match-products	success	\N	1
+297	1	deleted	products	App\\Models\\Product	16	{"id":16,"name":"Enterprise ERP Solution","category":"Enterprise Software","description":"End-to-end enterprise resource planning system covering finance, HR, inventory, and supply chain.","target_industry":"Manufacturing, Retail & Distribution","target_pain_points":"Manual processes, siloed data, poor inventory visibility","target_buyer_persona":"CEO, CFO, Operations Director","ideal_company_profile":"Mid-to-large manufacturers and distributors with 100+ employees","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-05-12T09:31:34.000000Z","updated_at":"2026-05-12T09:31:34.000000Z","tenant_id":1,"supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:29:55	2026-05-19 14:29:55	DELETE	api/products/16	success	\N	1
+308	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Whale AI CCTV","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	185.199.110.133	curl/8.7.1	2026-05-19 14:34:30	2026-05-19 14:34:30	POST	api/products/ai-generate	success	\N	1
+318	1	updated	users	App\\Models\\User	3	[]	[]	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:36:07	2026-05-19 14:36:07	PUT	api/users/3	success	\N	1
+329	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Google Workspace","source":"url","reference_url":"https:\\/\\/workspace.google.com\\/intl\\/id\\/","ai_model":"gpt-4o","user_id":1}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:52:53	2026-05-19 14:52:53	POST	api/products/ai-generate	success	\N	1
+341	2	updated	funnel_stages	App\\Models\\FunnelStage	12	{"name":"Codex Temporary Stage","sequence":99,"color":"#6366f1","probability":12,"is_active":false}	{"name":"Codex Temporary Stage Updated","sequence":98,"color":"#14b8a6","probability":15,"is_active":true}	172.66.0.243	curl/8.7.1	2026-05-19 15:16:04	2026-05-19 15:16:04	PUT	api/funnel/stages/12	success	\N	1
+351	2	ai_lead_bantc_questions_generated	leads	App\\Models\\Lead	3	\N	{"ai_model":"gpt-4.1","count":15}	172.66.0.243	curl/8.7.1	2026-05-20 09:16:12	2026-05-20 09:16:12	POST	api/leads/3/bantc-questions/generate	success	\N	1
+362	1	predict_conversion	leads	App\\Models\\Lead	61	\N	{"probability":38.7}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 14:50:13	2026-05-20 14:50:13	POST	api/leads/61/predict-conversion	success	\N	1
+372	2	created	leads	App\\Models\\Lead	63	\N	{"company_name":"Codex Product Revenue Smoke 2","product_id":9,"estimated_closing_amount":"123000.00","created_by":2,"tenant_id":1,"funnel_stage_id":1,"duplicate_status":"new","duplicate_of_id":null,"updated_at":"2026-05-20T15:20:38.000000Z","created_at":"2026-05-20T15:20:38.000000Z","id":63}	172.66.0.243	curl/8.7.1	2026-05-20 15:20:38	2026-05-20 15:20:38	POST	api/leads	success	\N	1
+382	\N	login_failed	auth	\N	\N	\N	{"email":"admin@prasetia.co.id"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 05:54:45	2026-05-23 05:54:45	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+389	1	logout	auth	App\\Models\\User	1	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 08:45:11	2026-05-25 08:45:11	POST	api/auth/logout	success	\N	1
+393	1	logout	auth	App\\Models\\User	1	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:05:20	2026-05-25 09:05:20	POST	api/auth/logout	success	\N	1
+403	1	logout	auth	App\\Models\\User	1	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:12:28	2026-05-25 09:12:28	POST	api/auth/logout	success	\N	1
+413	\N	login_via_lark_sso	auth	App\\Models\\User	7	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:15:56	2026-05-25 09:15:56	POST	api/auth/lark/callback	success	\N	\N
+283	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	11	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 15:32:56	2026-05-17 15:32:56	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":10}	1
+298	1	deleted	products	App\\Models\\Product	17	{"id":17,"name":"Fleet Management System","category":"Logistics Technology","description":"Real-time GPS tracking, route optimization, maintenance scheduling, and driver behavior monitoring.","target_industry":"Logistics & Transportation","target_pain_points":"High fuel costs, untracked vehicles, unplanned maintenance","target_buyer_persona":"Operations Manager, Fleet Manager, Logistics Director","ideal_company_profile":"Companies operating 10+ commercial vehicles","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-05-12T09:31:34.000000Z","updated_at":"2026-05-12T09:31:34.000000Z","tenant_id":1,"supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:30:00	2026-05-19 14:30:00	DELETE	api/products/17	success	\N	1
+309	1	updated	users	App\\Models\\User	6	{"email":"salesdirector@prasetia.co.id","updated_at":"2026-05-19 14:34:04"}	{"email":"director@prasetia.co.id","updated_at":"2026-05-19 14:34:30"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:34:30	2026-05-19 14:34:30	PUT	api/users/6	success	\N	1
+319	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Whale AI CCTV","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	185.199.110.133	curl/8.7.1	2026-05-19 14:37:50	2026-05-19 14:37:50	POST	api/products/ai-generate	success	\N	1
+330	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Google Workspace","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:53:22	2026-05-19 14:53:22	POST	api/products/ai-generate	success	\N	1
+342	2	deleted	funnel_stages	App\\Models\\FunnelStage	12	{"id":12,"name":"Codex Temporary Stage Updated","sequence":98,"color":"#14b8a6","probability":15,"is_active":true,"created_at":"2026-05-19T15:16:04.000000Z","updated_at":"2026-05-19T15:16:04.000000Z"}	\N	172.66.0.243	curl/8.7.1	2026-05-19 15:16:04	2026-05-19 15:16:04	DELETE	api/funnel/stages/12	success	\N	1
+352	1	ai_lead_bantc_questions_generated	leads	App\\Models\\Lead	61	\N	{"ai_model":"gpt-4.1","count":15}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 09:24:17	2026-05-20 09:24:17	POST	api/leads/61/bantc-questions/generate	success	\N	1
+363	1	prescribe	leads	App\\Models\\Lead	61	\N	{"next_action":"Continue current engagement \\u2014 track progress toward next funnel stage","priority":3}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 14:51:42	2026-05-20 14:51:42	POST	api/leads/61/prescribe	success	\N	1
+373	2	record_outcome	leads	App\\Models\\Lead	63	\N	{"outcome":"won","product_id":9,"sale_type":"new_sales","deal_size":100000}	172.66.0.243	curl/8.7.1	2026-05-20 15:20:38	2026-05-20 15:20:38	POST	api/leads/63/outcome	success	\N	1
+383	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 05:54:49	2026-05-23 05:54:49	POST	api/auth/login	success	\N	\N
+390	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 08:45:21	2026-05-25 08:45:21	POST	api/auth/login	success	\N	\N
+394	\N	login_via_lark_sso	auth	App\\Models\\User	7	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:10:49	2026-05-25 09:10:49	POST	api/auth/lark/callback	success	\N	\N
+404	\N	login_via_lark_sso	auth	App\\Models\\User	7	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:12:33	2026-05-25 09:12:33	POST	api/auth/lark/callback	success	\N	\N
+414	7	logout	auth	App\\Models\\User	7	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:16:01	2026-05-25 09:16:01	POST	api/auth/logout	success	\N	1
+284	1	connection_tested	ai_providers	App\\Models\\AiProvider	3	\N	{"success":true,"http_status":200,"latency_ms":391}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 15:48:35	2026-05-17 15:48:35	POST	api/settings/ai-default/providers/3/test	success	\N	1
+299	1	deleted	products	App\\Models\\Product	13	{"id":13,"name":"Sales Intelligence Platform","category":"Sales Technology, Customer Engagement & CRM Software","description":"A robust Sales Intelligence Platform designed to enhance sales strategies and performance by providing actionable insights and data analytics. This platform is tailored for businesses looking to streamline their sales processes and boost customer engagement.","target_industry":"Technology & IT Services, Finance & Banking","target_pain_points":"High customer churn\\nInefficient sales processes\\nLack of actionable data insights","target_buyer_persona":"Sales Manager, Business Development Director, VP of Sales","ideal_company_profile":"Mid-sized companies in growth sectors like technology and finance, looking to enhance their sales strategies with data-driven insights.","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-04-25T14:37:05.000000Z","updated_at":"2026-04-26T14:23:49.000000Z","tenant_id":1,"supported_regions":"Indonesia","budget_range":"IDR 100M - 1B \\/ year","target_company_size":"201-500 employees","use_cases":["Improve lead conversion rates","Enhance customer engagement and retention","Automate sales reporting"],"competitor_notes":"Competes with platforms like Salesforce and HubSpot by offering localized customer support and tailored solutions for the Indonesian market, providing a unique advantage in regional knowledge.","keywords":["sales automation","customer insights","performance analytics"]}	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:30:07	2026-05-19 14:30:07	DELETE	api/products/13	success	\N	1
+310	1	updated	users	App\\Models\\User	5	{"name":"User Test General Manager","updated_at":"2026-05-19 14:33:33"}	{"name":"General Manager","updated_at":"2026-05-19 14:34:42"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:34:42	2026-05-19 14:34:42	PUT	api/users/5	success	\N	1
+320	\N	login_failed	auth	\N	\N	\N	{"email":"sales@prasetia.co.id"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:37:50	2026-05-19 14:37:50	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+331	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Google Workspace","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:54:25	2026-05-19 14:54:25	POST	api/products/ai-generate	success	\N	1
+343	1	trigger_contact_enrichment	leads	App\\Models\\Lead	61	\N	{"triggered_by":1}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 15:25:11	2026-05-19 15:25:11	POST	api/leads/61/enrich-contacts	success	\N	1
+353	2	log_activity	lead_activities	App\\Models\\LeadActivity	4	\N	{"activity_type":"Meeting"}	172.66.0.243	curl/8.7.1	2026-05-20 10:18:11	2026-05-20 10:18:11	POST	api/leads/3/activities	success	\N	1
+364	1	updated	leads	App\\Models\\Lead	59	[]	[]	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 14:59:15	2026-05-20 14:59:15	PUT	api/leads/59	success	\N	1
+374	2	record_outcome	leads	App\\Models\\Lead	63	\N	{"outcome":"won","product_id":11,"sale_type":"upsales","deal_size":50000}	172.66.0.243	curl/8.7.1	2026-05-20 15:20:38	2026-05-20 15:20:38	POST	api/leads/63/outcome	success	\N	1
+384	1	logout	auth	App\\Models\\User	1	\N	\N	172.66.0.243	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 08:00:08	2026-05-23 08:00:08	POST	api/auth/logout	success	\N	1
+391	1	logout	auth	App\\Models\\User	1	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 08:58:14	2026-05-25 08:58:14	POST	api/auth/logout	success	\N	1
+395	7	logout	auth	App\\Models\\User	7	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:11:14	2026-05-25 09:11:14	POST	api/auth/logout	success	\N	1
+405	7	logout	auth	App\\Models\\User	7	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:12:51	2026-05-25 09:12:51	POST	api/auth/logout	success	\N	1
+415	\N	login_via_lark_sso	auth	App\\Models\\User	7	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:16:11	2026-05-25 09:16:11	POST	api/auth/lark/callback	success	\N	\N
+285	1	connection_tested	ai_providers	App\\Models\\AiProvider	1	\N	{"success":true,"http_status":200,"latency_ms":2360}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 15:48:45	2026-05-17 15:48:45	POST	api/settings/ai-default/providers/1/test	success	\N	1
+300	1	updated	users	App\\Models\\User	1	{"password":"$2y$12$\\/3pB9CMNqPgUDpjueDRtFOShMTbLF9oCm7yBGweQlzqst1HXnEw5a","updated_at":"2026-04-25 04:29:27"}	{"password":"$2y$12$3O\\/JIKzQhpN.ks\\/0aNgMy.BQezR9hxyelkyPTDlF8276PKVoLh3sG","updated_at":"2026-05-19 14:30:56"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:30:56	2026-05-19 14:30:56	PUT	api/users/1	success	\N	1
+311	1	updated	users	App\\Models\\User	4	{"name":"User Test Manager","updated_at":"2026-05-19 14:33:05"}	{"name":"Manager","updated_at":"2026-05-19 14:34:50"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:34:50	2026-05-19 14:34:50	PUT	api/users/4	success	\N	1
+321	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Whale AI CCTV","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	162.159.140.245	curl/8.7.1	2026-05-19 14:38:23	2026-05-19 14:38:23	POST	api/products/ai-generate	success	\N	1
+332	1	deleted	products	App\\Models\\Product	20	{"id":20,"name":"Fleet Management System","category":"Logistics Technology","description":"Real-time GPS tracking, route optimization, maintenance scheduling, and driver behavior monitoring.","target_industry":"Logistics & Transportation","target_pain_points":"High fuel costs, untracked vehicles, unplanned maintenance","target_buyer_persona":"Operations Manager, Fleet Manager, Logistics Director","ideal_company_profile":"Companies operating 10+ commercial vehicles","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-05-19T14:32:33.000000Z","updated_at":"2026-05-19T14:32:33.000000Z","tenant_id":1,"supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:58:34	2026-05-19 14:58:34	DELETE	api/products/20	success	\N	1
+344	2	ai_product_questions_generated	products	App\\Models\\Product	4	\N	{"ai_model":"gpt-4.1","count":18}	172.66.0.243	curl/8.7.1	2026-05-20 08:24:06	2026-05-20 08:24:06	POST	api/products/4/questions/generate	success	\N	1
+354	2	create_transcript	lead_transcripts	App\\Models\\LeadTranscript	4	\N	{"source_type":"meeting"}	172.66.0.243	curl/8.7.1	2026-05-20 10:18:11	2026-05-20 10:18:11	POST	api/leads/3/transcripts	success	\N	1
+365	1	updated	leads	App\\Models\\Lead	58	[]	[]	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 14:59:28	2026-05-20 14:59:28	PUT	api/leads/58	success	\N	1
+375	2	deleted	leads	App\\Models\\Lead	63	{"id":63,"company_name":"Codex Product Revenue Smoke 2","address":null,"lat":null,"lng":null,"website":null,"website_domain":null,"phone":null,"email":null,"industry_id":null,"sub_industry_id":null,"business_category":null,"company_size_estimate":null,"branch_count":null,"operating_hours":null,"social_profiles":null,"lead_score":null,"qualification_status":"eligible","ai_explanation":null,"duplicate_status":"new","duplicate_of_id":null,"external_place_id":null,"use_ai_reference":false,"ai_mode":"manual","ai_reference_source_type":null,"ai_reference_id":null,"ai_processing_status":null,"funnel_stage_id":1,"owner_id":null,"territory_id":null,"product_id":9,"created_by":2,"created_at":"2026-05-20T15:20:38.000000Z","updated_at":"2026-05-20T15:20:38.000000Z","deleted_at":null,"tenant_id":1,"estimated_closing_amount":"123000.00","realized_closing_amount":null}	\N	172.66.0.243	curl/8.7.1	2026-05-20 15:20:38	2026-05-20 15:20:38	DELETE	api/leads/63	success	\N	1
+385	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 08:02:57	2026-05-23 08:02:57	POST	api/auth/login	success	\N	\N
+392	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 08:58:37	2026-05-25 08:58:37	POST	api/auth/login	success	\N	\N
+396	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:11:17	2026-05-25 09:11:17	POST	api/auth/login	success	\N	\N
+406	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:12:52	2026-05-25 09:12:52	POST	api/auth/login	success	\N	\N
+416	7	logout	auth	App\\Models\\User	7	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:38:38	2026-05-25 09:38:38	POST	api/auth/logout	success	\N	1
+286	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	11	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 15:50:24	2026-05-17 15:50:24	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":10}	1
+301	1	deleted	users	App\\Models\\User	2	{"id":2,"name":"Rizub","email":"admin@prasetia.com","email_verified_at":null,"role_id":1,"phone":null,"is_active":false,"created_at":"2026-04-25T05:30:10.000000Z","updated_at":"2026-04-25T06:20:04.000000Z","tenant_id":1,"direct_manager_id":null,"target_period":"monthly","target_revenue":null}	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:31:00	2026-05-19 14:31:00	DELETE	api/users/2	success	\N	1
+312	1	updated	users	App\\Models\\User	3	{"name":"User Test Sales","updated_at":"2026-05-19 14:32:38","direct_manager_id":null}	{"name":"Sales","updated_at":"2026-05-19 14:34:59","direct_manager_id":4}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:34:59	2026-05-19 14:34:59	PUT	api/users/3	success	\N	1
+322	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Odoo ERP","source":"url","reference_url":"https:\\/\\/www.odoo.com","ai_model":"gpt-4o","user_id":1}	162.159.140.245	curl/8.7.1	2026-05-19 14:39:06	2026-05-19 14:39:06	POST	api/products/ai-generate	success	\N	1
+333	1	deleted	products	App\\Models\\Product	18	{"id":18,"name":"Enterprise ERP Solution","category":"Enterprise Software","description":"End-to-end enterprise resource planning system covering finance, HR, inventory, and supply chain.","target_industry":"Manufacturing, Retail & Distribution","target_pain_points":"Manual processes, siloed data, poor inventory visibility","target_buyer_persona":"CEO, CFO, Operations Director","ideal_company_profile":"Mid-to-large manufacturers and distributors with 100+ employees","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-05-19T14:32:33.000000Z","updated_at":"2026-05-19T14:32:33.000000Z","tenant_id":1,"supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:58:37	2026-05-19 14:58:37	DELETE	api/products/18	success	\N	1
+345	2	ai_product_questions_generated	products	App\\Models\\Product	4	\N	{"ai_model":"gpt-4.1","count":18}	172.66.0.243	curl/8.7.1	2026-05-20 08:24:54	2026-05-20 08:24:54	POST	api/products/4/questions/generate	success	\N	1
+355	2	log_activity	lead_activities	App\\Models\\LeadActivity	5	\N	{"activity_type":"Meeting"}	172.66.0.243	curl/8.7.1	2026-05-20 10:18:35	2026-05-20 10:18:35	POST	api/leads/3/activities	success	\N	1
+366	1	updated	leads	App\\Models\\Lead	3	{"qualification_status":"pending","updated_at":"2026-05-20 14:43:32"}	{"qualification_status":"eligible","updated_at":"2026-05-20 15:00:00"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 15:00:00	2026-05-20 15:00:00	PUT	api/leads/3	success	\N	1
+376	1	map_lead_added	maps	App\\Models\\Lead	64	\N	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-21 06:23:38	2026-05-21 06:23:38	POST	api/maps/add-to-leads	success	{"place_id":"ChIJhcis-aHxaS4REYE7XEyqpDg","product_id":11,"fit_score":null}	1
+386	1	updated	leads	App\\Models\\Lead	64	[]	[]	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 08:14:44	2026-05-23 08:14:44	PUT	api/leads/64	success	\N	1
+397	1	updated	users	App\\Models\\User	7	{"password":"$2y$12$bgHH5yHkQxhBMRtHcybdEeMft4vWLJxjGYCzhvd6TCpJFT7Q7YNAS","role_id":4,"updated_at":"2026-05-25 09:10:49"}	{"password":"$2y$12$TEO7Kf\\/KwNCtA7x6JlaOx.8gW86wc.9OIQmUptJjUdAz0v3OE0Ay6","role_id":1,"updated_at":"2026-05-25 09:11:42"}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:11:42	2026-05-25 09:11:42	PUT	api/users/7	success	\N	1
+407	1	updated	users	App\\Models\\User	7	{"password":"$2y$12$fEPnsVEHsKIJ4qM0Hp8CIuG3KKKGFpJfpPe2TswsbmtTCunhC.J2K","role_id":4,"updated_at":"2026-05-25 09:12:33"}	{"password":"$2y$12$zsYgv\\/3NRfH4rD2.32CLie\\/bREpB.xyn7SBxDGQIDnr.fXQi883s2","role_id":1,"updated_at":"2026-05-25 09:15:15"}	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:15:15	2026-05-25 09:15:15	PUT	api/users/7	success	\N	1
+417	\N	login_via_lark_sso	auth	App\\Models\\User	7	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:38:47	2026-05-25 09:38:47	POST	api/auth/lark/callback	success	\N	\N
+287	1	geo_product_fit_analysis_run	maps	App\\Models\\Product	11	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-17 23:19:16	2026-05-17 23:19:16	POST	api/maps/geo-product-fit/analyze	success	{"places_count":50,"ai_limit":3}	1
+302	1	created	users	App\\Models\\User	3	\N	{"name":"User Test Sales","email":"user@prasetia.co.id","role_id":5,"direct_manager_id":null,"phone":null,"target_period":"monthly","target_revenue":null,"updated_at":"2026-05-19T14:32:38.000000Z","created_at":"2026-05-19T14:32:38.000000Z","id":3}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:32:38	2026-05-19 14:32:38	POST	api/users	success	\N	1
+313	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Whale AI CCTV","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":1}	185.199.110.133	curl/8.7.1	2026-05-19 14:35:34	2026-05-19 14:35:34	POST	api/products/ai-generate	success	\N	1
+323	1	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Whale AI CCTV","source":"pdf","reference_url":null,"ai_model":"gpt-4o","user_id":1}	162.159.140.245	curl/8.7.1	2026-05-19 14:41:01	2026-05-19 14:41:01	POST	api/products/ai-generate	success	\N	1
+334	1	deleted	products	App\\Models\\Product	19	{"id":19,"name":"Sales Intelligence Platform","category":"Sales Technology","description":"AI-powered lead scoring, territory management, and CRM integration. Helps sales teams prioritize high-value prospects.","target_industry":"Technology & IT Services, Finance & Banking","target_pain_points":"Low conversion rates, poor lead visibility, territory conflicts","target_buyer_persona":"Sales Director, VP Sales, Business Development Manager","ideal_company_profile":"B2B companies with active outbound sales teams","ai_reference_material":null,"status":"active","created_by":null,"created_at":"2026-05-19T14:32:33.000000Z","updated_at":"2026-05-19T14:32:33.000000Z","tenant_id":1,"supported_regions":null,"budget_range":null,"target_company_size":null,"use_cases":null,"competitor_notes":null,"keywords":null}	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:58:44	2026-05-19 14:58:44	DELETE	api/products/19	success	\N	1
+346	2	updated	product_questions	App\\Models\\ProductQuestion	1	[]	[]	172.66.0.243	curl/8.7.1	2026-05-20 08:24:54	2026-05-20 08:24:54	PUT	api/products/4/questions	success	\N	1
+356	2	create_transcript	lead_transcripts	App\\Models\\LeadTranscript	5	\N	{"source_type":"meeting"}	172.66.0.243	curl/8.7.1	2026-05-20 10:18:36	2026-05-20 10:18:36	POST	api/leads/3/transcripts	success	\N	1
+367	\N	login_failed	auth	\N	\N	\N	{"email":"admin@prasetia.com"}	172.66.0.243	curl/8.7.1	2026-05-20 15:16:55	2026-05-20 15:16:55	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+377	1	rescore	leads	App\\Models\\Lead	64	\N	{"score":56,"grade":"Cold"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-21 06:24:52	2026-05-21 06:24:52	POST	api/leads/64/rescore	success	\N	1
+387	1	logout	auth	App\\Models\\User	1	\N	\N	172.66.0.243	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 08:23:02	2026-05-23 08:23:02	POST	api/auth/logout	success	\N	1
+398	1	logout	auth	App\\Models\\User	1	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:11:50	2026-05-25 09:11:50	POST	api/auth/logout	success	\N	1
+408	1	logout	auth	App\\Models\\User	1	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:15:28	2026-05-25 09:15:28	POST	api/auth/logout	success	\N	1
+418	7	logout	auth	App\\Models\\User	7	\N	\N	142.251.10.95	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:38:59	2026-05-25 09:38:59	POST	api/auth/logout	success	\N	1
+288	1	map_lead_added	maps	App\\Models\\Lead	61	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-18 07:28:04	2026-05-18 07:28:04	POST	api/maps/add-to-leads	success	{"place_id":"ChIJ9d21kLj0aS4RLTcM81XBIFo","product_id":null,"fit_score":null}	1
+303	1	created	users	App\\Models\\User	4	\N	{"name":"User Test Manager","email":"manager@prasetia.co.id","role_id":3,"direct_manager_id":null,"phone":null,"target_period":"monthly","target_revenue":null,"updated_at":"2026-05-19T14:33:05.000000Z","created_at":"2026-05-19T14:33:05.000000Z","id":4}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:33:05	2026-05-19 14:33:05	POST	api/users	success	\N	1
+314	1	updated	users	App\\Models\\User	4	{"updated_at":"2026-05-19 14:34:50","direct_manager_id":null}	{"updated_at":"2026-05-19 14:35:34","direct_manager_id":5}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:35:34	2026-05-19 14:35:34	PUT	api/users/4	success	\N	1
+324	\N	login_failed	auth	\N	\N	\N	{"email":"admin@prasetia.co.id"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-19 14:41:50	2026-05-19 14:41:50	POST	api/auth/login	failed	{"attempt":"invalid_credentials"}	\N
+335	2	ai_product_metadata_generated	products	\N	\N	\N	{"product_name":"Google Workspace","source":"name","reference_url":null,"ai_model":"gpt-4o","user_id":2}	162.159.140.245	curl/8.7.1	2026-05-19 15:01:37	2026-05-19 15:01:37	POST	api/products/ai-generate	success	\N	1
+347	1	ai_product_questions_generated	products	App\\Models\\Product	24	\N	{"ai_model":"gpt-4.1","count":20}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 08:26:15	2026-05-20 08:26:15	POST	api/products/24/questions/generate	success	\N	1
+357	1	stage_change_via_activity	leads	App\\Models\\Lead	61	\N	{"from_stage_id":1,"to_stage_id":1,"activity_id":6}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 10:24:57	2026-05-20 10:24:57	POST	api/leads/61/activities	success	\N	1
+358	1	log_activity	lead_activities	App\\Models\\LeadActivity	6	\N	{"activity_type":"Meeting"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-20 10:24:57	2026-05-20 10:24:57	POST	api/leads/61/activities	success	\N	1
+368	2	created	leads	App\\Models\\Lead	62	\N	{"company_name":"Codex Product Revenue Smoke","product_id":9,"estimated_closing_amount":"123000.00","created_by":2,"tenant_id":1,"funnel_stage_id":1,"duplicate_status":"new","duplicate_of_id":null,"updated_at":"2026-05-20T15:17:35.000000Z","created_at":"2026-05-20T15:17:35.000000Z","id":62}	172.66.0.243	curl/8.7.1	2026-05-20 15:17:35	2026-05-20 15:17:35	POST	api/leads	success	\N	1
+378	1	rescore	leads	App\\Models\\Lead	64	\N	{"score":56,"grade":"Cold"}	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0.1 Safari/605.1.15	2026-05-21 06:25:28	2026-05-21 06:25:28	POST	api/leads/64/rescore	success	\N	1
+388	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.5	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 08:23:10	2026-05-23 08:23:10	POST	api/auth/login	success	\N	\N
+399	\N	login_via_lark_sso	auth	App\\Models\\User	7	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:11:55	2026-05-25 09:11:55	POST	api/auth/lark/callback	success	\N	\N
+409	\N	login	auth	App\\Models\\User	1	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:15:30	2026-05-25 09:15:30	POST	api/auth/login	success	\N	\N
+419	\N	login_via_lark_sso	auth	App\\Models\\User	7	\N	\N	172.22.0.6	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-25 09:40:10	2026-05-25 09:40:10	POST	api/auth/lark/callback	success	\N	\N
+\.
+
+
+--
+-- Data for Name: cache; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.cache (key, value, expiration) FROM stdin;
+\.
+
+
+--
+-- Data for Name: cache_locks; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.cache_locks (key, owner, expiration) FROM stdin;
+\.
+
+
+--
 -- Data for Name: contact_sources; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -5698,6 +5555,23 @@ COPY public.discovery_categories (id, label, value, sort_order, is_active, creat
 12	Pharmacy	pharmacy	12	t	2026-04-25 05:30:10	2026-04-25 05:30:10
 13	Warehouse / Storage	storage	13	t	2026-04-25 05:30:10	2026-04-25 05:30:10
 14	Automotive / Workshop	car_repair	14	t	2026-04-25 05:30:10	2026-04-25 05:30:10
+\.
+
+
+--
+-- Data for Name: email_verification_otps; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.email_verification_otps (id, email, otp, expires_at, used_at, created_at, updated_at) FROM stdin;
+3	kodratsantoso@prasetia.co.id	859232	2026-05-19 14:51:01	\N	2026-05-19 14:41:01	2026-05-19 14:41:01
+\.
+
+
+--
+-- Data for Name: failed_jobs; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.failed_jobs (id, uuid, connection, queue, payload, exception, failed_at) FROM stdin;
 \.
 
 
@@ -6095,6 +5969,22 @@ COPY public.integration_configs (id, category, key, value_encrypted, value_type,
 5	maps	GOOGLE_MAPS_BROWSER_API_KEY	eyJpdiI6InhKQlp4cnRweUpRa3FMVVBXQVQwOUE9PSIsInZhbHVlIjoiN2Z0ZVRBMkFQTk12TzBlM2FnNlEwUy9lVTNLM0VKcEV2YmVuQzhuRm9uN2U1M3hCdFNmUzJqb0ZHeVNKbGt2VyIsIm1hYyI6Ijg3OTM4MzBkNWVmYWY3ZGIyOThkNjY3MzI1ZTZhMmRiZjc0ZjhmYjM4YjM4ZDU0Y2FlNjA1MmIwNTliMjcxNjIiLCJ0YWciOiIifQ==	string	f	t	2026-04-20 14:39:30	2026-04-20 14:39:30	1
 6	maps	GOOGLE_MAPS_DEFAULT_CENTER_LAT	eyJpdiI6Im9PY28zdXVnYUwyN0pkeGZvYzZrV2c9PSIsInZhbHVlIjoiN0I2V2ZiVnZmK0w0VW40YmFPM0duUT09IiwibWFjIjoiMjY5OTk2ZmYwMjU5ODlhOWQ1NTM4MGYzMDM4ZTFmZjVlZWExNzFhNWU0OTQ0MTg3ODcxMWZmZWI5MzIzYzhjZiIsInRhZyI6IiJ9	number	f	t	2026-04-20 14:39:30	2026-04-20 14:39:30	1
 7	maps	GOOGLE_MAPS_DEFAULT_CENTER_LNG	eyJpdiI6ImI4Sk9JZlhXQ2lad2lWWnp3RFFqV1E9PSIsInZhbHVlIjoibm4xdGRtT2lNYjhRVjR5V3NJTm1nZz09IiwibWFjIjoiZjE3ZDRiNTk5ZjczMzdlYWE3MzVmMzA2NjM3YWQzMmE0NmE2NmJlZDM5MzIyOTEzMDlkMDVjMTQ4NTc5MTY3YiIsInRhZyI6IiJ9	number	f	t	2026-04-20 14:39:30	2026-04-20 14:39:30	1
+\.
+
+
+--
+-- Data for Name: job_batches; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.job_batches (id, name, total_jobs, pending_jobs, failed_jobs, failed_job_ids, options, cancelled_at, created_at, finished_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: jobs; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.jobs (id, queue, payload, attempts, reserved_at, available_at, created_at) FROM stdin;
 \.
 
 
@@ -10105,6 +9995,16 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 57	2026_05_22_000001_create_lark_integration_tables	21
 58	2026_05_25_000001_import_leadsy_database_snapshot	22
 59	2026_05_25_000002_create_lark_base_sync_tables	22
+60	2026_05_25_000000_create_lark_base_sync_tables	23
+61	2026_05_25_010000_create_sales_visit_tables	23
+\.
+
+
+--
+-- Data for Name: password_reset_tokens; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.password_reset_tokens (email, token, created_at) FROM stdin;
 \.
 
 
@@ -10127,6 +10027,23 @@ COPY public.permissions (id, name, module, display_name, created_at, updated_at)
 12	ai.manage	ai	Manage AI Config	2026-04-20 14:35:47	2026-04-20 14:35:47
 13	whatsapp.manage	whatsapp	Manage WhatsApp	2026-04-20 14:35:47	2026-04-20 14:35:47
 14	integrations.manage	integrations	Manage Integrations	2026-04-20 14:35:47	2026-04-20 14:35:47
+\.
+
+
+--
+-- Data for Name: personal_access_tokens; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) FROM stdin;
+3	App\\Models\\User	1	api	9ee4acccfb63fbfbd2c55eb17472d10181dd806c8dbe8cab7982d0928757efbf	["*"]	2026-04-27 01:11:41	\N	2026-04-25 04:29:40	2026-04-27 01:11:41
+5	App\\Models\\User	1	api	99346a84ab75ca008eded11b8c20ceaa88c83f3204b2463ea1d4e3a89620ab19	["*"]	\N	\N	2026-05-17 02:25:25	2026-05-17 02:25:25
+6	App\\Models\\User	1	api	0584d0d29ec772171f3866dfb419fe9197fcda1b4cfaeb14274bc4230d58a68d	["*"]	2026-05-17 02:25:38	\N	2026-05-17 02:25:38	2026-05-17 02:25:38
+7	App\\Models\\User	1	api	b37ef12b3dd4d09c32c3921f6dae7ced22ba44a3c031e9f541eeca35dacc07d7	["*"]	2026-05-17 02:26:14	\N	2026-05-17 02:26:14	2026-05-17 02:26:14
+4	App\\Models\\User	1	api	39c4cf28b6c9b69d486ecf58eb2d51d595b3afd3bf21098e3b251033f6487bda	["*"]	2026-05-19 14:36:21	\N	2026-05-17 02:01:48	2026-05-19 14:36:21
+8	App\\Models\\User	1	api	b4b862a6fe00cd9917f765322e3070a89ecbe38f2a085f3a1ac5c50ac040e890	["*"]	2026-05-17 02:33:51	\N	2026-05-17 02:33:51	2026-05-17 02:33:51
+9	App\\Models\\User	1	api	c8dc44a8d5a281d707d9a1798012cdcd0c806ae7f2ed42f66721160d0a8ed6c6	["*"]	2026-05-17 02:34:14	\N	2026-05-17 02:34:14	2026-05-17 02:34:14
+51	App\\Models\\User	7	api	26926b8113d159f0285984df4eb367e06e297cb6e2efc56ec86202eba6360525	["*"]	2026-05-25 16:43:26	\N	2026-05-25 09:40:10	2026-05-25 16:43:26
+11	App\\Models\\User	1	api	6630fdba3a1ad11685b584c3eb7c63643db76ed9aecacf4df7e4ab817eaaa397	["*"]	2026-05-23 05:20:09	\N	2026-05-19 14:41:56	2026-05-23 05:20:09
 \.
 
 
@@ -10372,6 +10289,30 @@ COPY public.roles (id, name, display_name, description, is_active, created_at, u
 
 
 --
+-- Data for Name: sales_visit_media; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.sales_visit_media (id, sales_visit_id, uploaded_by, media_type, disk, path, mime_type, size_bytes, lat, lng, accuracy_m, captured_at, metadata, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: sales_visits; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.sales_visits (id, lead_id, user_id, status, clock_in_at, clock_out_at, clock_in_lat, clock_in_lng, clock_out_lat, clock_out_lng, clock_in_accuracy_m, clock_out_accuracy_m, clock_in_distance_m, clock_out_distance_m, risk_status, risk_signals, device_metadata, visit_result, notes, client_name, client_title, signature_captured_at, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.sessions (id, user_id, ip_address, user_agent, payload, last_activity) FROM stdin;
+\.
+
+
+--
 -- Data for Name: sub_industries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -10509,7 +10450,7 @@ COPY public.whatsapp_messages (id, conversation_id, external_message_id, directi
 --
 
 COPY public.whatsapp_sessions (id, session_name, status, qr_payload, last_qr_generated_at, connected_at, disconnected_at, metadata_json, created_at, updated_at) FROM stdin;
-1	leads_platform_session	disconnected	\N	2026-05-19 15:01:56	2026-05-19 15:02:02	2026-05-23 08:14:24	{"number":"6287884701947:45@s.whatsapp.net"}	2026-04-20 14:37:18	2026-05-23 08:14:24
+1	leads_platform_session	disconnected	\N	2026-05-19 15:01:56	2026-05-19 15:02:02	2026-05-25 16:43:26	{"number":"6287884701947:45@s.whatsapp.net"}	2026-04-20 14:37:18	2026-05-25 16:43:26
 \.
 
 
@@ -10903,7 +10844,7 @@ SELECT pg_catalog.setval('public.map_search_history_id_seq', 19, true);
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 59, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 61, true);
 
 
 --
@@ -11005,6 +10946,20 @@ SELECT pg_catalog.setval('public.roles_id_seq', 6, true);
 
 
 --
+-- Name: sales_visit_media_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.sales_visit_media_id_seq', 1, false);
+
+
+--
+-- Name: sales_visits_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.sales_visits_id_seq', 1, false);
+
+
+--
 -- Name: sub_industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
@@ -11086,134 +11041,6 @@ SELECT pg_catalog.setval('public.whatsapp_sessions_id_seq', 1, true);
 --
 
 SELECT pg_catalog.setval('public.whatsapp_sync_rules_id_seq', 1, false);
-
-
---
--- Name: ai_parameter_suggestions ai_parameter_suggestions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.ai_parameter_suggestions
-    ADD CONSTRAINT ai_parameter_suggestions_pkey PRIMARY KEY (id);
-
-
---
--- Name: ai_provider_settings ai_provider_settings_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
-    ADD CONSTRAINT ai_provider_settings_pkey PRIMARY KEY (id);
-
-
---
--- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.audit_logs
-    ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (id);
-
-
---
--- Name: evaluation_overrides evaluation_overrides_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
-    ADD CONSTRAINT evaluation_overrides_pkey PRIMARY KEY (id);
-
-
---
--- Name: lead_activities lead_activities_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_activities
-    ADD CONSTRAINT lead_activities_pkey PRIMARY KEY (id);
-
-
---
--- Name: lead_evaluations lead_evaluations_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_evaluations
-    ADD CONSTRAINT lead_evaluations_pkey PRIMARY KEY (id);
-
-
---
--- Name: lead_scores lead_scores_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_scores
-    ADD CONSTRAINT lead_scores_pkey PRIMARY KEY (id);
-
-
---
--- Name: lead_sources lead_sources_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_sources
-    ADD CONSTRAINT lead_sources_pkey PRIMARY KEY (id);
-
-
---
--- Name: leads leads_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.leads
-    ADD CONSTRAINT leads_pkey PRIMARY KEY (id);
-
-
---
--- Name: parameter_options parameter_options_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.parameter_options
-    ADD CONSTRAINT parameter_options_pkey PRIMARY KEY (id);
-
-
---
--- Name: parameters parameters_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.parameters
-    ADD CONSTRAINT parameters_pkey PRIMARY KEY (id);
-
-
---
--- Name: product_questions product_questions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.product_questions
-    ADD CONSTRAINT product_questions_pkey PRIMARY KEY (id);
-
-
---
--- Name: products products_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.products
-    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
-
-
---
--- Name: roles roles_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.roles
-    ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
-
-
---
--- Name: scoring_dimensions scoring_dimensions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.scoring_dimensions
-    ADD CONSTRAINT scoring_dimensions_pkey PRIMARY KEY (id);
-
-
---
--- Name: users users_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
 
 --
@@ -12073,6 +11900,22 @@ ALTER TABLE ONLY public.roles
 
 
 --
+-- Name: sales_visit_media sales_visit_media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_visit_media
+    ADD CONSTRAINT sales_visit_media_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sales_visits sales_visits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_visits
+    ADD CONSTRAINT sales_visits_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -12230,146 +12073,6 @@ ALTER TABLE ONLY public.whatsapp_sessions
 
 ALTER TABLE ONLY public.whatsapp_sync_rules
     ADD CONSTRAINT whatsapp_sync_rules_pkey PRIMARY KEY (id);
-
-
---
--- Name: ai_parameter_suggestions_product_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX ai_parameter_suggestions_product_id_idx ON legacy_mgmt.ai_parameter_suggestions USING btree (product_id);
-
-
---
--- Name: ai_provider_settings_is_active_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX ai_provider_settings_is_active_idx ON legacy_mgmt.ai_provider_settings USING btree (is_active);
-
-
---
--- Name: ai_provider_settings_user_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX ai_provider_settings_user_id_idx ON legacy_mgmt.ai_provider_settings USING btree (user_id);
-
-
---
--- Name: ai_provider_settings_user_id_provider_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE UNIQUE INDEX ai_provider_settings_user_id_provider_name_key ON legacy_mgmt.ai_provider_settings USING btree (user_id, provider_name);
-
-
---
--- Name: audit_logs_entity_type_entity_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX audit_logs_entity_type_entity_id_idx ON legacy_mgmt.audit_logs USING btree (entity_type, entity_id);
-
-
---
--- Name: audit_logs_user_id_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX audit_logs_user_id_created_at_idx ON legacy_mgmt.audit_logs USING btree (user_id, created_at DESC);
-
-
---
--- Name: lead_activities_lead_id_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX lead_activities_lead_id_created_at_idx ON legacy_mgmt.lead_activities USING btree (lead_id, created_at DESC);
-
-
---
--- Name: lead_evaluations_lead_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX lead_evaluations_lead_id_idx ON legacy_mgmt.lead_evaluations USING btree (lead_id);
-
-
---
--- Name: lead_evaluations_lead_id_is_latest_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX lead_evaluations_lead_id_is_latest_idx ON legacy_mgmt.lead_evaluations USING btree (lead_id, is_latest);
-
-
---
--- Name: lead_scores_evaluation_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX lead_scores_evaluation_id_idx ON legacy_mgmt.lead_scores USING btree (evaluation_id);
-
-
---
--- Name: lead_sources_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE UNIQUE INDEX lead_sources_name_key ON legacy_mgmt.lead_sources USING btree (name);
-
-
---
--- Name: leads_company_name_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX leads_company_name_idx ON legacy_mgmt.leads USING btree (company_name);
-
-
---
--- Name: leads_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX leads_created_at_idx ON legacy_mgmt.leads USING btree (created_at DESC);
-
-
---
--- Name: leads_status_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX leads_status_idx ON legacy_mgmt.leads USING btree (status);
-
-
---
--- Name: leads_tenant_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX leads_tenant_id_idx ON legacy_mgmt.leads USING btree (tenant_id);
-
-
---
--- Name: parameters_dimension_id_key_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE UNIQUE INDEX parameters_dimension_id_key_key ON legacy_mgmt.parameters USING btree (dimension_id, key);
-
-
---
--- Name: product_questions_product_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE INDEX product_questions_product_id_idx ON legacy_mgmt.product_questions USING btree (product_id);
-
-
---
--- Name: roles_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE UNIQUE INDEX roles_name_key ON legacy_mgmt.roles USING btree (name);
-
-
---
--- Name: scoring_dimensions_key_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE UNIQUE INDEX scoring_dimensions_key_key ON legacy_mgmt.scoring_dimensions USING btree (key);
-
-
---
--- Name: users_email_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
---
-
-CREATE UNIQUE INDEX users_email_key ON legacy_mgmt.users USING btree (email);
 
 
 --
@@ -12730,6 +12433,34 @@ CREATE INDEX revenue_rules_tenant_id_index ON public.revenue_rules USING btree (
 
 
 --
+-- Name: sales_visit_media_sales_visit_id_media_type_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sales_visit_media_sales_visit_id_media_type_index ON public.sales_visit_media USING btree (sales_visit_id, media_type);
+
+
+--
+-- Name: sales_visits_lead_id_status_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sales_visits_lead_id_status_index ON public.sales_visits USING btree (lead_id, status);
+
+
+--
+-- Name: sales_visits_risk_status_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sales_visits_risk_status_created_at_index ON public.sales_visits USING btree (risk_status, created_at);
+
+
+--
+-- Name: sales_visits_user_id_clock_in_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sales_visits_user_id_clock_in_at_index ON public.sales_visits USING btree (user_id, clock_in_at);
+
+
+--
 -- Name: sessions_last_activity_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -12762,182 +12493,6 @@ CREATE INDEX users_tenant_id_index ON public.users USING btree (tenant_id);
 --
 
 CREATE INDEX whatsapp_contacts_normalized_phone_number_index ON public.whatsapp_contacts USING btree (normalized_phone_number);
-
-
---
--- Name: ai_parameter_suggestions ai_parameter_suggestions_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.ai_parameter_suggestions
-    ADD CONSTRAINT ai_parameter_suggestions_product_id_fkey FOREIGN KEY (product_id) REFERENCES legacy_mgmt.products(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: ai_provider_settings ai_provider_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
-    ADD CONSTRAINT ai_provider_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES legacy_mgmt.users(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
---
--- Name: ai_provider_settings ai_provider_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
-    ADD CONSTRAINT ai_provider_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES legacy_mgmt.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: audit_logs audit_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.audit_logs
-    ADD CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES legacy_mgmt.users(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: evaluation_overrides evaluation_overrides_evaluation_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
-    ADD CONSTRAINT evaluation_overrides_evaluation_id_fkey FOREIGN KEY (evaluation_id) REFERENCES legacy_mgmt.lead_evaluations(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: evaluation_overrides evaluation_overrides_overridden_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
-    ADD CONSTRAINT evaluation_overrides_overridden_by_fkey FOREIGN KEY (overridden_by) REFERENCES legacy_mgmt.users(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: lead_activities lead_activities_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_activities
-    ADD CONSTRAINT lead_activities_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES legacy_mgmt.leads(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: lead_activities lead_activities_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_activities
-    ADD CONSTRAINT lead_activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES legacy_mgmt.users(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: lead_evaluations lead_evaluations_evaluated_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_evaluations
-    ADD CONSTRAINT lead_evaluations_evaluated_by_fkey FOREIGN KEY (evaluated_by) REFERENCES legacy_mgmt.users(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: lead_evaluations lead_evaluations_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_evaluations
-    ADD CONSTRAINT lead_evaluations_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES legacy_mgmt.leads(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: lead_evaluations lead_evaluations_recommended_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_evaluations
-    ADD CONSTRAINT lead_evaluations_recommended_product_id_fkey FOREIGN KEY (recommended_product_id) REFERENCES legacy_mgmt.products(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
---
--- Name: lead_scores lead_scores_evaluation_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_scores
-    ADD CONSTRAINT lead_scores_evaluation_id_fkey FOREIGN KEY (evaluation_id) REFERENCES legacy_mgmt.lead_evaluations(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: lead_scores lead_scores_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_scores
-    ADD CONSTRAINT lead_scores_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES legacy_mgmt.leads(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: lead_scores lead_scores_option_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_scores
-    ADD CONSTRAINT lead_scores_option_id_fkey FOREIGN KEY (option_id) REFERENCES legacy_mgmt.parameter_options(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
---
--- Name: lead_scores lead_scores_parameter_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.lead_scores
-    ADD CONSTRAINT lead_scores_parameter_id_fkey FOREIGN KEY (parameter_id) REFERENCES legacy_mgmt.parameters(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: leads leads_created_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.leads
-    ADD CONSTRAINT leads_created_by_fkey FOREIGN KEY (created_by) REFERENCES legacy_mgmt.users(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: leads leads_source_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.leads
-    ADD CONSTRAINT leads_source_id_fkey FOREIGN KEY (source_id) REFERENCES legacy_mgmt.lead_sources(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
---
--- Name: parameter_options parameter_options_parameter_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.parameter_options
-    ADD CONSTRAINT parameter_options_parameter_id_fkey FOREIGN KEY (parameter_id) REFERENCES legacy_mgmt.parameters(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: parameters parameters_dimension_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.parameters
-    ADD CONSTRAINT parameters_dimension_id_fkey FOREIGN KEY (dimension_id) REFERENCES legacy_mgmt.scoring_dimensions(id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
-
---
--- Name: parameters parameters_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.parameters
-    ADD CONSTRAINT parameters_product_id_fkey FOREIGN KEY (product_id) REFERENCES legacy_mgmt.products(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
---
--- Name: product_questions product_questions_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.product_questions
-    ADD CONSTRAINT product_questions_product_id_fkey FOREIGN KEY (product_id) REFERENCES legacy_mgmt.products(id) ON UPDATE CASCADE ON DELETE CASCADE;
-
-
---
--- Name: users users_role_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
---
-
-ALTER TABLE ONLY legacy_mgmt.users
-    ADD CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id) REFERENCES legacy_mgmt.roles(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
 --
@@ -13869,6 +13424,38 @@ ALTER TABLE ONLY public.role_permission
 
 
 --
+-- Name: sales_visit_media sales_visit_media_sales_visit_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_visit_media
+    ADD CONSTRAINT sales_visit_media_sales_visit_id_foreign FOREIGN KEY (sales_visit_id) REFERENCES public.sales_visits(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sales_visit_media sales_visit_media_uploaded_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_visit_media
+    ADD CONSTRAINT sales_visit_media_uploaded_by_foreign FOREIGN KEY (uploaded_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: sales_visits sales_visits_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_visits
+    ADD CONSTRAINT sales_visits_lead_id_foreign FOREIGN KEY (lead_id) REFERENCES public.leads(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sales_visits sales_visits_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_visits
+    ADD CONSTRAINT sales_visits_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: sub_industries sub_industries_industry_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -13968,5 +13555,5 @@ ALTER TABLE ONLY public.whatsapp_messages
 -- PostgreSQL database dump complete
 --
 
-\unrestrict JwmJUvJDnYFeLWFk8WgqbmqR02reDabxgArWZoopvMdLJLiZqIJn0PzmaNnZvO7
+\unrestrict gIa57LcfhrjDxUo4vSUOho7w0nqVrL9VkTKpQ1gSKTmoJZuMEW5JUYjR9Lief0J
 

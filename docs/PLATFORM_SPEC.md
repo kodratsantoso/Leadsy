@@ -1,7 +1,7 @@
 # Leadsy Platform — Spesifikasi & Alur Kerja
 
 > **Dokumen hidup.** Diperbarui setiap kali ada improvisasi fitur.
-> Versi terakhir: 2026-05-25
+> Versi terakhir: 2026-05-26
 
 ---
 
@@ -18,11 +18,12 @@
 9. [Modul: AI Infrastructure](#9-modul-ai-infrastructure)
 10. [Modul: Settings & Konfigurasi](#10-modul-settings--konfigurasi)
 11. [Modul: Audit Logs](#11-modul-audit-logs)
-12. [Peta Koneksi Antar Fitur](#12-peta-koneksi-antar-fitur)
-13. [Alur Kerja End-to-End](#13-alur-kerja-end-to-end)
-14. [Tabel Referensi API](#14-tabel-referensi-api)
-15. [Tabel AI Feature Routes](#15-tabel-ai-feature-routes)
-16. [Changelog Spesifikasi](#16-changelog-spesifikasi)
+12. [Modul: Mobile Field Sales](#12-modul-mobile-field-sales)
+13. [Peta Koneksi Antar Fitur](#13-peta-koneksi-antar-fitur)
+14. [Alur Kerja End-to-End](#14-alur-kerja-end-to-end)
+15. [Tabel Referensi API](#15-tabel-referensi-api)
+16. [Tabel AI Feature Routes](#16-tabel-ai-feature-routes)
+17. [Changelog Spesifikasi](#17-changelog-spesifikasi)
 
 ---
 
@@ -67,6 +68,7 @@ Sumber Lead → Leadsy (Qualify + Score + Match) → Pipeline / CRM → Sales Ex
 | Cache / Queue | Redis 7 |
 | AI | Multi-provider: OpenAI / Anthropic / Gemini (via AI Routing) |
 | Deployment | Docker Compose + Coolify, Traefik reverse proxy |
+| Mobile | Expo / React Native untuk Android dan iOS |
 | Maps | Google Places API (Nearby Search, Text Search, Place Details) |
 
 ### Deployment Topology
@@ -653,7 +655,50 @@ Audit logs bisa diexport ke CSV/XLSX/TXT langsung dari UI.
 
 ---
 
-## 12. Peta Koneksi Antar Fitur
+## 12. Modul: Mobile Field Sales
+
+### Apa Ini
+
+Aplikasi mobile Android/iOS untuk sales lapangan. Mobile app bukan replika dashboard web, melainkan workspace harian untuk melihat lead, kontak cepat, kunjungan sales, bukti visit, dan update aktivitas dari lokasi client.
+
+### Kapabilitas MVP
+
+- Login memakai token Laravel Sanctum yang sama dengan web.
+- Lead Inbox untuk lead yang visible/assigned ke user.
+- Lead Detail dengan aksi cepat: Call, WhatsApp, Email, dan Maps.
+- Sales Visit dengan GPS clock-in dan clock-out.
+- Photo evidence dari kamera device.
+- Client signature capture.
+- Visit result dan notes.
+- Basic fake-location risk signal: mock location, akurasi GPS rendah, rooted/jailbroken device signal, dan jarak dari koordinat lead.
+
+### Alur Sales Visit
+
+```
+Sales buka Lead Detail di mobile
+  → Start Visit
+  → app meminta permission location
+  → POST /api/leads/{lead}/sales-visits/clock-in
+  → backend hitung jarak dari titik lead dan risk_status
+  → sales ambil foto evidence
+  → POST /api/sales-visits/{visit}/media
+  → client tanda tangan
+  → POST /api/sales-visits/{visit}/media
+  → sales isi result + notes
+  → POST /api/sales-visits/{visit}/clock-out
+```
+
+### Catatan Anti Fake Location
+
+Anti fake location diperlakukan sebagai risk scoring, bukan jaminan absolut. Backend menyimpan `risk_status` dan `risk_signals` untuk audit dan review manager. Status awal yang didukung: `verified`, `warning`, `manual_review`, dan `blocked`.
+
+### Distribusi Aplikasi
+
+Android dapat didistribusikan melalui Google Play/internal testing atau file signed APK/AAB. iOS didistribusikan melalui TestFlight atau Apple App Store. Build production direkomendasikan memakai Expo EAS Build dengan `EXPO_PUBLIC_API_BASE_URL` mengarah ke API VPS/production.
+
+---
+
+## 13. Peta Koneksi Antar Fitur
 
 ```
                     ┌─────────────────┐
@@ -726,7 +771,7 @@ Kedua sumber menghasilkan record di tabel `lead_product_matches` yang sama, sehi
 
 ---
 
-## 13. Alur Kerja End-to-End
+## 14. Alur Kerja End-to-End
 
 ### Workflow A: Discovery → Qualified Lead → Pipeline
 
@@ -796,7 +841,7 @@ Kedua sumber menghasilkan record di tabel `lead_product_matches` yang sama, sehi
 
 ---
 
-## 14. Tabel Referensi API
+## 15. Tabel Referensi API
 
 ### Lead Management
 
@@ -814,6 +859,15 @@ Kedua sumber menghasilkan record di tabel `lead_product_matches` yang sama, sehi
 | POST | `/api/leads/{id}/meetings` | Log meeting |
 | POST | `/api/leads/{id}/contacts` | Tambah kontak |
 | POST | `/api/leads/{id}/match-products` | Jalankan product matching |
+
+### Mobile Field Sales
+
+| Method | Endpoint | Fungsi |
+|---|---|---|
+| GET | `/api/sales-visits` | List sales visit dengan filter lead/status |
+| POST | `/api/leads/{lead}/sales-visits/clock-in` | Mulai visit dengan GPS clock-in |
+| POST | `/api/sales-visits/{visit}/clock-out` | Selesaikan visit dengan GPS clock-out |
+| POST | `/api/sales-visits/{visit}/media` | Upload photo evidence atau signature |
 
 ### Maps & Territory
 
@@ -866,7 +920,7 @@ Kedua sumber menghasilkan record di tabel `lead_product_matches` yang sama, sehi
 
 ---
 
-## 15. Tabel AI Feature Routes
+## 16. Tabel AI Feature Routes
 
 Konfigurasi di **Settings → AI Defaults**. Setiap fitur bisa punya multiple model dengan priority fallback.
 
@@ -886,7 +940,16 @@ Konfigurasi di **Settings → AI Defaults**. Setiap fitur bisa punya multiple mo
 
 ---
 
-## 16. Changelog Spesifikasi
+## 17. Changelog Spesifikasi
+
+### 2026-05-26 — v1.1 Mobile Field Sales, Lark Base, dan snapshot refresh
+
+- Mobile Field Sales MVP ditambahkan di `mobile/` untuk Android/iOS: login, Lead Inbox, Lead Detail, one-tap actions, Sales Visit, GPS Clock In/Out, foto evidence, client signature, result, dan notes.
+- Backend menambahkan `sales_visits` dan `sales_visit_media` dengan API protected untuk list visit, clock-in, clock-out, dan upload evidence.
+- Script `npm run mobile:expo-go` ditambahkan untuk testing Expo Go via QR scan.
+- Metadata versi aplikasi dinaikkan ke v1.1.0.
+- Snapshot database struktur+data dan deploy data-only direfresh untuk membawa tabel/record terbaru saat fresh deploy.
+- Kontrak dashboard sales diperjelas: Achievement Sales memakai realisasi `lead_outcomes.deal_size` per target period, sementara Funnel Won memakai estimated pipeline value dari `leads.estimated_closing_amount`.
 
 ### 2026-05-25 — Lark SSO, role preservation, dan snapshot deploy
 

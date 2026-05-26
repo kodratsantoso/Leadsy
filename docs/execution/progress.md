@@ -1,5 +1,13 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-05-25 — Mobile Field Sales MVP
+- Added `mobile/` Expo/React Native app for Android and iOS field-sales workflows.
+- Added mobile login using existing Laravel Sanctum auth, plus lead inbox, lead detail, one-tap call/WhatsApp/email/Maps actions, and sales visit flow.
+- Added mobile GPS clock-in/out, camera photo evidence, client signature capture, visit result, and notes.
+- Added `sales_visits` and `sales_visit_media` backend tables with models and protected API endpoints.
+- Backend now records visit coordinates, GPS accuracy, distance from lead location, risk status, risk signals, device metadata, photos, and signatures for audit/review.
+- Added root mobile scripts and docs for local Expo run plus Android/iOS distribution via Google Play/internal testing, APK/AAB, TestFlight, or App Store.
+
 ## 2026-05-25 — Lark Base Two-Way Sync
 - Added Base table configuration and record mapping tables so Leadsy can link a lead to a specific Lark Base record without duplicate creation.
 - Added backend endpoints to list Base tables/fields, preview records for a selected table, save mapping configuration, and run manual push/pull sync.

@@ -37,6 +37,22 @@ The backend follows the Lark Custom App OAuth flow:
 
 Lark app secrets are encrypted with Laravel's `APP_KEY`. If a database snapshot is restored into an environment with a different `APP_KEY`, re-save the Lark App Secret from Settings before testing the connection.
 
+## Mobile sales visits
+
+The Android/iOS mobile app uses the same Sanctum authentication flow as the web app. Field-sales visit evidence is stored in:
+
+- `sales_visits` — lead/user visit session, clock-in/out timestamps, GPS coordinates, distance from lead, risk status, device metadata, visit result, notes, and client identity.
+- `sales_visit_media` — photo evidence and client signature files linked to a visit.
+
+Protected API endpoints:
+
+- `GET /api/sales-visits`
+- `POST /api/leads/{lead}/sales-visits/clock-in`
+- `POST /api/sales-visits/{visit}/clock-out`
+- `POST /api/sales-visits/{visit}/media`
+
+The backend computes distance from the saved lead coordinates and flags basic location risk signals such as low GPS accuracy, outside-radius visits, mock location, rooted device, or jailbroken device. These checks are risk indicators and audit signals, not an absolute guarantee against spoofing.
+
 ## Database snapshot import
 
 Migrations are the source of truth for schema. The repository also includes one deploy snapshot for carrying current records into a fresh database:

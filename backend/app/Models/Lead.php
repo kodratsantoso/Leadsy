@@ -159,6 +159,11 @@ class Lead extends Model
         return $this->hasMany(LeadFollowUp::class);
     }
 
+    public function salesVisits(): HasMany
+    {
+        return $this->hasMany(SalesVisit::class);
+    }
+
     /* ── Revenue Intelligence Engine ── */
 
     public function icpMatches(): HasMany

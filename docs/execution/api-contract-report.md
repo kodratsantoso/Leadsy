@@ -149,3 +149,26 @@ The backend API surface is substantially ahead of the live frontend runtime. The
   - Saves a Lead ↔ Base table mapping with `sync_direction`, manually selected `field_mapping`, and active state.
 - `POST /api/lark/base/mappings/{baseTable}/sync`
   - Runs manual `push` (Leadsy to Lark) or `pull` (Lark to Leadsy) sync.
+
+## 2026-05-26 Contract Additions
+
+### Mobile Field Sales
+- `GET /api/sales-visits`
+  - Returns paginated sales visits visible to the authenticated user, including lead, user, and media relations.
+- `POST /api/leads/{lead}/sales-visits/clock-in`
+  - Starts a visit for a visible lead.
+  - Accepts `lat`, `lng`, optional `accuracy_m`, `device_metadata`, `risk_signals`, and `notes`.
+  - Backend stores clock-in timestamp, coordinates, distance from saved lead coordinates when available, risk status, and audit log.
+- `POST /api/sales-visits/{visit}/clock-out`
+  - Completes a visit.
+  - Accepts `lat`, `lng`, optional `accuracy_m`, required `visit_result`, optional `notes`, `client_name`, `client_title`, and `risk_signals`.
+  - Backend updates clock-out coordinates, distance, risk status, visit result, notes, and client identity.
+- `POST /api/sales-visits/{visit}/media`
+  - Multipart upload for `media_type=photo|signature`.
+  - Stores evidence under the public disk and links media to the visit with optional location/capture metadata.
+
+### Dashboard Sales Metrics
+- `GET /api/dashboard`
+  - `data.sales_achievement` is target-period realization from `lead_outcomes` where `outcome=won`; amount uses `deal_size`.
+  - `data.sales_funnel_tracking.funnels.won[]` remains a pipeline/terminal conversion funnel; terminal amount uses `leads.estimated_closing_amount`.
+  - These two values can differ by design because one is realized revenue and the other is estimated pipeline value.

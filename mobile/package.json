@@ -1,0 +1,32 @@
+{
+  "name": "leadsy-mobile",
+  "version": "1.1.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "expo-go": "expo start --lan --clear",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "expo": "~52.0.0",
+    "expo-asset": "~11.0.0",
+    "expo-constants": "~17.0.0",
+    "expo-image-picker": "~16.0.0",
+    "expo-file-system": "~18.0.0",
+    "expo-location": "~18.0.0",
+    "expo-secure-store": "~14.0.0",
+    "react": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-signature-canvas": "^4.7.2",
+    "react-native-webview": "13.12.5"
+  },
+  "devDependencies": {
+    "@types/react": "~18.3.12",
+    "typescript": "^5.6.3"
+  }
+}

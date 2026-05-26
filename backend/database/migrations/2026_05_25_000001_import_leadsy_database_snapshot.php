@@ -14,6 +14,8 @@ return new class extends Migration
             return;
         }
 
+        ini_set('memory_limit', '1024M');
+
         if (DB::getDriverName() !== 'pgsql') {
             throw new RuntimeException('The Leadsy database snapshot importer only supports PostgreSQL.');
         }
