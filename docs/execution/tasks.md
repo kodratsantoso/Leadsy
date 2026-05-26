@@ -1,5 +1,10 @@
 # Real WhatsApp Mirroring Implementation Tasks
 
+## Strategic Product Roadmap (Completed ✅)
+- [x] Document long-term Leadsy roadmap to exceed ShareCRM-style CRM capability.
+- [x] Define phased roadmap from Sales Execution Pro through Predictive Revenue OS.
+- [x] Capture recommended next major improvement scope for v1.2.
+
 ## Lark SSO, Role Persistence, and Deploy Snapshot (Completed ✅)
 - [x] Verify Lark Custom App OAuth endpoints against the official OpenAPI method family.
 - [x] Fix tenant access token URL to `/open-apis/auth/v3/tenant_access_token/internal`.

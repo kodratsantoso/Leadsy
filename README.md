@@ -165,5 +165,6 @@ Audited exceptions:
 
 ## Documentation
 
+- Long-term roadmap: `docs/strategy/leadsy-beyond-sharecrm-roadmap.md`
 - Phase 1 plan: `docs/execution/phase-1/plan.md`
 - Decisions (append-only): `docs/execution/decisions.md`
