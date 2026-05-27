@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { Select } from "@/components/ui/select";
+import { Modal } from "@/components/ui/modal";
 import Link from "next/link";
 
 type IntegrationConfig = {
@@ -113,6 +114,41 @@ type LarkBaseMapping = {
   record_mappings_count?: number;
   last_pull_at?: string | null;
   last_push_at?: string | null;
+};
+
+type LarkBaseSyncDirection = "push" | "pull";
+
+type LarkBaseSyncResultItem = {
+  status: "success" | "skipped" | "failed";
+  action: "added" | "updated" | "deleted" | "skipped" | "failed";
+  lead_id?: number | string | null;
+  record_id?: string | null;
+  lark_record_id?: string | null;
+  company_name?: string | null;
+  reason?: string | null;
+};
+
+type LarkBaseSyncResult = {
+  success: boolean;
+  synced_count: number;
+  attempted_count: number;
+  skipped_count: number;
+  added_count: number;
+  updated_count: number;
+  deleted_count: number;
+  failed_count: number;
+  error_count: number;
+  errors?: { message?: string; company_name?: string; record_id?: string | null; lead_id?: number | string | null }[];
+  results?: LarkBaseSyncResultItem[];
+};
+
+type LarkBaseSyncDialogState = {
+  open: boolean;
+  status: "running" | "success" | "failed";
+  direction: LarkBaseSyncDirection;
+  mappingName: string;
+  result?: LarkBaseSyncResult;
+  error?: string;
 };
 
 const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
@@ -381,6 +417,12 @@ export default function IntegrationsSettingsPage() {
   const [errorMsg, setErrorMsg]   = useState("");
   const [platformStatus, setPlatformStatus] = useState<Record<string, string>>({});
   const [platformPreview, setPlatformPreview] = useState<Record<string, unknown[]>>({});
+  const [baseSyncDialog, setBaseSyncDialog] = useState<LarkBaseSyncDialogState>({
+    open: false,
+    status: "running",
+    direction: "push",
+    mappingName: "",
+  });
 
   const [mapsConfig, setMapsConfig]         = useState<Record<string, IntegrationConfig>>(DEFAULT_MAPS);
   const [whatsappConfig, setWhatsappConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_WHATSAPP);
@@ -653,7 +695,7 @@ export default function IntegrationsSettingsPage() {
   });
 
   const syncBaseMappingMutation = useMutation({
-    mutationFn: async ({ mappingId, direction }: { mappingId: number; direction: 'push' | 'pull' }) => {
+    mutationFn: async ({ mappingId, direction }: { mappingId: number; direction: LarkBaseSyncDirection; mappingName: string }) => {
       const res = await apiFetch(`/api/lark/base/mappings/${mappingId}/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -665,8 +707,16 @@ export default function IntegrationsSettingsPage() {
       }
       return json;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: LarkBaseSyncResult, variables) => {
       refetchBaseMappings();
+      setBaseSyncDialog({
+        open: true,
+        status: data.success === false ? "failed" : "success",
+        direction: variables.direction,
+        mappingName: variables.mappingName,
+        result: data,
+      });
+
       if (data.success === false) {
         const firstError = data.errors?.[0]?.message ? ` First error: ${data.errors[0].message}` : "";
         setErrorMsg(`Sync completed with ${data.error_count || 0} errors. ${data.synced_count || 0}/${data.attempted_count || 0} records synced.${firstError}`);
@@ -677,11 +727,30 @@ export default function IntegrationsSettingsPage() {
       setSuccessMsg(`Sync complete: ${data.synced_count || 0}/${data.attempted_count || 0} records`);
       setTimeout(() => setSuccessMsg(''), 4000);
     },
-    onError: (error: any) => {
+    onError: (error: any, variables) => {
+      setBaseSyncDialog({
+        open: true,
+        status: "failed",
+        direction: variables.direction,
+        mappingName: variables.mappingName,
+        error: error?.message || "Failed to sync Lark Base mapping",
+      });
       setErrorMsg(error?.message || 'Failed to sync Lark Base mapping');
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
+
+  const startBaseSync = (mapping: LarkBaseMapping, direction: LarkBaseSyncDirection) => {
+    const mappingName = mapping.table_name || mapping.table_id;
+
+    setBaseSyncDialog({
+      open: true,
+      status: "running",
+      direction,
+      mappingName,
+    });
+    syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction, mappingName });
+  };
 
   useEffect(() => {
     if (larkConfigData?.configured) {
@@ -1752,7 +1821,7 @@ export default function IntegrationsSettingsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction: 'pull' })}
+                          onClick={() => startBaseSync(mapping, 'pull')}
                           disabled={syncBaseMappingMutation.isPending || mapping.sync_direction === 'leadsy_to_lark'}
                         >
                           Pull from Lark
@@ -1760,7 +1829,7 @@ export default function IntegrationsSettingsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction: 'push' })}
+                          onClick={() => startBaseSync(mapping, 'push')}
                           disabled={syncBaseMappingMutation.isPending || mapping.sync_direction === 'lark_to_leadsy'}
                         >
                           Push to Lark
@@ -1784,6 +1853,111 @@ export default function IntegrationsSettingsPage() {
           </a>
         </div>
       )}
+
+      <Modal
+        open={baseSyncDialog.open}
+        onOpenChange={(open) => setBaseSyncDialog((current) => ({ ...current, open }))}
+        title={`${baseSyncDialog.direction === "push" ? "Push to Lark" : "Pull from Lark"} Progress`}
+        description={baseSyncDialog.mappingName ? `Mapping: ${baseSyncDialog.mappingName}` : undefined}
+        size="lg"
+        footer={
+          <Button
+            variant="outline"
+            onClick={() => setBaseSyncDialog((current) => ({ ...current, open: false }))}
+            disabled={baseSyncDialog.status === "running"}
+          >
+            Close
+          </Button>
+        }
+      >
+        <div className="space-y-5">
+          {baseSyncDialog.status === "running" ? (
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-[var(--background)] p-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <div>
+                <p className="text-sm font-semibold">Sync is running</p>
+                <p className="text-xs text-muted-foreground">Please keep this page open while Leadsy talks to Lark Base.</p>
+              </div>
+            </div>
+          ) : null}
+
+          {baseSyncDialog.status !== "running" && baseSyncDialog.result ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                {[
+                  { label: "Attempted", value: baseSyncDialog.result.attempted_count || 0 },
+                  { label: "Added", value: baseSyncDialog.result.added_count || 0 },
+                  { label: "Updated", value: baseSyncDialog.result.updated_count || 0 },
+                  { label: "Deleted", value: baseSyncDialog.result.deleted_count || 0 },
+                  { label: "Failed", value: baseSyncDialog.result.failed_count || baseSyncDialog.result.error_count || 0 },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg border border-border bg-[var(--background)] p-3">
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                    <p className="mt-1 text-2xl font-semibold">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {baseSyncDialog.result.deleted_count === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Delete sync is not enabled for manual Lark Base sync yet, so deleted records are reported as 0.
+                </p>
+              ) : null}
+
+              <div className="overflow-hidden rounded-lg border border-border">
+                <div className="border-b border-border bg-[var(--background)] px-3 py-2 text-sm font-semibold">
+                  Record Results
+                </div>
+                <div className="max-h-80 overflow-auto">
+                  <table className="w-full min-w-[720px] text-left text-xs">
+                    <thead className="sticky top-0 bg-card">
+                      <tr>
+                        <th className="border-b border-border px-3 py-2">Status</th>
+                        <th className="border-b border-border px-3 py-2">Action</th>
+                        <th className="border-b border-border px-3 py-2">Lead / Record</th>
+                        <th className="border-b border-border px-3 py-2">Company</th>
+                        <th className="border-b border-border px-3 py-2">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(baseSyncDialog.result.results || []).length > 0 ? (
+                        baseSyncDialog.result.results?.map((item, index) => (
+                          <tr key={`${item.lead_id || item.record_id || item.lark_record_id || index}`} className="border-b border-border/60">
+                            <td className="px-3 py-2">
+                              <Badge variant={item.status === "success" ? "success" : item.status === "failed" ? "danger" : "neutral"}>
+                                {item.status}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-2 capitalize">{item.action}</td>
+                            <td className="px-3 py-2 font-mono text-muted-foreground">
+                              {item.lead_id || item.record_id || item.lark_record_id || "—"}
+                            </td>
+                            <td className="max-w-48 truncate px-3 py-2">{item.company_name || "—"}</td>
+                            <td className="max-w-72 truncate px-3 py-2 text-muted-foreground">{item.reason || "—"}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td className="px-3 py-4 text-muted-foreground" colSpan={5}>
+                            No per-record result was returned.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {baseSyncDialog.status === "failed" && baseSyncDialog.error ? (
+            <div className="rounded-lg border border-border bg-[var(--background)] p-4">
+              <p className="text-sm font-semibold">Sync failed</p>
+              <p className="mt-1 text-xs text-muted-foreground">{baseSyncDialog.error}</p>
+            </div>
+          ) : null}
+        </div>
+      </Modal>
     </div>
   );
 }

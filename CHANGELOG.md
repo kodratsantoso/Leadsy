@@ -9,6 +9,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.6] — 2026-05-27 · Patch Release
+
+### What's New
+- **Lark Base Sync Progress Popup** — Push to Lark and Pull from Lark now open a modal while sync is running and then show the final result.
+- **Per-Action Sync Counts** — sync responses now include added, updated, deleted, failed, skipped, attempted, and synced totals.
+- **Per-Record Failure Reasons** — result rows include success/skipped/failed status plus the reason returned by Leadsy/Lark when a row cannot be synced.
+
+### Quality
+- Extended Lark Base sync coverage to assert add/update/delete/failure summary fields for manual Push to Lark.
+
 ## [1.2.5] — 2026-05-27 · Patch Release
 
 ### What's New

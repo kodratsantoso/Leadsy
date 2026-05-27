@@ -4,10 +4,12 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.2.5** — 2026-05-27
+Current release: **v1.2.6** — 2026-05-27
 
-## What's New in v1.2.5
+## What's New in v1.2.6
 
+- Lark Base Push/Pull now opens a progress popup and finishes with per-sync Add, Update, Delete, Failed, Attempted, and per-record result details.
+- Failed Lark Base sync rows now show the provider/application reason so users can see whether the issue is credential, record, mapping, or API related.
 - Lark Base Push to Lark now includes legacy/global Lead records with empty `tenant_id`, so existing generated/imported leads can be synced from saved Base mappings.
 - Lark Base manual sync now reports attempted, synced, skipped, and failed records, with the first provider error surfaced in Integration Setting.
 - Lark Base saved mapping controls now disable impossible push/pull actions based on the selected sync direction.

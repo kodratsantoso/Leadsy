@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.2.5',
+    'version' => '1.2.6',
     'released_at' => '2026-05-27',
     'type' => 'patch',   // major | minor | patch
-    'notes' => 'Lark Base Push to Lark legacy lead sync fix',
+    'notes' => 'Lark Base Push/Pull progress and result popup',
 ];

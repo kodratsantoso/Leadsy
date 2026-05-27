@@ -411,7 +411,11 @@ class LarkController extends Controller
         $count = 0;
         $attempted = 0;
         $skipped = 0;
+        $added = 0;
+        $updated = 0;
+        $deleted = 0;
         $errors = [];
+        $results = [];
 
         if ($request->direction === 'push') {
             Lead::where(function ($query) use ($baseTable) {
@@ -421,22 +425,47 @@ class LarkController extends Controller
                 ->with(['industry', 'funnelStage', 'owner'])
                 ->limit($request->integer('limit', 100))
                 ->get()
-                ->each(function (Lead $lead) use ($service, $baseTable, &$count, &$attempted, &$skipped, &$errors): void {
+                ->each(function (Lead $lead) use ($service, $baseTable, &$count, &$attempted, &$skipped, &$added, &$updated, &$results, &$errors): void {
                     $attempted++;
 
                     try {
-                        $mapping = $service->upsertLead($lead, $baseTable);
+                        $result = $service->upsertLeadWithResult($lead, $baseTable);
+                        $action = $result['action'];
+                        $mapping = $result['mapping'];
 
                         if ($mapping) {
                             $count++;
+                            if ($action === 'added') {
+                                $added++;
+                            } elseif ($action === 'updated') {
+                                $updated++;
+                            }
                         } else {
                             $skipped++;
                         }
+
+                        $results[] = [
+                            'status' => $mapping ? 'success' : 'skipped',
+                            'action' => $action,
+                            'lead_id' => $lead->id,
+                            'company_name' => $lead->company_name,
+                            'lark_record_id' => $result['record_id'],
+                            'reason' => $result['reason'],
+                        ];
                     } catch (Exception $exception) {
-                        $errors[] = [
+                        $error = [
                             'lead_id' => $lead->id,
                             'company_name' => $lead->company_name,
                             'message' => $exception->getMessage(),
+                        ];
+                        $errors[] = $error;
+                        $results[] = [
+                            'status' => 'failed',
+                            'action' => 'failed',
+                            'lead_id' => $lead->id,
+                            'company_name' => $lead->company_name,
+                            'lark_record_id' => null,
+                            'reason' => $exception->getMessage(),
                         ];
                     }
                 });
@@ -449,6 +478,14 @@ class LarkController extends Controller
                 $recordId = $record['record_id'] ?? null;
                 if (! $recordId) {
                     $skipped++;
+                    $results[] = [
+                        'status' => 'skipped',
+                        'action' => 'skipped',
+                        'record_id' => null,
+                        'company_name' => null,
+                        'lead_id' => null,
+                        'reason' => 'Lark Base record is missing record_id.',
+                    ];
 
                     continue;
                 }
@@ -456,17 +493,42 @@ class LarkController extends Controller
                 $attempted++;
 
                 try {
-                    $lead = $service->syncRecordToLead($baseTable, $recordId, $record);
+                    $result = $service->syncRecordToLeadWithResult($baseTable, $recordId, $record);
+                    $lead = $result['lead'];
+                    $action = $result['action'];
 
                     if ($lead) {
                         $count++;
+                        if ($action === 'added') {
+                            $added++;
+                        } elseif ($action === 'updated') {
+                            $updated++;
+                        }
                     } else {
                         $skipped++;
                     }
+
+                    $results[] = [
+                        'status' => $lead ? 'success' : 'skipped',
+                        'action' => $action,
+                        'record_id' => $recordId,
+                        'lead_id' => $result['lead_id'],
+                        'company_name' => $lead?->company_name,
+                        'reason' => $result['reason'],
+                    ];
                 } catch (Exception $exception) {
-                    $errors[] = [
+                    $error = [
                         'record_id' => $recordId,
                         'message' => $exception->getMessage(),
+                    ];
+                    $errors[] = $error;
+                    $results[] = [
+                        'status' => 'failed',
+                        'action' => 'failed',
+                        'record_id' => $recordId,
+                        'lead_id' => null,
+                        'company_name' => null,
+                        'reason' => $exception->getMessage(),
                     ];
                 }
             }
@@ -477,8 +539,13 @@ class LarkController extends Controller
             'synced_count' => $count,
             'attempted_count' => $attempted,
             'skipped_count' => $skipped,
+            'added_count' => $added,
+            'updated_count' => $updated,
+            'deleted_count' => $deleted,
+            'failed_count' => count($errors),
             'error_count' => count($errors),
             'errors' => array_slice($errors, 0, 5),
+            'results' => array_slice($results, 0, 100),
         ]);
     }
 

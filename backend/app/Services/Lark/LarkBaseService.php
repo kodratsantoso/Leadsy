@@ -2,12 +2,12 @@
 
 namespace App\Services\Lark;
 
-use App\Models\Lead;
 use App\Models\LarkBaseRecordMapping;
 use App\Models\LarkBaseTable;
 use App\Models\LarkSync;
-use Illuminate\Support\Facades\Log;
+use App\Models\Lead;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class LarkBaseService extends LarkService
 {
@@ -33,12 +33,14 @@ class LarkBaseService extends LarkService
     {
         try {
             $response = $this->request('GET', "/bitable/v1/apps/{$baseId}");
+
             return $response;
         } catch (Exception $e) {
             Log::error('Failed to get Lark Base', [
                 'base_id' => $baseId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -92,7 +94,7 @@ class LarkBaseService extends LarkService
             ]);
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark Base record created', [
                 'base_id' => $baseId,
                 'table_id' => $tableId,
@@ -140,7 +142,7 @@ class LarkBaseService extends LarkService
             $response = $this->request('PUT', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records/{$recordId}", $payload);
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark Base record updated', [
                 'base_id' => $baseId,
                 'table_id' => $tableId,
@@ -183,7 +185,7 @@ class LarkBaseService extends LarkService
             $response = $this->request('DELETE', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records/{$recordId}");
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark Base record deleted', [
                 'base_id' => $baseId,
                 'table_id' => $tableId,
@@ -219,6 +221,7 @@ class LarkBaseService extends LarkService
             ], $query);
 
             $response = $this->request('GET', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records", [], $params);
+
             return $response;
         } catch (Exception $e) {
             Log::error('Failed to get Lark Base records', [
@@ -226,14 +229,25 @@ class LarkBaseService extends LarkService
                 'table_id' => $tableId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
 
     public function upsertLead(Lead $lead, LarkBaseTable $baseTable): ?LarkBaseRecordMapping
     {
+        return $this->upsertLeadWithResult($lead, $baseTable)['mapping'];
+    }
+
+    public function upsertLeadWithResult(Lead $lead, LarkBaseTable $baseTable): array
+    {
         if (! $baseTable->allowsPush()) {
-            return null;
+            return [
+                'action' => 'skipped',
+                'mapping' => null,
+                'record_id' => null,
+                'reason' => 'Push is not allowed for this mapping direction.',
+            ];
         }
 
         $lead->loadMissing(['industry', 'funnelStage', 'owner']);
@@ -243,6 +257,7 @@ class LarkBaseService extends LarkService
             ->where('leadsy_entity_type', 'lead')
             ->where('leadsy_entity_id', (string) $lead->id)
             ->first();
+        $action = $mapping ? 'updated' : 'added';
 
         if ($mapping) {
             $this->updateRecord($baseTable->app_token, $baseTable->table_id, $mapping->lark_record_id, $fields);
@@ -265,13 +280,28 @@ class LarkBaseService extends LarkService
 
         $baseTable->update(['last_push_at' => now()]);
 
-        return $mapping;
+        return [
+            'action' => $action,
+            'mapping' => $mapping,
+            'record_id' => $mapping->lark_record_id,
+            'reason' => null,
+        ];
     }
 
     public function syncRecordToLead(LarkBaseTable $baseTable, string $recordId, ?array $record = null): ?Lead
     {
+        return $this->syncRecordToLeadWithResult($baseTable, $recordId, $record)['lead'];
+    }
+
+    public function syncRecordToLeadWithResult(LarkBaseTable $baseTable, string $recordId, ?array $record = null): array
+    {
         if (! $baseTable->allowsPull()) {
-            return null;
+            return [
+                'action' => 'skipped',
+                'lead' => null,
+                'lead_id' => null,
+                'reason' => 'Pull is not allowed for this mapping direction.',
+            ];
         }
 
         $record ??= $this->getRecord($baseTable->app_token, $baseTable->table_id, $recordId);
@@ -284,7 +314,12 @@ class LarkBaseService extends LarkService
                 'record_id' => $recordId,
             ]);
 
-            return null;
+            return [
+                'action' => 'skipped',
+                'lead' => null,
+                'lead_id' => null,
+                'reason' => 'Lark Base record does not contain a mapped company name.',
+            ];
         }
 
         $mapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
@@ -298,6 +333,7 @@ class LarkBaseService extends LarkService
         if (! $lead && isset($attributes['leadsy_id'])) {
             $lead = Lead::where('tenant_id', $baseTable->tenant_id)->find($attributes['leadsy_id']);
         }
+        $action = $lead ? 'updated' : 'added';
 
         unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner']);
 
@@ -328,7 +364,12 @@ class LarkBaseService extends LarkService
 
         $baseTable->update(['last_pull_at' => now()]);
 
-        return $lead;
+        return [
+            'action' => $action,
+            'lead' => $lead,
+            'lead_id' => $lead->id,
+            'reason' => null,
+        ];
     }
 
     public function getRecord(string $baseId, string $tableId, string $recordId): array

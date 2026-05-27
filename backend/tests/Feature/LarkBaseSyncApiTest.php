@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\CheckPermission;
+use App\Models\LarkBaseRecordMapping;
 use App\Models\LarkBaseTable;
 use App\Models\LarkIntegration;
 use App\Models\Lead;
@@ -33,7 +34,18 @@ class LarkBaseSyncApiTest extends TestCase
                 ]);
             }
 
-            if (str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records')) {
+            if ($request->method() === 'PUT' && str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records/rec-tenant')) {
+                return Http::response([
+                    'code' => 0,
+                    'data' => [
+                        'record' => [
+                            'record_id' => 'rec-tenant',
+                        ],
+                    ],
+                ]);
+            }
+
+            if ($request->method() === 'POST' && str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records')) {
                 $companyName = (string) ($request->data()['fields']['Company Name'] ?? '');
                 $recordId = $companyName === 'Legacy Global Lead' ? 'rec-global' : 'rec-tenant';
 
@@ -86,15 +98,23 @@ class LarkBaseSyncApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        Lead::create([
+        $tenantLead = Lead::withoutEvents(fn () => Lead::create([
             'tenant_id' => $tenant->id,
             'company_name' => 'Tenant Lead',
             'qualification_status' => 'potential',
-        ]);
-        Lead::create([
+        ]));
+        Lead::withoutEvents(fn () => Lead::create([
             'tenant_id' => null,
             'company_name' => 'Legacy Global Lead',
             'qualification_status' => 'potential',
+        ]));
+        LarkBaseRecordMapping::create([
+            'tenant_id' => $tenant->id,
+            'lark_base_table_id' => $baseTable->id,
+            'leadsy_entity_type' => 'lead',
+            'leadsy_entity_id' => (string) $tenantLead->id,
+            'lark_record_id' => 'rec-tenant',
+            'last_sync_source' => 'leadsy',
         ]);
 
         $response = $this->actingAs($user)
@@ -106,6 +126,10 @@ class LarkBaseSyncApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('attempted_count', 2)
             ->assertJsonPath('synced_count', 2)
+            ->assertJsonPath('added_count', 1)
+            ->assertJsonPath('updated_count', 1)
+            ->assertJsonPath('deleted_count', 0)
+            ->assertJsonPath('failed_count', 0)
             ->assertJsonPath('error_count', 0);
 
         $this->assertDatabaseHas('lark_base_record_mappings', [
