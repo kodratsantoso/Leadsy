@@ -82,6 +82,18 @@ function ConfidenceBar({ value }: { value?: number | null }) {
   );
 }
 
+type LushaCandidate = {
+  id: number;
+  name: string | null;
+  title: string | null;
+  company_name: string | null;
+  company_domain: string | null;
+  has_email: boolean;
+  has_phone: boolean;
+  reveal_phone_credits: number;
+  status: string;
+};
+
 function gradeVariant(grade?: string | null) {
   const normalized = grade?.toLowerCase();
   if (normalized === 'hot') return 'success';
@@ -415,6 +427,7 @@ export default function LeadDetailPage() {
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
   const [showEnrichModal, setShowEnrichModal]     = useState(false);
   const [selectedEnrichSources, setSelectedEnrichSources] = useState<string[]>(['lusha']);
+  const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   // Activity form state (controlled)
   const [showActivityModal, setShowActivityModal] = useState(false);
@@ -613,10 +626,43 @@ export default function LeadDetailPage() {
     onSuccess: invalidateLead,
   });
 
-  const enrichMutation = useMutation({
-    mutationFn: () =>
-      apiFetch(`/leads/${leadId}/enrich-contacts`, { method: 'POST' }),
-    onSuccess: () => { invalidateLead(); setShowEnrichModal(false); },
+  const { data: lushaCandidatesData, refetch: refetchLushaCandidates } = useQuery({
+    queryKey: ['lead-lusha-candidates', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/lusha/candidates`).then((r) => r.json()),
+    enabled: showEnrichModal,
+  });
+
+  const searchLushaMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/lusha/search`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to search Lusha candidates');
+      return json;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['lead-lusha-candidates', leadId] });
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Lusha candidates loaded' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search Lusha candidates' });
+    },
+  });
+
+  const revealLushaPhoneMutation = useMutation({
+    mutationFn: async (candidateId: number) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/lusha/candidates/${candidateId}/reveal-phone`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to reveal Lusha phone');
+      return json;
+    },
+    onSuccess: (data) => {
+      invalidateLead();
+      refetchLushaCandidates();
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Lusha phone saved to contacts' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to reveal Lusha phone' });
+    },
   });
 
   /* ── Activity mutations (enhanced) ── */
@@ -874,8 +920,17 @@ export default function LeadDetailPage() {
     file:     'Transcript File',
   };
 
+  const leadInitialScore = Number(latestScore?.score ?? leadData.lead_score ?? 0);
+  const lushaEligible = leadInitialScore >= 60;
+  const lushaCandidates: LushaCandidate[] = lushaCandidatesData?.data || [];
+
   const ENRICH_SOURCES = [
-    { id: 'lusha',    label: 'Lusha',            available: true,  note: 'API-backed enrichment' },
+    {
+      id: 'lusha',
+      label: 'Lusha',
+      available: lushaEligible,
+      note: lushaEligible ? 'Preview PIC candidates before revealing phone' : 'Requires initial lead score of 60+',
+    },
     { id: 'linkedin', label: 'LinkedIn',          available: false, note: 'Requires LinkedIn API key' },
     { id: 'apollo',   label: 'Apollo.io',         available: false, note: 'Requires Apollo API key' },
     { id: 'hunter',   label: 'Hunter.io',         available: false, note: 'Requires Hunter API key' },
@@ -2884,24 +2939,27 @@ export default function LeadDetailPage() {
       {/* ── Contact Enrichment Source Modal ── */}
       <Modal
         open={showEnrichModal}
-        onOpenChange={setShowEnrichModal}
+        onOpenChange={(open) => {
+          setShowEnrichModal(open);
+          if (!open) setEnrichmentFeedback(null);
+        }}
         title="Enrich Contacts"
-        description="Select sources to search for contact data. Only sources with a configured API key are active."
+        description="Preview PIC candidates first. Phone reveal is saved to this lead only after confirmation."
         size="sm"
         footer={
           <>
             <Button variant="outline" onClick={() => setShowEnrichModal(false)}>Cancel</Button>
             <Button
-              onClick={() => enrichMutation.mutate()}
-              disabled={enrichMutation.isPending || !selectedEnrichSources.includes('lusha')}
+              onClick={() => searchLushaMutation.mutate()}
+              disabled={searchLushaMutation.isPending || !selectedEnrichSources.includes('lusha') || !lushaEligible}
             >
-              {enrichMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Run Enrichment
+              {searchLushaMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Search PIC
             </Button>
           </>
         }
       >
-        <div className="space-y-2">
+        <div className="space-y-3">
           {ENRICH_SOURCES.map((src) => (
             <label
               key={src.id}
@@ -2915,7 +2973,7 @@ export default function LeadDetailPage() {
                 type="checkbox"
                 className="mt-0.5"
                 disabled={!src.available}
-                checked={selectedEnrichSources.includes(src.id)}
+                checked={src.available && selectedEnrichSources.includes(src.id)}
                 onChange={(e) =>
                   setSelectedEnrichSources((prev) =>
                     e.target.checked ? [...prev, src.id] : prev.filter((s) => s !== src.id)
@@ -2933,9 +2991,72 @@ export default function LeadDetailPage() {
               </div>
             </label>
           ))}
-          <p className="text-xs text-muted-foreground pt-1">
-            Configure API keys in <strong>Settings → Integrations</strong> to enable additional sources.
-          </p>
+          <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+            <p>Lead score: <strong>{leadInitialScore}</strong>. Lusha is available when the initial score reaches 60.</p>
+            <p className="mt-1">Search may use Lusha API search billing. Phone reveal happens only when you confirm a candidate below.</p>
+          </div>
+
+          {enrichmentFeedback ? (
+            <div className={`rounded-xl border p-3 text-xs ${
+              enrichmentFeedback.type === 'success'
+                ? 'border-[var(--status-success)]/30 bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]'
+                : 'border-[var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
+            }`}>
+              {enrichmentFeedback.msg}
+            </div>
+          ) : null}
+
+          {lushaCandidates.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground">Lusha PIC Candidates</p>
+                <Badge variant="neutral">{lushaCandidates.length} found</Badge>
+              </div>
+              {lushaCandidates.map((candidate) => (
+                <div key={candidate.id} className="rounded-xl border border-border p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{candidate.name || 'Unnamed contact'}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{candidate.title || 'Role unavailable'}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {candidate.company_name || leadData.company_name}
+                        {candidate.company_domain ? ` · ${candidate.company_domain}` : ''}
+                      </p>
+                    </div>
+                    <Badge variant={candidate.status === 'revealed' ? 'success' : 'warning'}>
+                      {candidate.status === 'revealed' ? 'Saved' : 'Preview'}
+                    </Badge>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={candidate.has_phone ? 'success' : 'neutral'}>
+                        {candidate.has_phone ? `Phone ${candidate.reveal_phone_credits} credit` : 'No phone'}
+                      </Badge>
+                      <Badge variant={candidate.has_email ? 'neutral' : 'neutral'}>
+                        {candidate.has_email ? 'Email available' : 'No email'}
+                      </Badge>
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={
+                        !candidate.has_phone ||
+                        candidate.status === 'revealed' ||
+                        revealLushaPhoneMutation.isPending
+                      }
+                      onClick={() => revealLushaPhoneMutation.mutate(candidate.id)}
+                    >
+                      {revealLushaPhoneMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                      Reveal Phone
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Search Lusha to preview PIC names and roles. Revealed phone numbers will be written to this lead contact list after confirmation.
+            </p>
+          )}
         </div>
       </Modal>
 

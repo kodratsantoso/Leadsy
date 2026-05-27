@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.2.1',
+    'version' => '1.2.2',
     'released_at' => '2026-05-27',
     'type' => 'patch',   // major | minor | patch
-    'notes' => 'Provider-specific Integration Setting credentials with OAuth URL generation, connection checks, and supported platform data previews',
+    'notes' => 'Lusha V3 two-step contact preview and phone reveal gated by initial score',
 ];

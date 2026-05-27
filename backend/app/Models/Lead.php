@@ -77,6 +77,11 @@ class Lead extends Model
         return $this->hasMany(LeadContact::class);
     }
 
+    public function contactEnrichmentCandidates(): HasMany
+    {
+        return $this->hasMany(ContactEnrichmentCandidate::class);
+    }
+
     public function sources(): HasMany
     {
         return $this->hasMany(LeadSource::class);

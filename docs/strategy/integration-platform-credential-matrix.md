@@ -27,6 +27,7 @@
 | Zapier | Catch Hook URL | Webhook URL, optional Basic Auth username/password | URL validation only | Leadsy should not POST tests automatically because that can trigger live Zaps. |
 | Make | Custom Webhook URL | Webhook URL, optional `x-make-apikey` | URL validation only | Make supports optional API key authentication and payload structure validation. |
 | Hunter.io | API key | API Key | Account endpoint; preview account data | Hunter API supports email verifier, domain search, finder, enrichment, and account endpoints. |
+| Lusha | API key | API Key, enable flag, local usage policy | V3 contact search previews; V3 contact enrich reveals phone after confirmation | Lusha search candidates stay separate from Leadsy contacts until the user confirms reveal; reveal is gated by score 60+. |
 
 ## Official Documentation References
 
@@ -43,6 +44,7 @@
 - Zapier webhooks: `https://help.zapier.com/hc/en-us/articles/8496288690317-Trigger-Zaps-from-webhooks`
 - Make webhooks: `https://apps.make.com/gateway`
 - Hunter API: `https://help.hunter.io/en/articles/1970956-hunter-api`
+- Lusha API V3: `https://docs.lusha.com/apis/openapi`
 
 ## Current Implementation Boundary
 
@@ -50,4 +52,5 @@
 - OAuth buttons generate authorization URLs for OAuth-capable providers when Client ID and Redirect URI are configured.
 - Connection tests are active for Meta token debug, TikTok advertiser authorization, Google OAuth token info, HubSpot bearer contacts, Salesforce userinfo, Pipedrive user profile, Hunter account, and setup checks for webhook-only/manual platforms.
 - Data preview is active for HubSpot contacts, Pipedrive persons, and Hunter account data.
+- Lusha uses a two-step Lead Detail flow: preview PIC candidates via V3 search, then reveal phone and save to `lead_contacts` only after user confirmation.
 - Provider webhook ingestion and OAuth callback token exchange remain the next backend phases.

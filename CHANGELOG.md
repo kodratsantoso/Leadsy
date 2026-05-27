@@ -9,6 +9,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.2] — 2026-05-27 · Patch Release
+
+### What's New
+- **Lusha Two-Step Reveal Flow** — Lead Detail enrichment now searches Lusha V3 contact previews first, shows PIC name and role, and saves a contact only after the user confirms phone reveal.
+- **Score-Gated Enrichment** — Lusha is blocked until the lead has an initial score of 60+, keeping paid enrichment focused on near-eligible leads.
+- **Contact Candidate Persistence** — added preview candidate storage so Lusha search results are auditable and separate from confirmed lead contacts.
+
+### Quality
+- Added feature tests for score gating, preview-only candidate storage, and reveal-to-contact persistence.
+
 ## [1.2.1] — 2026-05-27 · Patch Release
 
 ### What's New

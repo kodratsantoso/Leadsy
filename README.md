@@ -4,15 +4,17 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.2.1** — 2026-05-27
+Current release: **v1.2.2** — 2026-05-27
 
-## What's New in v1.2.1
+## What's New in v1.2.2
 
 - Long-term CRM expansion is on hold while active development focuses on Lead Generator and Lead Intelligence.
 - Active focus plan: `docs/strategy/lead-generator-intelligence-focus.md`.
 - Integration Module Phase 1 adds isolated integration tables plus AES-256-GCM credential storage for future inbound lead channels.
 - Frontend navigation now groups Map & Territory under Leads Generator, with a Social & Platform Generator submenu and credential setup in Settings → Integration Setting.
 - Integration Setting now uses a researched platform-specific credential matrix and active connection checks/previews where official lightweight API validation is available.
+- Lusha enrichment now uses a two-step V3 journey: preview PIC candidates first, then reveal phone and save to the current lead only after user confirmation.
+- Lusha reveal is gated until the lead's initial score reaches 60, reducing paid enrichment on low-fit leads.
 - Integration credentials now use authenticated encryption envelopes with scoped AAD and HMAC-SHA256 blind fingerprints for duplicate detection without plaintext exposure.
 - Integration foundation tests cover encryption/decryption, AAD rejection, tenant-linked connections, credential stores, entity mappings, webhook idempotency keys, and provider auth failure state changes.
 - Recent completed slice from the paused v1.2 track: Lead Pool ownership controls with unassigned filter, claim, and assign/reassign owner actions.

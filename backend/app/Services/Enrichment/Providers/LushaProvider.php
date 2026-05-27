@@ -4,8 +4,10 @@ namespace App\Services\Enrichment\Providers;
 
 use App\Contracts\ContactEnrichmentProviderInterface;
 use App\Models\IntegrationConfig;
+use App\Models\Lead;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class LushaProvider implements ContactEnrichmentProviderInterface
 {
@@ -33,81 +35,204 @@ class LushaProvider implements ContactEnrichmentProviderInterface
     {
         Log::info("[LushaProvider] Querying contacts for {$companyName} ({$domain})");
 
-        // Use real API if a real key is configured, otherwise use mock data
-        if (! empty($this->apiKey) && $this->apiKey !== 'mock_key') {
-            return $this->liveSearch($companyName, $domain);
+        Log::info('[LushaProvider] Legacy automatic enrichment is disabled. Use the V3 preview/reveal workflow.');
+
+        return [];
+    }
+
+    public function searchCandidates(Lead $lead, ?int $tenantId = null): array
+    {
+        $this->assertEnabled($tenantId);
+
+        $clientReferenceId = 'lead-'.$lead->id.'-'.Str::slug($lead->company_name).'-'.now()->format('YmdHis');
+        $payload = [
+            'contacts' => [[
+                'clientReferenceId' => $clientReferenceId,
+                'companyName' => $lead->company_name,
+            ]],
+        ];
+
+        if (! empty($lead->website_domain)) {
+            $payload['contacts'][0]['companyDomain'] = $lead->website_domain;
         }
 
-        return $this->mockResponse($domain);
-    }
-
-    private function liveSearch(string $companyName, ?string $domain): array
-    {
-        try {
-            $response = Http::withHeaders([
-                'api_key' => $this->apiKey,
-                'Content-Type' => 'application/json',
-            ])->timeout(10)->post('https://api.lusha.com/v2/company/contacts', [
-                'company' => $companyName,
-                'domain' => $domain,
-            ]);
-
-            if (! $response->successful()) {
-                Log::warning("[LushaProvider] API returned {$response->status()} for {$domain}");
-
-                return [];
-            }
-
-            return $this->normalizeResponse($response->json());
-
-        } catch (\Throwable $e) {
-            Log::error('[LushaProvider] HTTP call failed: '.$e->getMessage());
-
-            return [];
+        $response = $this->client($tenantId)->post('https://api.lusha.com/v3/contacts/search', $payload);
+        if (! $response->successful()) {
+            $this->throwProviderException($response->status(), $response->json('message') ?? 'Lusha contact search failed.');
         }
-    }
-
-    private function normalizeResponse(array $data): array
-    {
-        $contacts = $data['contacts'] ?? $data['data'] ?? [];
-
-        return collect($contacts)->map(function ($c) {
-            $phones = $c['phone_numbers'] ?? $c['phones'] ?? [];
-
-            return [
-                'first_name' => $c['first_name'] ?? '',
-                'last_name' => $c['last_name'] ?? '',
-                'job_title' => $c['job_title'] ?? $c['title'] ?? null,
-                'email' => $c['email'] ?? ($c['emails'][0] ?? null),
-                'phoneNumbers' => collect($phones)->map(fn ($p) => [
-                    'number' => is_array($p) ? ($p['number'] ?? $p['value'] ?? '') : $p,
-                ])->toArray(),
-                'confidence' => $c['confidence'] ?? 75,
-            ];
-        })->filter(fn ($c) => ! empty($c['first_name']) || ! empty($c['last_name']))->values()->toArray();
-    }
-
-    private function mockResponse(?string $domain): array
-    {
-        Log::info("[LushaProvider] Using mock contacts for {$domain} — configure LUSHA_API_KEY for live data");
 
         return [
-            [
-                'first_name' => 'John',
-                'last_name' => 'Doe',
-                'job_title' => 'Director of Sales',
-                'email' => 'john.doe@'.($domain ?: 'example.com'),
-                'phoneNumbers' => [['number' => '+12345678901']],
-                'confidence' => 90,
-            ],
-            [
-                'first_name' => 'Jane',
-                'last_name' => 'Smith',
-                'job_title' => 'VP of Operations',
-                'email' => 'jane.smith@'.($domain ?: 'example.com'),
-                'phoneNumbers' => [['number' => '+19876543210']],
-                'confidence' => 85,
-            ],
+            'request_id' => $response->json('requestId'),
+            'billing' => $response->json('billing') ?? [],
+            'rate_limits' => $this->rateLimitHeaders($response->headers()),
+            'candidates' => collect($response->json('results') ?? [])
+                ->map(fn (array $candidate): array => $this->normalizePreviewCandidate($candidate))
+                ->filter(fn (array $candidate): bool => ! empty($candidate['provider_candidate_id']) && ! empty($candidate['name']))
+                ->values()
+                ->all(),
         ];
+    }
+
+    public function revealPhones(string $providerCandidateId, ?int $tenantId = null): array
+    {
+        $this->assertEnabled($tenantId);
+
+        $response = $this->client($tenantId)->post('https://api.lusha.com/v3/contacts/enrich', [
+            'ids' => [$providerCandidateId],
+            'reveal' => ['phones'],
+        ]);
+
+        if (! $response->successful()) {
+            $this->throwProviderException($response->status(), $response->json('message') ?? 'Lusha contact reveal failed.');
+        }
+
+        $result = $response->json('results.0') ?? [];
+
+        return [
+            'request_id' => $response->json('requestId'),
+            'billing' => $response->json('billing') ?? [],
+            'rate_limits' => $this->rateLimitHeaders($response->headers()),
+            'contact' => $this->normalizeRevealedContact($result),
+            'raw' => $result,
+        ];
+    }
+
+    public function accountUsage(?int $tenantId = null): array
+    {
+        $this->assertEnabled($tenantId);
+
+        $response = $this->client($tenantId)->get('https://api.lusha.com/v3/account/usage');
+        if (! $response->successful()) {
+            $this->throwProviderException($response->status(), $response->json('message') ?? 'Lusha account usage check failed.');
+        }
+
+        return $response->json() ?? [];
+    }
+
+    private function normalizePreviewCandidate(array $candidate): array
+    {
+        $canReveal = collect($candidate['canReveal'] ?? []);
+        $emailReveal = $canReveal->firstWhere('field', 'emails');
+        $phoneReveal = $canReveal->firstWhere('field', 'phones');
+        $has = collect($candidate['has'] ?? []);
+        $firstName = $candidate['firstName'] ?? '';
+        $lastName = $candidate['lastName'] ?? '';
+        $name = trim($firstName.' '.$lastName);
+
+        return [
+            'provider_candidate_id' => (string) ($candidate['id'] ?? ''),
+            'name' => $name,
+            'title' => $candidate['jobTitle']['title'] ?? null,
+            'company_name' => $candidate['company']['name'] ?? null,
+            'company_domain' => $candidate['company']['domain'] ?? null,
+            'has_email' => $has->contains('emails') || $emailReveal !== null,
+            'has_phone' => $has->contains('phones') || $phoneReveal !== null,
+            'reveal_email_credits' => (int) ($emailReveal['credits'] ?? 0),
+            'reveal_phone_credits' => (int) ($phoneReveal['credits'] ?? 0),
+            'raw_preview' => $candidate,
+        ];
+    }
+
+    private function normalizeRevealedContact(array $contact): array
+    {
+        $firstName = $contact['firstName'] ?? '';
+        $lastName = $contact['lastName'] ?? '';
+        $name = $contact['fullName'] ?? trim($firstName.' '.$lastName);
+        $phone = collect($contact['phones'] ?? [])
+            ->first(fn ($phone): bool => empty($phone['doNotCall']) && ! empty($phone['number']));
+        $email = collect($contact['emails'] ?? [])
+            ->first(fn ($email): bool => ($email['type'] ?? null) === 'work' && ! empty($email['email']))
+            ?? collect($contact['emails'] ?? [])->first(fn ($email): bool => ! empty($email['email']));
+
+        return [
+            'provider_candidate_id' => (string) ($contact['id'] ?? ''),
+            'name' => $name,
+            'title' => $contact['jobTitle']['title'] ?? null,
+            'email' => $email['email'] ?? null,
+            'phone' => $phone['number'] ?? null,
+            'linkedin_url' => $contact['socialLinks']['linkedin'] ?? null,
+            'confidence_score' => ! empty($phone['number']) ? 90 : 70,
+        ];
+    }
+
+    private function client(?int $tenantId)
+    {
+        return Http::withHeaders([
+            'api_key' => $this->apiKey($tenantId),
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/json',
+        ])->timeout(20);
+    }
+
+    private function assertEnabled(?int $tenantId): void
+    {
+        if (! $this->enabled($tenantId)) {
+            throw new \RuntimeException('Lusha Contact Discovery is disabled.');
+        }
+
+        if ($this->apiKey($tenantId) === '') {
+            throw new \RuntimeException('Lusha API key is not configured.');
+        }
+    }
+
+    private function enabled(?int $tenantId): bool
+    {
+        $value = $this->configValue('LUSHA_ENABLED', $tenantId);
+
+        return $value === true || $value === 'true' || $value === 1 || $value === '1';
+    }
+
+    private function apiKey(?int $tenantId): string
+    {
+        return (string) ($this->configValue('LUSHA_API_KEY', $tenantId) ?? '');
+    }
+
+    private function configValue(string $key, ?int $tenantId): mixed
+    {
+        return IntegrationConfig::query()
+            ->where('key', $key)
+            ->where(function ($query) use ($tenantId) {
+                $query->whereNull('tenant_id');
+
+                if ($tenantId !== null) {
+                    $query->orWhere('tenant_id', $tenantId);
+                }
+            })
+            ->get()
+            ->sortBy(fn (IntegrationConfig $config) => $config->tenant_id === $tenantId ? 0 : 1)
+            ->first()?->value;
+    }
+
+    private function rateLimitHeaders(array $headers): array
+    {
+        return collect($headers)
+            ->mapWithKeys(fn (array $value, string $key): array => [Str::lower($key) => $value[0] ?? null])
+            ->only([
+                'x-rate-limit-daily',
+                'x-daily-requests-left',
+                'x-daily-usage',
+                'x-rate-limit-hourly',
+                'x-hourly-requests-left',
+                'x-hourly-usage',
+                'x-rate-limit-minute',
+                'x-minute-requests-left',
+                'x-minute-usage',
+            ])
+            ->filter()
+            ->all();
+    }
+
+    private function throwProviderException(int $status, string $message): never
+    {
+        $context = match ($status) {
+            401 => 'Invalid or missing Lusha API key.',
+            402 => 'Lusha credits are insufficient for this request.',
+            403 => 'Lusha account is inactive or forbidden.',
+            429 => 'Lusha rate limit or daily quota was exceeded.',
+            451 => 'Lusha blocked this request for legal/privacy reasons.',
+            default => $message,
+        };
+
+        throw new \RuntimeException($context);
     }
 }

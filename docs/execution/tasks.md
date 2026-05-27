@@ -11,6 +11,7 @@
 - [x] Integration Phase 1: Add isolated integration schema and AES-256-GCM credential cryptography foundation.
 - [x] Reorganize frontend navigation so Map & Territory lives under Leads Generator and social/platform generator settings live under Settings → Integration Setting.
 - [x] Research official platform credential requirements and add provider-specific Integration Setting fields, OAuth URL generation, connection checks, and supported data previews.
+- [x] Add Lusha V3 two-step contact enrichment: score-gated PIC preview, user-confirmed phone reveal, and save-to-lead contact persistence.
 - [ ] Integration Phase 2: Add OAuth/manual validation API routes and token lifecycle service.
 - [ ] Integration Phase 3: Add Integration Hub dashboard UI and connection modals.
 - [ ] Integration Phase 4: Add idempotent webhook receiver for Meta/Instagram and Google Ads lead ingestion.

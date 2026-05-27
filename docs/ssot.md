@@ -117,6 +117,10 @@
 - `frontend/app/settings/integrations/page.tsx` — renamed the settings surface to Integration Setting and added social media/platform credential inputs for Facebook, Instagram, TikTok, YouTube, LinkedIn, Google Ads, Mekari Qontak, CRMs, automation webhooks, and Hunter.io.
 - `backend/app/Http/Controllers/Api/IntegrationPlatformController.php` and `backend/routes/api.php` — added provider-specific OAuth URL generation, connection tests, and supported preview endpoints for Integration Setting.
 - `docs/strategy/integration-platform-credential-matrix.md` — documented official credential requirements, setup fields, test boundaries, and provider-specific implementation constraints.
+- `backend/database/migrations/2026_05_27_130000_create_contact_enrichment_candidates_table.php` — added Lusha preview candidate persistence so search results remain separate from confirmed lead contacts.
+- `backend/app/Http/Controllers/Api/ContactEnrichmentController.php` and `backend/app/Services/Enrichment/Providers/LushaProvider.php` — added Lusha V3 score-gated candidate search and user-confirmed phone reveal flow.
+- `frontend/app/leads/[id]/page.tsx` — updated Enrich Contacts modal to preview Lusha PIC candidates and reveal phone only after explicit user confirmation.
+- `docs/strategy/lusha-contact-enrichment-flow.md` — documented the Lusha V3 journey, cost boundary, score gate, and persistence rules.
 - `frontend/app/settings/integrations/page.tsx` — added Lark Base manual Leadsy Leads field mapping, Auto Match assistance, table preview, and push/pull controls.
 - `mobile/` — added Expo/React Native Mobile Field Sales MVP for Android/iOS with login, Lead Inbox, Lead Detail, one-tap actions, Sales Visit, GPS Clock In/Out, camera evidence, client signature, and visit notes.
 - `scripts/mobile-expo-go.sh` — added Expo Go helper that detects the machine LAN IP, sets `EXPO_PUBLIC_API_BASE_URL`, and starts Expo in LAN mode for QR-based device testing.
