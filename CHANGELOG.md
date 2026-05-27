@@ -9,6 +9,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.4] — 2026-05-27 · Patch Release
+
+### What's New
+- **Google Ads Mode-Specific Settings** — Google Ads Integration Setting now uses a dropdown for API OAuth vs Lead Form Webhook and only shows fields relevant to the selected mode.
+
+### Quality
+- Frontend typecheck covers the conditional field rendering path.
+
 ## [1.2.3] — 2026-05-27 · Patch Release
 
 ### What's New

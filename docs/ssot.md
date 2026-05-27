@@ -117,6 +117,7 @@
 - `frontend/app/settings/integrations/page.tsx` — renamed the settings surface to Integration Setting and added social media/platform credential inputs for Facebook, Instagram, TikTok, YouTube, LinkedIn, Google Ads, Mekari Qontak, CRMs, automation webhooks, and Hunter.io.
 - `backend/app/Http/Controllers/Api/IntegrationPlatformController.php` and `backend/routes/api.php` — added provider-specific OAuth URL generation, connection tests, and supported preview endpoints for Integration Setting.
 - `backend/app/Http/Controllers/Api/IntegrationPlatformController.php` — Google Ads now supports official `adwords` OAuth URL generation and refresh-token based `customers:listAccessibleCustomers` connection testing.
+- `frontend/app/settings/integrations/page.tsx` — Google Ads now uses a mode dropdown and renders API OAuth or Lead Form Webhook credential fields conditionally.
 - `docs/strategy/integration-platform-credential-matrix.md` — documented official credential requirements, setup fields, test boundaries, and provider-specific implementation constraints.
 - `backend/database/migrations/2026_05_27_130000_create_contact_enrichment_candidates_table.php` — added Lusha preview candidate persistence so search results remain separate from confirmed lead contacts.
 - `backend/app/Http/Controllers/Api/ContactEnrichmentController.php` and `backend/app/Services/Enrichment/Providers/LushaProvider.php` — added Lusha V3 score-gated candidate search and user-confirmed phone reveal flow.

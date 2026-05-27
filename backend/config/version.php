@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.2.3',
+    'version' => '1.2.4',
     'released_at' => '2026-05-27',
     'type' => 'patch',   // major | minor | patch
-    'notes' => 'Google Ads OAuth URL and refresh-token connection testing',
+    'notes' => 'Google Ads mode-specific Integration Setting fields',
 ];

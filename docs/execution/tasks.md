@@ -12,6 +12,7 @@
 - [x] Reorganize frontend navigation so Map & Territory lives under Leads Generator and social/platform generator settings live under Settings → Integration Setting.
 - [x] Research official platform credential requirements and add provider-specific Integration Setting fields, OAuth URL generation, connection checks, and supported data previews.
 - [x] Fix Google Ads Integration Setting OAuth URL generation and refresh-token based API connection testing.
+- [x] Add Google Ads mode dropdown with mode-specific visible credential fields.
 - [x] Add Lusha V3 two-step contact enrichment: score-gated PIC preview, user-confirmed phone reveal, and save-to-lead contact persistence.
 - [ ] Integration Phase 2: Add OAuth/manual validation API routes and token lifecycle service.
 - [ ] Integration Phase 3: Add Integration Hub dashboard UI and connection modals.

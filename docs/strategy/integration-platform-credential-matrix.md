@@ -54,4 +54,5 @@
 - Connection tests are active for Meta token debug, TikTok advertiser authorization, Google OAuth token info, HubSpot bearer contacts, Salesforce userinfo, Pipedrive user profile, Hunter account, and setup checks for webhook-only/manual platforms.
 - Data preview is active for HubSpot contacts, Pipedrive persons, and Hunter account data.
 - Lusha uses a two-step Lead Detail flow: preview PIC candidates via V3 search, then reveal phone and save to `lead_contacts` only after user confirmation.
+- Google Ads settings render mode-specific fields so users only see API OAuth credentials in API mode and webhook key configuration in Lead Form Webhook mode.
 - Provider webhook ingestion and OAuth callback token exchange remain the next backend phases.

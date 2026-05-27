@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
+import { Select } from "@/components/ui/select";
 import Link from "next/link";
 
 type IntegrationConfig = {
@@ -30,6 +31,8 @@ type LeadPlatformField = {
   defaultValue: string;
   placeholder?: string;
   help?: string;
+  options?: { value: string; label: string }[];
+  visibleWhen?: { suffix: string; value: string };
 };
 
 type LeadPlatformDefinition = {
@@ -223,12 +226,27 @@ const LEAD_PLATFORM_DEFINITIONS: LeadPlatformDefinition[] = [
     docsUrl: "https://developers.google.com/google-ads/api/rest/auth",
     fields: [
       { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
-      { suffix: "API_MODE", label: "Mode", value_type: "string", is_secret: false, defaultValue: "api", placeholder: "api or webhook" },
-      { suffix: "GOOGLE_KEY", label: "Webhook Google Key", value_type: "string", is_secret: true, defaultValue: "" },
-      { suffix: "DEVELOPER_TOKEN", label: "Google Ads Developer Token", value_type: "string", is_secret: true, defaultValue: "" },
-      { suffix: "CLIENT_CUSTOMER_ID", label: "Customer ID", value_type: "string", is_secret: false, defaultValue: "" },
-      { suffix: "LOGIN_CUSTOMER_ID", label: "Login Customer ID (MCC optional)", value_type: "string", is_secret: false, defaultValue: "", placeholder: "Manager account ID without dashes if using MCC" },
-      ...baseOauthFields,
+      {
+        suffix: "API_MODE",
+        label: "Connection Mode",
+        value_type: "string",
+        is_secret: false,
+        defaultValue: "api",
+        help: "API OAuth validates Google Ads API access. Webhook validates Lead Form webhook delivery key.",
+        options: [
+          { value: "api", label: "Google Ads API OAuth" },
+          { value: "webhook", label: "Lead Form Webhook" },
+        ],
+      },
+      { suffix: "GOOGLE_KEY", label: "Webhook Google Key", value_type: "string", is_secret: true, defaultValue: "", visibleWhen: { suffix: "API_MODE", value: "webhook" } },
+      { suffix: "DEVELOPER_TOKEN", label: "Google Ads Developer Token", value_type: "string", is_secret: true, defaultValue: "", visibleWhen: { suffix: "API_MODE", value: "api" } },
+      { suffix: "CLIENT_CUSTOMER_ID", label: "Customer ID", value_type: "string", is_secret: false, defaultValue: "", placeholder: "520-865-3582 or 5208653582", visibleWhen: { suffix: "API_MODE", value: "api" } },
+      { suffix: "LOGIN_CUSTOMER_ID", label: "Login Customer ID (MCC optional)", value_type: "string", is_secret: false, defaultValue: "", placeholder: "Manager account ID without dashes if using MCC", visibleWhen: { suffix: "API_MODE", value: "api" } },
+      { suffix: "CLIENT_ID", label: "OAuth Client ID", value_type: "string", is_secret: false, defaultValue: "", visibleWhen: { suffix: "API_MODE", value: "api" } },
+      { suffix: "CLIENT_SECRET", label: "OAuth Client Secret", value_type: "string", is_secret: true, defaultValue: "", visibleWhen: { suffix: "API_MODE", value: "api" } },
+      { suffix: "ACCESS_TOKEN", label: "Access Token (optional)", value_type: "string", is_secret: true, defaultValue: "", help: "Optional. If empty, Leadsy will refresh it from the refresh token during Test Connection.", visibleWhen: { suffix: "API_MODE", value: "api" } },
+      { suffix: "REFRESH_TOKEN", label: "Refresh Token", value_type: "string", is_secret: true, defaultValue: "", visibleWhen: { suffix: "API_MODE", value: "api" } },
+      { suffix: "REDIRECT_URI", label: "Redirect URI", value_type: "string", is_secret: false, defaultValue: "", help: "Required only when starting the OAuth login flow.", visibleWhen: { suffix: "API_MODE", value: "api" } },
     ],
   },
   {
@@ -321,6 +339,17 @@ const LEAD_PLATFORM_DEFINITIONS: LeadPlatformDefinition[] = [
 
 function leadPlatformKey(platformId: string, suffix: string) {
   return `${platformId.toUpperCase()}_${suffix}`;
+}
+
+function isLeadPlatformFieldVisible(
+  platformId: string,
+  field: LeadPlatformField,
+  configs: Record<string, IntegrationConfig>
+) {
+  if (!field.visibleWhen) return true;
+
+  const controllerKey = leadPlatformKey(platformId, field.visibleWhen.suffix);
+  return (configs[controllerKey]?.value || "") === field.visibleWhen.value;
 }
 
 function createDefaultLeadPlatforms(): Record<string, IntegrationConfig> {
@@ -890,6 +919,8 @@ export default function IntegrationsSettingsPage() {
               const enabledKey = leadPlatformKey(platform.id, "ENABLED");
               const Icon = platform.icon;
               const previewItems = platformPreview[platform.id] || [];
+              const googleAdsMode = leadPlatformsConfig[leadPlatformKey("google_ads", "API_MODE")]?.value || "api";
+              const oauthAvailable = platform.sso && (platform.id !== "google_ads" || googleAdsMode === "api");
               return (
                 <Card key={platform.id} className="p-5">
                   <div className="mb-4 flex items-start justify-between gap-3">
@@ -926,26 +957,47 @@ export default function IntegrationsSettingsPage() {
                       />
                     </label>
 
-                    {platform.fields.filter((field) => field.suffix !== "ENABLED").map((field) => {
+                    {platform.fields
+                      .filter((field) => field.suffix !== "ENABLED")
+                      .filter((field) => isLeadPlatformFieldVisible(platform.id, field, leadPlatformsConfig))
+                      .map((field) => {
                       const key = leadPlatformKey(platform.id, field.suffix);
                       return (
                         <div key={key}>
                           <label className="text-xs font-medium">{field.label}</label>
-                          <Input
-                            className="mt-1"
-                            type={field.is_secret ? "password" : "text"}
-                            value={leadPlatformsConfig[key]?.value ?? ""}
-                            placeholder={field.placeholder || (field.is_secret ? "Encrypted after save" : `${platform.name} ${field.label}`)}
-                            autoComplete="off"
-                            spellCheck={false}
-                            onChange={(e) => setLeadPlatformsConfig((current) => ({
-                              ...current,
-                              [key]: {
-                                ...current[key],
-                                value: e.target.value,
-                              },
-                            }))}
-                          />
+                          {field.options ? (
+                            <Select
+                              className="mt-1"
+                              value={leadPlatformsConfig[key]?.value ?? field.defaultValue}
+                              onChange={(e) => setLeadPlatformsConfig((current) => ({
+                                ...current,
+                                [key]: {
+                                  ...current[key],
+                                  value: e.target.value,
+                                },
+                              }))}
+                            >
+                              {field.options.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                              ))}
+                            </Select>
+                          ) : (
+                            <Input
+                              className="mt-1"
+                              type={field.is_secret ? "password" : "text"}
+                              value={leadPlatformsConfig[key]?.value ?? ""}
+                              placeholder={field.placeholder || (field.is_secret ? "Encrypted after save" : `${platform.name} ${field.label}`)}
+                              autoComplete="off"
+                              spellCheck={false}
+                              onChange={(e) => setLeadPlatformsConfig((current) => ({
+                                ...current,
+                                [key]: {
+                                  ...current[key],
+                                  value: e.target.value,
+                                },
+                              }))}
+                            />
+                          )}
                           {field.help ? <p className="mt-1 text-xs text-muted-foreground">{field.help}</p> : null}
                         </div>
                       );
@@ -955,7 +1007,7 @@ export default function IntegrationsSettingsPage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Button
                       variant="outline"
-                      disabled={!platform.sso}
+                      disabled={!oauthAvailable}
                       onClick={async () => {
                         if (await handleSave("lead_platforms", leadPlatformsConfig)) {
                           await runPlatformAction(platform.id, "oauth-url");
