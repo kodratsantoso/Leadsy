@@ -9,6 +9,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.0] — 2026-05-27 · Minor Release
+
+### What's New
+- **Integration Module Phase 1** — fondasi backend Integration Hub ditambahkan secara isolated di namespace `integration_*` untuk connection registry, credential store, entity mapping, dan webhook event intake.
+- **AES-256-GCM Credential Security** — credential pihak ketiga disimpan sebagai authenticated encryption envelope dengan nonce acak, tag GCM, key id, AAD scoped per tenant/connection/type/key, dan HMAC-SHA256 blind fingerprint.
+- **Provider Failure State Foundation** — connection dapat ditandai `action_required` saat token/API provider gagal, sehingga Phase 2 bisa menampilkan re-authentication state tanpa menyentuh core lead logic.
+- **Webhook Idempotency Foundation** — inbound webhook event memiliki `idempotency_key` unik berbasis provider, external event id, dan payload hash untuk mencegah proses lead ganda.
+
+### Dokumentasi
+- README, task list, strategy note, platform spec, dan ADR diperbarui untuk mencatat batas Phase 1 dan guardrail anti-halusinasi endpoint provider.
+
+### Quality
+- Test baru mencakup AES-GCM round trip, AAD tamper rejection, scoped fingerprints, tenant-linked connection records, encrypted credential reveal, entity mappings, webhook events, dan provider auth failure state.
+
 ## [1.1.0] — 2026-05-26 · Minor Release
 
 ### What's New

@@ -38,4 +38,9 @@ class Tenant extends Model
     {
         return $this->hasOne(LarkIntegration::class);
     }
+
+    public function integrationConnections(): HasMany
+    {
+        return $this->hasMany(IntegrationConnection::class);
+    }
 }

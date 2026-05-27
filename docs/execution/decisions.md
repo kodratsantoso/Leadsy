@@ -1,5 +1,14 @@
 # Architecture Decision Records (ADR)
 
+## ADR-2026-05-27: Integration Hub Phase 1 Uses Isolated Laravel Tables and AES-GCM Envelopes
+- **Status**: Active
+- **Decision**: Build the Integration Module as an isolated backend foundation in Laravel/PostgreSQL using `integration_*` tables, Eloquent models, and a dedicated AES-256-GCM credential cryptor instead of introducing a separate Node/Prisma stack.
+- **Rationale**: The live repository backend is Laravel, and the roadmap restriction requires plug-in integration surfaces without rewriting core lead logic. Phase 1 does not call provider APIs, so no provider endpoint assumptions are encoded.
+- **Impact**:
+  - Connections, credential stores, entity mappings, and webhook events are tenant-linked and separate from existing Leadsy lead tables.
+  - Credential values are encrypted with random nonces, GCM authentication tags, key ids, scoped AAD, and HMAC-SHA256 blind fingerprints.
+  - OAuth/manual validation, token lifecycle jobs, and provider-specific webhook receivers remain explicit Phase 2-4 work and must be checked against official provider documentation before implementation.
+
 ## ADR-2026-05-25: Lark SSO Uses Server-Side State and Preserves Leadsy Roles
 - **Status**: Active
 - **Decision**: Lark SSO follows the Custom App OAuth flow with backend-owned `state`, backend token exchange, backend user-info lookup, and Sanctum token issuance. Lark login must not overwrite an existing Leadsy role.

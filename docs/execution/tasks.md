@@ -8,6 +8,10 @@
 
 ## Lead Generator & Lead Intelligence Focus (Active)
 - [x] Create focused strategy document for Lead Generator and Lead Intelligence.
+- [x] Integration Phase 1: Add isolated integration schema and AES-256-GCM credential cryptography foundation.
+- [ ] Integration Phase 2: Add OAuth/manual validation API routes and token lifecycle service.
+- [ ] Integration Phase 3: Add Integration Hub dashboard UI and connection modals.
+- [ ] Integration Phase 4: Add idempotent webhook receiver for Meta/Instagram and Google Ads lead ingestion.
 - [ ] LG-001: Build Lead Generator Command Center for generated/imported/discovered leads.
 - [ ] LG-002: Build deduplication review and merge workflow.
 - [ ] LG-003: Add enrichment pipeline visibility and retry controls.

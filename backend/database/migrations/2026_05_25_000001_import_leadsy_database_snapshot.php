@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    private const SNAPSHOT_FILE = 'leadsy_deploy_data_2026_05_25.sql';
+    private const SNAPSHOT_FILE = 'leadsy_deploy_data_2026_05_27.sql';
 
     public function up(): void
     {
@@ -77,7 +77,7 @@ return new class extends Migration
     }
 
     /**
-     * @param array<int, string> $tables
+     * @param  array<int, string>  $tables
      */
     private function qualifiedTableList(array $tables): string
     {

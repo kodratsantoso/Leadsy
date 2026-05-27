@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.1.0',
-    'released_at' => '2026-05-26',
+    'version' => '1.2.0',
+    'released_at' => '2026-05-27',
     'type' => 'minor',   // major | minor | patch
-    'notes' => 'Mobile Field Sales MVP, Lark SSO/Base integration, deploy snapshot refresh, and sales dashboard contract clarification',
+    'notes' => 'Integration Module Phase 1 foundation with isolated integration schema, AES-256-GCM credential envelopes, and webhook idempotency storage',
 ];

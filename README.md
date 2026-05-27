@@ -4,12 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.1.0** — 2026-05-26
+Current release: **v1.2.0** — 2026-05-27
 
-## What's New in Active Development
+## What's New in v1.2.0
 
 - Long-term CRM expansion is on hold while active development focuses on Lead Generator and Lead Intelligence.
 - Active focus plan: `docs/strategy/lead-generator-intelligence-focus.md`.
+- Integration Module Phase 1 adds isolated integration tables plus AES-256-GCM credential storage for future inbound lead channels.
+- Integration credentials now use authenticated encryption envelopes with scoped AAD and HMAC-SHA256 blind fingerprints for duplicate detection without plaintext exposure.
+- Integration foundation tests cover encryption/decryption, AAD rejection, tenant-linked connections, credential stores, entity mappings, webhook idempotency keys, and provider auth failure state changes.
 - Recent completed slice from the paused v1.2 track: Lead Pool ownership controls with unassigned filter, claim, and assign/reassign owner actions.
 
 ## What's New in v1.1.0
@@ -127,8 +130,8 @@ Use `EXPO_PUBLIC_API_BASE_URL` to point the app at the local backend, LAN backen
 
 Schema lives in `backend/database/migrations/`. A deploy snapshot is also committed under `backend/database/snapshots/` for one-time fresh environment imports:
 
-- `leadsy_full_structure_and_data_2026_05_25.sql` — complete PostgreSQL structure + data archive.
-- `leadsy_deploy_data_2026_05_25.sql` — public-schema application data imported by the guarded Laravel migration.
+- `leadsy_full_structure_and_data_2026_05_27.sql` — complete PostgreSQL structure + data archive.
+- `leadsy_deploy_data_2026_05_27.sql` — public-schema application data imported by the guarded Laravel migration.
 
 Set `IMPORT_LEADSY_DB_SNAPSHOT=true` only on a fresh database where application tables are empty. The snapshot carries encrypted secrets; keep the same `APP_KEY` from the source environment or re-enter AI/Lark credentials after deploy.
 
@@ -173,5 +176,6 @@ Audited exceptions:
 
 - Long-term roadmap: `docs/strategy/leadsy-beyond-sharecrm-roadmap.md`
 - Active focus plan: `docs/strategy/lead-generator-intelligence-focus.md`
+- Integration Module Phase 1: `docs/strategy/integration-module-phase-1.md`
 - Phase 1 plan: `docs/execution/phase-1/plan.md`
 - Decisions (append-only): `docs/execution/decisions.md`

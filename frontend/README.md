@@ -2,7 +2,7 @@
 
 Web application for map-based lead discovery, AI-assisted qualification, funnel management, and governance (see `BRD`).
 
-Current release: **v1.1.0** — includes Lark SSO/Base integration, deploy snapshot refresh, and the companion Mobile Field Sales MVP in `mobile/`.
+Current release: **v1.2.0** — includes the Integration Module Phase 1 backend foundation, Lark SSO/Base integration, deploy snapshot refresh, and the companion Mobile Field Sales MVP in `mobile/`.
 
 ## Repository layout
 

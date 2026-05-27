@@ -107,8 +107,8 @@
 - `backend/app/Http/Controllers/Api/LarkController.php` — added tenant-aware Lark integration config and connection test APIs without returning decrypted secrets.
 - `backend/database/migrations/2026_05_22_000001_create_lark_integration_tables.php` — added Lark integration, event, sync, and SSO identity tables.
 - `backend/database/migrations/2026_05_25_000001_import_leadsy_database_snapshot.php` — added guarded one-time deploy snapshot importer.
-- `backend/database/snapshots/leadsy_full_structure_and_data_2026_05_25.sql` — captured full PostgreSQL structure and data.
-- `backend/database/snapshots/leadsy_deploy_data_2026_05_25.sql` — captured deploy data used by the guarded snapshot migration.
+- `backend/database/snapshots/leadsy_full_structure_and_data_2026_05_27.sql` — captured full PostgreSQL structure and data.
+- `backend/database/snapshots/leadsy_deploy_data_2026_05_27.sql` — captured deploy data used by the guarded snapshot migration.
 - `backend/database/migrations/2026_05_25_000000_create_lark_base_sync_tables.php` — added Lark Base table configuration and Leadsy/Lark record mapping tables before the snapshot import migration.
 - `backend/app/Models/LarkBaseTable.php` and `backend/app/Models/LarkBaseRecordMapping.php` — added tenant-aware models for Base sync configuration and record identity.
 - `backend/app/Services/Lark/LarkBaseService.php` — added table/field/record preview, Leadsy-to-Base upsert, and Base-to-Leadsy pull mapping.
@@ -118,7 +118,7 @@
 - `backend/database/migrations/2026_05_25_000000_create_sales_visit_tables.php` — added `sales_visits` and `sales_visit_media` before the snapshot import migration.
 - `backend/app/Http/Controllers/Api/SalesVisitController.php` — added field-sales visit list, clock-in, clock-out, and media upload APIs.
 - `backend/app/Models/SalesVisit.php` and `backend/app/Models/SalesVisitMedia.php` — added visit/evidence persistence models.
-- `version.json`, `backend/config/version.php`, and `CHANGELOG.md` — bumped release metadata to v1.1.0 and documented What's New.
+- `version.json`, `backend/config/version.php`, `package.json`, `frontend/package.json`, and `CHANGELOG.md` — bumped release metadata to v1.2.0 and documented Integration Module Phase 1.
 - `frontend/app/login/page.tsx` — added tenant-aware Lark login entrypoint.
 - `frontend/app/auth/lark/callback/page.tsx` — added callback page that stores the returned token before dashboard redirect.
 - `frontend/app/template.tsx` — treats `/auth/*` routes as public auth routes so callbacks are not redirected to login prematurely.

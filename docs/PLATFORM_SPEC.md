@@ -942,6 +942,14 @@ Konfigurasi di **Settings → AI Defaults**. Setiap fitur bisa punya multiple mo
 
 ## 17. Changelog Spesifikasi
 
+### 2026-05-27 — v1.2 Integration Module Phase 1
+
+- Fondasi backend Integration Hub ditambahkan secara isolated melalui tabel `integration_connections`, `integration_credential_stores`, `integration_entity_mappings`, dan `integration_webhook_events`.
+- Credential pihak ketiga disimpan dengan AES-256-GCM envelope, key id, scoped AAD, dan HMAC-SHA256 blind fingerprint agar token/API key tidak perlu terekspos untuk deteksi duplikasi.
+- Model Laravel menambahkan relasi tenant ke integration connections, credential store, entity mapping, dan webhook event tanpa mengubah core lead logic.
+- Webhook event foundation menyimpan payload hash dan idempotency key unik untuk mencegah pemrosesan inbound lead ganda pada fase berikutnya.
+- Phase 1 sengaja belum memakai endpoint provider spesifik; OAuth, manual validation, token refresh, dan receiver Meta/Google Ads masuk Phase 2-4 dan harus diverifikasi ke dokumentasi resmi saat diimplementasikan.
+
 ### 2026-05-26 — v1.1 Mobile Field Sales, Lark Base, dan snapshot refresh
 
 - Mobile Field Sales MVP ditambahkan di `mobile/` untuk Android/iOS: login, Lead Inbox, Lead Detail, one-tap actions, Sales Visit, GPS Clock In/Out, foto evidence, client signature, result, dan notes.

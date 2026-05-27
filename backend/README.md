@@ -57,8 +57,8 @@ The backend computes distance from the saved lead coordinates and flags basic lo
 
 Migrations are the source of truth for schema. The repository also includes one deploy snapshot for carrying current records into a fresh database:
 
-- `database/snapshots/leadsy_full_structure_and_data_2026_05_25.sql`
-- `database/snapshots/leadsy_deploy_data_2026_05_25.sql`
+- `database/snapshots/leadsy_full_structure_and_data_2026_05_27.sql`
+- `database/snapshots/leadsy_deploy_data_2026_05_27.sql`
 - `database/migrations/2026_05_25_000001_import_leadsy_database_snapshot.php`
 
 Enable the guarded import only for an empty target database:
