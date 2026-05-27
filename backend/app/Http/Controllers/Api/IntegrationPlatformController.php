@@ -199,12 +199,60 @@ class IntegrationPlatformController extends Controller
 
     private function validateGoogleAds(array $values): array
     {
-        $required = ['google_key'];
-        if (! empty($values['api_mode']) && $values['api_mode'] === 'api') {
-            $required = ['developer_token', 'client_customer_id', 'access_token'];
+        $hasApiCredentials = ! empty($values['developer_token'])
+            && ! empty($values['client_customer_id'])
+            && (! empty($values['access_token']) || ! empty($values['refresh_token']));
+
+        if (($values['api_mode'] ?? null) === 'api' || $hasApiCredentials) {
+            return $this->testGoogleAdsApi($values);
         }
 
-        return $this->validateRequired($values, $required);
+        return $this->validateRequired($values, ['google_key']);
+    }
+
+    private function testGoogleAdsApi(array $values): array
+    {
+        $this->requireFields($values, ['developer_token', 'client_customer_id']);
+
+        $accessToken = $values['access_token'] ?? null;
+        $tokenWasRefreshed = false;
+
+        if (! $accessToken) {
+            $this->requireFields($values, ['client_id', 'client_secret', 'refresh_token']);
+            $tokenResponse = Http::asForm()->timeout(15)->post('https://oauth2.googleapis.com/token', [
+                'client_id' => $values['client_id'],
+                'client_secret' => $values['client_secret'],
+                'refresh_token' => $values['refresh_token'],
+                'grant_type' => 'refresh_token',
+            ]);
+
+            if (! $tokenResponse->successful()) {
+                return $this->responseSummary($tokenResponse, 'Google OAuth refresh token exchange');
+            }
+
+            $accessToken = $tokenResponse->json('access_token');
+            $tokenWasRefreshed = true;
+        }
+
+        $headers = [
+            'developer-token' => $values['developer_token'],
+        ];
+
+        if (! empty($values['login_customer_id'])) {
+            $headers['login-customer-id'] = $this->normalizeGoogleAdsCustomerId($values['login_customer_id']);
+        }
+
+        $response = Http::timeout(15)
+            ->withToken($accessToken)
+            ->withHeaders($headers)
+            ->get('https://googleads.googleapis.com/v22/customers:listAccessibleCustomers');
+
+        $summary = $this->responseSummary($response, 'Google Ads accessible customers');
+
+        return $summary + [
+            'token_refreshed' => $tokenWasRefreshed,
+            'customer_id' => $this->normalizeGoogleAdsCustomerId($values['client_customer_id']),
+        ];
     }
 
     private function validateRequired(array $values, array $fields): array
@@ -286,6 +334,11 @@ class IntegrationPlatformController extends Controller
         if ($missing !== []) {
             throw new \InvalidArgumentException('Missing required credential fields: '.implode(', ', $missing));
         }
+    }
+
+    private function normalizeGoogleAdsCustomerId(string $customerId): string
+    {
+        return preg_replace('/\D+/', '', $customerId) ?? $customerId;
     }
 
     private function values(Request $request, string $platform): array
@@ -403,7 +456,12 @@ class IntegrationPlatformController extends Controller
             'google_ads' => [
                 'id' => 'google_ads',
                 'name' => 'Google Ads Lead Forms',
-                'docs_url' => 'https://developers.google.com/google-ads/webhook/docs/implementation',
+                'docs_url' => 'https://developers.google.com/google-ads/api/rest/auth',
+                'oauth' => [
+                    'authorize_url' => 'https://accounts.google.com/o/oauth2/v2/auth',
+                    'scopes' => ['https://www.googleapis.com/auth/adwords'],
+                    'extra_query' => ['access_type' => 'offline', 'prompt' => 'consent'],
+                ],
             ],
             'mekari_qontak' => [
                 'id' => 'mekari_qontak',

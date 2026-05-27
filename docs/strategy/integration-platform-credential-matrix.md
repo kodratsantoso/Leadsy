@@ -19,7 +19,7 @@
 | TikTok Business API | TikTok Marketing API OAuth | App ID, Secret, Access Token, Advertiser ID, Redirect URI | `/oauth2/advertiser/get/` | Lead Generation Ads ingestion should verify advertiser access before webhook/lead sync activation. |
 | YouTube Analytics | Google OAuth 2.0 | Client ID, Client Secret, Access Token, Refresh Token, Channel ID, Redirect URI | Google OAuth `tokeninfo` | YouTube Reporting/Analytics does not support service-account flow for private user analytics. |
 | LinkedIn Marketing | LinkedIn OAuth + approved Lead Sync API access | Client ID, Client Secret, Access Token, Ad Account ID, Organization URN, Redirect URI | Setup check until approved API access is confirmed | Uses `r_marketing_leadgen_automation` for Lead Sync plus account/page scopes where applicable; LinkedIn Lead Sync access is gated by approval. |
-| Google Ads Lead Forms | Webhook `google_key` or Google Ads API OAuth | Webhook mode: Google Key. API mode: Developer Token, Customer ID, Access Token, Refresh Token | Setup check for webhook key; Google OAuth token test for API token | Webhook payloads should validate `google_key` before processing. |
+| Google Ads Lead Forms | Webhook `google_key` or Google Ads API OAuth | Webhook mode: Google Key. API mode: Developer Token, Customer ID, Client ID, Client Secret, Refresh Token or Access Token | API mode refreshes OAuth token and calls `customers:listAccessibleCustomers`; webhook mode validates Google Key presence | Webhook payloads should validate `google_key` before processing. Customer ID is normalized without dashes for API calls. |
 | Mekari Qontak | Bearer token | Base URL, Access Token, Channel ID | Setup check until concrete endpoint is selected | Qontak is used for qualified lead handoff to WhatsApp/omnichannel flows. |
 | HubSpot CRM | OAuth or Private App Access Token | Access Token, Client ID, Client Secret, Hub ID, Redirect URI | CRM contacts list with bearer token | Private app tokens and OAuth both use bearer authorization. |
 | Salesforce | Connected App OAuth | Client ID, Client Secret, Access Token, Refresh Token, Instance URL, Redirect URI | `/services/oauth2/userinfo` | Instance URL comes from OAuth token exchange and must be stored per connected org. |
@@ -37,6 +37,7 @@
 - YouTube Analytics OAuth: `https://developers.google.com/youtube/reporting/guides/authorization`
 - LinkedIn Lead Sync: `https://learn.microsoft.com/en-us/linkedin/marketing/lead-sync/leadsync?view=li-lms-2026-05`
 - Google Ads Lead Form Webhook: `https://developers.google.com/google-ads/webhook/docs/implementation`
+- Google Ads REST auth: `https://developers.google.com/google-ads/api/rest/auth`
 - HubSpot auth: `https://developers.hubspot.com/docs/api/intro-to-auth`
 - Salesforce OAuth: `https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_flows.htm`
 - Pipedrive auth: `https://pipedrive.readme.io/docs/core-api-concepts-authentication`

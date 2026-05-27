@@ -9,6 +9,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.3] — 2026-05-27 · Patch Release
+
+### What's New
+- **Google Ads Connection Fix** — Google Ads Lead Forms now has an OAuth authorization URL with the official `adwords` scope and can test API credentials by refreshing OAuth tokens automatically.
+- **Google Ads API Mode Guard** — connection test now uses API mode when Developer Token, Customer ID, and OAuth credentials are present, even if the Mode field still contains `webhook`.
+
+### Quality
+- Added backend coverage for Google Ads OAuth URL generation and refresh-token based accessible-customer testing.
+
 ## [1.2.2] — 2026-05-27 · Patch Release
 
 ### What's New

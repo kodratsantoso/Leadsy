@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.2.2',
+    'version' => '1.2.3',
     'released_at' => '2026-05-27',
     'type' => 'patch',   // major | minor | patch
-    'notes' => 'Lusha V3 two-step contact preview and phone reveal gated by initial score',
+    'notes' => 'Google Ads OAuth URL and refresh-token connection testing',
 ];
