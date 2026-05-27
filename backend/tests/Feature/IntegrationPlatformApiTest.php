@@ -129,6 +129,36 @@ class IntegrationPlatformApiTest extends TestCase
             && $request->hasHeader('Authorization', 'Bearer fresh-access-token'));
     }
 
+    public function test_google_ads_connection_surfaces_oauth_provider_error(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'error' => 'invalid_grant',
+                'error_description' => 'Token has been expired or revoked.',
+            ], 400),
+        ]);
+
+        $user = $this->makeUser();
+        $this->saveConfig($user, 'GOOGLE_ADS_DEVELOPER_TOKEN', 'developer-token,');
+        $this->saveConfig($user, 'GOOGLE_ADS_CLIENT_CUSTOMER_ID', '520-865-3582', false);
+        $this->saveConfig($user, 'GOOGLE_ADS_CLIENT_ID', 'google-client-id.apps.googleusercontent.com,', false);
+        $this->saveConfig($user, 'GOOGLE_ADS_CLIENT_SECRET', 'client-secret,');
+        $this->saveConfig($user, 'GOOGLE_ADS_REFRESH_TOKEN', 'refresh-token,');
+
+        $this->actingAs($user)
+            ->postJson('/api/settings/integration-platforms/google_ads/test')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'error')
+            ->assertJsonPath('data.provider_error.error', 'invalid_grant')
+            ->assertJsonPath('data.provider_error.error_description', 'Token has been expired or revoked.');
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://oauth2.googleapis.com/token'
+            && $request['client_id'] === 'google-client-id.apps.googleusercontent.com'
+            && $request['client_secret'] === 'client-secret'
+            && $request['refresh_token'] === 'refresh-token');
+    }
+
     private function makeUser(): User
     {
         $tenant = Tenant::query()->first() ?? Tenant::create([

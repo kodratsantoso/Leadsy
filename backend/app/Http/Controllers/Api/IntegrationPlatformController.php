@@ -214,20 +214,21 @@ class IntegrationPlatformController extends Controller
     {
         $this->requireFields($values, ['developer_token', 'client_customer_id']);
 
-        $accessToken = $values['access_token'] ?? null;
+        $developerToken = $this->cleanGoogleCredential($values['developer_token'] ?? null);
+        $accessToken = $this->cleanGoogleCredential($values['access_token'] ?? null);
         $tokenWasRefreshed = false;
 
         if (! $accessToken) {
             $this->requireFields($values, ['client_id', 'client_secret', 'refresh_token']);
             $tokenResponse = Http::asForm()->timeout(15)->post('https://oauth2.googleapis.com/token', [
-                'client_id' => $values['client_id'],
-                'client_secret' => $values['client_secret'],
-                'refresh_token' => $values['refresh_token'],
+                'client_id' => $this->cleanGoogleCredential($values['client_id'] ?? null),
+                'client_secret' => $this->cleanGoogleCredential($values['client_secret'] ?? null),
+                'refresh_token' => $this->cleanGoogleCredential($values['refresh_token'] ?? null),
                 'grant_type' => 'refresh_token',
             ]);
 
             if (! $tokenResponse->successful()) {
-                return $this->responseSummary($tokenResponse, 'Google OAuth refresh token exchange');
+                return $this->responseSummary($tokenResponse, 'Google OAuth refresh token exchange', true);
             }
 
             $accessToken = $tokenResponse->json('access_token');
@@ -235,7 +236,7 @@ class IntegrationPlatformController extends Controller
         }
 
         $headers = [
-            'developer-token' => $values['developer_token'],
+            'developer-token' => $developerToken,
         ];
 
         if (! empty($values['login_customer_id'])) {
@@ -312,15 +313,26 @@ class IntegrationPlatformController extends Controller
         return $this->responseSummary($response, 'Bearer token');
     }
 
-    private function responseSummary(Response $response, string $label): array
+    private function responseSummary(Response $response, string $label, bool $includeProviderError = false): array
     {
+        $body = $response->json();
+        $message = $response->successful()
+            ? "{$label} verified."
+            : "{$label} returned HTTP {$response->status()}.";
+
+        if (! $response->successful() && $includeProviderError && is_array($body)) {
+            $providerMessage = $body['error_description'] ?? $body['error'] ?? $body['message'] ?? null;
+            if ($providerMessage) {
+                $message .= ' '.$providerMessage;
+            }
+        }
+
         return [
             'status' => $response->successful() ? 'connected' : 'error',
-            'message' => $response->successful()
-                ? "{$label} verified."
-                : "{$label} returned HTTP {$response->status()}.",
+            'message' => $message,
             'http_status' => $response->status(),
-            'sample' => $response->successful() ? $response->json() : null,
+            'sample' => $response->successful() ? $body : null,
+            'provider_error' => ! $response->successful() && $includeProviderError ? $this->safeProviderError($body) : null,
         ];
     }
 
@@ -339,6 +351,23 @@ class IntegrationPlatformController extends Controller
     private function normalizeGoogleAdsCustomerId(string $customerId): string
     {
         return preg_replace('/\D+/', '', $customerId) ?? $customerId;
+    }
+
+    private function cleanGoogleCredential(mixed $value): string
+    {
+        return rtrim(trim((string) $value), ", \t\n\r\0\x0B");
+    }
+
+    private function safeProviderError(mixed $body): ?array
+    {
+        if (! is_array($body)) {
+            return null;
+        }
+
+        return collect($body)
+            ->only(['error', 'error_description', 'error_uri', 'message'])
+            ->filter(fn ($value): bool => $value !== null && $value !== '')
+            ->all();
     }
 
     private function values(Request $request, string $platform): array
