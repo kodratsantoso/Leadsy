@@ -3,12 +3,12 @@
 namespace App\Providers;
 
 use App\Http\Middleware\CheckPermission;
-use App\Services\Enrichment\ContactEnrichmentOrchestrator;
-use App\Services\Enrichment\Providers\LushaProvider;
 use App\Models\Lead;
 use App\Models\LeadFollowUp;
-use App\Observers\LeadObserver;
 use App\Observers\LeadFollowUpObserver;
+use App\Observers\LeadObserver;
+use App\Services\Enrichment\ContactEnrichmentOrchestrator;
+use App\Services\Enrichment\Providers\LushaProvider;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 

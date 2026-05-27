@@ -2,29 +2,33 @@
 
 namespace App\Jobs;
 
-use App\Models\LarkIntegration;
 use App\Models\LarkBaseTable;
+use App\Models\LarkIntegration;
 use App\Models\Lead;
+use App\Services\Lark\LarkBaseService;
+use App\Services\Lark\LarkCalendarService;
 use App\Services\Lark\LarkMessengerService;
 use App\Services\Lark\LarkTaskService;
-use App\Services\Lark\LarkCalendarService;
-use App\Services\Lark\LarkBaseService;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class TriggerLarkAction implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected int $tenantId;
+
     protected string $action;
+
     protected array $data;
+
     protected ?string $userId;
+
     protected ?string $leadId;
 
     public function __construct(
@@ -58,7 +62,7 @@ class TriggerLarkAction implements ShouldQueue
                 'create_follow_up_task' => $this->createFollowUpTask($integration),
                 'create_follow_up_event' => $this->createFollowUpEvent($integration),
                 'sync_lead_to_base' => $this->syncLeadToBase($integration),
-                default => Log::warning('Unknown Lark action: ' . $this->action),
+                default => Log::warning('Unknown Lark action: '.$this->action),
             };
         } catch (Exception $e) {
             Log::error('Failed to trigger Lark action', [
@@ -77,7 +81,7 @@ class TriggerLarkAction implements ShouldQueue
 
     protected function sendLeadNotification(LarkIntegration $integration): void
     {
-        if (!$integration->isModuleEnabled('messenger') || !$this->userId) {
+        if (! $integration->isModuleEnabled('messenger') || ! $this->userId) {
             return;
         }
 
@@ -113,7 +117,7 @@ class TriggerLarkAction implements ShouldQueue
 
     protected function createFollowUpTask(LarkIntegration $integration): void
     {
-        if (!$integration->isModuleEnabled('task') || !$this->leadId) {
+        if (! $integration->isModuleEnabled('task') || ! $this->leadId) {
             return;
         }
 
@@ -146,7 +150,7 @@ class TriggerLarkAction implements ShouldQueue
 
     protected function createFollowUpEvent(LarkIntegration $integration): void
     {
-        if (!$integration->isModuleEnabled('calendar') || !$this->leadId) {
+        if (! $integration->isModuleEnabled('calendar') || ! $this->leadId) {
             return;
         }
 
@@ -180,7 +184,7 @@ class TriggerLarkAction implements ShouldQueue
 
     protected function syncLeadToBase(LarkIntegration $integration): void
     {
-        if (!$integration->isModuleEnabled('base') || !$this->leadId) {
+        if (! $integration->isModuleEnabled('base') || ! $this->leadId) {
             return;
         }
 

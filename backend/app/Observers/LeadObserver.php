@@ -2,9 +2,10 @@
 
 namespace App\Observers;
 
-use App\Models\Lead;
-use App\Models\LarkIntegration;
 use App\Jobs\TriggerLarkAction;
+use App\Models\LarkIntegration;
+use App\Models\Lead;
+use Illuminate\Support\Facades\Log;
 
 class LeadObserver
 {
@@ -63,7 +64,7 @@ class LeadObserver
                 ->where('is_active', true)
                 ->first();
 
-            if (!$integration || !$integration->isModuleEnabled('messenger')) {
+            if (! $integration || ! $integration->isModuleEnabled('messenger')) {
                 return;
             }
 
@@ -71,7 +72,7 @@ class LeadObserver
             if ($lead->owner) {
                 $larkSsoUser = $lead->owner->larkSsoUser;
 
-                if (!$larkSsoUser) {
+                if (! $larkSsoUser) {
                     return;
                 }
 
@@ -98,7 +99,7 @@ class LeadObserver
                 );
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to trigger Lark notification', [
+            Log::error('Failed to trigger Lark notification', [
                 'lead_id' => $lead->id,
                 'error' => $e->getMessage(),
             ]);
@@ -124,7 +125,7 @@ class LeadObserver
                 (string) $lead->id
             );
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to trigger Lark Base sync', [
+            Log::error('Failed to trigger Lark Base sync', [
                 'lead_id' => $lead->id,
                 'error' => $e->getMessage(),
             ]);

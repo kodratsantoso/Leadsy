@@ -3,8 +3,8 @@
 namespace App\Services\Lark;
 
 use App\Models\LarkSync;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class LarkMessengerService extends LarkService
 {
@@ -41,7 +41,7 @@ class LarkMessengerService extends LarkService
             ]);
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark message card sent', [
                 'user_id' => $userId,
                 'sync_id' => $sync->id,
@@ -91,7 +91,7 @@ class LarkMessengerService extends LarkService
             ]);
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark text message sent', [
                 'user_id' => $userId,
                 'sync_id' => $sync->id,

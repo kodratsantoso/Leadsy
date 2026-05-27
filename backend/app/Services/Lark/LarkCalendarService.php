@@ -3,8 +3,8 @@
 namespace App\Services\Lark;
 
 use App\Models\LarkSync;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class LarkCalendarService extends LarkService
 {
@@ -57,7 +57,7 @@ class LarkCalendarService extends LarkService
             ]);
 
             $sync->markSuccessful();
-            
+
             Log::info('Lark calendar event created', [
                 'event_id' => $response['event']['event_id'] ?? null,
                 'sync_id' => $sync->id,
@@ -94,19 +94,19 @@ class LarkCalendarService extends LarkService
 
         try {
             $payload = [];
-            
+
             if (isset($updates['title'])) {
                 $payload['summary'] = $updates['title'];
             }
-            
+
             if (isset($updates['description'])) {
                 $payload['description'] = $updates['description'];
             }
-            
+
             if (isset($updates['start_time'])) {
                 $payload['start_time'] = $updates['start_time'];
             }
-            
+
             if (isset($updates['end_time'])) {
                 $payload['end_time'] = $updates['end_time'];
             }
@@ -114,7 +114,7 @@ class LarkCalendarService extends LarkService
             $response = $this->request('PUT', "/calendar/v4/events/{$larkEventId}", $payload);
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark calendar event updated', [
                 'event_id' => $larkEventId,
                 'sync_id' => $sync->id,
@@ -150,7 +150,7 @@ class LarkCalendarService extends LarkService
             $response = $this->request('DELETE', "/calendar/v4/events/{$larkEventId}");
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark calendar event deleted', [
                 'event_id' => $larkEventId,
                 'sync_id' => $sync->id,
@@ -179,10 +179,10 @@ class LarkCalendarService extends LarkService
         return [
             'title' => "Follow-up Meeting: {$leadData['company_name']}",
             'description' => sprintf(
-                "Follow-up for lead: %s\n" .
-                "Industry: %s\n" .
-                "Email: %s\n" .
-                "Phone: %s",
+                "Follow-up for lead: %s\n".
+                "Industry: %s\n".
+                "Email: %s\n".
+                'Phone: %s',
                 $leadData['company_name'] ?? 'N/A',
                 $leadData['industry'] ?? 'N/A',
                 $leadData['email'] ?? 'N/A',

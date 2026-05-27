@@ -4,8 +4,8 @@ namespace App\Services\Lark;
 
 use App\Models\LarkSync;
 use App\Models\Lead;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class LarkMeetingService extends LarkService
 {
@@ -16,12 +16,14 @@ class LarkMeetingService extends LarkService
     {
         try {
             $response = $this->request('GET', "/vc/v1/meetings/{$meetingId}/transcript");
+
             return $response;
         } catch (Exception $e) {
             Log::error('Failed to get Lark meeting transcript', [
                 'meeting_id' => $meetingId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -33,12 +35,14 @@ class LarkMeetingService extends LarkService
     {
         try {
             $response = $this->request('GET', "/vc/v1/meetings/{$meetingId}/participants");
+
             return $response;
         } catch (Exception $e) {
             Log::error('Failed to get Lark meeting participants', [
                 'meeting_id' => $meetingId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -50,12 +54,14 @@ class LarkMeetingService extends LarkService
     {
         try {
             $response = $this->request('GET', "/vc/v1/meetings/{$meetingId}");
+
             return $response;
         } catch (Exception $e) {
             Log::error('Failed to get Lark meeting details', [
                 'meeting_id' => $meetingId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -84,19 +90,19 @@ class LarkMeetingService extends LarkService
             $transcript = $this->getMeetingTranscript($meetingId);
             $details = $this->getMeetingDetails($meetingId);
 
-            if (!$transcript) {
+            if (! $transcript) {
                 throw new Exception('Transcript not available');
             }
 
             // Store transcript data in database
             $lead = Lead::findOrFail($leadsyLeadId);
-            
+
             $transcriptText = $transcript['content'] ?? ($transcript['transcript'] ?? '');
-            
+
             // Create activity for the meeting with transcript
             $lead->activities()->create([
                 'activity_type' => 'meeting',
-                'title' => 'Lark Meeting - ' . ($details['topic'] ?? 'Meeting'),
+                'title' => 'Lark Meeting - '.($details['topic'] ?? 'Meeting'),
                 'description' => $transcriptText,
                 'metadata' => [
                     'meeting_id' => $meetingId,
@@ -114,7 +120,7 @@ class LarkMeetingService extends LarkService
             ]);
 
             $sync->markSuccessful();
-            
+
             Log::info('Lark meeting transcript captured', [
                 'meeting_id' => $meetingId,
                 'lead_id' => $leadsyLeadId,
@@ -140,12 +146,14 @@ class LarkMeetingService extends LarkService
     {
         try {
             $response = $this->request('GET', "/vc/v1/meetings/{$meetingId}/recordings");
+
             return $response;
         } catch (Exception $e) {
             Log::error('Failed to get Lark meeting recordings', [
                 'meeting_id' => $meetingId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -157,12 +165,14 @@ class LarkMeetingService extends LarkService
     {
         try {
             $response = $this->request('GET', "/vc/v1/recordings/{$recordingId}/download");
+
             return $response['download_url'] ?? null;
         } catch (Exception $e) {
             Log::error('Failed to get Lark recording download URL', [
                 'recording_id' => $recordingId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }

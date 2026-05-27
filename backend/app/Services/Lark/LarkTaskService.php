@@ -3,8 +3,8 @@
 namespace App\Services\Lark;
 
 use App\Models\LarkSync;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 class LarkTaskService extends LarkService
 {
@@ -60,7 +60,7 @@ class LarkTaskService extends LarkService
             ]);
 
             $sync->markSuccessful();
-            
+
             Log::info('Lark task created', [
                 'task_id' => $response['task']['id'] ?? null,
                 'sync_id' => $sync->id,
@@ -97,15 +97,15 @@ class LarkTaskService extends LarkService
 
         try {
             $payload = [];
-            
+
             if (isset($updates['summary'])) {
                 $payload['summary'] = $updates['summary'];
             }
-            
+
             if (isset($updates['description'])) {
                 $payload['description'] = $updates['description'];
             }
-            
+
             if (isset($updates['status'])) {
                 $payload['status'] = $updates['status']; // 'open', 'in_progress', 'done', 'closed'
             }
@@ -113,7 +113,7 @@ class LarkTaskService extends LarkService
             $response = $this->request('PATCH', "/task/v2/tasks/{$larkTaskId}", $payload);
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark task updated', [
                 'task_id' => $larkTaskId,
                 'sync_id' => $sync->id,
@@ -157,7 +157,7 @@ class LarkTaskService extends LarkService
             $response = $this->request('DELETE', "/task/v2/tasks/{$larkTaskId}");
 
             $sync->markSuccessful($response);
-            
+
             Log::info('Lark task deleted', [
                 'task_id' => $larkTaskId,
                 'sync_id' => $sync->id,
@@ -182,11 +182,11 @@ class LarkTaskService extends LarkService
         return [
             'summary' => "Follow-up: {$leadData['company_name']}",
             'description' => sprintf(
-                "Follow-up for lead: %s\n" .
-                "Industry: %s\n" .
-                "Email: %s\n" .
-                "Phone: %s\n" .
-                "Notes: %s",
+                "Follow-up for lead: %s\n".
+                "Industry: %s\n".
+                "Email: %s\n".
+                "Phone: %s\n".
+                'Notes: %s',
                 $leadData['company_name'] ?? 'N/A',
                 $leadData['industry'] ?? 'N/A',
                 $leadData['email'] ?? 'N/A',

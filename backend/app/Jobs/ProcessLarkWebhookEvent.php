@@ -2,17 +2,16 @@
 
 namespace App\Jobs;
 
-use App\Models\LarkEvent;
-use App\Models\LarkIntegration;
 use App\Models\LarkBaseTable;
+use App\Models\LarkEvent;
 use App\Services\Lark\LarkBaseService;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class ProcessLarkWebhookEvent implements ShouldQueue
 {
@@ -44,7 +43,7 @@ class ProcessLarkWebhookEvent implements ShouldQueue
                 'bitable.record_updated' => $this->handleRecordUpdated($eventData),
                 'bitable.record_deleted' => $this->handleRecordDeleted($eventData),
                 'drive.file.bitable_record_changed' => $this->handleRecordUpdated($eventData),
-                default => Log::info('Unknown Lark event type: ' . $eventType),
+                default => Log::info('Unknown Lark event type: '.$eventType),
             };
 
             $this->event->markProcessed();

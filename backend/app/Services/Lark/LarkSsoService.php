@@ -5,18 +5,22 @@ namespace App\Services\Lark;
 use App\Models\LarkIntegration;
 use App\Models\LarkSsoUser;
 use App\Models\Role;
-use App\Models\User;
 use App\Models\Tenant;
+use App\Models\User;
+use Exception;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class LarkSsoService
 {
     protected LarkIntegration $integration;
+
     protected string $appId;
+
     protected string $appSecret;
+
     protected array $openApiBaseUrls = [];
+
     protected string $accountsBaseUrl;
 
     public function __construct(LarkIntegration $integration)
@@ -60,7 +64,7 @@ class LarkSsoService
             $params['scope'] = $scope;
         }
 
-        return $this->accountsBaseUrl . '/open-apis/authen/v1/authorize?' . http_build_query($params);
+        return $this->accountsBaseUrl.'/open-apis/authen/v1/authorize?'.http_build_query($params);
     }
 
     /**
@@ -76,7 +80,7 @@ class LarkSsoService
                 try {
                     $response = Http::withHeaders([
                         'Content-Type' => 'application/json; charset=utf-8',
-                    ])->post($baseUrl . '/authen/v2/oauth/token', [
+                    ])->post($baseUrl.'/authen/v2/oauth/token', [
                         'grant_type' => 'authorization_code',
                         'client_id' => $this->appId,
                         'client_secret' => $this->appSecret,
@@ -84,8 +88,8 @@ class LarkSsoService
                         'redirect_uri' => $redirectUri,
                     ]);
 
-                    if (!$response->successful()) {
-                        throw new Exception('Failed to get access token: ' . $response->body());
+                    if (! $response->successful()) {
+                        throw new Exception('Failed to get access token: '.$response->body());
                     }
 
                     $data = $response->json();
@@ -99,16 +103,16 @@ class LarkSsoService
                 }
             }
 
-            if (!$data) {
+            if (! $data) {
                 throw $lastError ?: new Exception('Failed to get Lark user access token');
             }
 
             if ((string) ($data['code'] ?? '1') !== '0') {
-                throw new Exception('Lark API error: ' . ($data['error_description'] ?? $data['msg'] ?? 'Unknown error'));
+                throw new Exception('Lark API error: '.($data['error_description'] ?? $data['msg'] ?? 'Unknown error'));
             }
 
             $accessToken = $data['access_token'] ?? null;
-            if (!$accessToken) {
+            if (! $accessToken) {
                 throw new Exception('Lark user_access_token missing from token response');
             }
 
@@ -124,6 +128,7 @@ class LarkSsoService
             Log::error('Lark SSO callback failed', [
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -139,17 +144,17 @@ class LarkSsoService
             foreach ($this->openApiBaseUrls as $baseUrl) {
                 try {
                     $response = Http::withHeaders([
-                        'Authorization' => 'Bearer ' . $accessToken,
-                    ])->get($baseUrl . '/authen/v1/user_info');
+                        'Authorization' => 'Bearer '.$accessToken,
+                    ])->get($baseUrl.'/authen/v1/user_info');
 
-                    if (!$response->successful()) {
-                        throw new Exception('Failed to get user info: ' . $response->body());
+                    if (! $response->successful()) {
+                        throw new Exception('Failed to get user info: '.$response->body());
                     }
 
                     $data = $response->json();
 
                     if ((string) ($data['code'] ?? '1') !== '0') {
-                        throw new Exception('Lark API error: ' . ($data['msg'] ?? 'Unknown error'));
+                        throw new Exception('Lark API error: '.($data['msg'] ?? 'Unknown error'));
                     }
 
                     return $data['data'] ?? null;
@@ -167,6 +172,7 @@ class LarkSsoService
             Log::error('Failed to get Lark user info', [
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -211,7 +217,7 @@ class LarkSsoService
         $email = $larkUserInfo['email'] ?? null;
         $name = $larkUserInfo['name'] ?? 'Lark User';
 
-        if (!$email) {
+        if (! $email) {
             throw new Exception('Email not provided by Lark');
         }
 
@@ -238,11 +244,11 @@ class LarkSsoService
             $updates['name'] = $name;
         }
 
-        if (!$user->email_verified_at) {
+        if (! $user->email_verified_at) {
             $updates['email_verified_at'] = now();
         }
 
-        if (!$user->role_id && $roleModel) {
+        if (! $user->role_id && $roleModel) {
             $updates['role_id'] = $roleModel->id;
         }
 
@@ -302,10 +308,10 @@ class LarkSsoService
     {
         try {
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $accessToken,
-            ])->get($this->openApiBaseUrls[0] . '/contact/v3/departments/' . $departmentId);
+                'Authorization' => 'Bearer '.$accessToken,
+            ])->get($this->openApiBaseUrls[0].'/contact/v3/departments/'.$departmentId);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return null;
             }
 
@@ -321,6 +327,7 @@ class LarkSsoService
                 'department_id' => $departmentId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }

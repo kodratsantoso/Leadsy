@@ -2,9 +2,10 @@
 
 namespace App\Observers;
 
-use App\Models\LeadFollowUp;
-use App\Models\LarkIntegration;
 use App\Jobs\TriggerLarkAction;
+use App\Models\LarkIntegration;
+use App\Models\LeadFollowUp;
+use Illuminate\Support\Facades\Log;
 
 class LeadFollowUpObserver
 {
@@ -24,17 +25,17 @@ class LeadFollowUpObserver
     {
         try {
             $lead = $followUp->lead;
-            
+
             $integration = LarkIntegration::where('tenant_id', $lead->tenant_id)
                 ->where('is_active', true)
                 ->first();
 
-            if (!$integration || !$lead->owner) {
+            if (! $integration || ! $lead->owner) {
                 return;
             }
 
             $larkSsoUser = $lead->owner->larkSsoUser;
-            if (!$larkSsoUser) {
+            if (! $larkSsoUser) {
                 return;
             }
 
@@ -73,7 +74,7 @@ class LeadFollowUpObserver
                 );
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to trigger Lark follow-up actions', [
+            Log::error('Failed to trigger Lark follow-up actions', [
                 'follow_up_id' => $followUp->id,
                 'error' => $e->getMessage(),
             ]);

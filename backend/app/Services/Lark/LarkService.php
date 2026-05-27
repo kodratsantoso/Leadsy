@@ -3,17 +3,21 @@
 namespace App\Services\Lark;
 
 use App\Models\LarkIntegration;
+use Exception;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class LarkService
 {
     protected LarkIntegration $integration;
+
     protected string $baseUrl = 'https://open.larksuite.com/open-apis';
+
     protected array $openApiBaseUrls = [];
+
     protected ?string $accessToken = null;
+
     protected ?string $authError = null;
 
     public function __construct(LarkIntegration $integration)
@@ -69,26 +73,26 @@ class LarkService
     {
         try {
             $appId = $this->integration->app_id;
-            
+
             $lastError = null;
 
             foreach ($this->openApiBaseUrls as $baseUrl) {
                 try {
                     $response = Http::withHeaders([
                         'Content-Type' => 'application/json; charset=utf-8',
-                    ])->post($baseUrl . '/auth/v3/tenant_access_token/internal', [
+                    ])->post($baseUrl.'/auth/v3/tenant_access_token/internal', [
                         'app_id' => $appId,
                         'app_secret' => $appSecret,
                     ]);
 
-                    if (!$response->successful()) {
-                        throw new Exception('Failed to get Lark access token: ' . $response->body());
+                    if (! $response->successful()) {
+                        throw new Exception('Failed to get Lark access token: '.$response->body());
                     }
 
                     $data = $response->json();
 
                     if ((string) ($data['code'] ?? '1') !== '0') {
-                        throw new Exception('Lark API error: ' . ($data['msg'] ?? 'Unknown error'));
+                        throw new Exception('Lark API error: '.($data['msg'] ?? 'Unknown error'));
                     }
 
                     $this->baseUrl = $baseUrl;
@@ -124,14 +128,14 @@ class LarkService
         array $query = []
     ) {
         try {
-            if (!$this->accessToken) {
+            if (! $this->accessToken) {
                 throw new Exception('Access token not available');
             }
 
-            $url = $this->baseUrl . '/' . ltrim($endpoint, '/');
-            
+            $url = $this->baseUrl.'/'.ltrim($endpoint, '/');
+
             $pending = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->accessToken,
+                'Authorization' => 'Bearer '.$this->accessToken,
                 'Content-Type' => 'application/json; charset=utf-8',
             ]);
 
@@ -144,17 +148,17 @@ class LarkService
             } elseif ($method === 'DELETE') {
                 $response = $pending->delete($url);
             } else {
-                throw new Exception('Unsupported Lark API method: ' . $method);
+                throw new Exception('Unsupported Lark API method: '.$method);
             }
 
-            if (!$response->successful()) {
-                throw new Exception('Lark API error: ' . $response->body());
+            if (! $response->successful()) {
+                throw new Exception('Lark API error: '.$response->body());
             }
 
             $result = $response->json();
 
             if (($result['code'] ?? 1) !== 0) {
-                throw new Exception('Lark API returned error: ' . ($result['msg'] ?? 'Unknown error'));
+                throw new Exception('Lark API returned error: '.($result['msg'] ?? 'Unknown error'));
             }
 
             return $result['data'] ?? $result;
@@ -174,7 +178,7 @@ class LarkService
     public function testConnection(): array
     {
         try {
-            if (!$this->accessToken) {
+            if (! $this->accessToken) {
                 return [
                     'success' => false,
                     'error' => $this->authError ?: 'Unable to retrieve Lark tenant access token',
@@ -212,6 +216,7 @@ class LarkService
     public function setBaseUrl(string $url): self
     {
         $this->baseUrl = $url;
+
         return $this;
     }
 }

@@ -95,6 +95,7 @@ services:
         aliases:
           - "leadsy-backend-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
+    init: true  # tini as PID 1: reaps zombie child processes (e.g. curl from healthchecks)
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
       interval: 30s
