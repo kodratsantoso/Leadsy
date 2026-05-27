@@ -9,6 +9,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.1] — 2026-05-27 · Patch Release
+
+### What's New
+- **Provider-Specific Integration Setting** — credential form disesuaikan per platform berdasarkan dokumentasi resmi, bukan satu form generik untuk semua channel.
+- **Active Connection Checks** — Settings → Integration Setting sekarang memiliki endpoint backend untuk OAuth URL generation, token/API-key checks, webhook setup checks, dan preview data yang aman untuk platform yang mendukungnya.
+- **Credential Matrix Documentation** — menambahkan matrix kebutuhan credential dan batas implementasi per platform untuk Facebook/Instagram, TikTok, YouTube, LinkedIn, Google Ads, Mekari Qontak, HubSpot, Salesforce, Pipedrive, Zapier, Make, dan Hunter.io.
+
+### Quality
+- Test backend baru mencakup Hunter API-key check, webhook URL setup check, dan OAuth URL validation guard.
+
 ## [1.2.0] — 2026-05-27 · Minor Release
 
 ### What's New

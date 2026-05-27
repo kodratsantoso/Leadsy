@@ -115,6 +115,8 @@
 - `frontend/components/layout/app-shell.tsx` — moved Map & Territory under the new Leads Generator navigation group and added the social/platform generator submenu.
 - `frontend/app/lead-generator/page.tsx` and `frontend/app/lead-generator/platforms/page.tsx` — added Leads Generator landing and social/platform generator overview screens.
 - `frontend/app/settings/integrations/page.tsx` — renamed the settings surface to Integration Setting and added social media/platform credential inputs for Facebook, Instagram, TikTok, YouTube, LinkedIn, Google Ads, Mekari Qontak, CRMs, automation webhooks, and Hunter.io.
+- `backend/app/Http/Controllers/Api/IntegrationPlatformController.php` and `backend/routes/api.php` — added provider-specific OAuth URL generation, connection tests, and supported preview endpoints for Integration Setting.
+- `docs/strategy/integration-platform-credential-matrix.md` — documented official credential requirements, setup fields, test boundaries, and provider-specific implementation constraints.
 - `frontend/app/settings/integrations/page.tsx` — added Lark Base manual Leadsy Leads field mapping, Auto Match assistance, table preview, and push/pull controls.
 - `mobile/` — added Expo/React Native Mobile Field Sales MVP for Android/iOS with login, Lead Inbox, Lead Detail, one-tap actions, Sales Visit, GPS Clock In/Out, camera evidence, client signature, and visit notes.
 - `scripts/mobile-expo-go.sh` — added Expo Go helper that detects the machine LAN IP, sets `EXPO_PUBLIC_API_BASE_URL`, and starts Expo in LAN mode for QR-based device testing.

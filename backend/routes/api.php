@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\FunnelController;
 use App\Http\Controllers\Api\IcpProfileController;
 use App\Http\Controllers\Api\IndustryController;
 use App\Http\Controllers\Api\IntegrationConfigController;
+use App\Http\Controllers\Api\IntegrationPlatformController;
 use App\Http\Controllers\Api\LarkController;
 use App\Http\Controllers\Api\LeadChannelTypeController;
 use App\Http\Controllers\Api\LeadController;
@@ -230,6 +231,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/integrations', [IntegrationConfigController::class, 'index'])->middleware('permission:integrations.manage');
     Route::post('settings/integrations', [IntegrationConfigController::class, 'store'])->middleware('permission:integrations.manage');
     Route::delete('settings/integrations/{integrationConfig}', [IntegrationConfigController::class, 'destroy'])->middleware('permission:integrations.manage');
+    Route::get('settings/integration-platforms', [IntegrationPlatformController::class, 'registry'])->middleware('permission:integrations.manage');
+    Route::post('settings/integration-platforms/{platform}/oauth-url', [IntegrationPlatformController::class, 'oauthUrl'])->middleware('permission:integrations.manage');
+    Route::post('settings/integration-platforms/{platform}/test', [IntegrationPlatformController::class, 'test'])->middleware('permission:integrations.manage');
+    Route::get('settings/integration-platforms/{platform}/preview', [IntegrationPlatformController::class, 'preview'])->middleware('permission:integrations.manage');
 
     // WhatsApp — Session
     Route::post('whatsapp/session/init', [WhatsAppController::class, 'initSession']);

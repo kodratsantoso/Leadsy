@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.2.0',
+    'version' => '1.2.1',
     'released_at' => '2026-05-27',
-    'type' => 'minor',   // major | minor | patch
-    'notes' => 'Integration Module Phase 1 foundation with isolated integration schema, AES-256-GCM credential envelopes, and webhook idempotency storage',
+    'type' => 'patch',   // major | minor | patch
+    'notes' => 'Provider-specific Integration Setting credentials with OAuth URL generation, connection checks, and supported platform data previews',
 ];

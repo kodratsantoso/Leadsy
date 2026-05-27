@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ComponentType } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
@@ -22,6 +22,24 @@ type IntegrationConfig = {
 };
 
 type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark";
+type LeadPlatformField = {
+  suffix: string;
+  label: string;
+  value_type: "string" | "boolean" | "number" | "json";
+  is_secret: boolean;
+  defaultValue: string;
+  placeholder?: string;
+  help?: string;
+};
+
+type LeadPlatformDefinition = {
+  id: string;
+  name: string;
+  icon: ComponentType<{ className?: string }>;
+  sso: boolean;
+  docsUrl: string;
+  fields: LeadPlatformField[];
+};
 
 const asBooleanString = (value: unknown) => (value === true || value === "true" || value === 1 || value === "1" ? "true" : "false");
 const asStringValue = (value: unknown) => (value == null ? "" : String(value));
@@ -115,29 +133,190 @@ const DEFAULT_LUSHA: Record<string, IntegrationConfig> = {
   LUSHA_ENRICHMENT_PRIORITY:  { category: "lusha", key: "LUSHA_ENRICHMENT_PRIORITY",  value: "1",     is_secret: false, is_active: true, value_type: "number"  },
 };
 
-const LEAD_PLATFORM_DEFINITIONS = [
-  { id: "facebook", name: "Facebook", icon: Globe2, sso: true },
-  { id: "instagram", name: "Instagram", icon: Share2, sso: true },
-  { id: "tiktok", name: "TikTok", icon: Video, sso: true },
-  { id: "youtube", name: "YouTube", icon: Video, sso: true },
-  { id: "linkedin", name: "LinkedIn", icon: Share2, sso: true },
-  { id: "google_ads", name: "Google Ads", icon: Megaphone, sso: true },
-  { id: "mekari_qontak", name: "Mekari Qontak", icon: MessageSquare, sso: false },
-  { id: "hubspot", name: "HubSpot", icon: Database, sso: true },
-  { id: "salesforce", name: "Salesforce", icon: Database, sso: true },
-  { id: "pipedrive", name: "Pipedrive", icon: Database, sso: true },
-  { id: "zapier", name: "Zapier", icon: Share2, sso: false },
-  { id: "make", name: "Make", icon: Share2, sso: false },
-  { id: "hunter", name: "Hunter.io", icon: Key, sso: false },
-] as const;
+const baseOauthFields: LeadPlatformField[] = [
+  { suffix: "CLIENT_ID", label: "Client ID / App ID", value_type: "string", is_secret: false, defaultValue: "" },
+  { suffix: "CLIENT_SECRET", label: "Client Secret / App Secret", value_type: "string", is_secret: true, defaultValue: "" },
+  { suffix: "ACCESS_TOKEN", label: "Access Token", value_type: "string", is_secret: true, defaultValue: "" },
+  { suffix: "REFRESH_TOKEN", label: "Refresh Token", value_type: "string", is_secret: true, defaultValue: "" },
+  { suffix: "REDIRECT_URI", label: "Redirect URI", value_type: "string", is_secret: false, defaultValue: "" },
+];
 
-const LEAD_PLATFORM_FIELDS = [
-  { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
-  { suffix: "CLIENT_ID", label: "Client ID", value_type: "string", is_secret: false, defaultValue: "" },
-  { suffix: "CLIENT_SECRET", label: "Client Secret", value_type: "string", is_secret: true, defaultValue: "" },
-  { suffix: "ACCESS_TOKEN", label: "Access Token / API Key", value_type: "string", is_secret: true, defaultValue: "" },
-  { suffix: "ACCOUNT_ID", label: "Account / Pixel / Portal ID", value_type: "string", is_secret: false, defaultValue: "" },
-] as const;
+const LEAD_PLATFORM_DEFINITIONS: LeadPlatformDefinition[] = [
+  {
+    id: "facebook",
+    name: "Facebook Lead Ads",
+    icon: Globe2,
+    sso: true,
+    docsUrl: "https://developers.facebook.com/docs/marketing-api/guides/lead-ads/",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "CLIENT_ID", label: "Meta App ID", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "CLIENT_SECRET", label: "Meta App Secret", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "ACCESS_TOKEN", label: "Page Access Token", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "PAGE_ID", label: "Facebook Page ID", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "VERIFY_TOKEN", label: "Webhook Verify Token", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "REDIRECT_URI", label: "OAuth Redirect URI", value_type: "string", is_secret: false, defaultValue: "" },
+    ],
+  },
+  {
+    id: "instagram",
+    name: "Instagram Graph API",
+    icon: Share2,
+    sso: true,
+    docsUrl: "https://developers.facebook.com/docs/instagram-api/",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "CLIENT_ID", label: "Meta App ID", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "CLIENT_SECRET", label: "Meta App Secret", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "ACCESS_TOKEN", label: "Page Access Token", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "PAGE_ID", label: "Connected Facebook Page ID", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "IG_USER_ID", label: "Instagram Business Account ID", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "VERIFY_TOKEN", label: "Webhook Verify Token", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "REDIRECT_URI", label: "OAuth Redirect URI", value_type: "string", is_secret: false, defaultValue: "" },
+    ],
+  },
+  {
+    id: "tiktok",
+    name: "TikTok Business API",
+    icon: Video,
+    sso: true,
+    docsUrl: "https://business-api.tiktok.com/portal/docs",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "CLIENT_ID", label: "App ID", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "CLIENT_SECRET", label: "Secret", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "ACCESS_TOKEN", label: "Access Token", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "ADVERTISER_ID", label: "Advertiser ID", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "REDIRECT_URI", label: "OAuth Redirect URI", value_type: "string", is_secret: false, defaultValue: "" },
+    ],
+  },
+  {
+    id: "youtube",
+    name: "YouTube Analytics",
+    icon: Video,
+    sso: true,
+    docsUrl: "https://developers.google.com/youtube/reporting/guides/authorization",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      ...baseOauthFields,
+      { suffix: "CHANNEL_ID", label: "YouTube Channel ID", value_type: "string", is_secret: false, defaultValue: "" },
+    ],
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn Marketing",
+    icon: Share2,
+    sso: true,
+    docsUrl: "https://learn.microsoft.com/en-us/linkedin/marketing/lead-sync/leadsync?view=li-lms-2026-05",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      ...baseOauthFields,
+      { suffix: "AD_ACCOUNT_ID", label: "Ad Account ID", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "ORGANIZATION_URN", label: "Organization URN", value_type: "string", is_secret: false, defaultValue: "" },
+    ],
+  },
+  {
+    id: "google_ads",
+    name: "Google Ads Lead Forms",
+    icon: Megaphone,
+    sso: true,
+    docsUrl: "https://developers.google.com/google-ads/webhook/docs/implementation",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "API_MODE", label: "Mode", value_type: "string", is_secret: false, defaultValue: "webhook", placeholder: "webhook or api" },
+      { suffix: "GOOGLE_KEY", label: "Webhook Google Key", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "DEVELOPER_TOKEN", label: "Google Ads Developer Token", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "CLIENT_CUSTOMER_ID", label: "Customer ID", value_type: "string", is_secret: false, defaultValue: "" },
+      ...baseOauthFields,
+    ],
+  },
+  {
+    id: "mekari_qontak",
+    name: "Mekari Qontak",
+    icon: MessageSquare,
+    sso: false,
+    docsUrl: "https://docs.qontak.com/",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "BASE_URL", label: "Base URL", value_type: "string", is_secret: false, defaultValue: "https://api.mekari.com" },
+      { suffix: "ACCESS_TOKEN", label: "Bearer Access Token", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "CHANNEL_ID", label: "WhatsApp / Omnichannel Channel ID", value_type: "string", is_secret: false, defaultValue: "" },
+    ],
+  },
+  {
+    id: "hubspot",
+    name: "HubSpot CRM",
+    icon: Database,
+    sso: true,
+    docsUrl: "https://developers.hubspot.com/docs/api/intro-to-auth",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      ...baseOauthFields,
+      { suffix: "PORTAL_ID", label: "Hub ID / Portal ID", value_type: "string", is_secret: false, defaultValue: "" },
+    ],
+  },
+  {
+    id: "salesforce",
+    name: "Salesforce",
+    icon: Database,
+    sso: true,
+    docsUrl: "https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_flows.htm",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      ...baseOauthFields,
+      { suffix: "INSTANCE_URL", label: "Instance URL", value_type: "string", is_secret: false, defaultValue: "", placeholder: "https://your-domain.my.salesforce.com" },
+    ],
+  },
+  {
+    id: "pipedrive",
+    name: "Pipedrive",
+    icon: Database,
+    sso: true,
+    docsUrl: "https://pipedrive.readme.io/docs/core-api-concepts-authentication",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "API_DOMAIN", label: "Company API Domain", value_type: "string", is_secret: false, defaultValue: "", placeholder: "https://companydomain.pipedrive.com" },
+      { suffix: "API_TOKEN", label: "API Token", value_type: "string", is_secret: true, defaultValue: "" },
+      ...baseOauthFields,
+    ],
+  },
+  {
+    id: "zapier",
+    name: "Zapier Webhooks",
+    icon: Share2,
+    sso: false,
+    docsUrl: "https://help.zapier.com/hc/en-us/articles/8496288690317-Trigger-Zaps-from-webhooks",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "WEBHOOK_URL", label: "Catch Hook URL", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "BASIC_AUTH_USERNAME", label: "Basic Auth Username", value_type: "string", is_secret: false, defaultValue: "" },
+      { suffix: "BASIC_AUTH_PASSWORD", label: "Basic Auth Password", value_type: "string", is_secret: true, defaultValue: "" },
+    ],
+  },
+  {
+    id: "make",
+    name: "Make Webhooks",
+    icon: Share2,
+    sso: false,
+    docsUrl: "https://apps.make.com/gateway",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "WEBHOOK_URL", label: "Custom Webhook URL", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "API_KEY", label: "x-make-apikey", value_type: "string", is_secret: true, defaultValue: "" },
+    ],
+  },
+  {
+    id: "hunter",
+    name: "Hunter.io",
+    icon: Key,
+    sso: false,
+    docsUrl: "https://help.hunter.io/en/articles/1970956-hunter-api",
+    fields: [
+      { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+      { suffix: "API_KEY", label: "API Key", value_type: "string", is_secret: true, defaultValue: "" },
+    ],
+  },
+];
 
 function leadPlatformKey(platformId: string, suffix: string) {
   return `${platformId.toUpperCase()}_${suffix}`;
@@ -146,7 +325,7 @@ function leadPlatformKey(platformId: string, suffix: string) {
 function createDefaultLeadPlatforms(): Record<string, IntegrationConfig> {
   return Object.fromEntries(
     LEAD_PLATFORM_DEFINITIONS.flatMap((platform) =>
-      LEAD_PLATFORM_FIELDS.map((field) => {
+      platform.fields.map((field) => {
         const key = leadPlatformKey(platform.id, field.suffix);
         return [
           key,
@@ -170,6 +349,8 @@ export default function IntegrationsSettingsPage() {
   const [saving, setSaving]       = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg]   = useState("");
+  const [platformStatus, setPlatformStatus] = useState<Record<string, string>>({});
+  const [platformPreview, setPlatformPreview] = useState<Record<string, unknown[]>>({});
 
   const [mapsConfig, setMapsConfig]         = useState<Record<string, IntegrationConfig>>(DEFAULT_MAPS);
   const [whatsappConfig, setWhatsappConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_WHATSAPP);
@@ -593,16 +774,62 @@ export default function IntegrationsSettingsPage() {
       if (res.ok) {
         setSuccessMsg("Settings saved successfully!");
         setTimeout(() => setSuccessMsg(""), 4000);
+        return true;
       } else {
         const body = await res.json().catch(() => ({}));
         setErrorMsg(body?.message || `Save failed (HTTP ${res.status})`);
         setTimeout(() => setErrorMsg(""), 5000);
+        return false;
       }
     } catch (err: any) {
       setErrorMsg(err?.message || "Network error");
       setTimeout(() => setErrorMsg(""), 5000);
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const runPlatformAction = async (platformId: string, action: "test" | "preview" | "oauth-url") => {
+    setErrorMsg("");
+    setSuccessMsg("");
+    setPlatformStatus((current) => ({ ...current, [platformId]: "Running..." }));
+
+    try {
+      const res = await apiFetch(`/settings/integration-platforms/${platformId}/${action}`, {
+        method: action === "preview" ? "GET" : "POST",
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(json?.message || `Platform action failed (HTTP ${res.status})`);
+      }
+
+      if (action === "oauth-url") {
+        const url = json?.data?.authorization_url;
+        if (url) {
+          window.open(url, "_blank", "noopener,noreferrer");
+          setPlatformStatus((current) => ({ ...current, [platformId]: "OAuth authorization opened" }));
+        } else {
+          setPlatformStatus((current) => ({ ...current, [platformId]: "OAuth URL unavailable" }));
+        }
+        return;
+      }
+
+      if (action === "preview") {
+        const items = Array.isArray(json?.data?.items) ? json.data.items : [];
+        setPlatformPreview((current) => ({ ...current, [platformId]: items }));
+      }
+
+      setPlatformStatus((current) => ({
+        ...current,
+        [platformId]: json?.data?.message || "Action completed",
+      }));
+    } catch (err: any) {
+      setPlatformStatus((current) => ({
+        ...current,
+        [platformId]: err?.message || "Action failed",
+      }));
     }
   };
 
@@ -650,10 +877,10 @@ export default function IntegrationsSettingsPage() {
               <div>
                 <h2 className="text-xl font-semibold">Social Media & Platform Credentials</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Prepare credentials for inbound lead generators and future SSO login buttons. Secrets are saved through the encrypted integration settings store; provider OAuth activation needs the Phase 2 backend routes.
+                  Prepare credentials for inbound lead generators, OAuth login starts, connection checks, and supported data previews. Secrets are saved through the encrypted integration settings store; provider OAuth callback token exchange remains a backend phase.
                 </p>
               </div>
-              <Badge variant="warning">OAuth routes pending</Badge>
+              <Badge variant="warning">OAuth exchange pending</Badge>
             </div>
           </Card>
 
@@ -661,6 +888,7 @@ export default function IntegrationsSettingsPage() {
             {LEAD_PLATFORM_DEFINITIONS.map((platform) => {
               const enabledKey = leadPlatformKey(platform.id, "ENABLED");
               const Icon = platform.icon;
+              const previewItems = platformPreview[platform.id] || [];
               return (
                 <Card key={platform.id} className="p-5">
                   <div className="mb-4 flex items-start justify-between gap-3">
@@ -697,7 +925,7 @@ export default function IntegrationsSettingsPage() {
                       />
                     </label>
 
-                    {LEAD_PLATFORM_FIELDS.filter((field) => field.suffix !== "ENABLED").map((field) => {
+                    {platform.fields.filter((field) => field.suffix !== "ENABLED").map((field) => {
                       const key = leadPlatformKey(platform.id, field.suffix);
                       return (
                         <div key={key}>
@@ -706,7 +934,7 @@ export default function IntegrationsSettingsPage() {
                             className="mt-1"
                             type={field.is_secret ? "password" : "text"}
                             value={leadPlatformsConfig[key]?.value ?? ""}
-                            placeholder={field.is_secret ? "Encrypted after save" : `${platform.name} ${field.label}`}
+                            placeholder={field.placeholder || (field.is_secret ? "Encrypted after save" : `${platform.name} ${field.label}`)}
                             autoComplete="off"
                             spellCheck={false}
                             onChange={(e) => setLeadPlatformsConfig((current) => ({
@@ -717,19 +945,58 @@ export default function IntegrationsSettingsPage() {
                               },
                             }))}
                           />
+                          {field.help ? <p className="mt-1 text-xs text-muted-foreground">{field.help}</p> : null}
                         </div>
                       );
                     })}
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Button variant="outline" disabled>
+                    <Button
+                      variant="outline"
+                      disabled={!platform.sso}
+                      onClick={async () => {
+                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                          await runPlatformAction(platform.id, "oauth-url");
+                        }
+                      }}
+                    >
                       Login with {platform.name}
                     </Button>
-                    <Button variant="ghost" disabled>
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                          await runPlatformAction(platform.id, "test");
+                        }
+                      }}
+                    >
                       Test Connection
                     </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                          await runPlatformAction(platform.id, "preview");
+                        }
+                      }}
+                    >
+                      View Data
+                    </Button>
+                    <a href={platform.docsUrl} target="_blank" rel="noreferrer">
+                      <Button variant="link">Docs</Button>
+                    </a>
                   </div>
+                  {platformStatus[platform.id] ? (
+                    <p className="mt-3 rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2 text-xs text-muted-foreground">
+                      {platformStatus[platform.id]}
+                    </p>
+                  ) : null}
+                  {previewItems.length > 0 ? (
+                    <pre className="mt-3 max-h-48 overflow-auto rounded-xl border border-border bg-[color:var(--surface-subtle)] p-3 text-xs text-muted-foreground">
+                      {JSON.stringify(previewItems.slice(0, 3), null, 2)}
+                    </pre>
+                  ) : null}
                 </Card>
               );
             })}
