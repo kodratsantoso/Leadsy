@@ -418,6 +418,8 @@ class LarkController extends Controller
         $results = [];
 
         if ($request->direction === 'push') {
+            $fieldDefinitions = $service->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
+
             Lead::where(function ($query) use ($baseTable) {
                 $query->where('tenant_id', $baseTable->tenant_id)
                     ->orWhereNull('tenant_id');
@@ -425,11 +427,11 @@ class LarkController extends Controller
                 ->with(['industry', 'funnelStage', 'owner'])
                 ->limit($request->integer('limit', 100))
                 ->get()
-                ->each(function (Lead $lead) use ($service, $baseTable, &$count, &$attempted, &$skipped, &$added, &$updated, &$results, &$errors): void {
+                ->each(function (Lead $lead) use ($service, $baseTable, $fieldDefinitions, &$count, &$attempted, &$skipped, &$added, &$updated, &$results, &$errors): void {
                     $attempted++;
 
                     try {
-                        $result = $service->upsertLeadWithResult($lead, $baseTable);
+                        $result = $service->upsertLeadWithResult($lead, $baseTable, $fieldDefinitions);
                         $action = $result['action'];
                         $mapping = $result['mapping'];
 

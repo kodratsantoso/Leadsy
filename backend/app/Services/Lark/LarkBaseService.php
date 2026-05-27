@@ -239,7 +239,7 @@ class LarkBaseService extends LarkService
         return $this->upsertLeadWithResult($lead, $baseTable)['mapping'];
     }
 
-    public function upsertLeadWithResult(Lead $lead, LarkBaseTable $baseTable): array
+    public function upsertLeadWithResult(Lead $lead, LarkBaseTable $baseTable, array $fieldDefinitions = []): array
     {
         if (! $baseTable->allowsPush()) {
             return [
@@ -252,7 +252,11 @@ class LarkBaseService extends LarkService
 
         $lead->loadMissing(['industry', 'funnelStage', 'owner']);
 
-        $fields = self::mapLeadToBaseFields($lead, $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
+        $fields = self::mapLeadToBaseFields(
+            $lead,
+            $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING,
+            $fieldDefinitions
+        );
         $mapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
             ->where('leadsy_entity_type', 'lead')
             ->where('leadsy_entity_id', (string) $lead->id)
@@ -380,7 +384,7 @@ class LarkBaseService extends LarkService
     /**
      * Map Leadsy lead to Lark Base record fields
      */
-    public static function mapLeadToBaseFields(Lead $lead, array $fieldMapping = self::DEFAULT_LEAD_FIELD_MAPPING): array
+    public static function mapLeadToBaseFields(Lead $lead, array $fieldMapping = self::DEFAULT_LEAD_FIELD_MAPPING, array $fieldDefinitions = []): array
     {
         $values = [
             'leadsy_id' => (string) $lead->id,
@@ -399,8 +403,83 @@ class LarkBaseService extends LarkService
 
         return collect($fieldMapping)
             ->mapWithKeys(fn (string $larkField, string $leadsyField): array => [$larkField => $values[$leadsyField] ?? null])
+            ->map(fn ($value, string $larkField) => self::normalizeLeadValueForBaseField(
+                $value,
+                self::findBaseFieldDefinition($larkField, $fieldDefinitions)
+            ))
             ->filter(fn ($value): bool => $value !== null)
             ->all();
+    }
+
+    private static function findBaseFieldDefinition(string $larkField, array $fieldDefinitions): ?array
+    {
+        if (isset($fieldDefinitions[$larkField]) && is_array($fieldDefinitions[$larkField])) {
+            return $fieldDefinitions[$larkField];
+        }
+
+        foreach ($fieldDefinitions as $fieldDefinition) {
+            if (($fieldDefinition['field_name'] ?? null) === $larkField) {
+                return $fieldDefinition;
+            }
+        }
+
+        return null;
+    }
+
+    private static function normalizeLeadValueForBaseField($value, ?array $fieldDefinition)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $type = (int) ($fieldDefinition['type'] ?? 1);
+        $uiType = (string) ($fieldDefinition['ui_type'] ?? '');
+
+        if ($type === 2) {
+            return is_numeric($value) ? (float) $value : null;
+        }
+
+        if ($type === 4) {
+            return is_array($value) ? array_values($value) : [self::stringifyBaseScalar($value)];
+        }
+
+        if ($type === 5) {
+            if (is_numeric($value)) {
+                return (int) $value;
+            }
+
+            $timestamp = strtotime((string) $value);
+
+            return $timestamp ? $timestamp * 1000 : null;
+        }
+
+        if ($type === 7) {
+            return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($type === 15 || $uiType === 'Url') {
+            $url = self::stringifyBaseScalar($value);
+
+            return [
+                'link' => $url,
+                'text' => $url,
+            ];
+        }
+
+        return self::stringifyBaseScalar($value);
+    }
+
+    private static function stringifyBaseScalar($value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_scalar($value)) {
+            return (string) $value;
+        }
+
+        return json_encode($value);
     }
 
     public static function mapBaseFieldsToLead(array $fields, array $fieldMapping = self::DEFAULT_LEAD_FIELD_MAPPING): array

@@ -112,7 +112,8 @@
 - `backend/database/migrations/2026_05_25_000000_create_lark_base_sync_tables.php` — added Lark Base table configuration and Leadsy/Lark record mapping tables before the snapshot import migration.
 - `backend/app/Models/LarkBaseTable.php` and `backend/app/Models/LarkBaseRecordMapping.php` — added tenant-aware models for Base sync configuration and record identity.
 - `backend/app/Services/Lark/LarkBaseService.php` — added table/field/record preview, Leadsy-to-Base upsert, and Base-to-Leadsy pull mapping.
-- `backend/app/Http/Controllers/Api/LarkController.php` — Lark Base manual sync now includes tenant-owned plus legacy/global Leads for push, reports attempted/synced/skipped/add/update/delete/error counts, returns per-record result rows, and continues past per-record provider failures.
+- `backend/app/Http/Controllers/Api/LarkController.php` — Lark Base manual sync now includes tenant-owned plus legacy/global Leads for push, loads Lark field metadata before writes, reports attempted/synced/skipped/add/update/delete/error counts, returns per-record result rows, and continues past per-record provider failures.
+- `docs/strategy/lark-base-field-type-guide.md` — documents recommended Lark Base field types for Leadsy Leads and the backend coercion behavior used before Push to Lark.
 - `frontend/components/layout/app-shell.tsx` — moved Map & Territory under the new Leads Generator navigation group and added the social/platform generator submenu.
 - `frontend/app/lead-generator/page.tsx` and `frontend/app/lead-generator/platforms/page.tsx` — added Leads Generator landing and social/platform generator overview screens.
 - `frontend/app/settings/integrations/page.tsx` — renamed the settings surface to Integration Setting and added social media/platform credential inputs for Facebook, Instagram, TikTok, YouTube, LinkedIn, Google Ads, Mekari Qontak, CRMs, automation webhooks, and Hunter.io.

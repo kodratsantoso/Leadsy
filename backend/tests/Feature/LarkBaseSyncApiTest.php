@@ -34,7 +34,22 @@ class LarkBaseSyncApiTest extends TestCase
                 ]);
             }
 
+            if (str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/fields')) {
+                return Http::response([
+                    'code' => 0,
+                    'data' => [
+                        'items' => [
+                            ['field_name' => 'Leadsy ID', 'type' => 1, 'ui_type' => 'Text'],
+                            ['field_name' => 'Company Name', 'type' => 1, 'ui_type' => 'Text'],
+                            ['field_name' => 'Lead Score', 'type' => 1, 'ui_type' => 'Text'],
+                        ],
+                    ],
+                ]);
+            }
+
             if ($request->method() === 'PUT' && str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records/rec-tenant')) {
+                $this->assertSame('72', $request->data()['fields']['Lead Score'] ?? null);
+
                 return Http::response([
                     'code' => 0,
                     'data' => [
@@ -46,6 +61,8 @@ class LarkBaseSyncApiTest extends TestCase
             }
 
             if ($request->method() === 'POST' && str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records')) {
+                $this->assertSame('61', $request->data()['fields']['Lead Score'] ?? null);
+
                 $companyName = (string) ($request->data()['fields']['Company Name'] ?? '');
                 $recordId = $companyName === 'Legacy Global Lead' ? 'rec-global' : 'rec-tenant';
 
@@ -94,6 +111,7 @@ class LarkBaseSyncApiTest extends TestCase
             'field_mapping' => [
                 'leadsy_id' => 'Leadsy ID',
                 'company_name' => 'Company Name',
+                'lead_score' => 'Lead Score',
             ],
             'is_active' => true,
         ]);
@@ -101,11 +119,13 @@ class LarkBaseSyncApiTest extends TestCase
         $tenantLead = Lead::withoutEvents(fn () => Lead::create([
             'tenant_id' => $tenant->id,
             'company_name' => 'Tenant Lead',
+            'lead_score' => 72,
             'qualification_status' => 'potential',
         ]));
         Lead::withoutEvents(fn () => Lead::create([
             'tenant_id' => null,
             'company_name' => 'Legacy Global Lead',
+            'lead_score' => 61,
             'qualification_status' => 'potential',
         ]));
         LarkBaseRecordMapping::create([

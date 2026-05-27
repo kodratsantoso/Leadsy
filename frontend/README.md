@@ -2,7 +2,7 @@
 
 Web application for map-based lead discovery, AI-assisted qualification, funnel management, and governance (see `BRD`).
 
-Current release: **v1.2.6** — includes the Lark Base Push/Pull progress and result popup, the Lark Base legacy-lead sync fix, mode-specific Google Ads settings, Google Ads OAuth/connection testing, Lusha V3 two-step contact preview/reveal, the Integration Module foundation, Lark SSO/Base integration, deploy snapshot refresh, and the companion Mobile Field Sales MVP in `mobile/`.
+Current release: **v1.2.7** — includes Lark Base field type coercion, the Lark Base Push/Pull progress and result popup, the Lark Base legacy-lead sync fix, mode-specific Google Ads settings, Google Ads OAuth/connection testing, Lusha V3 two-step contact preview/reveal, the Integration Module foundation, Lark SSO/Base integration, deploy snapshot refresh, and the companion Mobile Field Sales MVP in `mobile/`.
 
 ## Repository layout
 

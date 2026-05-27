@@ -9,6 +9,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.7] — 2026-05-27 · Patch Release
+
+### What's New
+- **Lark Base Field Type Coercion** — Push to Lark now reads Lark Base field metadata and coerces Leadsy values before writing, preventing common conversion failures such as `TextFieldConvFail`.
+- **Lark Field Type Guide** — added a Leadsy-to-Lark Base field type matrix for operators configuring Base tables.
+
+### Quality
+- Extended Lark Base sync coverage to assert numeric Leadsy values are safely converted when mapped to Lark Text fields.
+
 ## [1.2.6] — 2026-05-27 · Patch Release
 
 ### What's New

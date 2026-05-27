@@ -57,6 +57,7 @@
 - [x] Add Settings → Integrations → Lark Base UI for app token, table selection, preview, manual Leadsy Leads field mapping, Auto Match assistance, and saved mapping sync controls.
 - [x] Fix manual Push to Lark so existing legacy/global Lead records with empty `tenant_id` are included and sync results show attempted/synced/error counts.
 - [x] Add Push/Pull progress popup with add, update, delete, failed, skipped, attempted, and per-record result details.
+- [x] Add Lark Base field type coercion and document the recommended Leadsy-to-Lark Base field type matrix.
 
 ## Mobile Field Sales App (In Progress)
 - [x] Define MVP scope for Android/iOS field sales workflows.
