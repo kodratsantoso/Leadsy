@@ -2,7 +2,7 @@
 
 Web application for map-based lead discovery, AI-assisted qualification, funnel management, and governance (see `BRD`).
 
-Current release: **v1.2.4** — includes mode-specific Google Ads settings, Google Ads OAuth/connection testing, Lusha V3 two-step contact preview/reveal, the Integration Module foundation, Lark SSO/Base integration, deploy snapshot refresh, and the companion Mobile Field Sales MVP in `mobile/`.
+Current release: **v1.2.5** — includes the Lark Base Push to Lark legacy-lead sync fix, mode-specific Google Ads settings, Google Ads OAuth/connection testing, Lusha V3 two-step contact preview/reveal, the Integration Module foundation, Lark SSO/Base integration, deploy snapshot refresh, and the companion Mobile Field Sales MVP in `mobile/`.
 
 ## Repository layout
 
@@ -58,7 +58,7 @@ Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create t
 | Product Tour | `components/ProductTour/` — 14-step guided tour, auto-starts on first visit, minimizable, restartable via the `?` button in the header |
 | Leads Generator | `app/lead-generator/page.tsx`, `app/lead-generator/platforms/page.tsx`, `app/map/page.tsx` — groups Map & Territory with social/platform generator channels |
 | Lark SSO | `app/login/page.tsx`, `app/auth/lark/callback/page.tsx` — tenant-aware Lark login starts from the login screen; callback stores the returned Sanctum token before routing to the dashboard |
-| Lark Base Mapping | `app/settings/integrations/page.tsx` — maps Leadsy Leads fields to Lark Base fields, previews selected table records, and triggers manual pull/push sync |
+| Lark Base Mapping | `app/settings/integrations/page.tsx` — maps Leadsy Leads fields to Lark Base fields, previews selected table records, triggers manual pull/push sync, and surfaces sync counts/errors |
 | Product Question Guide | `components/products/QuestionGuide.tsx` — AI-generated + user-editable requirement question guide per product, shown in each product's expanded card |
 | Customer BANTC Question Guide | `components/leads/LeadBantcQuestionGuide.tsx` — AI-generated + user-editable BANTC discovery questions per Lead, shown on Lead Detail → Intelligence |
 | Dashboard Funnel Tracking | `app/page.tsx` — two cumulative/aggregate funnels for Leads → Won and Leads → Lost, with estimated amount conversion and drilldown via `funnel_min_sequence` |

@@ -4,10 +4,13 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.2.4** — 2026-05-27
+Current release: **v1.2.5** — 2026-05-27
 
-## What's New in v1.2.4
+## What's New in v1.2.5
 
+- Lark Base Push to Lark now includes legacy/global Lead records with empty `tenant_id`, so existing generated/imported leads can be synced from saved Base mappings.
+- Lark Base manual sync now reports attempted, synced, skipped, and failed records, with the first provider error surfaced in Integration Setting.
+- Lark Base saved mapping controls now disable impossible push/pull actions based on the selected sync direction.
 - Long-term CRM expansion is on hold while active development focuses on Lead Generator and Lead Intelligence.
 - Active focus plan: `docs/strategy/lead-generator-intelligence-focus.md`.
 - Integration Module Phase 1 adds isolated integration tables plus AES-256-GCM credential storage for future inbound lead channels.

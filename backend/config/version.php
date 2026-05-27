@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.2.4',
+    'version' => '1.2.5',
     'released_at' => '2026-05-27',
     'type' => 'patch',   // major | minor | patch
-    'notes' => 'Google Ads mode-specific Integration Setting fields',
+    'notes' => 'Lark Base Push to Lark legacy lead sync fix',
 ];

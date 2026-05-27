@@ -3,20 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Lead;
+use App\Jobs\ProcessLarkWebhookEvent;
 use App\Models\LarkBaseTable;
 use App\Models\LarkEvent;
 use App\Models\LarkIntegration;
-use App\Services\Lark\LarkService;
-use App\Services\Lark\LarkMessengerService;
-use App\Services\Lark\LarkTaskService;
-use App\Services\Lark\LarkCalendarService;
-use App\Services\Lark\LarkMeetingService;
+use App\Models\LarkSync;
+use App\Models\Lead;
 use App\Services\Lark\LarkBaseService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
+use App\Services\Lark\LarkService;
 use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class LarkController extends Controller
 {
@@ -30,7 +28,7 @@ class LarkController extends Controller
 
         $integration = LarkIntegration::where('tenant_id', $tenantId)->first();
 
-        if (!$integration) {
+        if (! $integration) {
             return response()->json([
                 'configured' => false,
                 'message' => 'Lark integration not configured',
@@ -67,10 +65,9 @@ class LarkController extends Controller
         $user = Auth::user();
         $tenantId = $user->tenant_id;
 
-
         $existingIntegration = LarkIntegration::where('tenant_id', $tenantId)->first();
 
-        if (!$existingIntegration && !$request->filled('app_secret')) {
+        if (! $existingIntegration && ! $request->filled('app_secret')) {
             return response()->json([
                 'success' => false,
                 'message' => 'App Secret is required when creating Lark configuration.',
@@ -87,11 +84,11 @@ class LarkController extends Controller
                 [
                     'app_id' => $request->app_id,
                     'app_secret_encrypted' => $appSecretEncrypted,
-                    'verification_token_encrypted' => $request->verification_token 
-                        ? encrypt($request->verification_token) 
+                    'verification_token_encrypted' => $request->verification_token
+                        ? encrypt($request->verification_token)
                         : ($existingIntegration?->verification_token_encrypted ?? null),
-                    'encrypt_key_encrypted' => $request->encrypt_key 
-                        ? encrypt($request->encrypt_key) 
+                    'encrypt_key_encrypted' => $request->encrypt_key
+                        ? encrypt($request->encrypt_key)
                         : ($existingIntegration?->encrypt_key_encrypted ?? null),
                     'base_url' => $request->base_url,
                     'enabled_modules' => $request->enabled_modules ?? ($existingIntegration->enabled_modules ?? []),
@@ -104,7 +101,7 @@ class LarkController extends Controller
 
             if ($testResult['success']) {
                 $integration->update(['is_active' => true]);
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Lark integration configured and verified',
@@ -115,7 +112,7 @@ class LarkController extends Controller
 
                 return response()->json([
                     'success' => false,
-                    'message' => 'Connection test failed: ' . $error,
+                    'message' => 'Connection test failed: '.$error,
                     'error' => $error,
                 ], 400);
             }
@@ -126,7 +123,7 @@ class LarkController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to save Lark integration: ' . $e->getMessage(),
+                'message' => 'Failed to save Lark integration: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -139,10 +136,9 @@ class LarkController extends Controller
         $user = Auth::user();
         $tenantId = $user->tenant_id;
 
-
         $integration = LarkIntegration::where('tenant_id', $tenantId)->first();
 
-        if (!$integration) {
+        if (! $integration) {
             return response()->json([
                 'success' => false,
                 'message' => 'Lark integration not configured',
@@ -176,7 +172,6 @@ class LarkController extends Controller
         $user = Auth::user();
         $tenantId = $user->tenant_id;
 
-
         $integration = LarkIntegration::where('tenant_id', $tenantId)->firstOrFail();
 
         if ($request->enabled) {
@@ -192,7 +187,7 @@ class LarkController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => ucfirst($request->module) . ' module ' . ($request->enabled ? 'enabled' : 'disabled'),
+            'message' => ucfirst($request->module).' module '.($request->enabled ? 'enabled' : 'disabled'),
             'enabled_modules' => $integration->enabled_modules,
         ]);
     }
@@ -205,8 +200,7 @@ class LarkController extends Controller
         $user = Auth::user();
         $tenantId = $user->tenant_id;
 
-
-        $syncs = \App\Models\LarkSync::where('tenant_id', $tenantId)
+        $syncs = LarkSync::where('tenant_id', $tenantId)
             ->orderBy('created_at', 'desc')
             ->paginate(50);
 
@@ -222,7 +216,6 @@ class LarkController extends Controller
     {
         $user = Auth::user();
         $tenantId = $user->tenant_id;
-
 
         $events = LarkEvent::where('tenant_id', $tenantId)
             ->orderBy('created_at', 'desc')
@@ -273,7 +266,7 @@ class LarkController extends Controller
             ]);
 
             // Dispatch to queue for processing
-            \App\Jobs\ProcessLarkWebhookEvent::dispatch($event);
+            ProcessLarkWebhookEvent::dispatch($event);
 
             return response()->json([
                 'code' => 0,
@@ -301,7 +294,7 @@ class LarkController extends Controller
 
         $integration = LarkIntegration::where('tenant_id', $tenantId)->first();
 
-        if (!$integration) {
+        if (! $integration) {
             return response()->json([
                 'configured' => false,
             ]);
@@ -416,15 +409,36 @@ class LarkController extends Controller
 
         $service = new LarkBaseService($this->tenantIntegration());
         $count = 0;
+        $attempted = 0;
+        $skipped = 0;
+        $errors = [];
 
         if ($request->direction === 'push') {
-            Lead::where('tenant_id', $baseTable->tenant_id)
+            Lead::where(function ($query) use ($baseTable) {
+                $query->where('tenant_id', $baseTable->tenant_id)
+                    ->orWhereNull('tenant_id');
+            })
                 ->with(['industry', 'funnelStage', 'owner'])
                 ->limit($request->integer('limit', 100))
                 ->get()
-                ->each(function (Lead $lead) use ($service, $baseTable, &$count): void {
-                    $service->upsertLead($lead, $baseTable);
-                    $count++;
+                ->each(function (Lead $lead) use ($service, $baseTable, &$count, &$attempted, &$skipped, &$errors): void {
+                    $attempted++;
+
+                    try {
+                        $mapping = $service->upsertLead($lead, $baseTable);
+
+                        if ($mapping) {
+                            $count++;
+                        } else {
+                            $skipped++;
+                        }
+                    } catch (Exception $exception) {
+                        $errors[] = [
+                            'lead_id' => $lead->id,
+                            'company_name' => $lead->company_name,
+                            'message' => $exception->getMessage(),
+                        ];
+                    }
                 });
         } else {
             $records = $service->getRecords($baseTable->app_token, $baseTable->table_id, [
@@ -434,17 +448,37 @@ class LarkController extends Controller
             foreach (($records['items'] ?? []) as $record) {
                 $recordId = $record['record_id'] ?? null;
                 if (! $recordId) {
+                    $skipped++;
+
                     continue;
                 }
 
-                $service->syncRecordToLead($baseTable, $recordId, $record);
-                $count++;
+                $attempted++;
+
+                try {
+                    $lead = $service->syncRecordToLead($baseTable, $recordId, $record);
+
+                    if ($lead) {
+                        $count++;
+                    } else {
+                        $skipped++;
+                    }
+                } catch (Exception $exception) {
+                    $errors[] = [
+                        'record_id' => $recordId,
+                        'message' => $exception->getMessage(),
+                    ];
+                }
             }
         }
 
         return response()->json([
-            'success' => true,
+            'success' => $errors === [],
             'synced_count' => $count,
+            'attempted_count' => $attempted,
+            'skipped_count' => $skipped,
+            'error_count' => count($errors),
+            'errors' => array_slice($errors, 0, 5),
         ]);
     }
 

@@ -667,7 +667,14 @@ export default function IntegrationsSettingsPage() {
     },
     onSuccess: (data) => {
       refetchBaseMappings();
-      setSuccessMsg(`Sync complete: ${data.synced_count || 0} records`);
+      if (data.success === false) {
+        const firstError = data.errors?.[0]?.message ? ` First error: ${data.errors[0].message}` : "";
+        setErrorMsg(`Sync completed with ${data.error_count || 0} errors. ${data.synced_count || 0}/${data.attempted_count || 0} records synced.${firstError}`);
+        setTimeout(() => setErrorMsg(''), 8000);
+        return;
+      }
+
+      setSuccessMsg(`Sync complete: ${data.synced_count || 0}/${data.attempted_count || 0} records`);
       setTimeout(() => setSuccessMsg(''), 4000);
     },
     onError: (error: any) => {
@@ -1742,10 +1749,20 @@ export default function IntegrationsSettingsPage() {
                         <p className="text-xs text-muted-foreground">{mapping.app_token} · {mapping.table_id} · {mapping.sync_direction} · {mapping.record_mappings_count || 0} linked records</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction: 'pull' })} disabled={syncBaseMappingMutation.isPending}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction: 'pull' })}
+                          disabled={syncBaseMappingMutation.isPending || mapping.sync_direction === 'leadsy_to_lark'}
+                        >
                           Pull from Lark
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction: 'push' })} disabled={syncBaseMappingMutation.isPending}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction: 'push' })}
+                          disabled={syncBaseMappingMutation.isPending || mapping.sync_direction === 'lark_to_leadsy'}
+                        >
                           Push to Lark
                         </Button>
                       </div>

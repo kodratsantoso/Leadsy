@@ -9,6 +9,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.2.5] — 2026-05-27 · Patch Release
+
+### What's New
+- **Lark Base Push Fix** — manual Push to Lark now includes legacy/global Lead records where `tenant_id` is empty, matching the existing generated/imported Lead data visible in the app.
+- **Clearer Sync Results** — Lark Base manual sync responses now include attempted, synced, skipped, and error counts, and Integration Setting surfaces partial failures instead of a generic failed state.
+- **Direction-Aware Controls** — saved Base mappings disable impossible push/pull actions when the mapping is one-way.
+
+### Quality
+- Added backend coverage for pushing both tenant-owned and legacy/global Leads into Lark Base without hitting live Lark APIs.
+
 ## [1.2.4] — 2026-05-27 · Patch Release
 
 ### What's New
