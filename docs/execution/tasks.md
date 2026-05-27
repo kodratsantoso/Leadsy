@@ -4,8 +4,21 @@
 - [x] Document long-term Leadsy roadmap to exceed ShareCRM-style CRM capability.
 - [x] Define phased roadmap from Sales Execution Pro through Predictive Revenue OS.
 - [x] Capture recommended next major improvement scope for v1.2.
+- [x] Mark long-term CRM expansion as on hold while the product refocuses on Lead Generator and Lead Intelligence.
 
-## v1.2 Sales Execution Pro (In Progress)
+## Lead Generator & Lead Intelligence Focus (Active)
+- [x] Create focused strategy document for Lead Generator and Lead Intelligence.
+- [ ] LG-001: Build Lead Generator Command Center for generated/imported/discovered leads.
+- [ ] LG-002: Build deduplication review and merge workflow.
+- [ ] LG-003: Add enrichment pipeline visibility and retry controls.
+- [ ] LG-004: Improve Geo Product Fit triage for generated leads.
+- [ ] LI-001: Create normalized Lead Intelligence Snapshot.
+- [ ] LI-002: Add Next Best Action recommendations.
+- [ ] LI-003: Improve scoring and qualification explainability.
+- [ ] LI-004: Improve Product Match Workbench.
+- [ ] LI-005: Feed meeting/transcript intelligence changes back into lead quality.
+
+## v1.2 Sales Execution Pro (On Hold)
 - [x] Add Lead Pool filter for unassigned leads.
 - [x] Add backend claim and assign/reassign endpoints with audit logs.
 - [x] Add Leads workspace owner column, claim action, and assign modal.

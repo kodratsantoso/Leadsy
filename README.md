@@ -8,7 +8,9 @@ Current release: **v1.1.0** — 2026-05-26
 
 ## What's New in Active Development
 
-- Started the v1.2 Sales Execution Pro roadmap with Lead Pool ownership controls: filter unassigned leads, claim leads, and assign/reassign owners from the Leads workspace.
+- Long-term CRM expansion is on hold while active development focuses on Lead Generator and Lead Intelligence.
+- Active focus plan: `docs/strategy/lead-generator-intelligence-focus.md`.
+- Recent completed slice from the paused v1.2 track: Lead Pool ownership controls with unassigned filter, claim, and assign/reassign owner actions.
 
 ## What's New in v1.1.0
 
@@ -170,5 +172,6 @@ Audited exceptions:
 ## Documentation
 
 - Long-term roadmap: `docs/strategy/leadsy-beyond-sharecrm-roadmap.md`
+- Active focus plan: `docs/strategy/lead-generator-intelligence-focus.md`
 - Phase 1 plan: `docs/execution/phase-1/plan.md`
 - Decisions (append-only): `docs/execution/decisions.md`

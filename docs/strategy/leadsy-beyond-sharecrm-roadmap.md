@@ -1,8 +1,10 @@
 # Leadsy Long-Term Product Plan: Beyond ShareCRM
 
-> Status: strategic roadmap  
-> Last updated: 2026-05-26  
+> Status: on hold
+> Last updated: 2026-05-27
 > Purpose: guide major product planning so Leadsy evolves from sales intelligence into an AI-first revenue operating system.
+
+> 2026-05-27 update: this long-term CRM expansion roadmap is paused. Active development focus has moved back to Lead Generator and Lead Intelligence. See `docs/strategy/lead-generator-intelligence-focus.md`.
 
 ## 1. Strategic Positioning
 
