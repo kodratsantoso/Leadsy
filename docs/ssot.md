@@ -112,6 +112,9 @@
 - `backend/database/migrations/2026_05_25_000000_create_lark_base_sync_tables.php` — added Lark Base table configuration and Leadsy/Lark record mapping tables before the snapshot import migration.
 - `backend/app/Models/LarkBaseTable.php` and `backend/app/Models/LarkBaseRecordMapping.php` — added tenant-aware models for Base sync configuration and record identity.
 - `backend/app/Services/Lark/LarkBaseService.php` — added table/field/record preview, Leadsy-to-Base upsert, and Base-to-Leadsy pull mapping.
+- `frontend/components/layout/app-shell.tsx` — moved Map & Territory under the new Leads Generator navigation group and added the social/platform generator submenu.
+- `frontend/app/lead-generator/page.tsx` and `frontend/app/lead-generator/platforms/page.tsx` — added Leads Generator landing and social/platform generator overview screens.
+- `frontend/app/settings/integrations/page.tsx` — renamed the settings surface to Integration Setting and added social media/platform credential inputs for Facebook, Instagram, TikTok, YouTube, LinkedIn, Google Ads, Mekari Qontak, CRMs, automation webhooks, and Hunter.io.
 - `frontend/app/settings/integrations/page.tsx` — added Lark Base manual Leadsy Leads field mapping, Auto Match assistance, table preview, and push/pull controls.
 - `mobile/` — added Expo/React Native Mobile Field Sales MVP for Android/iOS with login, Lead Inbox, Lead Detail, one-tap actions, Sales Visit, GPS Clock In/Out, camera evidence, client signature, and visit notes.
 - `scripts/mobile-expo-go.sh` — added Expo Go helper that detects the machine LAN IP, sets `EXPO_PUBLIC_API_BASE_URL`, and starts Expo in LAN mode for QR-based device testing.

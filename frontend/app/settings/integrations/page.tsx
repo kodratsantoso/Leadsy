@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs } from "@/components/ui/tabs";
 import Link from "next/link";
 
 type IntegrationConfig = {
@@ -19,6 +20,8 @@ type IntegrationConfig = {
   is_active: boolean;
   value_type: "string" | "boolean" | "number" | "json";
 };
+
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark";
 
 const asBooleanString = (value: unknown) => (value === true || value === "true" || value === 1 || value === "1" ? "true" : "false");
 const asStringValue = (value: unknown) => (value == null ? "" : String(value));
@@ -112,8 +115,57 @@ const DEFAULT_LUSHA: Record<string, IntegrationConfig> = {
   LUSHA_ENRICHMENT_PRIORITY:  { category: "lusha", key: "LUSHA_ENRICHMENT_PRIORITY",  value: "1",     is_secret: false, is_active: true, value_type: "number"  },
 };
 
+const LEAD_PLATFORM_DEFINITIONS = [
+  { id: "facebook", name: "Facebook", icon: Globe2, sso: true },
+  { id: "instagram", name: "Instagram", icon: Share2, sso: true },
+  { id: "tiktok", name: "TikTok", icon: Video, sso: true },
+  { id: "youtube", name: "YouTube", icon: Video, sso: true },
+  { id: "linkedin", name: "LinkedIn", icon: Share2, sso: true },
+  { id: "google_ads", name: "Google Ads", icon: Megaphone, sso: true },
+  { id: "mekari_qontak", name: "Mekari Qontak", icon: MessageSquare, sso: false },
+  { id: "hubspot", name: "HubSpot", icon: Database, sso: true },
+  { id: "salesforce", name: "Salesforce", icon: Database, sso: true },
+  { id: "pipedrive", name: "Pipedrive", icon: Database, sso: true },
+  { id: "zapier", name: "Zapier", icon: Share2, sso: false },
+  { id: "make", name: "Make", icon: Share2, sso: false },
+  { id: "hunter", name: "Hunter.io", icon: Key, sso: false },
+] as const;
+
+const LEAD_PLATFORM_FIELDS = [
+  { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
+  { suffix: "CLIENT_ID", label: "Client ID", value_type: "string", is_secret: false, defaultValue: "" },
+  { suffix: "CLIENT_SECRET", label: "Client Secret", value_type: "string", is_secret: true, defaultValue: "" },
+  { suffix: "ACCESS_TOKEN", label: "Access Token / API Key", value_type: "string", is_secret: true, defaultValue: "" },
+  { suffix: "ACCOUNT_ID", label: "Account / Pixel / Portal ID", value_type: "string", is_secret: false, defaultValue: "" },
+] as const;
+
+function leadPlatformKey(platformId: string, suffix: string) {
+  return `${platformId.toUpperCase()}_${suffix}`;
+}
+
+function createDefaultLeadPlatforms(): Record<string, IntegrationConfig> {
+  return Object.fromEntries(
+    LEAD_PLATFORM_DEFINITIONS.flatMap((platform) =>
+      LEAD_PLATFORM_FIELDS.map((field) => {
+        const key = leadPlatformKey(platform.id, field.suffix);
+        return [
+          key,
+          {
+            category: "lead_platforms",
+            key,
+            value: field.defaultValue,
+            is_secret: field.is_secret,
+            is_active: true,
+            value_type: field.value_type,
+          },
+        ];
+      })
+    )
+  ) as Record<string, IntegrationConfig>;
+}
+
 export default function IntegrationsSettingsPage() {
-  const [tab, setTab] = useState<"maps" | "whatsapp" | "lusha" | "webhooks" | "lark">("maps");
+  const [tab, setTab] = useState<TabKey>("lead_platforms");
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -122,6 +174,7 @@ export default function IntegrationsSettingsPage() {
   const [mapsConfig, setMapsConfig]         = useState<Record<string, IntegrationConfig>>(DEFAULT_MAPS);
   const [whatsappConfig, setWhatsappConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_WHATSAPP);
   const [lushaConfig, setLushaConfig]       = useState<Record<string, IntegrationConfig>>(DEFAULT_LUSHA);
+  const [leadPlatformsConfig, setLeadPlatformsConfig] = useState<Record<string, IntegrationConfig>>(createDefaultLeadPlatforms);
   const [larkConfig, setLarkConfig] = useState({
     app_id: '',
     app_secret: '',
@@ -183,6 +236,17 @@ export default function IntegrationsSettingsPage() {
             };
           });
           setLushaConfig(next);
+        }
+
+        if (json.data.lead_platforms) {
+          const next = createDefaultLeadPlatforms();
+          (json.data.lead_platforms as IntegrationConfig[]).forEach((c) => {
+            next[c.key] = {
+              ...c,
+              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
+            };
+          });
+          setLeadPlatformsConfig(next);
         }
       })
       .catch(err => console.warn("Integration config load:", err))
@@ -553,9 +617,9 @@ export default function IntegrationsSettingsPage() {
   return (
     <div className="space-y-6 p-6 max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Integration Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Integration Setting</h1>
         <p className="text-sm text-muted-foreground">
-          Manage non-AI API keys, endpoints, and third-party systems.
+          Manage social media, ad platform, CRM, event, SSO, and non-AI integration credentials.
         </p>
       </div>
 
@@ -566,29 +630,132 @@ export default function IntegrationsSettingsPage() {
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-4 border-b border-border">
-        {[
-          { id: "maps",      label: "Google Maps", icon: MapPin },
-          { id: "whatsapp",  label: "WhatsApp",    icon: MessageSquare },
-          { id: "lusha",     label: "Lusha",       icon: Key },
-          { id: "lark",      label: "Lark",        icon: Key },
-          { id: "webhooks",  label: "Webhooks",    icon: Key },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id as any)}
-            className={`flex items-center gap-2 border-b-2 px-1 pb-2.5 text-sm font-medium capitalize transition-colors ${
-              tab === t.id
-                ? "border-indigo-500 text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <t.icon className="h-4 w-4" />
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        value={tab}
+        onValueChange={setTab}
+        items={[
+          { key: "lead_platforms", label: "Lead Platforms", icon: Share2 },
+          { key: "maps", label: "Google Maps", icon: MapPin },
+          { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
+          { key: "lusha", label: "Lusha", icon: Key },
+          { key: "lark", label: "Lark", icon: Key },
+          { key: "webhooks", label: "Webhooks", icon: Key },
+        ]}
+      />
+
+      {tab === "lead_platforms" && (
+        <div className="space-y-4">
+          <Card className="p-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Social Media & Platform Credentials</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Prepare credentials for inbound lead generators and future SSO login buttons. Secrets are saved through the encrypted integration settings store; provider OAuth activation needs the Phase 2 backend routes.
+                </p>
+              </div>
+              <Badge variant="warning">OAuth routes pending</Badge>
+            </div>
+          </Card>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            {LEAD_PLATFORM_DEFINITIONS.map((platform) => {
+              const enabledKey = leadPlatformKey(platform.id, "ENABLED");
+              const Icon = platform.icon;
+              return (
+                <Card key={platform.id} className="p-5">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--surface-strong)]">
+                        <Icon className="h-5 w-5 text-[color:var(--brand)]" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold">{platform.name}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {platform.sso ? "OAuth/SSO + manual credentials" : "Manual token or webhook credentials"}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={leadPlatformsConfig[enabledKey]?.value === "true" ? "success" : "neutral"}>
+                      {leadPlatformsConfig[enabledKey]?.value === "true" ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
+                      <span className="text-sm font-medium">Enable {platform.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={leadPlatformsConfig[enabledKey]?.value === "true"}
+                        onChange={(e) => setLeadPlatformsConfig((current) => ({
+                          ...current,
+                          [enabledKey]: {
+                            ...current[enabledKey],
+                            value: e.target.checked ? "true" : "false",
+                          },
+                        }))}
+                        className="h-4 w-4 rounded border-border"
+                      />
+                    </label>
+
+                    {LEAD_PLATFORM_FIELDS.filter((field) => field.suffix !== "ENABLED").map((field) => {
+                      const key = leadPlatformKey(platform.id, field.suffix);
+                      return (
+                        <div key={key}>
+                          <label className="text-xs font-medium">{field.label}</label>
+                          <Input
+                            className="mt-1"
+                            type={field.is_secret ? "password" : "text"}
+                            value={leadPlatformsConfig[key]?.value ?? ""}
+                            placeholder={field.is_secret ? "Encrypted after save" : `${platform.name} ${field.label}`}
+                            autoComplete="off"
+                            spellCheck={false}
+                            onChange={(e) => setLeadPlatformsConfig((current) => ({
+                              ...current,
+                              [key]: {
+                                ...current[key],
+                                value: e.target.value,
+                              },
+                            }))}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button variant="outline" disabled>
+                      Login with {platform.name}
+                    </Button>
+                    <Button variant="ghost" disabled>
+                      Test Connection
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => handleSave("lead_platforms", leadPlatformsConfig)}
+              disabled={saving}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Save Platform Credentials
+            </Button>
+            {successMsg && (
+              <span className="flex items-center gap-1 text-sm font-medium text-[color:var(--success)]">
+                <CheckCircle2 className="h-4 w-4" /> {successMsg}
+              </span>
+            )}
+            {errorMsg && (
+              <span className="flex items-center gap-1 text-sm font-medium text-[color:var(--danger)]">
+                <AlertCircle className="h-4 w-4" /> {errorMsg}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Google Maps ── */}
       {tab === "maps" && (

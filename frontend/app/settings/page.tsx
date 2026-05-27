@@ -13,7 +13,7 @@ const settingsItems = [
   { icon: GitBranch, title: "Lead Channels",         desc: "Channel types nested under lead sources for deeper classification",  href: "/settings/lead-channels", color: "bg-[color:var(--status-info)]" },
   { icon: GitBranch, title: "Lead Stages",           desc: "Pipeline stage master data used by lead movement and funnels",       href: "/settings/lead-stages",   color: "bg-[color:var(--status-info)]" },
   { icon: Coins,     title: "Currency",              desc: "Currency master data, separators, and decimal display format",       href: "/settings/currency",      color: "bg-[color:var(--status-success)]" },
-  { icon: Key,       title: "Integration & API Keys",desc: "Google Maps, WhatsApp, Lusha, and other non-AI integrations",        href: "/settings/integrations",  color: "bg-[color:var(--status-warning)]" },
+  { icon: Key,       title: "Integration Setting",    desc: "Social media, ad platform, CRM, SSO, Maps, WhatsApp, and non-AI credentials", href: "/settings/integrations",  color: "bg-[color:var(--status-warning)]" },
   { icon: Webhook,   title: "Webhooks",              desc: "Webhook URL configuration and event management",                     href: "/settings/webhooks",      color: "bg-[color:var(--status-info)]" },
   { icon: Globe,     title: "Environment",           desc: "Runtime environment overview and configuration",                     href: "/settings/environment",   color: "bg-[color:var(--status-info)]" },
   { icon: Bell,      title: "Notifications",         desc: "In-app, email, and integration alert preferences",                  href: "/settings/notifications", color: "bg-[color:var(--brand)]" },

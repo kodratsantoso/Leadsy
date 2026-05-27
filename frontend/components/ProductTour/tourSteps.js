@@ -4,7 +4,7 @@ export const tourSteps = [
     route: "/",
     target: "[data-tour='sidebar-nav']",
     title: "Main Navigation",
-    content: "Use the sidebar to move between Dashboard, Map, Leads, Products, WhatsApp, and Settings. The available items follow your role permissions.",
+    content: "Use the sidebar to move between Dashboard, Leads Generator, Leads, Products, WhatsApp, and Settings. The available items follow your role permissions.",
     placement: "right",
     action: null,
     disableOverlay: false,

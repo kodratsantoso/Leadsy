@@ -56,6 +56,7 @@ Use `scripts/bootstrap-backend.sh` **or** follow `backend/README.md` to create t
 | Feature | Location |
 |---------|----------|
 | Product Tour | `components/ProductTour/` — 14-step guided tour, auto-starts on first visit, minimizable, restartable via the `?` button in the header |
+| Leads Generator | `app/lead-generator/page.tsx`, `app/lead-generator/platforms/page.tsx`, `app/map/page.tsx` — groups Map & Territory with social/platform generator channels |
 | Lark SSO | `app/login/page.tsx`, `app/auth/lark/callback/page.tsx` — tenant-aware Lark login starts from the login screen; callback stores the returned Sanctum token before routing to the dashboard |
 | Lark Base Mapping | `app/settings/integrations/page.tsx` — maps Leadsy Leads fields to Lark Base fields, previews selected table records, and triggers manual pull/push sync |
 | Product Question Guide | `components/products/QuestionGuide.tsx` — AI-generated + user-editable requirement question guide per product, shown in each product's expanded card |
