@@ -18,6 +18,7 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ### Quality
 - Added feature tests for score gating, preview-only candidate storage, and reveal-to-contact persistence.
+- Refreshed deploy database snapshots after applying the contact enrichment candidate migration.
 
 ## [1.2.1] — 2026-05-27 · Patch Release
 
