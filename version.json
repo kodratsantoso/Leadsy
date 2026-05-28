@@ -1,6 +1,6 @@
 {
-  "version": "1.2.7",
-  "released_at": "2026-05-27",
+  "version": "1.2.8",
+  "released_at": "2026-05-28",
   "type": "patch",
-  "notes": "Lark Base field type coercion and setup guide"
+  "notes": "AI LinkedIn contact search and contact-level Lusha enrichment"
 }

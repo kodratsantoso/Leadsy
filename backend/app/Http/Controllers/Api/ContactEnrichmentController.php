@@ -8,12 +8,108 @@ use App\Models\Lead;
 use App\Models\LeadContact;
 use App\Services\AuditService;
 use App\Services\Enrichment\Providers\LushaProvider;
+use App\Services\Lead\LeadContactAiSearchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ContactEnrichmentController extends Controller
 {
     private const MIN_LUSHA_SCORE = 60;
+
+    public function aiCandidates(Request $request, Lead $lead): JsonResponse
+    {
+        $candidates = $lead->contactEnrichmentCandidates()
+            ->where('provider', 'AI_LINKEDIN')
+            ->whereIn('status', ['previewed', 'added'])
+            ->latest()
+            ->limit(20)
+            ->get()
+            ->map(fn (ContactEnrichmentCandidate $candidate): array => $this->candidatePayload($candidate));
+
+        return response()->json(['data' => $candidates]);
+    }
+
+    public function searchAiLinkedin(Request $request, Lead $lead, LeadContactAiSearchService $search): JsonResponse
+    {
+        if (empty($lead->company_name)) {
+            return response()->json(['message' => 'Lead company name is required before AI contact search.'], 422);
+        }
+
+        $result = $search->search($lead);
+        if (! $result['success']) {
+            return response()->json(['message' => $result['error'] ?? 'AI contact search failed.'], 422);
+        }
+
+        $candidates = collect($result['candidates'] ?? [])->map(function (array $candidate) use ($lead, $request) {
+            $model = ContactEnrichmentCandidate::updateOrCreate(
+                [
+                    'lead_id' => $lead->id,
+                    'provider' => 'AI_LINKEDIN',
+                    'provider_candidate_id' => $candidate['provider_candidate_id'],
+                ],
+                [
+                    'created_by' => $request->user()?->id,
+                    'name' => $candidate['name'],
+                    'title' => $candidate['title'] ?: null,
+                    'company_name' => $candidate['company_name'] ?: $lead->company_name,
+                    'company_domain' => $candidate['company_domain'] ?: null,
+                    'has_email' => false,
+                    'has_phone' => false,
+                    'reveal_email_credits' => 0,
+                    'reveal_phone_credits' => 0,
+                    'status' => 'previewed',
+                    'raw_preview' => $candidate,
+                    'expires_at' => now()->addDays(14),
+                ]
+            );
+
+            return $this->candidatePayload($model);
+        })->values();
+
+        AuditService::log('ai_linkedin_contact_search', 'leads', $lead, null, [
+            'candidate_count' => $candidates->count(),
+            'ai_model' => $result['ai_model'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'AI LinkedIn contact candidates loaded.',
+            'data' => $candidates,
+            'meta' => ['ai_model' => $result['ai_model'] ?? null],
+        ]);
+    }
+
+    public function addAiCandidateToContact(
+        Request $request,
+        Lead $lead,
+        ContactEnrichmentCandidate $candidate
+    ): JsonResponse {
+        if ((int) $candidate->lead_id !== (int) $lead->id || $candidate->provider !== 'AI_LINKEDIN') {
+            return response()->json(['message' => 'Contact candidate does not belong to this lead.'], 404);
+        }
+
+        if ($candidate->expires_at && $candidate->expires_at->isPast()) {
+            return response()->json(['message' => 'This AI search candidate expired. Run search again before adding it.'], 422);
+        }
+
+        $contact = $this->mergeAiSearchContact($lead, $candidate);
+        $candidate->update([
+            'status' => 'added',
+            'revealed_at' => now(),
+        ]);
+
+        AuditService::log('ai_linkedin_contact_added', 'lead_contacts', $contact, null, [
+            'lead_id' => $lead->id,
+            'candidate_id' => $candidate->id,
+        ]);
+
+        return response()->json([
+            'message' => 'AI search candidate added to this lead contact.',
+            'data' => [
+                'contact' => $contact->fresh('payloads'),
+                'candidate' => $this->candidatePayload($candidate->fresh()),
+            ],
+        ]);
+    }
 
     public function lushaCandidates(Request $request, Lead $lead): JsonResponse
     {
@@ -188,6 +284,46 @@ class ContactEnrichmentController extends Controller
         return $contact;
     }
 
+    private function mergeAiSearchContact(Lead $lead, ContactEnrichmentCandidate $candidate): LeadContact
+    {
+        $raw = $candidate->raw_preview ?? [];
+        $linkedinUrl = $raw['linkedin_url'] ?? null;
+
+        $query = $lead->contacts();
+        if (! empty($linkedinUrl)) {
+            $query->where('linkedin_url', $linkedinUrl);
+        } else {
+            $query->where('name', $candidate->name);
+        }
+
+        $contact = $query->first();
+        $values = [
+            'name' => $candidate->name,
+            'title' => $candidate->title,
+            'linkedin_url' => $linkedinUrl,
+            'confidence_score' => $raw['confidence_score'] ?? 70,
+            'confidence' => (($raw['confidence_score'] ?? 70) >= 80) ? 'high' : 'medium',
+            'source' => 'AI_SEARCH',
+        ];
+
+        if ($contact) {
+            $contact->update(collect($values)
+                ->filter(fn ($value, string $key): bool => $value !== null && empty($contact->{$key}))
+                ->all());
+        } else {
+            $contact = $lead->contacts()->create($values + [
+                'is_primary' => ! $lead->contacts()->where('is_primary', true)->exists(),
+            ]);
+        }
+
+        $contact->payloads()->create([
+            'source_type' => 'AI_LINKEDIN',
+            'raw_payload' => $raw,
+        ]);
+
+        return $contact;
+    }
+
     private function authorizeLushaGate(Lead $lead): void
     {
         abort_if($this->currentScore($lead) < self::MIN_LUSHA_SCORE, 422, 'Lusha enrichment is available after the lead reaches an initial score of 60.');
@@ -223,6 +359,11 @@ class ContactEnrichmentController extends Controller
             'status' => $candidate->status,
             'expires_at' => $candidate->expires_at,
             'revealed_at' => $candidate->revealed_at,
+            'linkedin_url' => $candidate->raw_preview['linkedin_url'] ?? null,
+            'linkedin_id' => $candidate->raw_preview['linkedin_id'] ?? null,
+            'confidence_score' => $candidate->raw_preview['confidence_score'] ?? null,
+            'relevance_reason' => $candidate->raw_preview['relevance_reason'] ?? null,
+            'evidence' => $candidate->raw_preview['evidence'] ?? null,
         ];
     }
 }

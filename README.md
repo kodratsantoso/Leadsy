@@ -4,7 +4,14 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.2.7** — 2026-05-27
+Current release: **v1.2.8** — 2026-05-28
+
+## What's New in v1.2.8
+
+- Lead Detail Contacts now supports Add Contact → Search by AI for LinkedIn PIC discovery from the lead company name.
+- Settings → AI Default now includes the `lead_contact_ai_search` feature route for choosing the AI provider/model behind contact search.
+- AI Search candidates stay as previews until the user clicks Add to Contact, then they become lead contact records with LinkedIn URL/ID context.
+- Lusha is now exposed from each LinkedIn-backed contact, so hidden email/phone enrichment runs after a contact exists instead of replacing Add Contact.
 
 ## What's New in v1.2.7
 

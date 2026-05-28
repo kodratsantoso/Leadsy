@@ -26,6 +26,7 @@ class AIRoutingService
         'geo_product_fit_analysis' => 'Geo Product Fit Analysis',
         'product_question_generation' => 'Product Question Guide Generation',
         'lead_bantc_question_generation' => 'Lead BANTC Question Guide Generation',
+        'lead_contact_ai_search' => 'Lead Contact AI Search',
     ];
 
     public function listRoutes(): Collection

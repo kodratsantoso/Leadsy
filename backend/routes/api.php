@@ -120,6 +120,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('leads/{lead}/contacts/{contact}', [LeadController::class, 'deleteContact'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts/{contact}/set-primary', [LeadController::class, 'setPrimaryContact'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/enrich-contacts', [LeadController::class, 'triggerContactEnrichment'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/contact-enrichment/ai-linkedin/candidates', [ContactEnrichmentController::class, 'aiCandidates'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/contact-enrichment/ai-linkedin/search', [ContactEnrichmentController::class, 'searchAiLinkedin'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/contact-enrichment/ai-linkedin/candidates/{candidate}/add-contact', [ContactEnrichmentController::class, 'addAiCandidateToContact'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/contact-enrichment/lusha/candidates', [ContactEnrichmentController::class, 'lushaCandidates'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/contact-enrichment/lusha/search', [ContactEnrichmentController::class, 'searchLusha'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contact-enrichment/lusha/candidates/{candidate}/reveal-phone', [ContactEnrichmentController::class, 'revealLushaPhone'])->middleware('permission:leads.edit');

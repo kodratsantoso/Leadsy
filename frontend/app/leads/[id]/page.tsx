@@ -12,7 +12,7 @@ import {
   Phone, Mail, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info,
+  Activity, Info, Search, ExternalLink,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -91,6 +91,20 @@ type LushaCandidate = {
   has_email: boolean;
   has_phone: boolean;
   reveal_phone_credits: number;
+  status: string;
+};
+
+type AiContactCandidate = {
+  id: number;
+  name: string | null;
+  title: string | null;
+  company_name: string | null;
+  company_domain: string | null;
+  linkedin_url?: string | null;
+  linkedin_id?: string | null;
+  confidence_score?: number | null;
+  relevance_reason?: string | null;
+  evidence?: string | null;
   status: string;
 };
 
@@ -397,6 +411,170 @@ function ContactFormModal({
   );
 }
 
+function AddContactModal({
+  mode,
+  setMode,
+  candidates,
+  feedback,
+  searching,
+  adding,
+  saving,
+  onSearch,
+  onAddCandidate,
+  onClose,
+  onSaveManual,
+}: {
+  mode: 'manual' | 'ai';
+  setMode: (mode: 'manual' | 'ai') => void;
+  candidates: AiContactCandidate[];
+  feedback: { type: 'success' | 'error'; msg: string } | null;
+  searching: boolean;
+  adding: boolean;
+  saving: boolean;
+  onSearch: () => void;
+  onAddCandidate: (candidateId: number) => void;
+  onClose: () => void;
+  onSaveManual: (data: ContactFormData) => void;
+}) {
+  const [form, setForm] = useState<ContactFormData>(EMPTY_FORM);
+  const set = (k: keyof ContactFormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  return (
+    <Modal
+      open
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      title="Add Contact"
+      description="Choose manual entry or AI Search to find LinkedIn PIC candidates from this company."
+      size="lg"
+      footer={
+        mode === 'manual' ? (
+          <>
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={() => onSaveManual(form)} disabled={saving || !form.name.trim()}>
+              {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save Contact
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="outline" onClick={onClose}>Close</Button>
+            <Button onClick={onSearch} disabled={searching}>
+              {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              Search by AI
+            </Button>
+          </>
+        )
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Add Method</label>
+          <Select value={mode} onChange={(e) => setMode(e.target.value as 'manual' | 'ai')}>
+            <option value="manual">Manual Add</option>
+            <option value="ai">Search by AI</option>
+          </Select>
+        </div>
+
+        {mode === 'manual' ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Name *</label>
+              <Input value={form.name} onChange={set('name')} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Job Title / Role</label>
+              <Input value={form.title} onChange={set('title')} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
+              <Input type="email" value={form.email} onChange={set('email')} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
+              <Input type="tel" value={form.phone} onChange={set('phone')} />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+              AI Search uses the configured Settings → AI Default route for <strong>Lead Contact AI Search</strong>. It creates contact records only after you select Add to Contact.
+            </div>
+
+            {feedback ? (
+              <div className={cn(
+                'rounded-xl border p-3 text-xs',
+                feedback.type === 'success'
+                  ? 'border-[var(--status-success)]/30 bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]'
+                  : 'border-[var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
+              )}>
+                {feedback.msg}
+              </div>
+            ) : null}
+
+            {candidates.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">LinkedIn PIC Candidates</p>
+                  <Badge variant="neutral">{candidates.length} found</Badge>
+                </div>
+                {candidates.map((candidate) => (
+                  <div key={candidate.id} className="rounded-xl border border-border p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-medium">{candidate.name || 'Unnamed contact'}</p>
+                          <Badge variant={candidate.status === 'added' ? 'success' : 'info'}>
+                            {candidate.status === 'added' ? 'Added' : `${candidate.confidence_score ?? 0}%`}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{candidate.title || 'Role unavailable'}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {candidate.company_name || 'Company unavailable'}
+                          {candidate.linkedin_id ? ` · ${candidate.linkedin_id}` : ''}
+                        </p>
+                        {candidate.relevance_reason && (
+                          <p className="mt-2 text-xs text-muted-foreground">{candidate.relevance_reason}</p>
+                        )}
+                      </div>
+                      {candidate.linkedin_url ? (
+                        <a
+                          href={candidate.linkedin_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }))}
+                          aria-label="Open LinkedIn profile"
+                          title="Open LinkedIn profile"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        size="sm"
+                        disabled={candidate.status === 'added' || adding}
+                        onClick={() => onAddCandidate(candidate.id)}
+                      >
+                        {adding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        Add to Contact
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Run Search by AI to find LinkedIn users, public LinkedIn IDs, job titles, and relevance notes.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function LeadDetailPage() {
@@ -423,10 +601,11 @@ export default function LeadDetailPage() {
 
   // Contact UI state
   const [showAddContact, setShowAddContact]       = useState(false);
+  const [addContactMode, setAddContactMode]       = useState<'manual' | 'ai'>('manual');
   const [editingContact, setEditingContact]       = useState<any | null>(null);
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
   const [showEnrichModal, setShowEnrichModal]     = useState(false);
-  const [selectedEnrichSources, setSelectedEnrichSources] = useState<string[]>(['lusha']);
+  const [lushaContact, setLushaContact]           = useState<any | null>(null);
   const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   // Activity form state (controlled)
@@ -624,6 +803,45 @@ export default function LeadDetailPage() {
     mutationFn: (contactId: number) =>
       apiFetch(`/leads/${leadId}/contacts/${contactId}/set-primary`, { method: 'POST' }),
     onSuccess: invalidateLead,
+  });
+
+  const { data: aiContactCandidatesData, refetch: refetchAiContactCandidates } = useQuery({
+    queryKey: ['lead-ai-contact-candidates', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/ai-linkedin/candidates`).then((r) => r.json()),
+    enabled: showAddContact && addContactMode === 'ai',
+  });
+
+  const searchAiContactsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/ai-linkedin/search`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to search LinkedIn contacts');
+      return json;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['lead-ai-contact-candidates', leadId] });
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'AI LinkedIn candidates loaded' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search LinkedIn contacts' });
+    },
+  });
+
+  const addAiCandidateMutation = useMutation({
+    mutationFn: async (candidateId: number) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/ai-linkedin/candidates/${candidateId}/add-contact`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to add AI candidate');
+      return json;
+    },
+    onSuccess: (data) => {
+      invalidateLead();
+      refetchAiContactCandidates();
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Candidate added to contacts' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add AI candidate' });
+    },
   });
 
   const { data: lushaCandidatesData, refetch: refetchLushaCandidates } = useQuery({
@@ -923,19 +1141,7 @@ export default function LeadDetailPage() {
   const leadInitialScore = Number(latestScore?.score ?? leadData.lead_score ?? 0);
   const lushaEligible = leadInitialScore >= 60;
   const lushaCandidates: LushaCandidate[] = lushaCandidatesData?.data || [];
-
-  const ENRICH_SOURCES = [
-    {
-      id: 'lusha',
-      label: 'Lusha',
-      available: lushaEligible,
-      note: lushaEligible ? 'Preview PIC candidates before revealing phone' : 'Requires initial lead score of 60+',
-    },
-    { id: 'linkedin', label: 'LinkedIn',          available: false, note: 'Requires LinkedIn API key' },
-    { id: 'apollo',   label: 'Apollo.io',         available: false, note: 'Requires Apollo API key' },
-    { id: 'hunter',   label: 'Hunter.io',         available: false, note: 'Requires Hunter API key' },
-    { id: 'manual',   label: 'Manual Input',      available: true,  note: 'Add contacts manually' },
-  ];
+  const aiContactCandidates: AiContactCandidate[] = aiContactCandidatesData?.data || [];
 
   function openActivityModal(existing?: any) {
     if (existing) {
@@ -1244,19 +1450,16 @@ export default function LeadDetailPage() {
         <div className="space-y-4">
           {/* Action bar */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setShowAddContact(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-[var(--brand)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--brand-hover)]"
+            <Button
+              onClick={() => {
+                setAddContactMode('manual');
+                setEnrichmentFeedback(null);
+                setShowAddContact(true);
+              }}
+              size="sm"
             >
               <Plus className="h-3.5 w-3.5" /> Add Contact
-            </button>
-            <button
-              onClick={() => setShowEnrichModal(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--brand)]/40 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-2 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)]"
-            >
-              <Zap className="h-3.5 w-3.5" />
-              Enrich Contacts
-            </button>
+            </Button>
           </div>
 
           {/* Contacts list */}
@@ -1265,7 +1468,7 @@ export default function LeadDetailPage() {
               <User className="mb-3 h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm font-medium text-muted-foreground">No contacts yet</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Add manually or trigger Lusha enrichment to discover contacts.
+                Add manually or use AI Search from Add Contact to discover LinkedIn PIC candidates.
               </p>
             </div>
           ) : (
@@ -1299,6 +1502,16 @@ export default function LeadDetailPage() {
                       )}
 
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                        {contact.linkedin_url && (
+                          <a
+                            href={contact.linkedin_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="h-3 w-3" /> LinkedIn
+                          </a>
+                        )}
                         {contact.email && (
                           <a
                             href={`mailto:${contact.email}`}
@@ -1324,6 +1537,25 @@ export default function LeadDetailPage() {
 
                     {/* Actions */}
                     <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        disabled={!lushaEligible || !contact.linkedin_url}
+                        tooltip={
+                          !contact.linkedin_url
+                            ? 'Lusha requires a LinkedIn contact first'
+                            : !lushaEligible
+                              ? 'Requires initial lead score of 60+'
+                              : 'Search hidden email and phone with Lusha'
+                        }
+                        onClick={() => {
+                          setLushaContact(contact);
+                          setShowEnrichModal(true);
+                          setEnrichmentFeedback(null);
+                        }}
+                      >
+                        <Zap className="h-3.5 w-3.5" /> Lusha
+                      </Button>
                       {!contact.is_primary && (
                         <button
                           onClick={() => setPrimaryMutation.mutate(contact.id)}
@@ -2507,12 +2739,24 @@ export default function LeadDetailPage() {
 
       {/* ── Add Contact Modal ── */}
       {showAddContact && (
-        <ContactFormModal
-          title="Add Contact"
-          initial={EMPTY_FORM}
+        <AddContactModal
+          mode={addContactMode}
+          setMode={(mode) => {
+            setAddContactMode(mode);
+            setEnrichmentFeedback(null);
+          }}
+          candidates={aiContactCandidates}
+          feedback={enrichmentFeedback}
+          searching={searchAiContactsMutation.isPending}
+          adding={addAiCandidateMutation.isPending}
           saving={addContactMutation.isPending}
-          onClose={() => setShowAddContact(false)}
-          onSave={(data) => addContactMutation.mutate(data)}
+          onSearch={() => searchAiContactsMutation.mutate()}
+          onAddCandidate={(candidateId) => addAiCandidateMutation.mutate(candidateId)}
+          onClose={() => {
+            setShowAddContact(false);
+            setEnrichmentFeedback(null);
+          }}
+          onSaveManual={(data) => addContactMutation.mutate(data)}
         />
       )}
 
@@ -2941,59 +3185,43 @@ export default function LeadDetailPage() {
         open={showEnrichModal}
         onOpenChange={(open) => {
           setShowEnrichModal(open);
-          if (!open) setEnrichmentFeedback(null);
+          if (!open) {
+            setEnrichmentFeedback(null);
+            setLushaContact(null);
+          }
         }}
-        title="Enrich Contacts"
-        description="Preview PIC candidates first. Phone reveal is saved to this lead only after confirmation."
+        title="Lusha Contact Enrichment"
+        description="Search hidden email and phone data for the selected LinkedIn contact."
         size="sm"
         footer={
           <>
             <Button variant="outline" onClick={() => setShowEnrichModal(false)}>Cancel</Button>
             <Button
               onClick={() => searchLushaMutation.mutate()}
-              disabled={searchLushaMutation.isPending || !selectedEnrichSources.includes('lusha') || !lushaEligible}
+              disabled={searchLushaMutation.isPending || !lushaEligible || !lushaContact?.linkedin_url}
             >
               {searchLushaMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Search PIC
+              Search Lusha
             </Button>
           </>
         }
       >
         <div className="space-y-3">
-          {ENRICH_SOURCES.map((src) => (
-            <label
-              key={src.id}
-              className={`flex items-start gap-3 rounded-xl border p-3 transition-colors cursor-pointer ${
-                src.available
-                  ? 'border-border hover:bg-muted/30'
-                  : 'border-border/50 opacity-50 cursor-not-allowed'
-              }`}
-            >
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                disabled={!src.available}
-                checked={src.available && selectedEnrichSources.includes(src.id)}
-                onChange={(e) =>
-                  setSelectedEnrichSources((prev) =>
-                    e.target.checked ? [...prev, src.id] : prev.filter((s) => s !== src.id)
-                  )
-                }
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{src.label}</span>
-                  {src.available
-                    ? <Badge variant="success">Active</Badge>
-                    : <Badge variant="neutral">Not configured</Badge>}
+          {lushaContact ? (
+            <div className="rounded-xl border border-border p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{lushaContact.name}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{lushaContact.title || 'Role unavailable'}</p>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">{lushaContact.linkedin_url}</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{src.note}</p>
+                <SourceBadge source={lushaContact.source} />
               </div>
-            </label>
-          ))}
+            </div>
+          ) : null}
           <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
             <p>Lead score: <strong>{leadInitialScore}</strong>. Lusha is available when the initial score reaches 60.</p>
-            <p className="mt-1">Search may use Lusha API search billing. Phone reveal happens only when you confirm a candidate below.</p>
+            <p className="mt-1">Search may use Lusha API billing. Reveal happens only when you confirm a matching candidate below.</p>
           </div>
 
           {enrichmentFeedback ? (
@@ -3054,7 +3282,7 @@ export default function LeadDetailPage() {
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Search Lusha to preview PIC names and roles. Revealed phone numbers will be written to this lead contact list after confirmation.
+              Search Lusha after selecting a LinkedIn contact. Revealed phone numbers will be written to this lead contact list after confirmation.
             </p>
           )}
         </div>
