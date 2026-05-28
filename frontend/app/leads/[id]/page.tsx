@@ -606,6 +606,7 @@ export default function LeadDetailPage() {
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
   const [showEnrichModal, setShowEnrichModal]     = useState(false);
   const [lushaContact, setLushaContact]           = useState<any | null>(null);
+  const [confirmingLushaCandidate, setConfirmingLushaCandidate] = useState<LushaCandidate | null>(null);
   const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   // Activity form state (controlled)
@@ -888,6 +889,7 @@ export default function LeadDetailPage() {
     onSuccess: (data) => {
       invalidateLead();
       refetchLushaCandidates();
+      setConfirmingLushaCandidate(null);
       setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Lusha phone saved to contacts' });
     },
     onError: (error: any) => {
@@ -1157,6 +1159,9 @@ export default function LeadDetailPage() {
       ? lushaCandidatesData.data
       : (searchLushaMutation.data?.data || []);
   const aiContactCandidates: AiContactCandidate[] = aiContactCandidatesData?.data || [];
+  const lushaContactOptions = contacts.filter((contact: any) =>
+    Boolean(contact.linkedin_url || contact.email || String(contact.name ?? '').trim().split(/\s+/).length > 1)
+  );
 
   function openActivityModal(existing?: any) {
     if (existing) {
@@ -1475,6 +1480,27 @@ export default function LeadDetailPage() {
             >
               <Plus className="h-3.5 w-3.5" /> Add Contact
             </Button>
+            <Button
+              onClick={() => {
+                setLushaContact(lushaContactOptions[0] ?? null);
+                setEnrichmentFeedback(null);
+                qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
+                searchLushaMutation.reset();
+                setShowEnrichModal(true);
+              }}
+              disabled={!lushaEligible || lushaContactOptions.length === 0}
+              variant="outline"
+              size="sm"
+              tooltip={
+                !lushaEligible
+                  ? 'Requires initial lead score of 60+'
+                  : lushaContactOptions.length === 0
+                    ? 'Add a contact with LinkedIn, email, or full name first'
+                    : 'Search Lusha for hidden email and phone data'
+              }
+            >
+              <Zap className="h-3.5 w-3.5" /> Lusha
+            </Button>
           </div>
 
           {/* Contacts list */}
@@ -1552,25 +1578,6 @@ export default function LeadDetailPage() {
 
                     {/* Actions */}
                     <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        disabled={!lushaEligible || !contact.linkedin_url}
-                        tooltip={
-                          !contact.linkedin_url
-                            ? 'Lusha requires a LinkedIn contact first'
-                            : !lushaEligible
-                              ? 'Requires initial lead score of 60+'
-                              : 'Search hidden email and phone with Lusha'
-                        }
-                        onClick={() => {
-                          setLushaContact(contact);
-                          setShowEnrichModal(true);
-                          setEnrichmentFeedback(null);
-                        }}
-                      >
-                        <Zap className="h-3.5 w-3.5" /> Lusha
-                      </Button>
                       {!contact.is_primary && (
                         <button
                           onClick={() => setPrimaryMutation.mutate(contact.id)}
@@ -3203,10 +3210,13 @@ export default function LeadDetailPage() {
           if (!open) {
             setEnrichmentFeedback(null);
             setLushaContact(null);
+            setConfirmingLushaCandidate(null);
+            searchLushaMutation.reset();
+            qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
           }
         }}
         title="Lusha Contact Enrichment"
-        description="Search hidden email and phone data for the selected LinkedIn contact."
+        description="Pick a saved contact, preview Lusha matches, then confirm before spending reveal credits."
         size="sm"
         footer={
           <>
@@ -3222,21 +3232,35 @@ export default function LeadDetailPage() {
         }
       >
         <div className="space-y-3">
-          {lushaContact ? (
-            <div className="rounded-xl border border-border p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{lushaContact.name}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{lushaContact.title || 'Role unavailable'}</p>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{lushaContact.linkedin_url}</p>
-                </div>
-                <SourceBadge source={lushaContact.source} />
-              </div>
-            </div>
-          ) : null}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Contact to enrich</label>
+            <Select
+              value={lushaContact?.id ? String(lushaContact.id) : ''}
+              onChange={(event) => {
+                const nextContact = lushaContactOptions.find((contact: any) => String(contact.id) === event.target.value) ?? null;
+                setLushaContact(nextContact);
+                setEnrichmentFeedback(null);
+                searchLushaMutation.reset();
+                qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
+              }}
+              placeholder="Select contact"
+              disabled={lushaContactOptions.length === 0}
+            >
+              {lushaContactOptions.map((contact: any) => (
+                <option key={contact.id} value={String(contact.id)}>
+                  {contact.name}{contact.title ? ` — ${contact.title}` : ''}
+                </option>
+              ))}
+            </Select>
+            {lushaContact ? (
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                {lushaContact.linkedin_url || lushaContact.email || 'Using full name + company identity'}
+              </p>
+            ) : null}
+          </div>
           <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
             <p>Lead score: <strong>{leadInitialScore}</strong>. Lusha is available when the initial score reaches 60.</p>
-            <p className="mt-1">Search may use Lusha API billing. Reveal happens only when you confirm a matching candidate below.</p>
+            <p className="mt-1">Search previews matching candidates and availability only. Phone/email values stay hidden until you confirm Reveal & Save.</p>
           </div>
 
           {enrichmentFeedback ? (
@@ -3286,14 +3310,14 @@ export default function LeadDetailPage() {
                         candidate.status === 'revealed' ||
                         revealLushaPhoneMutation.isPending
                       }
-                      onClick={() => revealLushaPhoneMutation.mutate(candidate.id)}
+                      onClick={() => setConfirmingLushaCandidate(candidate)}
                     >
                       {revealLushaPhoneMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                       Reveal & Save
                     </Button>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Use this candidate only if the name and role match the selected contact. Reveal writes the returned phone/email data to this lead contact.
+                    Preview does not include the phone number. Confirm Reveal & Save only if the name and role match the selected contact.
                   </p>
                 </div>
               ))}
@@ -3318,6 +3342,55 @@ export default function LeadDetailPage() {
             </div>
           )}
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(confirmingLushaCandidate)}
+        onOpenChange={(open) => {
+          if (!open && !revealLushaPhoneMutation.isPending) {
+            setConfirmingLushaCandidate(null);
+          }
+        }}
+        title="Use Lusha Credit?"
+        description="Confirm this match before revealing hidden contact data."
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmingLushaCandidate(null)}
+              disabled={revealLushaPhoneMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => confirmingLushaCandidate && revealLushaPhoneMutation.mutate(confirmingLushaCandidate.id)}
+              disabled={!confirmingLushaCandidate || revealLushaPhoneMutation.isPending}
+            >
+              {revealLushaPhoneMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Confirm Reveal & Save
+            </Button>
+          </>
+        }
+      >
+        {confirmingLushaCandidate ? (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-border p-3">
+              <p className="text-sm font-medium">{confirmingLushaCandidate.name || 'Unnamed contact'}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{confirmingLushaCandidate.title || 'Role unavailable'}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {confirmingLushaCandidate.company_name || leadData.company_name}
+                {confirmingLushaCandidate.company_domain ? ` · ${confirmingLushaCandidate.company_domain}` : ''}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[var(--status-warning)]/30 bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">Credit confirmation</p>
+              <p className="mt-1">
+                Phone reveal may use {confirmingLushaCandidate.reveal_phone_credits ?? 0} Lusha credit. The phone number is not shown in preview and will be saved to this lead contact only after confirmation.
+              </p>
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       {/* ── Delete Contact Confirmation ── */}
