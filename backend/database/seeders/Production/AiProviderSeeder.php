@@ -64,14 +64,15 @@ class AiProviderSeeder extends Seeder
             $models = $providerData['models'];
             unset($providerData['models']);
 
-            $provider = AiProvider::updateOrCreate(
-                ['slug' => $providerData['slug']],
-                // Do NOT overwrite api_key_encrypted if already set by the user
-                array_merge($providerData, [
-                    'api_key_encrypted' => AiProvider::where('slug', $providerData['slug'])->value('api_key_encrypted')
-                        ?? $providerData['api_key_encrypted'],
-                ])
-            );
+            $provider = AiProvider::where('slug', $providerData['slug'])->first();
+
+            if ($provider) {
+                $provider->forceFill(collect($providerData)
+                    ->except(['api_key_encrypted', 'status'])
+                    ->all())->save();
+            } else {
+                $provider = AiProvider::create($providerData);
+            }
 
             foreach ($models as $model) {
                 AiModel::updateOrCreate(
