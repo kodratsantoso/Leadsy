@@ -862,8 +862,15 @@ export default function LeadDetailPage() {
       return json;
     },
     onSuccess: (data) => {
+      qc.setQueryData(['lead-lusha-candidates', leadId], data);
       qc.invalidateQueries({ queryKey: ['lead-lusha-candidates', leadId] });
-      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Lusha candidates loaded' });
+      const count = Array.isArray(data?.data) ? data.data.length : 0;
+      setEnrichmentFeedback({
+        type: count > 0 ? 'success' : 'error',
+        msg: count > 0
+          ? `${count} Lusha candidate${count === 1 ? '' : 's'} loaded. Choose one to reveal and save.`
+          : 'Lusha did not return a matching candidate for this contact.',
+      });
     },
     onError: (error: any) => {
       setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search Lusha candidates' });
@@ -1144,7 +1151,10 @@ export default function LeadDetailPage() {
 
   const leadInitialScore = Number(latestScore?.score ?? leadData.lead_score ?? 0);
   const lushaEligible = leadInitialScore >= 60;
-  const lushaCandidates: LushaCandidate[] = lushaCandidatesData?.data || [];
+  const lushaCandidates: LushaCandidate[] =
+    (Array.isArray(lushaCandidatesData?.data) && lushaCandidatesData.data.length > 0)
+      ? lushaCandidatesData.data
+      : (searchLushaMutation.data?.data || []);
   const aiContactCandidates: AiContactCandidate[] = aiContactCandidatesData?.data || [];
 
   function openActivityModal(existing?: any) {
@@ -3278,16 +3288,21 @@ export default function LeadDetailPage() {
                       onClick={() => revealLushaPhoneMutation.mutate(candidate.id)}
                     >
                       {revealLushaPhoneMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                      Reveal Phone
+                      Reveal & Save
                     </Button>
                   </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Use this candidate only if the name and role match the selected contact. Reveal writes the returned phone/email data to this lead contact.
+                  </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
-              Search Lusha after selecting a LinkedIn contact. Revealed phone numbers will be written to this lead contact list after confirmation.
-            </p>
+            <div className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+              {searchLushaMutation.isSuccess
+                ? 'No matching Lusha candidate was returned for this contact. Try another LinkedIn contact or enrich after adding email/company domain data.'
+                : 'Search Lusha after selecting a LinkedIn contact. Matching candidates will appear here with a Reveal & Save confirmation action.'}
+            </div>
           )}
         </div>
       </Modal>
