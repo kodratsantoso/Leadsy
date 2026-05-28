@@ -581,6 +581,30 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function formatApiError(body: unknown, fallback: string) {
+  if (!body || typeof body !== "object") return fallback;
+
+  const response = body as { message?: unknown; errors?: unknown };
+  const fieldMessages = response.errors && typeof response.errors === "object"
+    ? Object.values(response.errors as Record<string, unknown>)
+        .flatMap((value) => Array.isArray(value) ? value : [value])
+        .filter((value): value is string => typeof value === "string")
+    : [];
+
+  if (fieldMessages.length > 0) {
+    return fieldMessages.slice(0, 3).join(" ");
+  }
+
+  return typeof response.message === "string" ? response.message : fallback;
+}
+
+function normalizeWebsiteInput(value: string) {
+  const website = value.trim();
+  if (!website) return "";
+
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(website) ? website : `https://${website}`;
+}
+
 export default function LeadsPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -602,6 +626,7 @@ export default function LeadsPage() {
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
   const [feedback, setFeedback] = useState("");
+  const [formError, setFormError] = useState("");
   const [formState, setFormState] = useState<LeadFormState>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
   const [locationSearch, setLocationSearch] = useState("");
@@ -805,17 +830,19 @@ export default function LeadsPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? `Failed to create lead (${res.status})`);
+        throw new Error(formatApiError(body, `Failed to create lead (${res.status})`));
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       setCreateOpen(false);
+      setFormError("");
       resetForm();
       setFeedback("Lead created successfully.");
     },
     onError: (err: Error) => {
+      setFormError(err.message);
       setFeedback(err.message);
     },
   });
@@ -829,17 +856,19 @@ export default function LeadsPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? `Failed to update lead (${res.status})`);
+        throw new Error(formatApiError(body, `Failed to update lead (${res.status})`));
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       setEditLead(null);
+      setFormError("");
       resetForm();
       setFeedback("Lead updated successfully.");
     },
     onError: (err: Error) => {
+      setFormError(err.message);
       setFeedback(err.message);
     },
   });
@@ -958,6 +987,7 @@ export default function LeadsPage() {
 
   const openEdit = (lead: LeadRecord) => {
     setEditLead(lead);
+    setFormError("");
     setLocationSearch(lead.address || "");
     setLocationFeedback("");
     setFormState({
@@ -997,18 +1027,21 @@ export default function LeadsPage() {
   };
 
   const submitCreate = () => {
+    setFormError("");
+    const website = normalizeWebsiteInput(formState.website);
+
     createMutation.mutate({
-      company_name:          formState.company_name,
-      address:               formState.address || undefined,
+      company_name:          formState.company_name.trim(),
+      address:               formState.address.trim() || undefined,
       lat:                   formState.lat ? Number(formState.lat) : undefined,
       lng:                   formState.lng ? Number(formState.lng) : undefined,
-      email:                 formState.email || undefined,
-      phone:                 formState.phone || undefined,
-      website:               formState.website || undefined,
+      email:                 formState.email.trim() || undefined,
+      phone:                 formState.phone.trim() || undefined,
+      website:               website || undefined,
       industry_id:           formState.industry_id ? Number(formState.industry_id) : undefined,
       sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : undefined,
-      company_size_estimate: formState.company_size_estimate || undefined,
-      business_category:     formState.business_category || undefined,
+      company_size_estimate: formState.company_size_estimate.trim() || undefined,
+      business_category:     formState.business_category.trim() || undefined,
       product_id:            formState.product_id ? Number(formState.product_id) : undefined,
       estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : undefined,
       realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : undefined,
@@ -1019,26 +1052,29 @@ export default function LeadsPage() {
 
   const submitUpdate = () => {
     if (!editLead) return;
+    setFormError("");
+    const website = normalizeWebsiteInput(formState.website);
+
     updateMutation.mutate({
       id: editLead.id,
       payload: {
-        company_name:          formState.company_name,
-        address:               formState.address || null,
+        company_name:          formState.company_name.trim(),
+        address:               formState.address.trim() || null,
         lat:                   formState.lat ? Number(formState.lat) : null,
         lng:                   formState.lng ? Number(formState.lng) : null,
-        email:                 formState.email || null,
-        phone:                 formState.phone || null,
-        website:               formState.website || null,
+        email:                 formState.email.trim() || null,
+        phone:                 formState.phone.trim() || null,
+        website:               website || null,
         industry_id:           formState.industry_id ? Number(formState.industry_id) : null,
         sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : null,
-        company_size_estimate: formState.company_size_estimate || null,
-        business_category:     formState.business_category || null,
+        company_size_estimate: formState.company_size_estimate.trim() || null,
+        business_category:     formState.business_category.trim() || null,
         product_id:            formState.product_id ? Number(formState.product_id) : null,
         estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : null,
         realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : null,
         source_type:           formState.source_type || null,
         channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : null,
-        funnel_stage_id:       formState.funnel_stage_id || null,
+        funnel_stage_id:       formState.funnel_stage_id ? Number(formState.funnel_stage_id) : null,
         qualification_status:  formState.qualification_status || null,
       },
     });
@@ -1257,6 +1293,7 @@ export default function LeadsPage() {
             <Button
               onClick={() => {
                 resetForm();
+                setFormError("");
                 setCreateOpen(true);
               }}
             >
@@ -1795,7 +1832,10 @@ export default function LeadsPage() {
         open={createOpen}
         onOpenChange={(open) => {
           setCreateOpen(open);
-          if (!open) resetForm();
+          if (!open) {
+            resetForm();
+            setFormError("");
+          }
         }}
         title="Create Lead"
         description="Add a new lead company to the platform."
@@ -1815,6 +1855,11 @@ export default function LeadsPage() {
         }
       >
         <div className="grid gap-4">
+          {formError ? (
+            <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left">
+              {formError}
+            </Badge>
+          ) : null}
           <div className="grid gap-2">
             <label className="text-sm font-medium">Company Name <span className="text-destructive">*</span></label>
             <Input
@@ -1986,6 +2031,7 @@ export default function LeadsPage() {
           if (!open) {
             setEditLead(null);
             resetForm();
+            setFormError("");
           }
         }}
         title="Edit Lead"
@@ -1997,6 +2043,7 @@ export default function LeadsPage() {
               onClick={() => {
                 setEditLead(null);
                 resetForm();
+                setFormError("");
               }}
             >
               Cancel
@@ -2010,7 +2057,7 @@ export default function LeadsPage() {
             </Button>
             <Button
               onClick={submitUpdate}
-              disabled={updateMutation.isPending || !formState.company_name}
+              disabled={updateMutation.isPending || !formState.company_name.trim()}
             >
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Save Changes
@@ -2019,6 +2066,11 @@ export default function LeadsPage() {
         }
       >
         <div className="grid gap-4">
+          {formError ? (
+            <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left">
+              {formError}
+            </Badge>
+          ) : null}
           <div className="grid gap-2">
             <label className="text-sm font-medium">Company Name <span className="text-destructive">*</span></label>
             <Input
