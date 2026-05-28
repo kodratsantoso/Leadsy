@@ -137,8 +137,20 @@ class ContactEnrichmentController extends Controller
             return response()->json(['message' => 'Lead company name is required before Lusha search.'], 422);
         }
 
+        $data = $request->validate([
+            'contact_id' => 'nullable|integer|exists:lead_contacts,id',
+        ]);
+
+        $contact = null;
+        if (! empty($data['contact_id'])) {
+            $contact = $lead->contacts()->whereKey($data['contact_id'])->first();
+            if (! $contact) {
+                return response()->json(['message' => 'Selected contact does not belong to this lead.'], 404);
+            }
+        }
+
         try {
-            $result = $provider->searchCandidates($lead, $this->currentTenantId($request));
+            $result = $provider->searchCandidatesForContact($lead, $contact, $this->currentTenantId($request));
         } catch (\Throwable $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
@@ -170,6 +182,7 @@ class ContactEnrichmentController extends Controller
         })->values();
 
         AuditService::log('lusha_contact_preview', 'leads', $lead, null, [
+            'contact_id' => $contact?->id,
             'candidate_count' => $candidates->count(),
             'billing' => $result['billing'] ?? null,
         ]);

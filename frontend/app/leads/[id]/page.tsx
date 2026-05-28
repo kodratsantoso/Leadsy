@@ -851,8 +851,12 @@ export default function LeadDetailPage() {
   });
 
   const searchLushaMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/lusha/search`, { method: 'POST' });
+    mutationFn: async (contactId?: number) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/lusha/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact_id: contactId }),
+      });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.message || 'Failed to search Lusha candidates');
       return json;
@@ -3197,7 +3201,7 @@ export default function LeadDetailPage() {
           <>
             <Button variant="outline" onClick={() => setShowEnrichModal(false)}>Cancel</Button>
             <Button
-              onClick={() => searchLushaMutation.mutate()}
+              onClick={() => searchLushaMutation.mutate(lushaContact?.id)}
               disabled={searchLushaMutation.isPending || !lushaEligible || !lushaContact?.linkedin_url}
             >
               {searchLushaMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

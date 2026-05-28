@@ -28,6 +28,8 @@ Leadsy uses AI Search first to discover likely LinkedIn PIC contacts from the le
 - Preview uses `POST https://api.lusha.com/v3/contacts/search`.
 - Phone reveal uses `POST https://api.lusha.com/v3/contacts/enrich`.
 - Account/rate-limit metadata is read from the V3 response body and rate-limit headers where available.
+- Contact search must send one valid identity set: Lusha/contact `id`, `linkedinUrl`, `email`, or `firstName` + `lastName` + (`companyName` or `companyDomain`).
+- In Leadsy, the Contact-level **Lusha** button sends the selected `lead_contacts.id` so backend can pass the contact LinkedIn URL or name/company identity to Lusha.
 
 ## Cost Boundary
 
