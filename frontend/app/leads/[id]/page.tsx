@@ -865,11 +865,12 @@ export default function LeadDetailPage() {
       qc.setQueryData(['lead-lusha-candidates', leadId], data);
       qc.invalidateQueries({ queryKey: ['lead-lusha-candidates', leadId] });
       const count = Array.isArray(data?.data) ? data.data.length : 0;
+      const billing = data?.meta?.billing;
       setEnrichmentFeedback({
         type: count > 0 ? 'success' : 'error',
         msg: count > 0
           ? `${count} Lusha candidate${count === 1 ? '' : 's'} loaded. Choose one to reveal and save.`
-          : 'Lusha did not return a matching candidate for this contact.',
+          : `Lusha did not return a matching candidate for this contact.${billing?.resultsReturned === 0 ? ' Results returned: 0.' : ''}`,
       });
     },
     onError: (error: any) => {
@@ -3302,6 +3303,18 @@ export default function LeadDetailPage() {
               {searchLushaMutation.isSuccess
                 ? 'No matching Lusha candidate was returned for this contact. Try another LinkedIn contact or enrich after adding email/company domain data.'
                 : 'Search Lusha after selecting a LinkedIn contact. Matching candidates will appear here with a Reveal & Save confirmation action.'}
+              {searchLushaMutation.data?.meta?.search_identity ? (
+                <div className="mt-3 space-y-1 border-t border-border pt-3">
+                  <p className="font-medium text-foreground">Search identity sent to Lusha</p>
+                  <p>LinkedIn: {searchLushaMutation.data.meta.search_identity.linkedin_url || 'not available'}</p>
+                  <p>Email: {searchLushaMutation.data.meta.search_identity.email || 'not available'}</p>
+                  <p>Name: {[searchLushaMutation.data.meta.search_identity.first_name, searchLushaMutation.data.meta.search_identity.last_name].filter(Boolean).join(' ') || 'not available'}</p>
+                  <p>Company: {searchLushaMutation.data.meta.search_identity.company_name || 'not available'} · {searchLushaMutation.data.meta.search_identity.company_domain || 'domain not available'}</p>
+                  {searchLushaMutation.data?.meta?.billing ? (
+                    <p>Billing: {searchLushaMutation.data.meta.billing.resultsReturned ?? 0} result returned, {searchLushaMutation.data.meta.billing.creditsCharged ?? 0} credit charged</p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           )}
         </div>

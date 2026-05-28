@@ -194,6 +194,7 @@ class ContactEnrichmentController extends Controller
                 'billing' => $result['billing'] ?? [],
                 'rate_limits' => $result['rate_limits'] ?? [],
                 'request_id' => $result['request_id'] ?? null,
+                'search_identity' => $this->lushaSearchIdentityPayload($lead, $contact),
             ],
         ]);
     }
@@ -377,6 +378,21 @@ class ContactEnrichmentController extends Controller
             'confidence_score' => $candidate->raw_preview['confidence_score'] ?? null,
             'relevance_reason' => $candidate->raw_preview['relevance_reason'] ?? null,
             'evidence' => $candidate->raw_preview['evidence'] ?? null,
+        ];
+    }
+
+    private function lushaSearchIdentityPayload(Lead $lead, ?LeadContact $contact): array
+    {
+        $nameParts = preg_split('/\s+/', trim((string) $contact?->name), 2, PREG_SPLIT_NO_EMPTY);
+
+        return [
+            'contact_id' => $contact?->id,
+            'linkedin_url' => $contact?->linkedin_url,
+            'email' => $contact?->email,
+            'first_name' => $nameParts[0] ?? null,
+            'last_name' => $nameParts[1] ?? null,
+            'company_name' => $lead->company_name,
+            'company_domain' => $lead->website_domain,
         ];
     }
 }
