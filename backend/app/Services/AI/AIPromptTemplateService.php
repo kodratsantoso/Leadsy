@@ -262,12 +262,7 @@ class AIPromptTemplateService
                 'Use the supplied lead, product, contact, source, score, qualification, activity, and revenue signals. Include practical questions for Budget, Authority, Need, Timeline, and Competition.',
                 'Return only valid JSON with a questions array. Each item must include id, text, category, and order.'
             ),
-            'lead_contact_ai_search' => $this->featureTemplate(
-                'Lead Contact AI Search',
-                'Identify likely PIC/contact candidates or role targets for a lead company.',
-                'Do not invent email or phone data. Do not fabricate LinkedIn URLs or LinkedIn IDs. Include LinkedIn profile data only when exact evidence is present. If no verified person-level evidence exists, return conservative role-target candidates with confidence below 60 and clear uncertainty.',
-                'Return only valid JSON with candidates containing name, title, linkedin_url, linkedin_id, company_name, confidence_score, relevance_reason, and evidence.'
-            ),
+            'lead_contact_google_search_keyword' => 'site:linkedin.com/in "{{company_name}}" ("manager" OR "director" OR "head" OR "general manager" OR "finance" OR "operations" OR "procurement" OR "IT" OR "sales")',
         ];
     }
 

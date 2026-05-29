@@ -8,7 +8,7 @@ use App\Models\Lead;
 use App\Models\LeadContact;
 use App\Services\AuditService;
 use App\Services\Enrichment\Providers\LushaProvider;
-use App\Services\Lead\LeadContactAiSearchService;
+use App\Services\Lead\LeadContactGoogleSearchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,10 +16,10 @@ class ContactEnrichmentController extends Controller
 {
     private const MIN_LUSHA_SCORE = 60;
 
-    public function aiCandidates(Request $request, Lead $lead): JsonResponse
+    public function googleCandidates(Request $request, Lead $lead): JsonResponse
     {
         $candidates = $lead->contactEnrichmentCandidates()
-            ->where('provider', 'AI_LINKEDIN')
+            ->where('provider', 'GOOGLE_SEARCH')
             ->whereIn('status', ['previewed', 'added'])
             ->latest()
             ->limit(20)
@@ -29,22 +29,22 @@ class ContactEnrichmentController extends Controller
         return response()->json(['data' => $candidates]);
     }
 
-    public function searchAiLinkedin(Request $request, Lead $lead, LeadContactAiSearchService $search): JsonResponse
+    public function searchGoogleLinkedin(Request $request, Lead $lead, LeadContactGoogleSearchService $search): JsonResponse
     {
         if (empty($lead->company_name)) {
-            return response()->json(['message' => 'Lead company name is required before AI contact search.'], 422);
+            return response()->json(['message' => 'Lead company name is required before Google contact search.'], 422);
         }
 
-        $result = $search->search($lead);
+        $result = $search->search($lead, $this->currentTenantId($request));
         if (! $result['success']) {
-            return response()->json(['message' => $result['error'] ?? 'AI contact search failed.'], 422);
+            return response()->json(['message' => $result['error'] ?? 'Google contact search failed.'], 422);
         }
 
         $candidates = collect($result['candidates'] ?? [])->map(function (array $candidate) use ($lead, $request) {
             $model = ContactEnrichmentCandidate::updateOrCreate(
                 [
                     'lead_id' => $lead->id,
-                    'provider' => 'AI_LINKEDIN',
+                    'provider' => 'GOOGLE_SEARCH',
                     'provider_candidate_id' => $candidate['provider_candidate_id'],
                 ],
                 [
@@ -58,7 +58,7 @@ class ContactEnrichmentController extends Controller
                     'reveal_email_credits' => 0,
                     'reveal_phone_credits' => 0,
                     'status' => 'previewed',
-                    'raw_preview' => $candidate,
+                    'raw_preview' => $candidate['raw_preview'] ?? $candidate,
                     'expires_at' => now()->addDays(14),
                 ]
             );
@@ -66,44 +66,47 @@ class ContactEnrichmentController extends Controller
             return $this->candidatePayload($model);
         })->values();
 
-        AuditService::log('ai_linkedin_contact_search', 'leads', $lead, null, [
+        AuditService::log('google_linkedin_contact_search', 'leads', $lead, null, [
             'candidate_count' => $candidates->count(),
-            'ai_model' => $result['ai_model'] ?? null,
+            'query' => $result['query'] ?? null,
         ]);
 
         return response()->json([
-            'message' => $result['message'] ?? 'AI contact candidates loaded.',
+            'message' => $result['message'] ?? 'Google LinkedIn contact candidates loaded.',
             'data' => $candidates,
-            'meta' => ['ai_model' => $result['ai_model'] ?? null],
+            'meta' => [
+                'query' => $result['query'] ?? null,
+                'google' => $result['meta'] ?? [],
+            ],
         ]);
     }
 
-    public function addAiCandidateToContact(
+    public function addGoogleCandidateToContact(
         Request $request,
         Lead $lead,
         ContactEnrichmentCandidate $candidate
     ): JsonResponse {
-        if ((int) $candidate->lead_id !== (int) $lead->id || $candidate->provider !== 'AI_LINKEDIN') {
+        if ((int) $candidate->lead_id !== (int) $lead->id || $candidate->provider !== 'GOOGLE_SEARCH') {
             return response()->json(['message' => 'Contact candidate does not belong to this lead.'], 404);
         }
 
         if ($candidate->expires_at && $candidate->expires_at->isPast()) {
-            return response()->json(['message' => 'This AI search candidate expired. Run search again before adding it.'], 422);
+            return response()->json(['message' => 'This Google search candidate expired. Run search again before adding it.'], 422);
         }
 
-        $contact = $this->mergeAiSearchContact($lead, $candidate);
+        $contact = $this->mergeGoogleSearchContact($lead, $candidate);
         $candidate->update([
             'status' => 'added',
             'revealed_at' => now(),
         ]);
 
-        AuditService::log('ai_linkedin_contact_added', 'lead_contacts', $contact, null, [
+        AuditService::log('google_linkedin_contact_added', 'lead_contacts', $contact, null, [
             'lead_id' => $lead->id,
             'candidate_id' => $candidate->id,
         ]);
 
         return response()->json([
-            'message' => 'AI search candidate added to this lead contact.',
+            'message' => 'Google search candidate added to this lead contact.',
             'data' => [
                 'contact' => $contact->fresh('payloads'),
                 'candidate' => $this->candidatePayload($candidate->fresh()),
@@ -298,7 +301,7 @@ class ContactEnrichmentController extends Controller
         return $contact;
     }
 
-    private function mergeAiSearchContact(Lead $lead, ContactEnrichmentCandidate $candidate): LeadContact
+    private function mergeGoogleSearchContact(Lead $lead, ContactEnrichmentCandidate $candidate): LeadContact
     {
         $raw = $candidate->raw_preview ?? [];
         $linkedinUrl = $raw['linkedin_url'] ?? null;
@@ -317,7 +320,7 @@ class ContactEnrichmentController extends Controller
             'linkedin_url' => $linkedinUrl,
             'confidence_score' => $raw['confidence_score'] ?? 70,
             'confidence' => (($raw['confidence_score'] ?? 70) >= 80) ? 'high' : 'medium',
-            'source' => 'AI_SEARCH',
+            'source' => 'GOOGLE_SEARCH',
         ];
 
         if ($contact) {
@@ -331,7 +334,7 @@ class ContactEnrichmentController extends Controller
         }
 
         $contact->payloads()->create([
-            'source_type' => 'AI_LINKEDIN',
+            'source_type' => 'GOOGLE_LINKEDIN_SEARCH',
             'raw_payload' => $raw,
         ]);
 

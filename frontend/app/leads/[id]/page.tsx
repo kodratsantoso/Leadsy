@@ -26,13 +26,14 @@ import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuid
 
 const SOURCE_STYLES: Record<string, string> = {
   LUSHA:   'bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30',
+  GOOGLE_SEARCH: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
   manual:  'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[var(--status-success)]/30',
   website: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
   other:   'bg-muted text-muted-foreground border-border',
 };
 
 function SourceBadge({ source }: { source?: string | null }) {
-  const label = source?.toUpperCase() ?? 'OTHER';
+  const label = source === 'GOOGLE_SEARCH' ? 'GOOGLE' : source?.toUpperCase() ?? 'OTHER';
   const style = SOURCE_STYLES[source ?? 'other'] ?? SOURCE_STYLES.other;
   return (
     <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${style}`}>
@@ -94,7 +95,7 @@ type LushaCandidate = {
   status: string;
 };
 
-type AiContactCandidate = {
+type GoogleContactCandidate = {
   id: number;
   name: string | null;
   title: string | null;
@@ -424,9 +425,9 @@ function AddContactModal({
   onClose,
   onSaveManual,
 }: {
-  mode: 'manual' | 'ai';
-  setMode: (mode: 'manual' | 'ai') => void;
-  candidates: AiContactCandidate[];
+  mode: 'manual' | 'google';
+  setMode: (mode: 'manual' | 'google') => void;
+  candidates: GoogleContactCandidate[];
   feedback: { type: 'success' | 'error'; msg: string } | null;
   searching: boolean;
   adding: boolean;
@@ -445,7 +446,7 @@ function AddContactModal({
       open
       onOpenChange={(open) => { if (!open) onClose(); }}
       title="Add Contact"
-      description="Choose manual entry or AI Search to find PIC candidates from this company."
+      description="Choose manual entry or Google Search to find LinkedIn PIC candidates from this company."
       size="lg"
       footer={
         mode === 'manual' ? (
@@ -461,7 +462,7 @@ function AddContactModal({
             <Button variant="outline" onClick={onClose}>Close</Button>
             <Button onClick={onSearch} disabled={searching}>
               {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              Search by AI
+              Search by Google
             </Button>
           </>
         )
@@ -470,9 +471,9 @@ function AddContactModal({
       <div className="space-y-4">
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Add Method</label>
-          <Select value={mode} onChange={(e) => setMode(e.target.value as 'manual' | 'ai')}>
+          <Select value={mode} onChange={(e) => setMode(e.target.value as 'manual' | 'google')}>
             <option value="manual">Manual Add</option>
-            <option value="ai">Search by AI</option>
+            <option value="google">Search by Google</option>
           </Select>
         </div>
 
@@ -498,7 +499,7 @@ function AddContactModal({
         ) : (
           <div className="space-y-3">
             <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-              AI Search uses the configured Settings &gt; AI Default route for <strong>Lead Contact AI Search</strong>. Verified LinkedIn URLs appear only when exact evidence is available.
+              Google Search uses the keyword template in Settings &gt; AI Default &gt; Prompt Templates under <strong>Lead Contact Google Search Keyword</strong>.
             </div>
 
             {feedback ? (
@@ -565,7 +566,7 @@ function AddContactModal({
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Run Search by AI to find likely PIC names, job titles, relevance notes, and verified LinkedIn profile data when available.
+                Run Search by Google to find public LinkedIn profile results by company name and role keywords.
               </p>
             )}
           </div>
@@ -601,7 +602,7 @@ export default function LeadDetailPage() {
 
   // Contact UI state
   const [showAddContact, setShowAddContact]       = useState(false);
-  const [addContactMode, setAddContactMode]       = useState<'manual' | 'ai'>('manual');
+  const [addContactMode, setAddContactMode]       = useState<'manual' | 'google'>('manual');
   const [editingContact, setEditingContact]       = useState<any | null>(null);
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
   const [showEnrichModal, setShowEnrichModal]     = useState(false);
@@ -806,42 +807,42 @@ export default function LeadDetailPage() {
     onSuccess: invalidateLead,
   });
 
-  const { data: aiContactCandidatesData, refetch: refetchAiContactCandidates } = useQuery({
-    queryKey: ['lead-ai-contact-candidates', leadId],
-    queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/ai-linkedin/candidates`).then((r) => r.json()),
-    enabled: showAddContact && addContactMode === 'ai',
+  const { data: googleContactCandidatesData, refetch: refetchGoogleContactCandidates } = useQuery({
+    queryKey: ['lead-google-contact-candidates', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/google-linkedin/candidates`).then((r) => r.json()),
+    enabled: showAddContact && addContactMode === 'google',
   });
 
-  const searchAiContactsMutation = useMutation({
+  const searchGoogleContactsMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/ai-linkedin/search`, { method: 'POST' });
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-linkedin/search`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.message || 'Failed to search AI contacts');
+      if (!res.ok) throw new Error(json?.message || 'Failed to search Google contacts');
       return json;
     },
     onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ['lead-ai-contact-candidates', leadId] });
-      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'AI contact candidates loaded' });
+      qc.invalidateQueries({ queryKey: ['lead-google-contact-candidates', leadId] });
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Google LinkedIn candidates loaded' });
     },
     onError: (error: any) => {
-      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search AI contacts' });
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search Google contacts' });
     },
   });
 
-  const addAiCandidateMutation = useMutation({
+  const addGoogleCandidateMutation = useMutation({
     mutationFn: async (candidateId: number) => {
-      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/ai-linkedin/candidates/${candidateId}/add-contact`, { method: 'POST' });
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-linkedin/candidates/${candidateId}/add-contact`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.message || 'Failed to add AI candidate');
+      if (!res.ok) throw new Error(json?.message || 'Failed to add Google candidate');
       return json;
     },
     onSuccess: (data) => {
       invalidateLead();
-      refetchAiContactCandidates();
+      refetchGoogleContactCandidates();
       setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Candidate added to contacts' });
     },
     onError: (error: any) => {
-      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add AI candidate' });
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add Google candidate' });
     },
   });
 
@@ -1158,7 +1159,7 @@ export default function LeadDetailPage() {
     (Array.isArray(lushaCandidatesData?.data) && lushaCandidatesData.data.length > 0)
       ? lushaCandidatesData.data
       : (searchLushaMutation.data?.data || []);
-  const aiContactCandidates: AiContactCandidate[] = aiContactCandidatesData?.data || [];
+  const googleContactCandidates: GoogleContactCandidate[] = googleContactCandidatesData?.data || [];
   const lushaContactOptions = contacts.filter((contact: any) =>
     Boolean(contact.linkedin_url || contact.email || String(contact.name ?? '').trim().split(/\s+/).length > 1)
   );
@@ -1509,7 +1510,7 @@ export default function LeadDetailPage() {
               <User className="mb-3 h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm font-medium text-muted-foreground">No contacts yet</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Add manually or use AI Search from Add Contact to discover LinkedIn PIC candidates.
+                Add manually or use Search by Google from Add Contact to discover LinkedIn PIC candidates.
               </p>
             </div>
           ) : (
@@ -2767,13 +2768,13 @@ export default function LeadDetailPage() {
             setAddContactMode(mode);
             setEnrichmentFeedback(null);
           }}
-          candidates={aiContactCandidates}
+          candidates={googleContactCandidates}
           feedback={enrichmentFeedback}
-          searching={searchAiContactsMutation.isPending}
-          adding={addAiCandidateMutation.isPending}
+          searching={searchGoogleContactsMutation.isPending}
+          adding={addGoogleCandidateMutation.isPending}
           saving={addContactMutation.isPending}
-          onSearch={() => searchAiContactsMutation.mutate()}
-          onAddCandidate={(candidateId) => addAiCandidateMutation.mutate(candidateId)}
+          onSearch={() => searchGoogleContactsMutation.mutate()}
+          onAddCandidate={(candidateId) => addGoogleCandidateMutation.mutate(candidateId)}
           onClose={() => {
             setShowAddContact(false);
             setEnrichmentFeedback(null);
