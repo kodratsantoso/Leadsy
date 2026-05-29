@@ -1216,10 +1216,11 @@ export default function IntegrationsSettingsPage() {
       {/* ── Google ── */}
       {tab === "maps" && (
         <div className="space-y-4">
+          {/* Card 1: Google Maps & Places */}
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-1">Google Configuration</h2>
+            <h2 className="text-xl font-semibold mb-1">Google Maps & Places</h2>
             <p className="text-xs text-muted-foreground mb-6">
-              Configure the Google Cloud API key used by Maps, Lead Discovery, and Search by Google.
+              Configure the Google Cloud API key used by browser Maps, Lead Discovery place search, and Geocoding APIs.
               Get a key from{" "}
               <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-indigo-400 underline">
                 Google Cloud Console
@@ -1327,12 +1328,54 @@ export default function IntegrationsSettingsPage() {
                   Enable Geocoding API and Places API in the same Google Cloud project as the key above.
                 </p>
               </div>
+            </div>
 
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => handleSave("maps", mapsConfig)}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Maps Config
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  if (await handleSave("maps", mapsConfig)) {
+                    googlePermissionsMutation.mutate();
+                  }
+                }}
+                disabled={saving || googlePermissionsMutation.isPending}
+              >
+                {googlePermissionsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Check Google Permissions
+              </Button>
+              {successMsg && (
+                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                  <CheckCircle2 className="h-4 w-4" /> {successMsg}
+                </span>
+              )}
+              {errorMsg && (
+                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                  <AlertCircle className="h-4 w-4" /> {errorMsg}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Card 2: Google Custom Search */}
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-1">Google Custom Search</h2>
+            <p className="text-xs text-muted-foreground mb-6">
+              Configure the Custom Search JSON API and Programmable Search Engine for LinkedIn profile finding.
+            </p>
+
+            <div className="space-y-5">
               <div className="rounded-xl border border-border p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold">Custom Search JSON API</h3>
-                    <p className="text-xs text-muted-foreground">Used by Contact Search by Google to find public LinkedIn profile candidates.</p>
+                    <h3 className="text-sm font-semibold">Custom Search API & Service Account</h3>
+                    <p className="text-xs text-muted-foreground">Used by Contact Search to find public LinkedIn profile candidates.</p>
                   </div>
                   <Badge variant="warning">key + cx required</Badge>
                 </div>
@@ -1501,7 +1544,7 @@ export default function IntegrationsSettingsPage() {
                 disabled={saving}
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Google Config
+                Save Search Config
               </Button>
               <Button
                 variant="outline"
