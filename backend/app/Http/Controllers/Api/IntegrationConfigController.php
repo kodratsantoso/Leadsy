@@ -97,6 +97,11 @@ class IntegrationConfigController extends Controller
             'GOOGLE_SEARCH_API_KEY',
             'GOOGLE_CUSTOM_SEARCH_API_KEY',
         ], $tenantId);
+        $searchApiKey = $this->integrationValue([
+            'GOOGLE_SEARCH_API_KEY',
+            'GOOGLE_CUSTOM_SEARCH_API_KEY',
+            'GOOGLE_MAPS_BROWSER_API_KEY',
+        ], $tenantId);
         $searchEngineId = $this->integrationValue([
             'GOOGLE_SEARCH_ENGINE_ID',
             'GOOGLE_CUSTOM_SEARCH_ENGINE_ID',
@@ -139,7 +144,7 @@ class IntegrationConfigController extends Controller
                         'https://maps.googleapis.com/maps/api/place/textsearch/json',
                         ['query' => 'Jakarta business', 'key' => $apiKey]
                     ),
-                    $this->checkCustomSearch($apiKey, $searchEngineId),
+                    $this->checkCustomSearch($searchApiKey ?: $apiKey, $searchEngineId),
                 ],
             ],
         ]);
