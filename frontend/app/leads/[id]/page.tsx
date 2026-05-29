@@ -445,7 +445,7 @@ function AddContactModal({
       open
       onOpenChange={(open) => { if (!open) onClose(); }}
       title="Add Contact"
-      description="Choose manual entry or AI Search to find LinkedIn PIC candidates from this company."
+      description="Choose manual entry or AI Search to find PIC candidates from this company."
       size="lg"
       footer={
         mode === 'manual' ? (
@@ -498,7 +498,7 @@ function AddContactModal({
         ) : (
           <div className="space-y-3">
             <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-              AI Search uses the configured Settings → AI Default route for <strong>Lead Contact AI Search</strong>. It creates contact records only after you select Add to Contact.
+              AI Search uses the configured Settings &gt; AI Default route for <strong>Lead Contact AI Search</strong>. Verified LinkedIn URLs appear only when exact evidence is available.
             </div>
 
             {feedback ? (
@@ -515,7 +515,7 @@ function AddContactModal({
             {candidates.length > 0 ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">LinkedIn PIC Candidates</p>
+                  <p className="text-xs font-medium text-muted-foreground">PIC Candidates</p>
                   <Badge variant="neutral">{candidates.length} found</Badge>
                 </div>
                 {candidates.map((candidate) => (
@@ -565,7 +565,7 @@ function AddContactModal({
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Run Search by AI to find LinkedIn users, public LinkedIn IDs, job titles, and relevance notes.
+                Run Search by AI to find likely PIC names, job titles, relevance notes, and verified LinkedIn profile data when available.
               </p>
             )}
           </div>
@@ -3223,7 +3223,7 @@ export default function LeadDetailPage() {
             <Button variant="outline" onClick={() => setShowEnrichModal(false)}>Cancel</Button>
             <Button
               onClick={() => searchLushaMutation.mutate(lushaContact?.id)}
-              disabled={searchLushaMutation.isPending || !lushaEligible || !lushaContact?.linkedin_url}
+              disabled={searchLushaMutation.isPending || !lushaEligible || !lushaContact}
             >
               {searchLushaMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Search Lusha
