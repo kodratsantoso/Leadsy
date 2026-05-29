@@ -31,9 +31,14 @@ class LeadContactGoogleSearchService
         ], $tenantId);
 
         if (! $apiKey || ! $searchEngineId) {
+            $missing = collect([
+                ! $apiKey ? 'Google API Key or Custom Search API Key' : null,
+                ! $searchEngineId ? 'Programmable Search Engine ID' : null,
+            ])->filter()->implode(' and ');
+
             return [
                 'success' => false,
-                'error' => 'Google Search requires GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID in Integration Settings or backend environment.',
+                'error' => "Google Search requires {$missing}. Configure it in Settings > Integration Setting > Google > Custom Search JSON API.",
             ];
         }
 
@@ -42,12 +47,18 @@ class LeadContactGoogleSearchService
             return ['success' => false, 'error' => 'Lead company name is required before Google contact search.'];
         }
 
-        $response = Http::timeout(20)->get('https://www.googleapis.com/customsearch/v1', [
+        $response = Http::timeout(20)->get('https://customsearch.googleapis.com/customsearch/v1', array_filter([
             'key' => $apiKey,
             'cx' => $searchEngineId,
             'q' => $query,
-            'num' => 10,
-        ]);
+            'num' => $this->integerConfigValue('GOOGLE_SEARCH_NUM_RESULTS', $tenantId, 10, 1, 10),
+            'safe' => $this->configValue(['GOOGLE_SEARCH_SAFE'], $tenantId) ?: 'off',
+            'gl' => $this->configValue(['GOOGLE_SEARCH_GL'], $tenantId) ?: null,
+            'hl' => $this->configValue(['GOOGLE_SEARCH_HL'], $tenantId) ?: null,
+            'lr' => $this->configValue(['GOOGLE_SEARCH_LR'], $tenantId) ?: null,
+            'siteSearch' => $this->configValue(['GOOGLE_SEARCH_SITE_SEARCH'], $tenantId) ?: null,
+            'siteSearchFilter' => $this->configValue(['GOOGLE_SEARCH_SITE_SEARCH_FILTER'], $tenantId) ?: null,
+        ], fn ($value) => $value !== null && $value !== ''));
 
         if (! $response->successful()) {
             $message = $response->json('error.message') ?: 'Google Search request failed.';
@@ -218,10 +229,13 @@ class LeadContactGoogleSearchService
             $record = IntegrationConfig::query()
                 ->where('key', $key)
                 ->where('is_active', true)
-                ->when($tenantId, fn ($query) => $query->where(fn ($inner) => $inner
-                    ->whereNull('tenant_id')
-                    ->orWhere('tenant_id', $tenantId)
-                ))
+                ->where(function ($query) use ($tenantId) {
+                    $query->whereNull('tenant_id');
+
+                    if ($tenantId !== null) {
+                        $query->orWhere('tenant_id', $tenantId);
+                    }
+                })
                 ->orderByRaw('tenant_id is null')
                 ->latest()
                 ->first();
@@ -232,5 +246,15 @@ class LeadContactGoogleSearchService
         }
 
         return null;
+    }
+
+    private function integerConfigValue(string $key, ?int $tenantId, int $default, int $min, int $max): int
+    {
+        $value = $this->configValue([$key], $tenantId);
+        if (! is_numeric($value)) {
+            return $default;
+        }
+
+        return max($min, min($max, (int) $value));
     }
 }

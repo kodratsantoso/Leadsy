@@ -351,7 +351,7 @@ class IntegrationConfigController extends Controller
         }
 
         try {
-            $response = Http::timeout(12)->get('https://www.googleapis.com/customsearch/v1', [
+            $response = Http::timeout(12)->get('https://customsearch.googleapis.com/customsearch/v1', [
                 'key' => $apiKey,
                 'cx' => $searchEngineId,
                 'q' => 'site:linkedin.com/in',

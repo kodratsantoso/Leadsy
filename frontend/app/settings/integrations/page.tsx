@@ -163,7 +163,15 @@ type LarkBaseSyncDialogState = {
 const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_MAPS_ENABLED:            { category: "maps", key: "GOOGLE_MAPS_ENABLED",            value: "true",    is_secret: false, is_active: true, value_type: "boolean" },
   GOOGLE_MAPS_BROWSER_API_KEY:    { category: "maps", key: "GOOGLE_MAPS_BROWSER_API_KEY",    value: "",        is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_API_KEY:          { category: "maps", key: "GOOGLE_SEARCH_API_KEY",          value: "",        is_secret: true,  is_active: true, value_type: "string"  },
   GOOGLE_SEARCH_ENGINE_ID:        { category: "maps", key: "GOOGLE_SEARCH_ENGINE_ID",        value: "",        is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_SAFE:             { category: "maps", key: "GOOGLE_SEARCH_SAFE",             value: "off",     is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_GL:               { category: "maps", key: "GOOGLE_SEARCH_GL",               value: "id",      is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_HL:               { category: "maps", key: "GOOGLE_SEARCH_HL",               value: "id",      is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_LR:               { category: "maps", key: "GOOGLE_SEARCH_LR",               value: "",        is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_NUM_RESULTS:      { category: "maps", key: "GOOGLE_SEARCH_NUM_RESULTS",      value: "10",      is_secret: false, is_active: true, value_type: "number"  },
+  GOOGLE_SEARCH_SITE_SEARCH:      { category: "maps", key: "GOOGLE_SEARCH_SITE_SEARCH",      value: "linkedin.com/in", is_secret: false, is_active: true, value_type: "string" },
+  GOOGLE_SEARCH_SITE_SEARCH_FILTER: { category: "maps", key: "GOOGLE_SEARCH_SITE_SEARCH_FILTER", value: "i",   is_secret: false, is_active: true, value_type: "string"  },
   GOOGLE_MAPS_DEFAULT_CENTER_LAT: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LAT", value: "-6.2088", is_secret: false, is_active: true, value_type: "number"  },
   GOOGLE_MAPS_DEFAULT_CENTER_LNG: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LNG", value: "106.8456",is_secret: false, is_active: true, value_type: "number"  },
 };
@@ -1217,30 +1225,17 @@ export default function IntegrationsSettingsPage() {
             </p>
 
             <div className="space-y-5">
-              {/* Enable toggle */}
-              <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
-                <div>
-                  <label className="text-sm font-medium">Enable Google Maps Interface</label>
-                  <p className="text-xs text-muted-foreground">Toggle the map interface across the entire application.</p>
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Google Cloud Project</h3>
+                    <p className="text-xs text-muted-foreground">Shared browser key for Maps JavaScript, Places, and Geocoding.</p>
+                  </div>
+                  <Badge variant="info">API key</Badge>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={mapsConfig.GOOGLE_MAPS_ENABLED.value === "true"}
-                  onChange={(e) => setMapsConfig({
-                    ...mapsConfig,
-                    GOOGLE_MAPS_ENABLED: { ...mapsConfig.GOOGLE_MAPS_ENABLED, value: e.target.checked ? "true" : "false" },
-                  })}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                />
-              </div>
-
-              {/* Google API Key */}
-              <div>
                 <label className="text-sm font-semibold">Google API Key</label>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Key used for Google Maps rendering, Places/Geocoding checks, and Search by Google. Restrict it carefully in Google Cloud Console.
-                </p>
-                <input
+                <Input
+                  className="mt-2 font-mono"
                   type="text"
                   placeholder="AIzaSy..."
                   value={mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value}
@@ -1248,68 +1243,203 @@ export default function IntegrationsSettingsPage() {
                     ...mapsConfig,
                     GOOGLE_MAPS_BROWSER_API_KEY: { ...mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY, value: e.target.value },
                   })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground/40"
                   autoComplete="off"
                   spellCheck={false}
                 />
-                {mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value && (
-                  <p className="mt-1 flex items-center gap-1 text-xs text-emerald-500">
+                {mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value ? (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[color:var(--success)]">
                     <CheckCircle2 className="h-3 w-3" /> API key entered - save to apply
                   </p>
-                )}
-                {!mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value && (
-                  <p className="mt-1 flex items-center gap-1 text-xs text-amber-500">
+                ) : (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[color:var(--warning)]">
                     <AlertCircle className="h-3 w-3" /> No key configured - map runs in preview mode
                   </p>
                 )}
               </div>
 
-              <div>
-                <label className="text-sm font-semibold">Programmable Search Engine ID</label>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Required for Contact Search by Google when using Google Custom Search JSON API.
-                </p>
-                <input
-                  type="text"
-                  placeholder="cx / search engine ID"
-                  value={mapsConfig.GOOGLE_SEARCH_ENGINE_ID.value}
-                  onChange={(e) => setMapsConfig({
-                    ...mapsConfig,
-                    GOOGLE_SEARCH_ENGINE_ID: { ...mapsConfig.GOOGLE_SEARCH_ENGINE_ID, value: e.target.value },
-                  })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground/40"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Maps JavaScript API</h3>
+                    <p className="text-xs text-muted-foreground">Controls browser map rendering and default map center.</p>
+                  </div>
+                  <Badge variant={mapsConfig.GOOGLE_MAPS_ENABLED.value === "true" ? "success" : "neutral"}>
+                    {mapsConfig.GOOGLE_MAPS_ENABLED.value === "true" ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
+                <label className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
+                  <span>
+                    <span className="block text-sm font-medium">Enable Google Maps Interface</span>
+                    <span className="block text-xs text-muted-foreground">Toggle the map interface across the entire application.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={mapsConfig.GOOGLE_MAPS_ENABLED.value === "true"}
+                    onChange={(e) => setMapsConfig({
+                      ...mapsConfig,
+                      GOOGLE_MAPS_ENABLED: { ...mapsConfig.GOOGLE_MAPS_ENABLED, value: e.target.checked ? "true" : "false" },
+                    })}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                </label>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-medium">Default Center Latitude</label>
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      step="any"
+                      value={mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LAT.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_MAPS_DEFAULT_CENTER_LAT: { ...mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LAT, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Default Center Longitude</label>
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      step="any"
+                      value={mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LNG.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_MAPS_DEFAULT_CENTER_LNG: { ...mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LNG, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Lat / Lng */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium">Default Center Latitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LAT.value}
-                    onChange={(e) => setMapsConfig({
-                      ...mapsConfig,
-                      GOOGLE_MAPS_DEFAULT_CENTER_LAT: { ...mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LAT, value: e.target.value },
-                    })}
-                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Places & Geocoding APIs</h3>
+                    <p className="text-xs text-muted-foreground">Used by Lead Discovery for area geocoding, place search, and place details.</p>
+                  </div>
+                  <Badge variant="neutral">Uses shared key</Badge>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Default Center Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LNG.value}
-                    onChange={(e) => setMapsConfig({
-                      ...mapsConfig,
-                      GOOGLE_MAPS_DEFAULT_CENTER_LNG: { ...mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LNG, value: e.target.value },
-                    })}
-                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
+                <p className="text-xs text-muted-foreground">
+                  Enable Geocoding API and Places API in the same Google Cloud project as the key above.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Custom Search JSON API</h3>
+                    <p className="text-xs text-muted-foreground">Used by Contact Search by Google to find public LinkedIn profile candidates.</p>
+                  </div>
+                  <Badge variant="warning">key + cx required</Badge>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-semibold">Custom Search API Key Override</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Optional. Leave blank to use the shared Google API key.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="password"
+                      placeholder="Uses shared key when empty"
+                      value={mapsConfig.GOOGLE_SEARCH_API_KEY.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_API_KEY: { ...mapsConfig.GOOGLE_SEARCH_API_KEY, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Programmable Search Engine ID</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Required `cx` value from Programmable Search Engine.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="cx / search engine ID"
+                      value={mapsConfig.GOOGLE_SEARCH_ENGINE_ID.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_ENGINE_ID: { ...mapsConfig.GOOGLE_SEARCH_ENGINE_ID, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Search Result Count</label>
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={mapsConfig.GOOGLE_SEARCH_NUM_RESULTS.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_NUM_RESULTS: { ...mapsConfig.GOOGLE_SEARCH_NUM_RESULTS, value: e.target.value },
+                      })}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Custom Search supports 1-10 results per request.</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Safe Search</label>
+                    <Select
+                      className="mt-1"
+                      value={mapsConfig.GOOGLE_SEARCH_SAFE.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SAFE: { ...mapsConfig.GOOGLE_SEARCH_SAFE, value: e.target.value },
+                      })}
+                    >
+                      <option value="off">Off</option>
+                      <option value="active">Active</option>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Country Boost (`gl`)</label>
+                    <Input
+                      className="mt-1"
+                      value={mapsConfig.GOOGLE_SEARCH_GL.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_GL: { ...mapsConfig.GOOGLE_SEARCH_GL, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Interface Language (`hl`)</label>
+                    <Input
+                      className="mt-1"
+                      value={mapsConfig.GOOGLE_SEARCH_HL.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_HL: { ...mapsConfig.GOOGLE_SEARCH_HL, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Language Restriction (`lr`)</label>
+                    <Input
+                      className="mt-1"
+                      placeholder="Example: lang_id"
+                      value={mapsConfig.GOOGLE_SEARCH_LR.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_LR: { ...mapsConfig.GOOGLE_SEARCH_LR, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Site Search</label>
+                    <Input
+                      className="mt-1"
+                      value={mapsConfig.GOOGLE_SEARCH_SITE_SEARCH.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SITE_SEARCH: { ...mapsConfig.GOOGLE_SEARCH_SITE_SEARCH, value: e.target.value },
+                      })}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
