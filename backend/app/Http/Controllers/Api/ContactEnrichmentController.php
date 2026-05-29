@@ -72,7 +72,7 @@ class ContactEnrichmentController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'AI LinkedIn contact candidates loaded.',
+            'message' => $result['message'] ?? 'AI contact candidates loaded.',
             'data' => $candidates,
             'meta' => ['ai_model' => $result['ai_model'] ?? null],
         ]);

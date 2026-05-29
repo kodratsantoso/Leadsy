@@ -11,7 +11,7 @@ class LeadContactAiSearchService
     public function __construct(private AiOrchestrationService $ai) {}
 
     /**
-     * @return array{success: bool, candidates?: array, ai_model?: string|null, error?: string}
+     * @return array{success: bool, candidates?: array, ai_model?: string|null, message?: string, error?: string}
      */
     public function search(Lead $lead): array
     {
@@ -29,7 +29,12 @@ class LeadContactAiSearchService
         $candidates = $this->parseCandidates($result['content'] ?? '', $lead);
 
         if (empty($candidates)) {
-            return ['success' => false, 'error' => 'AI did not return usable LinkedIn contact candidates.'];
+            return [
+                'success' => true,
+                'candidates' => [],
+                'ai_model' => $result['model'] ?? null,
+                'message' => 'AI could not verify named PIC candidates for this company. Try manual add or enrich after adding a known contact name.',
+            ];
         }
 
         return [
@@ -101,37 +106,63 @@ PROMPT;
             $decoded = json_decode(substr($json, $start, $end - $start + 1), true);
         }
 
-        $items = $decoded['candidates'] ?? $decoded;
+        $items = $decoded['candidates']
+            ?? $decoded['contacts']
+            ?? $decoded['people']
+            ?? $decoded['results']
+            ?? $decoded;
         if (! is_array($items)) {
             return [];
         }
 
         $candidates = [];
         foreach ($items as $item) {
-            if (! is_array($item) || empty($item['name'])) {
+            if (! is_array($item)) {
                 continue;
             }
 
-            $linkedinUrl = $this->normalizeLinkedinUrl((string) ($item['linkedin_url'] ?? ''));
-            $linkedinId = $linkedinUrl ? $this->normalizeLinkedinId((string) ($item['linkedin_id'] ?? ''), $linkedinUrl) : null;
-            $candidateKey = $linkedinId ?: ($linkedinUrl ?: Str::slug($lead->company_name.'-'.$item['name'].'-'.$item['title']));
-            $confidence = max(0, min(100, (int) ($item['confidence_score'] ?? 50)));
+            $name = trim((string) (
+                $item['name']
+                ?? $item['full_name']
+                ?? $item['person_name']
+                ?? $item['contact_name']
+                ?? $item['profile_name']
+                ?? ''
+            ));
+
+            if ($name === '') {
+                continue;
+            }
+
+            $title = trim((string) ($item['title'] ?? $item['job_title'] ?? $item['position'] ?? $item['role'] ?? ''));
+            $linkedinUrl = $this->normalizeLinkedinUrl((string) (
+                $item['linkedin_url']
+                ?? $item['linkedinUrl']
+                ?? $item['linkedin_profile_url']
+                ?? $item['profile_url']
+                ?? ''
+            ));
+            $linkedinId = $linkedinUrl ? $this->normalizeLinkedinId((string) ($item['linkedin_id'] ?? $item['linkedinId'] ?? ''), $linkedinUrl) : null;
+            $candidateKey = $linkedinId ?: ($linkedinUrl ?: Str::slug($lead->company_name.'-'.$name.'-'.$title));
+            $confidence = max(0, min(100, (int) ($item['confidence_score'] ?? $item['confidence'] ?? 50)));
             if (! $linkedinUrl && $confidence > 59) {
                 $confidence = 59;
             }
 
             $candidates[] = [
                 'provider_candidate_id' => hash('sha256', strtolower($candidateKey)),
-                'name' => trim((string) $item['name']),
-                'title' => trim((string) ($item['title'] ?? '')),
+                'name' => $name,
+                'title' => $title,
                 'company_name' => trim((string) ($item['company_name'] ?? $lead->company_name)),
                 'company_domain' => $lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST),
                 'linkedin_url' => $linkedinUrl,
                 'linkedin_id' => $linkedinId,
                 'confidence_score' => $confidence,
-                'relevance_reason' => trim((string) ($item['relevance_reason'] ?? '')),
-                'evidence' => trim((string) ($item['evidence'] ?? '')),
+                'relevance_reason' => trim((string) ($item['relevance_reason'] ?? $item['reason'] ?? '')),
+                'evidence' => trim((string) ($item['evidence'] ?? $item['source_evidence'] ?? '')),
                 'raw_preview' => array_merge($item, [
+                    'name' => $name,
+                    'title' => $title,
                     'linkedin_url' => $linkedinUrl,
                     'linkedin_id' => $linkedinId,
                     'confidence_score' => $confidence,

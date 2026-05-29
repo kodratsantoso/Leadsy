@@ -816,15 +816,15 @@ export default function LeadDetailPage() {
     mutationFn: async () => {
       const res = await apiFetch(`/leads/${leadId}/contact-enrichment/ai-linkedin/search`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.message || 'Failed to search LinkedIn contacts');
+      if (!res.ok) throw new Error(json?.message || 'Failed to search AI contacts');
       return json;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['lead-ai-contact-candidates', leadId] });
-      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'AI LinkedIn candidates loaded' });
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'AI contact candidates loaded' });
     },
     onError: (error: any) => {
-      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search LinkedIn contacts' });
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search AI contacts' });
     },
   });
 
