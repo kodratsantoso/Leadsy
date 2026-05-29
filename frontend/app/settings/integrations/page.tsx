@@ -177,6 +177,11 @@ const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID: { category: "maps", key: "GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
   GOOGLE_MAPS_DEFAULT_CENTER_LAT: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LAT", value: "-6.2088", is_secret: false, is_active: true, value_type: "number"  },
   GOOGLE_MAPS_DEFAULT_CENTER_LNG: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LNG", value: "106.8456",is_secret: false, is_active: true, value_type: "number"  },
+  VERTEX_AI_VECTOR_SEARCH_ENABLED: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_ENABLED", value: "false", is_secret: false, is_active: true, value_type: "boolean" },
+  VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT", value: "", is_secret: false, is_active: true, value_type: "string" },
+  VERTEX_AI_VECTOR_SEARCH_LOCATION: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_LOCATION", value: "", is_secret: false, is_active: true, value_type: "string" },
+  VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
+  VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
 };
 
 const googlePermissionVariant = (status: GooglePermissionStatus): "success" | "warning" | "danger" => {
@@ -1532,6 +1537,99 @@ export default function IntegrationsSettingsPage() {
                         ...mapsConfig,
                         GOOGLE_SEARCH_SITE_SEARCH: { ...mapsConfig.GOOGLE_SEARCH_SITE_SEARCH, value: e.target.value },
                       })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Vertex AI Vector Search API</h3>
+                    <p className="text-xs text-muted-foreground">High-performance vector searches. Uses the Service Account credentials above.</p>
+                  </div>
+                  <Badge variant={mapsConfig.VERTEX_AI_VECTOR_SEARCH_ENABLED.value === "true" ? "success" : "neutral"}>
+                    {mapsConfig.VERTEX_AI_VECTOR_SEARCH_ENABLED.value === "true" ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
+                <label className="mb-4 flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-[color:var(--surface-subtle)]">
+                  <span>
+                    <span className="block text-sm font-medium">Enable Vertex AI Vector Search</span>
+                    <span className="block text-xs text-muted-foreground">Use Google Vertex AI Vector Search to perform nearest neighbor queries.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={mapsConfig.VERTEX_AI_VECTOR_SEARCH_ENABLED.value === "true"}
+                    onChange={(e) => setMapsConfig({
+                      ...mapsConfig,
+                      VERTEX_AI_VECTOR_SEARCH_ENABLED: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_ENABLED, value: e.target.checked ? "true" : "false" },
+                    })}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                </label>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-semibold">API Endpoint / Public Domain Name</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Public domain from GCP console, e.g. `*.vdb.vertexai.goog`.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. 123456.us-central1.vdb.vertexai.goog"
+                      value={mapsConfig.VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Location / Region</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">GCP region hosting the index, e.g. `us-central1`.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. us-central1"
+                      value={mapsConfig.VERTEX_AI_VECTOR_SEARCH_LOCATION.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        VERTEX_AI_VECTOR_SEARCH_LOCATION: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_LOCATION, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Index Endpoint ID</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">The resource ID of your Vertex AI Index Endpoint.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. 1234567890123456789"
+                      value={mapsConfig.VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Deployed Index ID</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Unique ID of deployed index (starts with a letter).</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. my_deployed_index_id"
+                      value={mapsConfig.VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
                     />
                   </div>
                 </div>
