@@ -1385,7 +1385,7 @@ export default function IntegrationsSettingsPage() {
                     <p className="mt-0.5 text-xs text-muted-foreground">Optional. Leave blank to use the shared Google API key.</p>
                     <Input
                       className="mt-2 font-mono"
-                      type="password"
+                      type="text"
                       placeholder="Uses shared key when empty"
                       value={mapsConfig.GOOGLE_SEARCH_API_KEY.value}
                       onChange={(e) => setMapsConfig({
@@ -1433,7 +1433,7 @@ export default function IntegrationsSettingsPage() {
                     <p className="mt-0.5 text-xs text-muted-foreground">PEM private key file content or JSON credentials key.</p>
                     <Input
                       className="mt-2 font-mono"
-                      type="password"
+                      type="text"
                       placeholder="-----BEGIN PRIVATE KEY-----..."
                       value={mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY.value}
                       onChange={(e) => setMapsConfig({
@@ -1721,7 +1721,7 @@ export default function IntegrationsSettingsPage() {
               <div>
                 <label className="text-sm font-medium">Lusha API Key</label>
                 <input
-                  type="password"
+                  type="text"
                   placeholder="Secret Key..."
                   value={lushaConfig.LUSHA_API_KEY.value}
                   onChange={(e) => setLushaConfig({
