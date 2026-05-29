@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import Link from "next/link";
 
 type IntegrationConfig = {
@@ -949,7 +950,8 @@ export default function IntegrationsSettingsPage() {
 
   return (
     <div className="space-y-6 p-6 max-w-4xl">
-      <div>
+      <div className="space-y-1">
+        <BackToSettings />
         <h1 className="text-3xl font-bold tracking-tight">Integration Setting</h1>
         <p className="text-sm text-muted-foreground">
           Manage social media, ad platform, CRM, event, SSO, and non-AI integration credentials.

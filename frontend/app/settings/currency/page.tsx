@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Coins, Loader2 } from "lucide-react";
 
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,7 +116,8 @@ export default function CurrencySettingsPage() {
     <div className="space-y-6 p-6">
       <Card>
         <CardHeader>
-          <div>
+          <div className="space-y-1">
+            <BackToSettings />
             <CardTitle>Currency</CardTitle>
             <CardDescription>Database-backed currency, thousand separator, decimal separator, and decimal precision.</CardDescription>
           </div>

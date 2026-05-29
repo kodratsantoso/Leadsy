@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterBar, FilterBarSearch } from "@/components/ui/filter-bar";
 import { Input, Textarea } from "@/components/ui/input";
@@ -331,13 +331,7 @@ export default function SettingsUsersPage() {
       <Card>
         <CardHeader>
           <div className="space-y-1">
-            <Link
-              href="/settings"
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Settings
-            </Link>
+            <BackToSettings />
             <CardTitle>Users & Roles</CardTitle>
             <CardDescription>Unified RBAC management using the shared admin table, tabs, and modal system.</CardDescription>
           </div>

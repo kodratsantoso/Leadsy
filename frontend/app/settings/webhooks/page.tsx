@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Loader2, Plus, Trash2, Webhook } from "lucide-react";
+import { Loader2, Plus, Trash2, Webhook } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { apiFetch } from "@/lib/apiFetch";
-import { cn } from "@/lib/utils";
 
 type WebhookRecord = {
   id: number;
@@ -75,12 +74,7 @@ export default function WebhooksPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <Link
-              href="/settings"
-              className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
+            <BackToSettings />
             <div>
               <CardTitle>Webhooks</CardTitle>
               <CardDescription>

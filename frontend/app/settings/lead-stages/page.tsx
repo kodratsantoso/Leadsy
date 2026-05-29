@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, GitBranch, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { GitBranch, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterBar, FilterBarSearch } from "@/components/ui/filter-bar";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,6 @@ import {
   TableShell,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/apiFetch";
-import { cn } from "@/lib/utils";
 
 type FunnelStage = {
   id: number;
@@ -160,13 +159,7 @@ export default function LeadStagesSettingsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <Link
-              href="/settings"
-              className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
-              aria-label="Back to settings"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
+            <BackToSettings />
             <div>
               <CardTitle>Lead Stages</CardTitle>
               <CardDescription>

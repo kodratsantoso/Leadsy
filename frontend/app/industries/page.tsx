@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { ChevronRight, Layers, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +27,7 @@ type IndustryRecord = {
 };
 
 export default function IndustriesPage() {
+  const pathname = usePathname();
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [showModal, setShowModal] = useState(false);
@@ -131,7 +134,8 @@ export default function IndustriesPage() {
     <div className="space-y-6 p-6">
       <Card>
         <CardHeader>
-          <div>
+          <div className="space-y-1">
+            {pathname.startsWith("/settings/") ? <BackToSettings /> : null}
             <CardTitle>Industries</CardTitle>
             <CardDescription>
               Governed industry and sub-industry management using shared admin components.
