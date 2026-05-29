@@ -236,6 +236,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Integration Configurations (settings)
     Route::get('settings/integrations', [IntegrationConfigController::class, 'index'])->middleware('permission:integrations.manage');
+    Route::get('settings/integrations/google/permissions', [IntegrationConfigController::class, 'googlePermissions'])->middleware('permission:integrations.manage');
     Route::post('settings/integrations', [IntegrationConfigController::class, 'store'])->middleware('permission:integrations.manage');
     Route::delete('settings/integrations/{integrationConfig}', [IntegrationConfigController::class, 'destroy'])->middleware('permission:integrations.manage');
     Route::get('settings/integration-platforms', [IntegrationPlatformController::class, 'registry'])->middleware('permission:integrations.manage');

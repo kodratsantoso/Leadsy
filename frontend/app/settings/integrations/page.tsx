@@ -25,6 +25,14 @@ type IntegrationConfig = {
 };
 
 type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark";
+type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
+type GooglePermission = {
+  id: string;
+  label: string;
+  description: string;
+  status: GooglePermissionStatus;
+  message: string;
+};
 type LeadPlatformField = {
   suffix: string;
   label: string;
@@ -155,9 +163,26 @@ type LarkBaseSyncDialogState = {
 const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_MAPS_ENABLED:            { category: "maps", key: "GOOGLE_MAPS_ENABLED",            value: "true",    is_secret: false, is_active: true, value_type: "boolean" },
   GOOGLE_MAPS_BROWSER_API_KEY:    { category: "maps", key: "GOOGLE_MAPS_BROWSER_API_KEY",    value: "",        is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_ENGINE_ID:        { category: "maps", key: "GOOGLE_SEARCH_ENGINE_ID",        value: "",        is_secret: false, is_active: true, value_type: "string"  },
   GOOGLE_MAPS_DEFAULT_CENTER_LAT: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LAT", value: "-6.2088", is_secret: false, is_active: true, value_type: "number"  },
   GOOGLE_MAPS_DEFAULT_CENTER_LNG: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LNG", value: "106.8456",is_secret: false, is_active: true, value_type: "number"  },
 };
+
+const googlePermissionVariant = (status: GooglePermissionStatus): "success" | "warning" | "danger" => {
+  if (status === "available") return "success";
+  if (status === "restricted" || status === "not_configured" || status === "unknown") return "warning";
+  return "danger";
+};
+
+const googlePermissionLabel = (status: GooglePermissionStatus) => ({
+  available: "Available",
+  restricted: "Restricted",
+  not_enabled: "Not Enabled",
+  invalid_key: "Invalid Key",
+  not_configured: "Not Configured",
+  not_available: "Unavailable",
+  unknown: "Unknown",
+}[status] ?? "Unknown");
 
 const DEFAULT_WHATSAPP: Record<string, IntegrationConfig> = {
   WHATSAPP_ENABLED:      { category: "whatsapp", key: "WHATSAPP_ENABLED",      value: "true",                  is_secret: false, is_active: true, value_type: "boolean" },
@@ -523,6 +548,28 @@ export default function IntegrationsSettingsPage() {
       return res.json();
     },
     refetchInterval: 5000,
+  });
+
+  const googlePermissionsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch("/settings/integrations/google/permissions");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.message || `Google permission check failed (HTTP ${res.status})`);
+      }
+      return json as {
+        data: {
+          api_key_present: boolean;
+          search_engine_id_present: boolean;
+          checked_at: string;
+          permissions: GooglePermission[];
+        };
+      };
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || "Failed to check Google permissions");
+      setTimeout(() => setErrorMsg(""), 5000);
+    },
   });
 
   const { data: baseMappingsData, refetch: refetchBaseMappings } = useQuery({
@@ -970,7 +1017,7 @@ export default function IntegrationsSettingsPage() {
         onValueChange={setTab}
         items={[
           { key: "lead_platforms", label: "Lead Platforms", icon: Share2 },
-          { key: "maps", label: "Google Maps", icon: MapPin },
+          { key: "maps", label: "Google", icon: MapPin },
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
           { key: "lusha", label: "Lusha", icon: Key },
           { key: "lark", label: "Lark", icon: Key },
@@ -1155,13 +1202,13 @@ export default function IntegrationsSettingsPage() {
         </div>
       )}
 
-      {/* ── Google Maps ── */}
+      {/* ── Google ── */}
       {tab === "maps" && (
         <div className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-1">Google Maps Configuration</h2>
+            <h2 className="text-xl font-semibold mb-1">Google Configuration</h2>
             <p className="text-xs text-muted-foreground mb-6">
-              Configure the Google Maps API key for the Map & Territory page.
+              Configure the Google Cloud API key used by Maps, Lead Discovery, and Search by Google.
               Get a key from{" "}
               <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-indigo-400 underline">
                 Google Cloud Console
@@ -1173,7 +1220,7 @@ export default function IntegrationsSettingsPage() {
               {/* Enable toggle */}
               <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
                 <div>
-                  <label className="text-sm font-medium">Enable Maps Integration</label>
+                  <label className="text-sm font-medium">Enable Google Maps Interface</label>
                   <p className="text-xs text-muted-foreground">Toggle the map interface across the entire application.</p>
                 </div>
                 <input
@@ -1187,11 +1234,11 @@ export default function IntegrationsSettingsPage() {
                 />
               </div>
 
-              {/* Browser API Key */}
+              {/* Google API Key */}
               <div>
-                <label className="text-sm font-semibold">Browser API Key (Public)</label>
+                <label className="text-sm font-semibold">Google API Key</label>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Key used for client-side map rendering. Must be restricted by HTTP referrer in Google Cloud Console.
+                  Key used for Google Maps rendering, Places/Geocoding checks, and Search by Google. Restrict it carefully in Google Cloud Console.
                 </p>
                 <input
                   type="text"
@@ -1207,14 +1254,33 @@ export default function IntegrationsSettingsPage() {
                 />
                 {mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value && (
                   <p className="mt-1 flex items-center gap-1 text-xs text-emerald-500">
-                    <CheckCircle2 className="h-3 w-3" /> API key entered — save to apply
+                    <CheckCircle2 className="h-3 w-3" /> API key entered - save to apply
                   </p>
                 )}
                 {!mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value && (
                   <p className="mt-1 flex items-center gap-1 text-xs text-amber-500">
-                    <AlertCircle className="h-3 w-3" /> No key configured — map runs in preview mode
+                    <AlertCircle className="h-3 w-3" /> No key configured - map runs in preview mode
                   </p>
                 )}
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold">Programmable Search Engine ID</label>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Required for Contact Search by Google when using Google Custom Search JSON API.
+                </p>
+                <input
+                  type="text"
+                  placeholder="cx / search engine ID"
+                  value={mapsConfig.GOOGLE_SEARCH_ENGINE_ID.value}
+                  onChange={(e) => setMapsConfig({
+                    ...mapsConfig,
+                    GOOGLE_SEARCH_ENGINE_ID: { ...mapsConfig.GOOGLE_SEARCH_ENGINE_ID, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground/40"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
               </div>
 
               {/* Lat / Lng */}
@@ -1248,15 +1314,26 @@ export default function IntegrationsSettingsPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex items-center gap-3">
-              <button
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button
                 onClick={() => handleSave("maps", mapsConfig)}
                 disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save Maps Config
-              </button>
+                Save Google Config
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  if (await handleSave("maps", mapsConfig)) {
+                    googlePermissionsMutation.mutate();
+                  }
+                }}
+                disabled={saving || googlePermissionsMutation.isPending}
+              >
+                {googlePermissionsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Check Google Permissions
+              </Button>
               {successMsg && (
                 <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
@@ -1269,6 +1346,45 @@ export default function IntegrationsSettingsPage() {
               )}
             </div>
           </div>
+
+          <Card className="p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-base font-semibold">Google Project Permissions</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Leadsy checks the registered API key against the Google APIs used in this app. Google does not expose the full Cloud project permission list from an API key, so this shows verified availability per API.
+                </p>
+              </div>
+              {googlePermissionsMutation.data?.data?.checked_at ? (
+                <Badge variant="neutral">
+                  Checked {new Date(googlePermissionsMutation.data.data.checked_at).toLocaleString()}
+                </Badge>
+              ) : null}
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              {(googlePermissionsMutation.data?.data?.permissions || []).map((permission) => (
+                <div key={permission.id} className="rounded-xl border border-border bg-[color:var(--surface-subtle)] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">{permission.label}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{permission.description}</p>
+                    </div>
+                    <Badge variant={googlePermissionVariant(permission.status)}>
+                      {googlePermissionLabel(permission.status)}
+                    </Badge>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">{permission.message}</p>
+                </div>
+              ))}
+            </div>
+
+            {!googlePermissionsMutation.data && !googlePermissionsMutation.isPending ? (
+              <div className="mt-4 rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
+                Save the Google config, then run Check Google Permissions to see Maps JavaScript, Geocoding, Places, and Custom Search status.
+              </div>
+            ) : null}
+          </Card>
         </div>
       )}
 

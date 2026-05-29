@@ -7,6 +7,7 @@ use App\Models\IntegrationConfig;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class IntegrationConfigController extends Controller
 {
@@ -86,6 +87,62 @@ class IntegrationConfigController extends Controller
         $configs['APP_ENV'] = config('app.env', 'production');
 
         return response()->json(['data' => $configs]);
+    }
+
+    public function googlePermissions(Request $request): JsonResponse
+    {
+        $tenantId = $this->currentTenantId($request);
+        $apiKey = $this->integrationValue([
+            'GOOGLE_MAPS_BROWSER_API_KEY',
+            'GOOGLE_SEARCH_API_KEY',
+            'GOOGLE_CUSTOM_SEARCH_API_KEY',
+        ], $tenantId);
+        $searchEngineId = $this->integrationValue([
+            'GOOGLE_SEARCH_ENGINE_ID',
+            'GOOGLE_CUSTOM_SEARCH_ENGINE_ID',
+            'GOOGLE_CSE_ID',
+        ], $tenantId);
+
+        if (! $apiKey) {
+            return response()->json([
+                'data' => [
+                    'api_key_present' => false,
+                    'search_engine_id_present' => (bool) $searchEngineId,
+                    'checked_at' => now()->toIso8601String(),
+                    'permissions' => $this->googlePermissionDefinitions()->map(fn ($permission) => [
+                        ...$permission,
+                        'status' => 'not_configured',
+                        'message' => 'Google API key is not configured.',
+                    ])->values(),
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'data' => [
+                'api_key_present' => true,
+                'search_engine_id_present' => (bool) $searchEngineId,
+                'checked_at' => now()->toIso8601String(),
+                'permissions' => [
+                    $this->checkGoogleMapsJavascript($apiKey),
+                    $this->checkGoogleJsonApi(
+                        'geocoding',
+                        'Geocoding API',
+                        'Used to convert area names into map coordinates for territory discovery.',
+                        'https://maps.googleapis.com/maps/api/geocode/json',
+                        ['address' => 'Jakarta, Indonesia', 'key' => $apiKey]
+                    ),
+                    $this->checkGoogleJsonApi(
+                        'places',
+                        'Places API',
+                        'Used by Lead Discovery to search business places and retrieve place details.',
+                        'https://maps.googleapis.com/maps/api/place/textsearch/json',
+                        ['query' => 'Jakarta business', 'key' => $apiKey]
+                    ),
+                    $this->checkCustomSearch($apiKey, $searchEngineId),
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -206,5 +263,154 @@ class IntegrationConfigController extends Controller
         $integrationConfig->delete();
 
         return response()->json(null, 204);
+    }
+
+    private function googlePermissionDefinitions()
+    {
+        return collect([
+            [
+                'id' => 'maps_javascript',
+                'label' => 'Maps JavaScript API',
+                'description' => 'Used for rendering interactive maps in browser pages.',
+            ],
+            [
+                'id' => 'geocoding',
+                'label' => 'Geocoding API',
+                'description' => 'Used to convert area names into map coordinates for territory discovery.',
+            ],
+            [
+                'id' => 'places',
+                'label' => 'Places API',
+                'description' => 'Used by Lead Discovery to search business places and retrieve place details.',
+            ],
+            [
+                'id' => 'custom_search',
+                'label' => 'Custom Search JSON API',
+                'description' => 'Used by Search by Google to find public LinkedIn profile results.',
+            ],
+        ]);
+    }
+
+    private function checkGoogleMapsJavascript(string $apiKey): array
+    {
+        $base = [
+            'id' => 'maps_javascript',
+            'label' => 'Maps JavaScript API',
+            'description' => 'Used for rendering interactive maps in browser pages.',
+        ];
+
+        try {
+            $response = Http::timeout(12)->get('https://maps.googleapis.com/maps/api/js', [
+                'key' => $apiKey,
+                'callback' => '__leadsyGooglePermissionCheck',
+            ]);
+            $body = (string) $response->body();
+
+            if ($response->successful() && ! str_contains($body, 'Google Maps JavaScript API error')) {
+                return $base + ['status' => 'available', 'message' => 'API accepted this key.'];
+            }
+
+            return $base + $this->googleDeniedStatus($body ?: 'Maps JavaScript API rejected this key.');
+        } catch (\Throwable $exception) {
+            return $base + ['status' => 'unknown', 'message' => $exception->getMessage()];
+        }
+    }
+
+    private function checkGoogleJsonApi(string $id, string $label, string $description, string $url, array $params): array
+    {
+        $base = compact('id', 'label', 'description');
+
+        try {
+            $response = Http::timeout(12)->get($url, $params);
+            $json = $response->json();
+            $status = $json['status'] ?? null;
+
+            if ($response->successful() && in_array($status, ['OK', 'ZERO_RESULTS'], true)) {
+                return $base + ['status' => 'available', 'message' => 'API accepted this key.'];
+            }
+
+            return $base + $this->googleDeniedStatus((string) ($json['error_message'] ?? $status ?? $response->body()));
+        } catch (\Throwable $exception) {
+            return $base + ['status' => 'unknown', 'message' => $exception->getMessage()];
+        }
+    }
+
+    private function checkCustomSearch(string $apiKey, ?string $searchEngineId): array
+    {
+        $base = [
+            'id' => 'custom_search',
+            'label' => 'Custom Search JSON API',
+            'description' => 'Used by Search by Google to find public LinkedIn profile results.',
+        ];
+
+        if (! $searchEngineId) {
+            return $base + [
+                'status' => 'not_configured',
+                'message' => 'GOOGLE_SEARCH_ENGINE_ID is required to test and use Custom Search.',
+            ];
+        }
+
+        try {
+            $response = Http::timeout(12)->get('https://www.googleapis.com/customsearch/v1', [
+                'key' => $apiKey,
+                'cx' => $searchEngineId,
+                'q' => 'site:linkedin.com/in',
+                'num' => 1,
+            ]);
+
+            if ($response->successful()) {
+                return $base + ['status' => 'available', 'message' => 'API accepted this key and search engine ID.'];
+            }
+
+            return $base + $this->googleDeniedStatus((string) ($response->json('error.message') ?: $response->body()));
+        } catch (\Throwable $exception) {
+            return $base + ['status' => 'unknown', 'message' => $exception->getMessage()];
+        }
+    }
+
+    private function googleDeniedStatus(string $message): array
+    {
+        $lower = strtolower($message);
+        $status = match (true) {
+            str_contains($lower, 'referer') || str_contains($lower, 'referrer') || str_contains($lower, 'restriction') => 'restricted',
+            str_contains($lower, 'not authorized') || str_contains($lower, 'not enabled') || str_contains($lower, 'api has not been used') => 'not_enabled',
+            str_contains($lower, 'invalid') || str_contains($lower, 'api key not valid') => 'invalid_key',
+            default => 'not_available',
+        };
+
+        return [
+            'status' => $status,
+            'message' => $message ?: 'Google API rejected this key.',
+        ];
+    }
+
+    private function integrationValue(array $keys, ?int $tenantId): ?string
+    {
+        foreach ($keys as $key) {
+            $envValue = env($key);
+            if (is_string($envValue) && trim($envValue) !== '') {
+                return trim($envValue);
+            }
+
+            $record = IntegrationConfig::query()
+                ->where('key', $key)
+                ->where('is_active', true)
+                ->where(function ($query) use ($tenantId) {
+                    $query->whereNull('tenant_id');
+
+                    if ($tenantId !== null) {
+                        $query->orWhere('tenant_id', $tenantId);
+                    }
+                })
+                ->orderByRaw('tenant_id is null')
+                ->latest()
+                ->first();
+
+            if (is_string($record?->value) && trim($record->value) !== '') {
+                return trim($record->value);
+            }
+        }
+
+        return null;
     }
 }
