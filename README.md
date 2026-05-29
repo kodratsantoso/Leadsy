@@ -12,6 +12,7 @@ Current release: **v1.2.9** — 2026-05-29
 - Added a public OpenSearch Description Document (OSDD) XML descriptor file at `frontend/public/opensearch.xml`.
 - Registered and implemented `GET /api/opensearch/contacts` on the Laravel backend to support queries via URL templates (substitutes `{searchTerms}`, `{count}`, and `{startIndex}`).
 - Supported search outputs in OpenSearch-compliant RSS 2.0 (with XML namespaces), Atom 1.0, and JSON formats based on format parameters or Accept headers.
+- Introduced Google Service Account credentials support (`GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY`, `GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID`) for Custom Search configurations.
 
 ## What's New in v1.2.8
 

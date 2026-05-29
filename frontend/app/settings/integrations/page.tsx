@@ -172,6 +172,9 @@ const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_SEARCH_NUM_RESULTS:      { category: "maps", key: "GOOGLE_SEARCH_NUM_RESULTS",      value: "10",      is_secret: false, is_active: true, value_type: "number"  },
   GOOGLE_SEARCH_SITE_SEARCH:      { category: "maps", key: "GOOGLE_SEARCH_SITE_SEARCH",      value: "linkedin.com/in", is_secret: false, is_active: true, value_type: "string" },
   GOOGLE_SEARCH_SITE_SEARCH_FILTER: { category: "maps", key: "GOOGLE_SEARCH_SITE_SEARCH_FILTER", value: "i",   is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL: { category: "maps", key: "GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL", value: "", is_secret: false, is_active: true, value_type: "string" },
+  GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY: { category: "maps", key: "GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY", value: "", is_secret: true, is_active: true, value_type: "string" },
+  GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID: { category: "maps", key: "GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
   GOOGLE_MAPS_DEFAULT_CENTER_LAT: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LAT", value: "-6.2088", is_secret: false, is_active: true, value_type: "number"  },
   GOOGLE_MAPS_DEFAULT_CENTER_LNG: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LNG", value: "106.8456",is_secret: false, is_active: true, value_type: "number"  },
 };
@@ -1361,6 +1364,54 @@ export default function IntegrationsSettingsPage() {
                       onChange={(e) => setMapsConfig({
                         ...mapsConfig,
                         GOOGLE_SEARCH_ENGINE_ID: { ...mapsConfig.GOOGLE_SEARCH_ENGINE_ID, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Service Account Email</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Google Cloud Service Account Client Email.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. search-service@project-id.iam.gserviceaccount.com"
+                      value={mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL: { ...mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Service Account Private Key</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">PEM private key file content or JSON credentials key.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="password"
+                      placeholder="-----BEGIN PRIVATE KEY-----..."
+                      value={mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY: { ...mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Google Cloud Project ID</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">The project ID for Google Cloud Service Account.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. leadsy-search-project"
+                      value={mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID: { ...mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID, value: e.target.value },
                       })}
                       autoComplete="off"
                       spellCheck={false}

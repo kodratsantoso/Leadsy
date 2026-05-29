@@ -258,3 +258,4 @@ Source of truth: `frontend/public/opensearch.xml` (descriptor) & `backend/app/Ht
 **Features:**
 - **OSDD XML:** Defines the search metadata and URLs using template keys (`{searchTerms}`, `{count}`, `{startIndex}`).
 - **Multi-Format Output:** The endpoint `/api/opensearch/contacts` renders search results as RSS 2.0 with `<opensearch:totalResults>` namespaces, Atom 1.0, or standard JSON, matching headers and format query strings.
+- **Service Account Credentials:** Supports optional Google Cloud Service Account authentication using `GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY` (secret), and `GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID` config keys.
