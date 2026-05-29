@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>Leadsy</ShortName>
+  <Description>Pencarian Kontak LinkedIn via Google Custom Search</Description>
+  <Tags>linkedin contacts leadsy search</Tags>
+  <Contact>support@leadsy.ai</Contact>
+  <InputEncoding>UTF-8</InputEncoding>
+  <OutputEncoding>UTF-8</OutputEncoding>
+  <!-- URL templates for RSS, Atom, and JSON formats -->
+  <Url type="application/rss+xml" template="/api/opensearch/contacts?q={searchTerms}&amp;count={count?}&amp;startIndex={startIndex?}&amp;format=rss" />
+  <Url type="application/atom+xml" template="/api/opensearch/contacts?q={searchTerms}&amp;count={count?}&amp;startIndex={startIndex?}&amp;format=atom" />
+  <Url type="application/json" template="/api/opensearch/contacts?q={searchTerms}&amp;count={count?}&amp;startIndex={startIndex?}&amp;format=json" />
+</OpenSearchDescription>

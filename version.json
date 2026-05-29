@@ -1,6 +1,6 @@
 {
-  "version": "1.2.8",
-  "released_at": "2026-05-28",
+  "version": "1.2.9",
+  "released_at": "2026-05-29",
   "type": "patch",
-  "notes": "AI LinkedIn contact search and contact-level Lusha enrichment"
+  "notes": "OpenSearch 1.1 standard alignment for LinkedIn contact search"
 }

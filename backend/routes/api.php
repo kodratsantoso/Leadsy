@@ -67,6 +67,7 @@ Route::prefix('auth')->group(function () {
 
 // ── Public Integrations (e.g. Browser Maps Key, APP_NAME, APP_ENV) ──
 Route::get('settings/public', [IntegrationConfigController::class, 'publicSettings']);
+Route::get('opensearch/contacts', [\App\Http\Controllers\Api\OpenSearchController::class, 'searchContacts']);
 
 // ── Webhooks (Must be outside Sanctum) ──
 Route::prefix('webhooks')->group(function () {

@@ -4,7 +4,14 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.2.8** — 2026-05-28
+Current release: **v1.2.9** — 2026-05-29
+
+## What's New in v1.2.9
+
+- Aligned the Contact Search features to follow the OpenSearch 1.1 Draft 6 specification.
+- Added a public OpenSearch Description Document (OSDD) XML descriptor file at `frontend/public/opensearch.xml`.
+- Registered and implemented `GET /api/opensearch/contacts` on the Laravel backend to support queries via URL templates (substitutes `{searchTerms}`, `{count}`, and `{startIndex}`).
+- Supported search outputs in OpenSearch-compliant RSS 2.0 (with XML namespaces), Atom 1.0, and JSON formats based on format parameters or Accept headers.
 
 ## What's New in v1.2.8
 
