@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class QualificationEvaluateApiTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_evaluate_endpoint_returns_explainable_result_contract(): void
     {
         $this->withoutMiddleware();

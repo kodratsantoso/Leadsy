@@ -3,10 +3,13 @@
 namespace Tests\Unit;
 
 use App\Services\Lead\QualificationRuleEngineService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class QualificationRuleEngineServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_it_marks_strong_lead_as_eligible(): void
     {
         $service = app(QualificationRuleEngineService::class);

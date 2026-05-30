@@ -4,7 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.2.9** — 2026-05-29
+Current release: **v1.3.0** — 2026-05-30
+
+## What's New in v1.3.0
+
+- Migrated the complete development stack to run natively on macOS host using Homebrew services (PostgreSQL, Redis, native PHP, Node.js) instead of Docker Desktop.
+- Configured Laravel backend, Next.js frontend, and WhatsApp sidecar services to run natively on local ports 3001, 3000, and 3002.
+- Added a `LinkedIn URL / Username` input field to manual Add and Edit contact forms in the lead details view.
+- Implemented automated backend validation and normalization for the manual LinkedIn field (normalizes usernames/handles to full URLs).
+- Refreshed database migrations/snapshots so that fresh deployments carry the correct structure, passwords, and records.
 
 ## What's New in v1.2.9
 

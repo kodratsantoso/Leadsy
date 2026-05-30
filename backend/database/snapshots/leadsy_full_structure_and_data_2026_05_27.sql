@@ -11891,12 +11891,12 @@ COPY public.territories (id, name, center_lat, center_lng, radius_meters, metada
 --
 
 COPY public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) FROM stdin;
-1	superadmin	admin@prasetia.co.id	\N	$2y$12$3O/JIKzQhpN.ks/0aNgMy.BQezR9hxyelkyPTDlF8276PKVoLh3sG	1	6287884701947	t	\N	2026-04-20 14:35:47	2026-05-19 14:30:56	1	\N	monthly	\N
+1	superadmin	admin@prasetia.co.id	\N	$2y$12$JQwWpxNImkFeeM7nJfY8lOx4miG1JA9MDIDXcx5wh2tuFLb3NWhOC	1	6287884701947	t	\N	2026-04-20 14:35:47	2026-05-19 14:30:56	1	\N	monthly	\N
 3	Sales	user@prasetia.co.id	\N	$2y$12$nDRSSXRk4UH9mItWP5Ia.OCWA5Fo3dCrtcDBPudqU3CPVzECn2lqq	5	\N	t	\N	2026-05-19 14:32:38	2026-05-19 14:34:59	\N	4	monthly	\N
 4	Manager	manager@prasetia.co.id	\N	$2y$12$kwUHwt39TTcG7cX9pMBww.W0aV.nVw4YT4jYvimLmYEq/uWhxGQqa	3	\N	t	\N	2026-05-19 14:33:05	2026-05-19 14:35:34	\N	5	monthly	\N
 6	Director	director@prasetia.co.id	\N	$2y$12$RzJGrf6tpVMVfCEN3IZHve2VApv4RxSJgT9Hy6VmoY3JRcMg1yTze	3	\N	t	\N	2026-05-19 14:34:04	2026-05-19 14:35:45	\N	\N	monthly	\N
 5	General Manager	generalmanager@prasetia.co.id	\N	$2y$12$g0B2MiaCyKnx8Lt9/PtOl.kMHUimZ94iNniqPUrzwbI3mNs7HrVvq	3	\N	t	\N	2026-05-19 14:33:33	2026-05-19 14:35:59	\N	6	monthly	\N
-2	Admin	admin@prasetia.com	\N	$2y$12$gaWQdnxuUNElbKGXhFt39eYmEIyF/T1zKjOse3caCn7CFbebC/xye	1	\N	f	\N	2026-04-25 05:30:10	2026-05-25 09:04:49	1	\N	monthly	\N
+2	Admin	admin@prasetia.com	\N	$2y$12$2RfdDE04h.1SPvY0IiZcQO25eeGIEl6X/RJcVLeiU/NqPeIouZl6O	1	\N	t	\N	2026-04-25 05:30:10	2026-05-25 09:04:49	1	\N	monthly	\N
 7	Kodrat Santoso	kodratsantoso@prasetia.co.id	\N	$2y$12$zsYgv/3NRfH4rD2.32CLie/bREpB.xyn7SBxDGQIDnr.fXQi883s2	1	\N	t	\N	2026-05-25 09:10:49	2026-05-25 09:15:15	1	\N	monthly	\N
 \.
 
