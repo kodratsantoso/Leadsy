@@ -1,13 +1,8 @@
--- LEADSY_DATA_ONLY_BACKUP
--- Generated at: 2026-05-30T19:57:13+07:00
--- Source: local PostgreSQL, database leads
--- Excludes runtime/security tables: public.cache public.cache_locks public.failed_jobs public.job_batches public.jobs public.sessions public.password_reset_tokens public.personal_access_tokens public.email_verification_otps public.ai_connection_tests public.ai_requests public.integration_configs public.migrations
-
 --
 -- PostgreSQL database dump
 --
 
-\restrict VdRBUXvCaMsDHYEzHeRxdigjX6mvCdTYbRKZDeSVIBYwSno4P9qJIctY6YU5xn5
+\restrict tUC3mBOLHA52OeQRLUWfN2qMGihV36FFYVdx9EI0xGrCQ0RiHguExthiwgbj3LF
 
 -- Dumped from database version 14.19 (Homebrew)
 -- Dumped by pg_dump version 14.19 (Homebrew)
@@ -24,14 +19,14 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Data for Name: products; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: products; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.products (id, name, category, description, reference_link, attachment_url, is_active, base_closing_days, created_at, updated_at) VALUES ('1e23148a-af5c-410e-ba24-d3dd367372c7', 'Larksuite', 'Productivity & Collaboration Platform / Digital Workplace / Workflow & Operations Platform', 'Lark adalah platform kerja terpadu yang menggabungkan chat, meeting, kalender, dokumen, penyimpanan cloud, workflow automation, dan AI dalam satu ekosistem kerja. Nilai utamanya bukan hanya komunikasi tim, tetapi juga penyatuan proses kerja agar koordinasi, dokumentasi, pengambilan keputusan, dan eksekusi operasional dapat berjalan dalam satu platform yang saling terhubung. Untuk perusahaan, Lark relevan sebagai fondasi digital workplace modern yang mampu mengurangi silo antar aplikasi, mempercepat kolaborasi lintas divisi, dan mendukung pembuatan workflow operasional maupun dashboard kerja yang lebih terstruktur.', '', NULL, true, 30, '2026-04-14 14:10:05.96', '2026-04-14 14:10:05.96');
 
 
 --
--- Data for Name: ai_parameter_suggestions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: ai_parameter_suggestions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.ai_parameter_suggestions (id, product_id, suggested_name, suggested_key, description, reasoning, status, created_at) VALUES ('7313175c-73f5-4f68-8e0a-09e4bbe28243', '1e23148a-af5c-410e-ba24-d3dd367372c7', 'Current Collaboration Tools', 'current_collaboration_tools', 'Existing tools and platforms used for team collaboration', 'Companies using multiple disjointed tools may seek an integrated solution like Lark to streamline their processes.', 'PENDING', '2026-04-14 14:27:30.172');
@@ -45,7 +40,7 @@ INSERT INTO legacy_mgmt.ai_parameter_suggestions (id, product_id, suggested_name
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: roles; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.roles (id, name, description, permissions, created_at, updated_at) VALUES ('f4b088a6-a777-4790-bf5c-bd50d4bcdc96', 'super_admin', 'Super Admin', '["*"]', '2026-04-13 14:18:45.036', '2026-04-13 14:18:45.036');
@@ -55,21 +50,21 @@ INSERT INTO legacy_mgmt.roles (id, name, description, permissions, created_at, u
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: users; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.users (id, email, password_hash, full_name, role_id, is_active, tenant_id, created_at, updated_at, deleted_at) VALUES ('072db61f-4708-44c7-8e3d-f06de866de31', 'admin@prasetia.com', '$2b$12$QNrt4UaYB..vgFpPbMddnu1RWULww60uOBugrse4U/zSdILXnXC0a', 'System Admin', '467a69b5-a4db-430e-8f53-3e4852c44b21', true, NULL, '2026-04-13 14:18:45.085', '2026-04-14 14:17:05.883', NULL);
 
 
 --
--- Data for Name: ai_provider_settings; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: ai_provider_settings; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.ai_provider_settings (id, user_id, provider_name, model_name, api_key_encrypted, base_url, is_active, validation_status, last_validated_at, created_at, updated_at, updated_by) VALUES ('cf3e795a-6219-4b06-acdd-6a3a3d4c2054', '072db61f-4708-44c7-8e3d-f06de866de31', 'OpenAI', 'gpt-4o-mini', 'b69758a321ef5e2de2303284b1c146ed:05fddeba840b3c98ac168236c2def292:6eb14a468bd030b7c0d7d0d10349dbe8b4a8136e48b9a2267bc23ca2e8a40214fd3df3ba82e7047080efba8f5e9e9d274fd8b88cbc2e6c15c35ad090fc474359a8ba4a1cfee8d812a61f0462a5ed2afc245abd0f1b2f43ef7848b706a2c39dffc3e3a1031c752e92e99517c1d1ef46f6b854216b0394b0454845edf727528e1a8ea9905bd07bfb11c180ca0adca706fa1a26da4e041e762b10afc69498e991822a5415e7', NULL, true, 'SUCCESS', '2026-04-14 14:24:34.224', '2026-04-14 14:24:34.225', '2026-04-14 14:24:34.225', '072db61f-4708-44c7-8e3d-f06de866de31');
 
 
 --
--- Data for Name: audit_logs; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: audit_logs; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.audit_logs (id, user_id, entity_type, entity_id, action, changes, ip_address, created_at) VALUES ('13b011f3-bd6d-4e3a-ae64-34d81e0d4cac', '072db61f-4708-44c7-8e3d-f06de866de31', 'Product', 'afd3896e-87b2-4ee7-824a-cfdf3a47ed83', 'CREATE', '{"data": {"id": "afd3896e-87b2-4ee7-824a-cfdf3a47ed83", "name": "Test Product", "category": "Testing", "isActive": true, "createdAt": "2026-04-14T14:09:24.970Z", "updatedAt": "2026-04-14T14:09:24.970Z", "description": "Test description", "attachmentUrl": null, "referenceLink": null, "baseClosingDays": 30}}', '::ffff:127.0.0.1', '2026-04-14 14:09:24.975');
@@ -84,7 +79,7 @@ INSERT INTO legacy_mgmt.audit_logs (id, user_id, entity_type, entity_id, action,
 
 
 --
--- Data for Name: lead_sources; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: lead_sources; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.lead_sources (id, name, description, is_active, created_at) VALUES ('src_website', 'Website', NULL, true, '2026-04-13 14:38:41.679');
@@ -97,7 +92,7 @@ INSERT INTO legacy_mgmt.lead_sources (id, name, description, is_active, created_
 
 
 --
--- Data for Name: leads; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: leads; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.leads (id, company_name, contact_name, contact_email, contact_phone, company_size, industry, annual_revenue, geography, source_id, status, notes, metadata, created_by, tenant_id, created_at, updated_at, deleted_at) VALUES ('7ba83b2a-38ea-46e1-8a7c-b4c056780c7d', 'Future Creative Network', 'Kodrat Santoso', 'kodrat.santoso@virtuenet.space', '087884701947', '250-999', 'Professional Services', '$10M–$50M', 'Indonesia', 'src_inbound', 'NEW', 'Testing', '{}', '072db61f-4708-44c7-8e3d-f06de866de31', NULL, '2026-04-14 14:11:09.407', '2026-04-14 14:11:09.407', NULL);
@@ -105,27 +100,27 @@ INSERT INTO legacy_mgmt.leads (id, company_name, contact_name, contact_email, co
 
 
 --
--- Data for Name: lead_evaluations; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: lead_evaluations; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.lead_evaluations (id, lead_id, total_score, status, dimension_scores, reasoning, risk_flags, recommendation, recommended_product_id, confidence_score, estimated_closing_days, hard_stop_triggered, hard_stop_rule, evaluated_by, evaluated_at, is_latest, created_at) VALUES ('e404bfa5-bd4b-497e-a7dd-70da70191fcb', '1144dba7-087f-472e-91ca-3ebc14745325', 88.10, 'POTENTIAL', '[{"key": "firmographic", "name": "Firmographic Fit", "score": 11.67, "maxScore": 20, "rawScore": 35, "maxRawScore": 60}, {"key": "need_relevance", "name": "Need Relevance", "score": 21.43, "maxScore": 25, "rawScore": 60, "maxRawScore": 70}, {"key": "budget_commercial", "name": "Budget & Commercial Readiness", "score": 20, "maxScore": 20, "rawScore": 45, "maxRawScore": 45}, {"key": "stakeholder_access", "name": "Stakeholder Access", "score": 20, "maxScore": 20, "rawScore": 50, "maxRawScore": 50}, {"key": "technical_fit", "name": "Technical Fit", "score": 15, "maxScore": 15, "rawScore": 35, "maxRawScore": 35}]', '["+5: Company Size — 10–49 employees (Small)", "+20: Industry Match — Exact ICP match", "+10: Geography — Serviceable market", "+25: Problem Clarity — Clearly defined", "+15: Solution Alignment — Partial match", "+20: Urgency — Immediate (< 1 month)", "+20: Budget Status — Confirmed & allocated", "+15: Timeline — < 3 months", "+10: Procurement — Simple process", "+20: Decision Maker — Engaged & accessible", "+15: Champion — Internal champion exists", "+15: Engagement Level — Multiple touchpoints", "+20: Infrastructure — Modern cloud/SaaS", "+15: Integration Complexity — Simple API", "------ AI Analysis ------", "🤖 The lead has a clearly defined need for collaboration tools, indicating strong relevance for Lark.", "🤖 The urgency for implementation is immediate, suggesting a high likelihood of a quick decision.", "🤖 The budget status is confirmed and allocated, which supports a favorable purchasing decision.", "🤖 While the industry match is exact, the company size does not fully align with the ideal customer profile, which may require further exploration."]', '[]', '🤖 AI Generated: Menara Rajawali shows a strong interest in adopting collaboration tools, making Lark a relevant solution for their needs. The company has a clearly defined problem and an immediate urgency for implementation, which aligns well with Lark''s capabilities as a productivity and collaboration platform. However, the firmographic fit indicates a slight mismatch in company size, which may require further discussion to ensure Lark can fully meet their needs. The next steps should involve a deeper engagement with the decision-makers to explore their specific requirements and demonstrate how Lark can address their collaboration challenges effectively.', '1e23148a-af5c-410e-ba24-d3dd367372c7', 75, 30, false, NULL, '072db61f-4708-44c7-8e3d-f06de866de31', '2026-04-17 02:33:02.106', true, '2026-04-17 02:33:02.106');
 
 
 --
--- Data for Name: evaluation_overrides; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: evaluation_overrides; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 
 
 --
--- Data for Name: lead_activities; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: lead_activities; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.lead_activities (id, lead_id, user_id, type, title, description, metadata, created_at) VALUES ('46390288-ca9e-42d3-8427-a24e5004f46d', '1144dba7-087f-472e-91ca-3ebc14745325', '072db61f-4708-44c7-8e3d-f06de866de31', 'EVALUATION', 'Lead evaluated: POTENTIAL (Score: 88.1)', '🤖 AI Generated: Menara Rajawali shows a strong interest in adopting collaboration tools, making Lark a relevant solution for their needs. The company has a clearly defined problem and an immediate urgency for implementation, which aligns well with Lark''s capabilities as a productivity and collaboration platform. However, the firmographic fit indicates a slight mismatch in company size, which may require further discussion to ensure Lark can fully meet their needs. The next steps should involve a deeper engagement with the decision-makers to explore their specific requirements and demonstrate how Lark can address their collaboration challenges effectively.', '{"score": 88.1, "status": "POTENTIAL"}', '2026-04-17 02:33:02.119');
 
 
 --
--- Data for Name: scoring_dimensions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: scoring_dimensions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.scoring_dimensions (id, name, key, description, weight, sort_order, is_active, created_at, updated_at) VALUES ('aa7f9b56-4d01-4b4a-b822-2cc6726e3fb9', 'Firmographic Fit', 'firmographic', NULL, 0.2000, 1, true, '2026-04-14 13:53:53.533', '2026-04-14 14:17:05.89');
@@ -136,7 +131,7 @@ INSERT INTO legacy_mgmt.scoring_dimensions (id, name, key, description, weight, 
 
 
 --
--- Data for Name: parameters; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: parameters; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.parameters (id, dimension_id, product_id, name, key, description, data_type, is_required, is_active, sort_order, created_at, updated_at) VALUES ('950ac6f9-9711-4062-b546-e9fdb87ac4ef', 'aa7f9b56-4d01-4b4a-b822-2cc6726e3fb9', NULL, 'Company Size', 'company_size', NULL, 'SELECT', true, true, 1, '2026-04-14 13:53:53.535', '2026-04-14 13:53:53.535');
@@ -159,7 +154,7 @@ INSERT INTO legacy_mgmt.parameters (id, dimension_id, product_id, name, key, des
 
 
 --
--- Data for Name: parameter_options; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: parameter_options; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.parameter_options (id, parameter_id, label, value, points, sort_order, is_active, created_at) VALUES ('5655987f-3e2a-4133-8fad-85f919da1f0a', '950ac6f9-9711-4062-b546-e9fdb87ac4ef', '1–9 employees (Micro)', 'micro', 2, 1, true, '2026-04-14 13:53:53.537');
@@ -212,7 +207,7 @@ INSERT INTO legacy_mgmt.parameter_options (id, parameter_id, label, value, point
 
 
 --
--- Data for Name: lead_scores; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: lead_scores; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 INSERT INTO legacy_mgmt.lead_scores (id, lead_id, evaluation_id, parameter_id, option_id, raw_value, points, reasoning, created_at) VALUES ('d218c11d-c750-4571-b397-48b3ef064261', '1144dba7-087f-472e-91ca-3ebc14745325', 'e404bfa5-bd4b-497e-a7dd-70da70191fcb', '950ac6f9-9711-4062-b546-e9fdb87ac4ef', '7dc42c0d-1a04-4eaf-bc9b-393eea5ab987', 'small', 5, 'Company Size: 10–49 employees (Small) = 5 points', '2026-04-17 02:33:02.106');
@@ -232,22 +227,76 @@ INSERT INTO legacy_mgmt.lead_scores (id, lead_id, evaluation_id, parameter_id, o
 
 
 --
--- Data for Name: product_questions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: product_questions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 
 
 --
--- Data for Name: ai_providers; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_providers; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.ai_providers (id, name, slug, base_url, api_key_encrypted, organization_id, region, status, environments, created_at, updated_at, provider_type, api_key_last4, project_id, default_model, timeout_seconds, retry_limit, max_tokens_default, cache_ttl_minutes, cost_sensitivity, last_tested_at, last_test_status, last_test_message, last_used_at, last_used_model) VALUES (2, 'Anthropic', 'anthropic', 'https://api.anthropic.com/v1', 'eyJpdiI6IjNOQktVdFVBeXU1SWNSMlhRVnJkOXc9PSIsInZhbHVlIjoieUdIZHhzWlZYVVNlMHZ6M01FNHV2aHIzSjk5bDFKWmd6QjRrNmVPRXJ6RmxzWEdNZ1laaFhhclNPUzZxbGdKcTNUVHY0Rm00MXdWNkhSdXBUdFhjclZoWUdpM2lobzUzaFIva2R4KzBia2svcVhpZ1lWblNIV2hvUmZQVDNjL2VTb0Jhb3VSTjRCU0NHWTc4YVFkUkNrODBLczVMWVhPeUh3b3llMm8ralUzUkhBL1hDZ29IU2g3MjU1aHVpMGkwQXVmN0ZDZVFTVHFQcitxVnNZZCtkOEVobEpYeW1FTU1SNnU0Z2VuS3VWWURkTEV3Y2ZMb3dacHZ1UW5aNVYzTENKYUtMT1BGbVAycElIbTYwNzU4bzZicHcvWVdFbDF5NzJzaDFtOU5CRGlobnc5QkdJazVkQWdRbmNqQ0t2d3NUUGZEVjg4a3pSRko0OTF6UEZidEJnbmVnYWRHSXlVMnYrSzRFUWVDWGZocGdtZ2JsTDkvU1NBUHo0dmNHUVY1V1hzSlVIU0o0MjBmL2k3R3lQK1drYTlJR2VnMTNPd1NSdG1YNUZURStrWWlZUlZ5dTJVVy94dE0xNThWdk9OWTJ6NFFCbHU4MGhJUk52NVZPN1VOU2wwWjlRblJrMVRGZXhXVEoyTkc2Znh3OW1teGF3QlgyQ1FYcWFsRUplUXo1UGdGMjhvUmc5S0N1ZGFYTTRkdURjajRpK1VjOUxrRktuZDcxRld6U1NXcXIzbUlud29JYW5xQ0hQV1k3UTR3ZFdJQnNXMmh5Ukt1VVRXZThWeGFhYkRkOXdmYTZPSWo0OTFQRng1dE41L3VhSGlHZ2U0UDVHdXhYZWVtN1VTdVpFVXY4TDdTR25DS21IT0lXVndHb0VSTFMzRi8rR0hKRTVVc2h6VFFLV2FXZEdqU2dVdTF1NWJRWWxXUUF0OFIwcDhvekdTeDNVM0VjT0Fyd3ZxT2JQaUR6dUtkSmdrbTZWNDRtdHoyUGwzWVp1eEtocElnSDhxVHdncWdaWXNIV3FpTHR2UVhNT2JQZGd5SHM1QkVLVVFYVTJFaWc1SzdRQ3VHQ0tGd1hBRTlVU29mUnhJWGpuOERzd0c4Z0wxTHpFcXJFNG8zM2tKTHVoNmNpclBoU2R3U1FoRjExOG4zc1M1ZmpTd204dVFNVUxIdGdEcTZDOVBMTm10dk9IMWIiLCJtYWMiOiI3OTNmNmVmNWMwZDM3NzQ2MjEyYThmNmQwOTI3YjlkYjRkYjc3OGZlNjUwZTk0MDMwZjEwZTcxZjVjMjkxNzUzIiwidGFnIjoiIn0=', NULL, NULL, 'inactive', NULL, '2026-04-20 14:35:47', '2026-05-25 09:04:49', 'anthropic', 'fQ==', NULL, 'claude-sonnet-4-20250514', 30, 1, NULL, NULL, 'balanced', NULL, NULL, NULL, NULL, NULL);
 INSERT INTO public.ai_providers (id, name, slug, base_url, api_key_encrypted, organization_id, region, status, environments, created_at, updated_at, provider_type, api_key_last4, project_id, default_model, timeout_seconds, retry_limit, max_tokens_default, cache_ttl_minutes, cost_sensitivity, last_tested_at, last_test_status, last_test_message, last_used_at, last_used_model) VALUES (3, 'Google Gemini', 'google', 'https://generativelanguage.googleapis.com/v1beta', 'eyJpdiI6ImxaU1FYN1E4cDlEVWZuVyt0cE1UeUE9PSIsInZhbHVlIjoic0lCNFJ2RDB5bmNSMlp5bHVicVpYeDdjc0R3d0UyTGVZZGNpZEIvWmNwZHpGdCtBK3RIVCtmZlcvUXg3RlQ5YSIsIm1hYyI6ImVjNjAxMDdlMjgxNmUwZjA0MjJjMDgwMGRkZjg4ZDNlYzUxOWFiMTAwZmY0ODc5NWQ5MzQ0ODJjZTk0ZDljYWEiLCJ0YWciOiIifQ==', NULL, NULL, 'active', NULL, '2026-04-20 14:35:47', '2026-05-30 04:00:23', 'gemini', 'garA', NULL, 'gemini-2.5-flash', 30, 1, NULL, NULL, 'balanced', '2026-05-30 04:00:23', 'success', 'Connection successful', '2026-05-19 14:43:39', 'gemini-2.0-flash');
-INSERT INTO public.ai_providers (id, name, slug, base_url, api_key_encrypted, organization_id, region, status, environments, created_at, updated_at, provider_type, api_key_last4, project_id, default_model, timeout_seconds, retry_limit, max_tokens_default, cache_ttl_minutes, cost_sensitivity, last_tested_at, last_test_status, last_test_message, last_used_at, last_used_model) VALUES (1, 'OpenAI', 'openai', 'https://api.openai.com/v1', 'eyJpdiI6ImdjM2JMQkU5Q1NPcWhUYnBIQVVUQ0E9PSIsInZhbHVlIjoiQUxMZnk4VzVhdzNLei9QZHFvWi9xUG9mNUt0SmpwdlBmUkZSM1Q4OTl3Ymx4MGtCZzhkM0F1L1pNcWI1VGtMc1RLQlZLQzJYZkhFZ3B5MkE2T09qMk5RYU5SSi9WMnZnWlZUWGJsZy8reWRIaS8rcVVBbkszTWJNUmUvU3NqbWJHWnpMTHB2WnhSQ3dETlBtY29EYlp1aU9jOWlQOXQ4eWhnM2p4M3JTdUlLalc1RTh2SXYxZ0ZTRjRQM2YrclhTWTRSNG5EOGdod3VqSTNnTzlOeUg4VlpJT1lYYXN3RklHKy9wL3NGSEk4TT0iLCJtYWMiOiJiMGRkMDBlNTFmMzUxNzYyNjFlOTE4NzFiY2RmYTg1NjEyMjc2MGE5YWRlMjBiNTQ3YTM3M2I2NThlZDIzYmNkIiwidGFnIjoiIn0=', NULL, NULL, 'active', NULL, '2026-04-20 14:35:47', '2026-05-30 04:23:04', 'openai', 'o8MA', NULL, 'gpt-5.1', 30, 1, NULL, NULL, 'balanced', '2026-05-30 04:00:07', 'success', 'Connection successful', '2026-05-30 04:23:04', 'gpt-5.1');
+INSERT INTO public.ai_providers (id, name, slug, base_url, api_key_encrypted, organization_id, region, status, environments, created_at, updated_at, provider_type, api_key_last4, project_id, default_model, timeout_seconds, retry_limit, max_tokens_default, cache_ttl_minutes, cost_sensitivity, last_tested_at, last_test_status, last_test_message, last_used_at, last_used_model) VALUES (1, 'OpenAI', 'openai', 'https://api.openai.com/v1', 'eyJpdiI6ImdjM2JMQkU5Q1NPcWhUYnBIQVVUQ0E9PSIsInZhbHVlIjoiQUxMZnk4VzVhdzNLei9QZHFvWi9xUG9mNUt0SmpwdlBmUkZSM1Q4OTl3Ymx4MGtCZzhkM0F1L1pNcWI1VGtMc1RLQlZLQzJYZkhFZ3B5MkE2T09qMk5RYU5SSi9WMnZnWlZUWGJsZy8reWRIaS8rcVVBbkszTWJNUmUvU3NqbWJHWnpMTHB2WnhSQ3dETlBtY29EYlp1aU9jOWlQOXQ4eWhnM2p4M3JTdUlLalc1RTh2SXYxZ0ZTRjRQM2YrclhTWTRSNG5EOGdod3VqSTNnTzlOeUg4VlpJT1lYYXN3RklHKy9wL3NGSEk4TT0iLCJtYWMiOiJiMGRkMDBlNTFmMzUxNzYyNjFlOTE4NzFiY2RmYTg1NjEyMjc2MGE5YWRlMjBiNTQ3YTM3M2I2NThlZDIzYmNkIiwidGFnIjoiIn0=', NULL, NULL, 'active', NULL, '2026-04-20 14:35:47', '2026-05-30 13:10:17', 'openai', 'o8MA', NULL, 'gpt-5.1', 30, 1, NULL, NULL, 'balanced', '2026-05-30 04:00:07', 'success', 'Connection successful', '2026-05-30 13:10:17', 'gpt-4.1-mini');
 
 
 --
--- Data for Name: ai_models; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (1, 'super_admin', 'Super Admin', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
+INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (2, 'admin', 'Admin', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
+INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (3, 'sales_manager', 'Sales Manager', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
+INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (4, 'sales_exec', 'Sales / BD Executive', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
+INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (5, 'presales', 'Presales / Research Analyst', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
+INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (6, 'viewer', 'Viewer / Auditor', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
+
+
+--
+-- Data for Name: tenants; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.tenants (id, name, slug, status, metadata, created_at, updated_at, deleted_at) VALUES (1, 'Default Workspace', 'default-workspace', 'active', '{"seeded_by":"phase_3_database_design"}', '2026-04-20 14:06:25', '2026-04-20 14:06:25', NULL);
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (3, 'Sales', 'user@prasetia.co.id', NULL, '$2y$12$nDRSSXRk4UH9mItWP5Ia.OCWA5Fo3dCrtcDBPudqU3CPVzECn2lqq', 5, NULL, true, NULL, '2026-05-19 14:32:38', '2026-05-19 14:34:59', NULL, 4, 'monthly', NULL);
+INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (4, 'Manager', 'manager@prasetia.co.id', NULL, '$2y$12$kwUHwt39TTcG7cX9pMBww.W0aV.nVw4YT4jYvimLmYEq/uWhxGQqa', 3, NULL, true, NULL, '2026-05-19 14:33:05', '2026-05-19 14:35:34', NULL, 5, 'monthly', NULL);
+INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (6, 'Director', 'director@prasetia.co.id', NULL, '$2y$12$RzJGrf6tpVMVfCEN3IZHve2VApv4RxSJgT9Hy6VmoY3JRcMg1yTze', 3, NULL, true, NULL, '2026-05-19 14:34:04', '2026-05-19 14:35:45', NULL, NULL, 'monthly', NULL);
+INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (5, 'General Manager', 'generalmanager@prasetia.co.id', NULL, '$2y$12$g0B2MiaCyKnx8Lt9/PtOl.kMHUimZ94iNniqPUrzwbI3mNs7HrVvq', 3, NULL, true, NULL, '2026-05-19 14:33:33', '2026-05-19 14:35:59', NULL, 6, 'monthly', NULL);
+INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (1, 'superadmin', 'admin@prasetia.co.id', NULL, '$2y$12$BwXA4pRvDoWm3gJ7MD8IIuPVR0EKbvDsHOwBYpij/NEfe4ME/FjEC', 1, '6287884701947', true, NULL, '2026-04-20 14:35:47', '2026-05-30 02:18:31', 1, NULL, 'monthly', NULL);
+INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (2, 'Admin', 'admin@prasetia.com', NULL, '$2y$12$BwXA4pRvDoWm3gJ7MD8IIuPVR0EKbvDsHOwBYpij/NEfe4ME/FjEC', 1, NULL, true, NULL, '2026-04-25 05:30:10', '2026-05-30 02:18:31', 1, NULL, 'monthly', NULL);
+INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (7, 'Kodrat Santoso', 'kodratsantoso@prasetia.co.id', NULL, '$2y$12$5lFXigCy394HEDjv.7LYrODst435QC05jcBu.FqgbpwxdxwT9bqnW', 1, NULL, true, NULL, '2026-05-25 09:10:49', '2026-05-30 02:38:55', 1, NULL, 'yearly', 7129460000.00);
+
+
+--
+-- Data for Name: ai_connection_tests; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (1, 1, 1, true, 200, 859, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"gpt-4-0613\",\n      \"object\": \"model\",\n      \"created\": 1686588896,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-4\",\n      \"object\": \"model\",\n      \"created\": 1687882411,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-5.4-mini\",\n      \"object\": \"model\",\n      \"created\": 1773451123,\n      \"owned_by\": \"s"}', '2026-04-20 14:40:35', '2026-04-20 14:40:35');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (2, 1, 1, true, 200, 1103, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"gpt-4-0613\",\n      \"object\": \"model\",\n      \"created\": 1686588896,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-4\",\n      \"object\": \"model\",\n      \"created\": 1687882411,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-5.4-mini\",\n      \"object\": \"model\",\n      \"created\": 1773451123,\n      \"owned_by\": \"s"}', '2026-04-20 14:41:16', '2026-04-20 14:41:16');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (3, 1, 1, true, 200, 1073, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"gpt-4-0613\",\n      \"object\": \"model\",\n      \"created\": 1686588896,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-4\",\n      \"object\": \"model\",\n      \"created\": 1687882411,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-5.4-mini\",\n      \"object\": \"model\",\n      \"created\": 1773451123,\n      \"owned_by\": \"s"}', '2026-04-20 14:41:18', '2026-04-20 14:41:18');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (4, 1, 1, true, 200, 1070, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"gpt-4-0613\",\n      \"object\": \"model\",\n      \"created\": 1686588896,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-4\",\n      \"object\": \"model\",\n      \"created\": 1687882411,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-5.4-mini\",\n      \"object\": \"model\",\n      \"created\": 1773451123,\n      \"owned_by\": \"s"}', '2026-04-20 14:42:20', '2026-04-20 14:42:20');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (5, 1, 1, true, 200, 1682, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"gpt-4-0613\",\n      \"object\": \"model\",\n      \"created\": 1686588896,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-4\",\n      \"object\": \"model\",\n      \"created\": 1687882411,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-5.5-pro-2026-04-23\",\n      \"object\": \"model\",\n      \"created\": 1776894470,\n      \"own"}', '2026-04-25 05:03:41', '2026-04-25 05:03:41');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (6, 1, 1, true, 200, 1159, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"gpt-4-0613\",\n      \"object\": \"model\",\n      \"created\": 1686588896,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-4\",\n      \"object\": \"model\",\n      \"created\": 1687882411,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-5.5-pro-2026-04-23\",\n      \"object\": \"model\",\n      \"created\": 1776894470,\n      \"own"}', '2026-04-25 11:48:16', '2026-04-25 11:48:16');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (7, 3, 1, false, 401, 274, 'HTTP 401', '{"endpoint":"https:\/\/generativelanguage.googleapis.com\/v1beta\/models","body_preview":"{\n  \"error\": {\n    \"code\": 401,\n    \"message\": \"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https:\/\/developers.google.com\/identity\/sign-in\/web\/devconsole-project.\",\n    \"status\": \"UNAUTHENTICATED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com\/google.rpc.ErrorInfo\",\n        \"reason\": \"ACCESS_TOKEN_TYPE_UNSUPPORTED\",\n        \"metadata\": {\n          \"method\": \"google.ai.generativelanguage"}', '2026-04-25 11:49:09', '2026-04-25 11:49:09');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (8, 3, 1, false, 401, 240, 'HTTP 401', '{"endpoint":"https:\/\/generativelanguage.googleapis.com\/v1beta\/models","body_preview":"{\n  \"error\": {\n    \"code\": 401,\n    \"message\": \"Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https:\/\/developers.google.com\/identity\/sign-in\/web\/devconsole-project.\",\n    \"status\": \"UNAUTHENTICATED\",\n    \"details\": [\n      {\n        \"@type\": \"type.googleapis.com\/google.rpc.ErrorInfo\",\n        \"reason\": \"ACCESS_TOKEN_TYPE_UNSUPPORTED\",\n        \"metadata\": {\n          \"method\": \"google.ai.generativelanguage"}', '2026-04-25 11:49:12', '2026-04-25 11:49:12');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (9, 3, 1, true, 200, 285, 'Connection successful', '{"endpoint":"https:\/\/generativelanguage.googleapis.com\/v1beta\/models","body_preview":"{\n  \"models\": [\n    {\n      \"name\": \"models\/gemini-2.5-flash\",\n      \"version\": \"001\",\n      \"displayName\": \"Gemini 2.5 Flash\",\n      \"description\": \"Stable version of Gemini 2.5 Flash, our mid-size multimodal model that supports up to 1 million tokens, released in June of 2025.\",\n      \"inputTokenLimit\": 1048576,\n      \"outputTokenLimit\": 65536,\n      \"supportedGenerationMethods\": [\n        \"generateContent\",\n        \"countTokens\",\n        \"createCachedContent\",\n        \"batchGenerateContent\"\n "}', '2026-04-25 11:49:34', '2026-04-25 11:49:34');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (10, 1, 1, true, 200, 886, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"gpt-4-0613\",\n      \"object\": \"model\",\n      \"created\": 1686588896,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-4\",\n      \"object\": \"model\",\n      \"created\": 1687882411,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"gpt-5.5-pro-2026-04-23\",\n      \"object\": \"model\",\n      \"created\": 1776894470,\n      \"own"}', '2026-04-25 15:38:30', '2026-04-25 15:38:30');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (11, 1, 1, true, 200, 1791, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"text-embedding-ada-002\",\n      \"object\": \"model\",\n      \"created\": 1671217299,\n      \"owned_by\": \"openai-internal\"\n    },\n    {\n      \"id\": \"whisper-1\",\n      \"object\": \"model\",\n      \"created\": 1677532384,\n      \"owned_by\": \"openai-internal\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"tts-1\",\n      \"object\": \"model\",\n      \"created\": 16819"}', '2026-05-17 15:30:19', '2026-05-17 15:30:19');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (12, 3, 1, true, 200, 391, 'Connection successful', '{"endpoint":"https:\/\/generativelanguage.googleapis.com\/v1beta\/models","body_preview":"{\n  \"models\": [\n    {\n      \"name\": \"models\/gemini-2.5-flash\",\n      \"version\": \"001\",\n      \"displayName\": \"Gemini 2.5 Flash\",\n      \"description\": \"Stable version of Gemini 2.5 Flash, our mid-size multimodal model that supports up to 1 million tokens, released in June of 2025.\",\n      \"inputTokenLimit\": 1048576,\n      \"outputTokenLimit\": 65536,\n      \"supportedGenerationMethods\": [\n        \"generateContent\",\n        \"countTokens\",\n        \"createCachedContent\",\n        \"batchGenerateContent\"\n "}', '2026-05-17 15:48:35', '2026-05-17 15:48:35');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (13, 1, 1, true, 200, 2360, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"text-embedding-ada-002\",\n      \"object\": \"model\",\n      \"created\": 1671217299,\n      \"owned_by\": \"openai-internal\"\n    },\n    {\n      \"id\": \"whisper-1\",\n      \"object\": \"model\",\n      \"created\": 1677532384,\n      \"owned_by\": \"openai-internal\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"tts-1\",\n      \"object\": \"model\",\n      \"created\": 16819"}', '2026-05-17 15:48:45', '2026-05-17 15:48:45');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (14, 1, 1, true, 200, 1694, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"text-embedding-ada-002\",\n      \"object\": \"model\",\n      \"created\": 1671217299,\n      \"owned_by\": \"openai-internal\"\n    },\n    {\n      \"id\": \"whisper-1\",\n      \"object\": \"model\",\n      \"created\": 1677532384,\n      \"owned_by\": \"openai-internal\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"tts-1\",\n      \"object\": \"model\",\n      \"created\": 16819"}', '2026-05-19 14:46:54', '2026-05-19 14:46:54');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (15, 1, 2, true, 200, 1026, 'Connection successful', '{"endpoint":"https:\/\/api.openai.com\/v1\/models","body_preview":"{\n  \"object\": \"list\",\n  \"data\": [\n    {\n      \"id\": \"text-embedding-ada-002\",\n      \"object\": \"model\",\n      \"created\": 1671217299,\n      \"owned_by\": \"openai-internal\"\n    },\n    {\n      \"id\": \"whisper-1\",\n      \"object\": \"model\",\n      \"created\": 1677532384,\n      \"owned_by\": \"openai-internal\"\n    },\n    {\n      \"id\": \"gpt-3.5-turbo\",\n      \"object\": \"model\",\n      \"created\": 1677610602,\n      \"owned_by\": \"openai\"\n    },\n    {\n      \"id\": \"tts-1\",\n      \"object\": \"model\",\n      \"created\": 16819"}', '2026-05-30 04:00:07', '2026-05-30 04:00:07');
+INSERT INTO public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) VALUES (16, 3, 2, true, 200, 347, 'Connection successful', '{"endpoint":"https:\/\/generativelanguage.googleapis.com\/v1beta\/models","body_preview":"{\n  \"models\": [\n    {\n      \"name\": \"models\/gemini-2.5-flash\",\n      \"version\": \"001\",\n      \"displayName\": \"Gemini 2.5 Flash\",\n      \"description\": \"Stable version of Gemini 2.5 Flash, our mid-size multimodal model that supports up to 1 million tokens, released in June of 2025.\",\n      \"inputTokenLimit\": 1048576,\n      \"outputTokenLimit\": 65536,\n      \"supportedGenerationMethods\": [\n        \"generateContent\",\n        \"countTokens\",\n        \"createCachedContent\",\n        \"batchGenerateContent\"\n "}', '2026-05-30 04:00:23', '2026-05-30 04:00:23');
+
+
+--
+-- Data for Name: ai_models; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.ai_models (id, ai_provider_id, name, context_window, capabilities, cost_tier, default_usage_type, status, created_at, updated_at) VALUES (19, 1, 'gpt-5.1', 400000, NULL, 'high', NULL, 'active', '2026-05-19 14:50:26', '2026-05-19 14:50:26');
@@ -277,7 +326,7 @@ INSERT INTO public.ai_models (id, ai_provider_id, name, context_window, capabili
 
 
 --
--- Data for Name: ai_feature_routes; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_feature_routes; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.ai_feature_routes (id, feature_name, ai_model_id, priority, max_retries, timeout_seconds, cost_sensitivity, is_active, created_at, updated_at, cache_ttl_minutes, max_tokens, complexity_mode) VALUES (81, 'icp_generation', 19, 1, 1, 30, 'balanced', true, '2026-05-30 03:54:17', '2026-05-30 03:54:17', NULL, NULL, 'standard');
@@ -318,48 +367,18 @@ INSERT INTO public.ai_feature_routes (id, feature_name, ai_model_id, priority, m
 INSERT INTO public.ai_feature_routes (id, feature_name, ai_model_id, priority, max_retries, timeout_seconds, cost_sensitivity, is_active, created_at, updated_at, cache_ttl_minutes, max_tokens, complexity_mode) VALUES (124, 'lead_bantc_question_generation', 17, 2, 1, 45, 'low', true, '2026-05-30 04:02:21', '2026-05-30 04:02:21', NULL, NULL, 'standard');
 INSERT INTO public.ai_feature_routes (id, feature_name, ai_model_id, priority, max_retries, timeout_seconds, cost_sensitivity, is_active, created_at, updated_at, cache_ttl_minutes, max_tokens, complexity_mode) VALUES (125, 'lead_contact_google_search_keyword', 19, 1, 1, 30, 'balanced', true, '2026-05-30 04:02:31', '2026-05-30 04:02:31', NULL, NULL, 'standard');
 INSERT INTO public.ai_feature_routes (id, feature_name, ai_model_id, priority, max_retries, timeout_seconds, cost_sensitivity, is_active, created_at, updated_at, cache_ttl_minutes, max_tokens, complexity_mode) VALUES (126, 'lead_contact_google_search_keyword', 17, 2, 1, 30, 'balanced', true, '2026-05-30 04:02:31', '2026-05-30 04:02:31', NULL, NULL, 'standard');
+INSERT INTO public.ai_feature_routes (id, feature_name, ai_model_id, priority, max_retries, timeout_seconds, cost_sensitivity, is_active, created_at, updated_at, cache_ttl_minutes, max_tokens, complexity_mode) VALUES (131, 'dashboard_ai_insight', 28, 1, 1, 45, 'medium', true, '2026-05-30 13:08:52', '2026-05-30 13:08:52', NULL, NULL, 'standard');
+INSERT INTO public.ai_feature_routes (id, feature_name, ai_model_id, priority, max_retries, timeout_seconds, cost_sensitivity, is_active, created_at, updated_at, cache_ttl_minutes, max_tokens, complexity_mode) VALUES (132, 'dashboard_ai_insight', 24, 2, 1, 45, 'low', true, '2026-05-30 13:08:52', '2026-05-30 13:08:52', NULL, NULL, 'standard');
 
 
 --
--- Data for Name: ai_model_routes; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_model_routes; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: -
---
-
-INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (1, 'super_admin', 'Super Admin', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
-INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (2, 'admin', 'Admin', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
-INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (3, 'sales_manager', 'Sales Manager', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
-INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (4, 'sales_exec', 'Sales / BD Executive', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
-INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (5, 'presales', 'Presales / Research Analyst', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
-INSERT INTO public.roles (id, name, display_name, description, is_active, created_at, updated_at) VALUES (6, 'viewer', 'Viewer / Auditor', NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
-
-
---
--- Data for Name: tenants; Type: TABLE DATA; Schema: public; Owner: -
---
-
-INSERT INTO public.tenants (id, name, slug, status, metadata, created_at, updated_at, deleted_at) VALUES (1, 'Default Workspace', 'default-workspace', 'active', '{"seeded_by":"phase_3_database_design"}', '2026-04-20 14:06:25', '2026-04-20 14:06:25', NULL);
-
-
---
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
---
-
-INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (3, 'Sales', 'user@prasetia.co.id', NULL, '$2y$12$nDRSSXRk4UH9mItWP5Ia.OCWA5Fo3dCrtcDBPudqU3CPVzECn2lqq', 5, NULL, true, NULL, '2026-05-19 14:32:38', '2026-05-19 14:34:59', NULL, 4, 'monthly', NULL);
-INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (4, 'Manager', 'manager@prasetia.co.id', NULL, '$2y$12$kwUHwt39TTcG7cX9pMBww.W0aV.nVw4YT4jYvimLmYEq/uWhxGQqa', 3, NULL, true, NULL, '2026-05-19 14:33:05', '2026-05-19 14:35:34', NULL, 5, 'monthly', NULL);
-INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (6, 'Director', 'director@prasetia.co.id', NULL, '$2y$12$RzJGrf6tpVMVfCEN3IZHve2VApv4RxSJgT9Hy6VmoY3JRcMg1yTze', 3, NULL, true, NULL, '2026-05-19 14:34:04', '2026-05-19 14:35:45', NULL, NULL, 'monthly', NULL);
-INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (5, 'General Manager', 'generalmanager@prasetia.co.id', NULL, '$2y$12$g0B2MiaCyKnx8Lt9/PtOl.kMHUimZ94iNniqPUrzwbI3mNs7HrVvq', 3, NULL, true, NULL, '2026-05-19 14:33:33', '2026-05-19 14:35:59', NULL, 6, 'monthly', NULL);
-INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (1, 'superadmin', 'admin@prasetia.co.id', NULL, '$2y$12$BwXA4pRvDoWm3gJ7MD8IIuPVR0EKbvDsHOwBYpij/NEfe4ME/FjEC', 1, '6287884701947', true, NULL, '2026-04-20 14:35:47', '2026-05-30 02:18:31', 1, NULL, 'monthly', NULL);
-INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (2, 'Admin', 'admin@prasetia.com', NULL, '$2y$12$BwXA4pRvDoWm3gJ7MD8IIuPVR0EKbvDsHOwBYpij/NEfe4ME/FjEC', 1, NULL, true, NULL, '2026-04-25 05:30:10', '2026-05-30 02:18:31', 1, NULL, 'monthly', NULL);
-INSERT INTO public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) VALUES (7, 'Kodrat Santoso', 'kodratsantoso@prasetia.co.id', NULL, '$2y$12$5lFXigCy394HEDjv.7LYrODst435QC05jcBu.FqgbpwxdxwT9bqnW', 1, NULL, true, NULL, '2026-05-25 09:10:49', '2026-05-30 02:38:55', 1, NULL, 'yearly', 7129460000.00);
-
-
---
--- Data for Name: ai_prompt_template_versions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_prompt_template_versions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.ai_prompt_template_versions (id, ai_prompt_template_id, version, content, is_active, is_enabled, created_by, activated_by, activated_at, created_at, updated_at) VALUES (36, 20, 1, 'Role:
@@ -1264,7 +1283,7 @@ INSERT INTO public.ai_prompt_template_versions (id, ai_prompt_template_id, versi
 
 
 --
--- Data for Name: ai_prompt_templates; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_prompt_templates; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.ai_prompt_templates (id, feature_name, template_name, description, is_active, created_by, updated_by, active_version_id, created_at, updated_at) VALUES (1, 'lead_analysis', 'Default', 'Detailed system-managed default prompt wrapper', true, NULL, NULL, 17, '2026-04-20 14:37:41', '2026-05-30 02:31:19');
@@ -1290,7 +1309,894 @@ INSERT INTO public.ai_prompt_templates (id, feature_name, template_name, descrip
 
 
 --
--- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_requests; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (117, 13, 1, 'product_matching', NULL, NULL, 939, 285, 0.008970, 3214, 'success', NULL, '2026-05-12 09:33:59', '2026-05-12 09:33:59', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (118, 13, 1, 'product_matching', NULL, NULL, 965, 247, 0.008530, 3088, 'success', NULL, '2026-05-12 09:34:02', '2026-05-12 09:34:02', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (119, 13, 1, 'product_matching', NULL, NULL, 976, 285, 0.009155, 4159, 'success', NULL, '2026-05-12 09:34:06', '2026-05-12 09:34:06', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (120, 13, 1, 'product_matching', NULL, NULL, 941, 292, 0.009085, 3569, 'success', NULL, '2026-05-12 09:34:10', '2026-05-12 09:34:10', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (121, 13, 1, 'product_matching', NULL, NULL, 827, 257, 0.007990, 2632, 'success', NULL, '2026-05-12 09:34:13', '2026-05-12 09:34:13', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (122, 13, 1, 'product_matching', NULL, NULL, 823, 280, 0.008315, 3083, 'success', NULL, '2026-05-12 09:34:16', '2026-05-12 09:34:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (125, 13, 1, 'product_matching', NULL, NULL, 1090, 283, 0.009695, 3964, 'success', NULL, '2026-05-12 09:37:57', '2026-05-12 09:37:57', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (126, 13, 1, 'product_matching', NULL, NULL, 1109, 304, 0.010105, 3561, 'success', NULL, '2026-05-12 09:38:01', '2026-05-12 09:38:01', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (127, 13, 1, 'product_matching', NULL, NULL, 1127, 303, 0.010180, 4567, 'success', NULL, '2026-05-12 09:38:05', '2026-05-12 09:38:05', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (128, 13, 1, 'product_matching', NULL, NULL, 1126, 332, 0.010610, 5509, 'success', NULL, '2026-05-12 09:38:11', '2026-05-12 09:38:11', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (129, 13, 1, 'product_matching', NULL, NULL, 1112, 274, 0.009670, 4962, 'success', NULL, '2026-05-12 09:38:16', '2026-05-12 09:38:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (130, 13, 1, 'product_matching', NULL, NULL, 1091, 296, 0.009895, 2974, 'success', NULL, '2026-05-12 09:38:19', '2026-05-12 09:38:19', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (131, 13, 1, 'product_matching', NULL, NULL, 1117, 359, 0.010970, 3432, 'success', NULL, '2026-05-12 09:38:22', '2026-05-12 09:38:22', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (132, 13, 1, 'product_matching', NULL, NULL, 1128, 325, 0.010515, 6366, 'success', NULL, '2026-05-12 09:38:29', '2026-05-12 09:38:29', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (133, 13, 1, 'product_matching', NULL, NULL, 1093, 283, 0.009710, 2869, 'success', NULL, '2026-05-12 09:38:32', '2026-05-12 09:38:32', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (134, 13, 1, 'product_matching', NULL, NULL, 979, 360, 0.010295, 6685, 'success', NULL, '2026-05-12 09:38:38', '2026-05-12 09:38:38', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (135, 13, 1, 'product_matching', NULL, NULL, 975, 320, 0.009675, 3597, 'success', NULL, '2026-05-12 09:38:42', '2026-05-12 09:38:42', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (136, 13, 1, 'product_metadata_generation', NULL, NULL, 531, 299, 0.007140, 3872, 'success', NULL, '2026-05-12 14:46:33', '2026-05-12 14:46:33', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (137, 13, 1, 'product_metadata_generation', NULL, NULL, 1274, 520, 0.014170, 11801, 'success', NULL, '2026-05-12 15:14:48', '2026-05-12 15:14:48', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (138, 13, 1, 'product_metadata_generation', NULL, NULL, 2067, 1361, 0.030750, 27941, 'success', NULL, '2026-05-12 15:47:21', '2026-05-12 15:47:21', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (139, 13, 1, 'product_metadata_generation', NULL, NULL, 2067, 1424, 0.031695, 27798, 'success', NULL, '2026-05-12 15:47:57', '2026-05-12 15:47:57', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (140, 13, 1, 'product_metadata_generation', NULL, NULL, 2067, 1029, 0.025770, 23019, 'success', NULL, '2026-05-12 15:49:19', '2026-05-12 15:49:19', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (141, 13, 1, 'product_metadata_generation', NULL, NULL, 2067, 1542, 0.033465, 26469, 'success', NULL, '2026-05-12 15:49:53', '2026-05-12 15:49:53', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (142, 13, 1, 'product_metadata_generation', NULL, NULL, 2163, 1123, 0.027660, 26396, 'success', NULL, '2026-05-12 15:50:59', '2026-05-12 15:50:59', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (143, 13, 1, 'product_metadata_generation', NULL, NULL, 2163, 1297, 0.030270, 23246, 'success', NULL, '2026-05-12 15:51:24', '2026-05-12 15:51:24', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (51, 6, 1, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 198, 'failure', '{
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"messages\": Cannot find field.\nInvalid JSON payload received. Unknown name \"response_format\": Cannot find field.\nInvalid JSON payload received. Unknown name \"max_tokens\": Cannot find field.",
+    "status": "INVALID_ARGUMENT",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.BadRequest",
+        "fieldViolations": [
+          {
+            "description": "Invalid JSON payload received. Unknown name \"messages\": Cannot find field."
+          },
+          {
+            "description": "Invalid JSON payload received. Unknown name \"response_format\": Cannot find field."
+          },
+          {
+            "description": "Invalid JSON payload received. Unknown name \"max_tokens\": Cannot find field."
+          }
+        ]
+      }
+    ]
+  }
+}
+', '2026-04-25 11:49:52', '2026-04-25 11:49:52', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (52, 6, 1, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 176, 'failure', '{
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"messages\": Cannot find field.\nInvalid JSON payload received. Unknown name \"response_format\": Cannot find field.\nInvalid JSON payload received. Unknown name \"max_tokens\": Cannot find field.",
+    "status": "INVALID_ARGUMENT",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.BadRequest",
+        "fieldViolations": [
+          {
+            "description": "Invalid JSON payload received. Unknown name \"messages\": Cannot find field."
+          },
+          {
+            "description": "Invalid JSON payload received. Unknown name \"response_format\": Cannot find field."
+          },
+          {
+            "description": "Invalid JSON payload received. Unknown name \"max_tokens\": Cannot find field."
+          }
+        ]
+      }
+    ]
+  }
+}
+', '2026-04-25 11:49:52', '2026-04-25 11:49:52', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (53, 6, 1, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 178, 'failure', '{
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"messages\": Cannot find field.\nInvalid JSON payload received. Unknown name \"response_format\": Cannot find field.\nInvalid JSON payload received. Unknown name \"max_tokens\": Cannot find field.",
+    "status": "INVALID_ARGUMENT",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.BadRequest",
+        "fieldViolations": [
+          {
+            "description": "Invalid JSON payload received. Unknown name \"messages\": Cannot find field."
+          },
+          {
+            "description": "Invalid JSON payload received. Unknown name \"response_format\": Cannot find field."
+          },
+          {
+            "description": "Invalid JSON payload received. Unknown name \"max_tokens\": Cannot find field."
+          }
+        ]
+      }
+    ]
+  }
+}
+', '2026-04-25 11:49:55', '2026-04-25 11:49:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (54, 6, 1, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 147, 'failure', '{
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"messages\": Cannot find field.\nInvalid JSON payload received. Unknown name \"response_format\": Cannot find field.\nInvalid JSON payload received. Unknown name \"max_tokens\": Cannot find field.",
+    "status": "INVALID_ARGUMENT",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.BadRequest",
+        "fieldViolations": [
+          {
+            "description": "Invalid JSON payload received. Unknown name \"messages\": Cannot find field."
+          },
+          {
+            "description": "Invalid JSON payload received. Unknown name \"response_format\": Cannot find field."
+          },
+          {
+            "description": "Invalid JSON payload received. Unknown name \"max_tokens\": Cannot find field."
+          }
+        ]
+      }
+    ]
+  }
+}
+', '2026-04-25 11:49:56', '2026-04-25 11:49:56', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (55, 6, NULL, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 225, 'failure', '{
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+', '2026-04-25 11:52:18', '2026-04-25 11:52:18', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (56, 6, NULL, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 185, 'failure', '{
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+', '2026-04-25 11:52:18', '2026-04-25 11:52:18', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (1, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 1506, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-20 14:53:55', '2026-04-20 14:53:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (2, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 1539, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-20 14:53:56', '2026-04-20 14:53:56', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (3, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 524, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-20 14:54:32', '2026-04-20 14:54:32', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (4, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 1271, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-20 14:54:33', '2026-04-20 14:54:33', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (5, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 1514, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 04:47:44', '2026-04-25 04:47:44', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (6, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 1267, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 04:47:46', '2026-04-25 04:47:46', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (7, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 2197, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 05:58:57', '2026-04-25 05:58:57', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (8, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 602, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 05:58:57', '2026-04-25 05:58:57', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (9, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 2309, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:11:34', '2026-04-25 06:11:34', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (10, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 315, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:11:35', '2026-04-25 06:11:35', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (11, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 1434, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:12:40', '2026-04-25 06:12:40', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (12, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 604, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:12:41', '2026-04-25 06:12:41', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (13, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 869, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:15:41', '2026-04-25 06:15:41', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (14, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 296, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:15:42', '2026-04-25 06:15:42', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (15, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 802, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:15:51', '2026-04-25 06:15:51', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (16, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 492, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:15:51', '2026-04-25 06:15:51', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (17, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 1165, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:16:04', '2026-04-25 06:16:04', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (18, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 290, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:16:04', '2026-04-25 06:16:04', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (19, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 1447, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:20:54', '2026-04-25 06:20:54', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (20, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 678, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:20:55', '2026-04-25 06:20:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (21, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 570, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:21:18', '2026-04-25 06:21:18', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (22, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 316, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:21:18', '2026-04-25 06:21:18', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (23, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 318, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:21:36', '2026-04-25 06:21:36', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (189, 13, 1, 'product_matching', NULL, NULL, 955, 277, 0.008930, 3797, 'success', NULL, '2026-05-18 07:30:33', '2026-05-18 07:30:33', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (190, 13, 1, 'product_matching', NULL, NULL, 973, 308, 0.009485, 3266, 'success', NULL, '2026-05-18 07:30:37', '2026-05-18 07:30:37', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (24, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 308, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:21:37', '2026-04-25 06:21:37', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (25, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 311, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:21:46', '2026-04-25 06:21:46', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (26, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 336, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:21:46', '2026-04-25 06:21:46', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (27, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 344, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:21:48', '2026-04-25 06:21:48', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (123, 13, 1, 'qualification_analysis', NULL, NULL, 157, 60, 0.001685, 1475, 'success', NULL, '2026-05-12 09:36:44', '2026-05-12 09:36:44', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (28, NULL, 1, 'revenue_intelligence_analysis', NULL, NULL, NULL, NULL, 0.000000, 288, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:21:49', '2026-04-25 06:21:49', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (29, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 1086, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:22:16', '2026-04-25 06:22:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (30, NULL, 1, 'qualification_analysis', NULL, NULL, NULL, NULL, 0.000000, 305, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 06:22:16', '2026-04-25 06:22:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (31, NULL, 1, 'transcript_evaluation', NULL, NULL, NULL, NULL, 0.000000, 1634, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 10:54:00', '2026-04-25 10:54:00', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (32, NULL, 1, 'transcript_evaluation', NULL, NULL, NULL, NULL, 0.000000, 1120, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 10:54:01', '2026-04-25 10:54:01', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (33, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 1286, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:07', '2026-04-25 11:12:07', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (34, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 1009, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:08', '2026-04-25 11:12:08', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (35, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 502, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:09', '2026-04-25 11:12:09', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (36, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 1117, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:10', '2026-04-25 11:12:10', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (37, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 316, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:10', '2026-04-25 11:12:10', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (38, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 311, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:11', '2026-04-25 11:12:11', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (39, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 308, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:11', '2026-04-25 11:12:11', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (40, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 1358, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:12', '2026-04-25 11:12:12', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (41, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 490, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:13', '2026-04-25 11:12:13', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (42, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 705, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:14', '2026-04-25 11:12:14', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (43, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 628, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:14', '2026-04-25 11:12:14', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (44, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 350, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:15', '2026-04-25 11:12:15', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (45, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 612, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:15', '2026-04-25 11:12:15', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (46, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 342, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:16', '2026-04-25 11:12:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (191, 13, 1, 'product_matching', NULL, NULL, 972, 306, 0.009450, 4159, 'success', NULL, '2026-05-18 07:30:41', '2026-05-18 07:30:41', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (192, 13, 1, 'product_matching', NULL, NULL, 958, 274, 0.008900, 5308, 'success', NULL, '2026-05-18 07:30:46', '2026-05-18 07:30:46', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (47, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 345, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:16', '2026-04-25 11:12:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (48, NULL, 1, 'product_matching', NULL, NULL, NULL, NULL, 0.000000, 329, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:12:16', '2026-04-25 11:12:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (49, NULL, 1, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 1318, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:47:39', '2026-04-25 11:47:39', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (50, NULL, 1, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 1117, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 11:47:40', '2026-04-25 11:47:40', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (57, NULL, 1, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 1456, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 15:37:54', '2026-04-25 15:37:54', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (124, 13, 1, 'product_matching', NULL, NULL, 1108, 261, 0.009455, 4531, 'success', NULL, '2026-05-12 09:37:53', '2026-05-12 09:37:53', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (58, NULL, 1, 'icp_generation', NULL, NULL, NULL, NULL, 0.000000, 752, 'failure', '{
+    "error": {
+        "message": "The model `GPT-5.4` does not exist or you do not have access to it.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "model_not_found"
+    }
+}
+', '2026-04-25 15:37:55', '2026-04-25 15:37:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (59, 13, 1, 'icp_generation', NULL, NULL, 2041, 292, 0.014585, 4581, 'success', NULL, '2026-04-25 15:40:26', '2026-04-25 15:40:26', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (60, 13, 1, 'product_matching', NULL, NULL, 804, 310, 0.008670, 3603, 'success', NULL, '2026-04-25 15:41:23', '2026-04-25 15:41:23', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (61, 13, 1, 'product_matching', NULL, NULL, 808, 298, 0.008510, 3899, 'success', NULL, '2026-04-25 15:41:27', '2026-04-25 15:41:27', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (62, 13, 1, 'product_matching', NULL, NULL, 812, 284, 0.008320, 5225, 'success', NULL, '2026-04-25 15:41:32', '2026-04-25 15:41:32', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (63, 13, 1, 'product_matching', NULL, NULL, 807, 290, 0.008385, 3328, 'success', NULL, '2026-04-25 15:41:35', '2026-04-25 15:41:35', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (64, 13, 1, 'product_matching', NULL, NULL, 804, 291, 0.008385, 3352, 'success', NULL, '2026-04-25 15:41:39', '2026-04-25 15:41:39', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (65, 13, 1, 'product_matching', NULL, NULL, 806, 295, 0.008455, 4284, 'success', NULL, '2026-04-25 15:41:43', '2026-04-25 15:41:43', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (66, 13, 1, 'product_matching', NULL, NULL, 809, 322, 0.008875, 4885, 'success', NULL, '2026-04-25 15:41:48', '2026-04-25 15:41:48', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (67, 13, 1, 'product_matching', NULL, NULL, 813, 311, 0.008730, 4499, 'success', NULL, '2026-04-25 15:41:52', '2026-04-25 15:41:52', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (68, 13, 1, 'product_matching', NULL, NULL, 820, 295, 0.008525, 5470, 'success', NULL, '2026-04-25 15:41:58', '2026-04-25 15:41:58', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (69, 13, 1, 'product_matching', NULL, NULL, 825, 271, 0.008190, 4807, 'success', NULL, '2026-04-25 15:42:03', '2026-04-25 15:42:03', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (70, 13, 1, 'product_matching', NULL, NULL, 816, 301, 0.008595, 3332, 'success', NULL, '2026-04-25 15:42:06', '2026-04-25 15:42:06', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (71, 13, 1, 'qualification_analysis', NULL, NULL, 160, 61, 0.001715, 1717, 'success', NULL, '2026-04-25 15:42:11', '2026-04-25 15:42:11', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (72, 13, 1, 'revenue_intelligence_analysis', NULL, NULL, 426, 197, 0.005085, 2804, 'success', NULL, '2026-04-25 15:42:23', '2026-04-25 15:42:23', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (73, 13, 1, 'icp_generation', NULL, NULL, 2041, 282, 0.014435, 7626, 'success', NULL, '2026-04-26 13:11:12', '2026-04-26 13:11:12', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (74, 13, 1, 'icp_generation', NULL, NULL, 2041, 286, 0.014495, 5511, 'success', NULL, '2026-04-26 13:11:33', '2026-04-26 13:11:33', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (75, 13, 1, 'icp_generation', NULL, NULL, 2041, 260, 0.014105, 2976, 'success', NULL, '2026-04-26 13:11:42', '2026-04-26 13:11:42', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (76, 13, 1, 'product_matching', NULL, NULL, 789, 289, 0.008280, 3464, 'success', NULL, '2026-04-26 13:12:35', '2026-04-26 13:12:35', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (77, 13, 1, 'product_matching', NULL, NULL, 793, 291, 0.008330, 3277, 'success', NULL, '2026-04-26 13:12:38', '2026-04-26 13:12:38', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (78, 13, 1, 'product_matching', NULL, NULL, 797, 300, 0.008485, 3135, 'success', NULL, '2026-04-26 13:12:41', '2026-04-26 13:12:41', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (79, 13, 1, 'product_matching', NULL, NULL, 792, 264, 0.007920, 3026, 'success', NULL, '2026-04-26 13:12:44', '2026-04-26 13:12:44', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (80, 13, 1, 'product_matching', NULL, NULL, 789, 268, 0.007965, 4074, 'success', NULL, '2026-04-26 13:12:49', '2026-04-26 13:12:49', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (81, 13, 1, 'product_matching', NULL, NULL, 791, 262, 0.007885, 3138, 'success', NULL, '2026-04-26 13:12:52', '2026-04-26 13:12:52', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (82, 13, 1, 'product_matching', NULL, NULL, 794, 277, 0.008125, 3057, 'success', NULL, '2026-04-26 13:12:55', '2026-04-26 13:12:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (83, 13, 1, 'product_matching', NULL, NULL, 798, 286, 0.008280, 3763, 'success', NULL, '2026-04-26 13:12:59', '2026-04-26 13:12:59', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (84, 13, 1, 'product_matching', NULL, NULL, 805, 261, 0.007940, 3053, 'success', NULL, '2026-04-26 13:13:02', '2026-04-26 13:13:02', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (85, 13, 1, 'product_matching', NULL, NULL, 810, 251, 0.007815, 3028, 'success', NULL, '2026-04-26 13:13:05', '2026-04-26 13:13:05', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (86, 13, 1, 'product_matching', NULL, NULL, 801, 282, 0.008235, 2977, 'success', NULL, '2026-04-26 13:13:08', '2026-04-26 13:13:08', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (87, 13, 1, 'product_matching', NULL, NULL, 800, 298, 0.008470, 3755, 'success', NULL, '2026-04-26 13:18:04', '2026-04-26 13:18:04', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (88, 13, 1, 'product_matching', NULL, NULL, 804, 251, 0.007785, 3150, 'success', NULL, '2026-04-26 13:18:07', '2026-04-26 13:18:07', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (89, 13, 1, 'product_matching', NULL, NULL, 808, 311, 0.008705, 3104, 'success', NULL, '2026-04-26 13:18:10', '2026-04-26 13:18:10', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (90, 13, 1, 'product_matching', NULL, NULL, 803, 308, 0.008635, 3152, 'success', NULL, '2026-04-26 13:18:14', '2026-04-26 13:18:14', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (91, 13, 1, 'product_matching', NULL, NULL, 800, 293, 0.008395, 3767, 'success', NULL, '2026-04-26 13:18:17', '2026-04-26 13:18:17', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (92, 13, 1, 'product_matching', NULL, NULL, 802, 280, 0.008210, 3045, 'success', NULL, '2026-04-26 13:18:20', '2026-04-26 13:18:20', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (93, 13, 1, 'product_matching', NULL, NULL, 805, 293, 0.008420, 3458, 'success', NULL, '2026-04-26 13:18:24', '2026-04-26 13:18:24', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (94, 13, 1, 'product_matching', NULL, NULL, 809, 297, 0.008500, 4572, 'success', NULL, '2026-04-26 13:18:28', '2026-04-26 13:18:28', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (95, 13, 1, 'product_matching', NULL, NULL, 816, 305, 0.008655, 4596, 'success', NULL, '2026-04-26 13:18:33', '2026-04-26 13:18:33', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (96, 13, 1, 'product_matching', NULL, NULL, 821, 313, 0.008800, 7589, 'success', NULL, '2026-04-26 13:18:41', '2026-04-26 13:18:41', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (97, 13, 1, 'product_matching', NULL, NULL, 812, 280, 0.008260, 2878, 'success', NULL, '2026-04-26 13:18:44', '2026-04-26 13:18:44', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (98, 13, 1, 'qualification_analysis', NULL, NULL, 151, 65, 0.001730, 1321, 'success', NULL, '2026-04-26 13:18:51', '2026-04-26 13:18:51', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (99, 13, 1, 'revenue_intelligence_analysis', NULL, NULL, 427, 235, 0.005660, 3099, 'success', NULL, '2026-04-26 13:19:21', '2026-04-26 13:19:21', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (100, 13, 1, 'revenue_intelligence_analysis', NULL, NULL, 427, 207, 0.005240, 3635, 'success', NULL, '2026-04-26 13:20:32', '2026-04-26 13:20:32', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (101, 13, 1, 'product_metadata_generation', NULL, NULL, 524, 286, 0.006910, 3828, 'success', NULL, '2026-04-26 14:21:35', '2026-04-26 14:21:35', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (102, 13, 1, 'product_metadata_generation', NULL, NULL, 524, 291, 0.006985, 3227, 'success', NULL, '2026-04-26 14:21:58', '2026-04-26 14:21:58', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (103, 13, 1, 'product_metadata_generation', NULL, NULL, 528, 306, 0.007230, 3530, 'success', NULL, '2026-04-26 14:22:15', '2026-04-26 14:22:15', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (104, 13, 1, 'product_metadata_generation', NULL, NULL, 524, 315, 0.007345, 3583, 'success', NULL, '2026-04-26 14:22:43', '2026-04-26 14:22:43', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (105, 13, 1, 'product_metadata_generation', NULL, NULL, 526, 296, 0.007070, 3868, 'success', NULL, '2026-04-26 14:22:55', '2026-04-26 14:22:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (106, 13, 1, 'product_metadata_generation', NULL, NULL, 522, 270, 0.006660, 2610, 'success', NULL, '2026-04-26 14:23:06', '2026-04-26 14:23:06', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (107, 13, 1, 'product_metadata_generation', NULL, NULL, 523, 310, 0.007265, 3561, 'success', NULL, '2026-04-26 14:23:17', '2026-04-26 14:23:17', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (108, 13, 1, 'product_metadata_generation', NULL, NULL, 525, 307, 0.007230, 5219, 'success', NULL, '2026-04-26 14:23:31', '2026-04-26 14:23:31', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (109, 13, 1, 'product_metadata_generation', NULL, NULL, 521, 265, 0.006580, 3697, 'success', NULL, '2026-04-26 14:23:46', '2026-04-26 14:23:46', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (110, 13, 1, 'product_metadata_generation', NULL, NULL, 525, 274, 0.006735, 3867, 'success', NULL, '2026-04-26 14:23:57', '2026-04-26 14:23:57', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (111, 13, 1, 'product_matching', NULL, NULL, 956, 308, 0.009400, 6705, 'success', NULL, '2026-05-12 09:33:32', '2026-05-12 09:33:32', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (112, 13, 1, 'product_matching', NULL, NULL, 938, 312, 0.009370, 4125, 'success', NULL, '2026-05-12 09:33:36', '2026-05-12 09:33:36', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (113, 13, 1, 'product_matching', NULL, NULL, 957, 311, 0.009450, 5934, 'success', NULL, '2026-05-12 09:33:42', '2026-05-12 09:33:42', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (114, 13, 1, 'product_matching', NULL, NULL, 975, 406, 0.010965, 4427, 'success', NULL, '2026-05-12 09:33:47', '2026-05-12 09:33:47', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (115, 13, 1, 'product_matching', NULL, NULL, 974, 287, 0.009175, 4236, 'success', NULL, '2026-05-12 09:33:51', '2026-05-12 09:33:51', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (116, 13, 1, 'product_matching', NULL, NULL, 960, 349, 0.010035, 4789, 'success', NULL, '2026-05-12 09:33:56', '2026-05-12 09:33:56', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (144, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 780, 251, 0.007665, 6713, 'success', NULL, '2026-05-17 15:27:46', '2026-05-17 15:27:46', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (145, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 775, 258, 0.007745, 3681, 'success', NULL, '2026-05-17 15:27:49', '2026-05-17 15:27:49', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (146, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 775, 254, 0.007685, 3604, 'success', NULL, '2026-05-17 15:27:53', '2026-05-17 15:27:53', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (147, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 784, 221, 0.007235, 3358, 'success', NULL, '2026-05-17 15:27:56', '2026-05-17 15:27:56', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (148, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 807, 216, 0.007275, 3776, 'success', NULL, '2026-05-17 15:28:00', '2026-05-17 15:28:00', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (149, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 786, 246, 0.007620, 3545, 'success', NULL, '2026-05-17 15:28:04', '2026-05-17 15:28:04', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (150, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 782, 232, 0.007390, 3340, 'success', NULL, '2026-05-17 15:28:07', '2026-05-17 15:28:07', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (151, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 797, 226, 0.007375, 3345, 'success', NULL, '2026-05-17 15:28:10', '2026-05-17 15:28:10', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (152, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 774, 267, 0.007875, 5001, 'success', NULL, '2026-05-17 15:28:15', '2026-05-17 15:28:15', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (153, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 786, 231, 0.007395, 4463, 'success', NULL, '2026-05-17 15:28:20', '2026-05-17 15:28:20', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (154, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 810, 221, 0.007365, 4172, 'success', NULL, '2026-05-17 15:29:30', '2026-05-17 15:29:30', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (155, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 781, 191, 0.006770, 2393, 'success', NULL, '2026-05-17 15:29:33', '2026-05-17 15:29:33', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (156, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 769, 260, 0.007745, 4078, 'success', NULL, '2026-05-17 15:29:37', '2026-05-17 15:29:37', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (157, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 770, 213, 0.007045, 4813, 'success', NULL, '2026-05-17 15:29:42', '2026-05-17 15:29:42', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (158, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 786, 208, 0.007050, 2637, 'success', NULL, '2026-05-17 15:29:44', '2026-05-17 15:29:44', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (159, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 780, 212, 0.007080, 3163, 'success', NULL, '2026-05-17 15:29:48', '2026-05-17 15:29:48', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (160, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 799, 233, 0.007490, 3121, 'success', NULL, '2026-05-17 15:29:51', '2026-05-17 15:29:51', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (161, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 793, 215, 0.007190, 2460, 'success', NULL, '2026-05-17 15:29:53', '2026-05-17 15:29:53', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (162, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 814, 235, 0.007595, 3257, 'success', NULL, '2026-05-17 15:29:57', '2026-05-17 15:29:57', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (163, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 783, 274, 0.008025, 3537, 'success', NULL, '2026-05-17 15:30:00', '2026-05-17 15:30:00', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (164, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 774, 249, 0.007605, 5083, 'success', NULL, '2026-05-17 15:32:22', '2026-05-17 15:32:22', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (165, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 779, 199, 0.006880, 3065, 'success', NULL, '2026-05-17 15:32:25', '2026-05-17 15:32:25', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (166, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 775, 235, 0.007400, 3070, 'success', NULL, '2026-05-17 15:32:28', '2026-05-17 15:32:28', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (167, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 782, 248, 0.007630, 3766, 'success', NULL, '2026-05-17 15:32:32', '2026-05-17 15:32:32', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (168, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 777, 205, 0.006960, 2936, 'success', NULL, '2026-05-17 15:32:34', '2026-05-17 15:32:34', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (169, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 770, 243, 0.007495, 3963, 'success', NULL, '2026-05-17 15:32:38', '2026-05-17 15:32:38', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (170, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 780, 255, 0.007725, 2783, 'success', NULL, '2026-05-17 15:32:41', '2026-05-17 15:32:41', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (171, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 782, 205, 0.006985, 6835, 'success', NULL, '2026-05-17 15:32:48', '2026-05-17 15:32:48', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (172, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 774, 212, 0.007050, 3888, 'success', NULL, '2026-05-17 15:32:52', '2026-05-17 15:32:52', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (173, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 767, 215, 0.007060, 4217, 'success', NULL, '2026-05-17 15:32:56', '2026-05-17 15:32:56', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (174, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 772, 227, 0.007265, 4308, 'success', NULL, '2026-05-17 15:49:43', '2026-05-17 15:49:43', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (175, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 773, 242, 0.007495, 4660, 'success', NULL, '2026-05-17 15:49:47', '2026-05-17 15:49:47', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (176, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 771, 245, 0.007530, 2911, 'success', NULL, '2026-05-17 15:49:50', '2026-05-17 15:49:50', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (177, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 782, 254, 0.007720, 4286, 'success', NULL, '2026-05-17 15:49:55', '2026-05-17 15:49:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (178, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 777, 217, 0.007140, 4276, 'success', NULL, '2026-05-17 15:49:59', '2026-05-17 15:49:59', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (179, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 787, 242, 0.007565, 9875, 'success', NULL, '2026-05-17 15:50:09', '2026-05-17 15:50:09', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (180, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 785, 167, 0.006430, 3136, 'success', NULL, '2026-05-17 15:50:12', '2026-05-17 15:50:12', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (181, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 783, 215, 0.007140, 4262, 'success', NULL, '2026-05-17 15:50:16', '2026-05-17 15:50:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (182, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 781, 208, 0.007025, 4073, 'success', NULL, '2026-05-17 15:50:20', '2026-05-17 15:50:20', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (183, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 790, 225, 0.007325, 3426, 'success', NULL, '2026-05-17 15:50:24', '2026-05-17 15:50:24', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (184, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 782, 210, 0.007060, 4631, 'success', NULL, '2026-05-17 23:19:10', '2026-05-17 23:19:10', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (185, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 779, 256, 0.007735, 3197, 'success', NULL, '2026-05-17 23:19:13', '2026-05-17 23:19:13', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (186, 13, 1, 'geo_product_fit_analysis', NULL, NULL, 778, 233, 0.007385, 2952, 'success', NULL, '2026-05-17 23:19:16', '2026-05-17 23:19:16', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (187, 13, 1, 'product_matching', NULL, NULL, 954, 329, 0.009705, 12545, 'success', NULL, '2026-05-18 07:30:25', '2026-05-18 07:30:25', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (188, 13, 1, 'product_matching', NULL, NULL, 936, 317, 0.009435, 4243, 'success', NULL, '2026-05-18 07:30:30', '2026-05-18 07:30:30', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (193, 13, 1, 'product_matching', NULL, NULL, 937, 317, 0.009440, 4071, 'success', NULL, '2026-05-18 07:30:50', '2026-05-18 07:30:50', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (194, 13, 1, 'product_matching', NULL, NULL, 963, 350, 0.010065, 4696, 'success', NULL, '2026-05-18 07:30:55', '2026-05-18 07:30:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (195, 13, 1, 'product_matching', NULL, NULL, 974, 301, 0.009385, 6730, 'success', NULL, '2026-05-18 07:31:02', '2026-05-18 07:31:02', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (196, 13, 1, 'product_matching', NULL, NULL, 939, 303, 0.009240, 3316, 'success', NULL, '2026-05-18 07:31:05', '2026-05-18 07:31:05', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (197, 13, 1, 'product_matching', NULL, NULL, 825, 300, 0.008625, 3810, 'success', NULL, '2026-05-18 07:31:09', '2026-05-18 07:31:09', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (198, 13, 1, 'product_matching', NULL, NULL, 821, 297, 0.008560, 2939, 'success', NULL, '2026-05-18 07:31:12', '2026-05-18 07:31:12', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (199, 13, 1, 'icp_generation', NULL, NULL, 3907, 263, 0.023480, 3900, 'success', NULL, '2026-05-19 12:32:10', '2026-05-19 12:32:10', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (200, 13, 1, 'product_metadata_generation', NULL, NULL, 2063, 1134, 0.027325, 25246, 'success', NULL, '2026-05-19 12:34:01', '2026-05-19 12:34:01', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (201, 13, 1, 'product_metadata_generation', NULL, NULL, 2063, 1242, 0.028945, 28070, 'success', NULL, '2026-05-19 12:34:30', '2026-05-19 12:34:30', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (202, 13, 1, 'product_metadata_generation', NULL, NULL, 3639, 1038, 0.033765, 25310, 'success', NULL, '2026-05-19 12:35:15', '2026-05-19 12:35:15', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (203, 13, 1, 'product_metadata_generation', NULL, NULL, 2063, 1252, 0.029095, 20562, 'success', NULL, '2026-05-19 14:24:55', '2026-05-19 14:24:55', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (204, 13, 1, 'product_metadata_generation', NULL, NULL, 2065, 1185, 0.028100, 22111, 'success', NULL, '2026-05-19 14:27:48', '2026-05-19 14:27:48', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (205, 13, 1, 'product_metadata_generation', NULL, NULL, 2065, 1417, 0.031580, 23148, 'success', NULL, '2026-05-19 14:33:59', '2026-05-19 14:33:59', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (206, 13, 1, 'product_metadata_generation', NULL, NULL, 2065, 1264, 0.029285, 20389, 'success', NULL, '2026-05-19 14:34:30', '2026-05-19 14:34:30', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (207, 13, 1, 'product_metadata_generation', NULL, NULL, 2065, 1392, 0.031205, 25339, 'success', NULL, '2026-05-19 14:35:34', '2026-05-19 14:35:34', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (208, 6, 1, 'product_metadata_generation', NULL, NULL, NULL, NULL, 0.000000, 490, 'failure', '{
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+', '2026-05-19 14:37:25', '2026-05-19 14:37:25', true);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (209, 6, 1, 'product_metadata_generation', NULL, NULL, NULL, NULL, 0.000000, 1423, 'failure', '{
+  "error": {
+    "code": 404,
+    "message": "models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+', '2026-05-19 14:37:26', '2026-05-19 14:37:26', true);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (210, 13, 1, 'product_metadata_generation', NULL, NULL, 2065, 1201, 0.028340, 23348, 'success', NULL, '2026-05-19 14:37:50', '2026-05-19 14:37:50', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (211, 13, 1, 'product_metadata_generation', NULL, NULL, 2065, 1407, 0.031430, 24313, 'success', NULL, '2026-05-19 14:38:22', '2026-05-19 14:38:22', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (212, 13, 1, 'product_metadata_generation', NULL, NULL, 3449, 1518, 0.040015, 25274, 'success', NULL, '2026-05-19 14:39:06', '2026-05-19 14:39:06', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (213, 13, 1, 'product_metadata_generation', NULL, NULL, 2213, 1225, 0.029440, 24371, 'success', NULL, '2026-05-19 14:41:01', '2026-05-19 14:41:01', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (214, 17, 1, 'product_metadata_generation', NULL, NULL, NULL, NULL, 0.000000, 555, 'failure', '{
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\nPlease retry in 21.693989157s.",
+    "status": "RESOURCE_EXHAUSTED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.Help",
+        "links": [
+          {
+            "description": "Learn more about Gemini API quotas",
+            "url": "https://ai.google.dev/gemini-api/docs/rate-limits"
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+        "violations": [
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count",
+            "quotaId": "GenerateContentInputTokensPerModelPerMinute-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash"
+            }
+          },
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash"
+            }
+          },
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash"
+            }
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.RetryInfo",
+        "retryDelay": "21s"
+      }
+    ]
+  }
+}
+', '2026-05-19 14:43:38', '2026-05-19 14:43:38', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (215, 17, 1, 'product_metadata_generation', NULL, NULL, NULL, NULL, 0.000000, 1317, 'failure', '{
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\nPlease retry in 21.305765514s.",
+    "status": "RESOURCE_EXHAUSTED",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.Help",
+        "links": [
+          {
+            "description": "Learn more about Gemini API quotas",
+            "url": "https://ai.google.dev/gemini-api/docs/rate-limits"
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+        "violations": [
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash"
+            }
+          },
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+            "quotaId": "GenerateRequestsPerMinutePerProjectPerModel-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash"
+            }
+          },
+          {
+            "quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count",
+            "quotaId": "GenerateContentInputTokensPerModelPerMinute-FreeTier",
+            "quotaDimensions": {
+              "location": "global",
+              "model": "gemini-2.0-flash"
+            }
+          }
+        ]
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.RetryInfo",
+        "retryDelay": "21s"
+      }
+    ]
+  }
+}
+', '2026-05-19 14:43:39', '2026-05-19 14:43:39', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (216, 13, 1, 'product_metadata_generation', NULL, NULL, 2066, 1034, 0.025840, 14539, 'success', NULL, '2026-05-19 14:51:09', '2026-05-19 14:51:09', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (217, 13, 1, 'product_metadata_generation', NULL, NULL, 3574, 1045, 0.033545, 22950, 'success', NULL, '2026-05-19 14:52:53', '2026-05-19 14:52:53', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (218, 13, 1, 'product_metadata_generation', NULL, NULL, 2063, 1068, 0.026335, 22802, 'success', NULL, '2026-05-19 14:53:22', '2026-05-19 14:53:22', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (219, 13, 1, 'product_metadata_generation', NULL, NULL, 2063, 1089, 0.026650, 21926, 'success', NULL, '2026-05-19 14:54:25', '2026-05-19 14:54:25', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (220, 13, 2, 'product_metadata_generation', NULL, NULL, 2106, 1605, 0.034605, 26152, 'success', NULL, '2026-05-19 15:01:37', '2026-05-19 15:01:37', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (221, 13, 2, 'product_metadata_generation', NULL, NULL, 3616, 1543, 0.041225, 21749, 'success', NULL, '2026-05-19 15:02:32', '2026-05-19 15:02:32', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (222, 13, 2, 'product_metadata_generation', NULL, NULL, 2224, 1420, 0.032420, 16289, 'success', NULL, '2026-05-19 15:04:07', '2026-05-19 15:04:07', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (223, 13, 1, 'product_metadata_generation', NULL, NULL, 2116, 1567, 0.034085, 15139, 'success', NULL, '2026-05-19 15:05:50', '2026-05-19 15:05:50', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (224, 23, 1, 'product_question_generation', NULL, NULL, 785, 686, 0.014215, 10672, 'success', NULL, '2026-05-20 08:18:53', '2026-05-20 08:18:53', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (225, 23, 2, 'product_question_generation', NULL, NULL, 534, 626, 0.012060, 7563, 'success', NULL, '2026-05-20 08:23:12', '2026-05-20 08:23:12', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (226, 23, 2, 'product_question_generation', NULL, NULL, 534, 937, 0.016725, 13144, 'success', NULL, '2026-05-20 08:24:06', '2026-05-20 08:24:06', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (227, 23, 2, 'product_question_generation', NULL, NULL, 553, 694, 0.013175, 8140, 'success', NULL, '2026-05-20 08:24:54', '2026-05-20 08:24:54', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (228, 23, 1, 'product_question_generation', NULL, NULL, 804, 692, 0.014400, 11993, 'success', NULL, '2026-05-20 08:26:15', '2026-05-20 08:26:15', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (229, 23, 1, 'product_question_generation', NULL, NULL, 559, 759, 0.014180, 7543, 'success', NULL, '2026-05-20 09:09:53', '2026-05-20 09:09:53', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (230, 23, 2, 'lead_bantc_question_generation', NULL, NULL, 464, 555, 0.010645, 6868, 'success', NULL, '2026-05-20 09:16:12', '2026-05-20 09:16:12', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (231, 23, 1, 'lead_bantc_question_generation', NULL, NULL, 547, 608, 0.011855, 6676, 'success', NULL, '2026-05-20 09:24:17', '2026-05-20 09:24:17', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (232, 13, 2, 'transcript_evaluation', NULL, NULL, 272, 156, 0.003700, 3271, 'success', NULL, '2026-05-20 10:18:39', '2026-05-20 10:18:39', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (233, 13, 1, 'qualification_analysis', NULL, NULL, 164, 44, 0.001480, 1905, 'success', NULL, '2026-05-20 10:39:30', '2026-05-20 10:39:30', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (234, 13, 1, 'qualification_analysis', NULL, NULL, 166, 64, 0.001790, 2344, 'success', NULL, '2026-05-20 14:50:00', '2026-05-20 14:50:00', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (235, 19, 2, 'qualification_analysis', NULL, NULL, 297, 96, 0.002925, 2658, 'success', NULL, '2026-05-30 04:05:22', '2026-05-30 04:05:22', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (236, 19, 2, 'revenue_intelligence_analysis', NULL, NULL, 641, 713, 0.013900, 6317, 'success', NULL, '2026-05-30 04:05:42', '2026-05-30 04:05:42', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (237, 19, 2, 'qualification_analysis', NULL, NULL, 293, 90, 0.002815, 1637, 'success', NULL, '2026-05-30 04:08:46', '2026-05-30 04:08:46', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (238, 19, 2, 'revenue_intelligence_analysis', NULL, NULL, 636, 913, 0.016875, 10581, 'success', NULL, '2026-05-30 04:09:02', '2026-05-30 04:09:02', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (239, 19, 2, 'qualification_analysis', NULL, NULL, 298, 98, 0.002960, 2413, 'success', NULL, '2026-05-30 04:15:02', '2026-05-30 04:15:02', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (240, 19, 2, 'revenue_intelligence_analysis', NULL, NULL, 679, 699, 0.013880, 8570, 'success', NULL, '2026-05-30 04:15:19', '2026-05-30 04:15:19', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (241, 19, 2, 'lead_bantc_question_generation', NULL, NULL, 773, 1076, 0.020005, 8012, 'success', NULL, '2026-05-30 04:15:32', '2026-05-30 04:15:32', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (242, 19, 2, 'qualification_analysis', NULL, NULL, 296, 95, 0.002905, 2213, 'success', NULL, '2026-05-30 04:23:04', '2026-05-30 04:23:04', false);
+INSERT INTO public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) VALUES (243, 24, 2, 'dashboard_ai_insight', NULL, NULL, 1091, 496, 0.010713, 10064, 'success', NULL, '2026-05-30 13:10:17', '2026-05-30 13:10:17', false);
+
+
+--
+-- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.audit_logs (id, user_id, action, module, record_type, record_id, before_value, after_value, ip_address, user_agent, created_at, updated_at, request_method, route_path, status, metadata_json, tenant_id) VALUES (1, NULL, 'login_failed', 'auth', NULL, NULL, NULL, '{"email":"kodratsantoso@prasetia.co.id"}', '172.18.0.4', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36', '2026-04-20 14:07:08', '2026-04-20 14:07:08', 'POST', 'api/auth/login', 'failed', '{"attempt":"invalid_credentials"}', NULL);
@@ -2316,7 +3222,19 @@ INSERT INTO public.audit_logs (id, user_id, action, module, record_type, record_
 
 
 --
--- Data for Name: funnel_stages; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: cache; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+
+
+--
+-- Data for Name: cache_locks; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+
+
+--
+-- Data for Name: funnel_stages; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.funnel_stages (id, name, sequence, color, probability, is_active, created_at, updated_at) VALUES (1, 'New Lead', 1, '#6366f1', 5, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
@@ -2333,7 +3251,7 @@ INSERT INTO public.funnel_stages (id, name, sequence, color, probability, is_act
 
 
 --
--- Data for Name: industries; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: industries; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.industries (id, name, synonyms, scoring_hints, is_active, created_at, updated_at) VALUES (3, 'Manufacturing', NULL, NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
@@ -2355,7 +3273,7 @@ INSERT INTO public.industries (id, name, synonyms, scoring_hints, is_active, cre
 
 
 --
--- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.products (id, name, category, description, target_industry, target_pain_points, target_buyer_persona, ideal_company_profile, ai_reference_material, status, created_by, created_at, updated_at, tenant_id, supported_regions, budget_range, target_company_size, use_cases, competitor_notes, keywords) VALUES (9, 'Mekari Talenta HRIS Platform', 'HR & Payroll Software', 'Mekari Talenta HRIS Platform is a comprehensive human resource information system designed to streamline HR & payroll processes, attendance tracking, and performance management for businesses in Indonesia. It supports growing companies by simplifying employee management and ensuring compliance with local regulations.', 'Technology & IT Services, Retail & Distribution', 'Manual payroll processing
@@ -2391,7 +3309,7 @@ Teams need a scalable solution with clear implementation ownership', 'IT Manager
 
 
 --
--- Data for Name: sub_industries; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sub_industries; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.sub_industries (id, industry_id, name, synonyms, scoring_hints, is_active, created_at, updated_at) VALUES (1, 3, 'Food & Beverage Manufacturing', NULL, NULL, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
@@ -2469,13 +3387,13 @@ INSERT INTO public.sub_industries (id, industry_id, name, synonyms, scoring_hint
 
 
 --
--- Data for Name: territories; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: territories; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: leads; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: leads; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.leads (id, company_name, address, lat, lng, website, website_domain, phone, email, industry_id, sub_industry_id, business_category, company_size_estimate, branch_count, operating_hours, social_profiles, lead_score, qualification_status, ai_explanation, duplicate_status, duplicate_of_id, external_place_id, use_ai_reference, ai_mode, ai_reference_source_type, ai_reference_id, ai_processing_status, funnel_stage_id, owner_id, territory_id, product_id, created_by, created_at, updated_at, deleted_at, tenant_id, estimated_closing_amount, realized_closing_amount, parent_lead_id) VALUES (62, 'Codex Product Revenue Smoke', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'eligible', NULL, 'new', NULL, NULL, false, 'manual', NULL, NULL, NULL, 1, NULL, NULL, 9, 2, '2026-05-20 15:17:35', '2026-05-20 15:17:36', '2026-05-20 15:17:36', 1, 123000.00, NULL, NULL);
@@ -2618,14 +3536,14 @@ INSERT INTO public.leads (id, company_name, address, lat, lng, website, website_
 
 
 --
--- Data for Name: contact_enrichment_candidates; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: contact_enrichment_candidates; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.contact_enrichment_candidates (id, lead_id, created_by, provider, provider_candidate_id, name, title, company_name, company_domain, has_email, has_phone, reveal_email_credits, reveal_phone_credits, status, raw_preview, raw_reveal, expires_at, revealed_at, created_at, updated_at) VALUES (1, 129, 2, 'LUSHA', '193920202', 'Anditia Harahap', NULL, 'LinkedIn', 'www.linkedin.com', false, true, 0, 10, 'previewed', '{"clientReferenceId":"lead-129-pt-seruan-anak-bangsa-20260530042504","id":"193920202","firstName":"Anditia","lastName":"Harahap","company":{"id":"10012815","name":"LinkedIn","domain":"www.linkedin.com","industry":"Technology, Information & Media"},"location":{"country":"Indonesia","city":"Jakarta"},"socialLinks":{"linkedin":"https:\/\/www.linkedin.com\/in\/anditia-harahap-85314a21"},"has":["firstName","lastName","location","socialLinks","phones","previousEmployment"],"canReveal":[{"field":"phones","credits":10}]}', NULL, '2026-06-06 04:25:05', NULL, '2026-05-30 04:25:05', '2026-05-30 04:25:05');
 
 
 --
--- Data for Name: contact_sources; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: contact_sources; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.contact_sources (id, name, is_active, created_at, updated_at) VALUES (1, 'LinkedIn', true, '2026-04-20 14:35:47', '2026-04-20 14:35:47');
@@ -2638,7 +3556,7 @@ INSERT INTO public.contact_sources (id, name, is_active, created_at, updated_at)
 
 
 --
--- Data for Name: currencies; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: currencies; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.currencies (id, code, name, symbol, minor_unit, is_active, created_at, updated_at) VALUES (1, 'AED', 'UAE Dirham', 'د.إ', 2, true, '2026-05-17 02:57:53', '2026-05-17 02:57:53');
@@ -2798,7 +3716,7 @@ INSERT INTO public.currencies (id, code, name, symbol, minor_unit, is_active, cr
 
 
 --
--- Data for Name: currency_settings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: currency_settings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.currency_settings (id, tenant_id, currency_id, thousands_separator, decimal_separator, decimal_digits, symbol_position, space_between_symbol, created_at, updated_at) VALUES (1, NULL, 59, '.', ',', 0, 'before', true, '2026-05-17 02:57:53', '2026-05-17 02:57:53');
@@ -2806,7 +3724,7 @@ INSERT INTO public.currency_settings (id, tenant_id, currency_id, thousands_sepa
 
 
 --
--- Data for Name: discovery_categories; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: discovery_categories; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.discovery_categories (id, label, value, sort_order, is_active, created_at, updated_at) VALUES (1, 'Restaurant / F&B', 'restaurant', 1, true, '2026-04-25 05:30:10', '2026-04-25 05:30:10');
@@ -2826,7 +3744,20 @@ INSERT INTO public.discovery_categories (id, label, value, sort_order, is_active
 
 
 --
--- Data for Name: geo_product_fit_analyses; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: email_verification_otps; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.email_verification_otps (id, email, otp, expires_at, used_at, created_at, updated_at) VALUES (3, 'kodratsantoso@prasetia.co.id', '859232', '2026-05-19 14:51:01', NULL, '2026-05-19 14:41:01', '2026-05-19 14:41:01');
+
+
+--
+-- Data for Name: failed_jobs; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+
+
+--
+-- Data for Name: geo_product_fit_analyses; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.geo_product_fit_analyses (id, place_id, product_id, lead_id, fit_score, fit_level, confidence_score, reasoning, matched_signals, missing_information, risk_flags, recommended_approach, recommended_next_action, potential_use_case, pre_fit_score, analyzed_with_ai, ai_provider_used, ai_model_used, source_payload_hash, product_payload_hash, analyzed_at, created_by, created_at, updated_at) VALUES (1, 'ChIJEWS1_Lop1i0R2IOP2i_6Lp4', 11, NULL, 3, 'unknown', 40, '["Rule-based pre-score. AI analysis pending or unavailable."]', '[]', '[]', '[]', NULL, NULL, NULL, 3, false, NULL, NULL, 'a644e32bba3c3989f190af223c434049d5d37112459755d5d78c291e7160eede', 'd8d3738ceed3f0c958be0bcad592569e8ebb463543b41bc8b3f6da3c40d61a9b', '2026-05-12 15:52:20', 1, '2026-05-12 15:52:20', '2026-05-12 15:52:20');
@@ -3158,7 +4089,7 @@ INSERT INTO public.geo_product_fit_analyses (id, place_id, product_id, lead_id, 
 
 
 --
--- Data for Name: icp_profiles; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: icp_profiles; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.icp_profiles (id, name, description, target_industries, target_company_sizes, target_territories, min_lead_score, required_fields, weight_lead_score, weight_industry, weight_company_size, weight_territory, weight_contact_info, is_active, created_by, created_at, updated_at, tenant_id) VALUES (1, 'Mid-to-Large Enterprise Integration & Management', 'This ICP targets mid-to-large enterprises across key industries that require complex integration of data, communication, and operational management solutions. Ideal for companies aiming to enhance scalability, security, and data-driven decision-making.', '["Financial Services","Technology","Manufacturing","E-commerce"]', '["201-500","501-1000","1000+"]', '["Global"]', 60, '[]', 0.25, 0.25, 0.20, 0.15, 0.15, true, 1, '2026-04-25 15:40:46', '2026-04-25 15:40:46', 1);
@@ -3167,45 +4098,156 @@ INSERT INTO public.icp_profiles (id, name, description, target_industries, targe
 
 
 --
--- Data for Name: integration_connections; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_configs; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (1, 'notifications', 'notify_inapp_enabled', 'eyJpdiI6IkVkSDZncER1cjFtamFML0phenp5MlE9PSIsInZhbHVlIjoiYm9CU3dOOXFWQllmK0twZlo3OHhiZz09IiwibWFjIjoiMmZjYjZhMDJhYTNiMDllMmYyZmUxZjk2MWJmYjBjZjNhMmRiM2ZkODU5M2VmY2JkNjYzODRhYjhlYjVmODQ1YiIsInRhZyI6IiJ9', 'boolean', false, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (2, 'notifications', 'notify_email_enabled', 'eyJpdiI6IlI1TjZuR04wYlArSXc2V041Q212cXc9PSIsInZhbHVlIjoiN2wzSUdoVStlR250VVR2bnpvTWh3Zz09IiwibWFjIjoiODZmOGI2YmU0YWJjNzAzZDA5N2E5ODMzZDNiM2QzNGMyZTE2MGNiYWU4NmUzZmJhYjI5YjljOWIzYjA4ZWVjOCIsInRhZyI6IiJ9', 'boolean', false, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (3, 'notifications', 'notify_whatsapp_enabled', 'eyJpdiI6IlQxZkRBZm1SV2ppS3V5SnZ1eW5rc3c9PSIsInZhbHVlIjoic1lVempMcnNmTlEwN0JsQlUvTWlydz09IiwibWFjIjoiZWU4NTMyZGJjMDhmYzVhZjY0MjNjZjA5MzBjOTgyZjg0NzgxODBjOWMzNDRmZmRkM2EzOWM0NDc3ZGQ4NTBhMiIsInRhZyI6IiJ9', 'boolean', false, true, '2026-04-20 14:35:47', '2026-04-20 14:35:47', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (4, 'maps', 'GOOGLE_MAPS_ENABLED', 'eyJpdiI6IkNoWk5vWG9pRHpiVzJZeFROdXphZXc9PSIsInZhbHVlIjoiWVoyajRzdlpSYktwbG5QOVVFYTZoQT09IiwibWFjIjoiZjk4NDdmNWJiMzJiNTMwOTNmOTJiMmNiMjEyNjZkNTcyZGQ4OTUzZjZjMmE0MmMzZjFhMzk2ODE0YWFkY2M5NSIsInRhZyI6IiJ9', 'boolean', false, true, '2026-04-20 14:39:30', '2026-04-20 14:39:30', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (5, 'maps', 'GOOGLE_MAPS_BROWSER_API_KEY', 'eyJpdiI6InhKQlp4cnRweUpRa3FMVVBXQVQwOUE9PSIsInZhbHVlIjoiN2Z0ZVRBMkFQTk12TzBlM2FnNlEwUy9lVTNLM0VKcEV2YmVuQzhuRm9uN2U1M3hCdFNmUzJqb0ZHeVNKbGt2VyIsIm1hYyI6Ijg3OTM4MzBkNWVmYWY3ZGIyOThkNjY3MzI1ZTZhMmRiZjc0ZjhmYjM4YjM4ZDU0Y2FlNjA1MmIwNTliMjcxNjIiLCJ0YWciOiIifQ==', 'string', false, true, '2026-04-20 14:39:30', '2026-04-20 14:39:30', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (6, 'maps', 'GOOGLE_MAPS_DEFAULT_CENTER_LAT', 'eyJpdiI6Im9PY28zdXVnYUwyN0pkeGZvYzZrV2c9PSIsInZhbHVlIjoiN0I2V2ZiVnZmK0w0VW40YmFPM0duUT09IiwibWFjIjoiMjY5OTk2ZmYwMjU5ODlhOWQ1NTM4MGYzMDM4ZTFmZjVlZWExNzFhNWU0OTQ0MTg3ODcxMWZmZWI5MzIzYzhjZiIsInRhZyI6IiJ9', 'number', false, true, '2026-04-20 14:39:30', '2026-04-20 14:39:30', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (7, 'maps', 'GOOGLE_MAPS_DEFAULT_CENTER_LNG', 'eyJpdiI6ImI4Sk9JZlhXQ2lad2lWWnp3RFFqV1E9PSIsInZhbHVlIjoibm4xdGRtT2lNYjhRVjR5V3NJTm1nZz09IiwibWFjIjoiZjE3ZDRiNTk5ZjczMzdlYWE3MzVmMzA2NjM3YWQzMmE0NmE2NmJlZDM5MzIyOTEzMDlkMDVjMTQ4NTc5MTY3YiIsInRhZyI6IiJ9', 'number', false, true, '2026-04-20 14:39:30', '2026-04-20 14:39:30', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (10, 'lead_platforms', 'FACEBOOK_CLIENT_SECRET', 'eyJpdiI6ImVmOUxtclJwUEtualY1U0pJVWtDSXc9PSIsInZhbHVlIjoiWXB4cEo0U2NxNlBaMitqZ3NLNDBrdz09IiwibWFjIjoiOGM1ZTQ3MmM4Y2FiODk3MGViNjE5OTM4NWI5OTA5NDZmNDAxNmQ5YWYyMDI5ZGY5Y2U1NjYxNjA5N2Y3M2FjYiIsInRhZyI6IiJ9', 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (11, 'lead_platforms', 'FACEBOOK_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (12, 'lead_platforms', 'FACEBOOK_PAGE_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (13, 'lead_platforms', 'FACEBOOK_VERIFY_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (14, 'lead_platforms', 'FACEBOOK_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (16, 'lead_platforms', 'INSTAGRAM_CLIENT_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (17, 'lead_platforms', 'INSTAGRAM_CLIENT_SECRET', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (18, 'lead_platforms', 'INSTAGRAM_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (19, 'lead_platforms', 'INSTAGRAM_PAGE_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (20, 'lead_platforms', 'INSTAGRAM_IG_USER_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (21, 'lead_platforms', 'INSTAGRAM_VERIFY_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (22, 'lead_platforms', 'INSTAGRAM_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (24, 'lead_platforms', 'TIKTOK_CLIENT_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (25, 'lead_platforms', 'TIKTOK_CLIENT_SECRET', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (26, 'lead_platforms', 'TIKTOK_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (27, 'lead_platforms', 'TIKTOK_ADVERTISER_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (28, 'lead_platforms', 'TIKTOK_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (30, 'lead_platforms', 'YOUTUBE_CLIENT_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (31, 'lead_platforms', 'YOUTUBE_CLIENT_SECRET', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (32, 'lead_platforms', 'YOUTUBE_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (33, 'lead_platforms', 'YOUTUBE_REFRESH_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (34, 'lead_platforms', 'YOUTUBE_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (35, 'lead_platforms', 'YOUTUBE_CHANNEL_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (37, 'lead_platforms', 'LINKEDIN_CLIENT_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (38, 'lead_platforms', 'LINKEDIN_CLIENT_SECRET', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (39, 'lead_platforms', 'LINKEDIN_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (40, 'lead_platforms', 'LINKEDIN_REFRESH_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (41, 'lead_platforms', 'LINKEDIN_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (42, 'lead_platforms', 'LINKEDIN_AD_ACCOUNT_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (43, 'lead_platforms', 'LINKEDIN_ORGANIZATION_URN', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (15, 'lead_platforms', 'INSTAGRAM_ENABLED', 'eyJpdiI6Ik1WdFVjV3BVYXgxZXI2T2FXZmg1SUE9PSIsInZhbHVlIjoibmRDbUQzVCtjeG52M3dNU3VOSnFKUT09IiwibWFjIjoiOGExNDVkZTdjNTFiMDg5ODg4MGIwNjQwYzc4ZDFjMWUzYjdhMzgzOTBkZjRmZGM2ODFkMDdiMjlkM2Y4ZmJkMSIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (23, 'lead_platforms', 'TIKTOK_ENABLED', 'eyJpdiI6IkExeVNsQjI2V25UQnRQWnlhc1hMbFE9PSIsInZhbHVlIjoiVFk4UjZBQVNyNjB1UlBqVElXbGVUZz09IiwibWFjIjoiMWJiZDA0NTQ5ZGUxMDFmYzZmZGQwYjlkOTM1MGQ4M2Q4ODA4NDQ4MzQyZmI2MDkzNTE1MTRhZmQ3YzJhZjQyYyIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (29, 'lead_platforms', 'YOUTUBE_ENABLED', 'eyJpdiI6InhqQWpueU83Y2JKalRmcWM4MFdKN2c9PSIsInZhbHVlIjoid1NlRVhHNkVhM2ZxTlYyc3VkMXBNdz09IiwibWFjIjoiYWNhMzEzMjlmNmU1NGVlZGY5NDdhMThkMGEzZWRkY2ZkODdlMzBjZjU2MDQyMzljNDEyMDdmNjVlZjA0MGM5YiIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (36, 'lead_platforms', 'LINKEDIN_ENABLED', 'eyJpdiI6Inp3dTd0RERYMU9iY3JJRjBDZUlJQXc9PSIsInZhbHVlIjoiVHQxcnlnaUp2M0IyT2dJYkJhT0ttZz09IiwibWFjIjoiY2E4NjhmNjFlZGQ2ZDRkZDU3ZTI2YzJiMTY2ZDEzY2ZmODFjODQyMjA2MDk1ZDQ0MDg2NmFjZDYzOGI0OGRhYiIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (44, 'lead_platforms', 'GOOGLE_ADS_ENABLED', 'eyJpdiI6IlJJRHRjeFF0WnVjOGVoNFFnNjIvYmc9PSIsInZhbHVlIjoiOGRhZzRBVkdXcERQa2g1Zm5FUCtpZz09IiwibWFjIjoiMTgwYzJhNTZlMzI3MzdmNjFiYjk2NmE0ZDBmOTA5M2NkOTRjODIwZjEzMjc2MzNiZGI3NmIyYmE3YjdjYjYyYSIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (46, 'lead_platforms', 'GOOGLE_ADS_GOOGLE_KEY', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (51, 'lead_platforms', 'GOOGLE_ADS_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (53, 'lead_platforms', 'GOOGLE_ADS_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (56, 'lead_platforms', 'MEKARI_QONTAK_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (57, 'lead_platforms', 'MEKARI_QONTAK_CHANNEL_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (59, 'lead_platforms', 'HUBSPOT_CLIENT_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (60, 'lead_platforms', 'HUBSPOT_CLIENT_SECRET', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (61, 'lead_platforms', 'HUBSPOT_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (62, 'lead_platforms', 'HUBSPOT_REFRESH_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (63, 'lead_platforms', 'HUBSPOT_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (64, 'lead_platforms', 'HUBSPOT_PORTAL_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (66, 'lead_platforms', 'SALESFORCE_CLIENT_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (67, 'lead_platforms', 'SALESFORCE_CLIENT_SECRET', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (68, 'lead_platforms', 'SALESFORCE_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (69, 'lead_platforms', 'SALESFORCE_REFRESH_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (70, 'lead_platforms', 'SALESFORCE_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (71, 'lead_platforms', 'SALESFORCE_INSTANCE_URL', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (73, 'lead_platforms', 'PIPEDRIVE_API_DOMAIN', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (74, 'lead_platforms', 'PIPEDRIVE_API_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (75, 'lead_platforms', 'PIPEDRIVE_CLIENT_ID', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (76, 'lead_platforms', 'PIPEDRIVE_CLIENT_SECRET', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (77, 'lead_platforms', 'PIPEDRIVE_ACCESS_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (78, 'lead_platforms', 'PIPEDRIVE_REFRESH_TOKEN', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (79, 'lead_platforms', 'PIPEDRIVE_REDIRECT_URI', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (81, 'lead_platforms', 'ZAPIER_WEBHOOK_URL', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (82, 'lead_platforms', 'ZAPIER_BASIC_AUTH_USERNAME', NULL, 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (83, 'lead_platforms', 'ZAPIER_BASIC_AUTH_PASSWORD', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (85, 'lead_platforms', 'MAKE_WEBHOOK_URL', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (86, 'lead_platforms', 'MAKE_API_KEY', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (88, 'lead_platforms', 'HUNTER_API_KEY', NULL, 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 03:55:24', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (58, 'lead_platforms', 'HUBSPOT_ENABLED', 'eyJpdiI6IkpwWlBuL3Q4NVZkU1VZMk5Va3I0Vmc9PSIsInZhbHVlIjoiRENqbk95YXVYS2NsMjMxWG4ra1pOZz09IiwibWFjIjoiZjU0YjA1YjgzYzIxMjk4NDE2N2VhZTZiYTYwNjFhZTliYWFjODNmZGUwMDUxMDRmNGMwZDk1YTEyODk2NWNlZCIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (65, 'lead_platforms', 'SALESFORCE_ENABLED', 'eyJpdiI6IkdZbmZjTFR5SDdWeXNXVlQyRUtXR3c9PSIsInZhbHVlIjoiZFZlRG8wb3VJN3U1OGpPL2hzVFRFQT09IiwibWFjIjoiOTg1MzY5MTA0YWU5YmFiMjgwYjM5NmVhYzFjMTI5ZWYwZDg0MTYyY2IyMDkwZTBlODI0ZmZkYzZhNmQ5YTkyMiIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (72, 'lead_platforms', 'PIPEDRIVE_ENABLED', 'eyJpdiI6IkVYY0FpdmxUK09ZQ0Jpem9ZZ1ZRZ2c9PSIsInZhbHVlIjoiT3pNSmVsek1BSXc2QkY1UVM3UEMvUT09IiwibWFjIjoiODNiZWQ1NzhiMTdhMTYwYjgwMmNhZWFhZDFlOTIyMDdmY2QzY2I4MGFkMGE3MGIyNjExMzVjZGJlOTM5NDUzZiIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (80, 'lead_platforms', 'ZAPIER_ENABLED', 'eyJpdiI6IkJ5V2U4eldLdjB2alptbklGY0FRS2c9PSIsInZhbHVlIjoiUmEvL3loMWRkL05rUUFGajVCT0s0UT09IiwibWFjIjoiM2MwN2I5OGFlZGMyOTY3OWRkMDk2NzVkNDE3Y2FiYmZiZmFhZGJkMjk5OGE1NGYyN2ExMzg2NDljY2Y0ZDAyMCIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (84, 'lead_platforms', 'MAKE_ENABLED', 'eyJpdiI6IlJ2cFdheGFQOEUxeFdESHFLcTh3RFE9PSIsInZhbHVlIjoiUk9nbS9yOENLLzg1YWhGYnFENS9Odz09IiwibWFjIjoiMTVhODIxYmVkMWUxMDcwMzJmZTBkZDBkNjBmZTAxMmUxM2E2ZjdlNjg2ODhhNjhjNWRhNDk0YmNmOTdhOTViNyIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (87, 'lead_platforms', 'HUNTER_ENABLED', 'eyJpdiI6ImswK2hydkxMVmx4enVKWGFVSUo5WkE9PSIsInZhbHVlIjoiTjk5Qks0RUtPckpGMXkwWmNmeGNMZz09IiwibWFjIjoiYTNkZWFiNzU4N2I5MjUzYjg2ZjdmN2Q4ZmQ1ODM5NzRhYmIyNzBiYzQ5MzY1ODJiZGRhNjQ1YzZjZDgwZWE2ZCIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (8, 'lead_platforms', 'FACEBOOK_ENABLED', 'eyJpdiI6IjNyVTBtc3BnUkRESWlWQkRxM1ZJS1E9PSIsInZhbHVlIjoiVG5lUjZCSGl1ZFMwZkJwaysxMGVnZz09IiwibWFjIjoiZmQzZWE1MzdmYTM3OGQ5MzgwY2I2YzY2MjgxOWU3NDJkNjhjYzg0NGNjMmNmOWEwNTlkNzczZWMzYmZjZmYxZCIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (45, 'lead_platforms', 'GOOGLE_ADS_API_MODE', 'eyJpdiI6InBNRlpHSGV4dkJraTZwQmsyU3JsY1E9PSIsInZhbHVlIjoiNmVxRzlHSWQ1ODdWZ2ozRFE2MUVwdz09IiwibWFjIjoiNWNjYjBiOTQ3ZDMyNGM1NGVlNWYxZDA5MWM5OGY3MTAxMmZjZmRkNTEyMDc4OThhZjQzYWNkN2U3N2RkZDNmYiIsInRhZyI6IiJ9', 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (47, 'lead_platforms', 'GOOGLE_ADS_DEVELOPER_TOKEN', 'eyJpdiI6InFPNjZjenFaS0dvNGY5Y1REQlFVOFE9PSIsInZhbHVlIjoiMWhmWk83N0lsYWFVZXpzWUdOZHNzOFUxbVZuUjcyU0VMZ3RNSzhYR0RxND0iLCJtYWMiOiJlNmE4ZGE0NTk4MTQwMzU1Y2Y0M2U1NmNiZDI0M2M0YzBmOGE4ZmE3NjJkMTRhZjhhODBhYzhlNDhmZGExZWFmIiwidGFnIjoiIn0=', 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (49, 'lead_platforms', 'GOOGLE_ADS_CLIENT_ID', 'eyJpdiI6IjNoN053Vy93WWRTalArb2U2RGU4VHc9PSIsInZhbHVlIjoiaTlNai9zWGhaam5UMGpEL3VZZHVFRm1yZlMxQUVweThBYlJuemJYdjFCNmNDcjZZclpwQWRHbnZodjhlb1pPaUdybjE4YVhPY0EzS1hhenZEZTBRZmR0VGtTRXF2U1BMYlFkYk16bGV1R0U9IiwibWFjIjoiYzdlYTY5MmMyMDVlNTc5MTIyZjBkMzFhMDcyOTQ2ZDBiZjdiYjQ1N2JkMjlkNWI4YTk3YWEyN2NmNzUzZjBiNiIsInRhZyI6IiJ9', 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (54, 'lead_platforms', 'MEKARI_QONTAK_ENABLED', 'eyJpdiI6ImNuV1YwelZsZ3FuRjYwNUU3d01odlE9PSIsInZhbHVlIjoiRVp3Q2ZTVGFSNzBwSHZiWWlGUDBmQT09IiwibWFjIjoiMWQyZDZlYjFkNWQyNWI5ZjdmMTU1OWZlODA2M2FlM2UzMTI3NTQzOTE1NzUyOTgwMjAyOThiY2YzOTQ1YmE3OCIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (55, 'lead_platforms', 'MEKARI_QONTAK_BASE_URL', 'eyJpdiI6IkhWOGNGSjRRT0NjalZudWY5MlQ2b1E9PSIsInZhbHVlIjoiV0xzMkI0VHo1VFRTN3hXVUhTU2c0ZGhtcnFlYjNQNktZQ1FwZVRscU9JVT0iLCJtYWMiOiIyODA4NzA4ZjBlYjYwNzE2N2ZmZGMxY2Y5ZDZiNWY1YWVmNmYwNzQ3MmJjYTY2OWQwODJiNWZjOTY3YzM4YTQzIiwidGFnIjoiIn0=', 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (48, 'lead_platforms', 'GOOGLE_ADS_CLIENT_CUSTOMER_ID', 'eyJpdiI6IitvK004Mi9Ea1NWcEpLR3o5eVJkZFE9PSIsInZhbHVlIjoiWDFSSnVQTXc0Q1lBK0NpSm1TakF3Zz09IiwibWFjIjoiN2RiYWM3NDUxZTQwMjcxMjliMGE3MGQ2NDRhZWU4MmIzYjA2MGM4NWI1Njc0ZTE5MjAzZmNmOTc0N2U4MjM1NCIsInRhZyI6IiJ9', 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (50, 'lead_platforms', 'GOOGLE_ADS_CLIENT_SECRET', 'eyJpdiI6Ikd2dnRyZFNtYlluTGJwN1R1d3Z2M0E9PSIsInZhbHVlIjoiS1RxMTVRK2k5aVlZNEVnT3krbDYvdXBWTkY0N3Q3aTNJSWpjZUVyNFNzY2NMQmZ6U21QaExvV0VwTVB4RU5rTyIsIm1hYyI6IjE0OTA1ZTAwYWU2MzViNjY0ZTQzNzEyMWYyOGQ1OTZiMDhmOTkyMGU5NTY2NjE2MjUxZmU2ZGM5MThjMDVmYTAiLCJ0YWciOiIifQ==', 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (52, 'lead_platforms', 'GOOGLE_ADS_REFRESH_TOKEN', 'eyJpdiI6Ikl1NTdVb0pxNFB2NlA1ays5SklvY3c9PSIsInZhbHVlIjoid1VDclZjRzNvOTFkd0hlUFQ0YUovaFg4VTBGSGlOZkdWcjlMNG1XdWcwZXFlK1RDaS9ML2FFTkFUL2VLaWgwRW90YmZaY2c4RWg3UUZNY1JOS0EyMkdRMng2YU9UQzBLc1Vsb3dZYVhiV3AyZTdsRU0wdWhjOGJzWDh1Z2xtR1BPVGpqLzZKOUJRQkVRd2MxclI0R0JBPT0iLCJtYWMiOiI5ZDRkNWE3MDk4OTM1OTI4MjRmZTNhNDljNmI0MGFhZTY2ZjdkYjQ3Mjk5OTYyM2FiYzhhNDQ1YjgwNGU5Y2UyIiwidGFnIjoiIn0=', 'string', true, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (89, 'lusha', 'LUSHA_ENABLED', 'eyJpdiI6ImVLQk92cFhPa3pYWDhzZ1VGemJvY1E9PSIsInZhbHVlIjoiSzFmbFl6bW9RcUtzSDlDWTlTUlhyUT09IiwibWFjIjoiZTExYTYwNDQyNjRhMDYxZjZiYjA5NTUyOGVkYmM1OTQyZDdkY2M1ZDE3ZDJkODk3MzkwZGQwZjc4OTNiMjBjMSIsInRhZyI6IiJ9', 'boolean', false, true, '2026-05-27 05:29:13', '2026-05-27 05:29:13', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (90, 'lusha', 'LUSHA_API_KEY', 'eyJpdiI6InpMMnZmYWRkWjR6ejZ2RkZjN0FjQ3c9PSIsInZhbHVlIjoiSHBCaEJLOU4rUmU5U285b2NnelAydUJXeEQyVTVwU0k1dEc4SW16T0xpQklYUU1NbTBTcnpNV2QzenhHVURNTCIsIm1hYyI6IjZiNmM1NDVmYTU2OGZhMTg3NGEzMWUxZTFhMDcyMzU0Y2IwODNjYzA3YzYyNTQxMjdmMDZlZDdmMmY0ZmUyYzkiLCJ0YWciOiIifQ==', 'string', true, true, '2026-05-27 05:29:13', '2026-05-27 05:29:13', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (91, 'lusha', 'LUSHA_MAX_DAILY_REQUESTS', 'eyJpdiI6IjNTYmhSeEd5NHFQbVY5Rjd2Y2ZGWEE9PSIsInZhbHVlIjoiWEsvTG1DZjNHMHNoVTZYSUwvVDZiUT09IiwibWFjIjoiMjM2MjcwZDE5ZWVlNmVkZmViNjk4YTQyZjc3YmNjNTYxOGFjYTMzZGI0YmI0ZjAxMjQxOWE5YjhlNzFhMjRmNSIsInRhZyI6IiJ9', 'number', false, true, '2026-05-27 05:29:13', '2026-05-27 05:29:13', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (92, 'lusha', 'LUSHA_MAX_PER_BATCH', 'eyJpdiI6Imh2bDNpdVpUUWVTWHU5SFovUFE2Tmc9PSIsInZhbHVlIjoiZ0cwNi9QOFprbHdsMS9FOS9Pb1ZQZz09IiwibWFjIjoiOTk2ZWVkZDQ3MjRmM2EzMzFiMDc4OWYxN2JlZGQ2ZDFhYWQ0YjI0ODU4MWY5NmNmYjEyZDUxODZlMWYxN2UwMCIsInRhZyI6IiJ9', 'number', false, true, '2026-05-27 05:29:13', '2026-05-27 05:29:13', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (93, 'lusha', 'LUSHA_ENRICHMENT_PRIORITY', 'eyJpdiI6IitPTnNPL1VXaGxsWVFZV1dnQjVwdUE9PSIsInZhbHVlIjoicFVxK1ZwK09JdXladGZLdmxUdzF0Zz09IiwibWFjIjoiNjIyNWZkMjRmMGI3NzEwZDE4NWViNzMzYzQwZDMzOTlkOWQyODYwYTYxMjA2NTQxMGM3NmYyY2YxNGQ3NDRjNyIsInRhZyI6IiJ9', 'number', false, true, '2026-05-27 05:29:13', '2026-05-27 05:29:13', 1);
+INSERT INTO public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) VALUES (9, 'lead_platforms', 'FACEBOOK_CLIENT_ID', 'eyJpdiI6IkI4VWhUSVJFejRZbi8wRUU0NFMrUVE9PSIsInZhbHVlIjoiektzSnZqZXBhb280cnlZYkRmcHFzanZubEFTdXhmb1NaNGNmL0EraDh1cz0iLCJtYWMiOiIxZGE0OTdmNzFhYjU3Yzc3YWZkYjNkNzVjMzc5OWQwMDFhMGY1YTYzODAzOGEyOGQ5MTIzYTQ0NWY0MTNiMGUzIiwidGFnIjoiIn0=', 'string', false, true, '2026-05-27 03:55:24', '2026-05-27 05:26:25', 1);
+
+
+--
+-- Data for Name: integration_connections; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: integration_credential_stores; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_credential_stores; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: integration_entity_mappings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_entity_mappings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: integration_webhook_events; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_webhook_events; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: lark_integrations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: job_batches; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+
+
+--
+-- Data for Name: jobs; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+
+
+--
+-- Data for Name: lark_integrations; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lark_integrations (id, tenant_id, app_id, app_secret_encrypted, verification_token_encrypted, encrypt_key_encrypted, base_url, features, enabled_modules, is_active, last_sync_at, sync_status, created_at, updated_at, deleted_at) VALUES (1, 1, 'cli_a82a3eda2278102f', 'eyJpdiI6IjVqUktRT2hUem9XMk93YndiRDVUdVE9PSIsInZhbHVlIjoiSnZpOFZ2VjlIUmU0Uk96LzlEbVViRHJTRWNZOW9XdnBNaE83WDgxa2ppNW41SkFwaUp6M1dtZDNWdmphUi9oVCIsIm1hYyI6ImY0YmZkYjI1M2E3ZDMwMzg3OWU5MTRlMjViOTNiMzQ5YmFhOGMwM2MxMzM1N2E4YWEwZGM1ODljY2QyM2MyMTUiLCJ0YWciOiIifQ==', NULL, NULL, NULL, '{}', '{"messenger":true,"meeting":true,"calendar":true,"task":true,"base":true,"sso":true}', true, NULL, NULL, '2026-05-25 08:46:20', '2026-05-30 03:01:19', NULL);
 
 
 --
--- Data for Name: lark_base_tables; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_base_tables; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lark_base_tables (id, tenant_id, lark_integration_id, app_token, table_id, table_name, leadsy_entity_type, sync_direction, field_mapping, is_active, last_pull_at, last_push_at, created_at, updated_at) VALUES (1, 1, 1, 'Ulu0bPvunavJygsY809lf8EigQd', 'tblF19BT6mFXDFRr', 'Leads Management', 'lead', 'two_way', '{"leadsy_id":"Leadsy ID","company_name":"Company Name","website":"Website","email":"Company Email","phone":"Phone Number","address":"Address","business_category":"Business Category","lead_score":"Lead Score","qualification_status":"Status","funnel_stage":"Funnel Stage","owner":"Business Owner","external_place_id":"External Place ID"}', true, '2026-05-30 03:33:18', NULL, '2026-05-30 03:07:47', '2026-05-30 03:33:18');
 
 
 --
--- Data for Name: lark_base_record_mappings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_base_record_mappings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lark_base_record_mappings (id, tenant_id, lark_base_table_id, leadsy_entity_type, leadsy_entity_id, lark_record_id, last_lark_updated_at, last_leadsy_updated_at, last_sync_source, created_at, updated_at) VALUES (6, 1, 1, 'lead', '68', 'recvl4fFAGwOrw', '2026-05-30 03:33:18', NULL, 'lark', '2026-05-30 03:08:02', '2026-05-30 03:33:18');
@@ -3286,26 +4328,26 @@ INSERT INTO public.lark_base_record_mappings (id, tenant_id, lark_base_table_id,
 
 
 --
--- Data for Name: lark_events; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_events; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: lark_sso_users; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_sso_users; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lark_sso_users (id, tenant_id, user_id, lark_user_id, lark_union_id, lark_email, lark_name, lark_mobile, lark_avatar_url, lark_department_id, lark_direct_manager_id, created_at, updated_at) VALUES (1, 1, 7, '4d95af25', 'on_207e8c1eb19feca760f83073afecbf87', 'kodratsantoso@prasetia.co.id', 'Kodrat Santoso', '+6287884701947', NULL, NULL, NULL, '2026-05-25 09:10:49', '2026-05-25 09:10:49');
 
 
 --
--- Data for Name: lark_syncs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_syncs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: lead_activities; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_activities; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_activities (id, lead_id, activity_type, description, activity_date, related_entity_type, related_entity_id, user_id, created_at, updated_at, tenant_id, outcome, activity_date_override, next_follow_up_date, budget, authority, needs, timeline, competitor) VALUES (1, 58, 'Meeting', 'Legacy Tools
@@ -4785,20 +5827,20 @@ INSERT INTO public.lead_activities (id, lead_id, activity_type, description, act
 
 
 --
--- Data for Name: lead_ai_analyses; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_ai_analyses; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: lead_ai_evaluations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_ai_evaluations; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_ai_evaluations (id, lead_id, source_type, source_id, sentiment, intent_level, interest_level, objections_detected, buying_signals, next_best_action, recommended_product_id, confidence_score, evaluated_at, created_at, updated_at, summary) VALUES (1, 58, 'App\Models\LeadTranscript', 3, 'neutral', 'medium', 'medium', '[]', '[]', 'Schedule follow-up meeting', NULL, 40, '2026-04-25 10:54:01', '2026-04-25 10:54:01', '2026-04-25 10:54:01', NULL);
 
 
 --
--- Data for Name: lead_analysis_logs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_analysis_logs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_analysis_logs (id, tenant_id, lead_id, analysis_type, result_json, created_at) VALUES (1, 1, 3, 'manual_score_override', '{"score":80,"grade":"Hot","reason":"Continue","reviewer_id":1,"reviewer_name":"Rizub"}', '2026-04-20 14:49:34');
@@ -4857,14 +5899,14 @@ INSERT INTO public.lead_analysis_logs (id, tenant_id, lead_id, analysis_type, re
 
 
 --
--- Data for Name: lead_bantc_question_guides; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_bantc_question_guides; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_bantc_question_guides (id, lead_id, questions, ai_generated, ai_model, updated_by, created_at, updated_at) VALUES (1, 137, '[{"id":"n1","text":"Saat ini bagaimana cara tim di PT. Wira Pamungkas Pariwara berkolaborasi dan berkomunikasi untuk mengelola berbagai project dan akun klien sekaligus?","category":"Need","order":1},{"id":"n2","text":"Apa tantangan terbesar yang Anda lihat dalam komunikasi internal dan koordinasi lintas divisi saat menjalankan kampanye marketing untuk beberapa klien sekaligus?","category":"Need","order":2},{"id":"n3","text":"Bisakah Anda ceritakan bagaimana proses pengelolaan task dan project klien dilakukan sekarang, mulai dari brief, eksekusi hingga pelaporan ke klien?","category":"Need","order":3},{"id":"n4","text":"Jika dalam 6\u201312 bulan ke depan tidak ada perubahan pada cara tim berkolaborasi dan mengelola project, dampak apa yang paling Anda khawatirkan terhadap kepuasan klien dan kinerja bisnis agensi?","category":"Need","order":4},{"id":"b1","text":"Untuk inisiatif peningkatan kolaborasi internal dan manajemen project, biasanya anggarannya masuk ke pos mana dan bagaimana proses penetapan budget di PT. Wira Pamungkas Pariwara?","category":"Budget","order":5},{"id":"b2","text":"Di kisaran berapa investasi tahunan yang masih dianggap realistis untuk platform kolaborasi dan manajemen operasi, jika solusi tersebut bisa membantu efisiensi pengelolaan akun klien dan project agensi?","category":"Budget","order":6},{"id":"b3","text":"Ketika menilai investasi untuk platform seperti Lark, indikator ROI seperti apa yang paling penting bagi Anda\u2014misalnya penghematan waktu, pengurangan meeting, atau peningkatan kepuasan klien?","category":"Budget","order":7},{"id":"a1","text":"Selain Pak Yudi sebagai Direktur, siapa saja pihak kunci di PT. Wira Pamungkas Pariwara yang biasanya terlibat dalam keputusan memilih platform kolaborasi dan operasi baru?","category":"Authority","order":8},{"id":"a2","text":"Bagaimana alur pengambilan keputusan di perusahaan Anda ketika ingin mengadopsi tools baru untuk komunikasi internal dan manajemen project\u2014dari tahap eksplorasi hingga persetujuan akhir?","category":"Authority","order":9},{"id":"a3","text":"Apakah ada tim IT, procurement, atau legal yang perlu dilibatkan lebih awal ketika kita mulai membahas implementasi platform seperti Lark di lingkungan PT. Wira Pamungkas Pariwara?","category":"Authority","order":10},{"id":"t1","text":"Apakah saat ini ada momentum atau target tertentu\u2014misalnya penutupan tahun fiskal, peluncuran kampanye besar, atau restrukturisasi tim\u2014yang membuat Anda ingin meningkatkan cara tim berkolaborasi?","category":"Timeline","order":11},{"id":"t2","text":"Jika solusi yang tepat ditemukan, kapan idealnya Anda ingin tim di PT. Wira Pamungkas Pariwara sudah mulai menggunakan platform kolaborasi dan operasi yang baru secara penuh?","category":"Timeline","order":12},{"id":"t3","text":"Langkah-langkah apa saja yang Anda bayangkan perlu dilalui dari sekarang sampai implementasi, dan berapa lama kira-kira waktu yang dibutuhkan di setiap tahap tersebut?","category":"Timeline","order":13},{"id":"c1","text":"Saat ini tools apa saja yang tim Anda gunakan untuk chat, meeting online, penyimpanan file, dan manajemen task\/project, dan apa yang Anda suka maupun kurang suka dari solusi yang ada sekarang?","category":"Competition","order":14},{"id":"c2","text":"Jika Anda membandingkan beberapa opsi platform kolaborasi, kriteria apa yang paling penting bagi PT. Wira Pamungkas Pariwara dan apa risiko yang Anda lihat jika harus berpindah dari solusi yang digunakan saat ini?","category":"Competition","order":15}]', true, 'gpt-5.1', 2, '2026-05-30 04:15:53', '2026-05-30 04:15:53');
 
 
 --
--- Data for Name: lead_source_types; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_source_types; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_source_types (id, name, slug, description, sort_order, is_active, created_at, updated_at) VALUES (2, 'Manual Input', 'manual', 'Lead entered manually by the sales team.', 20, true, '2026-05-17 02:24:50', '2026-05-17 02:26:02');
@@ -4879,7 +5921,7 @@ INSERT INTO public.lead_source_types (id, name, slug, description, sort_order, i
 
 
 --
--- Data for Name: lead_channel_types; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_channel_types; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_channel_types (id, lead_source_type_id, name, slug, description, sort_order, is_active, created_at, updated_at) VALUES (1, 1, 'Maps Search', 'maps_search', 'Google Maps channel', 10, true, '2026-05-17 02:33:35', '2026-05-17 02:33:35');
@@ -4910,7 +5952,7 @@ INSERT INTO public.lead_channel_types (id, lead_source_type_id, name, slug, desc
 
 
 --
--- Data for Name: lead_contacts; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_contacts; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_contacts (id, lead_id, name, title, email, phone, linkedin_url, contact_source_id, confidence, last_verified_at, do_not_contact, created_at, updated_at, is_primary, source, confidence_score) VALUES (1, 10, 'Kodrat Santoso', 'CEO', 'santosokodrat@gmail.com', '6287884701947', NULL, NULL, 'high', NULL, false, '2026-04-25 04:48:17', '2026-04-25 04:48:17', false, 'manual', 100);
@@ -5002,13 +6044,13 @@ INSERT INTO public.lead_contacts (id, lead_id, name, title, email, phone, linked
 
 
 --
--- Data for Name: lead_contact_payloads; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_contact_payloads; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: lead_conversion_predictions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_conversion_predictions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_conversion_predictions (id, lead_id, probability_to_close, expected_deal_size, estimated_sales_effort, confidence_score, prediction_factors, model_version, created_at, updated_at) VALUES (1, 3, 37.50, 20000.00, 'high', 50.00, '{"score_contribution":36,"contact_boost":0,"activity_boost":0,"qualification_boost":0,"funnel_stage_boost":1.5}', 'v1.0-rule-based', '2026-04-20 14:54:14', '2026-04-20 14:54:14');
@@ -5024,13 +6066,13 @@ INSERT INTO public.lead_conversion_predictions (id, lead_id, probability_to_clos
 
 
 --
--- Data for Name: lead_follow_ups; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_follow_ups; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: lead_funnel_history; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_funnel_history; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_funnel_history (id, lead_id, from_stage_id, to_stage_id, moved_by, notes, created_at, updated_at) VALUES (1, 60, NULL, 1, 1, NULL, '2026-05-12 09:37:16', '2026-05-12 09:37:16');
@@ -5892,13 +6934,13 @@ INSERT INTO public.lead_funnel_history (id, lead_id, from_stage_id, to_stage_id,
 
 
 --
--- Data for Name: lead_icp_config; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_icp_config; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: lead_icp_matches; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_icp_matches; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_icp_matches (id, lead_id, icp_profile_id, match_score, match_level, score_breakdown, evaluated_at, created_at, updated_at) VALUES (1, 3, 2, 23.00, 'weak_match', '{"reasoning":"Lead is a weak ICP match. Weak fit on industry and company size.","factors":[{"factor":"industry","input":"unknown","raw_score":20,"weight":25,"weighted_score":5,"reason":"Industry compared against legacy ICP profile target industries."},{"factor":"company_size","input":"unknown","raw_score":20,"weight":20,"weighted_score":4,"reason":"Company size compared against legacy ICP profile target sizes."},{"factor":"location","input":"JL. Kelapa Dua Wetan No.8, Ciracas, Jakarta Timur","raw_score":20,"weight":15,"weighted_score":3,"reason":"Location compared against legacy ICP profile target territories."},{"factor":"contact_availability","input":"limited contact","raw_score":0,"weight":10,"weighted_score":0,"reason":"Legacy ICP profile contact completeness factor."},{"factor":"lead_score","input":"36","raw_score":36,"weight":30,"weighted_score":10.8,"reason":"Existing deterministic lead score reused as a legacy ICP factor."}],"source":"icp_profiles","matched_config":null}', '2026-05-19 14:17:30', '2026-05-19 14:17:30', '2026-05-19 14:17:30');
@@ -5966,7 +7008,7 @@ INSERT INTO public.lead_icp_matches (id, lead_id, icp_profile_id, match_score, m
 
 
 --
--- Data for Name: lead_meetings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_meetings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_meetings (id, lead_id, meeting_date, meeting_type, participants, summary, key_points, objections, next_steps, follow_up_date, created_by, created_at, updated_at) VALUES (1, 24, '2026-04-11 14:43:32', 'Virtual', '["Budi Hermawan (IT Director)","Rina Kusuma (CFO)","Sales Team Prasetia"]', 'Sesi demonstrasi produk dan discovery kebutuhan bisnis. Prospect menunjukkan ketertarikan tinggi terhadap solusi yang ditawarkan.', '["Sistem existing sudah tidak memadai: SAP B1 versi lama","Pain point: proses tutup buku bulanan >5 hari","Target go-live Q3 2026","Budget sudah dialokasikan dalam RKAT"]', '["Concern timeline migrasi data dari sistem lama","Perlu approval CFO untuk anggaran >Rp 500 juta"]', '["Kirim proposal teknis & komersial dalam 5 hari kerja","Schedule meeting dengan CFO dan IT Director","Siapkan referensi customer industri yang sama"]', '2026-04-18', 6, '2026-04-11 14:43:32', '2026-04-11 14:43:32');
@@ -6048,7 +7090,7 @@ INSERT INTO public.lead_meetings (id, lead_id, meeting_date, meeting_type, parti
 
 
 --
--- Data for Name: lead_outcomes; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_outcomes; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_outcomes (id, lead_id, outcome, deal_size, loss_reason, loss_category, feedback_notes, closed_by, closed_at, created_at, updated_at, product_id, sale_type) VALUES (1, 24, 'won', 850000000.00, NULL, NULL, 'Kontrak ditandatangani. Implementasi dijadwalkan Q2-Q3 2026.', 6, '2026-05-08 09:04:50', '2026-05-25 09:04:50', '2026-05-25 09:04:50', 10, 'new_sales');
@@ -6060,7 +7102,7 @@ INSERT INTO public.lead_outcomes (id, lead_id, outcome, deal_size, loss_reason, 
 
 
 --
--- Data for Name: lead_prescriptions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_prescriptions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_prescriptions (id, lead_id, recommended_owner_id, recommended_approach, next_best_action, follow_up_timing, priority_score, reasoning, is_applied, created_at, updated_at) VALUES (1, 3, NULL, 'Active nurturing — schedule discovery call to further qualify', 'Make first contact — introduce product and qualify interest', 'within 3 days', 8, 'Lead score: 80/100. Qualification: pending. No activity recorded. Funnel: New Lead.', false, '2026-04-20 14:54:10', '2026-04-20 14:54:10');
@@ -6073,7 +7115,7 @@ INSERT INTO public.lead_prescriptions (id, lead_id, recommended_owner_id, recomm
 
 
 --
--- Data for Name: lead_product_match_runs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_product_match_runs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_product_match_runs (id, lead_id, triggered_by, products_evaluated, matches_created, ai_calls_made, total_cost_usd, duration_ms, status, error_message, run_at, created_at, updated_at) VALUES (1, 58, 1, 8, 8, 8, NULL, 10251, 'completed', NULL, '2026-04-25 11:12:16', '2026-04-25 11:12:16', '2026-04-25 11:12:16');
@@ -6086,7 +7128,7 @@ INSERT INTO public.lead_product_match_runs (id, lead_id, triggered_by, products_
 
 
 --
--- Data for Name: lead_product_matches; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_product_matches; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_product_matches (id, lead_id, product_id, match_score, match_reason, is_recommended, last_matched_at, created_at, updated_at, bant_analysis, reasoning, recommended_approach, competitor_context, match_level, confidence_score, ai_provider_used, ai_model_used) VALUES (1, 58, 4, 37, 'AI analysis unavailable — rule-based score used.', false, '2026-04-25 11:12:08', '2026-04-25 11:12:08', '2026-04-25 11:12:08', NULL, '["AI analysis unavailable \u2014 rule-based score used."]', NULL, NULL, 'weak', 50, NULL, NULL);
@@ -6197,7 +7239,7 @@ INSERT INTO public.lead_product_matches (id, lead_id, product_id, match_score, m
 
 
 --
--- Data for Name: lead_qualifications; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_qualifications; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_qualifications (id, lead_id, qualified, business_type, company_size_band, qualification_reason, last_qualified_at, created_at, updated_at, classification, score, dimension_breakdown, risk_flags, hard_stops, recommendation, evaluation_snapshot, tenant_id) VALUES (32, 12, 'yes', 'B2B', 'medium', 'Memenuhi semua kriteria: ukuran perusahaan, budget, kebutuhan, dan authority.', '2026-05-25 09:04:50', '2026-05-25 09:04:50', '2026-05-25 09:04:50', 'Qualified', 60, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -6278,7 +7320,7 @@ INSERT INTO public.lead_qualifications (id, lead_id, qualified, business_type, c
 
 
 --
--- Data for Name: lead_revenue_analyses; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_revenue_analyses; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_revenue_analyses (id, lead_id, business_type, use_case, intent_level, urgency, probability_to_close, buying_signals, objections, recommended_action, recommended_approach, confidence, reasoning, ai_model, prompt_tokens, completion_tokens, cost_usd, status, raw_response, created_at, updated_at) VALUES (1, 3, 'Unknown — insufficient data', 'To be determined after discovery call', 'low', 'low', 20.00, '[]', '["Insufficient data to detect objections"]', 'Gather more information through initial outreach', 'Discovery-first approach — qualify before pitching', 0.100, '["AI analysis unavailable \u2014 result generated from fallback logic"]', '', NULL, NULL, 0.000000, 'failed', NULL, '2026-04-20 14:53:56', '2026-04-20 14:53:56');
@@ -6442,7 +7484,7 @@ INSERT INTO public.lead_revenue_analyses (id, lead_id, business_type, use_case, 
 
 
 --
--- Data for Name: lead_score_breakdowns; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_score_breakdowns; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_score_breakdowns (id, tenant_id, lead_id, factor, value, weight, score_contribution, created_at, updated_at) VALUES (1, 1, 3, 'industry_match', 'Technology', 25.00, 15.00, '2026-04-25 06:18:41', '2026-04-25 06:18:41');
@@ -6602,7 +7644,7 @@ INSERT INTO public.lead_score_breakdowns (id, tenant_id, lead_id, factor, value,
 
 
 --
--- Data for Name: lead_scores; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_scores; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_scores (id, lead_id, score, grade, score_breakdown, last_scored_at, created_at, updated_at, tenant_id, calculated_at) VALUES (70, 64, 56, 'Cold', '[{"factor_key":"industry_match","factor":"Industry Match","value":"establishment, health, local_government_office","weight":25,"raw_score":60,"score_contribution":15,"reason":"Industry is known, but no ICP industry configuration exists yet."},{"factor_key":"company_size","factor":"Company Size","value":"unknown","weight":15,"raw_score":40,"score_contribution":6,"reason":"Company size is not known."},{"factor_key":"location_relevance","factor":"Location Relevance","value":"South Quarter Tower B - 21st floor, Jl. R.A. Kartini No.Kav. 8, RT.10\/RW.4, West Cilandak, Cilandak, South Jakarta City, Jakarta 12430, Indonesia","weight":15,"raw_score":60,"score_contribution":9,"reason":"Location is known, but no ICP location has been configured."},{"factor_key":"data_completeness","factor":"Data Completeness","value":"6\/8","weight":10,"raw_score":75,"score_contribution":7.5,"reason":"Completed 6 of 8 core lead fields."},{"factor_key":"contact_availability","factor":"Contact Availability","value":"partial direct contact","weight":15,"raw_score":60,"score_contribution":9,"reason":"At least one direct contact path is available."},{"factor_key":"source_reliability","factor":"Source Reliability","value":"google_maps \/ high","weight":10,"raw_score":90,"score_contribution":9,"reason":"Best available source reliability is 90\/100."},{"factor_key":"activity_signal","factor":"Activity Signal","value":"no activity","weight":10,"raw_score":0,"score_contribution":0,"reason":"No activity has been recorded for this lead."}]', '2026-05-21 06:24:52', '2026-05-21 06:24:52', '2026-05-21 06:24:52', NULL, '2026-05-21 06:24:52');
@@ -6712,7 +7754,7 @@ INSERT INTO public.lead_scores (id, lead_id, score, grade, score_breakdown, last
 
 
 --
--- Data for Name: lead_sources; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_sources; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_sources (id, lead_id, source_type, source_ref, confidence, last_verified_at, created_at, updated_at, tenant_id, channel_type_id) VALUES (38, 41, 'google_maps', 'ChIJteBjkRL71y0RSviuXHaK6cs', 'high', NULL, '2026-04-25 05:27:29', '2026-05-25 09:04:50', NULL, 15);
@@ -6797,7 +7839,7 @@ INSERT INTO public.lead_sources (id, lead_id, source_type, source_ref, confidenc
 
 
 --
--- Data for Name: lead_transcripts; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_transcripts; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.lead_transcripts (id, lead_id, source_type, source_id, transcript_text, recorded_at, evaluation_status, created_at, updated_at, activity_id, title, file_path, file_name, file_mime, file_size) VALUES (1, 5, 'manual', NULL, 'Test transcript', '2026-04-25 10:46:18', 'pending', '2026-04-25 10:46:18', '2026-04-25 10:46:18', NULL, NULL, NULL, NULL, NULL, NULL);
@@ -6863,7 +7905,7 @@ Siap Pak, nanti kita schedule sesi lanjutan ya. Terima kasih banyak waktunya.', 
 
 
 --
--- Data for Name: map_candidates; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: map_candidates; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.map_candidates (place_id, name, address, phone, lat, lng, category, rating, maps_url, raw_payload, fetched_at, created_at, updated_at, website, opening_hours_json, user_ratings_total, last_enriched_at) VALUES ('ChIJM48cBc_71y0R4CeQOl8nSiM', 'Branch Office PT Trikarya Cemerlang Jatim', 'Jl. Dukuh Kupang XVII No.25, Dukuh Kupang, Surabaya', NULL, -7.2805285, 112.7152739, 'point_of_interest, establishment', 4.1, NULL, '{"external_place_id":"ChIJM48cBc_71y0R4CeQOl8nSiM","company_name":"Branch Office PT Trikarya Cemerlang Jatim","address":"Jl. Dukuh Kupang XVII No.25, Dukuh Kupang, Surabaya","lat":-7.280528500000001,"lng":112.7152739,"business_category":"point_of_interest, establishment","operating_hours":"Open now","rating":4.1,"user_ratings_total":32}', '2026-04-25 04:32:43', '2026-04-25 04:32:43', '2026-04-25 04:32:43', NULL, NULL, NULL, NULL);
@@ -7462,7 +8504,7 @@ INSERT INTO public.map_candidates (place_id, name, address, phone, lat, lng, cat
 
 
 --
--- Data for Name: map_search_history; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: map_search_history; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.map_search_history (id, area_name, area_place_id, area_lat, area_lng, keyword, category, search_mode, radius_meters, result_count, created_by, created_at, updated_at) VALUES (1, 'Surabaya, East Java, Indonesia', 'ChIJf8QaOPj71y0RQL5S43Z6AgM', -7.2574719, 112.7520883, NULL, 'office', 'nearby', 20000, 20, 1, '2026-04-25 04:32:43', '2026-04-25 04:32:43');
@@ -7487,7 +8529,87 @@ INSERT INTO public.map_search_history (id, area_name, area_place_id, area_lat, a
 
 
 --
--- Data for Name: permissions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: migrations; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.migrations (id, migration, batch) VALUES (1, '0001_01_00_000000_create_roles_permissions_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (2, '0001_01_01_000000_create_users_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (3, '0001_01_01_000001_create_cache_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (4, '0001_01_01_000002_create_jobs_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (5, '0002_01_01_000001_create_industries_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (6, '0002_01_01_000002_create_products_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (7, '0002_01_01_000003_create_funnel_stages_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (8, '0003_01_01_000001_create_leads_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (9, '0004_01_01_000001_create_ai_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (10, '0005_01_01_000001_create_audit_logs_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (11, '0006_01_01_000001_create_integration_configs_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (12, '0008_01_01_alter_audit_logs_table_add_auth_fields', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (13, '2026_04_12_075540_create_personal_access_tokens_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (14, '2026_04_12_130500_create_whatsapp_module_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (15, '2026_04_16_130913_create_map_discovery_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (16, '2026_04_17_150000_create_lead_intelligence_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (17, '2026_04_17_150001_create_sales_activity_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (18, '2026_04_17_150002_create_ai_feature_routes_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (19, '2026_04_17_153000_add_is_primary_and_source_to_lead_contacts_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (20, '2026_04_17_153001_create_lead_contact_payloads_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (21, '2026_04_17_160000_add_enriched_fields_to_map_candidates_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (22, '2026_04_18_100000_create_revenue_intelligence_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (23, '2026_04_18_110000_create_lead_revenue_analyses_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (24, '2026_04_18_120000_assign_default_funnel_stage_to_existing_leads', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (25, '2026_04_18_130000_create_email_verification_otps_table', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (26, '2026_04_18_140000_expand_lead_qualifications_for_enterprise_rules', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (27, '2026_04_18_150000_create_qualification_architecture_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (28, '2026_04_18_160000_add_multi_tenant_foundation', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (29, '2026_04_18_170000_harden_core_business_schema', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (30, '2026_04_19_100000_consolidate_ai_settings_module', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (31, '2026_04_20_140000_extend_lead_scores_for_intelligence_model', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (32, '2026_04_20_140100_create_lead_intelligence_support_tables', 1);
+INSERT INTO public.migrations (id, migration, batch) VALUES (33, '2026_04_20_160000_extend_qualification_workflow_reviews_for_human_verification', 2);
+INSERT INTO public.migrations (id, migration, batch) VALUES (34, '2026_04_20_170000_extend_lead_ai_analyses_for_advisory_insights', 3);
+INSERT INTO public.migrations (id, migration, batch) VALUES (35, '2026_04_25_100000_create_discovery_categories_table', 4);
+INSERT INTO public.migrations (id, migration, batch) VALUES (36, '2026_04_25_110000_enhance_lead_activities_table', 5);
+INSERT INTO public.migrations (id, migration, batch) VALUES (37, '2026_04_25_120000_enhance_product_matching_schema', 6);
+INSERT INTO public.migrations (id, migration, batch) VALUES (38, '2026_05_11_000001_create_geo_product_fit_analyses_table', 7);
+INSERT INTO public.migrations (id, migration, batch) VALUES (39, '2026_05_17_020000_create_lead_source_types_table', 8);
+INSERT INTO public.migrations (id, migration, batch) VALUES (40, '2026_05_17_021000_create_lead_channel_types_table', 9);
+INSERT INTO public.migrations (id, migration, batch) VALUES (41, '2026_05_17_022000_add_closing_amounts_to_leads_table', 10);
+INSERT INTO public.migrations (id, migration, batch) VALUES (42, '2026_05_17_023000_create_currency_settings_tables', 11);
+INSERT INTO public.migrations (id, migration, batch) VALUES (43, '2026_05_19_000001_add_user_hierarchy_and_revenue_targets', 12);
+INSERT INTO public.migrations (id, migration, batch) VALUES (45, '2026_05_19_000002_update_gemini_feature_route_models', 13);
+INSERT INTO public.migrations (id, migration, batch) VALUES (46, '2026_05_19_000003_refresh_ai_provider_model_catalog', 14);
+INSERT INTO public.migrations (id, migration, batch) VALUES (47, '2026_05_19_000004_remove_seeded_sample_products', 15);
+INSERT INTO public.migrations (id, migration, batch) VALUES (48, '2026_05_19_000005_ensure_default_funnel_stages', 16);
+INSERT INTO public.migrations (id, migration, batch) VALUES (49, '2026_05_20_000001_create_product_questions_table', 17);
+INSERT INTO public.migrations (id, migration, batch) VALUES (50, '2026_05_20_000002_seed_product_question_generation_ai_route', 17);
+INSERT INTO public.migrations (id, migration, batch) VALUES (51, '2026_05_20_000003_create_lead_bantc_question_guides_table', 18);
+INSERT INTO public.migrations (id, migration, batch) VALUES (52, '2026_05_20_000004_seed_lead_bantc_question_generation_ai_route', 18);
+INSERT INTO public.migrations (id, migration, batch) VALUES (53, '2026_05_20_000005_add_bantc_fields_to_lead_activities', 19);
+INSERT INTO public.migrations (id, migration, batch) VALUES (54, '2026_05_20_000006_extend_lead_transcripts_for_activity_files', 19);
+INSERT INTO public.migrations (id, migration, batch) VALUES (55, '2026_05_20_000007_add_summary_to_lead_ai_evaluations', 19);
+INSERT INTO public.migrations (id, migration, batch) VALUES (56, '2026_05_20_000008_add_product_sales_fields_to_lead_outcomes', 20);
+INSERT INTO public.migrations (id, migration, batch) VALUES (57, '2026_05_22_000001_create_lark_integration_tables', 21);
+INSERT INTO public.migrations (id, migration, batch) VALUES (58, '2026_05_25_000001_import_leadsy_database_snapshot', 22);
+INSERT INTO public.migrations (id, migration, batch) VALUES (59, '2026_05_25_000002_create_lark_base_sync_tables', 22);
+INSERT INTO public.migrations (id, migration, batch) VALUES (60, '2026_05_25_000000_create_lark_base_sync_tables', 23);
+INSERT INTO public.migrations (id, migration, batch) VALUES (61, '2026_05_25_010000_create_sales_visit_tables', 23);
+INSERT INTO public.migrations (id, migration, batch) VALUES (62, '2026_05_25_000000_create_sales_visit_tables', 24);
+INSERT INTO public.migrations (id, migration, batch) VALUES (63, '2026_05_27_000001_create_integration_hub_tables', 24);
+INSERT INTO public.migrations (id, migration, batch) VALUES (64, '2026_05_27_130000_create_contact_enrichment_candidates_table', 25);
+INSERT INTO public.migrations (id, migration, batch) VALUES (65, '2026_05_29_011500_seed_detailed_ai_prompt_templates', 26);
+INSERT INTO public.migrations (id, migration, batch) VALUES (66, '2026_05_29_012500_replace_ai_contact_search_with_google_search', 26);
+INSERT INTO public.migrations (id, migration, batch) VALUES (67, '2026_05_30_000001_add_parent_lead_id_to_leads_table', 27);
+INSERT INTO public.migrations (id, migration, batch) VALUES (69, '2026_05_30_000002_add_dashboard_ai_insight_to_prompt_templates', 28);
+INSERT INTO public.migrations (id, migration, batch) VALUES (70, '2026_05_30_000003_reimport_leadsy_database_snapshot', 29);
+
+
+--
+-- Data for Name: password_reset_tokens; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+
+
+--
+-- Data for Name: permissions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.permissions (id, name, module, display_name, created_at, updated_at) VALUES (1, 'leads.view', 'leads', 'View Leads', '2026-04-20 14:35:47', '2026-04-20 14:35:47');
@@ -7507,7 +8629,29 @@ INSERT INTO public.permissions (id, name, module, display_name, created_at, upda
 
 
 --
--- Data for Name: product_questions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: personal_access_tokens; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (3, 'App\Models\User', 1, 'api', '9ee4acccfb63fbfbd2c55eb17472d10181dd806c8dbe8cab7982d0928757efbf', '["*"]', '2026-04-27 01:11:41', NULL, '2026-04-25 04:29:40', '2026-04-27 01:11:41');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (5, 'App\Models\User', 1, 'api', '99346a84ab75ca008eded11b8c20ceaa88c83f3204b2463ea1d4e3a89620ab19', '["*"]', NULL, NULL, '2026-05-17 02:25:25', '2026-05-17 02:25:25');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (6, 'App\Models\User', 1, 'api', '0584d0d29ec772171f3866dfb419fe9197fcda1b4cfaeb14274bc4230d58a68d', '["*"]', '2026-05-17 02:25:38', NULL, '2026-05-17 02:25:38', '2026-05-17 02:25:38');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (7, 'App\Models\User', 1, 'api', 'b37ef12b3dd4d09c32c3921f6dae7ced22ba44a3c031e9f541eeca35dacc07d7', '["*"]', '2026-05-17 02:26:14', NULL, '2026-05-17 02:26:14', '2026-05-17 02:26:14');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (4, 'App\Models\User', 1, 'api', '39c4cf28b6c9b69d486ecf58eb2d51d595b3afd3bf21098e3b251033f6487bda', '["*"]', '2026-05-19 14:36:21', NULL, '2026-05-17 02:01:48', '2026-05-19 14:36:21');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (8, 'App\Models\User', 1, 'api', 'b4b862a6fe00cd9917f765322e3070a89ecbe38f2a085f3a1ac5c50ac040e890', '["*"]', '2026-05-17 02:33:51', NULL, '2026-05-17 02:33:51', '2026-05-17 02:33:51');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (9, 'App\Models\User', 1, 'api', 'c8dc44a8d5a281d707d9a1798012cdcd0c806ae7f2ed42f66721160d0a8ed6c6', '["*"]', '2026-05-17 02:34:14', NULL, '2026-05-17 02:34:14', '2026-05-17 02:34:14');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (51, 'App\Models\User', 7, 'api', '26926b8113d159f0285984df4eb367e06e297cb6e2efc56ec86202eba6360525', '["*"]', '2026-05-25 16:43:26', NULL, '2026-05-25 09:40:10', '2026-05-25 16:43:26');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (11, 'App\Models\User', 1, 'api', '6630fdba3a1ad11685b584c3eb7c63643db76ed9aecacf4df7e4ab817eaaa397', '["*"]', '2026-05-23 05:20:09', NULL, '2026-05-19 14:41:56', '2026-05-23 05:20:09');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (52, 'App\Models\User', 1, 'api', 'cc7a2757d51d6d2e1cf472119a3e349efc7b3b3c6685082cc31500b788b0bb9f', '["*"]', '2026-05-27 08:46:18', NULL, '2026-05-27 03:22:55', '2026-05-27 08:46:18');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (53, 'App\Models\User', 2, 'api', '33be5ac55e2f1039413d7c6894c00642cc6371b772b50ca3556dad5ca0963780', '["*"]', NULL, NULL, '2026-05-30 02:28:32', '2026-05-30 02:28:32');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (54, 'App\Models\User', 2, 'api', '8e4c398501a75080eaeb56aaff20186ec172e786784369ceba1b414dfb4d5d00', '["*"]', NULL, NULL, '2026-05-30 02:28:46', '2026-05-30 02:28:46');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (55, 'App\Models\User', 2, 'api', '8eca6c07b86defc8a51bb0d1aeee83be17f0ddae56802dbb25f22c0f04a9cc62', '["*"]', NULL, NULL, '2026-05-30 02:28:58', '2026-05-30 02:28:58');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (57, 'App\Models\User', 2, 'api', '04a939ad675f371e5d6f9f17d8ba38f09e0e402356313a2e72ced90f366e14a7', '["*"]', NULL, NULL, '2026-05-30 02:30:20', '2026-05-30 02:30:20');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (58, 'App\Models\User', 2, 'api', '29d35b474419c20a226115a2c6528fe119462943f607b0fb294fe843c252901b', '["*"]', NULL, NULL, '2026-05-30 02:30:23', '2026-05-30 02:30:23');
+INSERT INTO public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) VALUES (56, 'App\Models\User', 2, 'api', 'f49fcc6d8383e44f191ae6df6c6ec964369a5ec99d1ef7def4f7c41cf6cccc86', '["*"]', '2026-05-30 13:43:24', NULL, '2026-05-30 02:30:19', '2026-05-30 13:43:24');
+
+
+--
+-- Data for Name: product_questions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.product_questions (id, product_id, questions, ai_generated, ai_model, updated_by, created_at, updated_at) VALUES (1, 4, '[{"id":"c1a2","text":"Can you describe your current data management infrastructure and the main challenges you\u2019re facing with it?","category":"Current State","order":1},{"id":"c2b3","text":"How are you currently handling data consistency and availability across your systems?","category":"Current State","order":2},{"id":"c3c4","text":"What types of data workloads or business processes are putting the most strain on your current systems?","category":"Current State","order":3},{"id":"c4d5","text":"Have you experienced any recent incidents where data unavailability or inconsistency impacted your operations?","category":"Current State","order":4},{"id":"r1e6","text":"What are your top priorities or goals for enhancing your data infrastructure over the next 12-24 months?","category":"Requirements","order":5},{"id":"r2f7","text":"Which applications or processes require the highest level of data reliability and performance in your organization?","category":"Requirements","order":6},{"id":"r3g8","text":"Are there any regulatory or compliance requirements influencing your data management choices?","category":"Requirements","order":7},{"id":"r4h9","text":"What kind of scalability do you expect your data systems to support as your business grows?","category":"Requirements","order":8},{"id":"b1i0","text":"Have you established a budget range for your data infrastructure improvements or database solutions?","category":"Budget & Timeline","order":9},{"id":"b2j1","text":"What would a successful investment in a new database solution look like for your business?","category":"Budget & Timeline","order":10},{"id":"b3k2","text":"Is there a preferred time frame for implementing a new solution, or any key business events driving your timeline?","category":"Budget & Timeline","order":11},{"id":"d1l3","text":"Who are the key stakeholders involved in decisions about your company\u2019s data infrastructure?","category":"Decision Process","order":12},{"id":"d2m4","text":"What does your internal evaluation or procurement process for technology solutions typically involve?","category":"Decision Process","order":13},{"id":"d3n5","text":"What criteria will be most important to your team when selecting a new database solution?","category":"Decision Process","order":14},{"id":"t1o6","text":"What types of database systems are currently in use in your environment (e.g., Oracle, MongoDB, etc.)?","category":"Technical Fit","order":15},{"id":"t2p7","text":"Are there any technical constraints or preferred environments (cloud, on-premise, hybrid) for your data infrastructure?","category":"Technical Fit","order":16},{"id":"t3q8","text":"Can you share any pain points your IT team faces with integrating data across different applications or locations?","category":"Technical Fit","order":17},{"id":"co1r9","text":"What other database solutions or vendors are you currently considering or evaluating?","category":"Competition","order":18}]', true, 'gpt-4.1', 2, '2026-05-20 08:24:54', '2026-05-20 08:24:54');
@@ -7516,14 +8660,14 @@ INSERT INTO public.product_questions (id, product_id, questions, ai_generated, a
 
 
 --
--- Data for Name: qualification_parameter_sets; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_parameter_sets; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.qualification_parameter_sets (id, name, slug, version, status, description, created_by, updated_by, created_at, updated_at, deleted_at, tenant_id) VALUES (1, 'Enterprise Qualification Default', 'enterprise-qualification-default', 'enterprise-qualification-v1', 'active', 'Default policy seeded from the SSOT enterprise qualification framework.', NULL, NULL, '2026-04-20 14:06:25', '2026-04-20 14:06:25', NULL, 1);
 
 
 --
--- Data for Name: qualification_parameters; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_parameters; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.qualification_parameters (id, parameter_set_id, dimension, parameter_key, label, input_type, max_points, sort_order, is_required, hard_stop_operator, hard_stop_value, metadata, created_at, updated_at) VALUES (1, 1, 'firmographic', 'target_industry_fit', 'Target Industry Fit', 'enum', 15, 1, true, 'equals', '{"value":"low"}', NULL, '2026-04-20 14:06:25', '2026-04-20 14:06:25');
@@ -7544,7 +8688,7 @@ INSERT INTO public.qualification_parameters (id, parameter_set_id, dimension, pa
 
 
 --
--- Data for Name: qualification_parameter_options; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_parameter_options; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.qualification_parameter_options (id, parameter_id, option_value, label, score, sort_order, is_active, metadata, created_at, updated_at) VALUES (1, 1, 'high', 'High', 15, 1, true, NULL, '2026-04-20 14:06:25', '2026-04-20 14:06:25');
@@ -7604,14 +8748,14 @@ INSERT INTO public.qualification_parameter_options (id, parameter_id, option_val
 
 
 --
--- Data for Name: qualification_workflows; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_workflows; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.qualification_workflows (id, name, slug, trigger_status, requires_approval, override_enabled, sla_hours, is_active, created_by, updated_by, created_at, updated_at, deleted_at, tenant_id) VALUES (1, 'Need Review Gate', 'need-review-gate', 'need_review', true, true, 24, true, NULL, NULL, '2026-04-20 14:06:25', '2026-04-20 14:06:25', NULL, 1);
 
 
 --
--- Data for Name: qualification_workflow_reviews; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_workflow_reviews; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.qualification_workflow_reviews (id, workflow_id, lead_id, lead_qualification_id, status, current_stage_code, recommended_status, final_status, requested_by, reviewed_by, justification, override_reason, review_payload, due_at, reviewed_at, created_at, updated_at, tenant_id, decision, decision_reason, original_score, score_override, decisioned_at) VALUES (1, 1, 3, NULL, 'approved', 'triage', 'pending', 'pending', 1, 1, 'Manual verification requested from lead detail.', 'Continue', '{"lead_score":null,"qualification_status":"pending","ai_explanation":null,"current_funnel_stage_id":1,"current_funnel_stage":"New Lead","latest_qualification":null}', '2026-04-21 14:47:56', '2026-04-20 14:49:40', '2026-04-20 14:47:56', '2026-04-20 14:49:40', 1, 'approve', 'Continue', NULL, 80, '2026-04-20 14:49:40');
@@ -7635,7 +8779,7 @@ INSERT INTO public.qualification_workflow_reviews (id, workflow_id, lead_id, lea
 
 
 --
--- Data for Name: qualification_workflow_stages; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_workflow_stages; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.qualification_workflow_stages (id, workflow_id, code, label, sequence, assigned_role, decision_type, is_required, metadata, created_at, updated_at) VALUES (1, 1, 'triage', 'RevOps Triage', 1, 'sales_manager', 'review', true, NULL, '2026-04-20 14:06:25', '2026-04-20 14:06:25');
@@ -7643,19 +8787,19 @@ INSERT INTO public.qualification_workflow_stages (id, workflow_id, code, label, 
 
 
 --
--- Data for Name: record_origin_mappings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: record_origin_mappings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: revenue_rules; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: revenue_rules; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: role_permission; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: role_permission; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.role_permission (id, role_id, permission_id) VALUES (1, 1, 1);
@@ -7709,51 +8853,57 @@ INSERT INTO public.role_permission (id, role_id, permission_id) VALUES (48, 6, 1
 
 
 --
--- Data for Name: sales_visits; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sales_visits; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: sales_visit_media; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sales_visit_media; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: whatsapp_contacts; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+
+
+--
+-- Data for Name: whatsapp_contacts; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.whatsapp_contacts (id, name, phone_number, normalized_phone_number, linked_lead_id, is_relevant, relevance_reason, created_at, updated_at) VALUES (1, NULL, '6287884701947@s.whatsapp.net', '6287884701947', NULL, true, 'outbound_message', '2026-05-19 15:02:51', '2026-05-19 15:02:51');
 
 
 --
--- Data for Name: whatsapp_conversations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_conversations; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.whatsapp_conversations (id, contact_id, external_chat_id, sync_status, relevance_status, approved_for_sync, last_message_at, created_at, updated_at) VALUES (1, 1, '6287884701947@s.whatsapp.net', 'active', 'high', true, '2026-05-19 15:02:51', '2026-05-19 15:02:51', '2026-05-19 15:02:51');
 
 
 --
--- Data for Name: whatsapp_ai_analyses; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_ai_analyses; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: whatsapp_campaigns; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_campaigns; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: whatsapp_campaign_recipients; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_campaign_recipients; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 
 
 --
--- Data for Name: whatsapp_messages; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_messages; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 INSERT INTO public.whatsapp_messages (id, conversation_id, external_message_id, direction, message_type, body, reply_to_external_message_id, provider_payload_json, relevance_flag, sent_at, received_at, created_at, updated_at) VALUES (1, 1, '3EB062D7C94A1F6037FD2E', 'outbound', 'text', 'Selamat Siang Pak Kodrat Santoso, 
@@ -7762,629 +8912,629 @@ Terimakasih sudah menghubungi Prasetia, saya dengan Santoso apa yang bisa dibant
 
 
 --
--- Data for Name: whatsapp_sessions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_sessions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
-INSERT INTO public.whatsapp_sessions (id, session_name, status, qr_payload, last_qr_generated_at, connected_at, disconnected_at, metadata_json, created_at, updated_at) VALUES (1, 'leads_platform_session', 'disconnected', NULL, '2026-05-19 15:01:56', '2026-05-19 15:02:02', '2026-05-25 16:43:26', '{"number":"6287884701947:45@s.whatsapp.net"}', '2026-04-20 14:37:18', '2026-05-25 16:43:26');
-
-
---
--- Data for Name: whatsapp_sync_rules; Type: TABLE DATA; Schema: public; Owner: -
---
-
+INSERT INTO public.whatsapp_sessions (id, session_name, status, qr_payload, last_qr_generated_at, connected_at, disconnected_at, metadata_json, created_at, updated_at) VALUES (1, 'leads_platform_session', 'disconnected', NULL, '2026-05-19 15:01:56', '2026-05-19 15:02:02', '2026-05-30 13:42:37', '{"number":"6287884701947:45@s.whatsapp.net"}', '2026-04-20 14:37:18', '2026-05-30 13:42:37');
 
 
 --
--- Name: ai_connection_tests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Data for Name: whatsapp_sync_rules; Type: TABLE DATA; Schema: public; Owner: leads
+--
+
+
+
+--
+-- Name: ai_connection_tests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_connection_tests_id_seq', 16, true);
 
 
 --
--- Name: ai_feature_routes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_feature_routes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
-SELECT pg_catalog.setval('public.ai_feature_routes_id_seq', 126, true);
+SELECT pg_catalog.setval('public.ai_feature_routes_id_seq', 132, true);
 
 
 --
--- Name: ai_model_routes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_model_routes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_model_routes_id_seq', 1, false);
 
 
 --
--- Name: ai_models_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_models_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_models_id_seq', 33, true);
 
 
 --
--- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_prompt_template_versions_id_seq', 36, true);
 
 
 --
--- Name: ai_prompt_templates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_prompt_templates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_prompt_templates_id_seq', 20, true);
 
 
 --
--- Name: ai_providers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_providers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_providers_id_seq', 3, true);
 
 
 --
--- Name: ai_requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
-SELECT pg_catalog.setval('public.ai_requests_id_seq', 242, true);
+SELECT pg_catalog.setval('public.ai_requests_id_seq', 243, true);
 
 
 --
--- Name: audit_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: audit_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.audit_logs_id_seq', 1050, true);
 
 
 --
--- Name: contact_enrichment_candidates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.contact_enrichment_candidates_id_seq', 1, true);
 
 
 --
--- Name: contact_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: contact_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.contact_sources_id_seq', 7, true);
 
 
 --
--- Name: currencies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: currencies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.currencies_id_seq', 154, true);
 
 
 --
--- Name: currency_settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: currency_settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.currency_settings_id_seq', 2, true);
 
 
 --
--- Name: discovery_categories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: discovery_categories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.discovery_categories_id_seq', 14, true);
 
 
 --
--- Name: email_verification_otps_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: email_verification_otps_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.email_verification_otps_id_seq', 3, true);
 
 
 --
--- Name: failed_jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: failed_jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.failed_jobs_id_seq', 1, false);
 
 
 --
--- Name: funnel_stages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: funnel_stages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.funnel_stages_id_seq', 12, true);
 
 
 --
--- Name: geo_product_fit_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.geo_product_fit_analyses_id_seq', 326, true);
 
 
 --
--- Name: icp_profiles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: icp_profiles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.icp_profiles_id_seq', 3, true);
 
 
 --
--- Name: industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.industries_id_seq', 18, true);
 
 
 --
--- Name: integration_configs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_configs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_configs_id_seq', 93, true);
 
 
 --
--- Name: integration_connections_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_connections_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_connections_id_seq', 1, false);
 
 
 --
--- Name: integration_credential_stores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_credential_stores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_credential_stores_id_seq', 1, false);
 
 
 --
--- Name: integration_entity_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_entity_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_entity_mappings_id_seq', 1, false);
 
 
 --
--- Name: integration_webhook_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_webhook_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_webhook_events_id_seq', 1, false);
 
 
 --
--- Name: jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.jobs_id_seq', 1, false);
 
 
 --
--- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_base_record_mappings_id_seq', 81, true);
 
 
 --
--- Name: lark_base_tables_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_base_tables_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_base_tables_id_seq', 1, true);
 
 
 --
--- Name: lark_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_events_id_seq', 1, false);
 
 
 --
--- Name: lark_integrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_integrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_integrations_id_seq', 1, true);
 
 
 --
--- Name: lark_sso_users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_sso_users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_sso_users_id_seq', 1, true);
 
 
 --
--- Name: lark_syncs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_syncs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_syncs_id_seq', 1, false);
 
 
 --
--- Name: lead_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_activities_id_seq', 1467, true);
 
 
 --
--- Name: lead_ai_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_ai_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_ai_analyses_id_seq', 1, false);
 
 
 --
--- Name: lead_ai_evaluations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_ai_evaluations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_ai_evaluations_id_seq', 2, true);
 
 
 --
--- Name: lead_analysis_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_analysis_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_analysis_logs_id_seq', 53, true);
 
 
 --
--- Name: lead_bantc_question_guides_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_bantc_question_guides_id_seq', 1, true);
 
 
 --
--- Name: lead_channel_types_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_channel_types_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_channel_types_id_seq', 25, true);
 
 
 --
--- Name: lead_contact_payloads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_contact_payloads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_contact_payloads_id_seq', 1, false);
 
 
 --
--- Name: lead_contacts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_contacts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_contacts_id_seq', 86, true);
 
 
 --
--- Name: lead_conversion_predictions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_conversion_predictions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_conversion_predictions_id_seq', 10, true);
 
 
 --
--- Name: lead_follow_ups_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_follow_ups_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_follow_ups_id_seq', 1, false);
 
 
 --
--- Name: lead_funnel_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_funnel_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_funnel_history_id_seq', 856, true);
 
 
 --
--- Name: lead_icp_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_icp_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_icp_config_id_seq', 2, true);
 
 
 --
--- Name: lead_icp_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_icp_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_icp_matches_id_seq', 62, true);
 
 
 --
--- Name: lead_meetings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_meetings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_meetings_id_seq', 76, true);
 
 
 --
--- Name: lead_outcomes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_outcomes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_outcomes_id_seq', 10, true);
 
 
 --
--- Name: lead_prescriptions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_prescriptions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_prescriptions_id_seq', 7, true);
 
 
 --
--- Name: lead_product_match_runs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_product_match_runs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_product_match_runs_id_seq', 7, true);
 
 
 --
--- Name: lead_product_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_product_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_product_matches_id_seq', 120, true);
 
 
 --
--- Name: lead_qualifications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_qualifications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_qualifications_id_seq', 75, true);
 
 
 --
--- Name: lead_revenue_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_revenue_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_revenue_analyses_id_seq', 16, true);
 
 
 --
--- Name: lead_score_breakdowns_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_score_breakdowns_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_score_breakdowns_id_seq', 364, true);
 
 
 --
--- Name: lead_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_scores_id_seq', 104, true);
 
 
 --
--- Name: lead_source_types_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_source_types_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_source_types_id_seq', 9, true);
 
 
 --
--- Name: lead_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_sources_id_seq', 81, true);
 
 
 --
--- Name: lead_transcripts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_transcripts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_transcripts_id_seq', 5, true);
 
 
 --
--- Name: leads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: leads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.leads_id_seq', 139, true);
 
 
 --
--- Name: map_search_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: map_search_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.map_search_history_id_seq', 19, true);
 
 
 --
--- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 68, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 70, true);
 
 
 --
--- Name: permissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: permissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.permissions_id_seq', 14, true);
 
 
 --
--- Name: personal_access_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: personal_access_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.personal_access_tokens_id_seq', 58, true);
 
 
 --
--- Name: product_questions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: product_questions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.product_questions_id_seq', 3, true);
 
 
 --
--- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.products_id_seq', 24, true);
 
 
 --
--- Name: qualification_parameter_options_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_parameter_options_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_parameter_options_id_seq', 54, true);
 
 
 --
--- Name: qualification_parameter_sets_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_parameter_sets_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_parameter_sets_id_seq', 1, true);
 
 
 --
--- Name: qualification_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_parameters_id_seq', 15, true);
 
 
 --
--- Name: qualification_workflow_reviews_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_workflow_reviews_id_seq', 18, true);
 
 
 --
--- Name: qualification_workflow_stages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_workflow_stages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_workflow_stages_id_seq', 2, true);
 
 
 --
--- Name: qualification_workflows_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_workflows_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_workflows_id_seq', 1, true);
 
 
 --
--- Name: record_origin_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: record_origin_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.record_origin_mappings_id_seq', 1, false);
 
 
 --
--- Name: revenue_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: revenue_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.revenue_rules_id_seq', 1, false);
 
 
 --
--- Name: role_permission_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: role_permission_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.role_permission_id_seq', 48, true);
 
 
 --
--- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.roles_id_seq', 6, true);
 
 
 --
--- Name: sales_visit_media_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: sales_visit_media_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.sales_visit_media_id_seq', 1, false);
 
 
 --
--- Name: sales_visits_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: sales_visits_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.sales_visits_id_seq', 1, false);
 
 
 --
--- Name: sub_industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: sub_industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.sub_industries_id_seq', 72, true);
 
 
 --
--- Name: tenants_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: tenants_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.tenants_id_seq', 1, true);
 
 
 --
--- Name: territories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: territories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.territories_id_seq', 1, true);
 
 
 --
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.users_id_seq', 7, true);
 
 
 --
--- Name: whatsapp_ai_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_ai_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_ai_analyses_id_seq', 1, false);
 
 
 --
--- Name: whatsapp_campaign_recipients_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_campaign_recipients_id_seq', 1, false);
 
 
 --
--- Name: whatsapp_campaigns_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_campaigns_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_campaigns_id_seq', 1, false);
 
 
 --
--- Name: whatsapp_contacts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_contacts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_contacts_id_seq', 1, true);
 
 
 --
--- Name: whatsapp_conversations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_conversations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_conversations_id_seq', 1, true);
 
 
 --
--- Name: whatsapp_messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_messages_id_seq', 1, true);
 
 
 --
--- Name: whatsapp_sessions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_sessions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_sessions_id_seq', 1, true);
 
 
 --
--- Name: whatsapp_sync_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_sync_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_sync_rules_id_seq', 1, false);
@@ -8394,5 +9544,5 @@ SELECT pg_catalog.setval('public.whatsapp_sync_rules_id_seq', 1, false);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict VdRBUXvCaMsDHYEzHeRxdigjX6mvCdTYbRKZDeSVIBYwSno4P9qJIctY6YU5xn5
+\unrestrict tUC3mBOLHA52OeQRLUWfN2qMGihV36FFYVdx9EI0xGrCQ0RiHguExthiwgbj3LF
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import Link from "next/link";
@@ -134,6 +134,127 @@ function hrefWithParam(href: string, key: string, value: string): string {
   return `${url.pathname}${url.search}`;
 }
 
+function CountdownWidget() {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth(); // 0-indexed
+      let endMonth;
+      
+      if (month >= 0 && month <= 2) {
+        endMonth = 2; // March
+      } else if (month >= 3 && month <= 5) {
+        endMonth = 5; // June
+      } else if (month >= 6 && month <= 8) {
+        endMonth = 8; // September
+      } else {
+        endMonth = 11; // December
+      }
+      
+      const endOfQuarter = new Date(year, endMonth + 1, 0, 23, 59, 59, 999);
+      const diff = endOfQuarter.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+      }
+      
+      return {
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      };
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatNum = (n: number) => String(n).padStart(2, "0");
+  const quarterNum = Math.floor(new Date().getMonth() / 3) + 1;
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_5%,transparent)] px-3 py-1.5 backdrop-blur-sm shadow-sm">
+      <Clock className="h-4 w-4 text-[color:var(--brand)] animate-pulse" />
+      <span className="text-xs font-semibold text-muted-foreground mr-1">Q{quarterNum} Ends:</span>
+      <div className="flex items-center gap-1 font-mono text-xs font-bold text-[color:var(--brand)]">
+        <span>{formatNum(timeLeft.days)}</span>
+        <span className="text-muted-foreground font-sans font-medium text-[10px]">d</span>
+        <span className="text-muted-foreground/50">:</span>
+        <span>{formatNum(timeLeft.hours)}</span>
+        <span className="text-muted-foreground font-sans font-medium text-[10px]">h</span>
+        <span className="text-muted-foreground/50">:</span>
+        <span>{formatNum(timeLeft.minutes)}</span>
+        <span className="text-muted-foreground font-sans font-medium text-[10px]">m</span>
+        <span className="text-muted-foreground/50">:</span>
+        <span className="text-rose-500">{formatNum(timeLeft.seconds)}</span>
+        <span className="text-muted-foreground font-sans font-medium text-[10px]">s</span>
+      </div>
+    </div>
+  );
+}
+
+function MapMarkersAndInfo({
+  mapPoints,
+  selectedMapPoint,
+  setSelectedMapPoint
+}: {
+  mapPoints: DashboardMapPoint[];
+  selectedMapPoint: DashboardMapPoint | null;
+  setSelectedMapPoint: (point: DashboardMapPoint | null) => void;
+}) {
+  const apiIsLoaded = useApiIsLoaded();
+  if (!apiIsLoaded) return null;
+
+  return (
+    <>
+      {mapPoints.map((point) => (
+        <AdvancedMarker
+          key={point.id}
+          position={{ lat: Number(point.lat), lng: Number(point.lng) }}
+          onClick={() => setSelectedMapPoint(point)}
+        >
+          <div className="flex flex-col items-center">
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background text-white shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer animate-fade-in"
+              style={{ backgroundColor: resolveStageColor(point.funnel_stage?.color) }}
+            >
+              <MapPin className="h-4 w-4" />
+            </div>
+          </div>
+        </AdvancedMarker>
+      ))}
+      {selectedMapPoint ? (
+        <InfoWindow
+          position={{ lat: Number(selectedMapPoint.lat), lng: Number(selectedMapPoint.lng) }}
+          onCloseClick={() => setSelectedMapPoint(null)}
+        >
+          <div className="min-w-48 space-y-2 text-sm text-foreground p-1">
+            <p className="font-semibold">{selectedMapPoint.company_name}</p>
+            <p className="text-xs text-muted-foreground">{selectedMapPoint.address || "No address"}</p>
+            <div className="flex items-center justify-between gap-2 border-t border-border pt-1.5 mt-1 text-xs">
+              <span className="font-medium flex items-center gap-1.5" style={{ color: resolveStageColor(selectedMapPoint.funnel_stage?.color) }}>
+                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: resolveStageColor(selectedMapPoint.funnel_stage?.color) }} />
+                {selectedMapPoint.funnel_stage?.name ?? "Unassigned"}
+              </span>
+              <span className="text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                Score {selectedMapPoint.lead_score ?? "—"}
+              </span>
+            </div>
+          </div>
+        </InfoWindow>
+      ) : null}
+    </>
+  );
+}
+
 export default function DashboardPage() {
   const { formatNumber, formatCurrency } = useNumberFormat();
   const [mapsApiKey, setMapsApiKey] = useState("");
@@ -216,9 +337,11 @@ export default function DashboardPage() {
       });
   }, []);
 
+  const [period, setPeriod] = useState("month");
+
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: async () => { const r = await apiFetch("/dashboard"); return r.json(); },
+    queryKey: ["dashboard", period],
+    queryFn: async () => { const r = await apiFetch(`/dashboard?period=${period}`); return r.json(); },
   });
 
   const { data: pqData } = useQuery({
@@ -259,6 +382,7 @@ export default function DashboardPage() {
       change: dashboard.leads_change ?? null,
       color: "from-[var(--brand)] to-[oklch(0.558_0.288_302.321)]",
       href: "/leads",
+      trend: dashboard.metrics_trends?.total_leads ?? [],
     },
     {
       label: "Qualified",
@@ -267,23 +391,57 @@ export default function DashboardPage() {
       change: dashboard.qualified_change ?? null,
       color: "from-[var(--status-success)] to-[oklch(0.627_0.194_149)]",
       href: "/leads?qualification_status=eligible",
+      trend: dashboard.metrics_trends?.qualified_leads ?? [],
     },
     {
       label: "In Pipeline",
       value: dashboard.pipeline_leads ?? dashboard.total_leads ?? "—",
       icon: TrendingUp,
-      change: null,
+      change: dashboard.pipeline_change ?? null,
       color: "from-[var(--status-info)] to-[oklch(0.527_0.183_249)]",
       href: "/leads?pipeline_status=active",
+      trend: dashboard.metrics_trends?.pipeline_leads ?? [],
     },
     {
       label: "Duplicate Rate",
       value: dashboard.duplicate_rate ?? (dashboard.duplicate_ratio != null ? `${dashboard.duplicate_ratio}%` : "—"),
       icon: AlertTriangle,
-      change: null,
+      change: dashboard.duplicate_change ?? null,
       color: "from-[var(--status-warning)] to-[oklch(0.65_0.22_50)]",
       href: "/leads?duplicate_status=duplicates",
+      trend: dashboard.metrics_trends?.duplicate_rate ?? [],
     },
+  ];
+
+  const statusStats = [
+    {
+      label: "Pending",
+      value: dashboard.by_status?.pending ?? 0,
+      color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+      icon: RefreshCw,
+      href: "/leads?qualification_status=pending"
+    },
+    {
+      label: "Potential",
+      value: dashboard.by_status?.potential ?? 0,
+      color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+      icon: Activity,
+      href: "/leads?qualification_status=potential"
+    },
+    {
+      label: "Eligible",
+      value: dashboard.by_status?.eligible ?? 0,
+      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+      icon: CheckCircle2,
+      href: "/leads?qualification_status=eligible"
+    },
+    {
+      label: "Not Eligible",
+      value: dashboard.by_status?.not_eligible ?? 0,
+      color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+      icon: AlertTriangle,
+      href: "/leads?qualification_status=not_eligible"
+    }
   ];
 
   const recentLeads = dashboard.recent_leads || [];
@@ -476,22 +634,31 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Overview of your lead intelligence pipeline</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => {
-              setAiModalOpen(true);
-              fetchAiInsight(false);
-            }}
-            className="flex items-center gap-2 bg-[color:var(--brand)] text-white hover:bg-[color:var(--brand)]/90 cursor-pointer shadow-lg shadow-[color:var(--brand)]/20 transition-all hover:scale-105"
-          >
-            <BrainCircuit className="h-4 w-4" />
-            <span>AI Insight</span>
-          </Button>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <CountdownWidget />
+
+          <div className="flex items-center rounded-lg border border-border bg-background/50 p-1 backdrop-blur-sm shadow-sm">
+            {["week", "biweekly", "month", "quarter", "year"].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize ${
+                  period === p
+                    ? "bg-[color:var(--brand)] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {p === "biweekly" ? "Biweekly" : p}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -500,17 +667,17 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-          {/* Stat cards — each opens an in-dashboard filtered drilldown */}
-          <div className="md:col-span-12" data-tour="dashboard-kpis">
-            <Card className="h-full">
+          {/* Key Metrics — each opens an in-dashboard filtered drilldown */}
+          <div className="md:col-span-8" data-tour="dashboard-kpis">
+            <Card className="h-full flex flex-col justify-between">
               <CardHeader>
                 <div>
                   <CardTitle>Key Metrics</CardTitle>
-                  <CardDescription>Core lead indicators with drilldown shortcuts.</CardDescription>
+                  <CardDescription>Core lead indicators with historical trends.</CardDescription>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <CardContent className="flex-1 flex flex-col justify-center">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {stats.map((s) => (
                     <button
                       key={s.label}
@@ -520,9 +687,9 @@ export default function DashboardPage() {
                         description: `${s.label} leads filtered from the dashboard metric.`,
                         href: s.href,
                       })}
-                      className="group relative block overflow-hidden rounded-xl border border-border bg-background p-4 text-left transition-all hover:border-[var(--brand)]/40"
+                      className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-background p-4 text-left transition-all hover:border-[var(--brand)]/40 shadow-sm"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex w-full items-start justify-between">
                         <div>
                           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
                           <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? formatNumber(s.value, { decimals: 0 }) : s.value}</p>
@@ -531,6 +698,85 @@ export default function DashboardPage() {
                           <s.icon className="h-5 w-5 text-white" />
                         </div>
                       </div>
+
+                      {/* Sparkline & Deltas */}
+                      <div className="mt-4 flex w-full items-center justify-between gap-4">
+                        <div className="text-xs font-semibold">
+                          {s.change ? (
+                            <span className={s.change.startsWith("+") ? "text-emerald-500" : s.change.startsWith("-") ? "text-rose-500" : "text-muted-foreground"}>
+                              {s.change}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </div>
+                        {s.trend && s.trend.length > 0 ? (
+                          <div className="h-10 w-24">
+                            <Chart
+                              type="area"
+                              options={{
+                                chart: {
+                                  sparkline: { enabled: true },
+                                  animations: { enabled: true }
+                                },
+                                stroke: { curve: "smooth", width: 1.5 },
+                                fill: {
+                                  type: "gradient",
+                                  gradient: {
+                                    shadeIntensity: 1,
+                                    opacityFrom: 0.35,
+                                    opacityTo: 0.05
+                                  }
+                                },
+                                colors: [s.change?.startsWith("-") ? "#ef4444" : "#10b981"],
+                                tooltip: { enabled: false }
+                              }}
+                              series={[{ data: s.trend }]}
+                              height={40}
+                              width={96}
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Qualification Status */}
+          <div className="md:col-span-4" data-tour="dashboard-qualification">
+            <Card className="h-full">
+              <CardHeader>
+                <div>
+                  <CardTitle>Qualification Status</CardTitle>
+                  <CardDescription>Pipeline distribution by validation status.</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  {statusStats.map((status) => (
+                    <button
+                      key={status.label}
+                      type="button"
+                      onClick={() => openDrilldown({
+                        title: `${status.label} Leads`,
+                        description: `Leads with qualification status: ${status.label.toLowerCase()}.`,
+                        href: status.href,
+                      })}
+                      className="group relative flex items-center justify-between rounded-xl border border-border bg-background p-3 text-left transition-all hover:border-[var(--brand)]/40 hover:bg-muted/10"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-9 w-9 items-center justify-center rounded-lg border ${status.color}`}>
+                          <status.icon className="h-4.5 w-4.5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{status.label}</p>
+                          <p className="text-xs text-muted-foreground">Click to view leads</p>
+                        </div>
+                      </div>
+                      <p className="text-xl font-bold">{formatNumber(status.value, { decimals: 0 })}</p>
                     </button>
                   ))}
                 </div>
@@ -901,7 +1147,7 @@ export default function DashboardPage() {
                           options={{
                             chart: {
                               type: "radialBar",
-                              height: 180,
+                              height: 320,
                               sparkline: { enabled: true }
                             },
                             plotOptions: {
@@ -914,10 +1160,15 @@ export default function DashboardPage() {
                                   strokeWidth: '97%',
                                 },
                                 dataLabels: {
-                                  name: { show: false },
+                                  name: {
+                                    show: true,
+                                    fontSize: "14px",
+                                    color: colors.mutedForeground,
+                                    offsetY: 45
+                                  },
                                   value: {
-                                    offsetY: -5,
-                                    fontSize: "24px",
+                                    offsetY: -10,
+                                    fontSize: "36px",
                                     fontWeight: "bold",
                                     color: getCSSVar("--foreground", "#000")
                                   }
@@ -930,7 +1181,7 @@ export default function DashboardPage() {
                             labels: ["Avg Score"]
                           }}
                           series={[pq.average_score ?? 0]}
-                          height={180}
+                          height={320}
                         />
                       </div>
                     </div>
@@ -947,7 +1198,7 @@ export default function DashboardPage() {
                             chart: {
                               type: 'pie',
                               backgroundColor: 'transparent',
-                              height: 180,
+                              height: 320,
                               style: {
                                 fontFamily: 'var(--font-sans)'
                               }
@@ -960,11 +1211,11 @@ export default function DashboardPage() {
                                 cursor: 'pointer',
                                 dataLabels: {
                                   enabled: true,
-                                  format: '<b>{point.name}</b>: {point.percentage:.0f}%',
+                                  format: '<b>{point.name}</b><br>{point.percentage:.0f}%',
                                   style: {
                                     color: colors.mutedForeground,
                                     textOutline: 'none',
-                                    fontSize: '10px'
+                                    fontSize: '12px'
                                   }
                                 }
                               }
@@ -1034,37 +1285,11 @@ export default function DashboardPage() {
                       gestureHandling="greedy"
                       disableDefaultUI={false}
                     >
-                      {apiIsLoaded && mapPoints.map((point) => (
-                        <AdvancedMarker
-                          key={point.id}
-                          position={{ lat: Number(point.lat), lng: Number(point.lng) }}
-                          onClick={() => setSelectedMapPoint(point)}
-                        >
-                          <div className="flex flex-col items-center">
-                            <div
-                              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background text-white shadow-lg"
-                              style={{ backgroundColor: resolveStageColor(point.funnel_stage?.color) }}
-                            >
-                              <MapPin className="h-4 w-4" />
-                            </div>
-                          </div>
-                        </AdvancedMarker>
-                      ))}
-                      {apiIsLoaded && selectedMapPoint ? (
-                        <InfoWindow
-                          position={{ lat: Number(selectedMapPoint.lat), lng: Number(selectedMapPoint.lng) }}
-                          onCloseClick={() => setSelectedMapPoint(null)}
-                        >
-                          <div className="min-w-48 space-y-2 text-sm text-foreground">
-                            <p className="font-semibold">{selectedMapPoint.company_name}</p>
-                            <p className="text-xs text-muted-foreground">{selectedMapPoint.address || "No address"}</p>
-                            <div className="flex items-center gap-2">
-                              <span>{selectedMapPoint.funnel_stage?.name ?? "Unassigned"}</span>
-                              <span>Score {selectedMapPoint.lead_score ?? "—"}</span>
-                            </div>
-                          </div>
-                        </InfoWindow>
-                      ) : null}
+                      <MapMarkersAndInfo
+                        mapPoints={mapPoints}
+                        selectedMapPoint={selectedMapPoint}
+                        setSelectedMapPoint={setSelectedMapPoint}
+                      />
                     </Map>
                   </APIProvider>
                 ) : (

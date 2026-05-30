@@ -32,19 +32,137 @@ class DashboardController extends Controller
             ? round($duplicateCount / $totalLeads * 100, 1).'%'
             : '0%';
 
-        // Month-over-month deltas
+        // Period-over-period deltas based on request
+        $period = $request->query('period', 'month');
         $now = now();
-        $thisStart = $now->copy()->startOfMonth();
-        $thisEnd = $now->copy()->endOfMonth();
-        $lastStart = $now->copy()->subMonth()->startOfMonth();
-        $lastEnd = $now->copy()->subMonth()->endOfMonth();
 
-        $thisMonthLeads = (clone $leadQuery)->whereBetween('created_at', [$thisStart, $thisEnd])->count();
-        $lastMonthLeads = (clone $leadQuery)->whereBetween('created_at', [$lastStart, $lastEnd])->count();
-        $thisMonthQualified = (clone $leadQuery)->where('qualification_status', 'eligible')
+        switch ($period) {
+            case 'week':
+                $thisStart = $now->copy()->startOfWeek();
+                $thisEnd = $now->copy()->endOfWeek();
+                $lastStart = $now->copy()->subWeek()->startOfWeek();
+                $lastEnd = $now->copy()->subWeek()->endOfWeek();
+                break;
+            case 'biweekly':
+                $thisStart = $now->copy()->subDays(14)->startOfDay();
+                $thisEnd = $now->copy()->endOfDay();
+                $lastStart = $now->copy()->subDays(28)->startOfDay();
+                $lastEnd = $now->copy()->subDays(14)->endOfDay();
+                break;
+            case 'quarter':
+                $thisStart = $now->copy()->startOfQuarter();
+                $thisEnd = $now->copy()->endOfQuarter();
+                $lastStart = $now->copy()->subQuarter()->startOfQuarter();
+                $lastEnd = $now->copy()->subQuarter()->endOfQuarter();
+                break;
+            case 'year':
+                $thisStart = $now->copy()->startOfYear();
+                $thisEnd = $now->copy()->endOfYear();
+                $lastStart = $now->copy()->subYear()->startOfYear();
+                $lastEnd = $now->copy()->subYear()->endOfYear();
+                break;
+            case 'month':
+            default:
+                $thisStart = $now->copy()->startOfMonth();
+                $thisEnd = $now->copy()->endOfMonth();
+                $lastStart = $now->copy()->subMonth()->startOfMonth();
+                $lastEnd = $now->copy()->subMonth()->endOfMonth();
+                break;
+        }
+
+        $thisPeriodLeads = (clone $leadQuery)->whereBetween('created_at', [$thisStart, $thisEnd])->count();
+        $lastPeriodLeads = (clone $leadQuery)->whereBetween('created_at', [$lastStart, $lastEnd])->count();
+        
+        $thisPeriodQualified = (clone $leadQuery)->where('qualification_status', 'eligible')
             ->whereBetween('created_at', [$thisStart, $thisEnd])->count();
-        $lastMonthQualified = (clone $leadQuery)->where('qualification_status', 'eligible')
+        $lastPeriodQualified = (clone $leadQuery)->where('qualification_status', 'eligible')
             ->whereBetween('created_at', [$lastStart, $lastEnd])->count();
+
+        $thisPeriodPipeline = (clone $leadQuery)->whereHas('funnelStage', function ($q) {
+            $q->whereNotIn('name', ['Won', 'Lost']);
+        })->whereBetween('created_at', [$thisStart, $thisEnd])->count();
+        $lastPeriodPipeline = (clone $leadQuery)->whereHas('funnelStage', function ($q) {
+            $q->whereNotIn('name', ['Won', 'Lost']);
+        })->whereBetween('created_at', [$lastStart, $lastEnd])->count();
+
+        $thisPeriodDuplicate = (clone $leadQuery)->where('duplicate_status', '!=', 'new')
+            ->whereBetween('created_at', [$thisStart, $thisEnd])->count();
+        $lastPeriodDuplicate = (clone $leadQuery)->where('duplicate_status', '!=', 'new')
+            ->whereBetween('created_at', [$lastStart, $lastEnd])->count();
+
+        // Build 6-period historical trend metrics
+        $intervals = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = $now->copy();
+            switch ($period) {
+                case 'week':
+                    $date->subWeeks($i);
+                    $start = $date->copy()->startOfWeek();
+                    $end = $date->copy()->endOfWeek();
+                    $label = 'W' . $date->format('W');
+                    break;
+                case 'biweekly':
+                    $date->subDays($i * 14);
+                    $start = $date->copy()->subDays(14)->startOfDay();
+                    $end = $date->copy()->endOfDay();
+                    $label = $start->format('d/m') . '-' . $end->format('d/m');
+                    break;
+                case 'quarter':
+                    $date->subQuarters($i);
+                    $start = $date->copy()->startOfQuarter();
+                    $end = $date->copy()->endOfQuarter();
+                    $label = 'Q' . ceil($date->month / 3) . ' ' . $date->year;
+                    break;
+                case 'year':
+                    $date->subYears($i);
+                    $start = $date->copy()->startOfYear();
+                    $end = $date->copy()->endOfYear();
+                    $label = $date->format('Y');
+                    break;
+                case 'month':
+                default:
+                    $date->subMonths($i);
+                    $start = $date->copy()->startOfMonth();
+                    $end = $date->copy()->endOfMonth();
+                    $label = $date->format('M Y');
+                    break;
+            }
+            $intervals[] = [
+                'label' => $label,
+                'start' => $start,
+                'end' => $end,
+            ];
+        }
+
+        $trendData = [];
+        foreach ($intervals as $interval) {
+            $q = (clone $leadQuery)->whereBetween('created_at', [$interval['start'], $interval['end']]);
+            $tot = (clone $q)->count();
+            $qual = (clone $q)->where('qualification_status', 'eligible')->count();
+            
+            $pipe = (clone $q)->whereHas('funnelStage', function ($fsQ) {
+                $fsQ->whereNotIn('name', ['Won', 'Lost']);
+            })->count();
+            
+            $dup = (clone $q)->where('duplicate_status', '!=', 'new')->count();
+            $dupRate = $tot > 0 ? round(($dup / $tot) * 100, 1) : 0;
+            
+            $trendData[] = [
+                'label' => $interval['label'],
+                'total_leads' => $tot,
+                'qualified_leads' => $qual,
+                'pipeline_leads' => $pipe,
+                'duplicate_rate' => $dupRate,
+            ];
+        }
+
+        $metricsTrends = [
+            'labels' => array_column($trendData, 'label'),
+            'total_leads' => array_column($trendData, 'total_leads'),
+            'qualified_leads' => array_column($trendData, 'qualified_leads'),
+            'pipeline_leads' => array_column($trendData, 'pipeline_leads'),
+            'duplicate_rate' => array_column($trendData, 'duplicate_rate'),
+        ];
 
         $byIndustry = (clone $leadQuery)->select('industry_id', DB::raw('count(*) as total'))
             ->groupBy('industry_id')
@@ -99,8 +217,11 @@ class DashboardController extends Controller
                 'duplicate_count' => $duplicateCount,
                 'duplicate_rate' => $duplicateRate,
                 'duplicate_ratio' => $totalLeads > 0 ? round($duplicateCount / $totalLeads * 100, 1) : 0,
-                'leads_change' => $this->calcChange($thisMonthLeads, $lastMonthLeads),
-                'qualified_change' => $this->calcChange($thisMonthQualified, $lastMonthQualified),
+                'leads_change' => $this->calcChange($thisPeriodLeads, $lastPeriodLeads, $period),
+                'qualified_change' => $this->calcChange($thisPeriodQualified, $lastPeriodQualified, $period),
+                'pipeline_change' => $this->calcChange($thisPeriodPipeline, $lastPeriodPipeline, $period),
+                'duplicate_change' => $this->calcChange($thisPeriodDuplicate, $lastPeriodDuplicate, $period),
+                'metrics_trends' => $metricsTrends,
                 'by_industry' => $byIndustry,
                 'by_status' => $byStatus,
                 'by_territory' => $byTerritory,
@@ -313,7 +434,19 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $visibleUserIds = $user?->isSuperAdmin() ? null : ($user?->hierarchyUserIds() ?? []);
-        $period = $user?->target_period ?? 'monthly';
+        
+        $periodParam = $request->query('period');
+        if ($periodParam) {
+            $period = match ($periodParam) {
+                'week' => 'weekly',
+                'quarter' => 'quarterly',
+                'year' => 'yearly',
+                default => 'monthly',
+            };
+        } else {
+            $period = $user?->target_period ?? 'monthly';
+        }
+        
         $target = (float) ($user?->target_revenue ?? 0);
         $start = match ($period) {
             'weekly' => now()->startOfWeek(),
@@ -617,14 +750,23 @@ class DashboardController extends Controller
     }
 
     /** Calculate percentage change label between two periods */
-    private function calcChange(int $current, int $previous): ?string
+    private function calcChange(int $current, int $previous, string $period = 'month'): ?string
     {
+        $periodNames = [
+            'week' => 'week',
+            'biweekly' => 'biweekly period',
+            'month' => 'month',
+            'quarter' => 'quarter',
+            'year' => 'year',
+        ];
+        $pName = $periodNames[$period] ?? 'month';
+
         if ($previous === 0) {
-            return $current > 0 ? '+100% this month' : null;
+            return $current > 0 ? "+100% vs last {$pName}" : null;
         }
         $pct = round((($current - $previous) / $previous) * 100, 1);
         $sign = $pct >= 0 ? '+' : '';
 
-        return "{$sign}{$pct}% vs last month";
+        return "{$sign}{$pct}% vs last {$pName}";
     }
 }

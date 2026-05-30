@@ -10,7 +10,11 @@ export const STAGE_COLORS = {
 export type StageColorKey = keyof typeof STAGE_COLORS;
 
 export function resolveStageColor(key?: string | null): string {
-  if (key && key in STAGE_COLORS) {
+  if (!key) return "var(--brand)";
+  if (key.startsWith("#") || key.startsWith("rgb") || key.startsWith("hsl")) {
+    return key;
+  }
+  if (key in STAGE_COLORS) {
     return STAGE_COLORS[key as StageColorKey].token;
   }
   return "var(--brand)";

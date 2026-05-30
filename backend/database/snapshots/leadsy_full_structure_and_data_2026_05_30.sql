@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict FEs6VzIwUuWcioftmansvgEJgXBd5p4u1NJxHWo7H4rktdr9HqBKdHp3I9qSXDV
+\restrict lTUeBQjeEtBsVZf5QTXqFcpmH7yyraRJd7blk42DMjnAlvYPflCWlx35uzEPe7R
 
 -- Dumped from database version 14.19 (Homebrew)
 -- Dumped by pg_dump version 14.19 (Homebrew)
@@ -19,11 +19,13 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: legacy_mgmt; Type: SCHEMA; Schema: -; Owner: -
+-- Name: legacy_mgmt; Type: SCHEMA; Schema: -; Owner: leads
 --
 
 CREATE SCHEMA legacy_mgmt;
 
+
+ALTER SCHEMA legacy_mgmt OWNER TO leads;
 
 --
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
@@ -33,14 +35,14 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA legacy_mgmt;
 
 
 --
--- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: -
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
 
 
 --
--- Name: ActivityType; Type: TYPE; Schema: legacy_mgmt; Owner: -
+-- Name: ActivityType; Type: TYPE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TYPE legacy_mgmt."ActivityType" AS ENUM (
@@ -52,8 +54,10 @@ CREATE TYPE legacy_mgmt."ActivityType" AS ENUM (
 );
 
 
+ALTER TYPE legacy_mgmt."ActivityType" OWNER TO leads;
+
 --
--- Name: AuditAction; Type: TYPE; Schema: legacy_mgmt; Owner: -
+-- Name: AuditAction; Type: TYPE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TYPE legacy_mgmt."AuditAction" AS ENUM (
@@ -66,8 +70,10 @@ CREATE TYPE legacy_mgmt."AuditAction" AS ENUM (
 );
 
 
+ALTER TYPE legacy_mgmt."AuditAction" OWNER TO leads;
+
 --
--- Name: EvaluationStatus; Type: TYPE; Schema: legacy_mgmt; Owner: -
+-- Name: EvaluationStatus; Type: TYPE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TYPE legacy_mgmt."EvaluationStatus" AS ENUM (
@@ -78,8 +84,10 @@ CREATE TYPE legacy_mgmt."EvaluationStatus" AS ENUM (
 );
 
 
+ALTER TYPE legacy_mgmt."EvaluationStatus" OWNER TO leads;
+
 --
--- Name: LeadStatus; Type: TYPE; Schema: legacy_mgmt; Owner: -
+-- Name: LeadStatus; Type: TYPE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TYPE legacy_mgmt."LeadStatus" AS ENUM (
@@ -93,8 +101,10 @@ CREATE TYPE legacy_mgmt."LeadStatus" AS ENUM (
 );
 
 
+ALTER TYPE legacy_mgmt."LeadStatus" OWNER TO leads;
+
 --
--- Name: ParameterDataType; Type: TYPE; Schema: legacy_mgmt; Owner: -
+-- Name: ParameterDataType; Type: TYPE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TYPE legacy_mgmt."ParameterDataType" AS ENUM (
@@ -105,12 +115,14 @@ CREATE TYPE legacy_mgmt."ParameterDataType" AS ENUM (
 );
 
 
+ALTER TYPE legacy_mgmt."ParameterDataType" OWNER TO leads;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: ai_parameter_suggestions; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: ai_parameter_suggestions; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.ai_parameter_suggestions (
@@ -125,8 +137,10 @@ CREATE TABLE legacy_mgmt.ai_parameter_suggestions (
 );
 
 
+ALTER TABLE legacy_mgmt.ai_parameter_suggestions OWNER TO leads;
+
 --
--- Name: ai_provider_settings; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: ai_provider_settings; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.ai_provider_settings (
@@ -145,8 +159,10 @@ CREATE TABLE legacy_mgmt.ai_provider_settings (
 );
 
 
+ALTER TABLE legacy_mgmt.ai_provider_settings OWNER TO leads;
+
 --
--- Name: audit_logs; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: audit_logs; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.audit_logs (
@@ -161,8 +177,10 @@ CREATE TABLE legacy_mgmt.audit_logs (
 );
 
 
+ALTER TABLE legacy_mgmt.audit_logs OWNER TO leads;
+
 --
--- Name: evaluation_overrides; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: evaluation_overrides; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.evaluation_overrides (
@@ -176,8 +194,10 @@ CREATE TABLE legacy_mgmt.evaluation_overrides (
 );
 
 
+ALTER TABLE legacy_mgmt.evaluation_overrides OWNER TO leads;
+
 --
--- Name: lead_activities; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: lead_activities; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.lead_activities (
@@ -192,8 +212,10 @@ CREATE TABLE legacy_mgmt.lead_activities (
 );
 
 
+ALTER TABLE legacy_mgmt.lead_activities OWNER TO leads;
+
 --
--- Name: lead_evaluations; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: lead_evaluations; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.lead_evaluations (
@@ -217,8 +239,10 @@ CREATE TABLE legacy_mgmt.lead_evaluations (
 );
 
 
+ALTER TABLE legacy_mgmt.lead_evaluations OWNER TO leads;
+
 --
--- Name: lead_scores; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: lead_scores; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.lead_scores (
@@ -234,8 +258,10 @@ CREATE TABLE legacy_mgmt.lead_scores (
 );
 
 
+ALTER TABLE legacy_mgmt.lead_scores OWNER TO leads;
+
 --
--- Name: lead_sources; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: lead_sources; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.lead_sources (
@@ -247,8 +273,10 @@ CREATE TABLE legacy_mgmt.lead_sources (
 );
 
 
+ALTER TABLE legacy_mgmt.lead_sources OWNER TO leads;
+
 --
--- Name: leads; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: leads; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.leads (
@@ -273,8 +301,10 @@ CREATE TABLE legacy_mgmt.leads (
 );
 
 
+ALTER TABLE legacy_mgmt.leads OWNER TO leads;
+
 --
--- Name: parameter_options; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: parameter_options; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.parameter_options (
@@ -289,8 +319,10 @@ CREATE TABLE legacy_mgmt.parameter_options (
 );
 
 
+ALTER TABLE legacy_mgmt.parameter_options OWNER TO leads;
+
 --
--- Name: parameters; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: parameters; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.parameters (
@@ -309,8 +341,10 @@ CREATE TABLE legacy_mgmt.parameters (
 );
 
 
+ALTER TABLE legacy_mgmt.parameters OWNER TO leads;
+
 --
--- Name: product_questions; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: product_questions; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.product_questions (
@@ -322,8 +356,10 @@ CREATE TABLE legacy_mgmt.product_questions (
 );
 
 
+ALTER TABLE legacy_mgmt.product_questions OWNER TO leads;
+
 --
--- Name: products; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: products; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.products (
@@ -340,8 +376,10 @@ CREATE TABLE legacy_mgmt.products (
 );
 
 
+ALTER TABLE legacy_mgmt.products OWNER TO leads;
+
 --
--- Name: roles; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: roles; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.roles (
@@ -354,8 +392,10 @@ CREATE TABLE legacy_mgmt.roles (
 );
 
 
+ALTER TABLE legacy_mgmt.roles OWNER TO leads;
+
 --
--- Name: scoring_dimensions; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: scoring_dimensions; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.scoring_dimensions (
@@ -371,8 +411,10 @@ CREATE TABLE legacy_mgmt.scoring_dimensions (
 );
 
 
+ALTER TABLE legacy_mgmt.scoring_dimensions OWNER TO leads;
+
 --
--- Name: users; Type: TABLE; Schema: legacy_mgmt; Owner: -
+-- Name: users; Type: TABLE; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE TABLE legacy_mgmt.users (
@@ -389,8 +431,10 @@ CREATE TABLE legacy_mgmt.users (
 );
 
 
+ALTER TABLE legacy_mgmt.users OWNER TO leads;
+
 --
--- Name: ai_connection_tests; Type: TABLE; Schema: public; Owner: -
+-- Name: ai_connection_tests; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.ai_connection_tests (
@@ -407,8 +451,10 @@ CREATE TABLE public.ai_connection_tests (
 );
 
 
+ALTER TABLE public.ai_connection_tests OWNER TO leads;
+
 --
--- Name: ai_connection_tests_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: ai_connection_tests_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.ai_connection_tests_id_seq
@@ -419,15 +465,17 @@ CREATE SEQUENCE public.ai_connection_tests_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.ai_connection_tests_id_seq OWNER TO leads;
+
 --
--- Name: ai_connection_tests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: ai_connection_tests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.ai_connection_tests_id_seq OWNED BY public.ai_connection_tests.id;
 
 
 --
--- Name: ai_feature_routes; Type: TABLE; Schema: public; Owner: -
+-- Name: ai_feature_routes; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.ai_feature_routes (
@@ -447,8 +495,10 @@ CREATE TABLE public.ai_feature_routes (
 );
 
 
+ALTER TABLE public.ai_feature_routes OWNER TO leads;
+
 --
--- Name: ai_feature_routes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: ai_feature_routes_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.ai_feature_routes_id_seq
@@ -459,15 +509,17 @@ CREATE SEQUENCE public.ai_feature_routes_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.ai_feature_routes_id_seq OWNER TO leads;
+
 --
--- Name: ai_feature_routes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: ai_feature_routes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.ai_feature_routes_id_seq OWNED BY public.ai_feature_routes.id;
 
 
 --
--- Name: ai_model_routes; Type: TABLE; Schema: public; Owner: -
+-- Name: ai_model_routes; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.ai_model_routes (
@@ -483,8 +535,10 @@ CREATE TABLE public.ai_model_routes (
 );
 
 
+ALTER TABLE public.ai_model_routes OWNER TO leads;
+
 --
--- Name: ai_model_routes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: ai_model_routes_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.ai_model_routes_id_seq
@@ -495,15 +549,17 @@ CREATE SEQUENCE public.ai_model_routes_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.ai_model_routes_id_seq OWNER TO leads;
+
 --
--- Name: ai_model_routes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: ai_model_routes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.ai_model_routes_id_seq OWNED BY public.ai_model_routes.id;
 
 
 --
--- Name: ai_models; Type: TABLE; Schema: public; Owner: -
+-- Name: ai_models; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.ai_models (
@@ -522,8 +578,10 @@ CREATE TABLE public.ai_models (
 );
 
 
+ALTER TABLE public.ai_models OWNER TO leads;
+
 --
--- Name: ai_models_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: ai_models_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.ai_models_id_seq
@@ -534,15 +592,17 @@ CREATE SEQUENCE public.ai_models_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.ai_models_id_seq OWNER TO leads;
+
 --
--- Name: ai_models_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: ai_models_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.ai_models_id_seq OWNED BY public.ai_models.id;
 
 
 --
--- Name: ai_prompt_template_versions; Type: TABLE; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.ai_prompt_template_versions (
@@ -560,8 +620,10 @@ CREATE TABLE public.ai_prompt_template_versions (
 );
 
 
+ALTER TABLE public.ai_prompt_template_versions OWNER TO leads;
+
 --
--- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.ai_prompt_template_versions_id_seq
@@ -572,15 +634,17 @@ CREATE SEQUENCE public.ai_prompt_template_versions_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.ai_prompt_template_versions_id_seq OWNER TO leads;
+
 --
--- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.ai_prompt_template_versions_id_seq OWNED BY public.ai_prompt_template_versions.id;
 
 
 --
--- Name: ai_prompt_templates; Type: TABLE; Schema: public; Owner: -
+-- Name: ai_prompt_templates; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.ai_prompt_templates (
@@ -597,8 +661,10 @@ CREATE TABLE public.ai_prompt_templates (
 );
 
 
+ALTER TABLE public.ai_prompt_templates OWNER TO leads;
+
 --
--- Name: ai_prompt_templates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: ai_prompt_templates_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.ai_prompt_templates_id_seq
@@ -609,15 +675,17 @@ CREATE SEQUENCE public.ai_prompt_templates_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.ai_prompt_templates_id_seq OWNER TO leads;
+
 --
--- Name: ai_prompt_templates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: ai_prompt_templates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.ai_prompt_templates_id_seq OWNED BY public.ai_prompt_templates.id;
 
 
 --
--- Name: ai_providers; Type: TABLE; Schema: public; Owner: -
+-- Name: ai_providers; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.ai_providers (
@@ -650,8 +718,10 @@ CREATE TABLE public.ai_providers (
 );
 
 
+ALTER TABLE public.ai_providers OWNER TO leads;
+
 --
--- Name: ai_providers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: ai_providers_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.ai_providers_id_seq
@@ -662,15 +732,17 @@ CREATE SEQUENCE public.ai_providers_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.ai_providers_id_seq OWNER TO leads;
+
 --
--- Name: ai_providers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: ai_providers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.ai_providers_id_seq OWNED BY public.ai_providers.id;
 
 
 --
--- Name: ai_requests; Type: TABLE; Schema: public; Owner: -
+-- Name: ai_requests; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.ai_requests (
@@ -693,8 +765,10 @@ CREATE TABLE public.ai_requests (
 );
 
 
+ALTER TABLE public.ai_requests OWNER TO leads;
+
 --
--- Name: ai_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: ai_requests_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.ai_requests_id_seq
@@ -705,15 +779,17 @@ CREATE SEQUENCE public.ai_requests_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.ai_requests_id_seq OWNER TO leads;
+
 --
--- Name: ai_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: ai_requests_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.ai_requests_id_seq OWNED BY public.ai_requests.id;
 
 
 --
--- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
+-- Name: audit_logs; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.audit_logs (
@@ -737,8 +813,10 @@ CREATE TABLE public.audit_logs (
 );
 
 
+ALTER TABLE public.audit_logs OWNER TO leads;
+
 --
--- Name: audit_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: audit_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.audit_logs_id_seq
@@ -749,15 +827,17 @@ CREATE SEQUENCE public.audit_logs_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.audit_logs_id_seq OWNER TO leads;
+
 --
--- Name: audit_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: audit_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.audit_logs_id_seq OWNED BY public.audit_logs.id;
 
 
 --
--- Name: cache; Type: TABLE; Schema: public; Owner: -
+-- Name: cache; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.cache (
@@ -767,8 +847,10 @@ CREATE TABLE public.cache (
 );
 
 
+ALTER TABLE public.cache OWNER TO leads;
+
 --
--- Name: cache_locks; Type: TABLE; Schema: public; Owner: -
+-- Name: cache_locks; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.cache_locks (
@@ -778,8 +860,10 @@ CREATE TABLE public.cache_locks (
 );
 
 
+ALTER TABLE public.cache_locks OWNER TO leads;
+
 --
--- Name: contact_enrichment_candidates; Type: TABLE; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.contact_enrichment_candidates (
@@ -806,8 +890,10 @@ CREATE TABLE public.contact_enrichment_candidates (
 );
 
 
+ALTER TABLE public.contact_enrichment_candidates OWNER TO leads;
+
 --
--- Name: contact_enrichment_candidates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.contact_enrichment_candidates_id_seq
@@ -818,15 +904,17 @@ CREATE SEQUENCE public.contact_enrichment_candidates_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.contact_enrichment_candidates_id_seq OWNER TO leads;
+
 --
--- Name: contact_enrichment_candidates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.contact_enrichment_candidates_id_seq OWNED BY public.contact_enrichment_candidates.id;
 
 
 --
--- Name: contact_sources; Type: TABLE; Schema: public; Owner: -
+-- Name: contact_sources; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.contact_sources (
@@ -838,8 +926,10 @@ CREATE TABLE public.contact_sources (
 );
 
 
+ALTER TABLE public.contact_sources OWNER TO leads;
+
 --
--- Name: contact_sources_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: contact_sources_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.contact_sources_id_seq
@@ -850,15 +940,17 @@ CREATE SEQUENCE public.contact_sources_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.contact_sources_id_seq OWNER TO leads;
+
 --
--- Name: contact_sources_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: contact_sources_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.contact_sources_id_seq OWNED BY public.contact_sources.id;
 
 
 --
--- Name: currencies; Type: TABLE; Schema: public; Owner: -
+-- Name: currencies; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.currencies (
@@ -873,8 +965,10 @@ CREATE TABLE public.currencies (
 );
 
 
+ALTER TABLE public.currencies OWNER TO leads;
+
 --
--- Name: currencies_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: currencies_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.currencies_id_seq
@@ -885,15 +979,17 @@ CREATE SEQUENCE public.currencies_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.currencies_id_seq OWNER TO leads;
+
 --
--- Name: currencies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: currencies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.currencies_id_seq OWNED BY public.currencies.id;
 
 
 --
--- Name: currency_settings; Type: TABLE; Schema: public; Owner: -
+-- Name: currency_settings; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.currency_settings (
@@ -911,8 +1007,10 @@ CREATE TABLE public.currency_settings (
 );
 
 
+ALTER TABLE public.currency_settings OWNER TO leads;
+
 --
--- Name: currency_settings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: currency_settings_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.currency_settings_id_seq
@@ -923,15 +1021,17 @@ CREATE SEQUENCE public.currency_settings_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.currency_settings_id_seq OWNER TO leads;
+
 --
--- Name: currency_settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: currency_settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.currency_settings_id_seq OWNED BY public.currency_settings.id;
 
 
 --
--- Name: discovery_categories; Type: TABLE; Schema: public; Owner: -
+-- Name: discovery_categories; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.discovery_categories (
@@ -945,8 +1045,10 @@ CREATE TABLE public.discovery_categories (
 );
 
 
+ALTER TABLE public.discovery_categories OWNER TO leads;
+
 --
--- Name: discovery_categories_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: discovery_categories_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.discovery_categories_id_seq
@@ -957,15 +1059,17 @@ CREATE SEQUENCE public.discovery_categories_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.discovery_categories_id_seq OWNER TO leads;
+
 --
--- Name: discovery_categories_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: discovery_categories_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.discovery_categories_id_seq OWNED BY public.discovery_categories.id;
 
 
 --
--- Name: email_verification_otps; Type: TABLE; Schema: public; Owner: -
+-- Name: email_verification_otps; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.email_verification_otps (
@@ -979,8 +1083,10 @@ CREATE TABLE public.email_verification_otps (
 );
 
 
+ALTER TABLE public.email_verification_otps OWNER TO leads;
+
 --
--- Name: email_verification_otps_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: email_verification_otps_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.email_verification_otps_id_seq
@@ -991,15 +1097,17 @@ CREATE SEQUENCE public.email_verification_otps_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.email_verification_otps_id_seq OWNER TO leads;
+
 --
--- Name: email_verification_otps_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: email_verification_otps_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.email_verification_otps_id_seq OWNED BY public.email_verification_otps.id;
 
 
 --
--- Name: failed_jobs; Type: TABLE; Schema: public; Owner: -
+-- Name: failed_jobs; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.failed_jobs (
@@ -1013,8 +1121,10 @@ CREATE TABLE public.failed_jobs (
 );
 
 
+ALTER TABLE public.failed_jobs OWNER TO leads;
+
 --
--- Name: failed_jobs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: failed_jobs_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.failed_jobs_id_seq
@@ -1025,15 +1135,17 @@ CREATE SEQUENCE public.failed_jobs_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.failed_jobs_id_seq OWNER TO leads;
+
 --
--- Name: failed_jobs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: failed_jobs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.failed_jobs_id_seq OWNED BY public.failed_jobs.id;
 
 
 --
--- Name: funnel_stages; Type: TABLE; Schema: public; Owner: -
+-- Name: funnel_stages; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.funnel_stages (
@@ -1048,8 +1160,10 @@ CREATE TABLE public.funnel_stages (
 );
 
 
+ALTER TABLE public.funnel_stages OWNER TO leads;
+
 --
--- Name: funnel_stages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: funnel_stages_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.funnel_stages_id_seq
@@ -1060,15 +1174,17 @@ CREATE SEQUENCE public.funnel_stages_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.funnel_stages_id_seq OWNER TO leads;
+
 --
--- Name: funnel_stages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: funnel_stages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.funnel_stages_id_seq OWNED BY public.funnel_stages.id;
 
 
 --
--- Name: geo_product_fit_analyses; Type: TABLE; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.geo_product_fit_analyses (
@@ -1099,8 +1215,10 @@ CREATE TABLE public.geo_product_fit_analyses (
 );
 
 
+ALTER TABLE public.geo_product_fit_analyses OWNER TO leads;
+
 --
--- Name: geo_product_fit_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.geo_product_fit_analyses_id_seq
@@ -1111,15 +1229,17 @@ CREATE SEQUENCE public.geo_product_fit_analyses_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.geo_product_fit_analyses_id_seq OWNER TO leads;
+
 --
--- Name: geo_product_fit_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.geo_product_fit_analyses_id_seq OWNED BY public.geo_product_fit_analyses.id;
 
 
 --
--- Name: icp_profiles; Type: TABLE; Schema: public; Owner: -
+-- Name: icp_profiles; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.icp_profiles (
@@ -1144,8 +1264,10 @@ CREATE TABLE public.icp_profiles (
 );
 
 
+ALTER TABLE public.icp_profiles OWNER TO leads;
+
 --
--- Name: icp_profiles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: icp_profiles_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.icp_profiles_id_seq
@@ -1156,15 +1278,17 @@ CREATE SEQUENCE public.icp_profiles_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.icp_profiles_id_seq OWNER TO leads;
+
 --
--- Name: icp_profiles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: icp_profiles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.icp_profiles_id_seq OWNED BY public.icp_profiles.id;
 
 
 --
--- Name: industries; Type: TABLE; Schema: public; Owner: -
+-- Name: industries; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.industries (
@@ -1178,8 +1302,10 @@ CREATE TABLE public.industries (
 );
 
 
+ALTER TABLE public.industries OWNER TO leads;
+
 --
--- Name: industries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: industries_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.industries_id_seq
@@ -1190,15 +1316,17 @@ CREATE SEQUENCE public.industries_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.industries_id_seq OWNER TO leads;
+
 --
--- Name: industries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: industries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.industries_id_seq OWNED BY public.industries.id;
 
 
 --
--- Name: integration_configs; Type: TABLE; Schema: public; Owner: -
+-- Name: integration_configs; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.integration_configs (
@@ -1215,8 +1343,10 @@ CREATE TABLE public.integration_configs (
 );
 
 
+ALTER TABLE public.integration_configs OWNER TO leads;
+
 --
--- Name: integration_configs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: integration_configs_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.integration_configs_id_seq
@@ -1227,15 +1357,17 @@ CREATE SEQUENCE public.integration_configs_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.integration_configs_id_seq OWNER TO leads;
+
 --
--- Name: integration_configs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: integration_configs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.integration_configs_id_seq OWNED BY public.integration_configs.id;
 
 
 --
--- Name: integration_connections; Type: TABLE; Schema: public; Owner: -
+-- Name: integration_connections; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.integration_connections (
@@ -1265,8 +1397,10 @@ CREATE TABLE public.integration_connections (
 );
 
 
+ALTER TABLE public.integration_connections OWNER TO leads;
+
 --
--- Name: integration_connections_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: integration_connections_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.integration_connections_id_seq
@@ -1277,15 +1411,17 @@ CREATE SEQUENCE public.integration_connections_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.integration_connections_id_seq OWNER TO leads;
+
 --
--- Name: integration_connections_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: integration_connections_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.integration_connections_id_seq OWNED BY public.integration_connections.id;
 
 
 --
--- Name: integration_credential_stores; Type: TABLE; Schema: public; Owner: -
+-- Name: integration_credential_stores; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.integration_credential_stores (
@@ -1308,8 +1444,10 @@ CREATE TABLE public.integration_credential_stores (
 );
 
 
+ALTER TABLE public.integration_credential_stores OWNER TO leads;
+
 --
--- Name: integration_credential_stores_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: integration_credential_stores_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.integration_credential_stores_id_seq
@@ -1320,15 +1458,17 @@ CREATE SEQUENCE public.integration_credential_stores_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.integration_credential_stores_id_seq OWNER TO leads;
+
 --
--- Name: integration_credential_stores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: integration_credential_stores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.integration_credential_stores_id_seq OWNED BY public.integration_credential_stores.id;
 
 
 --
--- Name: integration_entity_mappings; Type: TABLE; Schema: public; Owner: -
+-- Name: integration_entity_mappings; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.integration_entity_mappings (
@@ -1347,8 +1487,10 @@ CREATE TABLE public.integration_entity_mappings (
 );
 
 
+ALTER TABLE public.integration_entity_mappings OWNER TO leads;
+
 --
--- Name: integration_entity_mappings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: integration_entity_mappings_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.integration_entity_mappings_id_seq
@@ -1359,15 +1501,17 @@ CREATE SEQUENCE public.integration_entity_mappings_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.integration_entity_mappings_id_seq OWNER TO leads;
+
 --
--- Name: integration_entity_mappings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: integration_entity_mappings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.integration_entity_mappings_id_seq OWNED BY public.integration_entity_mappings.id;
 
 
 --
--- Name: integration_webhook_events; Type: TABLE; Schema: public; Owner: -
+-- Name: integration_webhook_events; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.integration_webhook_events (
@@ -1391,8 +1535,10 @@ CREATE TABLE public.integration_webhook_events (
 );
 
 
+ALTER TABLE public.integration_webhook_events OWNER TO leads;
+
 --
--- Name: integration_webhook_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: integration_webhook_events_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.integration_webhook_events_id_seq
@@ -1403,15 +1549,17 @@ CREATE SEQUENCE public.integration_webhook_events_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.integration_webhook_events_id_seq OWNER TO leads;
+
 --
--- Name: integration_webhook_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: integration_webhook_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.integration_webhook_events_id_seq OWNED BY public.integration_webhook_events.id;
 
 
 --
--- Name: job_batches; Type: TABLE; Schema: public; Owner: -
+-- Name: job_batches; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.job_batches (
@@ -1428,8 +1576,10 @@ CREATE TABLE public.job_batches (
 );
 
 
+ALTER TABLE public.job_batches OWNER TO leads;
+
 --
--- Name: jobs; Type: TABLE; Schema: public; Owner: -
+-- Name: jobs; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.jobs (
@@ -1443,8 +1593,10 @@ CREATE TABLE public.jobs (
 );
 
 
+ALTER TABLE public.jobs OWNER TO leads;
+
 --
--- Name: jobs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: jobs_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.jobs_id_seq
@@ -1455,15 +1607,17 @@ CREATE SEQUENCE public.jobs_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.jobs_id_seq OWNER TO leads;
+
 --
--- Name: jobs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: jobs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.jobs_id_seq OWNED BY public.jobs.id;
 
 
 --
--- Name: lark_base_record_mappings; Type: TABLE; Schema: public; Owner: -
+-- Name: lark_base_record_mappings; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lark_base_record_mappings (
@@ -1481,8 +1635,10 @@ CREATE TABLE public.lark_base_record_mappings (
 );
 
 
+ALTER TABLE public.lark_base_record_mappings OWNER TO leads;
+
 --
--- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lark_base_record_mappings_id_seq
@@ -1493,15 +1649,17 @@ CREATE SEQUENCE public.lark_base_record_mappings_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lark_base_record_mappings_id_seq OWNER TO leads;
+
 --
--- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lark_base_record_mappings_id_seq OWNED BY public.lark_base_record_mappings.id;
 
 
 --
--- Name: lark_base_tables; Type: TABLE; Schema: public; Owner: -
+-- Name: lark_base_tables; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lark_base_tables (
@@ -1522,8 +1680,10 @@ CREATE TABLE public.lark_base_tables (
 );
 
 
+ALTER TABLE public.lark_base_tables OWNER TO leads;
+
 --
--- Name: lark_base_tables_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lark_base_tables_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lark_base_tables_id_seq
@@ -1534,15 +1694,17 @@ CREATE SEQUENCE public.lark_base_tables_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lark_base_tables_id_seq OWNER TO leads;
+
 --
--- Name: lark_base_tables_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lark_base_tables_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lark_base_tables_id_seq OWNED BY public.lark_base_tables.id;
 
 
 --
--- Name: lark_events; Type: TABLE; Schema: public; Owner: -
+-- Name: lark_events; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lark_events (
@@ -1560,8 +1722,10 @@ CREATE TABLE public.lark_events (
 );
 
 
+ALTER TABLE public.lark_events OWNER TO leads;
+
 --
--- Name: lark_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lark_events_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lark_events_id_seq
@@ -1572,15 +1736,17 @@ CREATE SEQUENCE public.lark_events_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lark_events_id_seq OWNER TO leads;
+
 --
--- Name: lark_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lark_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lark_events_id_seq OWNED BY public.lark_events.id;
 
 
 --
--- Name: lark_integrations; Type: TABLE; Schema: public; Owner: -
+-- Name: lark_integrations; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lark_integrations (
@@ -1602,8 +1768,10 @@ CREATE TABLE public.lark_integrations (
 );
 
 
+ALTER TABLE public.lark_integrations OWNER TO leads;
+
 --
--- Name: lark_integrations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lark_integrations_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lark_integrations_id_seq
@@ -1614,15 +1782,17 @@ CREATE SEQUENCE public.lark_integrations_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lark_integrations_id_seq OWNER TO leads;
+
 --
--- Name: lark_integrations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lark_integrations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lark_integrations_id_seq OWNED BY public.lark_integrations.id;
 
 
 --
--- Name: lark_sso_users; Type: TABLE; Schema: public; Owner: -
+-- Name: lark_sso_users; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lark_sso_users (
@@ -1642,8 +1812,10 @@ CREATE TABLE public.lark_sso_users (
 );
 
 
+ALTER TABLE public.lark_sso_users OWNER TO leads;
+
 --
--- Name: lark_sso_users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lark_sso_users_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lark_sso_users_id_seq
@@ -1654,15 +1826,17 @@ CREATE SEQUENCE public.lark_sso_users_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lark_sso_users_id_seq OWNER TO leads;
+
 --
--- Name: lark_sso_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lark_sso_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lark_sso_users_id_seq OWNED BY public.lark_sso_users.id;
 
 
 --
--- Name: lark_syncs; Type: TABLE; Schema: public; Owner: -
+-- Name: lark_syncs; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lark_syncs (
@@ -1686,8 +1860,10 @@ CREATE TABLE public.lark_syncs (
 );
 
 
+ALTER TABLE public.lark_syncs OWNER TO leads;
+
 --
--- Name: lark_syncs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lark_syncs_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lark_syncs_id_seq
@@ -1698,15 +1874,17 @@ CREATE SEQUENCE public.lark_syncs_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lark_syncs_id_seq OWNER TO leads;
+
 --
--- Name: lark_syncs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lark_syncs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lark_syncs_id_seq OWNED BY public.lark_syncs.id;
 
 
 --
--- Name: lead_activities; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_activities; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_activities (
@@ -1732,8 +1910,10 @@ CREATE TABLE public.lead_activities (
 );
 
 
+ALTER TABLE public.lead_activities OWNER TO leads;
+
 --
--- Name: lead_activities_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_activities_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_activities_id_seq
@@ -1744,15 +1924,17 @@ CREATE SEQUENCE public.lead_activities_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_activities_id_seq OWNER TO leads;
+
 --
--- Name: lead_activities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_activities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_activities_id_seq OWNED BY public.lead_activities.id;
 
 
 --
--- Name: lead_ai_analyses; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_ai_analyses; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_ai_analyses (
@@ -1773,8 +1955,10 @@ CREATE TABLE public.lead_ai_analyses (
 );
 
 
+ALTER TABLE public.lead_ai_analyses OWNER TO leads;
+
 --
--- Name: lead_ai_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_ai_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_ai_analyses_id_seq
@@ -1785,15 +1969,17 @@ CREATE SEQUENCE public.lead_ai_analyses_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_ai_analyses_id_seq OWNER TO leads;
+
 --
--- Name: lead_ai_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_ai_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_ai_analyses_id_seq OWNED BY public.lead_ai_analyses.id;
 
 
 --
--- Name: lead_ai_evaluations; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_ai_evaluations; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_ai_evaluations (
@@ -1816,8 +2002,10 @@ CREATE TABLE public.lead_ai_evaluations (
 );
 
 
+ALTER TABLE public.lead_ai_evaluations OWNER TO leads;
+
 --
--- Name: lead_ai_evaluations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_ai_evaluations_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_ai_evaluations_id_seq
@@ -1828,15 +2016,17 @@ CREATE SEQUENCE public.lead_ai_evaluations_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_ai_evaluations_id_seq OWNER TO leads;
+
 --
--- Name: lead_ai_evaluations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_ai_evaluations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_ai_evaluations_id_seq OWNED BY public.lead_ai_evaluations.id;
 
 
 --
--- Name: lead_analysis_logs; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_analysis_logs; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_analysis_logs (
@@ -1849,8 +2039,10 @@ CREATE TABLE public.lead_analysis_logs (
 );
 
 
+ALTER TABLE public.lead_analysis_logs OWNER TO leads;
+
 --
--- Name: lead_analysis_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_analysis_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_analysis_logs_id_seq
@@ -1861,15 +2053,17 @@ CREATE SEQUENCE public.lead_analysis_logs_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_analysis_logs_id_seq OWNER TO leads;
+
 --
--- Name: lead_analysis_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_analysis_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_analysis_logs_id_seq OWNED BY public.lead_analysis_logs.id;
 
 
 --
--- Name: lead_bantc_question_guides; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_bantc_question_guides (
@@ -1884,8 +2078,10 @@ CREATE TABLE public.lead_bantc_question_guides (
 );
 
 
+ALTER TABLE public.lead_bantc_question_guides OWNER TO leads;
+
 --
--- Name: lead_bantc_question_guides_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_bantc_question_guides_id_seq
@@ -1896,15 +2092,17 @@ CREATE SEQUENCE public.lead_bantc_question_guides_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_bantc_question_guides_id_seq OWNER TO leads;
+
 --
--- Name: lead_bantc_question_guides_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_bantc_question_guides_id_seq OWNED BY public.lead_bantc_question_guides.id;
 
 
 --
--- Name: lead_channel_types; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_channel_types; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_channel_types (
@@ -1920,8 +2118,10 @@ CREATE TABLE public.lead_channel_types (
 );
 
 
+ALTER TABLE public.lead_channel_types OWNER TO leads;
+
 --
--- Name: lead_channel_types_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_channel_types_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_channel_types_id_seq
@@ -1932,15 +2132,17 @@ CREATE SEQUENCE public.lead_channel_types_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_channel_types_id_seq OWNER TO leads;
+
 --
--- Name: lead_channel_types_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_channel_types_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_channel_types_id_seq OWNED BY public.lead_channel_types.id;
 
 
 --
--- Name: lead_contact_payloads; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_contact_payloads; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_contact_payloads (
@@ -1953,8 +2155,10 @@ CREATE TABLE public.lead_contact_payloads (
 );
 
 
+ALTER TABLE public.lead_contact_payloads OWNER TO leads;
+
 --
--- Name: lead_contact_payloads_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_contact_payloads_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_contact_payloads_id_seq
@@ -1965,15 +2169,17 @@ CREATE SEQUENCE public.lead_contact_payloads_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_contact_payloads_id_seq OWNER TO leads;
+
 --
--- Name: lead_contact_payloads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_contact_payloads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_contact_payloads_id_seq OWNED BY public.lead_contact_payloads.id;
 
 
 --
--- Name: lead_contacts; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_contacts; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_contacts (
@@ -1997,8 +2203,10 @@ CREATE TABLE public.lead_contacts (
 );
 
 
+ALTER TABLE public.lead_contacts OWNER TO leads;
+
 --
--- Name: lead_contacts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_contacts_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_contacts_id_seq
@@ -2009,15 +2217,17 @@ CREATE SEQUENCE public.lead_contacts_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_contacts_id_seq OWNER TO leads;
+
 --
--- Name: lead_contacts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_contacts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_contacts_id_seq OWNED BY public.lead_contacts.id;
 
 
 --
--- Name: lead_conversion_predictions; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_conversion_predictions; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_conversion_predictions (
@@ -2034,8 +2244,10 @@ CREATE TABLE public.lead_conversion_predictions (
 );
 
 
+ALTER TABLE public.lead_conversion_predictions OWNER TO leads;
+
 --
--- Name: lead_conversion_predictions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_conversion_predictions_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_conversion_predictions_id_seq
@@ -2046,15 +2258,17 @@ CREATE SEQUENCE public.lead_conversion_predictions_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_conversion_predictions_id_seq OWNER TO leads;
+
 --
--- Name: lead_conversion_predictions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_conversion_predictions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_conversion_predictions_id_seq OWNED BY public.lead_conversion_predictions.id;
 
 
 --
--- Name: lead_follow_ups; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_follow_ups; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_follow_ups (
@@ -2070,8 +2284,10 @@ CREATE TABLE public.lead_follow_ups (
 );
 
 
+ALTER TABLE public.lead_follow_ups OWNER TO leads;
+
 --
--- Name: lead_follow_ups_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_follow_ups_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_follow_ups_id_seq
@@ -2082,15 +2298,17 @@ CREATE SEQUENCE public.lead_follow_ups_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_follow_ups_id_seq OWNER TO leads;
+
 --
--- Name: lead_follow_ups_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_follow_ups_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_follow_ups_id_seq OWNED BY public.lead_follow_ups.id;
 
 
 --
--- Name: lead_funnel_history; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_funnel_history; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_funnel_history (
@@ -2105,8 +2323,10 @@ CREATE TABLE public.lead_funnel_history (
 );
 
 
+ALTER TABLE public.lead_funnel_history OWNER TO leads;
+
 --
--- Name: lead_funnel_history_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_funnel_history_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_funnel_history_id_seq
@@ -2117,15 +2337,17 @@ CREATE SEQUENCE public.lead_funnel_history_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_funnel_history_id_seq OWNER TO leads;
+
 --
--- Name: lead_funnel_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_funnel_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_funnel_history_id_seq OWNED BY public.lead_funnel_history.id;
 
 
 --
--- Name: lead_icp_config; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_icp_config; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_icp_config (
@@ -2140,8 +2362,10 @@ CREATE TABLE public.lead_icp_config (
 );
 
 
+ALTER TABLE public.lead_icp_config OWNER TO leads;
+
 --
--- Name: lead_icp_config_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_icp_config_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_icp_config_id_seq
@@ -2152,15 +2376,17 @@ CREATE SEQUENCE public.lead_icp_config_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_icp_config_id_seq OWNER TO leads;
+
 --
--- Name: lead_icp_config_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_icp_config_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_icp_config_id_seq OWNED BY public.lead_icp_config.id;
 
 
 --
--- Name: lead_icp_matches; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_icp_matches; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_icp_matches (
@@ -2176,8 +2402,10 @@ CREATE TABLE public.lead_icp_matches (
 );
 
 
+ALTER TABLE public.lead_icp_matches OWNER TO leads;
+
 --
--- Name: lead_icp_matches_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_icp_matches_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_icp_matches_id_seq
@@ -2188,15 +2416,17 @@ CREATE SEQUENCE public.lead_icp_matches_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_icp_matches_id_seq OWNER TO leads;
+
 --
--- Name: lead_icp_matches_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_icp_matches_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_icp_matches_id_seq OWNED BY public.lead_icp_matches.id;
 
 
 --
--- Name: lead_meetings; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_meetings; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_meetings (
@@ -2216,8 +2446,10 @@ CREATE TABLE public.lead_meetings (
 );
 
 
+ALTER TABLE public.lead_meetings OWNER TO leads;
+
 --
--- Name: lead_meetings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_meetings_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_meetings_id_seq
@@ -2228,15 +2460,17 @@ CREATE SEQUENCE public.lead_meetings_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_meetings_id_seq OWNER TO leads;
+
 --
--- Name: lead_meetings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_meetings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_meetings_id_seq OWNED BY public.lead_meetings.id;
 
 
 --
--- Name: lead_outcomes; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_outcomes; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_outcomes (
@@ -2256,8 +2490,10 @@ CREATE TABLE public.lead_outcomes (
 );
 
 
+ALTER TABLE public.lead_outcomes OWNER TO leads;
+
 --
--- Name: lead_outcomes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_outcomes_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_outcomes_id_seq
@@ -2268,15 +2504,17 @@ CREATE SEQUENCE public.lead_outcomes_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_outcomes_id_seq OWNER TO leads;
+
 --
--- Name: lead_outcomes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_outcomes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_outcomes_id_seq OWNED BY public.lead_outcomes.id;
 
 
 --
--- Name: lead_prescriptions; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_prescriptions; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_prescriptions (
@@ -2294,8 +2532,10 @@ CREATE TABLE public.lead_prescriptions (
 );
 
 
+ALTER TABLE public.lead_prescriptions OWNER TO leads;
+
 --
--- Name: lead_prescriptions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_prescriptions_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_prescriptions_id_seq
@@ -2306,15 +2546,17 @@ CREATE SEQUENCE public.lead_prescriptions_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_prescriptions_id_seq OWNER TO leads;
+
 --
--- Name: lead_prescriptions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_prescriptions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_prescriptions_id_seq OWNED BY public.lead_prescriptions.id;
 
 
 --
--- Name: lead_product_match_runs; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_product_match_runs; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_product_match_runs (
@@ -2334,8 +2576,10 @@ CREATE TABLE public.lead_product_match_runs (
 );
 
 
+ALTER TABLE public.lead_product_match_runs OWNER TO leads;
+
 --
--- Name: lead_product_match_runs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_product_match_runs_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_product_match_runs_id_seq
@@ -2346,15 +2590,17 @@ CREATE SEQUENCE public.lead_product_match_runs_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_product_match_runs_id_seq OWNER TO leads;
+
 --
--- Name: lead_product_match_runs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_product_match_runs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_product_match_runs_id_seq OWNED BY public.lead_product_match_runs.id;
 
 
 --
--- Name: lead_product_matches; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_product_matches; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_product_matches (
@@ -2378,8 +2624,10 @@ CREATE TABLE public.lead_product_matches (
 );
 
 
+ALTER TABLE public.lead_product_matches OWNER TO leads;
+
 --
--- Name: lead_product_matches_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_product_matches_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_product_matches_id_seq
@@ -2390,15 +2638,17 @@ CREATE SEQUENCE public.lead_product_matches_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_product_matches_id_seq OWNER TO leads;
+
 --
--- Name: lead_product_matches_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_product_matches_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_product_matches_id_seq OWNED BY public.lead_product_matches.id;
 
 
 --
--- Name: lead_qualifications; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_qualifications; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_qualifications (
@@ -2423,8 +2673,10 @@ CREATE TABLE public.lead_qualifications (
 );
 
 
+ALTER TABLE public.lead_qualifications OWNER TO leads;
+
 --
--- Name: lead_qualifications_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_qualifications_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_qualifications_id_seq
@@ -2435,15 +2687,17 @@ CREATE SEQUENCE public.lead_qualifications_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_qualifications_id_seq OWNER TO leads;
+
 --
--- Name: lead_qualifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_qualifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_qualifications_id_seq OWNED BY public.lead_qualifications.id;
 
 
 --
--- Name: lead_revenue_analyses; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_revenue_analyses; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_revenue_analyses (
@@ -2471,8 +2725,10 @@ CREATE TABLE public.lead_revenue_analyses (
 );
 
 
+ALTER TABLE public.lead_revenue_analyses OWNER TO leads;
+
 --
--- Name: lead_revenue_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_revenue_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_revenue_analyses_id_seq
@@ -2483,15 +2739,17 @@ CREATE SEQUENCE public.lead_revenue_analyses_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_revenue_analyses_id_seq OWNER TO leads;
+
 --
--- Name: lead_revenue_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_revenue_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_revenue_analyses_id_seq OWNED BY public.lead_revenue_analyses.id;
 
 
 --
--- Name: lead_score_breakdowns; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_score_breakdowns; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_score_breakdowns (
@@ -2507,8 +2765,10 @@ CREATE TABLE public.lead_score_breakdowns (
 );
 
 
+ALTER TABLE public.lead_score_breakdowns OWNER TO leads;
+
 --
--- Name: lead_score_breakdowns_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_score_breakdowns_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_score_breakdowns_id_seq
@@ -2519,15 +2779,17 @@ CREATE SEQUENCE public.lead_score_breakdowns_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_score_breakdowns_id_seq OWNER TO leads;
+
 --
--- Name: lead_score_breakdowns_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_score_breakdowns_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_score_breakdowns_id_seq OWNED BY public.lead_score_breakdowns.id;
 
 
 --
--- Name: lead_scores; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_scores; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_scores (
@@ -2545,8 +2807,10 @@ CREATE TABLE public.lead_scores (
 );
 
 
+ALTER TABLE public.lead_scores OWNER TO leads;
+
 --
--- Name: lead_scores_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_scores_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_scores_id_seq
@@ -2557,15 +2821,17 @@ CREATE SEQUENCE public.lead_scores_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_scores_id_seq OWNER TO leads;
+
 --
--- Name: lead_scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_scores_id_seq OWNED BY public.lead_scores.id;
 
 
 --
--- Name: lead_source_types; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_source_types; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_source_types (
@@ -2580,8 +2846,10 @@ CREATE TABLE public.lead_source_types (
 );
 
 
+ALTER TABLE public.lead_source_types OWNER TO leads;
+
 --
--- Name: lead_source_types_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_source_types_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_source_types_id_seq
@@ -2592,15 +2860,17 @@ CREATE SEQUENCE public.lead_source_types_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_source_types_id_seq OWNER TO leads;
+
 --
--- Name: lead_source_types_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_source_types_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_source_types_id_seq OWNED BY public.lead_source_types.id;
 
 
 --
--- Name: lead_sources; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_sources; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_sources (
@@ -2618,8 +2888,10 @@ CREATE TABLE public.lead_sources (
 );
 
 
+ALTER TABLE public.lead_sources OWNER TO leads;
+
 --
--- Name: lead_sources_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_sources_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_sources_id_seq
@@ -2630,15 +2902,17 @@ CREATE SEQUENCE public.lead_sources_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_sources_id_seq OWNER TO leads;
+
 --
--- Name: lead_sources_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_sources_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_sources_id_seq OWNED BY public.lead_sources.id;
 
 
 --
--- Name: lead_transcripts; Type: TABLE; Schema: public; Owner: -
+-- Name: lead_transcripts; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.lead_transcripts (
@@ -2661,8 +2935,10 @@ CREATE TABLE public.lead_transcripts (
 );
 
 
+ALTER TABLE public.lead_transcripts OWNER TO leads;
+
 --
--- Name: lead_transcripts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: lead_transcripts_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.lead_transcripts_id_seq
@@ -2673,15 +2949,17 @@ CREATE SEQUENCE public.lead_transcripts_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.lead_transcripts_id_seq OWNER TO leads;
+
 --
--- Name: lead_transcripts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: lead_transcripts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.lead_transcripts_id_seq OWNED BY public.lead_transcripts.id;
 
 
 --
--- Name: leads; Type: TABLE; Schema: public; Owner: -
+-- Name: leads; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.leads (
@@ -2732,8 +3010,10 @@ CREATE TABLE public.leads (
 );
 
 
+ALTER TABLE public.leads OWNER TO leads;
+
 --
--- Name: leads_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: leads_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.leads_id_seq
@@ -2744,15 +3024,17 @@ CREATE SEQUENCE public.leads_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.leads_id_seq OWNER TO leads;
+
 --
--- Name: leads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: leads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.leads_id_seq OWNED BY public.leads.id;
 
 
 --
--- Name: map_candidates; Type: TABLE; Schema: public; Owner: -
+-- Name: map_candidates; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.map_candidates (
@@ -2776,8 +3058,10 @@ CREATE TABLE public.map_candidates (
 );
 
 
+ALTER TABLE public.map_candidates OWNER TO leads;
+
 --
--- Name: map_search_history; Type: TABLE; Schema: public; Owner: -
+-- Name: map_search_history; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.map_search_history (
@@ -2797,8 +3081,10 @@ CREATE TABLE public.map_search_history (
 );
 
 
+ALTER TABLE public.map_search_history OWNER TO leads;
+
 --
--- Name: map_search_history_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: map_search_history_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.map_search_history_id_seq
@@ -2809,15 +3095,17 @@ CREATE SEQUENCE public.map_search_history_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.map_search_history_id_seq OWNER TO leads;
+
 --
--- Name: map_search_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: map_search_history_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.map_search_history_id_seq OWNED BY public.map_search_history.id;
 
 
 --
--- Name: migrations; Type: TABLE; Schema: public; Owner: -
+-- Name: migrations; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.migrations (
@@ -2827,8 +3115,10 @@ CREATE TABLE public.migrations (
 );
 
 
+ALTER TABLE public.migrations OWNER TO leads;
+
 --
--- Name: migrations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: migrations_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.migrations_id_seq
@@ -2840,15 +3130,17 @@ CREATE SEQUENCE public.migrations_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.migrations_id_seq OWNER TO leads;
+
 --
--- Name: migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.migrations_id_seq OWNED BY public.migrations.id;
 
 
 --
--- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: -
+-- Name: password_reset_tokens; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.password_reset_tokens (
@@ -2858,8 +3150,10 @@ CREATE TABLE public.password_reset_tokens (
 );
 
 
+ALTER TABLE public.password_reset_tokens OWNER TO leads;
+
 --
--- Name: permissions; Type: TABLE; Schema: public; Owner: -
+-- Name: permissions; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.permissions (
@@ -2872,8 +3166,10 @@ CREATE TABLE public.permissions (
 );
 
 
+ALTER TABLE public.permissions OWNER TO leads;
+
 --
--- Name: permissions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: permissions_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.permissions_id_seq
@@ -2884,15 +3180,17 @@ CREATE SEQUENCE public.permissions_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.permissions_id_seq OWNER TO leads;
+
 --
--- Name: permissions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: permissions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.permissions_id_seq OWNED BY public.permissions.id;
 
 
 --
--- Name: personal_access_tokens; Type: TABLE; Schema: public; Owner: -
+-- Name: personal_access_tokens; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.personal_access_tokens (
@@ -2909,8 +3207,10 @@ CREATE TABLE public.personal_access_tokens (
 );
 
 
+ALTER TABLE public.personal_access_tokens OWNER TO leads;
+
 --
--- Name: personal_access_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: personal_access_tokens_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.personal_access_tokens_id_seq
@@ -2921,15 +3221,17 @@ CREATE SEQUENCE public.personal_access_tokens_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.personal_access_tokens_id_seq OWNER TO leads;
+
 --
--- Name: personal_access_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: personal_access_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.personal_access_tokens_id_seq OWNED BY public.personal_access_tokens.id;
 
 
 --
--- Name: product_questions; Type: TABLE; Schema: public; Owner: -
+-- Name: product_questions; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.product_questions (
@@ -2944,8 +3246,10 @@ CREATE TABLE public.product_questions (
 );
 
 
+ALTER TABLE public.product_questions OWNER TO leads;
+
 --
--- Name: product_questions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: product_questions_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.product_questions_id_seq
@@ -2956,15 +3260,17 @@ CREATE SEQUENCE public.product_questions_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.product_questions_id_seq OWNER TO leads;
+
 --
--- Name: product_questions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: product_questions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.product_questions_id_seq OWNED BY public.product_questions.id;
 
 
 --
--- Name: products; Type: TABLE; Schema: public; Owner: -
+-- Name: products; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.products (
@@ -2992,8 +3298,10 @@ CREATE TABLE public.products (
 );
 
 
+ALTER TABLE public.products OWNER TO leads;
+
 --
--- Name: products_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: products_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.products_id_seq
@@ -3004,15 +3312,17 @@ CREATE SEQUENCE public.products_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.products_id_seq OWNER TO leads;
+
 --
--- Name: products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.products_id_seq OWNED BY public.products.id;
 
 
 --
--- Name: qualification_parameter_options; Type: TABLE; Schema: public; Owner: -
+-- Name: qualification_parameter_options; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.qualification_parameter_options (
@@ -3029,8 +3339,10 @@ CREATE TABLE public.qualification_parameter_options (
 );
 
 
+ALTER TABLE public.qualification_parameter_options OWNER TO leads;
+
 --
--- Name: qualification_parameter_options_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: qualification_parameter_options_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.qualification_parameter_options_id_seq
@@ -3041,15 +3353,17 @@ CREATE SEQUENCE public.qualification_parameter_options_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.qualification_parameter_options_id_seq OWNER TO leads;
+
 --
--- Name: qualification_parameter_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: qualification_parameter_options_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.qualification_parameter_options_id_seq OWNED BY public.qualification_parameter_options.id;
 
 
 --
--- Name: qualification_parameter_sets; Type: TABLE; Schema: public; Owner: -
+-- Name: qualification_parameter_sets; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.qualification_parameter_sets (
@@ -3069,8 +3383,10 @@ CREATE TABLE public.qualification_parameter_sets (
 );
 
 
+ALTER TABLE public.qualification_parameter_sets OWNER TO leads;
+
 --
--- Name: qualification_parameter_sets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: qualification_parameter_sets_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.qualification_parameter_sets_id_seq
@@ -3081,15 +3397,17 @@ CREATE SEQUENCE public.qualification_parameter_sets_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.qualification_parameter_sets_id_seq OWNER TO leads;
+
 --
--- Name: qualification_parameter_sets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: qualification_parameter_sets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.qualification_parameter_sets_id_seq OWNED BY public.qualification_parameter_sets.id;
 
 
 --
--- Name: qualification_parameters; Type: TABLE; Schema: public; Owner: -
+-- Name: qualification_parameters; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.qualification_parameters (
@@ -3111,8 +3429,10 @@ CREATE TABLE public.qualification_parameters (
 );
 
 
+ALTER TABLE public.qualification_parameters OWNER TO leads;
+
 --
--- Name: qualification_parameters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: qualification_parameters_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.qualification_parameters_id_seq
@@ -3123,15 +3443,17 @@ CREATE SEQUENCE public.qualification_parameters_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.qualification_parameters_id_seq OWNER TO leads;
+
 --
--- Name: qualification_parameters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: qualification_parameters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.qualification_parameters_id_seq OWNED BY public.qualification_parameters.id;
 
 
 --
--- Name: qualification_workflow_reviews; Type: TABLE; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.qualification_workflow_reviews (
@@ -3162,8 +3484,10 @@ CREATE TABLE public.qualification_workflow_reviews (
 );
 
 
+ALTER TABLE public.qualification_workflow_reviews OWNER TO leads;
+
 --
--- Name: qualification_workflow_reviews_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.qualification_workflow_reviews_id_seq
@@ -3174,15 +3498,17 @@ CREATE SEQUENCE public.qualification_workflow_reviews_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.qualification_workflow_reviews_id_seq OWNER TO leads;
+
 --
--- Name: qualification_workflow_reviews_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.qualification_workflow_reviews_id_seq OWNED BY public.qualification_workflow_reviews.id;
 
 
 --
--- Name: qualification_workflow_stages; Type: TABLE; Schema: public; Owner: -
+-- Name: qualification_workflow_stages; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.qualification_workflow_stages (
@@ -3200,8 +3526,10 @@ CREATE TABLE public.qualification_workflow_stages (
 );
 
 
+ALTER TABLE public.qualification_workflow_stages OWNER TO leads;
+
 --
--- Name: qualification_workflow_stages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: qualification_workflow_stages_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.qualification_workflow_stages_id_seq
@@ -3212,15 +3540,17 @@ CREATE SEQUENCE public.qualification_workflow_stages_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.qualification_workflow_stages_id_seq OWNER TO leads;
+
 --
--- Name: qualification_workflow_stages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: qualification_workflow_stages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.qualification_workflow_stages_id_seq OWNED BY public.qualification_workflow_stages.id;
 
 
 --
--- Name: qualification_workflows; Type: TABLE; Schema: public; Owner: -
+-- Name: qualification_workflows; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.qualification_workflows (
@@ -3241,8 +3571,10 @@ CREATE TABLE public.qualification_workflows (
 );
 
 
+ALTER TABLE public.qualification_workflows OWNER TO leads;
+
 --
--- Name: qualification_workflows_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: qualification_workflows_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.qualification_workflows_id_seq
@@ -3253,15 +3585,17 @@ CREATE SEQUENCE public.qualification_workflows_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.qualification_workflows_id_seq OWNER TO leads;
+
 --
--- Name: qualification_workflows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: qualification_workflows_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.qualification_workflows_id_seq OWNED BY public.qualification_workflows.id;
 
 
 --
--- Name: record_origin_mappings; Type: TABLE; Schema: public; Owner: -
+-- Name: record_origin_mappings; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.record_origin_mappings (
@@ -3280,8 +3614,10 @@ CREATE TABLE public.record_origin_mappings (
 );
 
 
+ALTER TABLE public.record_origin_mappings OWNER TO leads;
+
 --
--- Name: record_origin_mappings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: record_origin_mappings_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.record_origin_mappings_id_seq
@@ -3292,15 +3628,17 @@ CREATE SEQUENCE public.record_origin_mappings_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.record_origin_mappings_id_seq OWNER TO leads;
+
 --
--- Name: record_origin_mappings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: record_origin_mappings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.record_origin_mappings_id_seq OWNED BY public.record_origin_mappings.id;
 
 
 --
--- Name: revenue_rules; Type: TABLE; Schema: public; Owner: -
+-- Name: revenue_rules; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.revenue_rules (
@@ -3320,8 +3658,10 @@ CREATE TABLE public.revenue_rules (
 );
 
 
+ALTER TABLE public.revenue_rules OWNER TO leads;
+
 --
--- Name: revenue_rules_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: revenue_rules_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.revenue_rules_id_seq
@@ -3332,15 +3672,17 @@ CREATE SEQUENCE public.revenue_rules_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.revenue_rules_id_seq OWNER TO leads;
+
 --
--- Name: revenue_rules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: revenue_rules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.revenue_rules_id_seq OWNED BY public.revenue_rules.id;
 
 
 --
--- Name: role_permission; Type: TABLE; Schema: public; Owner: -
+-- Name: role_permission; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.role_permission (
@@ -3350,8 +3692,10 @@ CREATE TABLE public.role_permission (
 );
 
 
+ALTER TABLE public.role_permission OWNER TO leads;
+
 --
--- Name: role_permission_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: role_permission_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.role_permission_id_seq
@@ -3362,15 +3706,17 @@ CREATE SEQUENCE public.role_permission_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.role_permission_id_seq OWNER TO leads;
+
 --
--- Name: role_permission_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: role_permission_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.role_permission_id_seq OWNED BY public.role_permission.id;
 
 
 --
--- Name: roles; Type: TABLE; Schema: public; Owner: -
+-- Name: roles; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.roles (
@@ -3384,8 +3730,10 @@ CREATE TABLE public.roles (
 );
 
 
+ALTER TABLE public.roles OWNER TO leads;
+
 --
--- Name: roles_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: roles_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.roles_id_seq
@@ -3396,15 +3744,17 @@ CREATE SEQUENCE public.roles_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.roles_id_seq OWNER TO leads;
+
 --
--- Name: roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: roles_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.roles_id_seq OWNED BY public.roles.id;
 
 
 --
--- Name: sales_visit_media; Type: TABLE; Schema: public; Owner: -
+-- Name: sales_visit_media; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.sales_visit_media (
@@ -3426,8 +3776,10 @@ CREATE TABLE public.sales_visit_media (
 );
 
 
+ALTER TABLE public.sales_visit_media OWNER TO leads;
+
 --
--- Name: sales_visit_media_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: sales_visit_media_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.sales_visit_media_id_seq
@@ -3438,15 +3790,17 @@ CREATE SEQUENCE public.sales_visit_media_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.sales_visit_media_id_seq OWNER TO leads;
+
 --
--- Name: sales_visit_media_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: sales_visit_media_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.sales_visit_media_id_seq OWNED BY public.sales_visit_media.id;
 
 
 --
--- Name: sales_visits; Type: TABLE; Schema: public; Owner: -
+-- Name: sales_visits; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.sales_visits (
@@ -3477,8 +3831,10 @@ CREATE TABLE public.sales_visits (
 );
 
 
+ALTER TABLE public.sales_visits OWNER TO leads;
+
 --
--- Name: sales_visits_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: sales_visits_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.sales_visits_id_seq
@@ -3489,15 +3845,17 @@ CREATE SEQUENCE public.sales_visits_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.sales_visits_id_seq OWNER TO leads;
+
 --
--- Name: sales_visits_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: sales_visits_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.sales_visits_id_seq OWNED BY public.sales_visits.id;
 
 
 --
--- Name: sessions; Type: TABLE; Schema: public; Owner: -
+-- Name: sessions; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.sessions (
@@ -3510,8 +3868,10 @@ CREATE TABLE public.sessions (
 );
 
 
+ALTER TABLE public.sessions OWNER TO leads;
+
 --
--- Name: sub_industries; Type: TABLE; Schema: public; Owner: -
+-- Name: sub_industries; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.sub_industries (
@@ -3526,8 +3886,10 @@ CREATE TABLE public.sub_industries (
 );
 
 
+ALTER TABLE public.sub_industries OWNER TO leads;
+
 --
--- Name: sub_industries_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: sub_industries_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.sub_industries_id_seq
@@ -3538,15 +3900,17 @@ CREATE SEQUENCE public.sub_industries_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.sub_industries_id_seq OWNER TO leads;
+
 --
--- Name: sub_industries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: sub_industries_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.sub_industries_id_seq OWNED BY public.sub_industries.id;
 
 
 --
--- Name: tenants; Type: TABLE; Schema: public; Owner: -
+-- Name: tenants; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.tenants (
@@ -3562,8 +3926,10 @@ CREATE TABLE public.tenants (
 );
 
 
+ALTER TABLE public.tenants OWNER TO leads;
+
 --
--- Name: tenants_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: tenants_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.tenants_id_seq
@@ -3574,15 +3940,17 @@ CREATE SEQUENCE public.tenants_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.tenants_id_seq OWNER TO leads;
+
 --
--- Name: tenants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: tenants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.tenants_id_seq OWNED BY public.tenants.id;
 
 
 --
--- Name: territories; Type: TABLE; Schema: public; Owner: -
+-- Name: territories; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.territories (
@@ -3599,8 +3967,10 @@ CREATE TABLE public.territories (
 );
 
 
+ALTER TABLE public.territories OWNER TO leads;
+
 --
--- Name: territories_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: territories_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.territories_id_seq
@@ -3611,15 +3981,17 @@ CREATE SEQUENCE public.territories_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.territories_id_seq OWNER TO leads;
+
 --
--- Name: territories_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: territories_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.territories_id_seq OWNED BY public.territories.id;
 
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: -
+-- Name: users; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.users (
@@ -3642,8 +4014,10 @@ CREATE TABLE public.users (
 );
 
 
+ALTER TABLE public.users OWNER TO leads;
+
 --
--- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.users_id_seq
@@ -3654,15 +4028,17 @@ CREATE SEQUENCE public.users_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.users_id_seq OWNER TO leads;
+
 --
--- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
--- Name: whatsapp_ai_analyses; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_ai_analyses; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.whatsapp_ai_analyses (
@@ -3678,8 +4054,10 @@ CREATE TABLE public.whatsapp_ai_analyses (
 );
 
 
+ALTER TABLE public.whatsapp_ai_analyses OWNER TO leads;
+
 --
--- Name: whatsapp_ai_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: whatsapp_ai_analyses_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.whatsapp_ai_analyses_id_seq
@@ -3690,15 +4068,17 @@ CREATE SEQUENCE public.whatsapp_ai_analyses_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.whatsapp_ai_analyses_id_seq OWNER TO leads;
+
 --
--- Name: whatsapp_ai_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: whatsapp_ai_analyses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.whatsapp_ai_analyses_id_seq OWNED BY public.whatsapp_ai_analyses.id;
 
 
 --
--- Name: whatsapp_campaign_recipients; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.whatsapp_campaign_recipients (
@@ -3714,8 +4094,10 @@ CREATE TABLE public.whatsapp_campaign_recipients (
 );
 
 
+ALTER TABLE public.whatsapp_campaign_recipients OWNER TO leads;
+
 --
--- Name: whatsapp_campaign_recipients_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.whatsapp_campaign_recipients_id_seq
@@ -3726,15 +4108,17 @@ CREATE SEQUENCE public.whatsapp_campaign_recipients_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.whatsapp_campaign_recipients_id_seq OWNER TO leads;
+
 --
--- Name: whatsapp_campaign_recipients_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.whatsapp_campaign_recipients_id_seq OWNED BY public.whatsapp_campaign_recipients.id;
 
 
 --
--- Name: whatsapp_campaigns; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_campaigns; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.whatsapp_campaigns (
@@ -3749,8 +4133,10 @@ CREATE TABLE public.whatsapp_campaigns (
 );
 
 
+ALTER TABLE public.whatsapp_campaigns OWNER TO leads;
+
 --
--- Name: whatsapp_campaigns_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: whatsapp_campaigns_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.whatsapp_campaigns_id_seq
@@ -3761,15 +4147,17 @@ CREATE SEQUENCE public.whatsapp_campaigns_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.whatsapp_campaigns_id_seq OWNER TO leads;
+
 --
--- Name: whatsapp_campaigns_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: whatsapp_campaigns_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.whatsapp_campaigns_id_seq OWNED BY public.whatsapp_campaigns.id;
 
 
 --
--- Name: whatsapp_contacts; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_contacts; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.whatsapp_contacts (
@@ -3785,8 +4173,10 @@ CREATE TABLE public.whatsapp_contacts (
 );
 
 
+ALTER TABLE public.whatsapp_contacts OWNER TO leads;
+
 --
--- Name: whatsapp_contacts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: whatsapp_contacts_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.whatsapp_contacts_id_seq
@@ -3797,15 +4187,17 @@ CREATE SEQUENCE public.whatsapp_contacts_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.whatsapp_contacts_id_seq OWNER TO leads;
+
 --
--- Name: whatsapp_contacts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: whatsapp_contacts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.whatsapp_contacts_id_seq OWNED BY public.whatsapp_contacts.id;
 
 
 --
--- Name: whatsapp_conversations; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_conversations; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.whatsapp_conversations (
@@ -3821,8 +4213,10 @@ CREATE TABLE public.whatsapp_conversations (
 );
 
 
+ALTER TABLE public.whatsapp_conversations OWNER TO leads;
+
 --
--- Name: whatsapp_conversations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: whatsapp_conversations_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.whatsapp_conversations_id_seq
@@ -3833,15 +4227,17 @@ CREATE SEQUENCE public.whatsapp_conversations_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.whatsapp_conversations_id_seq OWNER TO leads;
+
 --
--- Name: whatsapp_conversations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: whatsapp_conversations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.whatsapp_conversations_id_seq OWNED BY public.whatsapp_conversations.id;
 
 
 --
--- Name: whatsapp_messages; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_messages; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.whatsapp_messages (
@@ -3862,8 +4258,10 @@ CREATE TABLE public.whatsapp_messages (
 );
 
 
+ALTER TABLE public.whatsapp_messages OWNER TO leads;
+
 --
--- Name: whatsapp_messages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: whatsapp_messages_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.whatsapp_messages_id_seq
@@ -3874,15 +4272,17 @@ CREATE SEQUENCE public.whatsapp_messages_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.whatsapp_messages_id_seq OWNER TO leads;
+
 --
--- Name: whatsapp_messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: whatsapp_messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.whatsapp_messages_id_seq OWNED BY public.whatsapp_messages.id;
 
 
 --
--- Name: whatsapp_sessions; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_sessions; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.whatsapp_sessions (
@@ -3899,8 +4299,10 @@ CREATE TABLE public.whatsapp_sessions (
 );
 
 
+ALTER TABLE public.whatsapp_sessions OWNER TO leads;
+
 --
--- Name: whatsapp_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: whatsapp_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.whatsapp_sessions_id_seq
@@ -3911,15 +4313,17 @@ CREATE SEQUENCE public.whatsapp_sessions_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.whatsapp_sessions_id_seq OWNER TO leads;
+
 --
--- Name: whatsapp_sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: whatsapp_sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.whatsapp_sessions_id_seq OWNED BY public.whatsapp_sessions.id;
 
 
 --
--- Name: whatsapp_sync_rules; Type: TABLE; Schema: public; Owner: -
+-- Name: whatsapp_sync_rules; Type: TABLE; Schema: public; Owner: leads
 --
 
 CREATE TABLE public.whatsapp_sync_rules (
@@ -3933,8 +4337,10 @@ CREATE TABLE public.whatsapp_sync_rules (
 );
 
 
+ALTER TABLE public.whatsapp_sync_rules OWNER TO leads;
+
 --
--- Name: whatsapp_sync_rules_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: whatsapp_sync_rules_id_seq; Type: SEQUENCE; Schema: public; Owner: leads
 --
 
 CREATE SEQUENCE public.whatsapp_sync_rules_id_seq
@@ -3945,631 +4351,633 @@ CREATE SEQUENCE public.whatsapp_sync_rules_id_seq
     CACHE 1;
 
 
+ALTER TABLE public.whatsapp_sync_rules_id_seq OWNER TO leads;
+
 --
--- Name: whatsapp_sync_rules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: whatsapp_sync_rules_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: leads
 --
 
 ALTER SEQUENCE public.whatsapp_sync_rules_id_seq OWNED BY public.whatsapp_sync_rules.id;
 
 
 --
--- Name: ai_connection_tests id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: ai_connection_tests id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_connection_tests ALTER COLUMN id SET DEFAULT nextval('public.ai_connection_tests_id_seq'::regclass);
 
 
 --
--- Name: ai_feature_routes id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: ai_feature_routes id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_feature_routes ALTER COLUMN id SET DEFAULT nextval('public.ai_feature_routes_id_seq'::regclass);
 
 
 --
--- Name: ai_model_routes id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: ai_model_routes id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_model_routes ALTER COLUMN id SET DEFAULT nextval('public.ai_model_routes_id_seq'::regclass);
 
 
 --
--- Name: ai_models id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: ai_models id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_models ALTER COLUMN id SET DEFAULT nextval('public.ai_models_id_seq'::regclass);
 
 
 --
--- Name: ai_prompt_template_versions id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_template_versions ALTER COLUMN id SET DEFAULT nextval('public.ai_prompt_template_versions_id_seq'::regclass);
 
 
 --
--- Name: ai_prompt_templates id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: ai_prompt_templates id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_templates ALTER COLUMN id SET DEFAULT nextval('public.ai_prompt_templates_id_seq'::regclass);
 
 
 --
--- Name: ai_providers id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: ai_providers id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_providers ALTER COLUMN id SET DEFAULT nextval('public.ai_providers_id_seq'::regclass);
 
 
 --
--- Name: ai_requests id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: ai_requests id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_requests ALTER COLUMN id SET DEFAULT nextval('public.ai_requests_id_seq'::regclass);
 
 
 --
--- Name: audit_logs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: audit_logs id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.audit_logs ALTER COLUMN id SET DEFAULT nextval('public.audit_logs_id_seq'::regclass);
 
 
 --
--- Name: contact_enrichment_candidates id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.contact_enrichment_candidates ALTER COLUMN id SET DEFAULT nextval('public.contact_enrichment_candidates_id_seq'::regclass);
 
 
 --
--- Name: contact_sources id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: contact_sources id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.contact_sources ALTER COLUMN id SET DEFAULT nextval('public.contact_sources_id_seq'::regclass);
 
 
 --
--- Name: currencies id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: currencies id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.currencies ALTER COLUMN id SET DEFAULT nextval('public.currencies_id_seq'::regclass);
 
 
 --
--- Name: currency_settings id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: currency_settings id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.currency_settings ALTER COLUMN id SET DEFAULT nextval('public.currency_settings_id_seq'::regclass);
 
 
 --
--- Name: discovery_categories id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: discovery_categories id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.discovery_categories ALTER COLUMN id SET DEFAULT nextval('public.discovery_categories_id_seq'::regclass);
 
 
 --
--- Name: email_verification_otps id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: email_verification_otps id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.email_verification_otps ALTER COLUMN id SET DEFAULT nextval('public.email_verification_otps_id_seq'::regclass);
 
 
 --
--- Name: failed_jobs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: failed_jobs id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.failed_jobs ALTER COLUMN id SET DEFAULT nextval('public.failed_jobs_id_seq'::regclass);
 
 
 --
--- Name: funnel_stages id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: funnel_stages id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.funnel_stages ALTER COLUMN id SET DEFAULT nextval('public.funnel_stages_id_seq'::regclass);
 
 
 --
--- Name: geo_product_fit_analyses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.geo_product_fit_analyses ALTER COLUMN id SET DEFAULT nextval('public.geo_product_fit_analyses_id_seq'::regclass);
 
 
 --
--- Name: icp_profiles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: icp_profiles id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.icp_profiles ALTER COLUMN id SET DEFAULT nextval('public.icp_profiles_id_seq'::regclass);
 
 
 --
--- Name: industries id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: industries id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.industries ALTER COLUMN id SET DEFAULT nextval('public.industries_id_seq'::regclass);
 
 
 --
--- Name: integration_configs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: integration_configs id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_configs ALTER COLUMN id SET DEFAULT nextval('public.integration_configs_id_seq'::regclass);
 
 
 --
--- Name: integration_connections id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: integration_connections id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_connections ALTER COLUMN id SET DEFAULT nextval('public.integration_connections_id_seq'::regclass);
 
 
 --
--- Name: integration_credential_stores id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: integration_credential_stores id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_credential_stores ALTER COLUMN id SET DEFAULT nextval('public.integration_credential_stores_id_seq'::regclass);
 
 
 --
--- Name: integration_entity_mappings id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: integration_entity_mappings id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_entity_mappings ALTER COLUMN id SET DEFAULT nextval('public.integration_entity_mappings_id_seq'::regclass);
 
 
 --
--- Name: integration_webhook_events id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: integration_webhook_events id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_webhook_events ALTER COLUMN id SET DEFAULT nextval('public.integration_webhook_events_id_seq'::regclass);
 
 
 --
--- Name: jobs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: jobs id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.jobs ALTER COLUMN id SET DEFAULT nextval('public.jobs_id_seq'::regclass);
 
 
 --
--- Name: lark_base_record_mappings id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lark_base_record_mappings id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_record_mappings ALTER COLUMN id SET DEFAULT nextval('public.lark_base_record_mappings_id_seq'::regclass);
 
 
 --
--- Name: lark_base_tables id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lark_base_tables id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_tables ALTER COLUMN id SET DEFAULT nextval('public.lark_base_tables_id_seq'::regclass);
 
 
 --
--- Name: lark_events id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lark_events id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_events ALTER COLUMN id SET DEFAULT nextval('public.lark_events_id_seq'::regclass);
 
 
 --
--- Name: lark_integrations id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lark_integrations id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_integrations ALTER COLUMN id SET DEFAULT nextval('public.lark_integrations_id_seq'::regclass);
 
 
 --
--- Name: lark_sso_users id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lark_sso_users id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_sso_users ALTER COLUMN id SET DEFAULT nextval('public.lark_sso_users_id_seq'::regclass);
 
 
 --
--- Name: lark_syncs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lark_syncs id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_syncs ALTER COLUMN id SET DEFAULT nextval('public.lark_syncs_id_seq'::regclass);
 
 
 --
--- Name: lead_activities id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_activities id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_activities ALTER COLUMN id SET DEFAULT nextval('public.lead_activities_id_seq'::regclass);
 
 
 --
--- Name: lead_ai_analyses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_ai_analyses id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_ai_analyses ALTER COLUMN id SET DEFAULT nextval('public.lead_ai_analyses_id_seq'::regclass);
 
 
 --
--- Name: lead_ai_evaluations id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_ai_evaluations id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_ai_evaluations ALTER COLUMN id SET DEFAULT nextval('public.lead_ai_evaluations_id_seq'::regclass);
 
 
 --
--- Name: lead_analysis_logs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_analysis_logs id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_analysis_logs ALTER COLUMN id SET DEFAULT nextval('public.lead_analysis_logs_id_seq'::regclass);
 
 
 --
--- Name: lead_bantc_question_guides id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_bantc_question_guides ALTER COLUMN id SET DEFAULT nextval('public.lead_bantc_question_guides_id_seq'::regclass);
 
 
 --
--- Name: lead_channel_types id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_channel_types id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_channel_types ALTER COLUMN id SET DEFAULT nextval('public.lead_channel_types_id_seq'::regclass);
 
 
 --
--- Name: lead_contact_payloads id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_contact_payloads id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_contact_payloads ALTER COLUMN id SET DEFAULT nextval('public.lead_contact_payloads_id_seq'::regclass);
 
 
 --
--- Name: lead_contacts id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_contacts id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_contacts ALTER COLUMN id SET DEFAULT nextval('public.lead_contacts_id_seq'::regclass);
 
 
 --
--- Name: lead_conversion_predictions id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_conversion_predictions id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_conversion_predictions ALTER COLUMN id SET DEFAULT nextval('public.lead_conversion_predictions_id_seq'::regclass);
 
 
 --
--- Name: lead_follow_ups id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_follow_ups id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_follow_ups ALTER COLUMN id SET DEFAULT nextval('public.lead_follow_ups_id_seq'::regclass);
 
 
 --
--- Name: lead_funnel_history id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_funnel_history id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_funnel_history ALTER COLUMN id SET DEFAULT nextval('public.lead_funnel_history_id_seq'::regclass);
 
 
 --
--- Name: lead_icp_config id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_icp_config id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_icp_config ALTER COLUMN id SET DEFAULT nextval('public.lead_icp_config_id_seq'::regclass);
 
 
 --
--- Name: lead_icp_matches id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_icp_matches id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_icp_matches ALTER COLUMN id SET DEFAULT nextval('public.lead_icp_matches_id_seq'::regclass);
 
 
 --
--- Name: lead_meetings id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_meetings id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_meetings ALTER COLUMN id SET DEFAULT nextval('public.lead_meetings_id_seq'::regclass);
 
 
 --
--- Name: lead_outcomes id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_outcomes id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_outcomes ALTER COLUMN id SET DEFAULT nextval('public.lead_outcomes_id_seq'::regclass);
 
 
 --
--- Name: lead_prescriptions id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_prescriptions id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_prescriptions ALTER COLUMN id SET DEFAULT nextval('public.lead_prescriptions_id_seq'::regclass);
 
 
 --
--- Name: lead_product_match_runs id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_product_match_runs id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_product_match_runs ALTER COLUMN id SET DEFAULT nextval('public.lead_product_match_runs_id_seq'::regclass);
 
 
 --
--- Name: lead_product_matches id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_product_matches id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_product_matches ALTER COLUMN id SET DEFAULT nextval('public.lead_product_matches_id_seq'::regclass);
 
 
 --
--- Name: lead_qualifications id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_qualifications id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_qualifications ALTER COLUMN id SET DEFAULT nextval('public.lead_qualifications_id_seq'::regclass);
 
 
 --
--- Name: lead_revenue_analyses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_revenue_analyses id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_revenue_analyses ALTER COLUMN id SET DEFAULT nextval('public.lead_revenue_analyses_id_seq'::regclass);
 
 
 --
--- Name: lead_score_breakdowns id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_score_breakdowns id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_score_breakdowns ALTER COLUMN id SET DEFAULT nextval('public.lead_score_breakdowns_id_seq'::regclass);
 
 
 --
--- Name: lead_scores id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_scores id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_scores ALTER COLUMN id SET DEFAULT nextval('public.lead_scores_id_seq'::regclass);
 
 
 --
--- Name: lead_source_types id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_source_types id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_source_types ALTER COLUMN id SET DEFAULT nextval('public.lead_source_types_id_seq'::regclass);
 
 
 --
--- Name: lead_sources id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_sources id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_sources ALTER COLUMN id SET DEFAULT nextval('public.lead_sources_id_seq'::regclass);
 
 
 --
--- Name: lead_transcripts id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: lead_transcripts id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_transcripts ALTER COLUMN id SET DEFAULT nextval('public.lead_transcripts_id_seq'::regclass);
 
 
 --
--- Name: leads id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: leads id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads ALTER COLUMN id SET DEFAULT nextval('public.leads_id_seq'::regclass);
 
 
 --
--- Name: map_search_history id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: map_search_history id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.map_search_history ALTER COLUMN id SET DEFAULT nextval('public.map_search_history_id_seq'::regclass);
 
 
 --
--- Name: migrations id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: migrations id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.migrations ALTER COLUMN id SET DEFAULT nextval('public.migrations_id_seq'::regclass);
 
 
 --
--- Name: permissions id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: permissions id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.permissions ALTER COLUMN id SET DEFAULT nextval('public.permissions_id_seq'::regclass);
 
 
 --
--- Name: personal_access_tokens id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: personal_access_tokens id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.personal_access_tokens ALTER COLUMN id SET DEFAULT nextval('public.personal_access_tokens_id_seq'::regclass);
 
 
 --
--- Name: product_questions id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: product_questions id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.product_questions ALTER COLUMN id SET DEFAULT nextval('public.product_questions_id_seq'::regclass);
 
 
 --
--- Name: products id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: products id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.products ALTER COLUMN id SET DEFAULT nextval('public.products_id_seq'::regclass);
 
 
 --
--- Name: qualification_parameter_options id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: qualification_parameter_options id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_options ALTER COLUMN id SET DEFAULT nextval('public.qualification_parameter_options_id_seq'::regclass);
 
 
 --
--- Name: qualification_parameter_sets id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: qualification_parameter_sets id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_sets ALTER COLUMN id SET DEFAULT nextval('public.qualification_parameter_sets_id_seq'::regclass);
 
 
 --
--- Name: qualification_parameters id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: qualification_parameters id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameters ALTER COLUMN id SET DEFAULT nextval('public.qualification_parameters_id_seq'::regclass);
 
 
 --
--- Name: qualification_workflow_reviews id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_reviews ALTER COLUMN id SET DEFAULT nextval('public.qualification_workflow_reviews_id_seq'::regclass);
 
 
 --
--- Name: qualification_workflow_stages id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: qualification_workflow_stages id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_stages ALTER COLUMN id SET DEFAULT nextval('public.qualification_workflow_stages_id_seq'::regclass);
 
 
 --
--- Name: qualification_workflows id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: qualification_workflows id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflows ALTER COLUMN id SET DEFAULT nextval('public.qualification_workflows_id_seq'::regclass);
 
 
 --
--- Name: record_origin_mappings id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: record_origin_mappings id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.record_origin_mappings ALTER COLUMN id SET DEFAULT nextval('public.record_origin_mappings_id_seq'::regclass);
 
 
 --
--- Name: revenue_rules id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: revenue_rules id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.revenue_rules ALTER COLUMN id SET DEFAULT nextval('public.revenue_rules_id_seq'::regclass);
 
 
 --
--- Name: role_permission id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: role_permission id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.role_permission ALTER COLUMN id SET DEFAULT nextval('public.role_permission_id_seq'::regclass);
 
 
 --
--- Name: roles id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: roles id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.roles ALTER COLUMN id SET DEFAULT nextval('public.roles_id_seq'::regclass);
 
 
 --
--- Name: sales_visit_media id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: sales_visit_media id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sales_visit_media ALTER COLUMN id SET DEFAULT nextval('public.sales_visit_media_id_seq'::regclass);
 
 
 --
--- Name: sales_visits id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: sales_visits id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sales_visits ALTER COLUMN id SET DEFAULT nextval('public.sales_visits_id_seq'::regclass);
 
 
 --
--- Name: sub_industries id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: sub_industries id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sub_industries ALTER COLUMN id SET DEFAULT nextval('public.sub_industries_id_seq'::regclass);
 
 
 --
--- Name: tenants id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: tenants id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.tenants ALTER COLUMN id SET DEFAULT nextval('public.tenants_id_seq'::regclass);
 
 
 --
--- Name: territories id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: territories id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.territories ALTER COLUMN id SET DEFAULT nextval('public.territories_id_seq'::regclass);
 
 
 --
--- Name: users id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: users id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
 
 
 --
--- Name: whatsapp_ai_analyses id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: whatsapp_ai_analyses id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_ai_analyses ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_ai_analyses_id_seq'::regclass);
 
 
 --
--- Name: whatsapp_campaign_recipients id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_campaign_recipients ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_campaign_recipients_id_seq'::regclass);
 
 
 --
--- Name: whatsapp_campaigns id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: whatsapp_campaigns id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_campaigns ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_campaigns_id_seq'::regclass);
 
 
 --
--- Name: whatsapp_contacts id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: whatsapp_contacts id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_contacts ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_contacts_id_seq'::regclass);
 
 
 --
--- Name: whatsapp_conversations id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: whatsapp_conversations id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_conversations ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_conversations_id_seq'::regclass);
 
 
 --
--- Name: whatsapp_messages id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: whatsapp_messages id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_messages ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_messages_id_seq'::regclass);
 
 
 --
--- Name: whatsapp_sessions id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: whatsapp_sessions id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_sessions ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_sessions_id_seq'::regclass);
 
 
 --
--- Name: whatsapp_sync_rules id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: whatsapp_sync_rules id; Type: DEFAULT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_sync_rules ALTER COLUMN id SET DEFAULT nextval('public.whatsapp_sync_rules_id_seq'::regclass);
 
 
 --
--- Data for Name: ai_parameter_suggestions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: ai_parameter_suggestions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.ai_parameter_suggestions (id, product_id, suggested_name, suggested_key, description, reasoning, status, created_at) FROM stdin;
@@ -4585,7 +4993,7 @@ fb372a74-4db0-4328-918c-96f78bcd4ac4	1e23148a-af5c-410e-ba24-d3dd367372c7	Need f
 
 
 --
--- Data for Name: ai_provider_settings; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: ai_provider_settings; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.ai_provider_settings (id, user_id, provider_name, model_name, api_key_encrypted, base_url, is_active, validation_status, last_validated_at, created_at, updated_at, updated_by) FROM stdin;
@@ -4594,7 +5002,7 @@ cf3e795a-6219-4b06-acdd-6a3a3d4c2054	072db61f-4708-44c7-8e3d-f06de866de31	OpenAI
 
 
 --
--- Data for Name: audit_logs; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: audit_logs; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.audit_logs (id, user_id, entity_type, entity_id, action, changes, ip_address, created_at) FROM stdin;
@@ -4611,7 +5019,7 @@ ee725bd8-adce-471e-80ca-0788f1ab8009	072db61f-4708-44c7-8e3d-f06de866de31	Lead	1
 
 
 --
--- Data for Name: evaluation_overrides; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: evaluation_overrides; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.evaluation_overrides (id, evaluation_id, original_status, new_status, justification, overridden_by, created_at) FROM stdin;
@@ -4619,7 +5027,7 @@ COPY legacy_mgmt.evaluation_overrides (id, evaluation_id, original_status, new_s
 
 
 --
--- Data for Name: lead_activities; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: lead_activities; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.lead_activities (id, lead_id, user_id, type, title, description, metadata, created_at) FROM stdin;
@@ -4628,7 +5036,7 @@ COPY legacy_mgmt.lead_activities (id, lead_id, user_id, type, title, description
 
 
 --
--- Data for Name: lead_evaluations; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: lead_evaluations; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.lead_evaluations (id, lead_id, total_score, status, dimension_scores, reasoning, risk_flags, recommendation, recommended_product_id, confidence_score, estimated_closing_days, hard_stop_triggered, hard_stop_rule, evaluated_by, evaluated_at, is_latest, created_at) FROM stdin;
@@ -4637,7 +5045,7 @@ e404bfa5-bd4b-497e-a7dd-70da70191fcb	1144dba7-087f-472e-91ca-3ebc14745325	88.10	
 
 
 --
--- Data for Name: lead_scores; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: lead_scores; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.lead_scores (id, lead_id, evaluation_id, parameter_id, option_id, raw_value, points, reasoning, created_at) FROM stdin;
@@ -4659,7 +5067,7 @@ c2c43a73-2bb3-4f68-8bec-c7f4a0d83291	1144dba7-087f-472e-91ca-3ebc14745325	e404bf
 
 
 --
--- Data for Name: lead_sources; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: lead_sources; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.lead_sources (id, name, description, is_active, created_at) FROM stdin;
@@ -4674,7 +5082,7 @@ a5b4dbca-52bd-4d17-8836-3e28820fffaa	Event	Event source	t	2026-04-13 14:43:37.60
 
 
 --
--- Data for Name: leads; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: leads; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.leads (id, company_name, contact_name, contact_email, contact_phone, company_size, industry, annual_revenue, geography, source_id, status, notes, metadata, created_by, tenant_id, created_at, updated_at, deleted_at) FROM stdin;
@@ -4684,7 +5092,7 @@ COPY legacy_mgmt.leads (id, company_name, contact_name, contact_email, contact_p
 
 
 --
--- Data for Name: parameter_options; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: parameter_options; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.parameter_options (id, parameter_id, label, value, points, sort_order, is_active, created_at) FROM stdin;
@@ -4739,7 +5147,7 @@ cf9e7f39-ed1e-44ef-85d9-262b48058f44	d10265d8-8081-456d-a837-8bef86a743c8	Modera
 
 
 --
--- Data for Name: parameters; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: parameters; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.parameters (id, dimension_id, product_id, name, key, description, data_type, is_required, is_active, sort_order, created_at, updated_at) FROM stdin;
@@ -4764,7 +5172,7 @@ d10265d8-8081-456d-a837-8bef86a743c8	8760b5f8-caf6-4895-af8f-0d009a2584c5	\N	Int
 
 
 --
--- Data for Name: product_questions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: product_questions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.product_questions (id, product_id, question_text, expected_intent, sort_order) FROM stdin;
@@ -4772,7 +5180,7 @@ COPY legacy_mgmt.product_questions (id, product_id, question_text, expected_inte
 
 
 --
--- Data for Name: products; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: products; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.products (id, name, category, description, reference_link, attachment_url, is_active, base_closing_days, created_at, updated_at) FROM stdin;
@@ -4781,7 +5189,7 @@ COPY legacy_mgmt.products (id, name, category, description, reference_link, atta
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: roles; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.roles (id, name, description, permissions, created_at, updated_at) FROM stdin;
@@ -4793,7 +5201,7 @@ d25d56e0-eca1-4e6b-8092-f68b871b3112	analyst	Lead analyst with evaluation capabi
 
 
 --
--- Data for Name: scoring_dimensions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: scoring_dimensions; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.scoring_dimensions (id, name, key, description, weight, sort_order, is_active, created_at, updated_at) FROM stdin;
@@ -4806,7 +5214,7 @@ fbfa44bc-7a8b-4c20-8c2c-c5cce76f76d6	Budget & Commercial Readiness	budget_commer
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: legacy_mgmt; Owner: -
+-- Data for Name: users; Type: TABLE DATA; Schema: legacy_mgmt; Owner: leads
 --
 
 COPY legacy_mgmt.users (id, email, password_hash, full_name, role_id, is_active, tenant_id, created_at, updated_at, deleted_at) FROM stdin;
@@ -4815,7 +5223,7 @@ COPY legacy_mgmt.users (id, email, password_hash, full_name, role_id, is_active,
 
 
 --
--- Data for Name: ai_connection_tests; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_connection_tests; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_status, latency_ms, message, response_metadata, created_at, updated_at) FROM stdin;
@@ -4839,7 +5247,7 @@ COPY public.ai_connection_tests (id, ai_provider_id, tested_by, success, http_st
 
 
 --
--- Data for Name: ai_feature_routes; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_feature_routes; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.ai_feature_routes (id, feature_name, ai_model_id, priority, max_retries, timeout_seconds, cost_sensitivity, is_active, created_at, updated_at, cache_ttl_minutes, max_tokens, complexity_mode) FROM stdin;
@@ -4881,11 +5289,13 @@ COPY public.ai_feature_routes (id, feature_name, ai_model_id, priority, max_retr
 124	lead_bantc_question_generation	17	2	1	45	low	t	2026-05-30 04:02:21	2026-05-30 04:02:21	\N	\N	standard
 125	lead_contact_google_search_keyword	19	1	1	30	balanced	t	2026-05-30 04:02:31	2026-05-30 04:02:31	\N	\N	standard
 126	lead_contact_google_search_keyword	17	2	1	30	balanced	t	2026-05-30 04:02:31	2026-05-30 04:02:31	\N	\N	standard
+131	dashboard_ai_insight	28	1	1	45	medium	t	2026-05-30 13:08:52	2026-05-30 13:08:52	\N	\N	standard
+132	dashboard_ai_insight	24	2	1	45	low	t	2026-05-30 13:08:52	2026-05-30 13:08:52	\N	\N	standard
 \.
 
 
 --
--- Data for Name: ai_model_routes; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_model_routes; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.ai_model_routes (id, function_name, primary_model_id, fallback_model_id, retry_count, timeout_seconds, is_active, created_at, updated_at) FROM stdin;
@@ -4893,7 +5303,7 @@ COPY public.ai_model_routes (id, function_name, primary_model_id, fallback_model
 
 
 --
--- Data for Name: ai_models; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_models; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.ai_models (id, ai_provider_id, name, context_window, capabilities, cost_tier, default_usage_type, status, created_at, updated_at) FROM stdin;
@@ -4925,7 +5335,7 @@ COPY public.ai_models (id, ai_provider_id, name, context_window, capabilities, c
 
 
 --
--- Data for Name: ai_prompt_template_versions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_prompt_template_versions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.ai_prompt_template_versions (id, ai_prompt_template_id, version, content, is_active, is_enabled, created_by, activated_by, activated_at, created_at, updated_at) FROM stdin;
@@ -4969,7 +5379,7 @@ COPY public.ai_prompt_template_versions (id, ai_prompt_template_id, version, con
 
 
 --
--- Data for Name: ai_prompt_templates; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_prompt_templates; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.ai_prompt_templates (id, feature_name, template_name, description, is_active, created_by, updated_by, active_version_id, created_at, updated_at) FROM stdin;
@@ -4997,18 +5407,18 @@ COPY public.ai_prompt_templates (id, feature_name, template_name, description, i
 
 
 --
--- Data for Name: ai_providers; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_providers; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.ai_providers (id, name, slug, base_url, api_key_encrypted, organization_id, region, status, environments, created_at, updated_at, provider_type, api_key_last4, project_id, default_model, timeout_seconds, retry_limit, max_tokens_default, cache_ttl_minutes, cost_sensitivity, last_tested_at, last_test_status, last_test_message, last_used_at, last_used_model) FROM stdin;
 2	Anthropic	anthropic	https://api.anthropic.com/v1	eyJpdiI6IjNOQktVdFVBeXU1SWNSMlhRVnJkOXc9PSIsInZhbHVlIjoieUdIZHhzWlZYVVNlMHZ6M01FNHV2aHIzSjk5bDFKWmd6QjRrNmVPRXJ6RmxzWEdNZ1laaFhhclNPUzZxbGdKcTNUVHY0Rm00MXdWNkhSdXBUdFhjclZoWUdpM2lobzUzaFIva2R4KzBia2svcVhpZ1lWblNIV2hvUmZQVDNjL2VTb0Jhb3VSTjRCU0NHWTc4YVFkUkNrODBLczVMWVhPeUh3b3llMm8ralUzUkhBL1hDZ29IU2g3MjU1aHVpMGkwQXVmN0ZDZVFTVHFQcitxVnNZZCtkOEVobEpYeW1FTU1SNnU0Z2VuS3VWWURkTEV3Y2ZMb3dacHZ1UW5aNVYzTENKYUtMT1BGbVAycElIbTYwNzU4bzZicHcvWVdFbDF5NzJzaDFtOU5CRGlobnc5QkdJazVkQWdRbmNqQ0t2d3NUUGZEVjg4a3pSRko0OTF6UEZidEJnbmVnYWRHSXlVMnYrSzRFUWVDWGZocGdtZ2JsTDkvU1NBUHo0dmNHUVY1V1hzSlVIU0o0MjBmL2k3R3lQK1drYTlJR2VnMTNPd1NSdG1YNUZURStrWWlZUlZ5dTJVVy94dE0xNThWdk9OWTJ6NFFCbHU4MGhJUk52NVZPN1VOU2wwWjlRblJrMVRGZXhXVEoyTkc2Znh3OW1teGF3QlgyQ1FYcWFsRUplUXo1UGdGMjhvUmc5S0N1ZGFYTTRkdURjajRpK1VjOUxrRktuZDcxRld6U1NXcXIzbUlud29JYW5xQ0hQV1k3UTR3ZFdJQnNXMmh5Ukt1VVRXZThWeGFhYkRkOXdmYTZPSWo0OTFQRng1dE41L3VhSGlHZ2U0UDVHdXhYZWVtN1VTdVpFVXY4TDdTR25DS21IT0lXVndHb0VSTFMzRi8rR0hKRTVVc2h6VFFLV2FXZEdqU2dVdTF1NWJRWWxXUUF0OFIwcDhvekdTeDNVM0VjT0Fyd3ZxT2JQaUR6dUtkSmdrbTZWNDRtdHoyUGwzWVp1eEtocElnSDhxVHdncWdaWXNIV3FpTHR2UVhNT2JQZGd5SHM1QkVLVVFYVTJFaWc1SzdRQ3VHQ0tGd1hBRTlVU29mUnhJWGpuOERzd0c4Z0wxTHpFcXJFNG8zM2tKTHVoNmNpclBoU2R3U1FoRjExOG4zc1M1ZmpTd204dVFNVUxIdGdEcTZDOVBMTm10dk9IMWIiLCJtYWMiOiI3OTNmNmVmNWMwZDM3NzQ2MjEyYThmNmQwOTI3YjlkYjRkYjc3OGZlNjUwZTk0MDMwZjEwZTcxZjVjMjkxNzUzIiwidGFnIjoiIn0=	\N	\N	inactive	\N	2026-04-20 14:35:47	2026-05-25 09:04:49	anthropic	fQ==	\N	claude-sonnet-4-20250514	30	1	\N	\N	balanced	\N	\N	\N	\N	\N
 3	Google Gemini	google	https://generativelanguage.googleapis.com/v1beta	eyJpdiI6ImxaU1FYN1E4cDlEVWZuVyt0cE1UeUE9PSIsInZhbHVlIjoic0lCNFJ2RDB5bmNSMlp5bHVicVpYeDdjc0R3d0UyTGVZZGNpZEIvWmNwZHpGdCtBK3RIVCtmZlcvUXg3RlQ5YSIsIm1hYyI6ImVjNjAxMDdlMjgxNmUwZjA0MjJjMDgwMGRkZjg4ZDNlYzUxOWFiMTAwZmY0ODc5NWQ5MzQ0ODJjZTk0ZDljYWEiLCJ0YWciOiIifQ==	\N	\N	active	\N	2026-04-20 14:35:47	2026-05-30 04:00:23	gemini	garA	\N	gemini-2.5-flash	30	1	\N	\N	balanced	2026-05-30 04:00:23	success	Connection successful	2026-05-19 14:43:39	gemini-2.0-flash
-1	OpenAI	openai	https://api.openai.com/v1	eyJpdiI6ImdjM2JMQkU5Q1NPcWhUYnBIQVVUQ0E9PSIsInZhbHVlIjoiQUxMZnk4VzVhdzNLei9QZHFvWi9xUG9mNUt0SmpwdlBmUkZSM1Q4OTl3Ymx4MGtCZzhkM0F1L1pNcWI1VGtMc1RLQlZLQzJYZkhFZ3B5MkE2T09qMk5RYU5SSi9WMnZnWlZUWGJsZy8reWRIaS8rcVVBbkszTWJNUmUvU3NqbWJHWnpMTHB2WnhSQ3dETlBtY29EYlp1aU9jOWlQOXQ4eWhnM2p4M3JTdUlLalc1RTh2SXYxZ0ZTRjRQM2YrclhTWTRSNG5EOGdod3VqSTNnTzlOeUg4VlpJT1lYYXN3RklHKy9wL3NGSEk4TT0iLCJtYWMiOiJiMGRkMDBlNTFmMzUxNzYyNjFlOTE4NzFiY2RmYTg1NjEyMjc2MGE5YWRlMjBiNTQ3YTM3M2I2NThlZDIzYmNkIiwidGFnIjoiIn0=	\N	\N	active	\N	2026-04-20 14:35:47	2026-05-30 04:23:04	openai	o8MA	\N	gpt-5.1	30	1	\N	\N	balanced	2026-05-30 04:00:07	success	Connection successful	2026-05-30 04:23:04	gpt-5.1
+1	OpenAI	openai	https://api.openai.com/v1	eyJpdiI6ImdjM2JMQkU5Q1NPcWhUYnBIQVVUQ0E9PSIsInZhbHVlIjoiQUxMZnk4VzVhdzNLei9QZHFvWi9xUG9mNUt0SmpwdlBmUkZSM1Q4OTl3Ymx4MGtCZzhkM0F1L1pNcWI1VGtMc1RLQlZLQzJYZkhFZ3B5MkE2T09qMk5RYU5SSi9WMnZnWlZUWGJsZy8reWRIaS8rcVVBbkszTWJNUmUvU3NqbWJHWnpMTHB2WnhSQ3dETlBtY29EYlp1aU9jOWlQOXQ4eWhnM2p4M3JTdUlLalc1RTh2SXYxZ0ZTRjRQM2YrclhTWTRSNG5EOGdod3VqSTNnTzlOeUg4VlpJT1lYYXN3RklHKy9wL3NGSEk4TT0iLCJtYWMiOiJiMGRkMDBlNTFmMzUxNzYyNjFlOTE4NzFiY2RmYTg1NjEyMjc2MGE5YWRlMjBiNTQ3YTM3M2I2NThlZDIzYmNkIiwidGFnIjoiIn0=	\N	\N	active	\N	2026-04-20 14:35:47	2026-05-30 13:10:17	openai	o8MA	\N	gpt-5.1	30	1	\N	\N	balanced	2026-05-30 04:00:07	success	Connection successful	2026-05-30 13:10:17	gpt-4.1-mini
 \.
 
 
 --
--- Data for Name: ai_requests; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: ai_requests; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadata, response_metadata, prompt_tokens, completion_tokens, estimated_cost_usd, latency_ms, status, error_message, created_at, updated_at, fallback_used) FROM stdin;
@@ -5254,11 +5664,12 @@ COPY public.ai_requests (id, ai_model_id, user_id, function_name, prompt_metadat
 240	19	2	revenue_intelligence_analysis	\N	\N	679	699	0.013880	8570	success	\N	2026-05-30 04:15:19	2026-05-30 04:15:19	f
 241	19	2	lead_bantc_question_generation	\N	\N	773	1076	0.020005	8012	success	\N	2026-05-30 04:15:32	2026-05-30 04:15:32	f
 242	19	2	qualification_analysis	\N	\N	296	95	0.002905	2213	success	\N	2026-05-30 04:23:04	2026-05-30 04:23:04	f
+243	24	2	dashboard_ai_insight	\N	\N	1091	496	0.010713	10064	success	\N	2026-05-30 13:10:17	2026-05-30 13:10:17	f
 \.
 
 
 --
--- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.audit_logs (id, user_id, action, module, record_type, record_id, before_value, after_value, ip_address, user_agent, created_at, updated_at, request_method, route_path, status, metadata_json, tenant_id) FROM stdin;
@@ -6286,7 +6697,7 @@ COPY public.audit_logs (id, user_id, action, module, record_type, record_id, bef
 
 
 --
--- Data for Name: cache; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: cache; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.cache (key, value, expiration) FROM stdin;
@@ -6294,7 +6705,7 @@ COPY public.cache (key, value, expiration) FROM stdin;
 
 
 --
--- Data for Name: cache_locks; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: cache_locks; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.cache_locks (key, owner, expiration) FROM stdin;
@@ -6302,7 +6713,7 @@ COPY public.cache_locks (key, owner, expiration) FROM stdin;
 
 
 --
--- Data for Name: contact_enrichment_candidates; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: contact_enrichment_candidates; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.contact_enrichment_candidates (id, lead_id, created_by, provider, provider_candidate_id, name, title, company_name, company_domain, has_email, has_phone, reveal_email_credits, reveal_phone_credits, status, raw_preview, raw_reveal, expires_at, revealed_at, created_at, updated_at) FROM stdin;
@@ -6311,7 +6722,7 @@ COPY public.contact_enrichment_candidates (id, lead_id, created_by, provider, pr
 
 
 --
--- Data for Name: contact_sources; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: contact_sources; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.contact_sources (id, name, is_active, created_at, updated_at) FROM stdin;
@@ -6326,7 +6737,7 @@ COPY public.contact_sources (id, name, is_active, created_at, updated_at) FROM s
 
 
 --
--- Data for Name: currencies; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: currencies; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.currencies (id, code, name, symbol, minor_unit, is_active, created_at, updated_at) FROM stdin;
@@ -6488,7 +6899,7 @@ COPY public.currencies (id, code, name, symbol, minor_unit, is_active, created_a
 
 
 --
--- Data for Name: currency_settings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: currency_settings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.currency_settings (id, tenant_id, currency_id, thousands_separator, decimal_separator, decimal_digits, symbol_position, space_between_symbol, created_at, updated_at) FROM stdin;
@@ -6498,7 +6909,7 @@ COPY public.currency_settings (id, tenant_id, currency_id, thousands_separator, 
 
 
 --
--- Data for Name: discovery_categories; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: discovery_categories; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.discovery_categories (id, label, value, sort_order, is_active, created_at, updated_at) FROM stdin;
@@ -6520,7 +6931,7 @@ COPY public.discovery_categories (id, label, value, sort_order, is_active, creat
 
 
 --
--- Data for Name: email_verification_otps; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: email_verification_otps; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.email_verification_otps (id, email, otp, expires_at, used_at, created_at, updated_at) FROM stdin;
@@ -6529,7 +6940,7 @@ COPY public.email_verification_otps (id, email, otp, expires_at, used_at, create
 
 
 --
--- Data for Name: failed_jobs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: failed_jobs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.failed_jobs (id, uuid, connection, queue, payload, exception, failed_at) FROM stdin;
@@ -6537,7 +6948,7 @@ COPY public.failed_jobs (id, uuid, connection, queue, payload, exception, failed
 
 
 --
--- Data for Name: funnel_stages; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: funnel_stages; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.funnel_stages (id, name, sequence, color, probability, is_active, created_at, updated_at) FROM stdin;
@@ -6556,7 +6967,7 @@ COPY public.funnel_stages (id, name, sequence, color, probability, is_active, cr
 
 
 --
--- Data for Name: geo_product_fit_analyses; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: geo_product_fit_analyses; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.geo_product_fit_analyses (id, place_id, product_id, lead_id, fit_score, fit_level, confidence_score, reasoning, matched_signals, missing_information, risk_flags, recommended_approach, recommended_next_action, potential_use_case, pre_fit_score, analyzed_with_ai, ai_provider_used, ai_model_used, source_payload_hash, product_payload_hash, analyzed_at, created_by, created_at, updated_at) FROM stdin;
@@ -6890,7 +7301,7 @@ COPY public.geo_product_fit_analyses (id, place_id, product_id, lead_id, fit_sco
 
 
 --
--- Data for Name: icp_profiles; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: icp_profiles; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.icp_profiles (id, name, description, target_industries, target_company_sizes, target_territories, min_lead_score, required_fields, weight_lead_score, weight_industry, weight_company_size, weight_territory, weight_contact_info, is_active, created_by, created_at, updated_at, tenant_id) FROM stdin;
@@ -6901,7 +7312,7 @@ COPY public.icp_profiles (id, name, description, target_industries, target_compa
 
 
 --
--- Data for Name: industries; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: industries; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.industries (id, name, synonyms, scoring_hints, is_active, created_at, updated_at) FROM stdin;
@@ -6925,7 +7336,7 @@ COPY public.industries (id, name, synonyms, scoring_hints, is_active, created_at
 
 
 --
--- Data for Name: integration_configs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_configs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.integration_configs (id, category, key, value_encrypted, value_type, is_secret, is_active, created_at, updated_at, tenant_id) FROM stdin;
@@ -7026,7 +7437,7 @@ COPY public.integration_configs (id, category, key, value_encrypted, value_type,
 
 
 --
--- Data for Name: integration_connections; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_connections; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.integration_connections (id, tenant_id, created_by, provider, provider_account_id, provider_account_name, display_name, auth_type, status, is_enabled, scopes, config, metadata, connected_at, disconnected_at, last_tested_at, last_success_at, last_error_at, last_error_code, last_error_message, created_at, updated_at, deleted_at) FROM stdin;
@@ -7034,7 +7445,7 @@ COPY public.integration_connections (id, tenant_id, created_by, provider, provid
 
 
 --
--- Data for Name: integration_credential_stores; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_credential_stores; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.integration_credential_stores (id, tenant_id, integration_connection_id, credential_type, key_name, encrypted_value, encryption_key_id, value_fingerprint, last4, metadata, expires_at, rotated_at, revoked_at, created_at, updated_at, deleted_at) FROM stdin;
@@ -7042,7 +7453,7 @@ COPY public.integration_credential_stores (id, tenant_id, integration_connection
 
 
 --
--- Data for Name: integration_entity_mappings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_entity_mappings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.integration_entity_mappings (id, tenant_id, integration_connection_id, provider, external_entity_type, external_entity_id, leadsy_entity_type, leadsy_entity_id, metadata, last_synced_at, created_at, updated_at) FROM stdin;
@@ -7050,7 +7461,7 @@ COPY public.integration_entity_mappings (id, tenant_id, integration_connection_i
 
 
 --
--- Data for Name: integration_webhook_events; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: integration_webhook_events; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.integration_webhook_events (id, tenant_id, integration_connection_id, provider, event_type, external_event_id, idempotency_key, payload_hash, payload, headers, status, attempts, processing_error, received_at, processed_at, created_at, updated_at) FROM stdin;
@@ -7058,7 +7469,7 @@ COPY public.integration_webhook_events (id, tenant_id, integration_connection_id
 
 
 --
--- Data for Name: job_batches; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: job_batches; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.job_batches (id, name, total_jobs, pending_jobs, failed_jobs, failed_job_ids, options, cancelled_at, created_at, finished_at) FROM stdin;
@@ -7066,7 +7477,7 @@ COPY public.job_batches (id, name, total_jobs, pending_jobs, failed_jobs, failed
 
 
 --
--- Data for Name: jobs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: jobs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.jobs (id, queue, payload, attempts, reserved_at, available_at, created_at) FROM stdin;
@@ -7074,7 +7485,7 @@ COPY public.jobs (id, queue, payload, attempts, reserved_at, available_at, creat
 
 
 --
--- Data for Name: lark_base_record_mappings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_base_record_mappings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lark_base_record_mappings (id, tenant_id, lark_base_table_id, leadsy_entity_type, leadsy_entity_id, lark_record_id, last_lark_updated_at, last_leadsy_updated_at, last_sync_source, created_at, updated_at) FROM stdin;
@@ -7157,7 +7568,7 @@ COPY public.lark_base_record_mappings (id, tenant_id, lark_base_table_id, leadsy
 
 
 --
--- Data for Name: lark_base_tables; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_base_tables; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lark_base_tables (id, tenant_id, lark_integration_id, app_token, table_id, table_name, leadsy_entity_type, sync_direction, field_mapping, is_active, last_pull_at, last_push_at, created_at, updated_at) FROM stdin;
@@ -7166,7 +7577,7 @@ COPY public.lark_base_tables (id, tenant_id, lark_integration_id, app_token, tab
 
 
 --
--- Data for Name: lark_events; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_events; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lark_events (id, tenant_id, lark_integration_id, event_type, lark_entity_type, lark_entity_id, event_data, status, processing_error, created_at, updated_at) FROM stdin;
@@ -7174,7 +7585,7 @@ COPY public.lark_events (id, tenant_id, lark_integration_id, event_type, lark_en
 
 
 --
--- Data for Name: lark_integrations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_integrations; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lark_integrations (id, tenant_id, app_id, app_secret_encrypted, verification_token_encrypted, encrypt_key_encrypted, base_url, features, enabled_modules, is_active, last_sync_at, sync_status, created_at, updated_at, deleted_at) FROM stdin;
@@ -7183,7 +7594,7 @@ COPY public.lark_integrations (id, tenant_id, app_id, app_secret_encrypted, veri
 
 
 --
--- Data for Name: lark_sso_users; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_sso_users; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lark_sso_users (id, tenant_id, user_id, lark_user_id, lark_union_id, lark_email, lark_name, lark_mobile, lark_avatar_url, lark_department_id, lark_direct_manager_id, created_at, updated_at) FROM stdin;
@@ -7192,7 +7603,7 @@ COPY public.lark_sso_users (id, tenant_id, user_id, lark_user_id, lark_union_id,
 
 
 --
--- Data for Name: lark_syncs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lark_syncs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lark_syncs (id, tenant_id, lark_integration_id, module, action, lark_entity_type, lark_entity_id, leadsy_entity_type, leadsy_entity_id, status, request_data, response_data, error_message, retry_count, next_retry_at, created_at, updated_at) FROM stdin;
@@ -7200,7 +7611,7 @@ COPY public.lark_syncs (id, tenant_id, lark_integration_id, module, action, lark
 
 
 --
--- Data for Name: lead_activities; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_activities; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_activities (id, lead_id, activity_type, description, activity_date, related_entity_type, related_entity_id, user_id, created_at, updated_at, tenant_id, outcome, activity_date_override, next_follow_up_date, budget, authority, needs, timeline, competitor) FROM stdin;
@@ -8673,7 +9084,7 @@ COPY public.lead_activities (id, lead_id, activity_type, description, activity_d
 
 
 --
--- Data for Name: lead_ai_analyses; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_ai_analyses; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_ai_analyses (id, lead_id, relevance_score, business_opportunity_summary, probable_needs, suggested_approach, urgency_level, confidence_score, created_at, updated_at, company_summary, potential_use_case, risk_insight) FROM stdin;
@@ -8681,7 +9092,7 @@ COPY public.lead_ai_analyses (id, lead_id, relevance_score, business_opportunity
 
 
 --
--- Data for Name: lead_ai_evaluations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_ai_evaluations; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_ai_evaluations (id, lead_id, source_type, source_id, sentiment, intent_level, interest_level, objections_detected, buying_signals, next_best_action, recommended_product_id, confidence_score, evaluated_at, created_at, updated_at, summary) FROM stdin;
@@ -8690,7 +9101,7 @@ COPY public.lead_ai_evaluations (id, lead_id, source_type, source_id, sentiment,
 
 
 --
--- Data for Name: lead_analysis_logs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_analysis_logs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_analysis_logs (id, tenant_id, lead_id, analysis_type, result_json, created_at) FROM stdin;
@@ -8751,7 +9162,7 @@ COPY public.lead_analysis_logs (id, tenant_id, lead_id, analysis_type, result_js
 
 
 --
--- Data for Name: lead_bantc_question_guides; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_bantc_question_guides; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_bantc_question_guides (id, lead_id, questions, ai_generated, ai_model, updated_by, created_at, updated_at) FROM stdin;
@@ -8760,7 +9171,7 @@ COPY public.lead_bantc_question_guides (id, lead_id, questions, ai_generated, ai
 
 
 --
--- Data for Name: lead_channel_types; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_channel_types; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_channel_types (id, lead_source_type_id, name, slug, description, sort_order, is_active, created_at, updated_at) FROM stdin;
@@ -8793,7 +9204,7 @@ COPY public.lead_channel_types (id, lead_source_type_id, name, slug, description
 
 
 --
--- Data for Name: lead_contact_payloads; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_contact_payloads; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_contact_payloads (id, contact_id, source_type, raw_payload, created_at, updated_at) FROM stdin;
@@ -8801,7 +9212,7 @@ COPY public.lead_contact_payloads (id, contact_id, source_type, raw_payload, cre
 
 
 --
--- Data for Name: lead_contacts; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_contacts; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_contacts (id, lead_id, name, title, email, phone, linkedin_url, contact_source_id, confidence, last_verified_at, do_not_contact, created_at, updated_at, is_primary, source, confidence_score) FROM stdin;
@@ -8895,7 +9306,7 @@ COPY public.lead_contacts (id, lead_id, name, title, email, phone, linkedin_url,
 
 
 --
--- Data for Name: lead_conversion_predictions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_conversion_predictions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_conversion_predictions (id, lead_id, probability_to_close, expected_deal_size, estimated_sales_effort, confidence_score, prediction_factors, model_version, created_at, updated_at) FROM stdin;
@@ -8913,7 +9324,7 @@ COPY public.lead_conversion_predictions (id, lead_id, probability_to_close, expe
 
 
 --
--- Data for Name: lead_follow_ups; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_follow_ups; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_follow_ups (id, lead_id, due_date, status, purpose, assigned_to, created_at, updated_at) FROM stdin;
@@ -8921,7 +9332,7 @@ COPY public.lead_follow_ups (id, lead_id, due_date, status, purpose, assigned_to
 
 
 --
--- Data for Name: lead_funnel_history; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_funnel_history; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_funnel_history (id, lead_id, from_stage_id, to_stage_id, moved_by, notes, created_at, updated_at) FROM stdin;
@@ -9785,7 +10196,7 @@ COPY public.lead_funnel_history (id, lead_id, from_stage_id, to_stage_id, moved_
 
 
 --
--- Data for Name: lead_icp_config; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_icp_config; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_icp_config (id, tenant_id, industry, size_range, location, priority_weight, created_at, updated_at) FROM stdin;
@@ -9793,7 +10204,7 @@ COPY public.lead_icp_config (id, tenant_id, industry, size_range, location, prio
 
 
 --
--- Data for Name: lead_icp_matches; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_icp_matches; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_icp_matches (id, lead_id, icp_profile_id, match_score, match_level, score_breakdown, evaluated_at, created_at, updated_at) FROM stdin;
@@ -9863,7 +10274,7 @@ COPY public.lead_icp_matches (id, lead_id, icp_profile_id, match_score, match_le
 
 
 --
--- Data for Name: lead_meetings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_meetings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_meetings (id, lead_id, meeting_date, meeting_type, participants, summary, key_points, objections, next_steps, follow_up_date, created_by, created_at, updated_at) FROM stdin;
@@ -9947,7 +10358,7 @@ COPY public.lead_meetings (id, lead_id, meeting_date, meeting_type, participants
 
 
 --
--- Data for Name: lead_outcomes; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_outcomes; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_outcomes (id, lead_id, outcome, deal_size, loss_reason, loss_category, feedback_notes, closed_by, closed_at, created_at, updated_at, product_id, sale_type) FROM stdin;
@@ -9961,7 +10372,7 @@ COPY public.lead_outcomes (id, lead_id, outcome, deal_size, loss_reason, loss_ca
 
 
 --
--- Data for Name: lead_prescriptions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_prescriptions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_prescriptions (id, lead_id, recommended_owner_id, recommended_approach, next_best_action, follow_up_timing, priority_score, reasoning, is_applied, created_at, updated_at) FROM stdin;
@@ -9976,7 +10387,7 @@ COPY public.lead_prescriptions (id, lead_id, recommended_owner_id, recommended_a
 
 
 --
--- Data for Name: lead_product_match_runs; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_product_match_runs; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_product_match_runs (id, lead_id, triggered_by, products_evaluated, matches_created, ai_calls_made, total_cost_usd, duration_ms, status, error_message, run_at, created_at, updated_at) FROM stdin;
@@ -9991,7 +10402,7 @@ COPY public.lead_product_match_runs (id, lead_id, triggered_by, products_evaluat
 
 
 --
--- Data for Name: lead_product_matches; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_product_matches; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_product_matches (id, lead_id, product_id, match_score, match_reason, is_recommended, last_matched_at, created_at, updated_at, bant_analysis, reasoning, recommended_approach, competitor_context, match_level, confidence_score, ai_provider_used, ai_model_used) FROM stdin;
@@ -10104,7 +10515,7 @@ COPY public.lead_product_matches (id, lead_id, product_id, match_score, match_re
 
 
 --
--- Data for Name: lead_qualifications; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_qualifications; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_qualifications (id, lead_id, qualified, business_type, company_size_band, qualification_reason, last_qualified_at, created_at, updated_at, classification, score, dimension_breakdown, risk_flags, hard_stops, recommendation, evaluation_snapshot, tenant_id) FROM stdin;
@@ -10187,7 +10598,7 @@ COPY public.lead_qualifications (id, lead_id, qualified, business_type, company_
 
 
 --
--- Data for Name: lead_revenue_analyses; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_revenue_analyses; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_revenue_analyses (id, lead_id, business_type, use_case, intent_level, urgency, probability_to_close, buying_signals, objections, recommended_action, recommended_approach, confidence, reasoning, ai_model, prompt_tokens, completion_tokens, cost_usd, status, raw_response, created_at, updated_at) FROM stdin;
@@ -10211,7 +10622,7 @@ COPY public.lead_revenue_analyses (id, lead_id, business_type, use_case, intent_
 
 
 --
--- Data for Name: lead_score_breakdowns; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_score_breakdowns; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_score_breakdowns (id, tenant_id, lead_id, factor, value, weight, score_contribution, created_at, updated_at) FROM stdin;
@@ -10373,7 +10784,7 @@ COPY public.lead_score_breakdowns (id, tenant_id, lead_id, factor, value, weight
 
 
 --
--- Data for Name: lead_scores; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_scores; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_scores (id, lead_id, score, grade, score_breakdown, last_scored_at, created_at, updated_at, tenant_id, calculated_at) FROM stdin;
@@ -10485,7 +10896,7 @@ COPY public.lead_scores (id, lead_id, score, grade, score_breakdown, last_scored
 
 
 --
--- Data for Name: lead_source_types; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_source_types; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_source_types (id, name, slug, description, sort_order, is_active, created_at, updated_at) FROM stdin;
@@ -10502,7 +10913,7 @@ COPY public.lead_source_types (id, name, slug, description, sort_order, is_activ
 
 
 --
--- Data for Name: lead_sources; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_sources; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_sources (id, lead_id, source_type, source_ref, confidence, last_verified_at, created_at, updated_at, tenant_id, channel_type_id) FROM stdin;
@@ -10589,7 +11000,7 @@ COPY public.lead_sources (id, lead_id, source_type, source_ref, confidence, last
 
 
 --
--- Data for Name: lead_transcripts; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: lead_transcripts; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.lead_transcripts (id, lead_id, source_type, source_id, transcript_text, recorded_at, evaluation_status, created_at, updated_at, activity_id, title, file_path, file_name, file_mime, file_size) FROM stdin;
@@ -10600,7 +11011,7 @@ COPY public.lead_transcripts (id, lead_id, source_type, source_id, transcript_te
 
 
 --
--- Data for Name: leads; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: leads; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.leads (id, company_name, address, lat, lng, website, website_domain, phone, email, industry_id, sub_industry_id, business_category, company_size_estimate, branch_count, operating_hours, social_profiles, lead_score, qualification_status, ai_explanation, duplicate_status, duplicate_of_id, external_place_id, use_ai_reference, ai_mode, ai_reference_source_type, ai_reference_id, ai_processing_status, funnel_stage_id, owner_id, territory_id, product_id, created_by, created_at, updated_at, deleted_at, tenant_id, estimated_closing_amount, realized_closing_amount, parent_lead_id) FROM stdin;
@@ -10745,7 +11156,7 @@ COPY public.leads (id, company_name, address, lat, lng, website, website_domain,
 
 
 --
--- Data for Name: map_candidates; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: map_candidates; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.map_candidates (place_id, name, address, phone, lat, lng, category, rating, maps_url, raw_payload, fetched_at, created_at, updated_at, website, opening_hours_json, user_ratings_total, last_enriched_at) FROM stdin;
@@ -11346,7 +11757,7 @@ ChIJhcis-aHxaS4REYE7XEyqpDg	PT Calmic Indonesia (Head Office)	South Quarter Towe
 
 
 --
--- Data for Name: map_search_history; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: map_search_history; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.map_search_history (id, area_name, area_place_id, area_lat, area_lng, keyword, category, search_mode, radius_meters, result_count, created_by, created_at, updated_at) FROM stdin;
@@ -11373,7 +11784,7 @@ COPY public.map_search_history (id, area_name, area_place_id, area_lat, area_lng
 
 
 --
--- Data for Name: migrations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: migrations; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.migrations (id, migration, batch) FROM stdin;
@@ -11443,12 +11854,13 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 65	2026_05_29_011500_seed_detailed_ai_prompt_templates	26
 66	2026_05_29_012500_replace_ai_contact_search_with_google_search	26
 67	2026_05_30_000001_add_parent_lead_id_to_leads_table	27
-68	2026_05_30_000002_add_dashboard_ai_insight_to_prompt_templates	28
+69	2026_05_30_000002_add_dashboard_ai_insight_to_prompt_templates	28
+70	2026_05_30_000003_reimport_leadsy_database_snapshot	29
 \.
 
 
 --
--- Data for Name: password_reset_tokens; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: password_reset_tokens; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.password_reset_tokens (email, token, created_at) FROM stdin;
@@ -11456,7 +11868,7 @@ COPY public.password_reset_tokens (email, token, created_at) FROM stdin;
 
 
 --
--- Data for Name: permissions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: permissions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.permissions (id, name, module, display_name, created_at, updated_at) FROM stdin;
@@ -11478,7 +11890,7 @@ COPY public.permissions (id, name, module, display_name, created_at, updated_at)
 
 
 --
--- Data for Name: personal_access_tokens; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: personal_access_tokens; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.personal_access_tokens (id, tokenable_type, tokenable_id, name, token, abilities, last_used_at, expires_at, created_at, updated_at) FROM stdin;
@@ -11497,12 +11909,12 @@ COPY public.personal_access_tokens (id, tokenable_type, tokenable_id, name, toke
 55	App\\Models\\User	2	api	8eca6c07b86defc8a51bb0d1aeee83be17f0ddae56802dbb25f22c0f04a9cc62	["*"]	\N	\N	2026-05-30 02:28:58	2026-05-30 02:28:58
 57	App\\Models\\User	2	api	04a939ad675f371e5d6f9f17d8ba38f09e0e402356313a2e72ced90f366e14a7	["*"]	\N	\N	2026-05-30 02:30:20	2026-05-30 02:30:20
 58	App\\Models\\User	2	api	29d35b474419c20a226115a2c6528fe119462943f607b0fb294fe843c252901b	["*"]	\N	\N	2026-05-30 02:30:23	2026-05-30 02:30:23
-56	App\\Models\\User	2	api	f49fcc6d8383e44f191ae6df6c6ec964369a5ec99d1ef7def4f7c41cf6cccc86	["*"]	2026-05-30 12:56:54	\N	2026-05-30 02:30:19	2026-05-30 12:56:54
+56	App\\Models\\User	2	api	f49fcc6d8383e44f191ae6df6c6ec964369a5ec99d1ef7def4f7c41cf6cccc86	["*"]	2026-05-30 13:43:24	\N	2026-05-30 02:30:19	2026-05-30 13:43:24
 \.
 
 
 --
--- Data for Name: product_questions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: product_questions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.product_questions (id, product_id, questions, ai_generated, ai_model, updated_by, created_at, updated_at) FROM stdin;
@@ -11513,7 +11925,7 @@ COPY public.product_questions (id, product_id, questions, ai_generated, ai_model
 
 
 --
--- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.products (id, name, category, description, target_industry, target_pain_points, target_buyer_persona, ideal_company_profile, ai_reference_material, status, created_by, created_at, updated_at, tenant_id, supported_regions, budget_range, target_company_size, use_cases, competitor_notes, keywords) FROM stdin;
@@ -11531,7 +11943,7 @@ COPY public.products (id, name, category, description, target_industry, target_p
 
 
 --
--- Data for Name: qualification_parameter_options; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_parameter_options; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.qualification_parameter_options (id, parameter_id, option_value, label, score, sort_order, is_active, metadata, created_at, updated_at) FROM stdin;
@@ -11593,7 +12005,7 @@ COPY public.qualification_parameter_options (id, parameter_id, option_value, lab
 
 
 --
--- Data for Name: qualification_parameter_sets; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_parameter_sets; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.qualification_parameter_sets (id, name, slug, version, status, description, created_by, updated_by, created_at, updated_at, deleted_at, tenant_id) FROM stdin;
@@ -11602,7 +12014,7 @@ COPY public.qualification_parameter_sets (id, name, slug, version, status, descr
 
 
 --
--- Data for Name: qualification_parameters; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_parameters; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.qualification_parameters (id, parameter_set_id, dimension, parameter_key, label, input_type, max_points, sort_order, is_required, hard_stop_operator, hard_stop_value, metadata, created_at, updated_at) FROM stdin;
@@ -11625,7 +12037,7 @@ COPY public.qualification_parameters (id, parameter_set_id, dimension, parameter
 
 
 --
--- Data for Name: qualification_workflow_reviews; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_workflow_reviews; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.qualification_workflow_reviews (id, workflow_id, lead_id, lead_qualification_id, status, current_stage_code, recommended_status, final_status, requested_by, reviewed_by, justification, override_reason, review_payload, due_at, reviewed_at, created_at, updated_at, tenant_id, decision, decision_reason, original_score, score_override, decisioned_at) FROM stdin;
@@ -11651,7 +12063,7 @@ COPY public.qualification_workflow_reviews (id, workflow_id, lead_id, lead_quali
 
 
 --
--- Data for Name: qualification_workflow_stages; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_workflow_stages; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.qualification_workflow_stages (id, workflow_id, code, label, sequence, assigned_role, decision_type, is_required, metadata, created_at, updated_at) FROM stdin;
@@ -11661,7 +12073,7 @@ COPY public.qualification_workflow_stages (id, workflow_id, code, label, sequenc
 
 
 --
--- Data for Name: qualification_workflows; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: qualification_workflows; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.qualification_workflows (id, name, slug, trigger_status, requires_approval, override_enabled, sla_hours, is_active, created_by, updated_by, created_at, updated_at, deleted_at, tenant_id) FROM stdin;
@@ -11670,7 +12082,7 @@ COPY public.qualification_workflows (id, name, slug, trigger_status, requires_ap
 
 
 --
--- Data for Name: record_origin_mappings; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: record_origin_mappings; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.record_origin_mappings (id, tenant_id, source_system, source_schema, source_table, source_record_id, target_table, target_record_id, metadata, imported_at, created_at, updated_at) FROM stdin;
@@ -11678,7 +12090,7 @@ COPY public.record_origin_mappings (id, tenant_id, source_system, source_schema,
 
 
 --
--- Data for Name: revenue_rules; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: revenue_rules; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.revenue_rules (id, name, description, condition_type, condition_value, action, severity, is_active, priority, created_by, created_at, updated_at, tenant_id) FROM stdin;
@@ -11686,7 +12098,7 @@ COPY public.revenue_rules (id, name, description, condition_type, condition_valu
 
 
 --
--- Data for Name: role_permission; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: role_permission; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.role_permission (id, role_id, permission_id) FROM stdin;
@@ -11742,7 +12154,7 @@ COPY public.role_permission (id, role_id, permission_id) FROM stdin;
 
 
 --
--- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.roles (id, name, display_name, description, is_active, created_at, updated_at) FROM stdin;
@@ -11756,7 +12168,7 @@ COPY public.roles (id, name, display_name, description, is_active, created_at, u
 
 
 --
--- Data for Name: sales_visit_media; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sales_visit_media; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.sales_visit_media (id, sales_visit_id, uploaded_by, media_type, disk, path, mime_type, size_bytes, lat, lng, accuracy_m, captured_at, metadata, created_at, updated_at) FROM stdin;
@@ -11764,7 +12176,7 @@ COPY public.sales_visit_media (id, sales_visit_id, uploaded_by, media_type, disk
 
 
 --
--- Data for Name: sales_visits; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sales_visits; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.sales_visits (id, lead_id, user_id, status, clock_in_at, clock_out_at, clock_in_lat, clock_in_lng, clock_out_lat, clock_out_lng, clock_in_accuracy_m, clock_out_accuracy_m, clock_in_distance_m, clock_out_distance_m, risk_status, risk_signals, device_metadata, visit_result, notes, client_name, client_title, signature_captured_at, created_at, updated_at) FROM stdin;
@@ -11772,7 +12184,7 @@ COPY public.sales_visits (id, lead_id, user_id, status, clock_in_at, clock_out_a
 
 
 --
--- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sessions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.sessions (id, user_id, ip_address, user_agent, payload, last_activity) FROM stdin;
@@ -11780,7 +12192,7 @@ COPY public.sessions (id, user_id, ip_address, user_agent, payload, last_activit
 
 
 --
--- Data for Name: sub_industries; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: sub_industries; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.sub_industries (id, industry_id, name, synonyms, scoring_hints, is_active, created_at, updated_at) FROM stdin;
@@ -11860,7 +12272,7 @@ COPY public.sub_industries (id, industry_id, name, synonyms, scoring_hints, is_a
 
 
 --
--- Data for Name: tenants; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: tenants; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.tenants (id, name, slug, status, metadata, created_at, updated_at, deleted_at) FROM stdin;
@@ -11869,7 +12281,7 @@ COPY public.tenants (id, name, slug, status, metadata, created_at, updated_at, d
 
 
 --
--- Data for Name: territories; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: territories; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.territories (id, name, center_lat, center_lng, radius_meters, metadata, created_by, created_at, updated_at, tenant_id) FROM stdin;
@@ -11877,7 +12289,7 @@ COPY public.territories (id, name, center_lat, center_lng, radius_meters, metada
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.users (id, name, email, email_verified_at, password, role_id, phone, is_active, remember_token, created_at, updated_at, tenant_id, direct_manager_id, target_period, target_revenue) FROM stdin;
@@ -11892,7 +12304,7 @@ COPY public.users (id, name, email, email_verified_at, password, role_id, phone,
 
 
 --
--- Data for Name: whatsapp_ai_analyses; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_ai_analyses; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.whatsapp_ai_analyses (id, conversation_id, provider, analysis_result, confidence_score, reasoning_summary, analyzed_at, created_at, updated_at) FROM stdin;
@@ -11900,7 +12312,7 @@ COPY public.whatsapp_ai_analyses (id, conversation_id, provider, analysis_result
 
 
 --
--- Data for Name: whatsapp_campaign_recipients; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_campaign_recipients; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.whatsapp_campaign_recipients (id, campaign_id, lead_id, phone_number, send_status, provider_response_json, sent_at, created_at, updated_at) FROM stdin;
@@ -11908,7 +12320,7 @@ COPY public.whatsapp_campaign_recipients (id, campaign_id, lead_id, phone_number
 
 
 --
--- Data for Name: whatsapp_campaigns; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_campaigns; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.whatsapp_campaigns (id, campaign_name, message_template, total_targets, status, executed_at, created_at, updated_at) FROM stdin;
@@ -11916,7 +12328,7 @@ COPY public.whatsapp_campaigns (id, campaign_name, message_template, total_targe
 
 
 --
--- Data for Name: whatsapp_contacts; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_contacts; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.whatsapp_contacts (id, name, phone_number, normalized_phone_number, linked_lead_id, is_relevant, relevance_reason, created_at, updated_at) FROM stdin;
@@ -11925,7 +12337,7 @@ COPY public.whatsapp_contacts (id, name, phone_number, normalized_phone_number, 
 
 
 --
--- Data for Name: whatsapp_conversations; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_conversations; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.whatsapp_conversations (id, contact_id, external_chat_id, sync_status, relevance_status, approved_for_sync, last_message_at, created_at, updated_at) FROM stdin;
@@ -11934,7 +12346,7 @@ COPY public.whatsapp_conversations (id, contact_id, external_chat_id, sync_statu
 
 
 --
--- Data for Name: whatsapp_messages; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_messages; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.whatsapp_messages (id, conversation_id, external_message_id, direction, message_type, body, reply_to_external_message_id, provider_payload_json, relevance_flag, sent_at, received_at, created_at, updated_at) FROM stdin;
@@ -11943,16 +12355,16 @@ COPY public.whatsapp_messages (id, conversation_id, external_message_id, directi
 
 
 --
--- Data for Name: whatsapp_sessions; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_sessions; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.whatsapp_sessions (id, session_name, status, qr_payload, last_qr_generated_at, connected_at, disconnected_at, metadata_json, created_at, updated_at) FROM stdin;
-1	leads_platform_session	disconnected	\N	2026-05-19 15:01:56	2026-05-19 15:02:02	2026-05-25 16:43:26	{"number":"6287884701947:45@s.whatsapp.net"}	2026-04-20 14:37:18	2026-05-25 16:43:26
+1	leads_platform_session	disconnected	\N	2026-05-19 15:01:56	2026-05-19 15:02:02	2026-05-30 13:42:37	{"number":"6287884701947:45@s.whatsapp.net"}	2026-04-20 14:37:18	2026-05-30 13:42:37
 \.
 
 
 --
--- Data for Name: whatsapp_sync_rules; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: whatsapp_sync_rules; Type: TABLE DATA; Schema: public; Owner: leads
 --
 
 COPY public.whatsapp_sync_rules (id, rule_type, rule_key, rule_value, enabled, created_at, updated_at) FROM stdin;
@@ -11960,623 +12372,623 @@ COPY public.whatsapp_sync_rules (id, rule_type, rule_key, rule_value, enabled, c
 
 
 --
--- Name: ai_connection_tests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_connection_tests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_connection_tests_id_seq', 16, true);
 
 
 --
--- Name: ai_feature_routes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_feature_routes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
-SELECT pg_catalog.setval('public.ai_feature_routes_id_seq', 126, true);
+SELECT pg_catalog.setval('public.ai_feature_routes_id_seq', 132, true);
 
 
 --
--- Name: ai_model_routes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_model_routes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_model_routes_id_seq', 1, false);
 
 
 --
--- Name: ai_models_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_models_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_models_id_seq', 33, true);
 
 
 --
--- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_prompt_template_versions_id_seq', 36, true);
 
 
 --
--- Name: ai_prompt_templates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_prompt_templates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_prompt_templates_id_seq', 20, true);
 
 
 --
--- Name: ai_providers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_providers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.ai_providers_id_seq', 3, true);
 
 
 --
--- Name: ai_requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: ai_requests_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
-SELECT pg_catalog.setval('public.ai_requests_id_seq', 242, true);
+SELECT pg_catalog.setval('public.ai_requests_id_seq', 243, true);
 
 
 --
--- Name: audit_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: audit_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.audit_logs_id_seq', 1050, true);
 
 
 --
--- Name: contact_enrichment_candidates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.contact_enrichment_candidates_id_seq', 1, true);
 
 
 --
--- Name: contact_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: contact_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.contact_sources_id_seq', 7, true);
 
 
 --
--- Name: currencies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: currencies_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.currencies_id_seq', 154, true);
 
 
 --
--- Name: currency_settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: currency_settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.currency_settings_id_seq', 2, true);
 
 
 --
--- Name: discovery_categories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: discovery_categories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.discovery_categories_id_seq', 14, true);
 
 
 --
--- Name: email_verification_otps_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: email_verification_otps_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.email_verification_otps_id_seq', 3, true);
 
 
 --
--- Name: failed_jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: failed_jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.failed_jobs_id_seq', 1, false);
 
 
 --
--- Name: funnel_stages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: funnel_stages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.funnel_stages_id_seq', 12, true);
 
 
 --
--- Name: geo_product_fit_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.geo_product_fit_analyses_id_seq', 326, true);
 
 
 --
--- Name: icp_profiles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: icp_profiles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.icp_profiles_id_seq', 3, true);
 
 
 --
--- Name: industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.industries_id_seq', 18, true);
 
 
 --
--- Name: integration_configs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_configs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_configs_id_seq', 93, true);
 
 
 --
--- Name: integration_connections_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_connections_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_connections_id_seq', 1, false);
 
 
 --
--- Name: integration_credential_stores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_credential_stores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_credential_stores_id_seq', 1, false);
 
 
 --
--- Name: integration_entity_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_entity_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_entity_mappings_id_seq', 1, false);
 
 
 --
--- Name: integration_webhook_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: integration_webhook_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.integration_webhook_events_id_seq', 1, false);
 
 
 --
--- Name: jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.jobs_id_seq', 1, false);
 
 
 --
--- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_base_record_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_base_record_mappings_id_seq', 81, true);
 
 
 --
--- Name: lark_base_tables_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_base_tables_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_base_tables_id_seq', 1, true);
 
 
 --
--- Name: lark_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_events_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_events_id_seq', 1, false);
 
 
 --
--- Name: lark_integrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_integrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_integrations_id_seq', 1, true);
 
 
 --
--- Name: lark_sso_users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_sso_users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_sso_users_id_seq', 1, true);
 
 
 --
--- Name: lark_syncs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lark_syncs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lark_syncs_id_seq', 1, false);
 
 
 --
--- Name: lead_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_activities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_activities_id_seq', 1467, true);
 
 
 --
--- Name: lead_ai_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_ai_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_ai_analyses_id_seq', 1, false);
 
 
 --
--- Name: lead_ai_evaluations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_ai_evaluations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_ai_evaluations_id_seq', 2, true);
 
 
 --
--- Name: lead_analysis_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_analysis_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_analysis_logs_id_seq', 53, true);
 
 
 --
--- Name: lead_bantc_question_guides_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_bantc_question_guides_id_seq', 1, true);
 
 
 --
--- Name: lead_channel_types_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_channel_types_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_channel_types_id_seq', 25, true);
 
 
 --
--- Name: lead_contact_payloads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_contact_payloads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_contact_payloads_id_seq', 1, false);
 
 
 --
--- Name: lead_contacts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_contacts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_contacts_id_seq', 86, true);
 
 
 --
--- Name: lead_conversion_predictions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_conversion_predictions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_conversion_predictions_id_seq', 10, true);
 
 
 --
--- Name: lead_follow_ups_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_follow_ups_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_follow_ups_id_seq', 1, false);
 
 
 --
--- Name: lead_funnel_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_funnel_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_funnel_history_id_seq', 856, true);
 
 
 --
--- Name: lead_icp_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_icp_config_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_icp_config_id_seq', 2, true);
 
 
 --
--- Name: lead_icp_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_icp_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_icp_matches_id_seq', 62, true);
 
 
 --
--- Name: lead_meetings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_meetings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_meetings_id_seq', 76, true);
 
 
 --
--- Name: lead_outcomes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_outcomes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_outcomes_id_seq', 10, true);
 
 
 --
--- Name: lead_prescriptions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_prescriptions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_prescriptions_id_seq', 7, true);
 
 
 --
--- Name: lead_product_match_runs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_product_match_runs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_product_match_runs_id_seq', 7, true);
 
 
 --
--- Name: lead_product_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_product_matches_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_product_matches_id_seq', 120, true);
 
 
 --
--- Name: lead_qualifications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_qualifications_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_qualifications_id_seq', 75, true);
 
 
 --
--- Name: lead_revenue_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_revenue_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_revenue_analyses_id_seq', 16, true);
 
 
 --
--- Name: lead_score_breakdowns_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_score_breakdowns_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_score_breakdowns_id_seq', 364, true);
 
 
 --
--- Name: lead_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_scores_id_seq', 104, true);
 
 
 --
--- Name: lead_source_types_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_source_types_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_source_types_id_seq', 9, true);
 
 
 --
--- Name: lead_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_sources_id_seq', 81, true);
 
 
 --
--- Name: lead_transcripts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: lead_transcripts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.lead_transcripts_id_seq', 5, true);
 
 
 --
--- Name: leads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: leads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.leads_id_seq', 139, true);
 
 
 --
--- Name: map_search_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: map_search_history_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.map_search_history_id_seq', 19, true);
 
 
 --
--- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 68, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 70, true);
 
 
 --
--- Name: permissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: permissions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.permissions_id_seq', 14, true);
 
 
 --
--- Name: personal_access_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: personal_access_tokens_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.personal_access_tokens_id_seq', 58, true);
 
 
 --
--- Name: product_questions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: product_questions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.product_questions_id_seq', 3, true);
 
 
 --
--- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.products_id_seq', 24, true);
 
 
 --
--- Name: qualification_parameter_options_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_parameter_options_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_parameter_options_id_seq', 54, true);
 
 
 --
--- Name: qualification_parameter_sets_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_parameter_sets_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_parameter_sets_id_seq', 1, true);
 
 
 --
--- Name: qualification_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_parameters_id_seq', 15, true);
 
 
 --
--- Name: qualification_workflow_reviews_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_workflow_reviews_id_seq', 18, true);
 
 
 --
--- Name: qualification_workflow_stages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_workflow_stages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_workflow_stages_id_seq', 2, true);
 
 
 --
--- Name: qualification_workflows_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: qualification_workflows_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.qualification_workflows_id_seq', 1, true);
 
 
 --
--- Name: record_origin_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: record_origin_mappings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.record_origin_mappings_id_seq', 1, false);
 
 
 --
--- Name: revenue_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: revenue_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.revenue_rules_id_seq', 1, false);
 
 
 --
--- Name: role_permission_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: role_permission_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.role_permission_id_seq', 48, true);
 
 
 --
--- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: roles_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.roles_id_seq', 6, true);
 
 
 --
--- Name: sales_visit_media_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: sales_visit_media_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.sales_visit_media_id_seq', 1, false);
 
 
 --
--- Name: sales_visits_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: sales_visits_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.sales_visits_id_seq', 1, false);
 
 
 --
--- Name: sub_industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: sub_industries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.sub_industries_id_seq', 72, true);
 
 
 --
--- Name: tenants_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: tenants_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.tenants_id_seq', 1, true);
 
 
 --
--- Name: territories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: territories_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.territories_id_seq', 1, true);
 
 
 --
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.users_id_seq', 7, true);
 
 
 --
--- Name: whatsapp_ai_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_ai_analyses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_ai_analyses_id_seq', 1, false);
 
 
 --
--- Name: whatsapp_campaign_recipients_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_campaign_recipients_id_seq', 1, false);
 
 
 --
--- Name: whatsapp_campaigns_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_campaigns_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_campaigns_id_seq', 1, false);
 
 
 --
--- Name: whatsapp_contacts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_contacts_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_contacts_id_seq', 1, true);
 
 
 --
--- Name: whatsapp_conversations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_conversations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_conversations_id_seq', 1, true);
 
 
 --
--- Name: whatsapp_messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_messages_id_seq', 1, true);
 
 
 --
--- Name: whatsapp_sessions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_sessions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_sessions_id_seq', 1, true);
 
 
 --
--- Name: whatsapp_sync_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+-- Name: whatsapp_sync_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: leads
 --
 
 SELECT pg_catalog.setval('public.whatsapp_sync_rules_id_seq', 1, false);
 
 
 --
--- Name: ai_parameter_suggestions ai_parameter_suggestions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: ai_parameter_suggestions ai_parameter_suggestions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.ai_parameter_suggestions
@@ -12584,7 +12996,7 @@ ALTER TABLE ONLY legacy_mgmt.ai_parameter_suggestions
 
 
 --
--- Name: ai_provider_settings ai_provider_settings_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: ai_provider_settings ai_provider_settings_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
@@ -12592,7 +13004,7 @@ ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
 
 
 --
--- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.audit_logs
@@ -12600,7 +13012,7 @@ ALTER TABLE ONLY legacy_mgmt.audit_logs
 
 
 --
--- Name: evaluation_overrides evaluation_overrides_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: evaluation_overrides evaluation_overrides_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
@@ -12608,7 +13020,7 @@ ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
 
 
 --
--- Name: lead_activities lead_activities_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_activities lead_activities_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_activities
@@ -12616,7 +13028,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_activities
 
 
 --
--- Name: lead_evaluations lead_evaluations_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_evaluations lead_evaluations_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_evaluations
@@ -12624,7 +13036,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_evaluations
 
 
 --
--- Name: lead_scores lead_scores_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_scores lead_scores_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_scores
@@ -12632,7 +13044,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_scores
 
 
 --
--- Name: lead_sources lead_sources_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_sources lead_sources_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_sources
@@ -12640,7 +13052,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_sources
 
 
 --
--- Name: leads leads_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: leads leads_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.leads
@@ -12648,7 +13060,7 @@ ALTER TABLE ONLY legacy_mgmt.leads
 
 
 --
--- Name: parameter_options parameter_options_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: parameter_options parameter_options_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.parameter_options
@@ -12656,7 +13068,7 @@ ALTER TABLE ONLY legacy_mgmt.parameter_options
 
 
 --
--- Name: parameters parameters_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: parameters parameters_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.parameters
@@ -12664,7 +13076,7 @@ ALTER TABLE ONLY legacy_mgmt.parameters
 
 
 --
--- Name: product_questions product_questions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: product_questions product_questions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.product_questions
@@ -12672,7 +13084,7 @@ ALTER TABLE ONLY legacy_mgmt.product_questions
 
 
 --
--- Name: products products_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: products products_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.products
@@ -12680,7 +13092,7 @@ ALTER TABLE ONLY legacy_mgmt.products
 
 
 --
--- Name: roles roles_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: roles roles_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.roles
@@ -12688,7 +13100,7 @@ ALTER TABLE ONLY legacy_mgmt.roles
 
 
 --
--- Name: scoring_dimensions scoring_dimensions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: scoring_dimensions scoring_dimensions_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.scoring_dimensions
@@ -12696,7 +13108,7 @@ ALTER TABLE ONLY legacy_mgmt.scoring_dimensions
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.users
@@ -12704,7 +13116,7 @@ ALTER TABLE ONLY legacy_mgmt.users
 
 
 --
--- Name: ai_connection_tests ai_connection_tests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_connection_tests ai_connection_tests_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_connection_tests
@@ -12712,7 +13124,7 @@ ALTER TABLE ONLY public.ai_connection_tests
 
 
 --
--- Name: ai_feature_routes ai_feature_routes_feature_name_priority_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_feature_routes ai_feature_routes_feature_name_priority_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_feature_routes
@@ -12720,7 +13132,7 @@ ALTER TABLE ONLY public.ai_feature_routes
 
 
 --
--- Name: ai_feature_routes ai_feature_routes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_feature_routes ai_feature_routes_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_feature_routes
@@ -12728,7 +13140,7 @@ ALTER TABLE ONLY public.ai_feature_routes
 
 
 --
--- Name: ai_model_routes ai_model_routes_function_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_model_routes ai_model_routes_function_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_model_routes
@@ -12736,7 +13148,7 @@ ALTER TABLE ONLY public.ai_model_routes
 
 
 --
--- Name: ai_model_routes ai_model_routes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_model_routes ai_model_routes_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_model_routes
@@ -12744,7 +13156,7 @@ ALTER TABLE ONLY public.ai_model_routes
 
 
 --
--- Name: ai_models ai_models_ai_provider_id_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_models ai_models_ai_provider_id_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_models
@@ -12752,7 +13164,7 @@ ALTER TABLE ONLY public.ai_models
 
 
 --
--- Name: ai_models ai_models_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_models ai_models_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_models
@@ -12760,7 +13172,7 @@ ALTER TABLE ONLY public.ai_models
 
 
 --
--- Name: ai_prompt_template_versions ai_prompt_template_versions_ai_prompt_template_id_version_uniqu; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions ai_prompt_template_versions_ai_prompt_template_id_version_uniqu; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_template_versions
@@ -12768,7 +13180,7 @@ ALTER TABLE ONLY public.ai_prompt_template_versions
 
 
 --
--- Name: ai_prompt_template_versions ai_prompt_template_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions ai_prompt_template_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_template_versions
@@ -12776,7 +13188,7 @@ ALTER TABLE ONLY public.ai_prompt_template_versions
 
 
 --
--- Name: ai_prompt_templates ai_prompt_templates_feature_name_template_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_templates ai_prompt_templates_feature_name_template_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_templates
@@ -12784,7 +13196,7 @@ ALTER TABLE ONLY public.ai_prompt_templates
 
 
 --
--- Name: ai_prompt_templates ai_prompt_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_templates ai_prompt_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_templates
@@ -12792,7 +13204,7 @@ ALTER TABLE ONLY public.ai_prompt_templates
 
 
 --
--- Name: ai_providers ai_providers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_providers ai_providers_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_providers
@@ -12800,7 +13212,7 @@ ALTER TABLE ONLY public.ai_providers
 
 
 --
--- Name: ai_providers ai_providers_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_providers ai_providers_slug_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_providers
@@ -12808,7 +13220,7 @@ ALTER TABLE ONLY public.ai_providers
 
 
 --
--- Name: ai_requests ai_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_requests ai_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_requests
@@ -12816,7 +13228,7 @@ ALTER TABLE ONLY public.ai_requests
 
 
 --
--- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.audit_logs
@@ -12824,7 +13236,7 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- Name: cache_locks cache_locks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: cache_locks cache_locks_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.cache_locks
@@ -12832,7 +13244,7 @@ ALTER TABLE ONLY public.cache_locks
 
 
 --
--- Name: cache cache_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: cache cache_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.cache
@@ -12840,7 +13252,7 @@ ALTER TABLE ONLY public.cache
 
 
 --
--- Name: contact_enrichment_candidates contact_enrichment_candidates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates contact_enrichment_candidates_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.contact_enrichment_candidates
@@ -12848,7 +13260,7 @@ ALTER TABLE ONLY public.contact_enrichment_candidates
 
 
 --
--- Name: contact_sources contact_sources_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: contact_sources contact_sources_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.contact_sources
@@ -12856,7 +13268,7 @@ ALTER TABLE ONLY public.contact_sources
 
 
 --
--- Name: contact_sources contact_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: contact_sources contact_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.contact_sources
@@ -12864,7 +13276,7 @@ ALTER TABLE ONLY public.contact_sources
 
 
 --
--- Name: currencies currencies_code_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: currencies currencies_code_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.currencies
@@ -12872,7 +13284,7 @@ ALTER TABLE ONLY public.currencies
 
 
 --
--- Name: currencies currencies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: currencies currencies_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.currencies
@@ -12880,7 +13292,7 @@ ALTER TABLE ONLY public.currencies
 
 
 --
--- Name: currency_settings currency_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: currency_settings currency_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.currency_settings
@@ -12888,7 +13300,7 @@ ALTER TABLE ONLY public.currency_settings
 
 
 --
--- Name: currency_settings currency_settings_tenant_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: currency_settings currency_settings_tenant_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.currency_settings
@@ -12896,7 +13308,7 @@ ALTER TABLE ONLY public.currency_settings
 
 
 --
--- Name: discovery_categories discovery_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: discovery_categories discovery_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.discovery_categories
@@ -12904,7 +13316,7 @@ ALTER TABLE ONLY public.discovery_categories
 
 
 --
--- Name: discovery_categories discovery_categories_value_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: discovery_categories discovery_categories_value_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.discovery_categories
@@ -12912,7 +13324,7 @@ ALTER TABLE ONLY public.discovery_categories
 
 
 --
--- Name: email_verification_otps email_verification_otps_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: email_verification_otps email_verification_otps_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.email_verification_otps
@@ -12920,7 +13332,7 @@ ALTER TABLE ONLY public.email_verification_otps
 
 
 --
--- Name: failed_jobs failed_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: failed_jobs failed_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.failed_jobs
@@ -12928,7 +13340,7 @@ ALTER TABLE ONLY public.failed_jobs
 
 
 --
--- Name: failed_jobs failed_jobs_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: failed_jobs failed_jobs_uuid_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.failed_jobs
@@ -12936,7 +13348,7 @@ ALTER TABLE ONLY public.failed_jobs
 
 
 --
--- Name: funnel_stages funnel_stages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: funnel_stages funnel_stages_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.funnel_stages
@@ -12944,7 +13356,7 @@ ALTER TABLE ONLY public.funnel_stages
 
 
 --
--- Name: geo_product_fit_analyses geo_fit_place_product_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses geo_fit_place_product_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.geo_product_fit_analyses
@@ -12952,7 +13364,7 @@ ALTER TABLE ONLY public.geo_product_fit_analyses
 
 
 --
--- Name: geo_product_fit_analyses geo_product_fit_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses geo_product_fit_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.geo_product_fit_analyses
@@ -12960,7 +13372,7 @@ ALTER TABLE ONLY public.geo_product_fit_analyses
 
 
 --
--- Name: icp_profiles icp_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: icp_profiles icp_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.icp_profiles
@@ -12968,7 +13380,7 @@ ALTER TABLE ONLY public.icp_profiles
 
 
 --
--- Name: industries industries_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: industries industries_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.industries
@@ -12976,7 +13388,7 @@ ALTER TABLE ONLY public.industries
 
 
 --
--- Name: industries industries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: industries industries_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.industries
@@ -12984,7 +13396,7 @@ ALTER TABLE ONLY public.industries
 
 
 --
--- Name: integration_configs integration_configs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_configs integration_configs_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_configs
@@ -12992,7 +13404,7 @@ ALTER TABLE ONLY public.integration_configs
 
 
 --
--- Name: integration_connections integration_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_connections integration_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_connections
@@ -13000,7 +13412,7 @@ ALTER TABLE ONLY public.integration_connections
 
 
 --
--- Name: integration_connections integration_connections_provider_account_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_connections integration_connections_provider_account_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_connections
@@ -13008,7 +13420,7 @@ ALTER TABLE ONLY public.integration_connections
 
 
 --
--- Name: integration_credential_stores integration_credential_stores_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_credential_stores integration_credential_stores_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_credential_stores
@@ -13016,7 +13428,7 @@ ALTER TABLE ONLY public.integration_credential_stores
 
 
 --
--- Name: integration_entity_mappings integration_entity_external_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_entity_mappings integration_entity_external_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_entity_mappings
@@ -13024,7 +13436,7 @@ ALTER TABLE ONLY public.integration_entity_mappings
 
 
 --
--- Name: integration_entity_mappings integration_entity_leadsy_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_entity_mappings integration_entity_leadsy_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_entity_mappings
@@ -13032,7 +13444,7 @@ ALTER TABLE ONLY public.integration_entity_mappings
 
 
 --
--- Name: integration_entity_mappings integration_entity_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_entity_mappings integration_entity_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_entity_mappings
@@ -13040,7 +13452,7 @@ ALTER TABLE ONLY public.integration_entity_mappings
 
 
 --
--- Name: integration_webhook_events integration_webhook_events_idempotency_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_webhook_events integration_webhook_events_idempotency_key_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_webhook_events
@@ -13048,7 +13460,7 @@ ALTER TABLE ONLY public.integration_webhook_events
 
 
 --
--- Name: integration_webhook_events integration_webhook_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_webhook_events integration_webhook_events_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_webhook_events
@@ -13056,7 +13468,7 @@ ALTER TABLE ONLY public.integration_webhook_events
 
 
 --
--- Name: job_batches job_batches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: job_batches job_batches_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.job_batches
@@ -13064,7 +13476,7 @@ ALTER TABLE ONLY public.job_batches
 
 
 --
--- Name: jobs jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: jobs jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.jobs
@@ -13072,7 +13484,7 @@ ALTER TABLE ONLY public.jobs
 
 
 --
--- Name: lark_base_record_mappings lark_base_record_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_record_mappings lark_base_record_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_record_mappings
@@ -13080,7 +13492,7 @@ ALTER TABLE ONLY public.lark_base_record_mappings
 
 
 --
--- Name: lark_base_record_mappings lark_base_record_unique_lark; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_record_mappings lark_base_record_unique_lark; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_record_mappings
@@ -13088,7 +13500,7 @@ ALTER TABLE ONLY public.lark_base_record_mappings
 
 
 --
--- Name: lark_base_record_mappings lark_base_record_unique_leadsy; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_record_mappings lark_base_record_unique_leadsy; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_record_mappings
@@ -13096,7 +13508,7 @@ ALTER TABLE ONLY public.lark_base_record_mappings
 
 
 --
--- Name: lark_base_tables lark_base_tables_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_tables lark_base_tables_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_tables
@@ -13104,7 +13516,7 @@ ALTER TABLE ONLY public.lark_base_tables
 
 
 --
--- Name: lark_base_tables lark_base_tables_unique_table; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_tables lark_base_tables_unique_table; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_tables
@@ -13112,7 +13524,7 @@ ALTER TABLE ONLY public.lark_base_tables
 
 
 --
--- Name: lark_events lark_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_events lark_events_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_events
@@ -13120,7 +13532,7 @@ ALTER TABLE ONLY public.lark_events
 
 
 --
--- Name: lark_integrations lark_integrations_app_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_integrations lark_integrations_app_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_integrations
@@ -13128,7 +13540,7 @@ ALTER TABLE ONLY public.lark_integrations
 
 
 --
--- Name: lark_integrations lark_integrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_integrations lark_integrations_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_integrations
@@ -13136,7 +13548,7 @@ ALTER TABLE ONLY public.lark_integrations
 
 
 --
--- Name: lark_sso_users lark_sso_users_lark_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_sso_users lark_sso_users_lark_user_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_sso_users
@@ -13144,7 +13556,7 @@ ALTER TABLE ONLY public.lark_sso_users
 
 
 --
--- Name: lark_sso_users lark_sso_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_sso_users lark_sso_users_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_sso_users
@@ -13152,7 +13564,7 @@ ALTER TABLE ONLY public.lark_sso_users
 
 
 --
--- Name: lark_syncs lark_syncs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_syncs lark_syncs_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_syncs
@@ -13160,7 +13572,7 @@ ALTER TABLE ONLY public.lark_syncs
 
 
 --
--- Name: lead_activities lead_activities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_activities lead_activities_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_activities
@@ -13168,7 +13580,7 @@ ALTER TABLE ONLY public.lead_activities
 
 
 --
--- Name: lead_ai_analyses lead_ai_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_ai_analyses lead_ai_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_ai_analyses
@@ -13176,7 +13588,7 @@ ALTER TABLE ONLY public.lead_ai_analyses
 
 
 --
--- Name: lead_ai_evaluations lead_ai_evaluations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_ai_evaluations lead_ai_evaluations_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_ai_evaluations
@@ -13184,7 +13596,7 @@ ALTER TABLE ONLY public.lead_ai_evaluations
 
 
 --
--- Name: lead_analysis_logs lead_analysis_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_analysis_logs lead_analysis_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_analysis_logs
@@ -13192,7 +13604,7 @@ ALTER TABLE ONLY public.lead_analysis_logs
 
 
 --
--- Name: lead_bantc_question_guides lead_bantc_question_guides_lead_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides lead_bantc_question_guides_lead_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_bantc_question_guides
@@ -13200,7 +13612,7 @@ ALTER TABLE ONLY public.lead_bantc_question_guides
 
 
 --
--- Name: lead_bantc_question_guides lead_bantc_question_guides_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides lead_bantc_question_guides_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_bantc_question_guides
@@ -13208,7 +13620,7 @@ ALTER TABLE ONLY public.lead_bantc_question_guides
 
 
 --
--- Name: lead_channel_types lead_channel_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_channel_types lead_channel_types_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_channel_types
@@ -13216,7 +13628,7 @@ ALTER TABLE ONLY public.lead_channel_types
 
 
 --
--- Name: lead_channel_types lead_channel_types_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_channel_types lead_channel_types_slug_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_channel_types
@@ -13224,7 +13636,7 @@ ALTER TABLE ONLY public.lead_channel_types
 
 
 --
--- Name: lead_contact_payloads lead_contact_payloads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_contact_payloads lead_contact_payloads_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_contact_payloads
@@ -13232,7 +13644,7 @@ ALTER TABLE ONLY public.lead_contact_payloads
 
 
 --
--- Name: lead_contacts lead_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_contacts lead_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_contacts
@@ -13240,7 +13652,7 @@ ALTER TABLE ONLY public.lead_contacts
 
 
 --
--- Name: lead_conversion_predictions lead_conversion_predictions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_conversion_predictions lead_conversion_predictions_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_conversion_predictions
@@ -13248,7 +13660,7 @@ ALTER TABLE ONLY public.lead_conversion_predictions
 
 
 --
--- Name: lead_follow_ups lead_follow_ups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_follow_ups lead_follow_ups_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_follow_ups
@@ -13256,7 +13668,7 @@ ALTER TABLE ONLY public.lead_follow_ups
 
 
 --
--- Name: lead_funnel_history lead_funnel_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_funnel_history lead_funnel_history_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_funnel_history
@@ -13264,7 +13676,7 @@ ALTER TABLE ONLY public.lead_funnel_history
 
 
 --
--- Name: lead_icp_config lead_icp_config_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_icp_config lead_icp_config_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_icp_config
@@ -13272,7 +13684,7 @@ ALTER TABLE ONLY public.lead_icp_config
 
 
 --
--- Name: lead_icp_matches lead_icp_matches_lead_id_icp_profile_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_icp_matches lead_icp_matches_lead_id_icp_profile_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_icp_matches
@@ -13280,7 +13692,7 @@ ALTER TABLE ONLY public.lead_icp_matches
 
 
 --
--- Name: lead_icp_matches lead_icp_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_icp_matches lead_icp_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_icp_matches
@@ -13288,7 +13700,7 @@ ALTER TABLE ONLY public.lead_icp_matches
 
 
 --
--- Name: lead_meetings lead_meetings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_meetings lead_meetings_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_meetings
@@ -13296,7 +13708,7 @@ ALTER TABLE ONLY public.lead_meetings
 
 
 --
--- Name: lead_outcomes lead_outcomes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_outcomes lead_outcomes_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_outcomes
@@ -13304,7 +13716,7 @@ ALTER TABLE ONLY public.lead_outcomes
 
 
 --
--- Name: lead_prescriptions lead_prescriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_prescriptions lead_prescriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_prescriptions
@@ -13312,7 +13724,7 @@ ALTER TABLE ONLY public.lead_prescriptions
 
 
 --
--- Name: lead_product_match_runs lead_product_match_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_product_match_runs lead_product_match_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_product_match_runs
@@ -13320,7 +13732,7 @@ ALTER TABLE ONLY public.lead_product_match_runs
 
 
 --
--- Name: lead_product_matches lead_product_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_product_matches lead_product_matches_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_product_matches
@@ -13328,7 +13740,7 @@ ALTER TABLE ONLY public.lead_product_matches
 
 
 --
--- Name: contact_enrichment_candidates lead_provider_candidate_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates lead_provider_candidate_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.contact_enrichment_candidates
@@ -13336,7 +13748,7 @@ ALTER TABLE ONLY public.contact_enrichment_candidates
 
 
 --
--- Name: lead_qualifications lead_qualifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_qualifications lead_qualifications_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_qualifications
@@ -13344,7 +13756,7 @@ ALTER TABLE ONLY public.lead_qualifications
 
 
 --
--- Name: lead_revenue_analyses lead_revenue_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_revenue_analyses lead_revenue_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_revenue_analyses
@@ -13352,7 +13764,7 @@ ALTER TABLE ONLY public.lead_revenue_analyses
 
 
 --
--- Name: lead_score_breakdowns lead_score_breakdowns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_score_breakdowns lead_score_breakdowns_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_score_breakdowns
@@ -13360,7 +13772,7 @@ ALTER TABLE ONLY public.lead_score_breakdowns
 
 
 --
--- Name: lead_scores lead_scores_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_scores lead_scores_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_scores
@@ -13368,7 +13780,7 @@ ALTER TABLE ONLY public.lead_scores
 
 
 --
--- Name: lead_source_types lead_source_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_source_types lead_source_types_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_source_types
@@ -13376,7 +13788,7 @@ ALTER TABLE ONLY public.lead_source_types
 
 
 --
--- Name: lead_source_types lead_source_types_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_source_types lead_source_types_slug_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_source_types
@@ -13384,7 +13796,7 @@ ALTER TABLE ONLY public.lead_source_types
 
 
 --
--- Name: lead_sources lead_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_sources lead_sources_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_sources
@@ -13392,7 +13804,7 @@ ALTER TABLE ONLY public.lead_sources
 
 
 --
--- Name: lead_transcripts lead_transcripts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_transcripts lead_transcripts_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_transcripts
@@ -13400,7 +13812,7 @@ ALTER TABLE ONLY public.lead_transcripts
 
 
 --
--- Name: leads leads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -13408,7 +13820,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: map_candidates map_candidates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: map_candidates map_candidates_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.map_candidates
@@ -13416,7 +13828,7 @@ ALTER TABLE ONLY public.map_candidates
 
 
 --
--- Name: map_search_history map_search_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: map_search_history map_search_history_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.map_search_history
@@ -13424,7 +13836,7 @@ ALTER TABLE ONLY public.map_search_history
 
 
 --
--- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.migrations
@@ -13432,7 +13844,7 @@ ALTER TABLE ONLY public.migrations
 
 
 --
--- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.password_reset_tokens
@@ -13440,7 +13852,7 @@ ALTER TABLE ONLY public.password_reset_tokens
 
 
 --
--- Name: permissions permissions_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: permissions permissions_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.permissions
@@ -13448,7 +13860,7 @@ ALTER TABLE ONLY public.permissions
 
 
 --
--- Name: permissions permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: permissions permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.permissions
@@ -13456,7 +13868,7 @@ ALTER TABLE ONLY public.permissions
 
 
 --
--- Name: personal_access_tokens personal_access_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: personal_access_tokens personal_access_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.personal_access_tokens
@@ -13464,7 +13876,7 @@ ALTER TABLE ONLY public.personal_access_tokens
 
 
 --
--- Name: personal_access_tokens personal_access_tokens_token_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: personal_access_tokens personal_access_tokens_token_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.personal_access_tokens
@@ -13472,7 +13884,7 @@ ALTER TABLE ONLY public.personal_access_tokens
 
 
 --
--- Name: product_questions product_questions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: product_questions product_questions_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.product_questions
@@ -13480,7 +13892,7 @@ ALTER TABLE ONLY public.product_questions
 
 
 --
--- Name: product_questions product_questions_product_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: product_questions product_questions_product_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.product_questions
@@ -13488,7 +13900,7 @@ ALTER TABLE ONLY public.product_questions
 
 
 --
--- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.products
@@ -13496,7 +13908,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- Name: qualification_parameter_options qualification_parameter_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameter_options qualification_parameter_options_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_options
@@ -13504,7 +13916,7 @@ ALTER TABLE ONLY public.qualification_parameter_options
 
 
 --
--- Name: qualification_parameter_sets qualification_parameter_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameter_sets qualification_parameter_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_sets
@@ -13512,7 +13924,7 @@ ALTER TABLE ONLY public.qualification_parameter_sets
 
 
 --
--- Name: qualification_parameter_sets qualification_parameter_sets_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameter_sets qualification_parameter_sets_slug_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_sets
@@ -13520,7 +13932,7 @@ ALTER TABLE ONLY public.qualification_parameter_sets
 
 
 --
--- Name: qualification_parameters qualification_parameters_parameter_set_id_parameter_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameters qualification_parameters_parameter_set_id_parameter_key_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameters
@@ -13528,7 +13940,7 @@ ALTER TABLE ONLY public.qualification_parameters
 
 
 --
--- Name: qualification_parameters qualification_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameters qualification_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameters
@@ -13536,7 +13948,7 @@ ALTER TABLE ONLY public.qualification_parameters
 
 
 --
--- Name: qualification_workflow_reviews qualification_workflow_reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews qualification_workflow_reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_reviews
@@ -13544,7 +13956,7 @@ ALTER TABLE ONLY public.qualification_workflow_reviews
 
 
 --
--- Name: qualification_workflow_stages qualification_workflow_stages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_stages qualification_workflow_stages_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_stages
@@ -13552,7 +13964,7 @@ ALTER TABLE ONLY public.qualification_workflow_stages
 
 
 --
--- Name: qualification_workflow_stages qualification_workflow_stages_workflow_id_code_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_stages qualification_workflow_stages_workflow_id_code_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_stages
@@ -13560,7 +13972,7 @@ ALTER TABLE ONLY public.qualification_workflow_stages
 
 
 --
--- Name: qualification_workflows qualification_workflows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflows qualification_workflows_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflows
@@ -13568,7 +13980,7 @@ ALTER TABLE ONLY public.qualification_workflows
 
 
 --
--- Name: qualification_workflows qualification_workflows_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflows qualification_workflows_slug_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflows
@@ -13576,7 +13988,7 @@ ALTER TABLE ONLY public.qualification_workflows
 
 
 --
--- Name: record_origin_mappings record_origin_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: record_origin_mappings record_origin_mappings_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.record_origin_mappings
@@ -13584,7 +13996,7 @@ ALTER TABLE ONLY public.record_origin_mappings
 
 
 --
--- Name: record_origin_mappings record_origin_source_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: record_origin_mappings record_origin_source_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.record_origin_mappings
@@ -13592,7 +14004,7 @@ ALTER TABLE ONLY public.record_origin_mappings
 
 
 --
--- Name: record_origin_mappings record_origin_target_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: record_origin_mappings record_origin_target_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.record_origin_mappings
@@ -13600,7 +14012,7 @@ ALTER TABLE ONLY public.record_origin_mappings
 
 
 --
--- Name: revenue_rules revenue_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: revenue_rules revenue_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.revenue_rules
@@ -13608,7 +14020,7 @@ ALTER TABLE ONLY public.revenue_rules
 
 
 --
--- Name: role_permission role_permission_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: role_permission role_permission_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.role_permission
@@ -13616,7 +14028,7 @@ ALTER TABLE ONLY public.role_permission
 
 
 --
--- Name: role_permission role_permission_role_id_permission_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: role_permission role_permission_role_id_permission_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.role_permission
@@ -13624,7 +14036,7 @@ ALTER TABLE ONLY public.role_permission
 
 
 --
--- Name: roles roles_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: roles roles_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.roles
@@ -13632,7 +14044,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.roles
@@ -13640,7 +14052,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
--- Name: sales_visit_media sales_visit_media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_visit_media sales_visit_media_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sales_visit_media
@@ -13648,7 +14060,7 @@ ALTER TABLE ONLY public.sales_visit_media
 
 
 --
--- Name: sales_visits sales_visits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_visits sales_visits_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sales_visits
@@ -13656,7 +14068,7 @@ ALTER TABLE ONLY public.sales_visits
 
 
 --
--- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sessions
@@ -13664,7 +14076,7 @@ ALTER TABLE ONLY public.sessions
 
 
 --
--- Name: sub_industries sub_industries_industry_id_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sub_industries sub_industries_industry_id_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sub_industries
@@ -13672,7 +14084,7 @@ ALTER TABLE ONLY public.sub_industries
 
 
 --
--- Name: sub_industries sub_industries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: sub_industries sub_industries_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sub_industries
@@ -13680,7 +14092,7 @@ ALTER TABLE ONLY public.sub_industries
 
 
 --
--- Name: tenants tenants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tenants tenants_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.tenants
@@ -13688,7 +14100,7 @@ ALTER TABLE ONLY public.tenants
 
 
 --
--- Name: tenants tenants_slug_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tenants tenants_slug_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.tenants
@@ -13696,7 +14108,7 @@ ALTER TABLE ONLY public.tenants
 
 
 --
--- Name: territories territories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: territories territories_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.territories
@@ -13704,7 +14116,7 @@ ALTER TABLE ONLY public.territories
 
 
 --
--- Name: users users_email_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_email_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.users
@@ -13712,7 +14124,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.users
@@ -13720,7 +14132,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: whatsapp_ai_analyses whatsapp_ai_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_ai_analyses whatsapp_ai_analyses_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_ai_analyses
@@ -13728,7 +14140,7 @@ ALTER TABLE ONLY public.whatsapp_ai_analyses
 
 
 --
--- Name: whatsapp_campaign_recipients whatsapp_campaign_recipients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients whatsapp_campaign_recipients_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_campaign_recipients
@@ -13736,7 +14148,7 @@ ALTER TABLE ONLY public.whatsapp_campaign_recipients
 
 
 --
--- Name: whatsapp_campaigns whatsapp_campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_campaigns whatsapp_campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_campaigns
@@ -13744,7 +14156,7 @@ ALTER TABLE ONLY public.whatsapp_campaigns
 
 
 --
--- Name: whatsapp_contacts whatsapp_contacts_phone_number_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_contacts whatsapp_contacts_phone_number_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_contacts
@@ -13752,7 +14164,7 @@ ALTER TABLE ONLY public.whatsapp_contacts
 
 
 --
--- Name: whatsapp_contacts whatsapp_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_contacts whatsapp_contacts_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_contacts
@@ -13760,7 +14172,7 @@ ALTER TABLE ONLY public.whatsapp_contacts
 
 
 --
--- Name: whatsapp_conversations whatsapp_conversations_external_chat_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_conversations whatsapp_conversations_external_chat_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_conversations
@@ -13768,7 +14180,7 @@ ALTER TABLE ONLY public.whatsapp_conversations
 
 
 --
--- Name: whatsapp_conversations whatsapp_conversations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_conversations whatsapp_conversations_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_conversations
@@ -13776,7 +14188,7 @@ ALTER TABLE ONLY public.whatsapp_conversations
 
 
 --
--- Name: whatsapp_messages whatsapp_messages_external_message_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_messages whatsapp_messages_external_message_id_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_messages
@@ -13784,7 +14196,7 @@ ALTER TABLE ONLY public.whatsapp_messages
 
 
 --
--- Name: whatsapp_messages whatsapp_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_messages whatsapp_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_messages
@@ -13792,7 +14204,7 @@ ALTER TABLE ONLY public.whatsapp_messages
 
 
 --
--- Name: whatsapp_sessions whatsapp_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_sessions whatsapp_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_sessions
@@ -13800,7 +14212,7 @@ ALTER TABLE ONLY public.whatsapp_sessions
 
 
 --
--- Name: whatsapp_sessions whatsapp_sessions_session_name_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_sessions whatsapp_sessions_session_name_unique; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_sessions
@@ -13808,7 +14220,7 @@ ALTER TABLE ONLY public.whatsapp_sessions
 
 
 --
--- Name: whatsapp_sync_rules whatsapp_sync_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_sync_rules whatsapp_sync_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_sync_rules
@@ -13816,637 +14228,637 @@ ALTER TABLE ONLY public.whatsapp_sync_rules
 
 
 --
--- Name: ai_parameter_suggestions_product_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: ai_parameter_suggestions_product_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX ai_parameter_suggestions_product_id_idx ON legacy_mgmt.ai_parameter_suggestions USING btree (product_id);
 
 
 --
--- Name: ai_provider_settings_is_active_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: ai_provider_settings_is_active_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX ai_provider_settings_is_active_idx ON legacy_mgmt.ai_provider_settings USING btree (is_active);
 
 
 --
--- Name: ai_provider_settings_user_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: ai_provider_settings_user_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX ai_provider_settings_user_id_idx ON legacy_mgmt.ai_provider_settings USING btree (user_id);
 
 
 --
--- Name: ai_provider_settings_user_id_provider_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: ai_provider_settings_user_id_provider_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE UNIQUE INDEX ai_provider_settings_user_id_provider_name_key ON legacy_mgmt.ai_provider_settings USING btree (user_id, provider_name);
 
 
 --
--- Name: audit_logs_entity_type_entity_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: audit_logs_entity_type_entity_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX audit_logs_entity_type_entity_id_idx ON legacy_mgmt.audit_logs USING btree (entity_type, entity_id);
 
 
 --
--- Name: audit_logs_user_id_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: audit_logs_user_id_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX audit_logs_user_id_created_at_idx ON legacy_mgmt.audit_logs USING btree (user_id, created_at DESC);
 
 
 --
--- Name: lead_activities_lead_id_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: lead_activities_lead_id_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX lead_activities_lead_id_created_at_idx ON legacy_mgmt.lead_activities USING btree (lead_id, created_at DESC);
 
 
 --
--- Name: lead_evaluations_lead_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: lead_evaluations_lead_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX lead_evaluations_lead_id_idx ON legacy_mgmt.lead_evaluations USING btree (lead_id);
 
 
 --
--- Name: lead_evaluations_lead_id_is_latest_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: lead_evaluations_lead_id_is_latest_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX lead_evaluations_lead_id_is_latest_idx ON legacy_mgmt.lead_evaluations USING btree (lead_id, is_latest);
 
 
 --
--- Name: lead_scores_evaluation_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: lead_scores_evaluation_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX lead_scores_evaluation_id_idx ON legacy_mgmt.lead_scores USING btree (evaluation_id);
 
 
 --
--- Name: lead_sources_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: lead_sources_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE UNIQUE INDEX lead_sources_name_key ON legacy_mgmt.lead_sources USING btree (name);
 
 
 --
--- Name: leads_company_name_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: leads_company_name_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX leads_company_name_idx ON legacy_mgmt.leads USING btree (company_name);
 
 
 --
--- Name: leads_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: leads_created_at_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX leads_created_at_idx ON legacy_mgmt.leads USING btree (created_at DESC);
 
 
 --
--- Name: leads_status_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: leads_status_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX leads_status_idx ON legacy_mgmt.leads USING btree (status);
 
 
 --
--- Name: leads_tenant_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: leads_tenant_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX leads_tenant_id_idx ON legacy_mgmt.leads USING btree (tenant_id);
 
 
 --
--- Name: parameters_dimension_id_key_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: parameters_dimension_id_key_key; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE UNIQUE INDEX parameters_dimension_id_key_key ON legacy_mgmt.parameters USING btree (dimension_id, key);
 
 
 --
--- Name: product_questions_product_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: product_questions_product_id_idx; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE INDEX product_questions_product_id_idx ON legacy_mgmt.product_questions USING btree (product_id);
 
 
 --
--- Name: roles_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: roles_name_key; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE UNIQUE INDEX roles_name_key ON legacy_mgmt.roles USING btree (name);
 
 
 --
--- Name: scoring_dimensions_key_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: scoring_dimensions_key_key; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE UNIQUE INDEX scoring_dimensions_key_key ON legacy_mgmt.scoring_dimensions USING btree (key);
 
 
 --
--- Name: users_email_key; Type: INDEX; Schema: legacy_mgmt; Owner: -
+-- Name: users_email_key; Type: INDEX; Schema: legacy_mgmt; Owner: leads
 --
 
 CREATE UNIQUE INDEX users_email_key ON legacy_mgmt.users USING btree (email);
 
 
 --
--- Name: ai_feature_routes_feature_name_index; Type: INDEX; Schema: public; Owner: -
+-- Name: ai_feature_routes_feature_name_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX ai_feature_routes_feature_name_index ON public.ai_feature_routes USING btree (feature_name);
 
 
 --
--- Name: ai_prompt_templates_feature_name_index; Type: INDEX; Schema: public; Owner: -
+-- Name: ai_prompt_templates_feature_name_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX ai_prompt_templates_feature_name_index ON public.ai_prompt_templates USING btree (feature_name);
 
 
 --
--- Name: audit_logs_module_created_at_index; Type: INDEX; Schema: public; Owner: -
+-- Name: audit_logs_module_created_at_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX audit_logs_module_created_at_index ON public.audit_logs USING btree (module, created_at);
 
 
 --
--- Name: audit_logs_record_type_record_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: audit_logs_record_type_record_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX audit_logs_record_type_record_id_index ON public.audit_logs USING btree (record_type, record_id);
 
 
 --
--- Name: audit_logs_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: audit_logs_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX audit_logs_tenant_id_index ON public.audit_logs USING btree (tenant_id);
 
 
 --
--- Name: contact_candidates_lead_provider_status_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: contact_candidates_lead_provider_status_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX contact_candidates_lead_provider_status_idx ON public.contact_enrichment_candidates USING btree (lead_id, provider, status);
 
 
 --
--- Name: email_verification_otps_email_index; Type: INDEX; Schema: public; Owner: -
+-- Name: email_verification_otps_email_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX email_verification_otps_email_index ON public.email_verification_otps USING btree (email);
 
 
 --
--- Name: geo_product_fit_analyses_fit_level_index; Type: INDEX; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses_fit_level_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX geo_product_fit_analyses_fit_level_index ON public.geo_product_fit_analyses USING btree (fit_level);
 
 
 --
--- Name: geo_product_fit_analyses_fit_score_index; Type: INDEX; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses_fit_score_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX geo_product_fit_analyses_fit_score_index ON public.geo_product_fit_analyses USING btree (fit_score);
 
 
 --
--- Name: geo_product_fit_analyses_place_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses_place_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX geo_product_fit_analyses_place_id_index ON public.geo_product_fit_analyses USING btree (place_id);
 
 
 --
--- Name: geo_product_fit_analyses_product_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses_product_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX geo_product_fit_analyses_product_id_index ON public.geo_product_fit_analyses USING btree (product_id);
 
 
 --
--- Name: icp_profiles_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: icp_profiles_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX icp_profiles_tenant_id_index ON public.icp_profiles USING btree (tenant_id);
 
 
 --
--- Name: integration_configs_category_index; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_configs_category_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_configs_category_index ON public.integration_configs USING btree (category);
 
 
 --
--- Name: integration_configs_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_configs_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_configs_tenant_id_index ON public.integration_configs USING btree (tenant_id);
 
 
 --
--- Name: integration_configs_tenant_key_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_configs_tenant_key_unique; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE UNIQUE INDEX integration_configs_tenant_key_unique ON public.integration_configs USING btree (COALESCE(tenant_id, (0)::bigint), key);
 
 
 --
--- Name: integration_connections_enabled_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_connections_enabled_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_connections_enabled_idx ON public.integration_connections USING btree (tenant_id, is_enabled);
 
 
 --
--- Name: integration_connections_status_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_connections_status_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_connections_status_idx ON public.integration_connections USING btree (tenant_id, provider, status);
 
 
 --
--- Name: integration_credentials_fingerprint_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_credentials_fingerprint_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_credentials_fingerprint_idx ON public.integration_credential_stores USING btree (value_fingerprint);
 
 
 --
--- Name: integration_credentials_key_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_credentials_key_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_credentials_key_idx ON public.integration_credential_stores USING btree (integration_connection_id, key_name);
 
 
 --
--- Name: integration_credentials_rotation_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_credentials_rotation_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_credentials_rotation_idx ON public.integration_credential_stores USING btree (expires_at, revoked_at);
 
 
 --
--- Name: integration_credentials_type_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_credentials_type_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_credentials_type_idx ON public.integration_credential_stores USING btree (tenant_id, credential_type);
 
 
 --
--- Name: integration_entity_leadsy_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_entity_leadsy_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_entity_leadsy_idx ON public.integration_entity_mappings USING btree (tenant_id, leadsy_entity_type, leadsy_entity_id);
 
 
 --
--- Name: integration_webhooks_status_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_webhooks_status_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_webhooks_status_idx ON public.integration_webhook_events USING btree (provider, status, received_at);
 
 
 --
--- Name: integration_webhooks_tenant_provider_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: integration_webhooks_tenant_provider_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX integration_webhooks_tenant_provider_idx ON public.integration_webhook_events USING btree (tenant_id, provider);
 
 
 --
--- Name: jobs_queue_index; Type: INDEX; Schema: public; Owner: -
+-- Name: jobs_queue_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX jobs_queue_index ON public.jobs USING btree (queue);
 
 
 --
--- Name: lark_base_record_leadsy_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lark_base_record_leadsy_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lark_base_record_leadsy_idx ON public.lark_base_record_mappings USING btree (tenant_id, leadsy_entity_type, leadsy_entity_id);
 
 
 --
--- Name: lark_base_tables_entity_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lark_base_tables_entity_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lark_base_tables_entity_idx ON public.lark_base_tables USING btree (tenant_id, leadsy_entity_type, is_active);
 
 
 --
--- Name: lead_activities_related_entity_type_related_entity_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_activities_related_entity_type_related_entity_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_activities_related_entity_type_related_entity_id_index ON public.lead_activities USING btree (related_entity_type, related_entity_id);
 
 
 --
--- Name: lead_activities_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_activities_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_activities_tenant_id_index ON public.lead_activities USING btree (tenant_id);
 
 
 --
--- Name: lead_ai_evaluations_source_type_source_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_ai_evaluations_source_type_source_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_ai_evaluations_source_type_source_id_index ON public.lead_ai_evaluations USING btree (source_type, source_id);
 
 
 --
--- Name: lead_analysis_logs_lead_type_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_analysis_logs_lead_type_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_analysis_logs_lead_type_idx ON public.lead_analysis_logs USING btree (lead_id, analysis_type);
 
 
 --
--- Name: lead_analysis_logs_tenant_created_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_analysis_logs_tenant_created_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_analysis_logs_tenant_created_idx ON public.lead_analysis_logs USING btree (tenant_id, created_at);
 
 
 --
--- Name: lead_contacts_one_primary_per_lead; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_contacts_one_primary_per_lead; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE UNIQUE INDEX lead_contacts_one_primary_per_lead ON public.lead_contacts USING btree (lead_id) WHERE (is_primary = true);
 
 
 --
--- Name: lead_icp_config_tenant_industry_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_icp_config_tenant_industry_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_icp_config_tenant_industry_idx ON public.lead_icp_config USING btree (tenant_id, industry);
 
 
 --
--- Name: lead_icp_config_tenant_location_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_icp_config_tenant_location_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_icp_config_tenant_location_idx ON public.lead_icp_config USING btree (tenant_id, location);
 
 
 --
--- Name: lead_product_match_runs_lead_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_product_match_runs_lead_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_product_match_runs_lead_id_index ON public.lead_product_match_runs USING btree (lead_id);
 
 
 --
--- Name: lead_product_match_runs_run_at_index; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_product_match_runs_run_at_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_product_match_runs_run_at_index ON public.lead_product_match_runs USING btree (run_at);
 
 
 --
--- Name: lead_qualifications_latest_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_qualifications_latest_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_qualifications_latest_idx ON public.lead_qualifications USING btree (lead_id, last_qualified_at DESC);
 
 
 --
--- Name: lead_qualifications_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_qualifications_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_qualifications_tenant_id_index ON public.lead_qualifications USING btree (tenant_id);
 
 
 --
--- Name: lead_score_breakdowns_lead_factor_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_score_breakdowns_lead_factor_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_score_breakdowns_lead_factor_idx ON public.lead_score_breakdowns USING btree (lead_id, factor);
 
 
 --
--- Name: lead_score_breakdowns_tenant_lead_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_score_breakdowns_tenant_lead_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_score_breakdowns_tenant_lead_idx ON public.lead_score_breakdowns USING btree (tenant_id, lead_id);
 
 
 --
--- Name: lead_scores_calculated_at_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_scores_calculated_at_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_scores_calculated_at_idx ON public.lead_scores USING btree (lead_id, calculated_at);
 
 
 --
--- Name: lead_scores_latest_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_scores_latest_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_scores_latest_idx ON public.lead_scores USING btree (lead_id, last_scored_at DESC);
 
 
 --
--- Name: lead_scores_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_scores_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_scores_tenant_id_index ON public.lead_scores USING btree (tenant_id);
 
 
 --
--- Name: lead_sources_identity_unique; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_sources_identity_unique; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE UNIQUE INDEX lead_sources_identity_unique ON public.lead_sources USING btree (lead_id, source_type, COALESCE(source_ref, ''::character varying));
 
 
 --
--- Name: lead_sources_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: lead_sources_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX lead_sources_tenant_id_index ON public.lead_sources USING btree (tenant_id);
 
 
 --
--- Name: leads_external_place_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: leads_external_place_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX leads_external_place_id_index ON public.leads USING btree (external_place_id);
 
 
 --
--- Name: leads_operational_filter_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: leads_operational_filter_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX leads_operational_filter_idx ON public.leads USING btree (qualification_status, funnel_stage_id, lead_score, created_at);
 
 
 --
--- Name: leads_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: leads_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX leads_tenant_id_index ON public.leads USING btree (tenant_id);
 
 
 --
--- Name: leads_website_domain_index; Type: INDEX; Schema: public; Owner: -
+-- Name: leads_website_domain_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX leads_website_domain_index ON public.leads USING btree (website_domain);
 
 
 --
--- Name: personal_access_tokens_expires_at_index; Type: INDEX; Schema: public; Owner: -
+-- Name: personal_access_tokens_expires_at_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX personal_access_tokens_expires_at_index ON public.personal_access_tokens USING btree (expires_at);
 
 
 --
--- Name: personal_access_tokens_tokenable_type_tokenable_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: personal_access_tokens_tokenable_type_tokenable_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX personal_access_tokens_tokenable_type_tokenable_id_index ON public.personal_access_tokens USING btree (tokenable_type, tokenable_id);
 
 
 --
--- Name: products_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: products_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX products_tenant_id_index ON public.products USING btree (tenant_id);
 
 
 --
--- Name: qualification_parameter_sets_one_active_per_tenant; Type: INDEX; Schema: public; Owner: -
+-- Name: qualification_parameter_sets_one_active_per_tenant; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE UNIQUE INDEX qualification_parameter_sets_one_active_per_tenant ON public.qualification_parameter_sets USING btree (COALESCE(tenant_id, (0)::bigint)) WHERE (((status)::text = 'active'::text) AND (deleted_at IS NULL));
 
 
 --
--- Name: qualification_parameter_sets_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: qualification_parameter_sets_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX qualification_parameter_sets_tenant_id_index ON public.qualification_parameter_sets USING btree (tenant_id);
 
 
 --
--- Name: qualification_workflow_reviews_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX qualification_workflow_reviews_tenant_id_index ON public.qualification_workflow_reviews USING btree (tenant_id);
 
 
 --
--- Name: qualification_workflows_active_trigger_per_tenant; Type: INDEX; Schema: public; Owner: -
+-- Name: qualification_workflows_active_trigger_per_tenant; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE UNIQUE INDEX qualification_workflows_active_trigger_per_tenant ON public.qualification_workflows USING btree (COALESCE(tenant_id, (0)::bigint), trigger_status) WHERE ((is_active = true) AND (deleted_at IS NULL));
 
 
 --
--- Name: qualification_workflows_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: qualification_workflows_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX qualification_workflows_tenant_id_index ON public.qualification_workflows USING btree (tenant_id);
 
 
 --
--- Name: qwr_lead_status_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: qwr_lead_status_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX qwr_lead_status_idx ON public.qualification_workflow_reviews USING btree (lead_id, status);
 
 
 --
--- Name: qwr_status_decision_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: qwr_status_decision_idx; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX qwr_status_decision_idx ON public.qualification_workflow_reviews USING btree (status, decision);
 
 
 --
--- Name: revenue_rules_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: revenue_rules_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX revenue_rules_tenant_id_index ON public.revenue_rules USING btree (tenant_id);
 
 
 --
--- Name: sales_visit_media_sales_visit_id_media_type_index; Type: INDEX; Schema: public; Owner: -
+-- Name: sales_visit_media_sales_visit_id_media_type_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX sales_visit_media_sales_visit_id_media_type_index ON public.sales_visit_media USING btree (sales_visit_id, media_type);
 
 
 --
--- Name: sales_visits_lead_id_status_index; Type: INDEX; Schema: public; Owner: -
+-- Name: sales_visits_lead_id_status_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX sales_visits_lead_id_status_index ON public.sales_visits USING btree (lead_id, status);
 
 
 --
--- Name: sales_visits_risk_status_created_at_index; Type: INDEX; Schema: public; Owner: -
+-- Name: sales_visits_risk_status_created_at_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX sales_visits_risk_status_created_at_index ON public.sales_visits USING btree (risk_status, created_at);
 
 
 --
--- Name: sales_visits_user_id_clock_in_at_index; Type: INDEX; Schema: public; Owner: -
+-- Name: sales_visits_user_id_clock_in_at_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX sales_visits_user_id_clock_in_at_index ON public.sales_visits USING btree (user_id, clock_in_at);
 
 
 --
--- Name: sessions_last_activity_index; Type: INDEX; Schema: public; Owner: -
+-- Name: sessions_last_activity_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX sessions_last_activity_index ON public.sessions USING btree (last_activity);
 
 
 --
--- Name: sessions_user_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: sessions_user_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX sessions_user_id_index ON public.sessions USING btree (user_id);
 
 
 --
--- Name: territories_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: territories_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX territories_tenant_id_index ON public.territories USING btree (tenant_id);
 
 
 --
--- Name: users_tenant_id_index; Type: INDEX; Schema: public; Owner: -
+-- Name: users_tenant_id_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX users_tenant_id_index ON public.users USING btree (tenant_id);
 
 
 --
--- Name: whatsapp_contacts_normalized_phone_number_index; Type: INDEX; Schema: public; Owner: -
+-- Name: whatsapp_contacts_normalized_phone_number_index; Type: INDEX; Schema: public; Owner: leads
 --
 
 CREATE INDEX whatsapp_contacts_normalized_phone_number_index ON public.whatsapp_contacts USING btree (normalized_phone_number);
 
 
 --
--- Name: ai_parameter_suggestions ai_parameter_suggestions_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: ai_parameter_suggestions ai_parameter_suggestions_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.ai_parameter_suggestions
@@ -14454,7 +14866,7 @@ ALTER TABLE ONLY legacy_mgmt.ai_parameter_suggestions
 
 
 --
--- Name: ai_provider_settings ai_provider_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: ai_provider_settings ai_provider_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
@@ -14462,7 +14874,7 @@ ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
 
 
 --
--- Name: ai_provider_settings ai_provider_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: ai_provider_settings ai_provider_settings_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
@@ -14470,7 +14882,7 @@ ALTER TABLE ONLY legacy_mgmt.ai_provider_settings
 
 
 --
--- Name: audit_logs audit_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: audit_logs audit_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.audit_logs
@@ -14478,7 +14890,7 @@ ALTER TABLE ONLY legacy_mgmt.audit_logs
 
 
 --
--- Name: evaluation_overrides evaluation_overrides_evaluation_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: evaluation_overrides evaluation_overrides_evaluation_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
@@ -14486,7 +14898,7 @@ ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
 
 
 --
--- Name: evaluation_overrides evaluation_overrides_overridden_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: evaluation_overrides evaluation_overrides_overridden_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
@@ -14494,7 +14906,7 @@ ALTER TABLE ONLY legacy_mgmt.evaluation_overrides
 
 
 --
--- Name: lead_activities lead_activities_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_activities lead_activities_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_activities
@@ -14502,7 +14914,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_activities
 
 
 --
--- Name: lead_activities lead_activities_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_activities lead_activities_user_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_activities
@@ -14510,7 +14922,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_activities
 
 
 --
--- Name: lead_evaluations lead_evaluations_evaluated_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_evaluations lead_evaluations_evaluated_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_evaluations
@@ -14518,7 +14930,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_evaluations
 
 
 --
--- Name: lead_evaluations lead_evaluations_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_evaluations lead_evaluations_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_evaluations
@@ -14526,7 +14938,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_evaluations
 
 
 --
--- Name: lead_evaluations lead_evaluations_recommended_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_evaluations lead_evaluations_recommended_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_evaluations
@@ -14534,7 +14946,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_evaluations
 
 
 --
--- Name: lead_scores lead_scores_evaluation_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_scores lead_scores_evaluation_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_scores
@@ -14542,7 +14954,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_scores
 
 
 --
--- Name: lead_scores lead_scores_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_scores lead_scores_lead_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_scores
@@ -14550,7 +14962,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_scores
 
 
 --
--- Name: lead_scores lead_scores_option_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_scores lead_scores_option_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_scores
@@ -14558,7 +14970,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_scores
 
 
 --
--- Name: lead_scores lead_scores_parameter_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: lead_scores lead_scores_parameter_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.lead_scores
@@ -14566,7 +14978,7 @@ ALTER TABLE ONLY legacy_mgmt.lead_scores
 
 
 --
--- Name: leads leads_created_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: leads leads_created_by_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.leads
@@ -14574,7 +14986,7 @@ ALTER TABLE ONLY legacy_mgmt.leads
 
 
 --
--- Name: leads leads_source_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: leads leads_source_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.leads
@@ -14582,7 +14994,7 @@ ALTER TABLE ONLY legacy_mgmt.leads
 
 
 --
--- Name: parameter_options parameter_options_parameter_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: parameter_options parameter_options_parameter_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.parameter_options
@@ -14590,7 +15002,7 @@ ALTER TABLE ONLY legacy_mgmt.parameter_options
 
 
 --
--- Name: parameters parameters_dimension_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: parameters parameters_dimension_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.parameters
@@ -14598,7 +15010,7 @@ ALTER TABLE ONLY legacy_mgmt.parameters
 
 
 --
--- Name: parameters parameters_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: parameters parameters_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.parameters
@@ -14606,7 +15018,7 @@ ALTER TABLE ONLY legacy_mgmt.parameters
 
 
 --
--- Name: product_questions product_questions_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: product_questions product_questions_product_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.product_questions
@@ -14614,7 +15026,7 @@ ALTER TABLE ONLY legacy_mgmt.product_questions
 
 
 --
--- Name: users users_role_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: -
+-- Name: users users_role_id_fkey; Type: FK CONSTRAINT; Schema: legacy_mgmt; Owner: leads
 --
 
 ALTER TABLE ONLY legacy_mgmt.users
@@ -14622,7 +15034,7 @@ ALTER TABLE ONLY legacy_mgmt.users
 
 
 --
--- Name: ai_connection_tests ai_connection_tests_ai_provider_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_connection_tests ai_connection_tests_ai_provider_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_connection_tests
@@ -14630,7 +15042,7 @@ ALTER TABLE ONLY public.ai_connection_tests
 
 
 --
--- Name: ai_connection_tests ai_connection_tests_tested_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_connection_tests ai_connection_tests_tested_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_connection_tests
@@ -14638,7 +15050,7 @@ ALTER TABLE ONLY public.ai_connection_tests
 
 
 --
--- Name: ai_feature_routes ai_feature_routes_ai_model_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_feature_routes ai_feature_routes_ai_model_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_feature_routes
@@ -14646,7 +15058,7 @@ ALTER TABLE ONLY public.ai_feature_routes
 
 
 --
--- Name: ai_model_routes ai_model_routes_fallback_model_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_model_routes ai_model_routes_fallback_model_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_model_routes
@@ -14654,7 +15066,7 @@ ALTER TABLE ONLY public.ai_model_routes
 
 
 --
--- Name: ai_model_routes ai_model_routes_primary_model_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_model_routes ai_model_routes_primary_model_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_model_routes
@@ -14662,7 +15074,7 @@ ALTER TABLE ONLY public.ai_model_routes
 
 
 --
--- Name: ai_models ai_models_ai_provider_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_models ai_models_ai_provider_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_models
@@ -14670,7 +15082,7 @@ ALTER TABLE ONLY public.ai_models
 
 
 --
--- Name: ai_prompt_template_versions ai_prompt_template_versions_activated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions ai_prompt_template_versions_activated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_template_versions
@@ -14678,7 +15090,7 @@ ALTER TABLE ONLY public.ai_prompt_template_versions
 
 
 --
--- Name: ai_prompt_template_versions ai_prompt_template_versions_ai_prompt_template_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions ai_prompt_template_versions_ai_prompt_template_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_template_versions
@@ -14686,7 +15098,7 @@ ALTER TABLE ONLY public.ai_prompt_template_versions
 
 
 --
--- Name: ai_prompt_template_versions ai_prompt_template_versions_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_template_versions ai_prompt_template_versions_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_template_versions
@@ -14694,7 +15106,7 @@ ALTER TABLE ONLY public.ai_prompt_template_versions
 
 
 --
--- Name: ai_prompt_templates ai_prompt_templates_active_version_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_templates ai_prompt_templates_active_version_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_templates
@@ -14702,7 +15114,7 @@ ALTER TABLE ONLY public.ai_prompt_templates
 
 
 --
--- Name: ai_prompt_templates ai_prompt_templates_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_templates ai_prompt_templates_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_templates
@@ -14710,7 +15122,7 @@ ALTER TABLE ONLY public.ai_prompt_templates
 
 
 --
--- Name: ai_prompt_templates ai_prompt_templates_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_prompt_templates ai_prompt_templates_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_prompt_templates
@@ -14718,7 +15130,7 @@ ALTER TABLE ONLY public.ai_prompt_templates
 
 
 --
--- Name: ai_requests ai_requests_ai_model_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_requests ai_requests_ai_model_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_requests
@@ -14726,7 +15138,7 @@ ALTER TABLE ONLY public.ai_requests
 
 
 --
--- Name: ai_requests ai_requests_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: ai_requests ai_requests_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.ai_requests
@@ -14734,7 +15146,7 @@ ALTER TABLE ONLY public.ai_requests
 
 
 --
--- Name: audit_logs audit_logs_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: audit_logs audit_logs_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.audit_logs
@@ -14742,7 +15154,7 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- Name: audit_logs audit_logs_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: audit_logs audit_logs_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.audit_logs
@@ -14750,7 +15162,7 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- Name: contact_enrichment_candidates contact_enrichment_candidates_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates contact_enrichment_candidates_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.contact_enrichment_candidates
@@ -14758,7 +15170,7 @@ ALTER TABLE ONLY public.contact_enrichment_candidates
 
 
 --
--- Name: contact_enrichment_candidates contact_enrichment_candidates_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: contact_enrichment_candidates contact_enrichment_candidates_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.contact_enrichment_candidates
@@ -14766,7 +15178,7 @@ ALTER TABLE ONLY public.contact_enrichment_candidates
 
 
 --
--- Name: currency_settings currency_settings_currency_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: currency_settings currency_settings_currency_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.currency_settings
@@ -14774,7 +15186,7 @@ ALTER TABLE ONLY public.currency_settings
 
 
 --
--- Name: currency_settings currency_settings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: currency_settings currency_settings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.currency_settings
@@ -14782,7 +15194,7 @@ ALTER TABLE ONLY public.currency_settings
 
 
 --
--- Name: geo_product_fit_analyses geo_product_fit_analyses_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses geo_product_fit_analyses_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.geo_product_fit_analyses
@@ -14790,7 +15202,7 @@ ALTER TABLE ONLY public.geo_product_fit_analyses
 
 
 --
--- Name: geo_product_fit_analyses geo_product_fit_analyses_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses geo_product_fit_analyses_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.geo_product_fit_analyses
@@ -14798,7 +15210,7 @@ ALTER TABLE ONLY public.geo_product_fit_analyses
 
 
 --
--- Name: geo_product_fit_analyses geo_product_fit_analyses_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: geo_product_fit_analyses geo_product_fit_analyses_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.geo_product_fit_analyses
@@ -14806,7 +15218,7 @@ ALTER TABLE ONLY public.geo_product_fit_analyses
 
 
 --
--- Name: icp_profiles icp_profiles_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: icp_profiles icp_profiles_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.icp_profiles
@@ -14814,7 +15226,7 @@ ALTER TABLE ONLY public.icp_profiles
 
 
 --
--- Name: icp_profiles icp_profiles_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: icp_profiles icp_profiles_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.icp_profiles
@@ -14822,7 +15234,7 @@ ALTER TABLE ONLY public.icp_profiles
 
 
 --
--- Name: integration_configs integration_configs_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_configs integration_configs_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_configs
@@ -14830,7 +15242,7 @@ ALTER TABLE ONLY public.integration_configs
 
 
 --
--- Name: integration_connections integration_connections_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_connections integration_connections_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_connections
@@ -14838,7 +15250,7 @@ ALTER TABLE ONLY public.integration_connections
 
 
 --
--- Name: integration_connections integration_connections_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_connections integration_connections_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_connections
@@ -14846,7 +15258,7 @@ ALTER TABLE ONLY public.integration_connections
 
 
 --
--- Name: integration_credential_stores integration_credential_stores_integration_connection_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_credential_stores integration_credential_stores_integration_connection_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_credential_stores
@@ -14854,7 +15266,7 @@ ALTER TABLE ONLY public.integration_credential_stores
 
 
 --
--- Name: integration_credential_stores integration_credential_stores_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_credential_stores integration_credential_stores_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_credential_stores
@@ -14862,7 +15274,7 @@ ALTER TABLE ONLY public.integration_credential_stores
 
 
 --
--- Name: integration_entity_mappings integration_entity_mappings_integration_connection_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_entity_mappings integration_entity_mappings_integration_connection_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_entity_mappings
@@ -14870,7 +15282,7 @@ ALTER TABLE ONLY public.integration_entity_mappings
 
 
 --
--- Name: integration_entity_mappings integration_entity_mappings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_entity_mappings integration_entity_mappings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_entity_mappings
@@ -14878,7 +15290,7 @@ ALTER TABLE ONLY public.integration_entity_mappings
 
 
 --
--- Name: integration_webhook_events integration_webhook_events_integration_connection_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_webhook_events integration_webhook_events_integration_connection_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_webhook_events
@@ -14886,7 +15298,7 @@ ALTER TABLE ONLY public.integration_webhook_events
 
 
 --
--- Name: integration_webhook_events integration_webhook_events_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: integration_webhook_events integration_webhook_events_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.integration_webhook_events
@@ -14894,7 +15306,7 @@ ALTER TABLE ONLY public.integration_webhook_events
 
 
 --
--- Name: lark_base_record_mappings lark_base_record_mappings_lark_base_table_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_record_mappings lark_base_record_mappings_lark_base_table_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_record_mappings
@@ -14902,7 +15314,7 @@ ALTER TABLE ONLY public.lark_base_record_mappings
 
 
 --
--- Name: lark_base_record_mappings lark_base_record_mappings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_record_mappings lark_base_record_mappings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_record_mappings
@@ -14910,7 +15322,7 @@ ALTER TABLE ONLY public.lark_base_record_mappings
 
 
 --
--- Name: lark_base_tables lark_base_tables_lark_integration_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_tables lark_base_tables_lark_integration_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_tables
@@ -14918,7 +15330,7 @@ ALTER TABLE ONLY public.lark_base_tables
 
 
 --
--- Name: lark_base_tables lark_base_tables_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_base_tables lark_base_tables_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_base_tables
@@ -14926,7 +15338,7 @@ ALTER TABLE ONLY public.lark_base_tables
 
 
 --
--- Name: lark_events lark_events_lark_integration_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_events lark_events_lark_integration_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_events
@@ -14934,7 +15346,7 @@ ALTER TABLE ONLY public.lark_events
 
 
 --
--- Name: lark_events lark_events_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_events lark_events_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_events
@@ -14942,7 +15354,7 @@ ALTER TABLE ONLY public.lark_events
 
 
 --
--- Name: lark_integrations lark_integrations_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_integrations lark_integrations_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_integrations
@@ -14950,7 +15362,7 @@ ALTER TABLE ONLY public.lark_integrations
 
 
 --
--- Name: lark_sso_users lark_sso_users_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_sso_users lark_sso_users_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_sso_users
@@ -14958,7 +15370,7 @@ ALTER TABLE ONLY public.lark_sso_users
 
 
 --
--- Name: lark_sso_users lark_sso_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_sso_users lark_sso_users_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_sso_users
@@ -14966,7 +15378,7 @@ ALTER TABLE ONLY public.lark_sso_users
 
 
 --
--- Name: lark_syncs lark_syncs_lark_integration_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_syncs lark_syncs_lark_integration_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_syncs
@@ -14974,7 +15386,7 @@ ALTER TABLE ONLY public.lark_syncs
 
 
 --
--- Name: lark_syncs lark_syncs_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lark_syncs lark_syncs_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lark_syncs
@@ -14982,7 +15394,7 @@ ALTER TABLE ONLY public.lark_syncs
 
 
 --
--- Name: lead_activities lead_activities_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_activities lead_activities_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_activities
@@ -14990,7 +15402,7 @@ ALTER TABLE ONLY public.lead_activities
 
 
 --
--- Name: lead_activities lead_activities_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_activities lead_activities_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_activities
@@ -14998,7 +15410,7 @@ ALTER TABLE ONLY public.lead_activities
 
 
 --
--- Name: lead_activities lead_activities_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_activities lead_activities_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_activities
@@ -15006,7 +15418,7 @@ ALTER TABLE ONLY public.lead_activities
 
 
 --
--- Name: lead_ai_analyses lead_ai_analyses_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_ai_analyses lead_ai_analyses_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_ai_analyses
@@ -15014,7 +15426,7 @@ ALTER TABLE ONLY public.lead_ai_analyses
 
 
 --
--- Name: lead_ai_evaluations lead_ai_evaluations_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_ai_evaluations lead_ai_evaluations_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_ai_evaluations
@@ -15022,7 +15434,7 @@ ALTER TABLE ONLY public.lead_ai_evaluations
 
 
 --
--- Name: lead_ai_evaluations lead_ai_evaluations_recommended_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_ai_evaluations lead_ai_evaluations_recommended_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_ai_evaluations
@@ -15030,7 +15442,7 @@ ALTER TABLE ONLY public.lead_ai_evaluations
 
 
 --
--- Name: lead_analysis_logs lead_analysis_logs_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_analysis_logs lead_analysis_logs_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_analysis_logs
@@ -15038,7 +15450,7 @@ ALTER TABLE ONLY public.lead_analysis_logs
 
 
 --
--- Name: lead_analysis_logs lead_analysis_logs_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_analysis_logs lead_analysis_logs_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_analysis_logs
@@ -15046,7 +15458,7 @@ ALTER TABLE ONLY public.lead_analysis_logs
 
 
 --
--- Name: lead_bantc_question_guides lead_bantc_question_guides_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides lead_bantc_question_guides_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_bantc_question_guides
@@ -15054,7 +15466,7 @@ ALTER TABLE ONLY public.lead_bantc_question_guides
 
 
 --
--- Name: lead_bantc_question_guides lead_bantc_question_guides_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_bantc_question_guides lead_bantc_question_guides_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_bantc_question_guides
@@ -15062,7 +15474,7 @@ ALTER TABLE ONLY public.lead_bantc_question_guides
 
 
 --
--- Name: lead_channel_types lead_channel_types_lead_source_type_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_channel_types lead_channel_types_lead_source_type_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_channel_types
@@ -15070,7 +15482,7 @@ ALTER TABLE ONLY public.lead_channel_types
 
 
 --
--- Name: lead_contact_payloads lead_contact_payloads_contact_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_contact_payloads lead_contact_payloads_contact_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_contact_payloads
@@ -15078,7 +15490,7 @@ ALTER TABLE ONLY public.lead_contact_payloads
 
 
 --
--- Name: lead_contacts lead_contacts_contact_source_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_contacts lead_contacts_contact_source_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_contacts
@@ -15086,7 +15498,7 @@ ALTER TABLE ONLY public.lead_contacts
 
 
 --
--- Name: lead_contacts lead_contacts_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_contacts lead_contacts_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_contacts
@@ -15094,7 +15506,7 @@ ALTER TABLE ONLY public.lead_contacts
 
 
 --
--- Name: lead_conversion_predictions lead_conversion_predictions_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_conversion_predictions lead_conversion_predictions_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_conversion_predictions
@@ -15102,7 +15514,7 @@ ALTER TABLE ONLY public.lead_conversion_predictions
 
 
 --
--- Name: lead_follow_ups lead_follow_ups_assigned_to_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_follow_ups lead_follow_ups_assigned_to_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_follow_ups
@@ -15110,7 +15522,7 @@ ALTER TABLE ONLY public.lead_follow_ups
 
 
 --
--- Name: lead_follow_ups lead_follow_ups_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_follow_ups lead_follow_ups_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_follow_ups
@@ -15118,7 +15530,7 @@ ALTER TABLE ONLY public.lead_follow_ups
 
 
 --
--- Name: lead_funnel_history lead_funnel_history_from_stage_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_funnel_history lead_funnel_history_from_stage_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_funnel_history
@@ -15126,7 +15538,7 @@ ALTER TABLE ONLY public.lead_funnel_history
 
 
 --
--- Name: lead_funnel_history lead_funnel_history_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_funnel_history lead_funnel_history_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_funnel_history
@@ -15134,7 +15546,7 @@ ALTER TABLE ONLY public.lead_funnel_history
 
 
 --
--- Name: lead_funnel_history lead_funnel_history_moved_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_funnel_history lead_funnel_history_moved_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_funnel_history
@@ -15142,7 +15554,7 @@ ALTER TABLE ONLY public.lead_funnel_history
 
 
 --
--- Name: lead_funnel_history lead_funnel_history_to_stage_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_funnel_history lead_funnel_history_to_stage_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_funnel_history
@@ -15150,7 +15562,7 @@ ALTER TABLE ONLY public.lead_funnel_history
 
 
 --
--- Name: lead_icp_config lead_icp_config_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_icp_config lead_icp_config_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_icp_config
@@ -15158,7 +15570,7 @@ ALTER TABLE ONLY public.lead_icp_config
 
 
 --
--- Name: lead_icp_matches lead_icp_matches_icp_profile_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_icp_matches lead_icp_matches_icp_profile_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_icp_matches
@@ -15166,7 +15578,7 @@ ALTER TABLE ONLY public.lead_icp_matches
 
 
 --
--- Name: lead_icp_matches lead_icp_matches_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_icp_matches lead_icp_matches_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_icp_matches
@@ -15174,7 +15586,7 @@ ALTER TABLE ONLY public.lead_icp_matches
 
 
 --
--- Name: lead_meetings lead_meetings_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_meetings lead_meetings_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_meetings
@@ -15182,7 +15594,7 @@ ALTER TABLE ONLY public.lead_meetings
 
 
 --
--- Name: lead_meetings lead_meetings_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_meetings lead_meetings_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_meetings
@@ -15190,7 +15602,7 @@ ALTER TABLE ONLY public.lead_meetings
 
 
 --
--- Name: lead_outcomes lead_outcomes_closed_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_outcomes lead_outcomes_closed_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_outcomes
@@ -15198,7 +15610,7 @@ ALTER TABLE ONLY public.lead_outcomes
 
 
 --
--- Name: lead_outcomes lead_outcomes_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_outcomes lead_outcomes_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_outcomes
@@ -15206,7 +15618,7 @@ ALTER TABLE ONLY public.lead_outcomes
 
 
 --
--- Name: lead_outcomes lead_outcomes_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_outcomes lead_outcomes_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_outcomes
@@ -15214,7 +15626,7 @@ ALTER TABLE ONLY public.lead_outcomes
 
 
 --
--- Name: lead_prescriptions lead_prescriptions_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_prescriptions lead_prescriptions_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_prescriptions
@@ -15222,7 +15634,7 @@ ALTER TABLE ONLY public.lead_prescriptions
 
 
 --
--- Name: lead_prescriptions lead_prescriptions_recommended_owner_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_prescriptions lead_prescriptions_recommended_owner_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_prescriptions
@@ -15230,7 +15642,7 @@ ALTER TABLE ONLY public.lead_prescriptions
 
 
 --
--- Name: lead_product_match_runs lead_product_match_runs_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_product_match_runs lead_product_match_runs_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_product_match_runs
@@ -15238,7 +15650,7 @@ ALTER TABLE ONLY public.lead_product_match_runs
 
 
 --
--- Name: lead_product_match_runs lead_product_match_runs_triggered_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_product_match_runs lead_product_match_runs_triggered_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_product_match_runs
@@ -15246,7 +15658,7 @@ ALTER TABLE ONLY public.lead_product_match_runs
 
 
 --
--- Name: lead_product_matches lead_product_matches_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_product_matches lead_product_matches_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_product_matches
@@ -15254,7 +15666,7 @@ ALTER TABLE ONLY public.lead_product_matches
 
 
 --
--- Name: lead_product_matches lead_product_matches_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_product_matches lead_product_matches_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_product_matches
@@ -15262,7 +15674,7 @@ ALTER TABLE ONLY public.lead_product_matches
 
 
 --
--- Name: lead_qualifications lead_qualifications_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_qualifications lead_qualifications_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_qualifications
@@ -15270,7 +15682,7 @@ ALTER TABLE ONLY public.lead_qualifications
 
 
 --
--- Name: lead_qualifications lead_qualifications_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_qualifications lead_qualifications_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_qualifications
@@ -15278,7 +15690,7 @@ ALTER TABLE ONLY public.lead_qualifications
 
 
 --
--- Name: lead_revenue_analyses lead_revenue_analyses_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_revenue_analyses lead_revenue_analyses_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_revenue_analyses
@@ -15286,7 +15698,7 @@ ALTER TABLE ONLY public.lead_revenue_analyses
 
 
 --
--- Name: lead_score_breakdowns lead_score_breakdowns_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_score_breakdowns lead_score_breakdowns_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_score_breakdowns
@@ -15294,7 +15706,7 @@ ALTER TABLE ONLY public.lead_score_breakdowns
 
 
 --
--- Name: lead_score_breakdowns lead_score_breakdowns_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_score_breakdowns lead_score_breakdowns_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_score_breakdowns
@@ -15302,7 +15714,7 @@ ALTER TABLE ONLY public.lead_score_breakdowns
 
 
 --
--- Name: lead_scores lead_scores_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_scores lead_scores_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_scores
@@ -15310,7 +15722,7 @@ ALTER TABLE ONLY public.lead_scores
 
 
 --
--- Name: lead_scores lead_scores_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_scores lead_scores_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_scores
@@ -15318,7 +15730,7 @@ ALTER TABLE ONLY public.lead_scores
 
 
 --
--- Name: lead_sources lead_sources_channel_type_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_sources lead_sources_channel_type_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_sources
@@ -15326,7 +15738,7 @@ ALTER TABLE ONLY public.lead_sources
 
 
 --
--- Name: lead_sources lead_sources_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_sources lead_sources_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_sources
@@ -15334,7 +15746,7 @@ ALTER TABLE ONLY public.lead_sources
 
 
 --
--- Name: lead_sources lead_sources_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_sources lead_sources_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_sources
@@ -15342,7 +15754,7 @@ ALTER TABLE ONLY public.lead_sources
 
 
 --
--- Name: lead_transcripts lead_transcripts_activity_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_transcripts lead_transcripts_activity_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_transcripts
@@ -15350,7 +15762,7 @@ ALTER TABLE ONLY public.lead_transcripts
 
 
 --
--- Name: lead_transcripts lead_transcripts_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: lead_transcripts lead_transcripts_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.lead_transcripts
@@ -15358,7 +15770,7 @@ ALTER TABLE ONLY public.lead_transcripts
 
 
 --
--- Name: leads leads_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15366,7 +15778,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_duplicate_of_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_duplicate_of_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15374,7 +15786,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_funnel_stage_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_funnel_stage_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15382,7 +15794,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_industry_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_industry_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15390,7 +15802,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_owner_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_owner_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15398,7 +15810,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_parent_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_parent_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15406,7 +15818,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15414,7 +15826,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_sub_industry_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_sub_industry_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15422,7 +15834,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15430,7 +15842,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: leads leads_territory_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: leads leads_territory_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.leads
@@ -15438,7 +15850,7 @@ ALTER TABLE ONLY public.leads
 
 
 --
--- Name: map_search_history map_search_history_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: map_search_history map_search_history_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.map_search_history
@@ -15446,7 +15858,7 @@ ALTER TABLE ONLY public.map_search_history
 
 
 --
--- Name: product_questions product_questions_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: product_questions product_questions_product_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.product_questions
@@ -15454,7 +15866,7 @@ ALTER TABLE ONLY public.product_questions
 
 
 --
--- Name: product_questions product_questions_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: product_questions product_questions_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.product_questions
@@ -15462,7 +15874,7 @@ ALTER TABLE ONLY public.product_questions
 
 
 --
--- Name: products products_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: products products_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.products
@@ -15470,7 +15882,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- Name: products products_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: products products_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.products
@@ -15478,7 +15890,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- Name: qualification_parameter_options qualification_parameter_options_parameter_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameter_options qualification_parameter_options_parameter_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_options
@@ -15486,7 +15898,7 @@ ALTER TABLE ONLY public.qualification_parameter_options
 
 
 --
--- Name: qualification_parameter_sets qualification_parameter_sets_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameter_sets qualification_parameter_sets_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_sets
@@ -15494,7 +15906,7 @@ ALTER TABLE ONLY public.qualification_parameter_sets
 
 
 --
--- Name: qualification_parameter_sets qualification_parameter_sets_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameter_sets qualification_parameter_sets_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_sets
@@ -15502,7 +15914,7 @@ ALTER TABLE ONLY public.qualification_parameter_sets
 
 
 --
--- Name: qualification_parameter_sets qualification_parameter_sets_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameter_sets qualification_parameter_sets_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameter_sets
@@ -15510,7 +15922,7 @@ ALTER TABLE ONLY public.qualification_parameter_sets
 
 
 --
--- Name: qualification_parameters qualification_parameters_parameter_set_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_parameters qualification_parameters_parameter_set_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_parameters
@@ -15518,7 +15930,7 @@ ALTER TABLE ONLY public.qualification_parameters
 
 
 --
--- Name: qualification_workflow_reviews qualification_workflow_reviews_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews qualification_workflow_reviews_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_reviews
@@ -15526,7 +15938,7 @@ ALTER TABLE ONLY public.qualification_workflow_reviews
 
 
 --
--- Name: qualification_workflow_reviews qualification_workflow_reviews_lead_qualification_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews qualification_workflow_reviews_lead_qualification_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_reviews
@@ -15534,7 +15946,7 @@ ALTER TABLE ONLY public.qualification_workflow_reviews
 
 
 --
--- Name: qualification_workflow_reviews qualification_workflow_reviews_requested_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews qualification_workflow_reviews_requested_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_reviews
@@ -15542,7 +15954,7 @@ ALTER TABLE ONLY public.qualification_workflow_reviews
 
 
 --
--- Name: qualification_workflow_reviews qualification_workflow_reviews_reviewed_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews qualification_workflow_reviews_reviewed_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_reviews
@@ -15550,7 +15962,7 @@ ALTER TABLE ONLY public.qualification_workflow_reviews
 
 
 --
--- Name: qualification_workflow_reviews qualification_workflow_reviews_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews qualification_workflow_reviews_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_reviews
@@ -15558,7 +15970,7 @@ ALTER TABLE ONLY public.qualification_workflow_reviews
 
 
 --
--- Name: qualification_workflow_reviews qualification_workflow_reviews_workflow_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_reviews qualification_workflow_reviews_workflow_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_reviews
@@ -15566,7 +15978,7 @@ ALTER TABLE ONLY public.qualification_workflow_reviews
 
 
 --
--- Name: qualification_workflow_stages qualification_workflow_stages_workflow_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflow_stages qualification_workflow_stages_workflow_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflow_stages
@@ -15574,7 +15986,7 @@ ALTER TABLE ONLY public.qualification_workflow_stages
 
 
 --
--- Name: qualification_workflows qualification_workflows_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflows qualification_workflows_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflows
@@ -15582,7 +15994,7 @@ ALTER TABLE ONLY public.qualification_workflows
 
 
 --
--- Name: qualification_workflows qualification_workflows_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflows qualification_workflows_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflows
@@ -15590,7 +16002,7 @@ ALTER TABLE ONLY public.qualification_workflows
 
 
 --
--- Name: qualification_workflows qualification_workflows_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: qualification_workflows qualification_workflows_updated_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.qualification_workflows
@@ -15598,7 +16010,7 @@ ALTER TABLE ONLY public.qualification_workflows
 
 
 --
--- Name: record_origin_mappings record_origin_mappings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: record_origin_mappings record_origin_mappings_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.record_origin_mappings
@@ -15606,7 +16018,7 @@ ALTER TABLE ONLY public.record_origin_mappings
 
 
 --
--- Name: revenue_rules revenue_rules_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: revenue_rules revenue_rules_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.revenue_rules
@@ -15614,7 +16026,7 @@ ALTER TABLE ONLY public.revenue_rules
 
 
 --
--- Name: revenue_rules revenue_rules_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: revenue_rules revenue_rules_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.revenue_rules
@@ -15622,7 +16034,7 @@ ALTER TABLE ONLY public.revenue_rules
 
 
 --
--- Name: role_permission role_permission_permission_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: role_permission role_permission_permission_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.role_permission
@@ -15630,7 +16042,7 @@ ALTER TABLE ONLY public.role_permission
 
 
 --
--- Name: role_permission role_permission_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: role_permission role_permission_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.role_permission
@@ -15638,7 +16050,7 @@ ALTER TABLE ONLY public.role_permission
 
 
 --
--- Name: sales_visit_media sales_visit_media_sales_visit_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_visit_media sales_visit_media_sales_visit_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sales_visit_media
@@ -15646,7 +16058,7 @@ ALTER TABLE ONLY public.sales_visit_media
 
 
 --
--- Name: sales_visit_media sales_visit_media_uploaded_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_visit_media sales_visit_media_uploaded_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sales_visit_media
@@ -15654,7 +16066,7 @@ ALTER TABLE ONLY public.sales_visit_media
 
 
 --
--- Name: sales_visits sales_visits_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_visits sales_visits_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sales_visits
@@ -15662,7 +16074,7 @@ ALTER TABLE ONLY public.sales_visits
 
 
 --
--- Name: sales_visits sales_visits_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sales_visits sales_visits_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sales_visits
@@ -15670,7 +16082,7 @@ ALTER TABLE ONLY public.sales_visits
 
 
 --
--- Name: sub_industries sub_industries_industry_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: sub_industries sub_industries_industry_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.sub_industries
@@ -15678,7 +16090,7 @@ ALTER TABLE ONLY public.sub_industries
 
 
 --
--- Name: territories territories_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: territories territories_created_by_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.territories
@@ -15686,7 +16098,7 @@ ALTER TABLE ONLY public.territories
 
 
 --
--- Name: territories territories_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: territories territories_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.territories
@@ -15694,7 +16106,7 @@ ALTER TABLE ONLY public.territories
 
 
 --
--- Name: users users_direct_manager_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_direct_manager_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.users
@@ -15702,7 +16114,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_role_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.users
@@ -15710,7 +16122,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: users users_tenant_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.users
@@ -15718,7 +16130,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: whatsapp_ai_analyses whatsapp_ai_analyses_conversation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_ai_analyses whatsapp_ai_analyses_conversation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_ai_analyses
@@ -15726,7 +16138,7 @@ ALTER TABLE ONLY public.whatsapp_ai_analyses
 
 
 --
--- Name: whatsapp_campaign_recipients whatsapp_campaign_recipients_campaign_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients whatsapp_campaign_recipients_campaign_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_campaign_recipients
@@ -15734,7 +16146,7 @@ ALTER TABLE ONLY public.whatsapp_campaign_recipients
 
 
 --
--- Name: whatsapp_campaign_recipients whatsapp_campaign_recipients_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_campaign_recipients whatsapp_campaign_recipients_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_campaign_recipients
@@ -15742,7 +16154,7 @@ ALTER TABLE ONLY public.whatsapp_campaign_recipients
 
 
 --
--- Name: whatsapp_contacts whatsapp_contacts_linked_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_contacts whatsapp_contacts_linked_lead_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_contacts
@@ -15750,7 +16162,7 @@ ALTER TABLE ONLY public.whatsapp_contacts
 
 
 --
--- Name: whatsapp_conversations whatsapp_conversations_contact_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_conversations whatsapp_conversations_contact_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_conversations
@@ -15758,7 +16170,7 @@ ALTER TABLE ONLY public.whatsapp_conversations
 
 
 --
--- Name: whatsapp_messages whatsapp_messages_conversation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: whatsapp_messages whatsapp_messages_conversation_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: leads
 --
 
 ALTER TABLE ONLY public.whatsapp_messages
@@ -15769,5 +16181,5 @@ ALTER TABLE ONLY public.whatsapp_messages
 -- PostgreSQL database dump complete
 --
 
-\unrestrict FEs6VzIwUuWcioftmansvgEJgXBd5p4u1NJxHWo7H4rktdr9HqBKdHp3I9qSXDV
+\unrestrict lTUeBQjeEtBsVZf5QTXqFcpmH7yyraRJd7blk42DMjnAlvYPflCWlx35uzEPe7R
 
