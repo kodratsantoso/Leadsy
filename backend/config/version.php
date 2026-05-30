@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.2.7',
-    'released_at' => '2026-05-27',
-    'type' => 'patch',   // major | minor | patch
-    'notes' => 'Lark Base field type coercion and setup guide',
+    'version' => '1.4.0',
+    'released_at' => '2026-05-30',
+    'type' => 'minor',   // major | minor | patch
+    'notes' => 'Add lead subsidiary relationship, Detail page map preview, and unified edit leads form',
 ];

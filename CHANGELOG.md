@@ -9,6 +9,22 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.4.0] — 2026-05-30 · Minor Release
+
+### Fitur Baru
+- **Lead Subsidiaries ("Subsidiary of")** — menambahkan relasi hierarki perusahaan sehingga lead dapat ditandai sebagai anak perusahaan dari lead lain, mempermudah pengelompokan group company.
+- **Map Preview di Detail Lead** — menampilkan card Google Maps Preview menggunakan static embed (`<iframe>`) di tab Overview pada detail Lead untuk membantu onsite meeting.
+- **Unified Lead Edit Form** — menyatukan form Edit Leads dan Edit Company Information sehingga modal edit di tab detail Lead menampilkan dan dapat mengedit seluruh field Leads.
+
+### Quality
+- Refresh database snapshot `leadsy_deploy_data_2026_05_30.sql` dan `leadsy_full_structure_and_data_2026_05_30.sql` untuk fresh deployments.
+
+## [1.3.0] — 2026-05-30 · Minor Release
+
+### Fitur Baru
+- **Native macOS Stack Migration** — memindahkan development stack dari Docker Desktop ke Homebrew services asli (PostgreSQL, Redis, native PHP, Node.js) pada host macOS.
+- **LinkedIn Contact URL Integration** — menambahkan input manual LinkedIn URL / Username pada form kontak lead, dengan pembersihan otomatis handle ke full URL di backend.
+
 ## [1.2.7] — 2026-05-27 · Patch Release
 
 ### What's New

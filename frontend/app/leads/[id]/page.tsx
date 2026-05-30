@@ -9,7 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import {
   ArrowLeft, Plus, Zap, TrendingUp, MessageSquare, Calendar,
   AlertCircle, CheckCircle, Clock, User, FileText, Loader2,
-  Phone, Mail, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
+  Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
   Activity, Info, Search, ExternalLink,
@@ -601,11 +601,13 @@ export default function LeadDetailPage() {
   const { formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Company info edit state
+  // Company info edit state (unified with Edit Lead form)
   const [showEditCompanyInfo, setShowEditCompanyInfo] = useState(false);
   const [companyForm, setCompanyForm] = useState({
     company_name: '',
     address: '',
+    lat: '',
+    lng: '',
     phone: '',
     email: '',
     website: '',
@@ -614,7 +616,18 @@ export default function LeadDetailPage() {
     company_size_estimate: '',
     business_category: '',
     product_id: '',
+    estimated_closing_amount: '',
+    realized_closing_amount: '',
+    source_type: '',
+    channel_type_id: '',
+    funnel_stage_id: '',
+    qualification_status: 'pending',
+    parent_lead_id: '',
   });
+  const [detailLocationSearch, setDetailLocationSearch] = useState('');
+  const [detailParentSearch, setDetailParentSearch] = useState('');
+  const [detailParentResults, setDetailParentResults] = useState<{ id: number; company_name: string }[]>([]);
+  const [detailParentSearching, setDetailParentSearching] = useState(false);
 
   // Contact UI state
   const [showAddContact, setShowAddContact]       = useState(false);
@@ -718,8 +731,20 @@ export default function LeadDetailPage() {
     queryKey: ['products'],
     queryFn: () => apiFetch('/products').then((r) => r.json()),
   });
+  const { data: leadSourcesData } = useQuery({
+    queryKey: ['lead-source-types'],
+    queryFn: () => apiFetch('/settings/lead-sources').then((r) => r.json()),
+  });
   const allIndustries: any[] = industriesData?.data ?? [];
   const products: any[] = productsData?.data ?? [];
+  const leadSources: any[] = leadSourcesData?.data ?? [];
+  const activeLeadSources = leadSources.filter((s: any) => s.is_active);
+  const activeLeadChannels = activeLeadSources.flatMap((s: any) =>
+    (s.channels ?? []).filter((c: any) => c.is_active).map((c: any) => ({ ...c, source_slug: s.slug }))
+  );
+  const selectedLeadChannels = activeLeadChannels.filter((c: any) =>
+    !companyForm.source_type || c.source_slug === companyForm.source_type
+  );
   const selectedIndustrySubIndustries: any[] =
     allIndustries.find((i: any) => String(i.id) === String(companyForm.industry_id))?.sub_industries ?? [];
 
@@ -741,32 +766,71 @@ export default function LeadDetailPage() {
 
   function openEditCompanyInfo() {
     setCompanyForm({
-      company_name:          leadData.company_name         ?? '',
-      address:               leadData.address              ?? '',
-      phone:                 leadData.phone                ?? '',
-      email:                 leadData.email                ?? '',
-      website:               leadData.website              ?? '',
-      industry_id:           leadData.industry_id != null ? String(leadData.industry_id) : '',
-      sub_industry_id:       leadData.sub_industry_id != null ? String(leadData.sub_industry_id) : '',
-      company_size_estimate: leadData.company_size_estimate ?? '',
-      business_category:     leadData.business_category    ?? '',
-      product_id:            leadData.product_id != null ? String(leadData.product_id) : '',
+      company_name:             leadData.company_name           ?? '',
+      address:                  leadData.address                ?? '',
+      lat:                      leadData.lat != null ? String(leadData.lat) : '',
+      lng:                      leadData.lng != null ? String(leadData.lng) : '',
+      phone:                    leadData.phone                  ?? '',
+      email:                    leadData.email                  ?? '',
+      website:                  leadData.website                ?? '',
+      industry_id:              leadData.industry_id != null ? String(leadData.industry_id) : '',
+      sub_industry_id:          leadData.sub_industry_id != null ? String(leadData.sub_industry_id) : '',
+      company_size_estimate:    leadData.company_size_estimate  ?? '',
+      business_category:        leadData.business_category      ?? '',
+      product_id:               leadData.product_id != null ? String(leadData.product_id) : '',
+      estimated_closing_amount: leadData.estimated_closing_amount != null ? String(leadData.estimated_closing_amount) : '',
+      realized_closing_amount:  leadData.realized_closing_amount != null ? String(leadData.realized_closing_amount) : '',
+      source_type:              leadData.sources?.[0]?.source_type ?? '',
+      channel_type_id:          leadData.sources?.[0]?.channel_type_id != null ? String(leadData.sources[0].channel_type_id) : '',
+      funnel_stage_id:          leadData.funnel_stage_id != null ? String(leadData.funnel_stage_id) : '',
+      qualification_status:     leadData.qualification_status   ?? 'pending',
+      parent_lead_id:           leadData.parent_lead_id != null ? String(leadData.parent_lead_id) : '',
     });
+    setDetailLocationSearch(leadData.address ?? '');
+    setDetailParentSearch('');
+    setDetailParentResults([]);
     setShowEditCompanyInfo(true);
   }
 
+  function normalizeWebsiteInput(value: string) {
+    const w = value.trim();
+    if (!w) return '';
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(w) ? w : `https://${w}`;
+  }
+
+  async function searchDetailParentLead(query: string) {
+    if (!query.trim()) { setDetailParentResults([]); return; }
+    setDetailParentSearching(true);
+    try {
+      const res = await apiFetch(`/leads?search=${encodeURIComponent(query)}&per_page=8`);
+      const json = await res.json();
+      setDetailParentResults((json?.data ?? []).map((l: any) => ({ id: l.id, company_name: l.company_name })));
+    } catch { setDetailParentResults([]); }
+    finally { setDetailParentSearching(false); }
+  }
+
   function submitCompanyInfo() {
+    const website = normalizeWebsiteInput(companyForm.website);
     const payload: Record<string, any> = {
-      company_name:          companyForm.company_name      || undefined,
-      address:               companyForm.address           || null,
-      phone:                 companyForm.phone             || null,
-      email:                 companyForm.email             || null,
-      website:               companyForm.website           || null,
-      industry_id:           companyForm.industry_id       ? Number(companyForm.industry_id)     : null,
-      sub_industry_id:       companyForm.sub_industry_id   ? Number(companyForm.sub_industry_id) : null,
-      company_size_estimate: companyForm.company_size_estimate || null,
-      business_category:     companyForm.business_category || null,
-      product_id:            companyForm.product_id ? Number(companyForm.product_id) : null,
+      company_name:             companyForm.company_name           || undefined,
+      address:                  companyForm.address                || null,
+      lat:                      companyForm.lat ? Number(companyForm.lat) : null,
+      lng:                      companyForm.lng ? Number(companyForm.lng) : null,
+      phone:                    companyForm.phone                  || null,
+      email:                    companyForm.email                  || null,
+      website:                  website                            || null,
+      industry_id:              companyForm.industry_id ? Number(companyForm.industry_id) : null,
+      sub_industry_id:          companyForm.sub_industry_id ? Number(companyForm.sub_industry_id) : null,
+      company_size_estimate:    companyForm.company_size_estimate  || null,
+      business_category:        companyForm.business_category      || null,
+      product_id:               companyForm.product_id ? Number(companyForm.product_id) : null,
+      estimated_closing_amount: companyForm.estimated_closing_amount ? Number(companyForm.estimated_closing_amount) : null,
+      realized_closing_amount:  companyForm.realized_closing_amount ? Number(companyForm.realized_closing_amount) : null,
+      source_type:              companyForm.source_type             || null,
+      channel_type_id:          companyForm.channel_type_id ? Number(companyForm.channel_type_id) : null,
+      funnel_stage_id:          companyForm.funnel_stage_id ? Number(companyForm.funnel_stage_id) : null,
+      qualification_status:     companyForm.qualification_status   || null,
+      parent_lead_id:           companyForm.parent_lead_id ? Number(companyForm.parent_lead_id) : null,
     };
     updateLeadMutation.mutate(payload);
   }
@@ -1454,71 +1518,253 @@ export default function LeadDetailPage() {
 
       {/* ── OVERVIEW TAB ── */}
       {activeTab === 'overview' && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-lg border border-border bg-card p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold">Company Information</h3>
-              <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit company information">
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <div className="space-y-3 text-sm">
-              <div><span className="text-muted-foreground">Industry:</span> {leadData.industry?.name || '—'}</div>
-              {leadData.subIndustry?.name && (
-                <div><span className="text-muted-foreground">Sub-Industry:</span> {leadData.subIndustry.name}</div>
-              )}
-              <div><span className="text-muted-foreground">Email:</span> {leadData.email || '—'}</div>
-              <div><span className="text-muted-foreground">Phone:</span> {leadData.phone || '—'}</div>
-              <div>
-                <span className="text-muted-foreground">Website:</span>{' '}
-                {leadData.website ? (
-                  <a href={leadData.website} target="_blank" className="text-[var(--brand)] hover:underline">
-                    {leadData.website}
-                  </a>
-                ) : '—'}
+        <div className="space-y-6">
+          {/* Row 1: Company Info + Key Contacts */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Company Information</h3>
+                <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit lead information">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
               </div>
-              <div><span className="text-muted-foreground">Company Size:</span> {leadData.company_size_estimate || '—'}</div>
-              <div><span className="text-muted-foreground">Initial Product:</span> {leadData.product?.name || '—'}</div>
-              {leadData.business_category && (
-                <div><span className="text-muted-foreground">Business Category:</span> {leadData.business_category}</div>
+              <div className="space-y-3 text-sm">
+                <div><span className="text-muted-foreground">Industry:</span> {leadData.industry?.name || '—'}</div>
+                {leadData.subIndustry?.name && (
+                  <div><span className="text-muted-foreground">Sub-Industry:</span> {leadData.subIndustry.name}</div>
+                )}
+                {leadData.business_category && (
+                  <div><span className="text-muted-foreground">Business Category:</span> {leadData.business_category}</div>
+                )}
+                <div><span className="text-muted-foreground">Company Size:</span> {leadData.company_size_estimate || '—'}</div>
+                <div><span className="text-muted-foreground">Email:</span> {leadData.email || '—'}</div>
+                <div><span className="text-muted-foreground">Phone:</span> {leadData.phone || '—'}</div>
+                <div>
+                  <span className="text-muted-foreground">Website:</span>{' '}
+                  {leadData.website ? (
+                    <a href={leadData.website} target="_blank" rel="noreferrer" className="text-[var(--brand)] hover:underline">
+                      {leadData.website}
+                    </a>
+                  ) : '—'}
+                </div>
+                <div><span className="text-muted-foreground">Initial Product:</span> {leadData.product?.name || '—'}</div>
+              </div>
+            </div>
+
+            {/* Mini contacts card in overview */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Key Contacts</h3>
+                <button
+                  onClick={() => setActiveTab('contacts')}
+                  className="text-xs text-[var(--brand)] hover:underline"
+                >
+                  Manage all →
+                </button>
+              </div>
+              {contacts.length > 0 ? (
+                <div className="space-y-3">
+                  {contacts.slice(0, 3).map((c: any) => (
+                    <div key={c.id} className="flex items-start gap-3 rounded-lg bg-muted/20 p-3 text-sm">
+                      <User className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium">{c.name}</p>
+                          {c.is_primary && <Star className="h-3 w-3 fill-[var(--status-warning)] text-[var(--status-warning)]" />}
+                        </div>
+                        {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
+                        {c.email && <p className="truncate text-xs text-muted-foreground">{c.email}</p>}
+                      </div>
+                    </div>
+                  ))}
+                  {contacts.length > 3 && (
+                    <p className="text-xs text-muted-foreground">+{contacts.length - 3} more</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No contacts recorded</p>
               )}
             </div>
           </div>
 
-          {/* Mini contacts card in overview */}
-          <div className="rounded-lg border border-border bg-card p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold">Key Contacts</h3>
-              <button
-                onClick={() => setActiveTab('contacts')}
-                className="text-xs text-[var(--brand)] hover:underline"
-              >
-                Manage all →
-              </button>
-            </div>
-            {contacts.length > 0 ? (
-              <div className="space-y-3">
-                {contacts.slice(0, 3).map((c: any) => (
-                  <div key={c.id} className="flex items-start gap-3 rounded-lg bg-muted/20 p-3 text-sm">
-                    <User className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-medium">{c.name}</p>
-                        {c.is_primary && <Star className="h-3 w-3 fill-[var(--status-warning)] text-[var(--status-warning)]" />}
-                      </div>
-                      {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
-                      {c.email && <p className="truncate text-xs text-muted-foreground">{c.email}</p>}
-                    </div>
+          {/* Row 2: Sales Info + Group Company */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Sales Information */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Sales Information</h3>
+                <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit lead information">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Lead Source:</span>{' '}
+                  {leadData.sources?.[0]?.source_type ? (
+                    <span className="font-medium capitalize">{leadData.sources[0].source_type.replace(/_/g, ' ')}</span>
+                  ) : '—'}
+                </div>
+                {leadData.sources?.[0]?.channel_type?.name && (
+                  <div><span className="text-muted-foreground">Channel:</span> {leadData.sources[0].channel_type.name}</div>
+                )}
+                <div>
+                  <span className="text-muted-foreground">Funnel Stage:</span>{' '}
+                  {leadData.funnelStage?.name || leadData.current_funnel_stage?.name || '—'}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Qualification:</span>{' '}
+                  <span className={`font-medium capitalize ${
+                    leadData.qualification_status === 'eligible' ? 'text-[var(--status-success)]' :
+                    leadData.qualification_status === 'potential' ? 'text-[var(--status-warning)]' :
+                    leadData.qualification_status === 'not_eligible' ? 'text-[var(--status-danger)]' :
+                    'text-muted-foreground'
+                  }`}>
+                    {leadData.qualification_status?.replace(/_/g, ' ') || 'pending'}
+                  </span>
+                </div>
+                {leadData.estimated_closing_amount != null && (
+                  <div>
+                    <span className="text-muted-foreground">Est. Closing:</span>{' '}
+                    <span className="font-medium">{formatCurrency(Number(leadData.estimated_closing_amount))}</span>
                   </div>
-                ))}
-                {contacts.length > 3 && (
-                  <p className="text-xs text-muted-foreground">+{contacts.length - 3} more</p>
+                )}
+                {leadData.realized_closing_amount != null && Number(leadData.realized_closing_amount) > 0 && (
+                  <div>
+                    <span className="text-muted-foreground">Realized:</span>{' '}
+                    <span className="font-medium text-[var(--status-success)]">{formatCurrency(Number(leadData.realized_closing_amount))}</span>
+                  </div>
                 )}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No contacts recorded</p>
-            )}
+            </div>
+
+            {/* Group Company */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Group Company</h3>
+                <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit lead information">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div className="space-y-4 text-sm">
+                {/* Parent company */}
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Parent Company</p>
+                  {leadData.parentLead ? (
+                    <Link
+                      href={`/leads/${leadData.parentLead.id}`}
+                      className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_6%,transparent)] px-3 py-2 transition-colors hover:bg-[color-mix(in_oklch,var(--brand)_10%,transparent)]"
+                    >
+                      <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                      <span className="font-medium text-[var(--brand)]">{leadData.parentLead.company_name}</span>
+                      <ExternalLink className="ml-auto h-3 w-3 text-[var(--brand)]/60" />
+                    </Link>
+                  ) : (
+                    <p className="text-muted-foreground">— Standalone company —</p>
+                  )}
+                </div>
+
+                {/* Subsidiaries */}
+                {leadData.subsidiaries && leadData.subsidiaries.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Subsidiaries ({leadData.subsidiaries.length})
+                    </p>
+                    <div className="space-y-1.5">
+                      {leadData.subsidiaries.map((sub: any) => (
+                        <Link
+                          key={sub.id}
+                          href={`/leads/${sub.id}`}
+                          className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--brand)]/30 hover:bg-muted/30"
+                        >
+                          <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="flex-1 font-medium">{sub.company_name}</span>
+                          {sub.qualification_status && (
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                              sub.qualification_status === 'eligible' ? 'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)]' :
+                              sub.qualification_status === 'potential' ? 'bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] text-[var(--status-warning)]' :
+                              'bg-muted text-muted-foreground'
+                            }`}>
+                              {sub.qualification_status.replace(/_/g, ' ')}
+                            </span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!leadData.parentLead && (!leadData.subsidiaries || leadData.subsidiaries.length === 0) && (
+                  <p className="text-xs text-muted-foreground">
+                    No group company relationship set. Use the edit button to link this lead to a parent company.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* Row 3: Map Preview */}
+          {(leadData.lat != null && leadData.lng != null) || leadData.address ? (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Location</h3>
+                <div className="flex items-center gap-2">
+                  {leadData.address && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        leadData.lat && leadData.lng
+                          ? `${leadData.lat},${leadData.lng}`
+                          : leadData.address
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 text-xs text-[var(--brand)] hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Open in Google Maps
+                    </a>
+                  )}
+                </div>
+              </div>
+              {leadData.address && (
+                <p className="mb-3 flex items-start gap-2 text-sm text-muted-foreground">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
+                  {leadData.address}
+                </p>
+              )}
+              {leadData.lat != null && leadData.lng != null ? (
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <iframe
+                    title="Lead Location"
+                    width="100%"
+                    height="320"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${leadData.lat},${leadData.lng}&zoom=15`}
+                  />
+                </div>
+              ) : leadData.address ? (
+                <div className="overflow-hidden rounded-xl border border-border">
+                  <iframe
+                    title="Lead Location"
+                    width="100%"
+                    height="320"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${encodeURIComponent(leadData.address)}&zoom=14`}
+                  />
+                </div>
+              ) : null}
+              {(leadData.lat != null || leadData.lng != null) && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Coordinates: {leadData.lat}, {leadData.lng}
+                </p>
+              )}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -2961,12 +3207,12 @@ export default function LeadDetailPage() {
         </div>
       )}
 
-      {/* ── Edit Company Information Modal ── */}
+      {/* ── Edit Lead Information Modal (Unified) ── */}
       <Modal
         open={showEditCompanyInfo}
         onOpenChange={setShowEditCompanyInfo}
-        title="Edit Company Information"
-        description="Update the company details for this lead."
+        title="Edit Lead Information"
+        description="Update all lead details — company info, sales data, and relationship."
         size="lg"
         footer={
           <>
@@ -2983,138 +3229,285 @@ export default function LeadDetailPage() {
           </>
         }
       >
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Company Name */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Company Name <span className="text-[var(--status-danger)]">*</span>
-              </label>
-              <Input
-                value={companyForm.company_name}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
-                placeholder="e.g. PT. Asahimas Flat Glass"
-              />
-            </div>
+        <div className="space-y-5">
+          {/* ── Section: Company ── */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Company Name <span className="text-[var(--status-danger)]">*</span>
+                </label>
+                <Input
+                  value={companyForm.company_name}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
+                  placeholder="e.g. PT. Asahimas Flat Glass"
+                />
+              </div>
 
-            {/* Address */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Address</label>
-              <textarea
-                value={companyForm.address}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value }))}
-                placeholder="Full address"
-                rows={2}
-                className="min-h-[60px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
-              />
-            </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Address</label>
+                <textarea
+                  value={companyForm.address}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value, lat: f.lat, lng: f.lng }))}
+                  placeholder="Full address"
+                  rows={2}
+                  className="min-h-[60px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
+                />
+              </div>
 
-            {/* Industry */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Industry</label>
-              <Select
-                value={companyForm.industry_id}
-                onChange={(e) =>
-                  setCompanyForm((f) => ({ ...f, industry_id: e.target.value, sub_industry_id: '' }))
-                }
-                placeholder="— Select industry —"
-              >
-                {allIndustries.map((ind: any) => (
-                  <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
-                ))}
-              </Select>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Latitude</label>
+                <Input
+                  type="number"
+                  value={companyForm.lat}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, lat: e.target.value }))}
+                  placeholder="-6.2088"
+                  step="any"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Longitude</label>
+                <Input
+                  type="number"
+                  value={companyForm.lng}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, lng: e.target.value }))}
+                  placeholder="106.8456"
+                  step="any"
+                />
+              </div>
 
-            {/* Sub-Industry */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sub-Industry</label>
-              <Select
-                value={companyForm.sub_industry_id}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, sub_industry_id: e.target.value }))}
-                placeholder="— Select sub-industry —"
-                disabled={!companyForm.industry_id || selectedIndustrySubIndustries.length === 0}
-              >
-                {selectedIndustrySubIndustries.map((sub: any) => (
-                  <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
-                ))}
-              </Select>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Industry</label>
+                <Select
+                  value={companyForm.industry_id}
+                  onChange={(e) =>
+                    setCompanyForm((f) => ({ ...f, industry_id: e.target.value, sub_industry_id: '' }))
+                  }
+                  placeholder="— Select industry —"
+                >
+                  {allIndustries.map((ind: any) => (
+                    <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
+                  ))}
+                </Select>
+              </div>
 
-            {/* Phone */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
-              <Input
-                type="tel"
-                value={companyForm.phone}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="+62 31 7882383"
-              />
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sub-Industry</label>
+                <Select
+                  value={companyForm.sub_industry_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, sub_industry_id: e.target.value }))}
+                  placeholder="— Select sub-industry —"
+                  disabled={!companyForm.industry_id || selectedIndustrySubIndustries.length === 0}
+                >
+                  {selectedIndustrySubIndustries.map((sub: any) => (
+                    <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
+                  ))}
+                </Select>
+              </div>
 
-            {/* Email */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
-              <Input
-                type="email"
-                value={companyForm.email}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, email: e.target.value }))}
-                placeholder="info@company.com"
-              />
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
+                <Input
+                  type="tel"
+                  value={companyForm.phone}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+62 31 7882383"
+                />
+              </div>
 
-            {/* Website */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Website</label>
-              <Input
-                type="url"
-                value={companyForm.website}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, website: e.target.value }))}
-                placeholder="https://www.company.com"
-              />
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
+                <Input
+                  type="email"
+                  value={companyForm.email}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="info@company.com"
+                />
+              </div>
 
-            {/* Company Size */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company Size</label>
-              <Select
-                value={companyForm.company_size_estimate}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, company_size_estimate: e.target.value }))}
-                placeholder="— Select size —"
-              >
-                <option value="1-10">1–10 employees</option>
-                <option value="11-50">11–50 employees</option>
-                <option value="51-200">51–200 employees</option>
-                <option value="201-500">201–500 employees</option>
-                <option value="501-1000">501–1,000 employees</option>
-                <option value="1000+">1,000+ employees</option>
-              </Select>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Website</label>
+                <Input
+                  type="url"
+                  value={companyForm.website}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, website: e.target.value }))}
+                  placeholder="https://www.company.com"
+                />
+              </div>
 
-            {/* Business Category */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category</label>
-              <Input
-                value={companyForm.business_category}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, business_category: e.target.value }))}
-                placeholder="e.g. Manufacturing, Retail, Services"
-              />
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company Size</label>
+                <Select
+                  value={companyForm.company_size_estimate}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, company_size_estimate: e.target.value }))}
+                  placeholder="— Select size —"
+                >
+                  <option value="1-10">1–10 employees</option>
+                  <option value="11-50">11–50 employees</option>
+                  <option value="51-200">51–200 employees</option>
+                  <option value="201-500">201–500 employees</option>
+                  <option value="501-1000">501–1,000 employees</option>
+                  <option value="1000+">1,000+ employees</option>
+                </Select>
+              </div>
 
-            {/* Initial Product */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Initial Product</label>
-              <Select
-                value={companyForm.product_id}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, product_id: e.target.value }))}
-                placeholder="— Select product —"
-              >
-                {products.map((product: any) => (
-                  <option key={product.id} value={String(product.id)}>{product.name}</option>
-                ))}
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Use this as the first product interest. Additional product purchases are tracked as outcomes in the Revenue tab.
-              </p>
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category</label>
+                <Input
+                  value={companyForm.business_category}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, business_category: e.target.value }))}
+                  placeholder="e.g. Manufacturing, Retail, Services"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Initial Product</label>
+                <Select
+                  value={companyForm.product_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, product_id: e.target.value }))}
+                  placeholder="— Select product —"
+                >
+                  {products.map((product: any) => (
+                    <option key={product.id} value={String(product.id)}>{product.name}</option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Use this as the first product interest. Additional product purchases are tracked as outcomes in the Revenue tab.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Sales ── */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sales</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Estimated Closing Amount</label>
+                <Input
+                  type="text"
+                  value={companyForm.estimated_closing_amount}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, estimated_closing_amount: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Realized Closing Amount</label>
+                <Input
+                  type="text"
+                  value={companyForm.realized_closing_amount}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, realized_closing_amount: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Lead Source</label>
+                <Select
+                  value={companyForm.source_type}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, source_type: e.target.value, channel_type_id: '' }))}
+                  placeholder="— Select source —"
+                >
+                  {activeLeadSources.map((src: any) => (
+                    <option key={src.slug} value={src.slug}>{src.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Channel Type</label>
+                <Select
+                  value={companyForm.channel_type_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, channel_type_id: e.target.value }))}
+                  placeholder="— Select channel —"
+                  disabled={!companyForm.source_type || selectedLeadChannels.length === 0}
+                >
+                  {selectedLeadChannels.map((ch: any) => (
+                    <option key={ch.id} value={String(ch.id)}>{ch.name}</option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Funnel Stage</label>
+                <Select
+                  value={companyForm.funnel_stage_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, funnel_stage_id: e.target.value }))}
+                  placeholder="— Unassigned —"
+                >
+                  {(funnelStagesData?.data ?? funnelStagesData ?? []).map((stage: any) => (
+                    <option key={stage.id} value={String(stage.id)}>{stage.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Qualification</label>
+                <Select
+                  value={companyForm.qualification_status}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, qualification_status: e.target.value }))}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="eligible">Eligible</option>
+                  <option value="potential">Potential</option>
+                  <option value="not_eligible">Not Eligible</option>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Group Company ── */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Group Company</p>
+            <div className="grid gap-2">
+              <label className="text-xs font-medium text-muted-foreground">Subsidiary of (Parent Company)</label>
+              {companyForm.parent_lead_id ? (
+                <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] px-3 py-2">
+                  <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                  <span className="flex-1 text-sm font-medium">
+                    {detailParentResults.find(r => String(r.id) === companyForm.parent_lead_id)?.company_name
+                      ?? leadData?.parentLead?.company_name
+                      ?? `Lead #${companyForm.parent_lead_id}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setCompanyForm(f => ({ ...f, parent_lead_id: '' })); setDetailParentSearch(''); setDetailParentResults([]); }}
+                    className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Input
+                    value={detailParentSearch}
+                    onChange={(e) => { setDetailParentSearch(e.target.value); searchDetailParentLead(e.target.value); }}
+                    placeholder="Search company name…"
+                  />
+                  {detailParentSearching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                  {detailParentResults.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
+                      {detailParentResults
+                        .filter(r => String(r.id) !== leadId)
+                        .map(r => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => { setCompanyForm(f => ({ ...f, parent_lead_id: String(r.id) })); setDetailParentSearch(''); setDetailParentResults([]); }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                          >
+                            <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            {r.company_name}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Tandai lead ini sebagai anak perusahaan (subsidiary) dari perusahaan lain.</p>
             </div>
           </div>
         </div>

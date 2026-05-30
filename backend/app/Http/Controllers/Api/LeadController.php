@@ -45,7 +45,7 @@ class LeadController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Lead::visibleTo($request->user())
-            ->with(['industry', 'subIndustry', 'funnelStage', 'owner', 'territory', 'product', 'sources.channelType']);
+            ->with(['industry', 'subIndustry', 'funnelStage', 'owner', 'territory', 'product', 'sources.channelType', 'parentLead:id,company_name']);
 
         // Filters
         if ($request->filled('industry_id')) {
@@ -123,6 +123,13 @@ class LeadController extends Controller
                 }
             });
         }
+        if ($request->filled('parent_lead_id')) {
+            if ($request->parent_lead_id === 'standalone') {
+                $query->whereNull('parent_lead_id');
+            } else {
+                $query->where('parent_lead_id', $request->parent_lead_id);
+            }
+        }
         if ($request->filled('search')) {
             $s = '%'.$request->search.'%';
             $query->where(function ($q) use ($s) {
@@ -180,6 +187,8 @@ class LeadController extends Controller
             'qualificationWorkflowReviews.requester',
             'qualificationWorkflowReviews.reviewer',
             'bantcQuestionGuide',
+            'parentLead:id,company_name',
+            'subsidiaries:id,company_name,address,qualification_status,lead_score',
         ]);
 
         return response()->json(['data' => $lead]);
@@ -293,6 +302,7 @@ class LeadController extends Controller
             'owner_id' => 'nullable|exists:users,id',
             'source_type' => 'nullable|exists:lead_source_types,slug',
             'channel_type_id' => 'nullable|exists:lead_channel_types,id',
+            'parent_lead_id' => 'nullable|exists:leads,id',
         ]);
         $sourceType = $data['source_type'] ?? 'manual';
         $channelTypeId = $data['channel_type_id'] ?? null;
@@ -386,6 +396,11 @@ class LeadController extends Controller
             'product_id' => 'nullable|exists:products,id',
             'source_type' => 'nullable|exists:lead_source_types,slug',
             'channel_type_id' => 'nullable|exists:lead_channel_types,id',
+            'parent_lead_id' => ['nullable', 'exists:leads,id', function ($attribute, $value, $fail) use ($lead) {
+                if ((int) $value === $lead->id) {
+                    $fail('A lead cannot be a subsidiary of itself.');
+                }
+            }],
         ]);
         $sourceType = $data['source_type'] ?? null;
         $channelTypeId = $data['channel_type_id'] ?? null;
@@ -733,12 +748,11 @@ class LeadController extends Controller
         }
 
         if (str_starts_with($url, 'linkedin.com') || str_starts_with($url, 'www.linkedin.com')) {
-            return 'https://' . $url;
+            return 'https://'.$url;
         }
 
-        return 'https://www.linkedin.com/in/' . ltrim($url, '@/');
+        return 'https://www.linkedin.com/in/'.ltrim($url, '@/');
     }
-
 
     /** POST /api/leads/discover — Map-based lead discovery */
     public function discover(Request $request): JsonResponse

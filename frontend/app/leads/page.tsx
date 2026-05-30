@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { APIProvider, AdvancedMarker, Map } from "@vis.gl/react-google-maps";
 import {
   ArrowRight,
+  Building2,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -21,6 +22,7 @@ import {
   Upload,
   UserCheck,
   UserPlus,
+  X,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -71,6 +73,10 @@ type LeadRecord = {
   product?: { id: number; name: string } | null;
   owner?: { id: number; name: string; email?: string | null } | null;
   sources?: LeadSource[];
+  parent_lead_id?: number | null;
+  parentLead?: { id: number; company_name: string } | null;
+  subsidiaries?: { id: number; company_name: string }[] | null;
+  duplicate_status?: string | null;
 };
 
 type FunnelStage = { id: number; name: string; sequence: number };
@@ -123,6 +129,7 @@ type LeadFormState = {
   channel_type_id: string;
   funnel_stage_id: string;
   qualification_status: string;
+  parent_lead_id: string;
 };
 
 type ImportContact = {
@@ -193,6 +200,7 @@ const emptyForm: LeadFormState = {
   channel_type_id: "",
   funnel_stage_id: "",
   qualification_status: "pending",
+  parent_lead_id: "",
 };
 
 const importHeaderAliases: Record<keyof Omit<ImportLead, "contacts">, string[]> = {
@@ -653,6 +661,9 @@ export default function LeadsPage() {
   const [deleteLead, setDeleteLead] = useState<LeadRecord | null>(null);
   const [assignLead, setAssignLead] = useState<LeadRecord | null>(null);
   const [assignOwnerId, setAssignOwnerId] = useState("");
+  const [parentLeadSearch, setParentLeadSearch] = useState("");
+  const [parentLeadResults, setParentLeadResults] = useState<{ id: number; company_name: string }[]>([]);
+  const [parentLeadSearching, setParentLeadSearching] = useState(false);
 
 
 
@@ -1003,6 +1014,7 @@ export default function LeadsPage() {
       channel_type_id:       primaryChannelId(lead) != null ? String(primaryChannelId(lead)) : "",
       funnel_stage_id:       String(lead.funnel_stage_id ?? lead.current_funnel_stage?.id ?? ""),
       qualification_status:  lead.qualification_status || "pending",
+      parent_lead_id:        lead.parent_lead_id != null ? String(lead.parent_lead_id) : "",
     });
   };
 
@@ -1041,6 +1053,7 @@ export default function LeadsPage() {
       realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : undefined,
       source_type:           formState.source_type || undefined,
       channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : undefined,
+      parent_lead_id:        formState.parent_lead_id ? Number(formState.parent_lead_id) : undefined,
     });
   };
 
@@ -1070,8 +1083,21 @@ export default function LeadsPage() {
         channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : null,
         funnel_stage_id:       formState.funnel_stage_id ? Number(formState.funnel_stage_id) : null,
         qualification_status:  formState.qualification_status || null,
+        parent_lead_id:        formState.parent_lead_id ? Number(formState.parent_lead_id) : null,
       },
     });
+  };
+
+  const searchParentLead = async (query: string) => {
+    if (!query.trim()) { setParentLeadResults([]); return; }
+    setParentLeadSearching(true);
+    try {
+      const res = await apiFetch(`/leads?search=${encodeURIComponent(query)}&per_page=8`);
+      const json = await res.json();
+      const items = (json?.data ?? []).map((l: any) => ({ id: l.id, company_name: l.company_name }));
+      setParentLeadResults(items);
+    } catch { setParentLeadResults([]); }
+    finally { setParentLeadSearching(false); }
   };
 
   const handleExport = async () => {
@@ -2130,6 +2156,53 @@ export default function LeadsPage() {
               ))}
             </Select>
           </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Subsidiary of (Parent Company)</label>
+            {formState.parent_lead_id ? (
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] px-3 py-2">
+                <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                <span className="flex-1 text-sm font-medium">
+                  {parentLeadResults.find(r => String(r.id) === formState.parent_lead_id)?.company_name ?? `Lead #${formState.parent_lead_id}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setFormState(s => ({ ...s, parent_lead_id: "" })); setParentLeadSearch(""); setParentLeadResults([]); }}
+                  className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Input
+                  value={parentLeadSearch}
+                  onChange={(e) => { setParentLeadSearch(e.target.value); searchParentLead(e.target.value); }}
+                  placeholder="Search company name…"
+                />
+                {parentLeadSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                {parentLeadResults.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
+                    {parentLeadResults.map(r => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => { setFormState(s => ({ ...s, parent_lead_id: String(r.id) })); setParentLeadSearch(""); setParentLeadResults([]); }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                      >
+                        <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        {r.company_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Tandai lead ini sebagai anak perusahaan (subsidiary) dari perusahaan lain.</p>
+          </div>
         </div>
       </Modal>
 
@@ -2372,6 +2445,64 @@ export default function LeadsPage() {
                 <option value="not_eligible">Not eligible</option>
               </Select>
             </div>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Subsidiary of (Parent Company)</label>
+            {formState.parent_lead_id ? (
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] px-3 py-2">
+                <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                <span className="flex-1 text-sm font-medium">
+                  {parentLeadResults.find(r => String(r.id) === formState.parent_lead_id)?.company_name
+                    ?? editLead?.parentLead?.company_name
+                    ?? `Lead #${formState.parent_lead_id}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setFormState(s => ({ ...s, parent_lead_id: "" })); setParentLeadSearch(""); setParentLeadResults([]); }}
+                  className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Input
+                  value={parentLeadSearch}
+                  onChange={(e) => {
+                    setParentLeadSearch(e.target.value);
+                    searchParentLead(e.target.value);
+                  }}
+                  placeholder="Search company name…"
+                />
+                {parentLeadSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                {parentLeadResults.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
+                    {parentLeadResults
+                      .filter(r => String(r.id) !== String(editLead?.id))
+                      .map(r => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => {
+                            setFormState(s => ({ ...s, parent_lead_id: String(r.id) }));
+                            setParentLeadSearch("");
+                            setParentLeadResults([]);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                        >
+                          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          {r.company_name}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Tandai lead ini sebagai anak perusahaan (subsidiary) dari perusahaan lain.</p>
           </div>
         </div>
       </Modal>

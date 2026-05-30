@@ -107,8 +107,8 @@
 - `backend/app/Http/Controllers/Api/LarkController.php` — added tenant-aware Lark integration config and connection test APIs without returning decrypted secrets.
 - `backend/database/migrations/2026_05_22_000001_create_lark_integration_tables.php` — added Lark integration, event, sync, and SSO identity tables.
 - `backend/database/migrations/2026_05_25_000001_import_leadsy_database_snapshot.php` — added guarded one-time deploy snapshot importer.
-- `backend/database/snapshots/leadsy_full_structure_and_data_2026_05_27.sql` — captured full PostgreSQL structure and data.
-- `backend/database/snapshots/leadsy_deploy_data_2026_05_27.sql` — captured deploy data used by the guarded snapshot migration.
+- `backend/database/snapshots/leadsy_full_structure_and_data_2026_05_30.sql` — captured full PostgreSQL structure and data.
+- `backend/database/snapshots/leadsy_deploy_data_2026_05_30.sql` — captured deploy data used by the guarded snapshot migration.
 - `backend/database/migrations/2026_05_25_000000_create_lark_base_sync_tables.php` — added Lark Base table configuration and Leadsy/Lark record mapping tables before the snapshot import migration.
 - `backend/app/Models/LarkBaseTable.php` and `backend/app/Models/LarkBaseRecordMapping.php` — added tenant-aware models for Base sync configuration and record identity.
 - `backend/app/Services/Lark/LarkBaseService.php` — added table/field/record preview, Leadsy-to-Base upsert, and Base-to-Leadsy pull mapping.
@@ -152,6 +152,12 @@
 - `frontend/app/settings/currency/page.tsx` — added Settings → Currency UI for active currency, separators, decimal digits, symbol position, and preview.
 - `frontend/lib/hooks/use-number-format.ts` — added the shared frontend number/currency formatter that reads from the database.
 - `frontend/app/page.tsx`, `frontend/app/leads/page.tsx`, `frontend/app/leads/[id]/page.tsx`, `frontend/app/settings/ai-defaults/page.tsx`, and `frontend/app/products/page.tsx` — replaced visible amount/number formatting with the shared DB-backed formatter.
+- `backend/database/migrations/2026_05_30_000001_add_parent_lead_id_to_leads_table.php` — added `parent_lead_id` self-referencing foreign key to support subsidiary/parent relationships.
+- `backend/app/Models/Lead.php` — defined `parentLead()` and `subsidiaries()` relationships, and added `parent_lead_id` to `$fillable`.
+- `backend/app/Http/Controllers/Api/LeadController.php` — validated `parent_lead_id`, eager-loaded `parentLead`/`subsidiaries` relations on queries, and added filtering by parent lead.
+- `frontend/app/leads/page.tsx` — added `parent_lead_id` and subsidiary indicators, group company badge, and searchable parent company select picker.
+- `frontend/app/leads/[id]/page.tsx` — added Google Maps Static iframe preview card in Overview, listed parent and subsidiary details, and unified Edit form to cover all sales, location, and metadata fields.
+
 
 ## Notes
 

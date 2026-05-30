@@ -26,7 +26,7 @@ class Lead extends Model
         'ai_reference_id', 'ai_processing_status',
         'funnel_stage_id', 'owner_id',
         'territory_id', 'product_id', 'created_by',
-        'tenant_id',
+        'tenant_id', 'parent_lead_id',
     ];
 
     protected $casts = [
@@ -95,6 +95,16 @@ class Lead extends Model
     public function duplicateOf(): BelongsTo
     {
         return $this->belongsTo(self::class, 'duplicate_of_id');
+    }
+
+    public function parentLead(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_lead_id');
+    }
+
+    public function subsidiaries(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_lead_id');
     }
 
     public function creator(): BelongsTo

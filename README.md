@@ -4,7 +4,14 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.3.0** — 2026-05-30
+Current release: **v1.4.0** — 2026-05-30
+
+## What's New in v1.4.0
+
+- Added a "Subsidiary of" (parent company) relationship to leads, allowing grouping and managing organizational hierarchies.
+- Implemented Google Maps Preview embed card on the Lead Detail page for easier onsite meeting planning.
+- Unified the Lead Edit Form so that editing lead details and company information uses the same complete modal with all fields, both in the overview summary and the detail view.
+- Refreshed database migrations/snapshots so that fresh deployments carry the correct structure, passwords, and records.
 
 ## What's New in v1.3.0
 
@@ -166,8 +173,8 @@ Use `EXPO_PUBLIC_API_BASE_URL` to point the app at the local backend, LAN backen
 
 Schema lives in `backend/database/migrations/`. A deploy snapshot is also committed under `backend/database/snapshots/` for one-time fresh environment imports:
 
-- `leadsy_full_structure_and_data_2026_05_27.sql` — complete PostgreSQL structure + data archive.
-- `leadsy_deploy_data_2026_05_27.sql` — public-schema application data imported by the guarded Laravel migration.
+- `leadsy_full_structure_and_data_2026_05_30.sql` — complete PostgreSQL structure + data archive.
+- `leadsy_deploy_data_2026_05_30.sql` — public-schema application data imported by the guarded Laravel migration.
 
 Set `IMPORT_LEADSY_DB_SNAPSHOT=true` only on a fresh database where application tables are empty. The snapshot carries encrypted secrets; keep the same `APP_KEY` from the source environment or re-enter AI/Lark credentials after deploy.
 
