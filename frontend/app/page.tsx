@@ -717,7 +717,7 @@ export default function DashboardPage() {
                               options={{
                                 chart: {
                                   sparkline: { enabled: true },
-                                  animations: { enabled: true }
+                                  animations: { enabled: false }
                                 },
                                 stroke: { curve: "smooth", width: 1.5 },
                                 fill: {
@@ -1368,7 +1368,8 @@ export default function DashboardPage() {
                               type: "area",
                               height: 160,
                               toolbar: { show: false },
-                              zoom: { enabled: false }
+                              zoom: { enabled: false },
+                              animations: { enabled: false }
                             },
                             colors: [colors.brand],
                             fill: {
