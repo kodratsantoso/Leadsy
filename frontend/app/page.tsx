@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { APIProvider, AdvancedMarker, InfoWindow, Map } from "@vis.gl/react-google-maps";
+import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
 import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
@@ -174,6 +174,9 @@ export default function DashboardPage() {
     return () => observer.disconnect();
   }, []);
 
+  const apiIsLoaded = useApiIsLoaded();
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+
   const [aiLoading, setAiLoading] = useState(false);
   const [aiData, setAiData] = useState<{
     explanation?: string;
@@ -198,10 +201,6 @@ export default function DashboardPage() {
       setAiLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchAiInsight();
-  }, []);
 
   useEffect(() => {
     apiFetch("/settings/public")
@@ -309,7 +308,7 @@ export default function DashboardPage() {
     const chartOptions: ApexCharts.ApexOptions = {
       chart: {
         type: "bar",
-        height: 280,
+        height: 380,
         toolbar: { show: false },
         events: {
           dataPointSelection: (event: any, chartContext: any, config: any) => {
@@ -338,18 +337,7 @@ export default function DashboardPage() {
         ? [colors.brand, "oklch(0.67 0.13 276)", "oklch(0.72 0.16 281)", "oklch(0.78 0.13 281)", "oklch(0.84 0.08 281)"]
         : [colors.danger, "oklch(0.75 0.14 24)", "oklch(0.8 0.12 24)", "oklch(0.85 0.1 24)", "oklch(0.9 0.08 24)"],
       dataLabels: {
-        enabled: true,
-        textAnchor: "start",
-        style: {
-          colors: ["#fff"],
-          fontSize: "12px",
-          fontWeight: "bold",
-        },
-        formatter: function (val: any, opt: any) {
-          const step = steps[opt.dataPointIndex];
-          return `${step ? formatNumber(val, { decimals: 0 }) : val} leads (${formatNumber(step?.percentage ?? 0, { decimals: 0 })}%)`;
-        },
-        offsetX: 10,
+        enabled: false,
       },
       grid: {
         borderColor: "var(--border)",
@@ -378,8 +366,33 @@ export default function DashboardPage() {
       },
       tooltip: {
         theme: "dark",
-        y: {
-          formatter: (val) => `${formatNumber(val, { decimals: 0 })} leads`
+        custom: function({ series, seriesIndex, dataPointIndex, w }) {
+          const step = steps[dataPointIndex];
+          if (!step) return '';
+          const totalLeads = formatNumber(step.value, { decimals: 0 });
+          const conversionPct = formatNumber(step.percentage ?? 0, { decimals: 1 });
+          const estAmount = formatCurrency(step.estimated_amount ?? 0);
+          const estPct = formatNumber(step.estimated_percentage ?? 0, { decimals: 1 });
+          
+          return `
+            <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg shadow-xl text-white font-sans min-w-[220px]">
+              <div class="font-semibold text-sm mb-2 pb-1 border-b border-slate-800 text-white">${step.label}</div>
+              <div class="space-y-1 text-xs">
+                <div class="flex justify-between gap-4">
+                  <span class="text-slate-400">Total Leads:</span>
+                  <span class="font-medium text-white">${totalLeads}</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <span class="text-slate-400">Presentase Konversi:</span>
+                  <span class="font-medium text-white">${conversionPct}%</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <span class="text-slate-400">Amount Estimated:</span>
+                  <span class="font-medium text-white">${estAmount} (${estPct}%)</span>
+                </div>
+              </div>
+            </div>
+          `;
         }
       },
       legend: { show: false }
@@ -403,8 +416,8 @@ export default function DashboardPage() {
         </div>
         <div className="px-5 pb-5 pt-2">
           {hasData ? (
-            <div className="w-full min-h-[280px]">
-              <Chart type="bar" options={chartOptions} series={series} height={280} />
+            <div className="w-full min-h-[380px]">
+              <Chart type="bar" options={chartOptions} series={series} height={380} />
             </div>
           ) : (
             <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No tracking funnel data yet.</p>
@@ -463,145 +476,29 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Overview of your lead intelligence pipeline</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Overview of your lead intelligence pipeline</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => {
+              setAiModalOpen(true);
+              fetchAiInsight(false);
+            }}
+            className="flex items-center gap-2 bg-[color:var(--brand)] text-white hover:bg-[color:var(--brand)]/90 cursor-pointer shadow-lg shadow-[color:var(--brand)]/20 transition-all hover:scale-105"
+          >
+            <BrainCircuit className="h-4 w-4" />
+            <span>AI Insight</span>
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <>
-          {/* AI Executive Insights Panel */}
-          <Card className="relative overflow-hidden border-border bg-[color-mix(in_oklch,var(--background)_80%,transparent)] backdrop-blur-md shadow-2xl transition-all duration-300 hover:shadow-purple-500/5">
-            {/* Glow decoration */}
-            <div className="pointer-events-none absolute -right-24 -top-24 h-48 w-48 rounded-full bg-[var(--brand)]/10 blur-3xl" />
-            <div className="pointer-events-none absolute -left-24 -bottom-24 h-48 w-48 rounded-full bg-[var(--status-info)]/10 blur-3xl" />
-
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)]">
-                  <BrainCircuit className="h-5 w-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg font-bold flex items-center gap-1.5">
-                    AI Executive Insights
-                    <Badge variant="outline" className="bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 animate-pulse text-[10px]">
-                      C-Suite Ready
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>Automated pipeline analytics, strategic recommendations, and critical alerts</CardDescription>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fetchAiInsight(true)}
-                disabled={aiLoading}
-                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-            </CardHeader>
-            
-            <CardContent>
-              {aiLoading ? (
-                <div className="py-6 space-y-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
-                    <Loader2 className="h-4 w-4 animate-spin text-[var(--brand)]" />
-                    <span>AI is analyzing your sales funnel and lead performance...</span>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="h-28 rounded-lg bg-muted/30 animate-pulse" />
-                    <div className="h-28 rounded-lg bg-muted/30 animate-pulse" />
-                    <div className="h-28 rounded-lg bg-muted/30 animate-pulse" />
-                  </div>
-                </div>
-              ) : aiError ? (
-                <div className="flex flex-col items-center justify-center py-6 text-center text-sm border border-dashed border-border rounded-lg bg-muted/20">
-                  <AlertTriangle className="h-8 w-8 text-[var(--status-danger)] mb-2" />
-                  <p className="font-semibold text-foreground">Gagal memuat AI Insight</p>
-                  <p className="text-xs text-muted-foreground mt-1">{aiError}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchAiInsight(false)}
-                    className="mt-3 h-8 text-xs cursor-pointer"
-                  >
-                    Coba Lagi
-                  </Button>
-                </div>
-              ) : aiData ? (
-                <div className="grid gap-6 md:grid-cols-12">
-                  {/* Explanation / Maksud Angka */}
-                  <div className="md:col-span-5 space-y-2 border-r border-border/50 pr-6 last:border-0 last:pr-0">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <Activity className="h-3.5 w-3.5 text-[var(--status-info)]" />
-                      What the Numbers Mean
-                    </h4>
-                    <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
-                      {aiData.explanation || "No narrative explanation generated yet."}
-                    </p>
-                  </div>
-
-                  {/* Critical Points */}
-                  <div className="md:col-span-3 space-y-3 border-r border-border/50 pr-6 last:border-0 last:pr-0">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <AlertTriangle className="h-3.5 w-3.5 text-[var(--status-danger)]" />
-                      Critical Risks & Points
-                    </h4>
-                    {aiData.critical_points && aiData.critical_points.length > 0 ? (
-                      <ul className="space-y-2">
-                        {aiData.critical_points.map((pt, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
-                            <span className="mt-1 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--status-danger)]" />
-                            <span>{pt}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">No critical alerts detected in the current pipeline.</p>
-                    )}
-                  </div>
-
-                  {/* Strategic Suggestions */}
-                  <div className="md:col-span-4 space-y-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
-                      Strategic Recommendations
-                    </h4>
-                    {aiData.strategic_suggestions && aiData.strategic_suggestions.length > 0 ? (
-                      <ul className="space-y-2">
-                        {aiData.strategic_suggestions.map((sug, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
-                            <span className="mt-1.5 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--brand)]" />
-                            <span>{sug}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">No recommendations generated.</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6 text-center text-sm border border-dashed border-border rounded-lg bg-muted/20">
-                  <BrainCircuit className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="font-semibold text-foreground">No AI Insight loaded</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchAiInsight(false)}
-                    className="mt-3 h-8 text-xs cursor-pointer"
-                  >
-                    Generate Insight
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
           {/* Stat cards — each opens an in-dashboard filtered drilldown */}
           <div className="md:col-span-12" data-tour="dashboard-kpis">
@@ -1137,7 +1034,7 @@ export default function DashboardPage() {
                       gestureHandling="greedy"
                       disableDefaultUI={false}
                     >
-                      {mapPoints.map((point) => (
+                      {apiIsLoaded && mapPoints.map((point) => (
                         <AdvancedMarker
                           key={point.id}
                           position={{ lat: Number(point.lat), lng: Number(point.lng) }}
@@ -1153,7 +1050,7 @@ export default function DashboardPage() {
                           </div>
                         </AdvancedMarker>
                       ))}
-                      {selectedMapPoint ? (
+                      {apiIsLoaded && selectedMapPoint ? (
                         <InfoWindow
                           position={{ lat: Number(selectedMapPoint.lat), lng: Number(selectedMapPoint.lng) }}
                           onCloseClick={() => setSelectedMapPoint(null)}
@@ -1442,6 +1339,147 @@ export default function DashboardPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Floating Action Button for AI Insights */}
+      <button
+        onClick={() => {
+          setAiModalOpen(true);
+          fetchAiInsight(false);
+        }}
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--brand)] text-white shadow-lg shadow-[color:var(--brand)]/30 hover:scale-110 active:scale-95 transition-all duration-300 group cursor-pointer"
+        aria-label="AI Executive Insights"
+        title="AI Executive Insights"
+      >
+        <span className="absolute inset-0 rounded-full bg-[color:var(--brand)]/20 animate-ping group-hover:animate-none" />
+        <BrainCircuit className="h-6 w-6 relative z-10" />
+      </button>
+
+      {/* AI Executive Insights Modal */}
+      <Modal
+        open={aiModalOpen}
+        onOpenChange={setAiModalOpen}
+        title="AI Executive Insights"
+        description={aiLoading ? "Generating real-time intelligence..." : "Automated pipeline analytics, strategic recommendations, and critical alerts"}
+        size="xl"
+      >
+        {aiLoading ? (
+          <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)]">
+              <span className="absolute inset-0 rounded-full bg-[color:var(--brand)]/10 animate-ping" />
+              <BrainCircuit className="h-10 w-10 animate-pulse text-[var(--brand)]" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-foreground">AI is analyzing your sales funnel...</p>
+              <p className="text-xs text-muted-foreground max-w-md">
+                We are processing your latest lead statuses, estimated values, and conversion ratios to build strategic insights.
+              </p>
+            </div>
+          </div>
+        ) : aiError ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-sm">
+            <AlertTriangle className="h-12 w-12 text-[var(--status-danger)] mb-3" />
+            <p className="font-semibold text-foreground text-base">Gagal memuat AI Insight</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md">{aiError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchAiInsight(false)}
+              className="mt-4 h-9 px-4 text-xs cursor-pointer"
+            >
+              Coba Lagi
+            </Button>
+          </div>
+        ) : aiData ? (
+          <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-12">
+              {/* Explanation / Maksud Angka */}
+              <div className="md:col-span-5 space-y-2 md:border-r border-border/50 md:pr-6 last:border-0 last:pr-0">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Activity className="h-3.5 w-3.5 text-[var(--status-info)]" />
+                  What the Numbers Mean
+                </h4>
+                <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
+                  {aiData.explanation || "No narrative explanation generated yet."}
+                </p>
+              </div>
+
+              {/* Critical Points */}
+              <div className="md:col-span-3 space-y-3 md:border-r border-border/50 md:pr-6 last:border-0 last:pr-0">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-[var(--status-danger)]" />
+                  Critical Risks & Points
+                </h4>
+                {aiData.critical_points && aiData.critical_points.length > 0 ? (
+                  <ul className="space-y-2">
+                    {aiData.critical_points.map((pt, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                        <span className="mt-1 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--status-danger)]" />
+                        <span>{pt}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No critical alerts detected in the current pipeline.</p>
+                )}
+              </div>
+
+              {/* Strategic Suggestions */}
+              <div className="md:col-span-4 space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
+                  Strategic Recommendations
+                </h4>
+                {aiData.strategic_suggestions && aiData.strategic_suggestions.length > 0 ? (
+                  <ul className="space-y-2">
+                    {aiData.strategic_suggestions.map((sug, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                        <span className="mt-1.5 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--brand)]" />
+                        <span>{sug}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No recommendations generated.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between border-t border-border pt-4 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchAiInsight(true)}
+                disabled={aiLoading}
+                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
+                Refresh Analytics
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAiModalOpen(false)}
+                className="h-8 text-xs cursor-pointer"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-sm">
+            <BrainCircuit className="h-10 w-10 text-muted-foreground mb-2" />
+            <p className="font-semibold text-foreground">No AI Insight loaded</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchAiInsight(false)}
+              className="mt-3 h-8 text-xs cursor-pointer"
+            >
+              Generate Insight
+            </Button>
+          </div>
+        )}
       </Modal>
     </div>
   );
