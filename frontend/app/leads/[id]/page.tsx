@@ -294,8 +294,8 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
 
 /* ── Contact form modal ────────────────────────────────────────────── */
 
-type ContactFormData = { name: string; title: string; email: string; phone: string };
-const EMPTY_FORM: ContactFormData = { name: '', title: '', email: '', phone: '' };
+type ContactFormData = { name: string; title: string; email: string; phone: string; linkedin_url?: string };
+const EMPTY_FORM: ContactFormData = { name: '', title: '', email: '', phone: '', linkedin_url: '' };
 const EMPTY_BANTC = { budget: '', authority: '', needs: '', timeline: '', competitor: '' };
 
 function toDateTimeLocalValue(value?: string | null) {
@@ -393,6 +393,10 @@ function ContactFormModal({
           <div>
             <label className="text-xs font-medium text-muted-foreground">Phone</label>
             <input type="tel" value={form.phone} onChange={set('phone')} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">LinkedIn URL / Username</label>
+            <input value={form.linkedin_url || ''} onChange={set('linkedin_url')} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="e.g. https://www.linkedin.com/in/username or username" />
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
@@ -496,6 +500,10 @@ function AddContactModal({
             <div>
               <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
               <Input type="tel" value={form.phone} onChange={set('phone')} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">LinkedIn URL / Username</label>
+              <Input value={form.linkedin_url || ''} onChange={set('linkedin_url')} placeholder="e.g. https://www.linkedin.com/in/username or username" />
             </div>
           </div>
         ) : (
@@ -2852,6 +2860,7 @@ export default function LeadDetailPage() {
             title: editingContact.title ?? '',
             email: editingContact.email ?? '',
             phone: editingContact.phone ?? '',
+            linkedin_url: editingContact.linkedin_url ?? '',
           }}
           saving={updateContactMutation.isPending}
           onClose={() => setEditingContact(null)}

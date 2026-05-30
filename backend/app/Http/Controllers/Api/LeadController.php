@@ -676,7 +676,12 @@ class LeadController extends Controller
             'title' => 'nullable|string',
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
+            'linkedin_url' => 'nullable|string|max:500',
         ]);
+
+        if (! empty($data['linkedin_url'])) {
+            $data['linkedin_url'] = $this->normalizeLinkedinUrl($data['linkedin_url']);
+        }
 
         $data['source'] = 'manual';
         $data['confidence'] = 'high';
@@ -699,7 +704,12 @@ class LeadController extends Controller
             'title' => 'nullable|string',
             'email' => 'nullable|email',
             'phone' => 'nullable|string',
+            'linkedin_url' => 'nullable|string|max:500',
         ]);
+
+        if (array_key_exists('linkedin_url', $data) && ! empty($data['linkedin_url'])) {
+            $data['linkedin_url'] = $this->normalizeLinkedinUrl($data['linkedin_url']);
+        }
 
         // If manual update happens, we mark the confidence as explicitly upgraded
         $data['source'] = 'manual';
@@ -710,6 +720,25 @@ class LeadController extends Controller
 
         return response()->json(['data' => $contact]);
     }
+
+    private function normalizeLinkedinUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        if (str_starts_with($url, 'linkedin.com') || str_starts_with($url, 'www.linkedin.com')) {
+            return 'https://' . $url;
+        }
+
+        return 'https://www.linkedin.com/in/' . ltrim($url, '@/');
+    }
+
 
     /** POST /api/leads/discover — Map-based lead discovery */
     public function discover(Request $request): JsonResponse
