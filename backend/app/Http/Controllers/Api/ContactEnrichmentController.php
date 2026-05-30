@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactEnrichmentCandidate;
+use App\Models\IntegrationConfig;
 use App\Models\Lead;
 use App\Models\LeadContact;
 use App\Services\AuditService;
@@ -107,6 +108,123 @@ class ContactEnrichmentController extends Controller
 
         return response()->json([
             'message' => 'Google search candidate added to this lead contact.',
+            'data' => [
+                'contact' => $contact->fresh('payloads'),
+                'candidate' => $this->candidatePayload($candidate->fresh()),
+            ],
+        ]);
+    }
+
+    public function linkedinCandidates(Request $request, Lead $lead): JsonResponse
+    {
+        $candidates = $lead->contactEnrichmentCandidates()
+            ->where('provider', 'LINKEDIN')
+            ->whereIn('status', ['previewed', 'added'])
+            ->latest()
+            ->limit(20)
+            ->get()
+            ->map(fn (ContactEnrichmentCandidate $candidate): array => $this->candidatePayload($candidate));
+
+        return response()->json(['data' => $candidates]);
+    }
+
+    public function searchLinkedin(Request $request, Lead $lead, LeadContactGoogleSearchService $search): JsonResponse
+    {
+        $tenantId = $this->currentTenantId($request);
+        $linkedinEnabledRecord = IntegrationConfig::where('key', 'LINKEDIN_ENABLED')
+            ->where('is_active', true)
+            ->where(function ($query) use ($tenantId) {
+                $query->whereNull('tenant_id');
+                if ($tenantId !== null) {
+                    $query->orWhere('tenant_id', $tenantId);
+                }
+            })
+            ->orderByRaw('tenant_id is null')
+            ->latest()
+            ->first();
+
+        $linkedinEnabled = $linkedinEnabledRecord ? $linkedinEnabledRecord->value : null;
+
+        if ($linkedinEnabled !== true && $linkedinEnabled !== 'true') {
+            return response()->json(['message' => 'LinkedIn integration is not enabled. Please enable it in Settings > Integration.'], 422);
+        }
+
+        if (empty($lead->company_name)) {
+            return response()->json(['message' => 'Lead company name is required before LinkedIn contact search.'], 422);
+        }
+
+        $result = $search->search($lead, $tenantId);
+        if (! $result['success']) {
+            return response()->json(['message' => $result['error'] ?? 'LinkedIn contact search failed.'], 422);
+        }
+
+        $candidates = collect($result['candidates'] ?? [])->map(function (array $candidate) use ($lead, $request) {
+            $model = ContactEnrichmentCandidate::updateOrCreate(
+                [
+                    'lead_id' => $lead->id,
+                    'provider' => 'LINKEDIN',
+                    'provider_candidate_id' => $candidate['provider_candidate_id'],
+                ],
+                [
+                    'created_by' => $request->user()?->id,
+                    'name' => $candidate['name'],
+                    'title' => $candidate['title'] ?: null,
+                    'company_name' => $candidate['company_name'] ?: $lead->company_name,
+                    'company_domain' => $candidate['company_domain'] ?: null,
+                    'has_email' => false,
+                    'has_phone' => false,
+                    'reveal_email_credits' => 0,
+                    'reveal_phone_credits' => 0,
+                    'status' => 'previewed',
+                    'raw_preview' => $candidate['raw_preview'] ?? $candidate,
+                    'expires_at' => now()->addDays(14),
+                ]
+            );
+
+            return $this->candidatePayload($model);
+        })->values();
+
+        AuditService::log('linkedin_contact_search', 'leads', $lead, null, [
+            'candidate_count' => $candidates->count(),
+            'query' => $result['query'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => $result['message'] ?? 'LinkedIn contact candidates loaded.',
+            'data' => $candidates,
+            'meta' => [
+                'query' => $result['query'] ?? null,
+                'google' => $result['meta'] ?? [],
+            ],
+        ]);
+    }
+
+    public function addLinkedinCandidateToContact(
+        Request $request,
+        Lead $lead,
+        ContactEnrichmentCandidate $candidate
+    ): JsonResponse {
+        if ((int) $candidate->lead_id !== (int) $lead->id || $candidate->provider !== 'LINKEDIN') {
+            return response()->json(['message' => 'Contact candidate does not belong to this lead.'], 404);
+        }
+
+        if ($candidate->expires_at && $candidate->expires_at->isPast()) {
+            return response()->json(['message' => 'This LinkedIn search candidate expired. Run search again before adding it.'], 422);
+        }
+
+        $contact = $this->mergeLinkedinContact($lead, $candidate);
+        $candidate->update([
+            'status' => 'added',
+            'revealed_at' => now(),
+        ]);
+
+        AuditService::log('linkedin_contact_added', 'lead_contacts', $contact, null, [
+            'lead_id' => $lead->id,
+            'candidate_id' => $candidate->id,
+        ]);
+
+        return response()->json([
+            'message' => 'LinkedIn search candidate added to this lead contact.',
             'data' => [
                 'contact' => $contact->fresh('payloads'),
                 'candidate' => $this->candidatePayload($candidate->fresh()),
@@ -339,7 +457,47 @@ class ContactEnrichmentController extends Controller
         ]);
 
         return $contact;
-    }
+     }
+
+     private function mergeLinkedinContact(Lead $lead, ContactEnrichmentCandidate $candidate): LeadContact
+     {
+         $raw = $candidate->raw_preview ?? [];
+         $linkedinUrl = $raw['linkedin_url'] ?? null;
+
+         $query = $lead->contacts();
+         if (! empty($linkedinUrl)) {
+             $query->where('linkedin_url', $linkedinUrl);
+         } else {
+             $query->where('name', $candidate->name);
+         }
+
+         $contact = $query->first();
+         $values = [
+             'name' => $candidate->name,
+             'title' => $candidate->title,
+             'linkedin_url' => $linkedinUrl,
+             'confidence_score' => $raw['confidence_score'] ?? 70,
+             'confidence' => (($raw['confidence_score'] ?? 70) >= 80) ? 'high' : 'medium',
+             'source' => 'LINKEDIN',
+         ];
+
+         if ($contact) {
+             $contact->update(collect($values)
+                 ->filter(fn ($value, string $key): bool => $value !== null && empty($contact->{$key}))
+                 ->all());
+         } else {
+             $contact = $lead->contacts()->create($values + [
+                 'is_primary' => ! $lead->contacts()->where('is_primary', true)->exists(),
+             ]);
+         }
+
+         $contact->payloads()->create([
+             'source_type' => 'LINKEDIN_SEARCH',
+             'raw_payload' => $raw,
+         ]);
+
+         return $contact;
+     }
 
     private function authorizeLushaGate(Lead $lead): void
     {

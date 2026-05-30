@@ -24,7 +24,7 @@ type IntegrationConfig = {
   value_type: "string" | "boolean" | "number" | "json";
 };
 
-type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark";
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark" | "linkedin";
 type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
 type GooglePermission = {
   id: string;
@@ -56,6 +56,22 @@ type LeadPlatformDefinition = {
 
 const asBooleanString = (value: unknown) => (value === true || value === "true" || value === 1 || value === "1" ? "true" : "false");
 const asStringValue = (value: unknown) => (value == null ? "" : String(value));
+
+const Linkedin = (props: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={props.className}
+  >
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
 
 const normalizeLarkModuleValue = (value: unknown) => value === true || value === "true";
 const normalizeLarkModules = (modules: Record<string, unknown> | null | undefined) => ({
@@ -212,6 +228,13 @@ const DEFAULT_LUSHA: Record<string, IntegrationConfig> = {
   LUSHA_MAX_DAILY_REQUESTS:   { category: "lusha", key: "LUSHA_MAX_DAILY_REQUESTS",   value: "50",    is_secret: false, is_active: true, value_type: "number"  },
   LUSHA_MAX_PER_BATCH:        { category: "lusha", key: "LUSHA_MAX_PER_BATCH",        value: "10",    is_secret: false, is_active: true, value_type: "number"  },
   LUSHA_ENRICHMENT_PRIORITY:  { category: "lusha", key: "LUSHA_ENRICHMENT_PRIORITY",  value: "1",     is_secret: false, is_active: true, value_type: "number"  },
+};
+
+const DEFAULT_LINKEDIN: Record<string, IntegrationConfig> = {
+  LINKEDIN_ENABLED:       { category: "linkedin", key: "LINKEDIN_ENABLED",       value: "false", is_secret: false, is_active: true, value_type: "boolean" },
+  LINKEDIN_CLIENT_ID:     { category: "linkedin", key: "LINKEDIN_CLIENT_ID",     value: "",      is_secret: false, is_active: true, value_type: "string"  },
+  LINKEDIN_CLIENT_SECRET: { category: "linkedin", key: "LINKEDIN_CLIENT_SECRET", value: "",      is_secret: false, is_active: true, value_type: "string"  },
+  LINKEDIN_REDIRECT_URI:  { category: "linkedin", key: "LINKEDIN_REDIRECT_URI",  value: "",      is_secret: false, is_active: true, value_type: "string"  },
 };
 
 const baseOauthFields: LeadPlatformField[] = [
@@ -470,6 +493,7 @@ export default function IntegrationsSettingsPage() {
   const [whatsappConfig, setWhatsappConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_WHATSAPP);
   const [lushaConfig, setLushaConfig]       = useState<Record<string, IntegrationConfig>>(DEFAULT_LUSHA);
   const [leadPlatformsConfig, setLeadPlatformsConfig] = useState<Record<string, IntegrationConfig>>(createDefaultLeadPlatforms);
+  const [linkedinConfig, setLinkedinConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_LINKEDIN);
   const [larkConfig, setLarkConfig] = useState({
     app_id: '',
     app_secret: '',
@@ -542,6 +566,17 @@ export default function IntegrationsSettingsPage() {
             };
           });
           setLeadPlatformsConfig(next);
+        }
+
+        if (json.data.linkedin) {
+          const next = { ...DEFAULT_LINKEDIN };
+          (json.data.linkedin as IntegrationConfig[]).forEach((c) => {
+            next[c.key] = {
+              ...c,
+              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
+            };
+          });
+          setLinkedinConfig(next);
         }
       })
       .catch(err => console.warn("Integration config load:", err))
@@ -1036,6 +1071,7 @@ export default function IntegrationsSettingsPage() {
           { key: "maps", label: "Google", icon: MapPin },
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
           { key: "lusha", label: "Lusha", icon: Key },
+          { key: "linkedin", label: "LinkedIn", icon: Linkedin },
           { key: "lark", label: "Lark", icon: Key },
           { key: "webhooks", label: "Webhooks", icon: Key },
         ]}
@@ -1884,6 +1920,100 @@ export default function IntegrationsSettingsPage() {
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Lusha Config
+              </button>
+              {successMsg && (
+                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                  <CheckCircle2 className="h-4 w-4" /> {successMsg}
+                </span>
+              )}
+              {errorMsg && (
+                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                  <AlertCircle className="h-4 w-4" /> {errorMsg}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── LinkedIn Developer Integration ── */}
+      {tab === "linkedin" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-1">LinkedIn Developer Integration</h2>
+            <p className="text-xs text-muted-foreground mb-6">
+              Configure LinkedIn App ID, App Secret, and Redirect URI to manage integration settings.
+            </p>
+
+            <div className="space-y-5">
+              <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
+                <div>
+                  <label className="text-sm font-medium">Enable LinkedIn Features</label>
+                  <p className="text-xs text-muted-foreground">Allows searching and discovering contacts via LinkedIn provider.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={linkedinConfig.LINKEDIN_ENABLED.value === "true"}
+                  onChange={(e) => setLinkedinConfig({
+                    ...linkedinConfig,
+                    LINKEDIN_ENABLED: { ...linkedinConfig.LINKEDIN_ENABLED, value: e.target.checked ? "true" : "false" },
+                  })}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Client ID / App ID</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Your LinkedIn Developer application Client ID.</p>
+                <input
+                  value={linkedinConfig.LINKEDIN_CLIENT_ID.value}
+                  onChange={(e) => setLinkedinConfig({
+                    ...linkedinConfig,
+                    LINKEDIN_CLIENT_ID: { ...linkedinConfig.LINKEDIN_CLIENT_ID, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Enter Client ID"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Client Secret / App Secret</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Your LinkedIn Developer application Client Secret.</p>
+                <input
+                  type="text"
+                  value={linkedinConfig.LINKEDIN_CLIENT_SECRET.value}
+                  onChange={(e) => setLinkedinConfig({
+                    ...linkedinConfig,
+                    LINKEDIN_CLIENT_SECRET: { ...linkedinConfig.LINKEDIN_CLIENT_SECRET, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Enter Client Secret"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Redirect URI</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Authorized Redirect URL registered in LinkedIn Developer portal.</p>
+                <input
+                  value={linkedinConfig.LINKEDIN_REDIRECT_URI.value}
+                  onChange={(e) => setLinkedinConfig({
+                    ...linkedinConfig,
+                    LINKEDIN_REDIRECT_URI: { ...linkedinConfig.LINKEDIN_REDIRECT_URI, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="http://localhost:3000/auth/linkedin/callback"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center gap-3">
+              <button
+                onClick={() => handleSave("linkedin", linkedinConfig)}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save LinkedIn Config
               </button>
               {successMsg && (
                 <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">

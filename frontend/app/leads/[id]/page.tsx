@@ -27,6 +27,7 @@ import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuid
 const SOURCE_STYLES: Record<string, string> = {
   LUSHA:   'bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30',
   GOOGLE_SEARCH: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
+  LINKEDIN: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
   manual:  'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[var(--status-success)]/30',
   website: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
   other:   'bg-muted text-muted-foreground border-border',
@@ -425,8 +426,8 @@ function AddContactModal({
   onClose,
   onSaveManual,
 }: {
-  mode: 'manual' | 'google';
-  setMode: (mode: 'manual' | 'google') => void;
+  mode: 'manual' | 'google' | 'linkedin';
+  setMode: (mode: 'manual' | 'google' | 'linkedin') => void;
   candidates: GoogleContactCandidate[];
   feedback: { type: 'success' | 'error'; msg: string } | null;
   searching: boolean;
@@ -446,7 +447,7 @@ function AddContactModal({
       open
       onOpenChange={(open) => { if (!open) onClose(); }}
       title="Add Contact"
-      description="Choose manual entry or Google Search to find LinkedIn PIC candidates from this company."
+      description="Choose manual entry, Google Search, or LinkedIn Search to find PIC candidates."
       size="lg"
       footer={
         mode === 'manual' ? (
@@ -462,7 +463,7 @@ function AddContactModal({
             <Button variant="outline" onClick={onClose}>Close</Button>
             <Button onClick={onSearch} disabled={searching}>
               {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              Search by Google
+              {mode === 'google' ? 'Search by Google' : 'LinkedIn Search'}
             </Button>
           </>
         )
@@ -471,9 +472,10 @@ function AddContactModal({
       <div className="space-y-4">
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Add Method</label>
-          <Select value={mode} onChange={(e) => setMode(e.target.value as 'manual' | 'google')}>
+          <Select value={mode} onChange={(e) => setMode(e.target.value as 'manual' | 'google' | 'linkedin')}>
             <option value="manual">Manual Add</option>
             <option value="google">Search by Google</option>
+            <option value="linkedin">LinkedIn Search</option>
           </Select>
         </div>
 
@@ -499,7 +501,11 @@ function AddContactModal({
         ) : (
           <div className="space-y-3">
             <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-              Google Search uses the keyword template in Settings &gt; AI Default &gt; Prompt Templates under <strong>Lead Contact Google Search Keyword</strong>.
+              {mode === 'google' ? (
+                <>Google Search uses the keyword template in Settings &gt; AI Default &gt; Prompt Templates under <strong>Lead Contact Google Search Keyword</strong>.</>
+              ) : (
+                <>LinkedIn search discovers matching public profiles scoped under the LINKEDIN provider using Google search engine scoped to site:linkedin.com/in.</>
+              )}
             </div>
 
             {feedback ? (
@@ -566,7 +572,9 @@ function AddContactModal({
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Run Search by Google to find public LinkedIn profile results by company name and role keywords.
+                {mode === 'google'
+                  ? 'Run Search by Google to find public LinkedIn profile results by company name and role keywords.'
+                  : 'Run LinkedIn Search to discover PIC profiles using the LinkedIn integration.'}
               </p>
             )}
           </div>
@@ -602,7 +610,7 @@ export default function LeadDetailPage() {
 
   // Contact UI state
   const [showAddContact, setShowAddContact]       = useState(false);
-  const [addContactMode, setAddContactMode]       = useState<'manual' | 'google'>('manual');
+  const [addContactMode, setAddContactMode]       = useState<'manual' | 'google' | 'linkedin'>('manual');
   const [editingContact, setEditingContact]       = useState<any | null>(null);
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
   const [showEnrichModal, setShowEnrichModal]     = useState(false);
@@ -843,6 +851,45 @@ export default function LeadDetailPage() {
     },
     onError: (error: any) => {
       setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add Google candidate' });
+    },
+  });
+
+  const { data: linkedinContactCandidatesData, refetch: refetchLinkedinContactCandidates } = useQuery({
+    queryKey: ['lead-linkedin-contact-candidates', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/linkedin/candidates`).then((r) => r.json()),
+    enabled: showAddContact && addContactMode === 'linkedin',
+  });
+
+  const searchLinkedinContactsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/linkedin/search`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to search LinkedIn contacts');
+      return json;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['lead-linkedin-contact-candidates', leadId] });
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'LinkedIn candidates loaded' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search LinkedIn contacts' });
+    },
+  });
+
+  const addLinkedinCandidateMutation = useMutation({
+    mutationFn: async (candidateId: number) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/linkedin/candidates/${candidateId}/add-contact`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to add LinkedIn candidate');
+      return json;
+    },
+    onSuccess: (data) => {
+      invalidateLead();
+      refetchLinkedinContactCandidates();
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Candidate added to contacts' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add LinkedIn candidate' });
     },
   });
 
@@ -1160,6 +1207,7 @@ export default function LeadDetailPage() {
       ? lushaCandidatesData.data
       : (searchLushaMutation.data?.data || []);
   const googleContactCandidates: GoogleContactCandidate[] = googleContactCandidatesData?.data || [];
+  const linkedinContactCandidates: GoogleContactCandidate[] = linkedinContactCandidatesData?.data || [];
   const lushaContactOptions = contacts.filter((contact: any) =>
     Boolean(contact.linkedin_url || contact.email || String(contact.name ?? '').trim().split(/\s+/).length > 1)
   );
@@ -2768,13 +2816,25 @@ export default function LeadDetailPage() {
             setAddContactMode(mode);
             setEnrichmentFeedback(null);
           }}
-          candidates={googleContactCandidates}
+          candidates={addContactMode === 'google' ? googleContactCandidates : (addContactMode === 'linkedin' ? linkedinContactCandidates : [])}
           feedback={enrichmentFeedback}
-          searching={searchGoogleContactsMutation.isPending}
-          adding={addGoogleCandidateMutation.isPending}
+          searching={addContactMode === 'google' ? searchGoogleContactsMutation.isPending : (addContactMode === 'linkedin' ? searchLinkedinContactsMutation.isPending : false)}
+          adding={addContactMode === 'google' ? addGoogleCandidateMutation.isPending : (addContactMode === 'linkedin' ? addLinkedinCandidateMutation.isPending : false)}
           saving={addContactMutation.isPending}
-          onSearch={() => searchGoogleContactsMutation.mutate()}
-          onAddCandidate={(candidateId) => addGoogleCandidateMutation.mutate(candidateId)}
+          onSearch={() => {
+            if (addContactMode === 'google') {
+              searchGoogleContactsMutation.mutate();
+            } else if (addContactMode === 'linkedin') {
+              searchLinkedinContactsMutation.mutate();
+            }
+          }}
+          onAddCandidate={(candidateId) => {
+            if (addContactMode === 'google') {
+              addGoogleCandidateMutation.mutate(candidateId);
+            } else if (addContactMode === 'linkedin') {
+              addLinkedinCandidateMutation.mutate(candidateId);
+            }
+          }}
           onClose={() => {
             setShowAddContact(false);
             setEnrichmentFeedback(null);
