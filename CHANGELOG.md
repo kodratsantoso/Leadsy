@@ -9,6 +9,18 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.5.0] — 2026-05-30 · Minor Release
+
+### Fitur Baru
+- **Animated & Interactive Charts Dashboard** — Mengupgrade seluruh widget dashboard (funnels, sales volume, total market, lead sources/channels, pipeline quality, revenue trends) menggunakan ApexCharts dan Highcharts yang interaktif dengan animasi smooth, rendering client-side yang dinamis, serta mendukung transisi dark/light mode secara real-time.
+- **AI Executive Insights (C-Suite Ready)** — Menambahkan panel ringkasan AI pada dashboard untuk membantu C-level menganalisis data pipeline secara cepat dengan penjelasan metrik, critical points (alert risiko), dan strategic suggestions (rekomendasi strategis).
+- **Konfigurasi Routing & Prompt Template AI** — Mengintegrasikan modul AI Insight ke sistem pengaturan default (`Settings -> AI Defaults`), memungkinkan admin mengedit template prompt dan memilih provider model AI (seperti Gemini 2.5 Flash).
+
+### Quality
+- Menambahkan test backend PHPUnit dan integrasi caching 30-menit di `DashboardController`.
+- Menyelaraskan seluruh styling grafik menggunakan palette HSL CSS variables dari global tokens.
+- Memperbarui file database snapshots (`leadsy_deploy_data_2026_05_30.sql` dan `leadsy_full_structure_and_data_2026_05_30.sql`).
+
 ## [1.4.0] — 2026-05-30 · Minor Release
 
 ### Fitur Baru

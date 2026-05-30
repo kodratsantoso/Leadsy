@@ -263,6 +263,12 @@ class AIPromptTemplateService
                 'Return only valid JSON with a questions array. Each item must include id, text, category, and order.'
             ),
             'lead_contact_google_search_keyword' => 'site:linkedin.com/in "{{company_name}}" ("manager" OR "director" OR "head" OR "general manager" OR "finance" OR "operations" OR "procurement" OR "IT" OR "sales")',
+            'dashboard_ai_insight' => $this->featureTemplate(
+                'Dashboard AI Insight',
+                'Analyze dashboard metrics and sales pipeline statistics to generate strategic executive insights for level C stakeholders.',
+                'Highlight key performance indicators, explain what the numbers indicate, note critical points/blockers/risks, and offer 3-4 concrete strategic suggestions. Keep the tone professional, objective, and executive-ready. Answer in Indonesian language (Bahasa Indonesia).',
+                'Return valid JSON with keys: explanation, strategic_suggestions, critical_points. Both strategic_suggestions and critical_points must be arrays of strings. Do not use markdown inside JSON fields.'
+            ),
         ];
     }
 

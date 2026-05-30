@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict BBx4R1BwrgqCjfc1VEkjrDJeUKxfgO2LABEkRceNEqB8ZbsyYuKNlIl9fan5IGY
+\restrict FEs6VzIwUuWcioftmansvgEJgXBd5p4u1NJxHWo7H4rktdr9HqBKdHp3I9qSXDV
 
 -- Dumped from database version 14.19 (Homebrew)
 -- Dumped by pg_dump version 14.19 (Homebrew)
@@ -4929,6 +4929,7 @@ COPY public.ai_models (id, ai_provider_id, name, context_window, capabilities, c
 --
 
 COPY public.ai_prompt_template_versions (id, ai_prompt_template_id, version, content, is_active, is_enabled, created_by, activated_by, activated_at, created_at, updated_at) FROM stdin;
+36	20	1	Role:\nYou are the Leadsy Dashboard AI Insight AI.\n\nObjective:\nAnalyze dashboard metrics and sales pipeline statistics to generate strategic executive insights for level C stakeholders.\n\nOperating Rules:\n- Use only evidence supplied in the feature input.\n- Keep outputs factual, deterministic, and useful for an Indonesian B2B sales team.\n- Do not invent names, URLs, email addresses, phone numbers, revenue, company facts, or product capabilities.\n- Clearly lower confidence when source data is incomplete, ambiguous, or inferred.\n- Prefer concise explanations tied to observable evidence.\n\nFeature-Specific Rules:\nHighlight key performance indicators, explain what the numbers indicate, note critical points/blockers/risks, and offer 3-4 concrete strategic suggestions. Keep the tone professional, objective, and executive-ready. Answer in Indonesian language (Bahasa Indonesia).\n\nOutput Contract:\nReturn valid JSON with keys: explanation, strategic_suggestions, critical_points. Both strategic_suggestions and critical_points must be arrays of strings. Do not use markdown inside JSON fields.\n\nFeature input:\n{{input}}	t	t	\N	\N	2026-05-30 12:51:03	2026-05-30 12:51:03	2026-05-30 12:51:03
 1	1	1	You are the system AI for lead analysis.\nStay factual, concise, and deterministic.\nReturn the exact schema requested by the feature prompt.\n\nFeature input:\n{{input}}	f	t	\N	\N	\N	2026-04-20 14:37:41	2026-05-30 02:31:19
 17	1	2	Role:\nYou are the Leadsy Lead Analysis AI.\n\nObjective:\nAnalyze a lead/company profile and produce concise sales intelligence for Indonesian B2B users.\n\nOperating Rules:\n- Use only evidence supplied in the feature input.\n- Keep outputs factual, deterministic, and useful for an Indonesian B2B sales team.\n- Do not invent names, URLs, email addresses, phone numbers, revenue, company facts, or product capabilities.\n- Clearly lower confidence when source data is incomplete, ambiguous, or inferred.\n- Prefer concise explanations tied to observable evidence.\n\nFeature-Specific Rules:\nUse only the provided lead facts, source signals, enrichment data, and product context. Highlight business opportunity, risks, missing data, and next action without inventing facts.\n\nOutput Contract:\nReturn the exact schema requested in the feature prompt. Keep reasoning short, evidence-backed, and deterministic.\n\nFeature input:\n{{input}}	t	t	\N	\N	2026-05-30 02:31:19	2026-05-30 02:31:19	2026-05-30 02:31:19
 2	2	1	You are the system AI for lead scoring.\nUse only supplied evidence, avoid hallucinations, and optimize for actionable sales prioritization.\nReturn only valid JSON.\n\nFeature input:\n{{input}}	f	t	\N	\N	\N	2026-04-20 14:37:41	2026-05-30 02:31:19
@@ -4991,6 +4992,7 @@ COPY public.ai_prompt_templates (id, feature_name, template_name, description, i
 17	product_question_generation	Default	Detailed system-managed default prompt wrapper	t	\N	\N	33	2026-05-30 02:31:19	2026-05-30 02:31:19
 18	lead_bantc_question_generation	Default	Detailed system-managed default prompt wrapper	t	\N	\N	34	2026-05-30 02:31:19	2026-05-30 02:31:19
 19	lead_contact_google_search_keyword	Default	Detailed system-managed default prompt wrapper	t	\N	\N	35	2026-05-30 02:31:19	2026-05-30 02:31:19
+20	dashboard_ai_insight	Default	Detailed system-managed default prompt wrapper	t	\N	\N	36	2026-05-30 12:51:03	2026-05-30 12:51:03
 \.
 
 
@@ -6276,6 +6278,10 @@ COPY public.audit_logs (id, user_id, action, module, record_type, record_id, bef
 1044	2	lead_claimed	leads	App\\Models\\Lead	65	{"owner_id":null}	{"owner_id":2}	127.0.0.1	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-30 11:44:30	2026-05-30 11:44:30	POST	api/leads/65/claim	success	\N	1
 1045	2	lead_claimed	leads	App\\Models\\Lead	81	{"owner_id":null}	{"owner_id":2}	127.0.0.1	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-30 11:44:36	2026-05-30 11:44:36	POST	api/leads/81/claim	success	\N	1
 1046	2	lead_claimed	leads	App\\Models\\Lead	64	{"owner_id":null}	{"owner_id":2}	127.0.0.1	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-30 11:44:38	2026-05-30 11:44:38	POST	api/leads/64/claim	success	\N	1
+1047	2	updated	leads	App\\Models\\Lead	125	{"qualification_status":"pending","updated_at":"2026-05-30 11:43:44"}	{"qualification_status":"potential","updated_at":"2026-05-30 12:40:53"}	127.0.0.1	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-30 12:40:53	2026-05-30 12:40:53	PUT	api/leads/125	success	\N	1
+1048	2	updated	leads	App\\Models\\Lead	124	{"qualification_status":"pending","updated_at":"2026-05-30 11:43:43"}	{"qualification_status":"potential","updated_at":"2026-05-30 12:41:07"}	127.0.0.1	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-30 12:41:07	2026-05-30 12:41:07	PUT	api/leads/124	success	\N	1
+1049	2	updated	leads	App\\Models\\Lead	72	{"lat":null,"lng":null,"industry_id":null,"sub_industry_id":null,"qualification_status":"pending","product_id":null,"updated_at":"2026-05-30 11:43:49"}	{"lat":-6.2930242,"lng":106.8030431,"industry_id":13,"sub_industry_id":45,"qualification_status":"potential","product_id":11,"updated_at":"2026-05-30 12:41:56"}	127.0.0.1	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-30 12:41:56	2026-05-30 12:41:56	PUT	api/leads/72	success	\N	1
+1050	2	updated	leads	App\\Models\\Lead	75	{"lat":null,"lng":null,"industry_id":null,"sub_industry_id":null,"company_size_estimate":null,"qualification_status":"pending","updated_at":"2026-05-30 11:43:50"}	{"lat":-6.2371142,"lng":106.8107237,"industry_id":13,"sub_industry_id":45,"company_size_estimate":"51-200","qualification_status":"potential","updated_at":"2026-05-30 12:42:32"}	127.0.0.1	Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-30 12:42:32	2026-05-30 12:42:32	PUT	api/leads/75	success	\N	1
 \.
 
 
@@ -10575,6 +10581,10 @@ COPY public.lead_sources (id, lead_id, source_type, source_ref, confidence, last
 75	136	website	\N	medium	2026-05-30	2026-05-30 04:12:41	2026-05-30 04:12:41	\N	25
 76	135	website	\N	medium	2026-05-30	2026-05-30 04:13:07	2026-05-30 04:13:07	\N	25
 77	81	website	\N	medium	2026-05-30	2026-05-30 04:36:32	2026-05-30 04:36:32	\N	25
+78	125	website	\N	medium	2026-05-30	2026-05-30 12:40:53	2026-05-30 12:40:53	\N	25
+79	124	website	\N	medium	2026-05-30	2026-05-30 12:41:07	2026-05-30 12:41:07	\N	25
+80	72	website	\N	medium	2026-05-30	2026-05-30 12:41:56	2026-05-30 12:41:56	\N	25
+81	75	website	\N	medium	2026-05-30	2026-05-30 12:42:32	2026-05-30 12:42:32	\N	25
 \.
 
 
@@ -10658,10 +10668,9 @@ COPY public.leads (id, company_name, address, lat, lng, website, website_domain,
 69	PT. Ardency Adprom	Komplek Kebayoran Center Blok 17A, Jl Raya Kebayoran Baru Jakarta 12240	\N	\N	\N	\N	62217244775	contact@ardgroup.co.id	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJt3f1f6Z0aS4R8q1X7QaZ7c0	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:47	\N	1	\N	\N	\N
 70	PT. Argo Kreasi Pratama	Jl. Bendi Besar No. 30A Jakarta Selatan 12240	\N	\N	\N	\N	622127085594	hello@argoasia.co.id	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJW5t2s7ZuaS4RQ428lQ5Rr9o	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:48	\N	1	\N	\N	\N
 71	PT. Armananta Eka Putra	Jl Dharmawangsa XI No. 6 Kebayoran Baru, Jakarta 12160	\N	\N	\N	\N	62217224425	armananta@indosat.net.id	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJn65W7Xq7aS4R0x5f7Z7Q7e0	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:48	\N	1	\N	\N	\N
-72	PT. Asia Central Prisma Internasional	Gedung Sovereign Plaza Lantai 5 Unit D, Jl TB Simatupang Kav. 36 Cilandak Jakarta Selatan	\N	\N	\N	\N	622175816898	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	Not Found	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:49	\N	1	\N	\N	\N
+75	PT. Berakar Komunikasi	Jl Cikatomas II No. 33 Kebayoran Baru Jakarta 12180	-6.2371142	106.8107237	\N	\N	62217223593	\N	13	45	Marketing Agency	51-200	\N	\N	\N	\N	potential	\N	new	\N	ChIJk8z7b50r1S4R5Z7Z7Z7Z7Z7	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 12:42:32	\N	1	\N	\N	\N
 73	PT. Asia Media Prisma	Gedung Sovereign Plaza Lantai 5 Jl TB Simatupang Kav 36 Cilandak Jakarta Selatan	\N	\N	\N	\N	622129400250	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJX-6g4YwFai4Rc0b8y7e06e0	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:49	\N	1	\N	\N	\N
 74	PT. Bates Mulia Indonesia	RDTX Place Lantai 36, Jl. Prof Dr Satrio Kav. 3 Karet Jakarta Selatan	\N	\N	\N	\N	622129243000	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJ56zBw6pZai4R0qT7jK4jY9M	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:50	\N	1	\N	\N	\N
-75	PT. Berakar Komunikasi	Jl Cikatomas II No. 33 Kebayoran Baru Jakarta 12180	\N	\N	\N	\N	62217223593	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJk8z7b50r1S4R5Z7Z7Z7Z7Z7	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:50	\N	1	\N	\N	\N
 76	PT. Bintang Mediathama Indonesia	Jl Pemuda No. 716 Pulogadung Jakarta Timur 13220	\N	\N	\N	\N	622129834303	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJw1X7z4Z0aS4Rvq4f2Q5J6cY	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:50	\N	1	\N	\N	\N
 77	PT. Bujuk Rayu Anak Bangsa	Jl. Margaguna I No. 8A Radio Dalam Raya Grogol Utara, Kebayoran Baru Jakarta Selatan	\N	\N	\N	\N	622175811966	hey@bujukrayu.com	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJ01Q7fQ0fai4R6vQ3f7X0Wx4	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:51	\N	1	\N	\N	\N
 78	PT. Cakrawala Media Baru	Jl Barito 2 No. 7 Kebayoran Baru Jakarta Selatan 12130	\N	\N	\N	\N	622172797426	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJf7o7v9Z0aS4R0Q4Z7a7a7a7	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:51	\N	1	\N	\N	\N
@@ -10673,6 +10682,7 @@ COPY public.leads (id, company_name, address, lat, lng, website, website_domain,
 67	PT. Alta Volare Indonesia	Sahid Sudirman Centre Lantai 58 Jl Jend Sudirman No 86 Jakarta Pusat 10220	\N	\N	\N	\N	62212528299	business@volarenetwork.co.id	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJz85cG0Yfai4Rw0y5l7e5l6k	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:52	\N	1	\N	\N	\N
 66	PT. Adriwara Krida	Menara Sentraya Lantai 11 Jl Iskandarsyah No. 1A Jakarta 12160	\N	\N	\N	\N	622127882441	jakarta.village@havas.com	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJn0X2b3y0ei4Rp2c3e8z6u2M	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:44:08	\N	1	\N	\N	\N
 68	PT. Anugrah Cipta Karyatama	Taman Meruya Plaza II A-11 Jakarta Barat	\N	\N	\N	\N	62215861212	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJz3z3X1u7aS4R9Q0Z7Q0Z7Q0	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:44:09	\N	1	\N	\N	\N
+72	PT. Asia Central Prisma Internasional	Gedung Sovereign Plaza Lantai 5 Unit D, Jl TB Simatupang Kav. 36 Cilandak Jakarta Selatan	-6.2930242	106.8030431	\N	\N	622175816898	\N	13	45	Marketing Agency	\N	\N	\N	\N	\N	potential	\N	new	\N	Not Found	f	manual	\N	\N	\N	\N	2	\N	11	\N	2026-05-30 03:08:02	2026-05-30 12:41:56	\N	1	\N	\N	\N
 88	PT. Dentsu Isopost Indonesia	Menara Sentraya Lantai 33 Jl Iskandarsyah Raya No. 1A Jakarta Selatan 12160	\N	\N	\N	\N	622127882888	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJ0U1X0fZ0aS4Rb0X7Z7Z7Z7Z	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:56	\N	1	\N	\N	\N
 89	PT. Dian Mentari Pratama	Jl. Pemuda No. 716 Pulo Gadung Jakarta Timur 13220	\N	\N	\N	\N	622129834303	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJ17K5u0fZai4R90Z0Q1xG6Vc	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:57	\N	1	\N	\N	\N
 90	PT. Digital Frame Indonesia	Gedung The Capitol Jl S. Parman Kav 73 Lantai 1 Slipi Jakarta Barat 11410	\N	\N	\N	\N	622129297729	legal@amg.co.id	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJx3R3XkFZei4Rr1yO7r0yX40	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:43:57	\N	1	\N	\N	\N
@@ -10713,9 +10723,8 @@ COPY public.leads (id, company_name, address, lat, lng, website, website_domain,
 130	PT. Setinggi Langit Kreatif	Tokopedia Tower Lantai 18 Ciputra World 2 Jl Prof Dr Satrio Kav. 11 Jakarta Selatan 12950	\N	\N	\N	\N	62212521795	\N	13	45	Marketing Agency	\N	\N	\N	\N	46	potential	Needs improvement in Company Size and Source Reliability.	new	\N	ChIJ02b75j4uai4RzXk6Rz04F58	f	manual	\N	\N	completed	\N	2	\N	11	\N	2026-05-30 03:08:03	2026-05-30 04:07:05	\N	1	\N	\N	\N
 129	PT. Seruan Anak Bangsa	Jl. Margaguna I No. 8A Radio Dalam Raya Grogol Utara, Kebayoran Baru Jakarta Selatan	-6.2623103	106.7887044	https://id.linkedin.com/company/accenture-sea	id.linkedin.com	62217227522	\N	13	45	Marketing Agency	51-200	\N	\N	\N	69	potential	Strong on Data Completeness and Source Reliability.	new	\N	ChIJ02Q7Q9Z0aS4R2K7X7y7Z7X7	f	manual	\N	\N	completed	1	2	\N	11	\N	2026-05-30 03:08:03	2026-05-30 04:25:00	\N	1	\N	\N	\N
 139	PT. Wira Pamungkas Pariwara	RDTX Place Lantai 36-37, Jl Prof Dr Satrio Kav 3 Jakarta 12940	\N	\N	\N	\N	622139703400	\N	13	45	Marketing Agency	\N	\N	\N	\N	46	potential	Needs improvement in Company Size and Source Reliability.	new	\N	ChIJ00c2qX9uLzER7z1X7q5H4aA	f	manual	\N	\N	completed	\N	2	\N	11	\N	2026-05-30 03:08:03	2026-05-30 04:27:48	2026-05-30 04:27:48	1	\N	\N	\N
-125	PT. Rumah Kreatif Sejahtera	Jl. Intan RSPP Utara No. 12 Kav. 4 Cilandak Barat Jakarta Selatan	\N	\N	\N	\N	\N	\N	13	45	Marketing Agency	11-50	\N	\N	\N	40	pending	Needs improvement in Contact Availability and Source Reliability.	new	\N	ChIJx5bR4W9nLxURdXZ7Z7Z7Z7Z	f	manual	\N	\N	completed	\N	2	\N	11	\N	2026-05-30 03:08:03	2026-05-30 11:43:44	\N	1	\N	\N	\N
+124	PT. Rayu Hati Anak Bangsa	Jl. Margaguna I No. 8A Radio Dalam Raya Grogol Utara, Kebayoran Baru Jakarta Selatan	\N	\N	\N	\N	62217227522	\N	13	45	Marketing Agency	11-50	\N	\N	\N	50	potential	Needs improvement in Source Reliability and Activity Signal.	new	\N	ChIJ83nN5u67aS4R4fX7Z7Z7Z7Z	f	manual	\N	\N	completed	\N	2	\N	11	\N	2026-05-30 03:08:03	2026-05-30 12:41:07	\N	1	\N	\N	\N
 116	PT. Metra Digital Media	The Telkom Hub, Telkom Landmark Tower Lantai 18 Jl Gatot Subroto Kav. 52 Jakarta 12710	\N	\N	\N	\N	62217944454	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJx8j6e5YFei4R7i1y4v6Z8cU	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:44:27	\N	1	\N	\N	\N
-124	PT. Rayu Hati Anak Bangsa	Jl. Margaguna I No. 8A Radio Dalam Raya Grogol Utara, Kebayoran Baru Jakarta Selatan	\N	\N	\N	\N	62217227522	\N	13	45	Marketing Agency	11-50	\N	\N	\N	50	pending	Needs improvement in Source Reliability and Activity Signal.	new	\N	ChIJ83nN5u67aS4R4fX7Z7Z7Z7Z	f	manual	\N	\N	completed	\N	2	\N	11	\N	2026-05-30 03:08:03	2026-05-30 11:43:43	\N	1	\N	\N	\N
 117	PT. Mirabilia Media Indonesia	Gedung Menara Sentraya Lantai 12 Suite B-01, Jl. Iskandarsyah Raya No. 1A, Melawai Kebayoran Baru Jakarta Selatan	\N	\N	\N	\N	622127882233	info@moonfolks.com	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJz13fD1W0aS4R4b7Z7Z7Z7Z7	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:44:27	\N	1	\N	\N	\N
 118	PT. MPG Indonesia	Menara Sentraya Lantai 11 Jl Iskandarsyah No. 1A Jakarta 12160	\N	\N	\N	\N	622127882441	\N	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJ41ZtZ6Z0aS4Rv9Q9l4kD5e8	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:44:27	\N	1	\N	\N	\N
 119	PT. Octocomm Asia	Belleza Shopping Arcade Lantai 3 Unit 33, Jl Letjen Soepeno No. 34 Permata Hijau Jakarta 12210	\N	\N	\N	\N	622125675422	info@octovate.com	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJz3qL5eZ0aS4R7Q7X7Q7X7Q7	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:44:28	\N	1	\N	\N	\N
@@ -10731,6 +10740,7 @@ COPY public.leads (id, company_name, address, lat, lng, website, website_domain,
 115	PT. Merah Cipta Media	Wisma 77 Tower 2 Lantai 3 Jl S. Parman Kav 77 Slipi Jakarta Barat 11410	\N	\N	\N	\N	62215346270	ga@merahciptamedia.co.id	\N	\N	Marketing Agency	\N	\N	\N	\N	\N	pending	\N	new	\N	ChIJX0wO5Z9aai4R7y3XQ8eZ7x0	f	manual	\N	\N	\N	\N	2	\N	\N	\N	2026-05-30 03:08:02	2026-05-30 11:44:05	\N	1	\N	\N	\N
 81	PT. Citra Surya Indonesia	Jl Duren Tiga No. 29A Pancoran Jakarta Selatan 12760	-6.2540629	106.8298615	\N	\N	62217940515	\N	13	45	Marketing Agency	\N	\N	\N	\N	53	potential	Strong on Source Reliability. Needs improvement in Company Size and Activity Signal.	new	\N	ChIJk82X0w0a0y0Rj4Z7Q7Q7Q7Q	f	manual	\N	\N	completed	\N	2	\N	11	\N	2026-05-30 03:08:02	2026-05-30 11:44:36	\N	1	\N	\N	\N
 64	PT Calmic Indonesia (Head Office)	South Quarter Tower B - 21st floor, Jl. R.A. Kartini No.Kav. 8, RT.10/RW.4, West Cilandak, Cilandak, South Jakarta City, Jakarta 12430, Indonesia	-6.2939263	106.7853069	https://www.calmic.co.id/?utm_source=google&utm_medium=gbp&utm_campaign=eg_listing_lg	www.calmic.co.id	+62 21 22765111	\N	8	24	establishment, health, local_government_office	11-50	\N	\N	\N	60	pending	Strong on Data Completeness and Source Reliability. Needs improvement in Activity Signal.	new	\N	ChIJhcis-aHxaS4REYE7XEyqpDg	f	full_ai	\N	\N	completed	\N	2	\N	11	1	2026-05-21 06:23:38	2026-05-30 11:44:38	\N	\N	\N	\N	\N
+125	PT. Rumah Kreatif Sejahtera	Jl. Intan RSPP Utara No. 12 Kav. 4 Cilandak Barat Jakarta Selatan	\N	\N	\N	\N	\N	\N	13	45	Marketing Agency	11-50	\N	\N	\N	40	potential	Needs improvement in Contact Availability and Source Reliability.	new	\N	ChIJx5bR4W9nLxURdXZ7Z7Z7Z7Z	f	manual	\N	\N	completed	\N	2	\N	11	\N	2026-05-30 03:08:03	2026-05-30 12:40:53	\N	1	\N	\N	\N
 \.
 
 
@@ -11433,6 +11443,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 65	2026_05_29_011500_seed_detailed_ai_prompt_templates	26
 66	2026_05_29_012500_replace_ai_contact_search_with_google_search	26
 67	2026_05_30_000001_add_parent_lead_id_to_leads_table	27
+68	2026_05_30_000002_add_dashboard_ai_insight_to_prompt_templates	28
 \.
 
 
@@ -11486,7 +11497,7 @@ COPY public.personal_access_tokens (id, tokenable_type, tokenable_id, name, toke
 55	App\\Models\\User	2	api	8eca6c07b86defc8a51bb0d1aeee83be17f0ddae56802dbb25f22c0f04a9cc62	["*"]	\N	\N	2026-05-30 02:28:58	2026-05-30 02:28:58
 57	App\\Models\\User	2	api	04a939ad675f371e5d6f9f17d8ba38f09e0e402356313a2e72ced90f366e14a7	["*"]	\N	\N	2026-05-30 02:30:20	2026-05-30 02:30:20
 58	App\\Models\\User	2	api	29d35b474419c20a226115a2c6528fe119462943f607b0fb294fe843c252901b	["*"]	\N	\N	2026-05-30 02:30:23	2026-05-30 02:30:23
-56	App\\Models\\User	2	api	f49fcc6d8383e44f191ae6df6c6ec964369a5ec99d1ef7def4f7c41cf6cccc86	["*"]	2026-05-30 11:44:54	\N	2026-05-30 02:30:19	2026-05-30 11:44:54
+56	App\\Models\\User	2	api	f49fcc6d8383e44f191ae6df6c6ec964369a5ec99d1ef7def4f7c41cf6cccc86	["*"]	2026-05-30 12:56:54	\N	2026-05-30 02:30:19	2026-05-30 12:56:54
 \.
 
 
@@ -11980,14 +11991,14 @@ SELECT pg_catalog.setval('public.ai_models_id_seq', 33, true);
 -- Name: ai_prompt_template_versions_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ai_prompt_template_versions_id_seq', 35, true);
+SELECT pg_catalog.setval('public.ai_prompt_template_versions_id_seq', 36, true);
 
 
 --
 -- Name: ai_prompt_templates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.ai_prompt_templates_id_seq', 19, true);
+SELECT pg_catalog.setval('public.ai_prompt_templates_id_seq', 20, true);
 
 
 --
@@ -12008,7 +12019,7 @@ SELECT pg_catalog.setval('public.ai_requests_id_seq', 242, true);
 -- Name: audit_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.audit_logs_id_seq', 1046, true);
+SELECT pg_catalog.setval('public.audit_logs_id_seq', 1050, true);
 
 
 --
@@ -12337,7 +12348,7 @@ SELECT pg_catalog.setval('public.lead_source_types_id_seq', 9, true);
 -- Name: lead_sources_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.lead_sources_id_seq', 77, true);
+SELECT pg_catalog.setval('public.lead_sources_id_seq', 81, true);
 
 
 --
@@ -12365,7 +12376,7 @@ SELECT pg_catalog.setval('public.map_search_history_id_seq', 19, true);
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 67, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 68, true);
 
 
 --
@@ -15758,5 +15769,5 @@ ALTER TABLE ONLY public.whatsapp_messages
 -- PostgreSQL database dump complete
 --
 
-\unrestrict BBx4R1BwrgqCjfc1VEkjrDJeUKxfgO2LABEkRceNEqB8ZbsyYuKNlIl9fan5IGY
+\unrestrict FEs6VzIwUuWcioftmansvgEJgXBd5p4u1NJxHWo7H4rktdr9HqBKdHp3I9qSXDV
 

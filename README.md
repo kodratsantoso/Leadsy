@@ -4,7 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.4.0** — 2026-05-30
+Current release: **v1.5.0** — 2026-05-30
+
+## What's New in v1.5.0
+
+- Upgraded all dashboard widgets (funnels, volumes, markets, lead origins, pipeline quality, and revenue achievement) to use interactive, animated, client-side charts powered by ApexCharts and Highcharts.
+- Added support for dark/light mode automatic theme synchronization across all chart layouts.
+- Integrated a new AI Executive Insights panel at the top of the dashboard summarizing pipeline explanation, critical risk points, and strategic decisions for C-level executives.
+- Configured prompt templates and provider model routing for the AI Insights feature in Settings -> AI Defaults.
+- Refreshed PostgreSQL structure+data and deploy snapshots.
 
 ## What's New in v1.4.0
 

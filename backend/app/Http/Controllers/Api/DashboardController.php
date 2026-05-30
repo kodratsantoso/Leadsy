@@ -7,8 +7,10 @@ use App\Models\FunnelStage;
 use App\Models\Lead;
 use App\Models\LeadOutcome;
 use App\Models\Product;
+use App\Services\AI\AiOrchestrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -110,6 +112,105 @@ class DashboardController extends Controller
                 'source_channel_breakdown' => $sourceChannelBreakdown,
             ],
         ]);
+    }
+
+    /** POST /api/dashboard/ai-insight */
+    public function aiInsight(Request $request, AiOrchestrationService $ai): JsonResponse
+    {
+        $user = $request->user();
+        $cacheKey = 'dashboard_ai_insight_'.($user?->id ?? 'global');
+
+        if ($request->query('refresh') !== 'true') {
+            $cached = Cache::get($cacheKey);
+            if ($cached) {
+                return response()->json(['data' => $cached]);
+            }
+        }
+
+        // Fetch dashboard metrics
+        $leadQuery = Lead::visibleTo($user);
+        $totalLeads = (clone $leadQuery)->count();
+        $qualifiedLeads = (clone $leadQuery)->where('qualification_status', 'eligible')->count();
+        $duplicateCount = (clone $leadQuery)->where('duplicate_status', '!=', 'new')->count();
+        $pipelineLeads = (clone $leadQuery)->whereHas('funnelStage', function ($q) {
+            $q->whereNotIn('name', ['Won', 'Lost']);
+        })->count();
+
+        $duplicateRate = $totalLeads > 0
+            ? round($duplicateCount / $totalLeads * 100, 1).'%'
+            : '0%';
+
+        $salesAchievement = $this->salesAchievement($request);
+        $salesFunnelTracking = $this->salesFunnelTracking($request, $totalLeads, $pipelineLeads);
+        $sourceChannelBreakdown = $this->sourceChannelBreakdown($request);
+
+        $wonFunnel = $salesFunnelTracking['funnels']['won'] ?? [];
+        $salesVolume = $salesFunnelTracking['sales_volume'] ?? [];
+        $totalMarket = $salesFunnelTracking['total_market'] ?? [];
+        $leadSources = $sourceChannelBreakdown['sources'] ?? [];
+
+        // Build descriptive summary for prompt input
+        $summary = "SALES PIPELINE METRICS SUMMARY\n";
+        $summary .= "- Total Leads: {$totalLeads}\n";
+        $summary .= "- Qualified Leads (Eligible): {$qualifiedLeads}\n";
+        $summary .= "- Pipeline Active Leads: {$pipelineLeads}\n";
+        $summary .= "- Duplicate Leads: {$duplicateCount} ({$duplicateRate})\n";
+        $summary .= '- Sales Target (Period: '.($salesAchievement['period'] ?? 'monthly').'): '.($salesAchievement['target_revenue'] ?? 0)."\n";
+        $summary .= '- Realized Revenue: '.($salesAchievement['realized_revenue'] ?? 0)."\n";
+        $summary .= '- Conversion Achievement %: '.($salesAchievement['achievement_percentage'] ?? 0)."%\n";
+
+        $summary .= "\nCONVERSION FUNNEL (WON TRACKING):\n";
+        foreach ($wonFunnel as $step) {
+            $summary .= '  * '.($step['label'] ?? $step['name']).': '.($step['value'] ?? $step['count']).' leads ('.($step['percentage'] ?? 0).'% conversion, Est. Amount: '.($step['estimated_amount'] ?? 0).")\n";
+        }
+
+        $summary .= "\nSALES VOLUME BY PRODUCT:\n";
+        foreach ($salesVolume as $vol) {
+            $summary .= "  * {$vol['label']}: Realized ".($vol['value'] ?? 0).' Won value (Count: '.($vol['count'] ?? 0).")\n";
+        }
+
+        $summary .= "\nTOTAL MARKET BY PRODUCT:\n";
+        foreach ($totalMarket as $mkt) {
+            $summary .= "  * {$mkt['label']}: ".($mkt['value'] ?? 0).' leads (Est. Volume: '.($mkt['estimated_volume'] ?? 0).")\n";
+        }
+
+        $summary .= "\nLEAD SOURCES:\n";
+        foreach ($leadSources as $src) {
+            $summary .= "  * {$src['label']}: {$src['value']} leads\n";
+        }
+
+        // Call the AI Priority/Orchestration service
+        $result = $ai->call('dashboard_ai_insight', $summary, ['user_id' => $user?->id]);
+
+        if (! $result['success'] || empty($result['content'])) {
+            return response()->json([
+                'error' => $result['error'] ?? 'Gagal menghubungi AI untuk menganalisa dashboard.',
+            ], 500);
+        }
+
+        $content = $result['content'];
+        $cleanContent = preg_replace('/^```json\s*|```$/i', '', trim($content));
+        $parsed = json_decode($cleanContent, true);
+
+        if (! $parsed || ! isset($parsed['explanation'])) {
+            $parsed = [
+                'explanation' => $content,
+                'strategic_suggestions' => [
+                    'Evaluasi konversi di setiap tahapan funnel penjualan.',
+                    'Fokuskan tim sales pada leads dengan skor tinggi.',
+                    'Kurangi rate leads duplikat dengan deduplikasi otomatis.',
+                ],
+                'critical_points' => [
+                    'Kurangnya detail analisis data terstruktur.',
+                    'Target pencapaian sales memerlukan optimalisasi.',
+                ],
+            ];
+        }
+
+        // Cache the parsed response for 30 minutes
+        Cache::put($cacheKey, $parsed, now()->addMinutes(30));
+
+        return response()->json(['data' => $parsed]);
     }
 
     /** GET /api/dashboard/heatmap – lead coordinates for heatmap rendering */

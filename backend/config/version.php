@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.4.0',
+    'version' => '1.5.0',
     'released_at' => '2026-05-30',
     'type' => 'minor',   // major | minor | patch
-    'notes' => 'Add lead subsidiary relationship, Detail page map preview, and unified edit leads form',
+    'notes' => 'Interactive and animated charts dashboard using ApexCharts & Highcharts, AI Insight card, prompt templates routing settings',
 ];

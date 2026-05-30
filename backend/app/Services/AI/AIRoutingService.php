@@ -28,6 +28,7 @@ class AIRoutingService
         'product_question_generation' => 'Product Question Guide Generation',
         'lead_bantc_question_generation' => 'Lead BANTC Question Guide Generation',
         'lead_contact_google_search_keyword' => 'Lead Contact Google Search Keyword',
+        'dashboard_ai_insight' => 'Dashboard AI Insight',
     ];
 
     public function listRoutes(): Collection

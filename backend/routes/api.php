@@ -97,6 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard
     Route::get('dashboard', [DashboardController::class, 'index']);
+    Route::post('dashboard/ai-insight', [DashboardController::class, 'aiInsight']);
     Route::get('dashboard/heatmap', [DashboardController::class, 'heatmap']);
 
     // Leads — CRUD + Discovery + Export

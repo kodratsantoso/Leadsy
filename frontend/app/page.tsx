@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { APIProvider, AdvancedMarker, InfoWindow, Map } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import Link from "next/link";
@@ -14,6 +14,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeaderCell, TableRow, TableShell } from "@/components/ui/table";
+import dynamic from "next/dynamic";
+import Highcharts from "highcharts";
+
+// Dynamically import chart libraries to bypass Next.js SSR document reference errors
+const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+const HighchartsReact = dynamic(() => import("highcharts-react-official"), { ssr: false });
 
 const DEFAULT_CENTER = { lat: -6.2088, lng: 106.8456 };
 
@@ -137,6 +143,66 @@ export default function DashboardPage() {
   const [drilldownSearch, setDrilldownSearch] = useState("");
   const [drilldownPage, setDrilldownPage] = useState(1);
 
+  const [colors, setColors] = useState({
+    brand: "#8b5cf6",
+    success: "#10b981",
+    warning: "#f59e0b",
+    danger: "#ef4444",
+    info: "#3b82f6",
+    mutedForeground: "#6b7280"
+  });
+
+  const getCSSVar = (name: string, fallback: string) => {
+    if (typeof window === "undefined") return fallback;
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  };
+
+  useEffect(() => {
+    const updateColors = () => {
+      setColors({
+        brand: getCSSVar("--brand", "#8b5cf6"),
+        success: getCSSVar("--success", "#10b981"),
+        warning: getCSSVar("--warning", "#f59e0b"),
+        danger: getCSSVar("--danger", "#ef4444"),
+        info: getCSSVar("--info", "#3b82f6"),
+        mutedForeground: getCSSVar("--muted-foreground", "#6b7280"),
+      });
+    };
+    updateColors();
+    const observer = new MutationObserver(updateColors);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiData, setAiData] = useState<{
+    explanation?: string;
+    strategic_suggestions?: string[];
+    critical_points?: string[];
+  } | null>(null);
+  const [aiError, setAiError] = useState("");
+
+  const fetchAiInsight = async (refresh = false) => {
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const res = await apiFetch(`/dashboard/ai-insight${refresh ? "?refresh=true" : ""}`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Gagal memuat insight");
+      const json = await res.json();
+      setAiData(json.data);
+    } catch (err: any) {
+      setAiError(err.message || "Gagal menghubungi server");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAiInsight();
+  }, []);
+
   useEffect(() => {
     apiFetch("/settings/public")
       .then((res) => res.json())
@@ -238,74 +304,115 @@ export default function DashboardPage() {
     funnelKey: "won" | "lost",
     title: string,
     steps: TrackingFunnelStep[]
-  ) => (
-    <Card className="h-full bg-background">
-      <div className="flex items-center justify-between p-5 pb-3">
-        <div>
-          <h3 className="text-base font-semibold">{title}</h3>
-          <p className="text-xs text-muted-foreground">Conversion starts from Belum Di Klasifikasi. Click any bar to drill down.</p>
-        </div>
-        <Badge variant={funnelKey === "won" ? "success" : "danger"}>
-          {funnelKey === "won" ? "Won" : "Lost"}
-        </Badge>
-      </div>
-      <div className="space-y-4 px-5 pb-5 pt-2">
-        {steps.map((step: TrackingFunnelStep, index: number) => {
-          const firstValue = Math.max(Number(steps[0]?.value ?? 0), 1);
-          const count = Number(step.value) || 0;
-          const percentage = Number(step.percentage ?? ((count / firstValue) * 100));
-          const barPct = index === 0
-            ? 100
-            : count <= 0
-              ? 0
-              : Math.max(3, Math.min(100, percentage));
-          const tooltip = `${step.label}: ${formatNumber(step.value, { decimals: 0 })} leads, ${formatNumber(percentage, { decimals: 1 })}% conversion. Click to open filtered data.`;
-          return (
-            <button
-              type="button"
-              key={`${funnelKey}-${step.id ?? step.label}`}
-              onClick={() => openDrilldown({
+  ) => {
+    const hasData = steps.length > 0;
+    const chartOptions: ApexCharts.ApexOptions = {
+      chart: {
+        type: "bar",
+        height: 280,
+        toolbar: { show: false },
+        events: {
+          dataPointSelection: (event: any, chartContext: any, config: any) => {
+            const stepIndex = config.dataPointIndex;
+            const step = steps[stepIndex];
+            if (step) {
+              const tooltip = `${step.label}: ${formatNumber(step.value, { decimals: 0 })} leads, ${formatNumber(step.percentage ?? 0, { decimals: 1 })}% conversion.`;
+              openDrilldown({
                 title: `${title} · ${step.label}`,
                 description: tooltip,
                 href: step.href,
-              })}
-              className="group grid w-full grid-cols-[112px_minmax(0,1fr)_116px] items-center gap-3 text-left text-sm sm:grid-cols-[150px_minmax(0,1fr)_144px]"
-              aria-label={tooltip}
-              title={tooltip}
-            >
-              <span className="truncate text-right text-xs font-medium text-muted-foreground sm:text-sm">
-                {step.label}
-              </span>
-              <span className="relative h-12 min-w-0">
-                <span
-                  className="absolute top-1/2 h-px -translate-y-1/2 bg-border"
-                  style={{ left: `${barPct}%`, right: 0 }}
-                />
-                <span
-                  className="absolute left-0 top-0 h-full rounded-sm bg-[color-mix(in_oklch,var(--status-info)_58%,var(--status-success))] transition-all duration-500 group-hover:bg-[color-mix(in_oklch,var(--status-info)_70%,var(--status-success))]"
-                  style={{ width: `${barPct}%` }}
-                />
-              </span>
-              <span className="border-l border-border pl-2">
-                <span className="block text-sm font-bold tabular-nums text-foreground">
-                  {formatNumber(step.value, { decimals: 0 })}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {formatNumber(percentage, { decimals: 1 })}%
-                </span>
-                <span className="mt-1 block text-xs font-medium tabular-nums text-foreground">
-                  {formatCurrency(step.estimated_amount ?? 0)}
-                </span>
-                <span className="block text-[11px] text-muted-foreground">
-                  Est. {formatNumber(step.estimated_percentage ?? 0, { decimals: 1 })}%
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </Card>
-  );
+              });
+            }
+          }
+        }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          barHeight: "55%",
+          distributed: true,
+          borderRadius: 4,
+        }
+      },
+      colors: funnelKey === "won"
+        ? [colors.brand, "oklch(0.67 0.13 276)", "oklch(0.72 0.16 281)", "oklch(0.78 0.13 281)", "oklch(0.84 0.08 281)"]
+        : [colors.danger, "oklch(0.75 0.14 24)", "oklch(0.8 0.12 24)", "oklch(0.85 0.1 24)", "oklch(0.9 0.08 24)"],
+      dataLabels: {
+        enabled: true,
+        textAnchor: "start",
+        style: {
+          colors: ["#fff"],
+          fontSize: "12px",
+          fontWeight: "bold",
+        },
+        formatter: function (val: any, opt: any) {
+          const step = steps[opt.dataPointIndex];
+          return `${step ? formatNumber(val, { decimals: 0 }) : val} leads (${formatNumber(step?.percentage ?? 0, { decimals: 0 })}%)`;
+        },
+        offsetX: 10,
+      },
+      grid: {
+        borderColor: "var(--border)",
+        xaxis: { lines: { show: false } },
+        yaxis: { lines: { show: false } }
+      },
+      xaxis: {
+        categories: steps.map(s => s.label),
+        labels: {
+          show: true,
+          style: {
+            colors: colors.mutedForeground,
+          }
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false }
+      },
+      yaxis: {
+        labels: {
+          show: true,
+          style: {
+            colors: colors.mutedForeground,
+            fontSize: "12px",
+          }
+        }
+      },
+      tooltip: {
+        theme: "dark",
+        y: {
+          formatter: (val) => `${formatNumber(val, { decimals: 0 })} leads`
+        }
+      },
+      legend: { show: false }
+    };
+
+    const series = [{
+      name: "Leads",
+      data: steps.map(s => Number(s.value) || 0)
+    }];
+
+    return (
+      <Card className="h-full bg-background">
+        <div className="flex items-center justify-between p-5 pb-3">
+          <div>
+            <h3 className="text-base font-semibold">{title}</h3>
+            <p className="text-xs text-muted-foreground">Conversion starts from Belum Di Klasifikasi. Click any bar to drill down.</p>
+          </div>
+          <Badge variant={funnelKey === "won" ? "success" : "danger"}>
+            {funnelKey === "won" ? "Won" : "Lost"}
+          </Badge>
+        </div>
+        <div className="px-5 pb-5 pt-2">
+          {hasData ? (
+            <div className="w-full min-h-[280px]">
+              <Chart type="bar" options={chartOptions} series={series} height={280} />
+            </div>
+          ) : (
+            <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No tracking funnel data yet.</p>
+          )}
+        </div>
+      </Card>
+    );
+  };
 
   const renderSourceChannelList = (
     items: SourceChannelAggregate[],
@@ -365,6 +472,136 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
         <>
+          {/* AI Executive Insights Panel */}
+          <Card className="relative overflow-hidden border-border bg-[color-mix(in_oklch,var(--background)_80%,transparent)] backdrop-blur-md shadow-2xl transition-all duration-300 hover:shadow-purple-500/5">
+            {/* Glow decoration */}
+            <div className="pointer-events-none absolute -right-24 -top-24 h-48 w-48 rounded-full bg-[var(--brand)]/10 blur-3xl" />
+            <div className="pointer-events-none absolute -left-24 -bottom-24 h-48 w-48 rounded-full bg-[var(--status-info)]/10 blur-3xl" />
+
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)]">
+                  <BrainCircuit className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-bold flex items-center gap-1.5">
+                    AI Executive Insights
+                    <Badge variant="outline" className="bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 animate-pulse text-[10px]">
+                      C-Suite Ready
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>Automated pipeline analytics, strategic recommendations, and critical alerts</CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fetchAiInsight(true)}
+                disabled={aiLoading}
+                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            </CardHeader>
+            
+            <CardContent>
+              {aiLoading ? (
+                <div className="py-6 space-y-4">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+                    <Loader2 className="h-4 w-4 animate-spin text-[var(--brand)]" />
+                    <span>AI is analyzing your sales funnel and lead performance...</span>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="h-28 rounded-lg bg-muted/30 animate-pulse" />
+                    <div className="h-28 rounded-lg bg-muted/30 animate-pulse" />
+                    <div className="h-28 rounded-lg bg-muted/30 animate-pulse" />
+                  </div>
+                </div>
+              ) : aiError ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center text-sm border border-dashed border-border rounded-lg bg-muted/20">
+                  <AlertTriangle className="h-8 w-8 text-[var(--status-danger)] mb-2" />
+                  <p className="font-semibold text-foreground">Gagal memuat AI Insight</p>
+                  <p className="text-xs text-muted-foreground mt-1">{aiError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchAiInsight(false)}
+                    className="mt-3 h-8 text-xs cursor-pointer"
+                  >
+                    Coba Lagi
+                  </Button>
+                </div>
+              ) : aiData ? (
+                <div className="grid gap-6 md:grid-cols-12">
+                  {/* Explanation / Maksud Angka */}
+                  <div className="md:col-span-5 space-y-2 border-r border-border/50 pr-6 last:border-0 last:pr-0">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Activity className="h-3.5 w-3.5 text-[var(--status-info)]" />
+                      What the Numbers Mean
+                    </h4>
+                    <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
+                      {aiData.explanation || "No narrative explanation generated yet."}
+                    </p>
+                  </div>
+
+                  {/* Critical Points */}
+                  <div className="md:col-span-3 space-y-3 border-r border-border/50 pr-6 last:border-0 last:pr-0">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-[var(--status-danger)]" />
+                      Critical Risks & Points
+                    </h4>
+                    {aiData.critical_points && aiData.critical_points.length > 0 ? (
+                      <ul className="space-y-2">
+                        {aiData.critical_points.map((pt, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                            <span className="mt-1 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--status-danger)]" />
+                            <span>{pt}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No critical alerts detected in the current pipeline.</p>
+                    )}
+                  </div>
+
+                  {/* Strategic Suggestions */}
+                  <div className="md:col-span-4 space-y-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
+                      Strategic Recommendations
+                    </h4>
+                    {aiData.strategic_suggestions && aiData.strategic_suggestions.length > 0 ? (
+                      <ul className="space-y-2">
+                        {aiData.strategic_suggestions.map((sug, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                            <span className="mt-1.5 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--brand)]" />
+                            <span>{sug}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No recommendations generated.</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-center text-sm border border-dashed border-border rounded-lg bg-muted/20">
+                  <BrainCircuit className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="font-semibold text-foreground">No AI Insight loaded</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchAiInsight(false)}
+                    className="mt-3 h-8 text-xs cursor-pointer"
+                  >
+                    Generate Insight
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
           {/* Stat cards — each opens an in-dashboard filtered drilldown */}
           <div className="md:col-span-12" data-tour="dashboard-kpis">
@@ -417,41 +654,85 @@ export default function DashboardPage() {
               <CardHeader>
                 <div>
                   <CardTitle>Sales Volume</CardTitle>
-                  <CardDescription>Closed Won value grouped by product.</CardDescription>
+                  <CardDescription>Closed Won value grouped by product. Click columns to drill down.</CardDescription>
                 </div>
                 <Badge variant="info">Won value</Badge>
               </CardHeader>
               <CardContent>
-                  <div className="mb-4 flex items-center justify-between">
+                {salesVolumeRows.length > 0 ? (
+                  <div className="w-full">
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={{
+                        chart: {
+                          type: 'column',
+                          backgroundColor: 'transparent',
+                          height: 300,
+                          style: {
+                            fontFamily: 'var(--font-sans)'
+                          }
+                        },
+                        title: { text: null },
+                        credits: { enabled: false },
+                        xAxis: {
+                          categories: salesVolumeRows.map(row => row.label),
+                          labels: {
+                            style: { color: colors.mutedForeground }
+                          },
+                          lineColor: 'var(--border)',
+                          tickColor: 'var(--border)'
+                        },
+                        yAxis: {
+                          title: {
+                            text: 'Value (Rp)',
+                            style: { color: colors.mutedForeground }
+                          },
+                          labels: {
+                            style: { color: colors.mutedForeground },
+                            formatter: function(this: Highcharts.AxisLabelsFormatterContextObject) {
+                              return formatNumber(Number(this.value) / 1e6, { decimals: 0 }) + 'M';
+                            }
+                          },
+                          gridLineColor: 'var(--border)'
+                        },
+                        legend: { enabled: false },
+                        plotOptions: {
+                          column: {
+                            borderRadius: 5,
+                            color: colors.info,
+                            cursor: 'pointer',
+                            point: {
+                              events: {
+                                click: function(this: Highcharts.Point) {
+                                  const idx = this.index;
+                                  const item = salesVolumeRows[idx];
+                                  if (item) {
+                                    openDrilldown({
+                                      title: `Sales Volume · ${item.label}`,
+                                      description: `Closed Won leads for ${item.label}.`,
+                                      href: hrefWithParam(item.href, "outcome", "won"),
+                                    });
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        tooltip: {
+                          formatter: function(this: any) {
+                            return `<b>${this.key}</b><br/>Value: ${formatCurrency(this.y ?? 0)}`;
+                          }
+                        },
+                        series: [{
+                          name: 'Sales Volume',
+                          data: salesVolumeRows.map(row => Number(row.value) || 0)
+                        }]
+                      }}
+                    />
                   </div>
-                  <div className="space-y-3">
-                    {salesVolumeRows.length > 0 ? salesVolumeRows.map((item) => {
-                      const maxValue = Math.max(...salesVolumeRows.map((row) => Number(row.value) || 0), 1);
-                      const pct = Number(item.value) <= 0 ? 0 : Math.max(3, (Number(item.value) / maxValue) * 100);
-                      return (
-                        <button
-                          key={item.href}
-                          type="button"
-                          onClick={() => openDrilldown({
-                            title: `Sales Volume · ${item.label}`,
-                            description: `Closed Won leads for ${item.label}.`,
-                            href: hrefWithParam(item.href, "outcome", "won"),
-                          })}
-                          className="group block w-full rounded-lg border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/30"
-                        >
-                          <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                            <span className="min-w-0 truncate text-muted-foreground">{item.label}</span>
-                            <span className="shrink-0 whitespace-nowrap text-xs font-semibold">{formatCurrency(item.value)}</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted/50">
-                            <div className="h-full rounded-full bg-[color:var(--status-info)] transition-all duration-500 group-hover:bg-[color:var(--brand)]" style={{ width: `${pct}%` }} />
-                          </div>
-                        </button>
-                      );
-                    }) : (
-                      <p className="py-6 text-center text-sm text-muted-foreground">No Closed Won sales volume yet.</p>
-                    )}
-                  </div>
+                ) : (
+                  <p className="py-6 text-center text-sm text-muted-foreground">No Closed Won sales volume yet.</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -461,42 +742,84 @@ export default function DashboardPage() {
               <CardHeader>
                 <div>
                   <CardTitle>Total Market</CardTitle>
-                  <CardDescription>Lead count grouped by product.</CardDescription>
+                  <CardDescription>Lead count grouped by product. Click columns to drill down.</CardDescription>
                 </div>
                 <Badge variant="neutral">Lead count</Badge>
               </CardHeader>
               <CardContent>
-                  <div className="space-y-3">
-                    {totalMarket.length > 0 ? totalMarket.map((item) => {
-                      const maxValue = Math.max(...totalMarket.map((row) => Number(row.value) || 0), 1);
-                      const pct = Number(item.value) <= 0 ? 0 : Math.max(4, (Number(item.value) / maxValue) * 100);
-                      return (
-                        <button
-                          key={item.href}
-                          type="button"
-                          onClick={() => openDrilldown({
-                            title: `Total Market · ${item.label}`,
-                            description: `Leads grouped under ${item.label}.`,
-                            href: item.href,
-                          })}
-                          className="group block w-full rounded-lg border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/30"
-                        >
-                          <div className="mb-2 flex items-start justify-between gap-3 text-sm">
-                            <div className="min-w-0">
-                              <p className="truncate text-muted-foreground">{item.label}</p>
-                              <p className="text-xs text-muted-foreground">{formatCurrency(item.estimated_volume ?? 0)} est.</p>
-                            </div>
-                            <span className="shrink-0 text-sm font-bold tabular-nums">{formatNumber(item.value, { decimals: 0 })}</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted/50">
-                            <div className="h-full rounded-full bg-[color:var(--brand)] transition-all duration-500 group-hover:bg-[color:var(--status-info)]" style={{ width: `${pct}%` }} />
-                          </div>
-                        </button>
-                      );
-                    }) : (
-                      <p className="py-6 text-center text-sm text-muted-foreground">No product market aggregate yet.</p>
-                    )}
+                {totalMarket.length > 0 ? (
+                  <div className="w-full">
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={{
+                        chart: {
+                          type: 'column',
+                          backgroundColor: 'transparent',
+                          height: 300,
+                          style: {
+                            fontFamily: 'var(--font-sans)'
+                          }
+                        },
+                        title: { text: null },
+                        credits: { enabled: false },
+                        xAxis: {
+                          categories: totalMarket.map(row => row.label),
+                          labels: {
+                            style: { color: colors.mutedForeground }
+                          },
+                          lineColor: 'var(--border)',
+                          tickColor: 'var(--border)'
+                        },
+                        yAxis: {
+                          title: {
+                            text: 'Lead Count',
+                            style: { color: colors.mutedForeground }
+                          },
+                          labels: {
+                            style: { color: colors.mutedForeground }
+                          },
+                          gridLineColor: 'var(--border)'
+                        },
+                        legend: { enabled: false },
+                        plotOptions: {
+                          column: {
+                            borderRadius: 5,
+                            color: colors.brand,
+                            cursor: 'pointer',
+                            point: {
+                              events: {
+                                click: function(this: Highcharts.Point) {
+                                  const idx = this.index;
+                                  const item = totalMarket[idx];
+                                  if (item) {
+                                    openDrilldown({
+                                      title: `Total Market · ${item.label}`,
+                                      description: `Leads grouped under ${item.label} (${formatCurrency(item.estimated_volume ?? 0)} est. volume)`,
+                                      href: item.href,
+                                    });
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        tooltip: {
+                          formatter: function(this: any) {
+                            const idx = this.point.index;
+                            const item = totalMarket[idx];
+                            return `<b>${this.key}</b><br/>Leads: ${formatNumber(this.y ?? 0, { decimals: 0 })}<br/>Est. Volume: ${formatCurrency(item?.estimated_volume ?? 0)}`;
+                          }
+                        },
+                        series: [{
+                          name: 'Total Market',
+                          data: totalMarket.map(row => Number(row.value) || 0)
+                        }]
+                      }}
+                    />
                   </div>
+                ) : (
+                  <p className="py-6 text-center text-sm text-muted-foreground">No product market aggregate yet.</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -506,7 +829,7 @@ export default function DashboardPage() {
               <CardHeader>
                 <div>
                   <CardTitle>Lead Sources & Channels</CardTitle>
-                  <CardDescription>Total leads grouped by source and channel, with drilldown to filtered Leads.</CardDescription>
+                  <CardDescription>Total leads grouped by source and channel, with drilldown. Click pie slices to filter.</CardDescription>
                 </div>
                 <Badge variant="info">Lead origin</Badge>
               </CardHeader>
@@ -520,7 +843,65 @@ export default function DashboardPage() {
                       </div>
                       <BarChart3 className="h-4 w-4 text-[color:var(--status-info)]" />
                     </div>
-                    {renderSourceChannelList(leadSources, Math.max(...leadSources.map((item) => Number(item.value) || 0), 1))}
+                    {leadSources.length > 0 ? (
+                      <div className="w-full">
+                        <HighchartsReact
+                          highcharts={Highcharts}
+                          options={{
+                            chart: {
+                              type: 'pie',
+                              backgroundColor: 'transparent',
+                              height: 300,
+                              style: {
+                                fontFamily: 'var(--font-sans)'
+                              }
+                            },
+                            title: { text: null },
+                            credits: { enabled: false },
+                            plotOptions: {
+                              pie: {
+                                innerSize: '60%',
+                                cursor: 'pointer',
+                                dataLabels: {
+                                  enabled: true,
+                                  format: '<b>{point.name}</b>: {point.y}',
+                                  style: {
+                                    color: colors.mutedForeground,
+                                    textOutline: 'none',
+                                    fontSize: '11px'
+                                  }
+                                },
+                                point: {
+                                  events: {
+                                    click: function(this: Highcharts.Point) {
+                                      const idx = this.index;
+                                      const item = leadSources[idx];
+                                      if (item) {
+                                        openDrilldown({
+                                          title: `Lead Source · ${item.label}`,
+                                          description: `${item.label}: ${formatNumber(item.value, { decimals: 0 })} leads.`,
+                                          href: item.href,
+                                        });
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            series: [{
+                              name: 'Lead Sources',
+                              colorByPoint: true,
+                              data: leadSources.map(item => ({
+                                name: item.label,
+                                y: Number(item.value) || 0
+                              }))
+                            }]
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead source data yet.</p>
+                    )}
                   </div>
                   <div>
                     <div className="mb-4 flex items-center justify-between gap-3">
@@ -530,10 +911,64 @@ export default function DashboardPage() {
                       </div>
                       <Activity className="h-4 w-4 text-[color:var(--brand)]" />
                     </div>
-                    {renderSourceChannelList(
-                      leadChannels,
-                      Math.max(...leadChannels.map((item) => Number(item.value) || 0), 1),
-                      { showSource: true }
+                    {leadChannels.length > 0 ? (
+                      <div className="w-full">
+                        <HighchartsReact
+                          highcharts={Highcharts}
+                          options={{
+                            chart: {
+                              type: 'pie',
+                              backgroundColor: 'transparent',
+                              height: 300,
+                              style: {
+                                fontFamily: 'var(--font-sans)'
+                              }
+                            },
+                            title: { text: null },
+                            credits: { enabled: false },
+                            plotOptions: {
+                              pie: {
+                                innerSize: '60%',
+                                cursor: 'pointer',
+                                dataLabels: {
+                                  enabled: true,
+                                  format: '<b>{point.name}</b>: {point.y}',
+                                  style: {
+                                    color: colors.mutedForeground,
+                                    textOutline: 'none',
+                                    fontSize: '11px'
+                                  }
+                                },
+                                point: {
+                                  events: {
+                                    click: function(this: Highcharts.Point) {
+                                      const idx = this.index;
+                                      const item = leadChannels[idx];
+                                      if (item) {
+                                        openDrilldown({
+                                          title: `Lead Channel · ${item.label}`,
+                                          description: `${item.label}: ${formatNumber(item.value, { decimals: 0 })} leads (Source: ${item.source_label ?? "Unassigned"}).`,
+                                          href: item.href,
+                                        });
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            series: [{
+                              name: 'Lead Channels',
+                              colorByPoint: true,
+                              data: leadChannels.map(item => ({
+                                name: item.label,
+                                y: Number(item.value) || 0
+                              }))
+                            }]
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead channel data yet.</p>
                     )}
                   </div>
                 </div>
@@ -553,41 +988,105 @@ export default function DashboardPage() {
               <CardContent>
                 {pq ? (
                   <div className="grid gap-4 lg:grid-cols-3">
-                    <div className="rounded-xl border border-border bg-background p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <TrendingUp className="h-4 w-4 text-[var(--status-success)]" />
-                        <p className="text-sm font-semibold">Average Score</p>
+                    <div className="rounded-xl border border-border bg-background p-5 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="h-4 w-4 text-[var(--status-success)]" />
+                          <p className="text-sm font-semibold">Average Score</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-4">
+                          Average lead quality across the current database.
+                        </p>
                       </div>
-                      <p className="text-4xl font-bold tabular-nums">{formatNumber(pq.average_score, { decimals: 0 })}</p>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Average lead quality across the current database.
-                      </p>
-                      <div className="mt-4">
-                        <ScoreMeter
-                          value={pq.average_score}
-                          color={pq.average_score >= 80 ? "var(--status-success)" : pq.average_score >= 60 ? "var(--status-warning)" : "var(--status-danger)"}
+                      <div className="flex items-center justify-center py-2">
+                        <Chart
+                          type="radialBar"
+                          options={{
+                            chart: {
+                              type: "radialBar",
+                              height: 180,
+                              sparkline: { enabled: true }
+                            },
+                            plotOptions: {
+                              radialBar: {
+                                startAngle: -90,
+                                endAngle: 90,
+                                hollow: { size: "65%" },
+                                track: {
+                                  background: 'var(--muted)',
+                                  strokeWidth: '97%',
+                                },
+                                dataLabels: {
+                                  name: { show: false },
+                                  value: {
+                                    offsetY: -5,
+                                    fontSize: "24px",
+                                    fontWeight: "bold",
+                                    color: getCSSVar("--foreground", "#000")
+                                  }
+                                }
+                              }
+                            },
+                            colors: [
+                              pq.average_score >= 80 ? colors.success : pq.average_score >= 60 ? colors.warning : colors.danger
+                            ],
+                            labels: ["Avg Score"]
+                          }}
+                          series={[pq.average_score ?? 0]}
+                          height={180}
                         />
                       </div>
                     </div>
 
                     <div className="rounded-xl border border-border bg-background p-5">
-                      <div className="flex items-center gap-2 mb-4">
+                      <div className="flex items-center gap-2 mb-2">
                         <BarChart3 className="h-4 w-4 text-[var(--status-info)]" />
                         <p className="text-sm font-semibold">Score Distribution</p>
                       </div>
-                      <div className="space-y-3">
-                        {scoreDistribution.map((item: { band: "hot" | "warm" | "cold"; count: number; percentage: number }) => (
-                          <div key={item.band}>
-                            <div className="mb-1 flex items-center justify-between text-xs">
-                              <span className="font-medium uppercase">{item.band}</span>
-                              <span className="text-muted-foreground">{item.count} leads · {item.percentage}%</span>
-                            </div>
-                            <ScoreMeter
-                              value={item.percentage}
-                              color={item.band === "hot" ? "var(--status-success)" : item.band === "warm" ? "var(--status-warning)" : "var(--status-info)"}
-                            />
-                          </div>
-                        ))}
+                      <div className="w-full flex items-center justify-center">
+                        <HighchartsReact
+                          highcharts={Highcharts}
+                          options={{
+                            chart: {
+                              type: 'pie',
+                              backgroundColor: 'transparent',
+                              height: 180,
+                              style: {
+                                fontFamily: 'var(--font-sans)'
+                              }
+                            },
+                            title: { text: null },
+                            credits: { enabled: false },
+                            plotOptions: {
+                              pie: {
+                                innerSize: '60%',
+                                cursor: 'pointer',
+                                dataLabels: {
+                                  enabled: true,
+                                  format: '<b>{point.name}</b>: {point.percentage:.0f}%',
+                                  style: {
+                                    color: colors.mutedForeground,
+                                    textOutline: 'none',
+                                    fontSize: '10px'
+                                  }
+                                }
+                              }
+                            },
+                            series: [{
+                              name: 'Distribution',
+                              data: scoreDistribution.map((item: any) => {
+                                let color = colors.info;
+                                if (item.band === "hot") color = colors.success;
+                                if (item.band === "warm") color = colors.warning;
+                                return {
+                                  name: item.band.toUpperCase(),
+                                  y: Number(item.count) || 0,
+                                  color: color
+                                };
+                              })
+                            }]
+                          }}
+                        />
                       </div>
                     </div>
 
@@ -693,7 +1192,7 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-4 flex flex-col justify-between h-full">
                   <div>
                     <div className="flex items-end justify-between gap-3">
                       <div>
@@ -716,7 +1215,7 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-lg bg-muted/40 p-3">
                       <p className="text-xs text-muted-foreground">Target Revenue</p>
-                      <p className="font-semibold">{formatCurrency(salesAchievement.target_revenue)}</p>
+                      <p className="font-semibold text-xs sm:text-sm truncate">{formatCurrency(salesAchievement.target_revenue)}</p>
                     </div>
                     <button
                       type="button"
@@ -730,22 +1229,76 @@ export default function DashboardPage() {
                           href: `/leads?${params.toString()}`,
                         });
                       }}
-                      className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70"
+                      className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70 cursor-pointer"
                     >
                       <p className="text-xs text-muted-foreground">Closed Won</p>
-                      <p className="font-semibold">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
+                      <p className="font-semibold text-xs sm:text-sm">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
                     </button>
                   </div>
-                  <div className="space-y-2">
-                    {(salesAchievement.trend ?? []).slice(-6).map((item: { date: string; total: number }) => (
-                      <div key={item.date} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
-                        <span className="text-muted-foreground">{item.date}</span>
-                        <span className="font-medium">{formatCurrency(item.total)}</span>
+                  <div className="pt-2">
+                    {(salesAchievement.trend ?? []).length > 0 ? (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Revenue Realization Trend</p>
+                        <Chart
+                          type="area"
+                          options={{
+                            chart: {
+                              type: "area",
+                              height: 160,
+                              toolbar: { show: false },
+                              zoom: { enabled: false }
+                            },
+                            colors: [colors.brand],
+                            fill: {
+                              type: "gradient",
+                              gradient: {
+                                shadeIntensity: 1,
+                                opacityFrom: 0.45,
+                                opacityTo: 0.05,
+                                stops: [0, 100]
+                              }
+                            },
+                            stroke: {
+                              curve: "smooth",
+                              width: 3
+                            },
+                            dataLabels: { enabled: false },
+                            grid: {
+                              borderColor: "var(--border)",
+                              xaxis: { lines: { show: false } },
+                              yaxis: { lines: { show: true } }
+                            },
+                            xaxis: {
+                              categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
+                              labels: {
+                                style: { colors: colors.mutedForeground, fontSize: '10px' }
+                              },
+                              axisBorder: { show: false },
+                              axisTicks: { show: false }
+                            },
+                            yaxis: {
+                              labels: {
+                                style: { colors: colors.mutedForeground, fontSize: '10px' },
+                                formatter: (val) => formatNumber(val / 1e6, { decimals: 0 }) + 'M'
+                              }
+                            },
+                            tooltip: {
+                              theme: "dark",
+                              y: {
+                                formatter: (val) => formatCurrency(val)
+                              }
+                            }
+                          }}
+                          series={[{
+                            name: "Revenue",
+                            data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
+                          }]}
+                          height={160}
+                        />
                       </div>
-                    ))}
-                    {(salesAchievement.trend ?? []).length === 0 ? (
+                    ) : (
                       <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Closed Won realization will appear here.</p>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </CardContent>
