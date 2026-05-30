@@ -70,7 +70,12 @@ export default function LoginPage() {
       });
       const rawText = await res.text();
       let data: any = null;
-      try { data = rawText ? JSON.parse(rawText) : null; } catch { throw new Error("Invalid response from backend."); }
+      try {
+        data = rawText ? JSON.parse(rawText) : null;
+      } catch (err: any) {
+        console.error("JSON parse failure rawText:", rawText);
+        throw new Error(`Invalid response from backend: ${rawText.slice(0, 150)}`);
+      }
       if (!res.ok) throw new Error(data?.message || "Invalid credentials. Please try again.");
       setAuth(data.token, data.user);
       router.push("/");

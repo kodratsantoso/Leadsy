@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { APIProvider, AdvancedMarker, Map } from "@vis.gl/react-google-maps";
 import {
   ArrowRight,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -42,6 +43,7 @@ import {
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
 
 type LeadRecord = {
@@ -609,7 +611,7 @@ export default function LeadsPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { setting: numberFormatSetting, formatNumber, formatCurrency } = useNumberFormat();
+  const { setting: numberFormatSetting, formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [page, setPage] = useState(1);
@@ -641,54 +643,18 @@ export default function LeadsPage() {
   const [importFileName, setImportFileName] = useState("");
   const [importSourceType, setImportSourceType] = useState("csv_import");
   const [importChannelTypeId, setImportChannelTypeId] = useState("");
+  const [importResult, setImportResult] = useState<{
+    created: number;
+    contacts_created: number;
+    skipped: { company_name: string; reason: string }[];
+    leads: { id: number; company_name: string; duplicate_status: string }[];
+  } | null>(null);
   const [editLead, setEditLead] = useState<LeadRecord | null>(null);
   const [deleteLead, setDeleteLead] = useState<LeadRecord | null>(null);
   const [assignLead, setAssignLead] = useState<LeadRecord | null>(null);
   const [assignOwnerId, setAssignOwnerId] = useState("");
 
-  const normalizeAmountInput = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return "";
 
-    let normalized = trimmed;
-    const thousandsSeparator = numberFormatSetting?.thousands_separator ?? ",";
-    const decimalSeparator = numberFormatSetting?.decimal_separator ?? ".";
-
-    if (thousandsSeparator) {
-      normalized = normalized.replace(new RegExp(escapeRegExp(thousandsSeparator), "g"), "");
-    }
-
-    if (decimalSeparator && decimalSeparator !== ".") {
-      normalized = normalized.replace(new RegExp(escapeRegExp(decimalSeparator), "g"), ".");
-    }
-
-    const sanitized = normalized.replace(/[^\d.]/g, "");
-    const [integerPart, ...fractionParts] = sanitized.split(".");
-    const integer = integerPart.replace(/^0+(?=\d)/, "");
-
-    if (fractionParts.length === 0) {
-      return integer;
-    }
-
-    const maxDecimalDigits = Math.max(0, numberFormatSetting?.decimal_digits ?? 2);
-    const fraction = fractionParts.join("").slice(0, maxDecimalDigits);
-
-    return maxDecimalDigits === 0 ? integer : `${integer || "0"}.${fraction}`;
-  };
-
-  const formatAmountInput = (value: string) => {
-    if (!value) return "";
-
-    const [integerPart, fractionPart] = value.split(".");
-    const formattedInteger = formatNumber(integerPart || "0", { decimals: 0 });
-    const decimalSeparator = numberFormatSetting?.decimal_separator ?? ".";
-
-    if (fractionPart === undefined) {
-      return formattedInteger === "—" ? "" : formattedInteger;
-    }
-
-    return `${formattedInteger === "—" ? "0" : formattedInteger}${decimalSeparator}${fractionPart}`;
-  };
 
   const { data: stagesData } = useQuery({
     queryKey: ["funnel-stages"],
@@ -814,6 +780,7 @@ export default function LeadsPage() {
     setImportFileName("");
     setImportSourceType(activeLeadSources.some((source) => source.slug === "csv_import") ? "csv_import" : activeLeadSources[0]?.slug ?? "");
     setImportChannelTypeId("");
+    setImportResult(null);
   };
 
   const applyImportMapping = (mapping: Record<string, string>, rows = importRows) => {
@@ -904,8 +871,8 @@ export default function LeadsPage() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      setImportOpen(false);
-      resetImport();
+      // Store the result so the modal can display the report — don't auto-close.
+      setImportResult(result);
       setFeedback(
         `Import completed: ${result.created ?? 0} leads and ${result.contacts_created ?? 0} PIC/contact records created.`
       );
@@ -914,6 +881,33 @@ export default function LeadsPage() {
       setFeedback(err.message);
     },
   });
+
+  const handleDownloadImportReport = () => {
+    if (!importResult) return;
+    const rows = [
+      // Created rows
+      ...(importResult.leads ?? []).map((lead) => ({
+        Status: "imported",
+        "Lead ID": lead.id,
+        "Company Name": lead.company_name,
+        "Duplicate Status": lead.duplicate_status ?? "",
+        Reason: "",
+      })),
+      // Skipped rows
+      ...(importResult.skipped ?? []).map((item) => ({
+        Status: "skipped",
+        "Lead ID": "",
+        "Company Name": item.company_name,
+        "Duplicate Status": "",
+        Reason: item.reason,
+      })),
+    ];
+    downloadTimestampedReport(
+      rows,
+      "lead_import_report",
+      ["Status", "Lead ID", "Company Name", "Duplicate Status", "Reason"]
+    );
+  };
 
   const pushToFunnel = useMutation({
     mutationFn: async ({ id, funnelStageId }: { id: number; funnelStageId: number }) => {
@@ -1660,171 +1654,285 @@ export default function LeadsPage() {
         size="xl"
         footer={
           <>
-            <Button variant="outline" onClick={() => setImportOpen(false)}>
-              Cancel
-            </Button>
             <Button
-              onClick={() => importMutation.mutate()}
-              disabled={importMutation.isPending || importLeads.length === 0}
+              variant="outline"
+              onClick={() => {
+                setImportOpen(false);
+                resetImport();
+              }}
             >
-              {importMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Import {importLeads.length || ""} Leads
+              {importResult ? "Close" : "Cancel"}
             </Button>
+            {importResult ? (
+              <Button variant="outline" onClick={handleDownloadImportReport}>
+                <Download className="h-4 w-4" />
+                Download Report (.csv)
+              </Button>
+            ) : null}
+            {!importResult ? (
+              <Button
+                onClick={() => importMutation.mutate()}
+                disabled={importMutation.isPending || importLeads.length === 0}
+              >
+                {importMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Import {importLeads.length || ""} Leads
+              </Button>
+            ) : null}
           </>
         }
       >
         <div className="grid gap-5">
-          <div className="grid gap-4 md:grid-cols-[180px_1fr_180px_220px]">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Template</label>
-              <Button variant="outline" onClick={handleDownloadImportTemplate}>
-                <Download className="h-4 w-4" />
-                Template
-              </Button>
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Excel or CSV File</label>
-              <Input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={(event) => handleImportFile(event.target.files?.[0])}
-              />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Lead Source</label>
-              <Select
-                value={importSourceType}
-                onChange={(event) => {
-                  setImportSourceType(event.target.value);
-                  setImportChannelTypeId("");
-                }}
-                placeholder="Select source"
-              >
-                {activeLeadSources.map((source) => (
-                  <option key={source.id} value={source.slug}>{source.name}</option>
-                ))}
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Channel Type</label>
-              <Select
-                value={importChannelTypeId}
-                onChange={(event) => setImportChannelTypeId(event.target.value)}
-                placeholder="Select channel"
-                disabled={!importSourceType || selectedImportChannels.length === 0}
-              >
-                {selectedImportChannels.map((channel) => (
-                  <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
-                ))}
-              </Select>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <div>
-                <CardTitle className="text-base">Column Mapping</CardTitle>
-                <CardDescription>
-                  Match each database field with a column from the uploaded file before importing.
-                </CardDescription>
-              </div>
-              {importHeaders.length > 0 ? (
-                <Badge variant="info">{importHeaders.length} columns detected</Badge>
-              ) : null}
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid gap-3 md:grid-cols-2">
-                {importMappingTargets.map((target) => (
-                  <div key={target.key} className="grid gap-2">
-                    <label className="text-sm font-medium">
-                      {target.group} · {target.label}
-                      {target.required ? <span className="text-destructive"> *</span> : null}
-                    </label>
-                    <Select
-                      value={importMapping[target.key] ?? ""}
-                      onChange={(event) => {
-                        const nextMapping = { ...importMapping };
-                        if (event.target.value) {
-                          nextMapping[target.key] = event.target.value;
-                        } else {
-                          delete nextMapping[target.key];
-                        }
-                        applyImportMapping(nextMapping);
-                      }}
-                      placeholder="Not mapped"
-                      disabled={importHeaders.length === 0}
-                    >
-                      {importHeaders.map((header) => (
-                        <option key={`${target.key}-${header}`} value={header}>
-                          {header}
-                        </option>
-                      ))}
-                    </Select>
+          {/* ── Import Result Report ─────────────────────────────── */}
+          {importResult ? (
+            <div className="grid gap-4">
+              {/* Summary pills */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Imported", value: importResult.created, variant: "success" as const },
+                  { label: "PIC / Contacts", value: importResult.contacts_created, variant: "info" as const },
+                  { label: "Skipped", value: importResult.skipped.length, variant: importResult.skipped.length > 0 ? "warning" as const : "neutral" as const },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="flex flex-col items-center justify-center rounded-lg border border-border bg-[var(--background)] py-3 px-4"
+                  >
+                    <span className="text-2xl font-semibold">{stat.value}</span>
+                    <span className="mt-0.5 text-xs text-muted-foreground">{stat.label}</span>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <div>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Import Preview
-                </CardTitle>
-                <CardDescription>
-                  {importFileName || "No file selected"} · {importLeads.length} valid lead rows detected
-                </CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <TableShell>
-                <Table>
-                  <TableHead>
-                    <tr>
-                      <TableHeaderCell>Company</TableHeaderCell>
-                      <TableHeaderCell>Contact</TableHeaderCell>
-                      <TableHeaderCell>Email</TableHeaderCell>
-                      <TableHeaderCell>Phone</TableHeaderCell>
-                      <TableHeaderCell>PIC Count</TableHeaderCell>
-                    </tr>
-                  </TableHead>
-                  <TableBody>
-                    {importLeads.length === 0 ? (
-                      <TableEmpty colSpan={5}>
-                        Upload a sheet with columns such as Company Name, Address, Email, Phone, PIC Name, PIC Email, and PIC Phone.
-                      </TableEmpty>
-                    ) : (
-                      importLeads.slice(0, 10).map((lead, index) => (
-                        <TableRow key={`${lead.company_name}-${index}`}>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <p className="font-medium">{lead.company_name}</p>
-                              <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>{lead.contacts?.[0]?.name ?? "—"}</TableCell>
-                          <TableCell>{lead.email ?? lead.contacts?.[0]?.email ?? "—"}</TableCell>
-                          <TableCell>{lead.phone ?? lead.contacts?.[0]?.phone ?? "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant={lead.contacts?.length ? "info" : "neutral"}>
-                              {lead.contacts?.length ?? 0}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableShell>
-              {importLeads.length > 10 ? (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Showing the first 10 rows. All {importLeads.length} valid rows will be imported.
+              {/* Success banner */}
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/10 px-4 py-3">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--success)]" />
+                <p className="text-sm font-medium text-[var(--success)]">
+                  Import complete — {importResult.created} lead{importResult.created !== 1 ? "s" : ""} added.
+                  {importResult.contacts_created > 0
+                    ? ` ${importResult.contacts_created} PIC / contact record${importResult.contacts_created !== 1 ? "s" : ""} also created.`
+                    : ""}
                 </p>
+              </div>
+
+              {/* Skipped table */}
+              {importResult.skipped.length > 0 ? (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="border-b border-border bg-[var(--background)] px-3 py-2 text-sm font-semibold">
+                    Skipped Rows ({importResult.skipped.length})
+                  </div>
+                  <div className="max-h-56 overflow-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="sticky top-0 bg-card">
+                        <tr>
+                          <th className="border-b border-border px-3 py-2">Company Name</th>
+                          <th className="border-b border-border px-3 py-2">Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.skipped.map((item, idx) => (
+                          <tr key={idx} className="border-b border-border/60">
+                            <td className="max-w-48 truncate px-3 py-2 font-medium">{item.company_name}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{item.reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No rows were skipped — all leads imported successfully.</p>
+              )}
+
+              {/* Imported leads compact list */}
+              {(importResult.leads ?? []).length > 0 ? (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="border-b border-border bg-[var(--background)] px-3 py-2 text-sm font-semibold">
+                    Imported Leads ({importResult.leads.length})
+                  </div>
+                  <div className="max-h-48 overflow-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="sticky top-0 bg-card">
+                        <tr>
+                          <th className="border-b border-border px-3 py-2">ID</th>
+                          <th className="border-b border-border px-3 py-2">Company Name</th>
+                          <th className="border-b border-border px-3 py-2">Duplicate Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.leads.map((lead) => (
+                          <tr key={lead.id} className="border-b border-border/60">
+                            <td className="px-3 py-2 font-mono text-muted-foreground">{lead.id}</td>
+                            <td className="max-w-56 truncate px-3 py-2 font-medium">{lead.company_name}</td>
+                            <td className="px-3 py-2">
+                              <Badge variant={lead.duplicate_status === "unique" ? "success" : "warning"}>
+                                {lead.duplicate_status ?? "—"}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               ) : null}
-            </CardContent>
-          </Card>
+            </div>
+          ) : null}
+
+          {/* ── Upload form (hidden after result is shown) ─── */}
+          {!importResult ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-[180px_1fr_180px_220px]">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Template</label>
+                  <Button variant="outline" onClick={handleDownloadImportTemplate}>
+                    <Download className="h-4 w-4" />
+                    Template
+                  </Button>
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Excel or CSV File</label>
+                  <Input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={(event) => handleImportFile(event.target.files?.[0])}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Lead Source</label>
+                  <Select
+                    value={importSourceType}
+                    onChange={(event) => {
+                      setImportSourceType(event.target.value);
+                      setImportChannelTypeId("");
+                    }}
+                    placeholder="Select source"
+                  >
+                    {activeLeadSources.map((source) => (
+                      <option key={source.id} value={source.slug}>{source.name}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Channel Type</label>
+                  <Select
+                    value={importChannelTypeId}
+                    onChange={(event) => setImportChannelTypeId(event.target.value)}
+                    placeholder="Select channel"
+                    disabled={!importSourceType || selectedImportChannels.length === 0}
+                  >
+                    {selectedImportChannels.map((channel) => (
+                      <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+    
+              <Card>
+                <CardHeader>
+                  <div>
+                    <CardTitle className="text-base">Column Mapping</CardTitle>
+                    <CardDescription>
+                      Match each database field with a column from the uploaded file before importing.
+                    </CardDescription>
+                  </div>
+                  {importHeaders.length > 0 ? (
+                    <Badge variant="info">{importHeaders.length} columns detected</Badge>
+                  ) : null}
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {importMappingTargets.map((target) => (
+                      <div key={target.key} className="grid gap-2">
+                        <label className="text-sm font-medium">
+                          {target.group} · {target.label}
+                          {target.required ? <span className="text-destructive"> *</span> : null}
+                        </label>
+                        <Select
+                          value={importMapping[target.key] ?? ""}
+                          onChange={(event) => {
+                            const nextMapping = { ...importMapping };
+                            if (event.target.value) {
+                              nextMapping[target.key] = event.target.value;
+                            } else {
+                              delete nextMapping[target.key];
+                            }
+                            applyImportMapping(nextMapping);
+                          }}
+                          placeholder="Not mapped"
+                          disabled={importHeaders.length === 0}
+                        >
+                          {importHeaders.map((header) => (
+                            <option key={`${target.key}-${header}`} value={header}>
+                              {header}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+    
+              <Card>
+                <CardHeader>
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Import Preview
+                    </CardTitle>
+                    <CardDescription>
+                      {importFileName || "No file selected"} · {importLeads.length} valid lead rows detected
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <TableShell>
+                    <Table>
+                      <TableHead>
+                        <tr>
+                          <th className="border-b border-border px-3 py-2">Company</th>
+                          <th className="border-b border-border px-3 py-2">Contact</th>
+                          <th className="border-b border-border px-3 py-2">Email</th>
+                          <th className="border-b border-border px-3 py-2">Phone</th>
+                          <th className="border-b border-border px-3 py-2">PIC Count</th>
+                        </tr>
+                      </TableHead>
+                      <TableBody>
+                        {importLeads.length === 0 ? (
+                          <TableEmpty colSpan={5}>
+                            Upload a sheet with columns such as Company Name, Address, Email, Phone, PIC Name, PIC Email, and PIC Phone.
+                          </TableEmpty>
+                        ) : (
+                          importLeads.slice(0, 10).map((lead, index) => (
+                            <TableRow key={`${lead.company_name}-${index}`}>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <p className="font-medium">{lead.company_name}</p>
+                                  <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>{lead.contacts?.[0]?.name ?? "—"}</TableCell>
+                              <TableCell>{lead.email ?? lead.contacts?.[0]?.email ?? "—"}</TableCell>
+                              <TableCell>{lead.phone ?? lead.contacts?.[0]?.phone ?? "—"}</TableCell>
+                              <TableCell>
+                                <Badge variant={lead.contacts?.length ? "info" : "neutral"}>
+                                  {lead.contacts?.length ?? 0}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableShell>
+                  {importLeads.length > 10 ? (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Showing the first 10 rows. All {importLeads.length} valid rows will be imported.
+                    </p>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </>
+          ) : null}
         </div>
       </Modal>
 

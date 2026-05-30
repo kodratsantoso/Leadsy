@@ -2,8 +2,9 @@
 
 import { useState, useEffect, type ComponentType } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2 } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -849,6 +850,25 @@ export default function IntegrationsSettingsPage() {
       mappingName,
     });
     syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction, mappingName });
+  };
+
+  const handleDownloadSyncReport = () => {
+    if (!baseSyncDialog.result) return;
+
+    const rows = (baseSyncDialog.result.results || []).map((item) => ({
+      Status: item.status,
+      Action: item.action,
+      "Lead ID": item.lead_id || "",
+      "Record ID": item.record_id || item.lark_record_id || "",
+      "Company Name": item.company_name || "",
+      Reason: item.reason || "",
+    }));
+
+    downloadTimestampedReport(
+      rows,
+      `lark_sync_${baseSyncDialog.direction}_report`,
+      ["Status", "Action", "Lead ID", "Record ID", "Company Name", "Reason"]
+    );
   };
 
   useEffect(() => {
@@ -2431,13 +2451,24 @@ export default function IntegrationsSettingsPage() {
         description={baseSyncDialog.mappingName ? `Mapping: ${baseSyncDialog.mappingName}` : undefined}
         size="lg"
         footer={
-          <Button
-            variant="outline"
-            onClick={() => setBaseSyncDialog((current) => ({ ...current, open: false }))}
-            disabled={baseSyncDialog.status === "running"}
-          >
-            Close
-          </Button>
+          <>
+            {baseSyncDialog.status !== "running" && baseSyncDialog.result ? (
+              <Button
+                variant="outline"
+                onClick={handleDownloadSyncReport}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Report (.csv)
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              onClick={() => setBaseSyncDialog((current) => ({ ...current, open: false }))}
+              disabled={baseSyncDialog.status === "running"}
+            >
+              Close
+            </Button>
+          </>
         }
       >
         <div className="space-y-5">

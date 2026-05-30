@@ -598,7 +598,7 @@ export default function LeadDetailPage() {
   const params = useParams();
   const leadId = params.id as string;
   const qc = useQueryClient();
-  const { formatNumber, formatCurrency } = useNumberFormat();
+  const { formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Company info edit state
@@ -2919,10 +2919,10 @@ export default function LeadDetailPage() {
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Size (optional)</label>
                 <input
-                  type="number"
-                  value={outcomeForm.deal_size}
-                  onChange={(e) => setOutcomeForm({ ...outcomeForm, deal_size: e.target.value })}
-                  placeholder="e.g. 50000"
+                  inputMode="decimal"
+                  value={formatAmountInput(outcomeForm.deal_size)}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, deal_size: normalizeAmountInput(e.target.value) })}
+                  placeholder="e.g. 50,000,000"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                 />
               </div>

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
 import { apiFetch } from "@/lib/apiFetch";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { cn } from "@/lib/utils";
 
 type RolePermission = {
@@ -99,6 +100,7 @@ const tabItems = [
 
 export default function SettingsUsersPage() {
   const queryClient = useQueryClient();
+  const { formatCurrency, formatAmountInput, normalizeAmountInput } = useNumberFormat();
   const [tab, setTab] = useState<(typeof tabItems)[number]["key"]>("users");
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -403,7 +405,7 @@ export default function SettingsUsersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1 text-sm">
-                        <p className="font-medium">{user.target_revenue ?? "—"}</p>
+                        <p className="font-medium">{formatCurrency(user.target_revenue)}</p>
                         <p className="text-xs capitalize text-muted-foreground">{user.target_period ?? "monthly"}</p>
                       </div>
                     </TableCell>
@@ -653,12 +655,12 @@ export default function SettingsUsersPage() {
             <div className="grid gap-2">
               <label className="text-sm font-medium">Target Revenue</label>
               <Input
-                type="number"
-                min="0"
-                value={userForm.target_revenue}
+                inputMode="decimal"
+                value={formatAmountInput(userForm.target_revenue)}
                 onChange={(event) =>
-                  setUserForm((current) => ({ ...current, target_revenue: event.target.value }))
+                  setUserForm((current) => ({ ...current, target_revenue: normalizeAmountInput(event.target.value) }))
                 }
+                placeholder="e.g. 100,000,000"
               />
             </div>
           </div>
