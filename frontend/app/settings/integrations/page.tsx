@@ -359,7 +359,7 @@ const LEAD_PLATFORM_DEFINITIONS: LeadPlatformDefinition[] = [
     docsUrl: "https://docs.qontak.com/",
     fields: [
       { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
-      { suffix: "BASE_URL", label: "Base URL", value_type: "string", is_secret: false, defaultValue: "https://api.mekari.com" },
+      { suffix: "BASE_URL", label: "Base URL", value_type: "string", is_secret: false, defaultValue: "https://api.mekari.com", help: "Use https://api.mekari.com for production or https://sandbox-api.mekari.com for sandbox. Do not use the developer portal website URL." },
       { suffix: "CLIENT_ID", label: "Client ID", value_type: "string", is_secret: false, defaultValue: "", help: "Generate from developers.mekari.com → Applications → Create Application." },
       { suffix: "CLIENT_SECRET", label: "Client Secret", value_type: "string", is_secret: true, defaultValue: "", help: "HMAC secret from your Mekari Developer application." },
       { suffix: "CHANNEL_ID", label: "WhatsApp / Omnichannel Channel ID", value_type: "string", is_secret: false, defaultValue: "" },

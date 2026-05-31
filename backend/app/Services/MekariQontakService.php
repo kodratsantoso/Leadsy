@@ -129,12 +129,12 @@ class MekariQontakService
     /**
      * Resolve the correct API path based on the configured base URL.
      *
-     * - api.mekari.com → /qontak/chat/v1/...
+     * - mekari.com / mekari.io → /qontak/chat/v1/...
      * - Legacy service-chat.qontak.com → /api/open/v1/...
      */
     private function resolveApiPath(string $baseUrl, string $relativePath): string
     {
-        if (str_contains($baseUrl, 'api.mekari.com')) {
+        if (str_contains($baseUrl, 'mekari.com') || str_contains($baseUrl, 'mekari.io')) {
             return '/qontak/chat/v1/' . ltrim($relativePath, '/');
         }
 
@@ -169,11 +169,20 @@ class MekariQontakService
             );
 
             if ($response->successful()) {
+                $json = $response->json();
+                if (!is_array($json) || (!isset($json['data']) && !isset($json['message']))) {
+                    return [
+                        'status' => 'error',
+                        'message' => 'Connection test returned a success status but invalid response format (HTML website content was returned). Please make sure your Base URL points to the API Gateway (e.g. https://sandbox-api.mekari.com or https://api.mekari.com) instead of the developer portal website.',
+                        'http_status' => $response->status(),
+                    ];
+                }
+
                 return [
                     'status' => 'connected',
                     'message' => 'Mekari Qontak API verified successfully (HMAC auth).',
                     'http_status' => $response->status(),
-                    'sample' => $response->json(),
+                    'sample' => $json,
                 ];
             }
 
