@@ -447,7 +447,6 @@ class DashboardController extends Controller
             $period = $user?->target_period ?? 'monthly';
         }
         
-        $target = (float) ($user?->target_revenue ?? 0);
         $start = match ($period) {
             'weekly' => now()->startOfWeek(),
             'quarterly' => now()->startOfQuarter(),
@@ -461,32 +460,127 @@ class DashboardController extends Controller
             default => now()->endOfMonth(),
         };
 
-        $outcomes = LeadOutcome::where('outcome', 'won')
-            ->whereBetween('closed_at', [$start, $end])
-            ->when($visibleUserIds !== null, fn ($query) => $query->where(function ($scoped) use ($visibleUserIds) {
-                $scoped->whereIn('closed_by', $visibleUserIds)
-                    ->orWhereHas('lead', fn ($leadQuery) => $leadQuery
-                        ->whereIn('owner_id', $visibleUserIds)
-                        ->orWhereIn('created_by', $visibleUserIds));
-            }));
+        $tier = $user?->tier_level ?? 'VP';
+        $bufferRate = (float) ($user?->buffer_rate ?? 20.00);
 
-        $realized = (float) (clone $outcomes)->sum('deal_size');
-        $trend = (clone $outcomes)
-            ->select(DB::raw('DATE(closed_at) as date'), DB::raw('sum(deal_size) as total'))
-            ->groupBy(DB::raw('DATE(closed_at)'))
-            ->orderBy('date')
-            ->get()
-            ->map(fn ($row) => ['date' => $row->date, 'total' => (float) $row->total]);
+        $target = (float) ($user?->target_revenue ?? 0);
+        $realized = 0.0;
+        $targetType = 'closed_won';
+        $grossTarget = 0.0;
+        $netTarget = 0.0;
+        $teamBreakdown = [];
+
+        if ($tier === 'SDR') {
+            $targetType = 'pipeline_value';
+            $realized = (float) \App\Models\Lead::where('created_by', $user->id)
+                ->whereBetween('created_at', [$start, $end])
+                ->sum('estimated_closing_amount');
+
+            $trend = \App\Models\Lead::where('created_by', $user->id)
+                ->whereBetween('created_at', [$start, $end])
+                ->select(DB::raw('DATE(created_at) as date'), DB::raw('sum(estimated_closing_amount) as total'))
+                ->groupBy(DB::raw('DATE(created_at)'))
+                ->orderBy('date')
+                ->get()
+                ->map(fn ($row) => ['date' => $row->date, 'total' => (float) $row->total]);
+
+            $closedWonCount = \App\Models\Lead::where('created_by', $user->id)
+                ->whereBetween('created_at', [$start, $end])
+                ->count();
+        } else {
+            $targetType = 'closed_won';
+
+            if ($tier === 'VP' || $tier === 'MANAGER') {
+                $subordinateQuery = \App\Models\User::whereIn('id', $visibleUserIds ?? [])
+                    ->where('id', '!=', $user->id);
+
+                $grossTarget = (float) (clone $subordinateQuery)
+                    ->whereIn('tier_level', ['SR_AE', 'JR_AE'])
+                    ->sum('target_revenue');
+
+                if ($grossTarget > 0) {
+                    $target = $grossTarget;
+                }
+                
+                $netTarget = $target * (1 - $bufferRate / 100);
+
+                $reports = \App\Models\User::whereIn('id', $visibleUserIds ?? [])
+                    ->where('id', '!=', $user->id)
+                    ->get();
+
+                $teamBreakdown = $reports->map(function ($rep) use ($start, $end) {
+                    if ($rep->tier_level === 'SDR') {
+                        $repRealized = (float) \App\Models\Lead::where('created_by', $rep->id)
+                            ->whereBetween('created_at', [$start, $end])
+                            ->sum('estimated_closing_amount');
+                        $repTargetType = 'pipeline_value';
+                    } else {
+                        $repRealized = (float) LeadOutcome::where('outcome', 'won')
+                            ->whereBetween('closed_at', [$start, $end])
+                            ->where(function ($q) use ($rep) {
+                                $q->where('closed_by', $rep->id)
+                                  ->orWhereHas('lead', fn ($l) => $l->where('owner_id', $rep->id));
+                            })
+                            ->sum('deal_size');
+                        $repTargetType = 'closed_won';
+                    }
+                    $repTarget = (float) ($rep->target_revenue ?? 0);
+                    return [
+                        'id' => $rep->id,
+                        'name' => $rep->name,
+                        'email' => $rep->email,
+                        'tier_level' => $rep->tier_level,
+                        'target_revenue' => $repTarget,
+                        'realized_revenue' => $repRealized,
+                        'target_type' => $repTargetType,
+                        'achievement_percentage' => $repTarget > 0 ? round(($repRealized / $repTarget) * 100, 1) : 0,
+                    ];
+                })->values()->all();
+            }
+
+            $outcomes = LeadOutcome::where('outcome', 'won')
+                ->whereBetween('closed_at', [$start, $end])
+                ->when($visibleUserIds !== null, function ($query) use ($visibleUserIds, $user, $tier) {
+                    if ($tier === 'SR_AE' || $tier === 'JR_AE') {
+                        return $query->where(function ($q) use ($user) {
+                            $q->where('closed_by', $user->id)
+                              ->orWhereHas('lead', fn ($l) => $l->where('owner_id', $user->id));
+                        });
+                    }
+                    return $query->where(function ($scoped) use ($visibleUserIds) {
+                        $scoped->whereIn('closed_by', $visibleUserIds)
+                            ->orWhereHas('lead', fn ($leadQuery) => $leadQuery
+                                ->whereIn('owner_id', $visibleUserIds)
+                                ->orWhereIn('created_by', $visibleUserIds));
+                    });
+                });
+
+            $realized = (float) (clone $outcomes)->sum('deal_size');
+            $closedWonCount = (clone $outcomes)->count();
+
+            $trend = (clone $outcomes)
+                ->select(DB::raw('DATE(closed_at) as date'), DB::raw('sum(deal_size) as total'))
+                ->groupBy(DB::raw('DATE(closed_at)'))
+                ->orderBy('date')
+                ->get()
+                ->map(fn ($row) => ['date' => $row->date, 'total' => (float) $row->total]);
+        }
 
         return [
             'period' => $period,
+            'tier_level' => $tier,
+            'buffer_rate' => $bufferRate,
             'target_revenue' => $target,
+            'gross_target' => $grossTarget > 0 ? $grossTarget : $target,
+            'net_target' => $netTarget > 0 ? $netTarget : $target * (1 - $bufferRate / 100),
             'realized_revenue' => $realized,
             'achievement_percentage' => $target > 0 ? round(($realized / $target) * 100, 1) : 0,
-            'closed_won_count' => (clone $outcomes)->count(),
+            'closed_won_count' => $closedWonCount,
             'period_start' => $start->toDateString(),
             'period_end' => $end->toDateString(),
             'trend' => $trend,
+            'target_type' => $targetType,
+            'team_breakdown' => $teamBreakdown,
         ];
     }
 

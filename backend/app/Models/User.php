@@ -16,7 +16,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'email', 'password', 'role_id', 'tenant_id', 'direct_manager_id',
-        'phone', 'target_period', 'target_revenue', 'is_active',
+        'phone', 'target_period', 'target_revenue', 'is_active', 'tier_level', 'buffer_rate',
     ];
 
     protected $hidden = [
@@ -31,6 +31,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'target_revenue' => 'decimal:2',
+            'buffer_rate' => 'float',
         ];
     }
 

@@ -1308,7 +1308,9 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2">
                   <Target className="h-4 w-4 text-[color:var(--brand)]" />
                   <div>
-                    <CardTitle>Achievement Sales</CardTitle>
+                    <CardTitle>
+                      {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourcing" : "Achievement Sales"}
+                    </CardTitle>
                     <CardDescription className="capitalize">{salesAchievement.period ?? "monthly"} target</CardDescription>
                   </div>
                 </div>
@@ -1318,7 +1320,9 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-xs uppercase text-muted-foreground">Realisasi Revenue</p>
+                        <p className="text-xs uppercase text-muted-foreground">
+                          {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced" : "Realisasi Revenue"}
+                        </p>
                         <p className="text-2xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
                       </div>
                       <p className="text-sm font-semibold text-[color:var(--brand)]">
@@ -1336,31 +1340,43 @@ export default function DashboardPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Target Revenue</p>
+                      <p className="text-xs text-muted-foreground">
+                        {salesAchievement.target_type === "pipeline_value" ? "Target Pipeline" : "Target Revenue"}
+                      </p>
                       <p className="font-semibold text-xs sm:text-sm truncate">{formatCurrency(salesAchievement.target_revenue)}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => {
-                        const params = new URLSearchParams({ outcome: "won" });
+                        const params = new URLSearchParams();
+                        if (salesAchievement.target_type === "pipeline_value") {
+                          // SDR sourced leads list
+                          params.set("created_by", String(dashboard.user?.id || ""));
+                        } else {
+                          params.set("outcome", "won");
+                        }
                         if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
                         if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
                         openDrilldown({
-                          title: "Achievement Sales · Closed Won",
-                          description: "Closed Won leads inside the active target period.",
+                          title: salesAchievement.target_type === "pipeline_value" ? "SDR Sourced Leads" : "Achievement Sales · Closed Won",
+                          description: salesAchievement.target_type === "pipeline_value" ? "Leads generated in the active target period." : "Closed Won leads inside the active target period.",
                           href: `/leads?${params.toString()}`,
                         });
                       }}
                       className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70 cursor-pointer"
                     >
-                      <p className="text-xs text-muted-foreground">Closed Won</p>
+                      <p className="text-xs text-muted-foreground">
+                        {salesAchievement.target_type === "pipeline_value" ? "Sourced Leads" : "Closed Won"}
+                      </p>
                       <p className="font-semibold text-xs sm:text-sm">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
                     </button>
                   </div>
                   <div className="pt-2">
                     {(salesAchievement.trend ?? []).length > 0 ? (
                       <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-2">Revenue Realization Trend</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                          {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced Trend" : "Revenue Realization Trend"}
+                        </p>
                         <Chart
                           type="area"
                           options={{
@@ -1427,6 +1443,138 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Quota Cascading & Team Breakdown for Manager/VP */}
+          {(salesAchievement.tier_level === "VP" || salesAchievement.tier_level === "MANAGER") && (salesAchievement.team_breakdown ?? []).length > 0 ? (
+            <div className="md:col-span-12">
+              <Card className="h-full">
+                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle>Sales Quota Cascading & Target Accumulation</CardTitle>
+                    <CardDescription>
+                      Bottom-up target accumulation with a {salesAchievement.buffer_rate}% buffer protection.
+                    </CardDescription>
+                  </div>
+                  <Badge variant="success">
+                    Net Target Secured: {formatCurrency(salesAchievement.net_target)}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Summary Cards */}
+                  <div className="grid gap-4 sm:grid-cols-4">
+                    <div className="rounded-xl border border-border bg-background p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Team Quota (Gross)</p>
+                      <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.gross_target)}</p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-background p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expected Buffer Rate</p>
+                      <p className="mt-1 text-xl font-bold text-amber-500">{salesAchievement.buffer_rate}%</p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-background p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company Target (Net)</p>
+                      <p className="mt-1 text-xl font-bold text-emerald-500">{formatCurrency(salesAchievement.net_target)}</p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-background p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Realized Revenue</p>
+                      <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
+                    </div>
+                  </div>
+
+                  {/* Team Breakdown Table */}
+                  <div className="rounded-lg border border-border overflow-hidden bg-background">
+                    <TableShell>
+                      <Table>
+                        <TableHead>
+                          <TableRow className="hover:bg-transparent">
+                            <TableHeaderCell>Rep Name</TableHeaderCell>
+                            <TableHeaderCell>Tier Level</TableHeaderCell>
+                            <TableHeaderCell>Target Type</TableHeaderCell>
+                            <TableHeaderCell>Quota Target</TableHeaderCell>
+                            <TableHeaderCell>Realized Achievement</TableHeaderCell>
+                            <TableHeaderCell className="text-right">Progress</TableHeaderCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {salesAchievement.team_breakdown.map((rep: any) => {
+                            const isSdr = rep.tier_level === "SDR";
+                            const barColor = isSdr ? "bg-indigo-500" : "bg-[color:var(--brand)]";
+                            return (
+                              <TableRow key={rep.id} className="hover:bg-muted/30">
+                                <TableCell>
+                                  <div className="font-semibold text-sm">{rep.name}</div>
+                                  <div className="text-xs text-muted-foreground">{rep.email}</div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge className="capitalize" variant={
+                                    rep.tier_level === "VP" ? "danger"
+                                    : rep.tier_level === "MANAGER" ? "warning"
+                                    : rep.tier_level === "SR_AE" ? "info"
+                                    : rep.tier_level === "JR_AE" ? "success"
+                                    : "neutral"
+                                  }>
+                                    {rep.tier_level.replace("_", " ")}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-xs font-medium uppercase">
+                                  {rep.target_type === "pipeline_value" ? (
+                                    <span className="text-indigo-400">Pipeline Sourced</span>
+                                  ) : (
+                                    <span className="text-emerald-400">Closed-Won Won</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="font-mono text-sm">
+                                  {formatCurrency(rep.target_revenue)}
+                                </TableCell>
+                                <TableCell className="font-mono text-sm">
+                                  {formatCurrency(rep.realized_revenue)}
+                                </TableCell>
+                                <TableCell className="text-right min-w-[150px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const params = new URLSearchParams();
+                                      if (isSdr) {
+                                        params.set("created_by", rep.id);
+                                      } else {
+                                        params.set("outcome", "won");
+                                        params.set("owner_id", rep.id);
+                                      }
+                                      if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
+                                      if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
+
+                                      openDrilldown({
+                                        title: `${rep.name} · ${isSdr ? "Sourced Leads" : "Closed Won Leads"}`,
+                                        description: `Leads contributed by ${rep.name} in the selected period.`,
+                                        href: `/leads?${params.toString()}`,
+                                      });
+                                    }}
+                                    className="block w-full text-left cursor-pointer group"
+                                  >
+                                    <div className="flex items-center justify-between text-xs font-bold mb-1">
+                                      <span className="group-hover:text-[var(--brand)] transition-colors">
+                                        {formatNumber(rep.achievement_percentage, { decimals: 1 })}%
+                                      </span>
+                                      <span className="text-muted-foreground group-hover:underline text-[10px]">Detail →</span>
+                                    </div>
+                                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                                        style={{ width: `${Math.min(100, rep.achievement_percentage)}%` }}
+                                      />
+                                    </div>
+                                  </button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableShell>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : null}
 
           <div className="md:col-span-12">
             <Card className="h-full">
