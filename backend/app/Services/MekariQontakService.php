@@ -105,6 +105,12 @@ class MekariQontakService
         ?array $bodyData = null,
         int $timeout = 15
     ): \Illuminate\Http\Client\Response {
+        if (!empty($queryParams)) {
+            ksort($queryParams);
+            $queryString = http_build_query($queryParams);
+            $path .= '?' . $queryString;
+        }
+
         $url = rtrim($baseUrl, '/') . $path;
         $body = $bodyData !== null ? json_encode($bodyData) : null;
 
@@ -113,7 +119,7 @@ class MekariQontakService
         $request = Http::timeout($timeout)->withHeaders($headers);
 
         if (strtoupper($method) === 'GET') {
-            return $request->get($url, $queryParams);
+            return $request->get($url);
         }
 
         // For POST/PUT/PATCH, send the raw JSON body
