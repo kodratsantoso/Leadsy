@@ -14,6 +14,8 @@ class MekariQontakService
 {
     /**
      * Retrieve the Qontak integration configuration values for a tenant.
+     *
+     * Now reads CLIENT_ID and CLIENT_SECRET for HMAC auth instead of ACCESS_TOKEN.
      */
     public function getCredentials(?int $tenantId = null): array
     {
@@ -35,45 +37,147 @@ class MekariQontakService
         return [
             'enabled' => $configs->get('MEKARI_QONTAK_ENABLED') ?? false,
             'base_url' => $configs->get('MEKARI_QONTAK_BASE_URL') ?? 'https://api.mekari.com',
-            'access_token' => $configs->get('MEKARI_QONTAK_ACCESS_TOKEN'),
+            'client_id' => $configs->get('MEKARI_QONTAK_CLIENT_ID'),
+            'client_secret' => $configs->get('MEKARI_QONTAK_CLIENT_SECRET'),
             'channel_id' => $configs->get('MEKARI_QONTAK_CHANNEL_ID'),
         ];
     }
 
     /**
-     * Live test connection against Mekari Qontak API.
+     * Build HMAC-SHA256 authentication headers required by Mekari API v1.0.
+     *
+     * Signature format:
+     *   payload = "date: <RFC7231 date>\n<METHOD> <PATH> HTTP/1.1"
+     *   signature = base64(hmac_sha256(payload, client_secret))
+     *   Authorization: hmac username="<client_id>", algorithm="hmac-sha256",
+     *                  headers="date request-line", signature="<signature>"
+     *
+     * For POST/PUT/PATCH/DELETE, a Digest header is also required:
+     *   Digest: SHA-256=base64(sha256(body))
+     */
+    private function buildHmacHeaders(
+        string $clientId,
+        string $clientSecret,
+        string $method,
+        string $path,
+        ?string $body = null
+    ): array {
+        $date = gmdate('D, d M Y H:i:s T');
+        $method = strtoupper($method);
+
+        $requestLine = "{$method} {$path} HTTP/1.1";
+        $signingPayload = "date: {$date}\n{$requestLine}";
+
+        $digest = hash_hmac('sha256', $signingPayload, $clientSecret, true);
+        $signature = base64_encode($digest);
+
+        $authorization = sprintf(
+            'hmac username="%s", algorithm="hmac-sha256", headers="date request-line", signature="%s"',
+            $clientId,
+            $signature
+        );
+
+        $headers = [
+            'Date' => $date,
+            'Authorization' => $authorization,
+            'Content-Type' => 'application/json',
+        ];
+
+        // For request methods with a body, add the Digest header
+        if ($body !== null && in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'])) {
+            $bodyHash = base64_encode(hash('sha256', $body, true));
+            $headers['Digest'] = "SHA-256={$bodyHash}";
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Make an authenticated request to the Mekari Qontak API.
+     */
+    private function makeRequest(
+        string $method,
+        string $baseUrl,
+        string $path,
+        string $clientId,
+        string $clientSecret,
+        array $queryParams = [],
+        ?array $bodyData = null,
+        int $timeout = 15
+    ): \Illuminate\Http\Client\Response {
+        $url = rtrim($baseUrl, '/') . $path;
+        $body = $bodyData !== null ? json_encode($bodyData) : null;
+
+        $headers = $this->buildHmacHeaders($clientId, $clientSecret, $method, $path, $body);
+
+        $request = Http::timeout($timeout)->withHeaders($headers);
+
+        if (strtoupper($method) === 'GET') {
+            return $request->get($url, $queryParams);
+        }
+
+        // For POST/PUT/PATCH, send the raw JSON body
+        return $request->withBody($body ?? '{}', 'application/json')->send($method, $url);
+    }
+
+    /**
+     * Resolve the correct API path based on the configured base URL.
+     *
+     * - api.mekari.com → /qontak/chat/v1/...
+     * - Legacy service-chat.qontak.com → /api/open/v1/...
+     */
+    private function resolveApiPath(string $baseUrl, string $relativePath): string
+    {
+        if (str_contains($baseUrl, 'api.mekari.com')) {
+            return '/qontak/chat/v1/' . ltrim($relativePath, '/');
+        }
+
+        return '/api/open/v1/' . ltrim($relativePath, '/');
+    }
+
+    /**
+     * Live test connection against Mekari Qontak API using HMAC auth.
      */
     public function testConnection(array $values): array
     {
-        if (empty($values['access_token']) || empty($values['base_url'])) {
+        if (empty($values['client_id']) || empty($values['client_secret'])) {
             return [
                 'status' => 'error',
-                'message' => 'Base URL and Bearer Access Token are required.',
+                'message' => 'Client ID and Client Secret are required. Generate them at developers.mekari.com.',
             ];
         }
 
-        $baseUrl = rtrim($values['base_url'], '/');
-        $url = str_contains($baseUrl, 'api.mekari.com')
-            ? "{$baseUrl}/qontak/chat/v1/rooms"
-            : "{$baseUrl}/api/open/v1/rooms";
+        $baseUrl = rtrim($values['base_url'] ?? 'https://api.mekari.com', '/');
+        $path = $this->resolveApiPath($baseUrl, 'rooms');
 
         try {
-            $response = Http::timeout(10)
-                ->withToken($values['access_token'])
-                ->get($url, ['limit' => 1]);
+            $response = $this->makeRequest(
+                'GET',
+                $baseUrl,
+                $path,
+                $values['client_id'],
+                $values['client_secret'],
+                ['limit' => 1],
+                null,
+                10
+            );
 
             if ($response->successful()) {
                 return [
                     'status' => 'connected',
-                    'message' => 'Mekari Qontak API verified successfully.',
+                    'message' => 'Mekari Qontak API verified successfully (HMAC auth).',
                     'http_status' => $response->status(),
                     'sample' => $response->json(),
                 ];
             }
 
+            $errorMsg = $response->json('error.messages.0')
+                ?? $response->json('message')
+                ?? $response->body();
+
             return [
                 'status' => 'error',
-                'message' => "Mekari Qontak API returned HTTP {$response->status()}: " . ($response->json('message') ?? $response->body()),
+                'message' => "Mekari Qontak API returned HTTP {$response->status()}: {$errorMsg}",
                 'http_status' => $response->status(),
             ];
         } catch (\Throwable $e) {
@@ -90,20 +194,22 @@ class MekariQontakService
     public function syncRooms(?int $tenantId = null): void
     {
         $creds = $this->getCredentials($tenantId);
-        if (!$creds['enabled'] || empty($creds['access_token'])) {
-            Log::info('[Qontak] Sync skipped: Integration is disabled or missing credentials.');
+        if (!$creds['enabled'] || empty($creds['client_id']) || empty($creds['client_secret'])) {
+            Log::info('[Qontak] Sync skipped: Integration is disabled or missing HMAC credentials.');
             return;
         }
 
         $baseUrl = rtrim($creds['base_url'], '/');
-        $url = str_contains($baseUrl, 'api.mekari.com')
-            ? "{$baseUrl}/qontak/chat/v1/rooms"
-            : "{$baseUrl}/api/open/v1/rooms";
+        $path = $this->resolveApiPath($baseUrl, 'rooms');
 
         try {
-            $response = Http::timeout(15)
-                ->withToken($creds['access_token'])
-                ->get($url);
+            $response = $this->makeRequest(
+                'GET',
+                $baseUrl,
+                $path,
+                $creds['client_id'],
+                $creds['client_secret']
+            );
 
             if (!$response->successful()) {
                 Log::error("[Qontak] Rooms sync API error: HTTP {$response->status()} - {$response->body()}");
@@ -202,7 +308,7 @@ class MekariQontakService
     public function syncRoomMessages(string $roomExternalId, ?int $tenantId = null): void
     {
         $creds = $this->getCredentials($tenantId);
-        if (!$creds['enabled'] || empty($creds['access_token'])) {
+        if (!$creds['enabled'] || empty($creds['client_id']) || empty($creds['client_secret'])) {
             return;
         }
 
@@ -212,14 +318,16 @@ class MekariQontakService
         }
 
         $baseUrl = rtrim($creds['base_url'], '/');
-        $url = str_contains($baseUrl, 'api.mekari.com')
-            ? "{$baseUrl}/qontak/chat/v1/rooms/{$roomExternalId}/messages"
-            : "{$baseUrl}/api/open/v1/rooms/{$roomExternalId}/messages";
+        $path = $this->resolveApiPath($baseUrl, "rooms/{$roomExternalId}/messages");
 
         try {
-            $response = Http::timeout(15)
-                ->withToken($creds['access_token'])
-                ->get($url);
+            $response = $this->makeRequest(
+                'GET',
+                $baseUrl,
+                $path,
+                $creds['client_id'],
+                $creds['client_secret']
+            );
 
             if (!$response->successful()) {
                 Log::error("[Qontak] Messages sync API error: HTTP {$response->status()} - {$response->body()}");

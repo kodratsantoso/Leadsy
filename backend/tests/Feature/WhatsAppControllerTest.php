@@ -52,7 +52,8 @@ class WhatsAppControllerTest extends TestCase
         // Configure Qontak integration
         $this->saveConfig($user, 'MEKARI_QONTAK_ENABLED', '1', false);
         $this->saveConfig($user, 'MEKARI_QONTAK_BASE_URL', 'https://api.mekari.com', false);
-        $this->saveConfig($user, 'MEKARI_QONTAK_ACCESS_TOKEN', 'qontak-token', true);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_ID', 'test-client-id', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_SECRET', 'test-client-secret', true);
 
         // Mock Qontak rooms endpoint
         Http::fake([
@@ -97,7 +98,8 @@ class WhatsAppControllerTest extends TestCase
         // Configure Qontak integration
         $this->saveConfig($user, 'MEKARI_QONTAK_ENABLED', '1', false);
         $this->saveConfig($user, 'MEKARI_QONTAK_BASE_URL', 'https://api.mekari.com', false);
-        $this->saveConfig($user, 'MEKARI_QONTAK_ACCESS_TOKEN', 'qontak-token', true);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_ID', 'test-client-id', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_SECRET', 'test-client-secret', true);
 
         // Create the conversation first
         $contact = WhatsappContact::create([
