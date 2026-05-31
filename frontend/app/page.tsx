@@ -1628,7 +1628,12 @@ export default function DashboardPage() {
                         <TableBody>
                           {salesAchievement.team_breakdown.map((rep: any) => {
                             const isSdr = rep.tier_level === "SDR";
-                            const barColor = isSdr ? "bg-indigo-500" : "bg-[color:var(--brand)]";
+                            const isPresales = rep.tier_level === "PRESALES";
+                            const barColor = isSdr 
+                              ? "bg-indigo-500" 
+                              : isPresales 
+                                ? "bg-emerald-500" 
+                                : "bg-[color:var(--brand)]";
                             return (
                               <TableRow key={rep.id} className="hover:bg-muted/30">
                                 <TableCell>
@@ -1641,6 +1646,7 @@ export default function DashboardPage() {
                                     : rep.tier_level === "MANAGER" ? "warning"
                                     : rep.tier_level === "SR_AE" ? "info"
                                     : rep.tier_level === "JR_AE" ? "success"
+                                    : rep.tier_level === "PRESALES" ? "brand"
                                     : "neutral"
                                   }>
                                     {rep.tier_level.replace("_", " ")}
@@ -1648,16 +1654,22 @@ export default function DashboardPage() {
                                 </TableCell>
                                 <TableCell className="text-xs font-medium uppercase">
                                   {rep.target_type === "pipeline_value" ? (
-                                    <span className="text-indigo-400">Pipeline Sourced</span>
+                                    <span className="text-indigo-400 font-semibold">Pipeline Sourced</span>
+                                  ) : rep.target_type === "opportunities" ? (
+                                    <span className="text-amber-400 font-semibold">Opportunities Assigned</span>
                                   ) : (
-                                    <span className="text-emerald-400">Closed-Won Won</span>
+                                    <span className="text-emerald-400 font-semibold">Closed-Won</span>
                                   )}
                                 </TableCell>
                                 <TableCell className="font-mono text-sm">
-                                  {formatCurrency(rep.target_revenue)}
+                                  {rep.target_type === "opportunities" 
+                                    ? `${formatNumber(rep.target_revenue, { decimals: 0 })} Leads` 
+                                    : formatCurrency(rep.target_revenue)}
                                 </TableCell>
                                 <TableCell className="font-mono text-sm">
-                                  {formatCurrency(rep.realized_revenue)}
+                                  {rep.target_type === "opportunities" 
+                                    ? `${formatNumber(rep.realized_revenue, { decimals: 0 })} Leads` 
+                                    : formatCurrency(rep.realized_revenue)}
                                 </TableCell>
                                 <TableCell className="text-right min-w-[150px]">
                                   <button
@@ -1666,6 +1678,8 @@ export default function DashboardPage() {
                                       const params = new URLSearchParams();
                                       if (isSdr) {
                                         params.set("created_by", rep.id);
+                                      } else if (isPresales) {
+                                        params.set("owner_id", rep.id);
                                       } else {
                                         params.set("outcome", "won");
                                         params.set("owner_id", rep.id);
@@ -1674,7 +1688,13 @@ export default function DashboardPage() {
                                       if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
 
                                       openDrilldown({
-                                        title: `${rep.name} · ${isSdr ? "Sourced Leads" : "Closed Won Leads"}`,
+                                        title: `${rep.name} · ${
+                                          isSdr 
+                                            ? "Sourced Leads" 
+                                            : isPresales 
+                                              ? "Assigned Opportunities" 
+                                              : "Closed Won Leads"
+                                        }`,
                                         description: `Leads contributed by ${rep.name} in the selected period.`,
                                         href: `/leads?${params.toString()}`,
                                       });
