@@ -187,5 +187,36 @@ class SalesTeamSeeder extends Seeder
                 'is_active' => true,
             ]
         );
+
+        // 6. Solution Architects (Presales)
+        User::updateOrCreate(
+            ['email' => 'sa1@leadsy.ai'],
+            [
+                'name' => 'Solution Architect 1',
+                'password' => $defaultPassword,
+                'role_id' => 5, // presales
+                'tenant_id' => $tenant->id,
+                'tier_level' => 'PRESALES',
+                'direct_manager_id' => $m1->id,
+                'target_revenue' => 50.00, // 50 assigned opportunities target
+                'target_period' => 'monthly',
+                'is_active' => true,
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'sa2@leadsy.ai'],
+            [
+                'name' => 'Solution Architect 2',
+                'password' => $defaultPassword,
+                'role_id' => 5, // presales
+                'tenant_id' => $tenant->id,
+                'tier_level' => 'PRESALES',
+                'direct_manager_id' => $m2->id,
+                'target_revenue' => 50.00,
+                'target_period' => 'monthly',
+                'is_active' => true,
+            ]
+        );
     }
 }

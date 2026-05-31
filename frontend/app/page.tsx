@@ -1303,145 +1303,276 @@ export default function DashboardPage() {
           </div>
 
           <div className="md:col-span-4">
-            <Card className="h-full">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-[color:var(--brand)]" />
-                  <div>
-                    <CardTitle>
-                      {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourcing" : "Achievement Sales"}
-                    </CardTitle>
-                    <CardDescription className="capitalize">{salesAchievement.period ?? "monthly"} target</CardDescription>
+            {salesAchievement.tier_level === "PRESALES" ? (
+              <Card className="h-full">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
+                    <div>
+                      <CardTitle>Technical Trust Validation</CardTitle>
+                      <CardDescription>Presales Solution Architect KPIs</CardDescription>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 flex flex-col justify-between h-full">
-                  <div>
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-xs uppercase text-muted-foreground">
-                          {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced" : "Realisasi Revenue"}
-                        </p>
-                        <p className="text-2xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4 flex flex-col justify-between h-full">
+                    {/* 2x2 KPI Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Technical Win Rate</p>
+                        <p className="text-lg font-bold text-[color:var(--brand)]">{salesAchievement.technical_win_rate}%</p>
                       </div>
-                      <p className="text-sm font-semibold text-[color:var(--brand)]">
-                        {Number(salesAchievement.target_revenue ?? 0) > 0
-                          ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
-                          : "No target"}
-                      </p>
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">POC Success Rate</p>
+                        <p className="text-lg font-bold text-emerald-500">{salesAchievement.poc_success_rate}%</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Integration Fit</p>
+                        <p className="text-lg font-bold text-blue-500">{salesAchievement.integration_fit_score}%</p>
+                      </div>
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">SLA Response</p>
+                        <p className="text-lg font-bold text-amber-500">{salesAchievement.sla_response_time} hrs</p>
+                      </div>
                     </div>
-                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
-                      <div
-                        className="h-full rounded-full bg-[color:var(--brand)]"
-                        style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        {salesAchievement.target_type === "pipeline_value" ? "Target Pipeline" : "Target Revenue"}
-                      </p>
-                      <p className="font-semibold text-xs sm:text-sm truncate">{formatCurrency(salesAchievement.target_revenue)}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const params = new URLSearchParams();
-                        if (salesAchievement.target_type === "pipeline_value") {
-                          // SDR sourced leads list
-                          params.set("created_by", String(dashboard.user?.id || ""));
-                        } else {
-                          params.set("outcome", "won");
-                        }
-                        if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
-                        if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
-                        openDrilldown({
-                          title: salesAchievement.target_type === "pipeline_value" ? "SDR Sourced Leads" : "Achievement Sales · Closed Won",
-                          description: salesAchievement.target_type === "pipeline_value" ? "Leads generated in the active target period." : "Closed Won leads inside the active target period.",
-                          href: `/leads?${params.toString()}`,
-                        });
-                      }}
-                      className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70 cursor-pointer"
-                    >
-                      <p className="text-xs text-muted-foreground">
-                        {salesAchievement.target_type === "pipeline_value" ? "Sourced Leads" : "Closed Won"}
-                      </p>
-                      <p className="font-semibold text-xs sm:text-sm">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
-                    </button>
-                  </div>
-                  <div className="pt-2">
-                    {(salesAchievement.trend ?? []).length > 0 ? (
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground mb-2">
-                          {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced Trend" : "Revenue Realization Trend"}
+
+                    {/* Quota Progress */}
+                    <div>
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase text-muted-foreground">Opportunities Assigned</p>
+                          <p className="text-xl font-bold">{formatNumber(salesAchievement.realized_revenue, { decimals: 0 })} Leads</p>
+                        </div>
+                        <p className="text-sm font-semibold text-[color:var(--brand)]">
+                          {Number(salesAchievement.target_revenue ?? 0) > 0
+                            ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
+                            : "No target"}
                         </p>
-                        <Chart
-                          type="area"
-                          options={{
-                            chart: {
-                              type: "area",
-                              height: 160,
-                              toolbar: { show: false },
-                              zoom: { enabled: false },
-                              animations: { enabled: false }
-                            },
-                            colors: [colors.brand],
-                            fill: {
-                              type: "gradient",
-                              gradient: {
-                                shadeIntensity: 1,
-                                opacityFrom: 0.45,
-                                opacityTo: 0.05,
-                                stops: [0, 100]
-                              }
-                            },
-                            stroke: {
-                              curve: "smooth",
-                              width: 3
-                            },
-                            dataLabels: { enabled: false },
-                            grid: {
-                              borderColor: "var(--border)",
-                              xaxis: { lines: { show: false } },
-                              yaxis: { lines: { show: true } }
-                            },
-                            xaxis: {
-                              categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
-                              labels: {
-                                style: { colors: colors.mutedForeground, fontSize: '10px' }
-                              },
-                              axisBorder: { show: false },
-                              axisTicks: { show: false }
-                            },
-                            yaxis: {
-                              labels: {
-                                style: { colors: colors.mutedForeground, fontSize: '10px' },
-                                formatter: (val) => formatNumber(val / 1e6, { decimals: 0 }) + 'M'
-                              }
-                            },
-                            tooltip: {
-                              theme: "dark",
-                              y: {
-                                formatter: (val) => formatCurrency(val)
-                              }
-                            }
-                          }}
-                          series={[{
-                            name: "Revenue",
-                            data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
-                          }]}
-                          height={160}
+                      </div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
+                        <div
+                          className="h-full rounded-full bg-[color:var(--brand)]"
+                          style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
                         />
                       </div>
-                    ) : (
-                      <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Closed Won realization will appear here.</p>
-                    )}
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3 flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">Target Opportunities:</span>
+                      <span className="font-semibold">{formatNumber(salesAchievement.target_revenue, { decimals: 0 })}</span>
+                    </div>
+
+                    {/* Opportunity Sourcing Trend */}
+                    <div className="pt-2">
+                      {(salesAchievement.trend ?? []).length > 0 ? (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Assignment Intake Trend</p>
+                          <Chart
+                            type="area"
+                            options={{
+                              chart: {
+                                type: "area",
+                                height: 120,
+                                toolbar: { show: false },
+                                zoom: { enabled: false },
+                                animations: { enabled: false }
+                              },
+                              colors: [colors.brand],
+                              fill: {
+                                type: "gradient",
+                                gradient: {
+                                  shadeIntensity: 1,
+                                  opacityFrom: 0.45,
+                                  opacityTo: 0.05,
+                                  stops: [0, 100]
+                                }
+                              },
+                              stroke: {
+                                curve: "smooth",
+                                width: 3
+                              },
+                              dataLabels: { enabled: false },
+                              grid: {
+                                borderColor: "var(--border)",
+                                xaxis: { lines: { show: false } },
+                                yaxis: { lines: { show: true } }
+                              },
+                              xaxis: {
+                                categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
+                                labels: {
+                                  style: { colors: colors.mutedForeground, fontSize: '10px' }
+                                },
+                                axisBorder: { show: false },
+                                axisTicks: { show: false }
+                              },
+                              yaxis: {
+                                labels: {
+                                  style: { colors: colors.mutedForeground, fontSize: '10px' },
+                                  formatter: (val) => formatNumber(val, { decimals: 0 })
+                                }
+                              },
+                              tooltip: {
+                                theme: "dark",
+                                y: {
+                                  formatter: (val) => formatNumber(val, { decimals: 0 }) + ' leads'
+                                }
+                              }
+                            }}
+                            series={[{
+                              name: "Opportunities",
+                              data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
+                            }]}
+                            height={120}
+                          />
+                        </div>
+                      ) : (
+                        <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Assignment trend will appear here.</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="h-full">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-[color:var(--brand)]" />
+                    <div>
+                      <CardTitle>
+                        {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourcing" : "Achievement Sales"}
+                      </CardTitle>
+                      <CardDescription className="capitalize">{salesAchievement.period ?? "monthly"} target</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase text-muted-foreground">
+                            {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced" : "Realisasi Revenue"}
+                          </p>
+                          <p className="text-2xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
+                        </div>
+                        <p className="text-sm font-semibold text-[color:var(--brand)]">
+                          {Number(salesAchievement.target_revenue ?? 0) > 0
+                            ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
+                            : "No target"}
+                        </p>
+                      </div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
+                        <div
+                          className="h-full rounded-full bg-[color:var(--brand)]"
+                          style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          {salesAchievement.target_type === "pipeline_value" ? "Target Pipeline" : "Target Revenue"}
+                        </p>
+                        <p className="font-semibold text-xs sm:text-sm truncate">{formatCurrency(salesAchievement.target_revenue)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const params = new URLSearchParams();
+                          if (salesAchievement.target_type === "pipeline_value") {
+                            // SDR sourced leads list
+                            params.set("created_by", String(dashboard.user?.id || ""));
+                          } else {
+                            params.set("outcome", "won");
+                          }
+                          if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
+                          if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
+                          openDrilldown({
+                            title: salesAchievement.target_type === "pipeline_value" ? "SDR Sourced Leads" : "Achievement Sales · Closed Won",
+                            description: salesAchievement.target_type === "pipeline_value" ? "Leads generated in the active target period." : "Closed Won leads inside the active target period.",
+                            href: `/leads?${params.toString()}`,
+                          });
+                        }}
+                        className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70 cursor-pointer"
+                      >
+                        <p className="text-xs text-muted-foreground">
+                          {salesAchievement.target_type === "pipeline_value" ? "Sourced Leads" : "Closed Won"}
+                        </p>
+                        <p className="font-semibold text-xs sm:text-sm">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
+                      </button>
+                    </div>
+                    <div className="pt-2">
+                      {(salesAchievement.trend ?? []).length > 0 ? (
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced Trend" : "Revenue Realization Trend"}
+                          </p>
+                          <Chart
+                            type="area"
+                            options={{
+                              chart: {
+                                type: "area",
+                                height: 160,
+                                toolbar: { show: false },
+                                zoom: { enabled: false },
+                                animations: { enabled: false }
+                              },
+                              colors: [colors.brand],
+                              fill: {
+                                type: "gradient",
+                                gradient: {
+                                  shadeIntensity: 1,
+                                  opacityFrom: 0.45,
+                                  opacityTo: 0.05,
+                                  stops: [0, 100]
+                                }
+                              },
+                              stroke: {
+                                curve: "smooth",
+                                width: 3
+                              },
+                              dataLabels: { enabled: false },
+                              grid: {
+                                borderColor: "var(--border)",
+                                xaxis: { lines: { show: false } },
+                                yaxis: { lines: { show: true } }
+                              },
+                              xaxis: {
+                                categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
+                                labels: {
+                                  style: { colors: colors.mutedForeground, fontSize: '10px' }
+                                },
+                                axisBorder: { show: false },
+                                axisTicks: { show: false }
+                              },
+                              yaxis: {
+                                labels: {
+                                  style: { colors: colors.mutedForeground, fontSize: '10px' },
+                                  formatter: (val) => formatNumber(val / 1e6, { decimals: 0 }) + 'M'
+                                }
+                              },
+                              tooltip: {
+                                theme: "dark",
+                                y: {
+                                  formatter: (val) => formatCurrency(val)
+                                }
+                              }
+                            }}
+                            series={[{
+                              name: "Revenue",
+                              data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
+                            }]}
+                            height={160}
+                          />
+                        </div>
+                      ) : (
+                        <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Closed Won realization will appear here.</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Quota Cascading & Team Breakdown for Manager/VP */}

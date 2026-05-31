@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7HPUvfrs31vo0JCs3uF13I7rTPFq7ByVYh5caKJyFV1q0WalJ0RK1gTfVbGBLUW
+\restrict hK2eAmKtEmij84KSXbIY7GI6IRIsJR1XJAlCseexcprpNM0eh1oK6wZjO8ePeRj
 
 -- Dumped from database version 14.19 (Homebrew)
 -- Dumped by pg_dump version 14.19 (Homebrew)
@@ -3638,10 +3638,9 @@ CREATE TABLE public.users (
     direct_manager_id bigint,
     target_period character varying(255) DEFAULT 'monthly'::character varying NOT NULL,
     target_revenue numeric(15,2),
-    tier_level character varying(255) DEFAULT 'JR_AE'::character varying NOT NULL,
+    tier_level character varying(50) DEFAULT 'JR_AE'::character varying NOT NULL,
     buffer_rate numeric(5,2) DEFAULT '20'::numeric NOT NULL,
-    CONSTRAINT users_target_period_check CHECK (((target_period)::text = ANY (ARRAY[('weekly'::character varying)::text, ('monthly'::character varying)::text, ('quarterly'::character varying)::text, ('yearly'::character varying)::text]))),
-    CONSTRAINT users_tier_level_check CHECK (((tier_level)::text = ANY ((ARRAY['VP'::character varying, 'MANAGER'::character varying, 'SR_AE'::character varying, 'JR_AE'::character varying, 'SDR'::character varying])::text[])))
+    CONSTRAINT users_target_period_check CHECK (((target_period)::text = ANY (ARRAY[('weekly'::character varying)::text, ('monthly'::character varying)::text, ('quarterly'::character varying)::text, ('yearly'::character varying)::text])))
 );
 
 
@@ -11694,6 +11693,7 @@ COPY public.migrations (id, migration, batch) FROM stdin;
 69	2026_05_30_000002_add_dashboard_ai_insight_to_prompt_templates	28
 70	2026_05_30_000003_reimport_leadsy_database_snapshot	29
 71	2026_05_31_015728_add_sales_tiering_fields_to_users_table	30
+72	2026_05_31_020650_alter_users_table_change_tier_level_to_string	31
 \.
 
 
@@ -11747,7 +11747,7 @@ COPY public.personal_access_tokens (id, tokenable_type, tokenable_id, name, toke
 55	App\\Models\\User	2	api	8eca6c07b86defc8a51bb0d1aeee83be17f0ddae56802dbb25f22c0f04a9cc62	["*"]	\N	\N	2026-05-30 02:28:58	2026-05-30 02:28:58
 57	App\\Models\\User	2	api	04a939ad675f371e5d6f9f17d8ba38f09e0e402356313a2e72ced90f366e14a7	["*"]	\N	\N	2026-05-30 02:30:20	2026-05-30 02:30:20
 58	App\\Models\\User	2	api	29d35b474419c20a226115a2c6528fe119462943f607b0fb294fe843c252901b	["*"]	\N	\N	2026-05-30 02:30:23	2026-05-30 02:30:23
-56	App\\Models\\User	2	api	f49fcc6d8383e44f191ae6df6c6ec964369a5ec99d1ef7def4f7c41cf6cccc86	["*"]	2026-05-31 01:55:44	\N	2026-05-30 02:30:19	2026-05-31 01:55:44
+56	App\\Models\\User	2	api	f49fcc6d8383e44f191ae6df6c6ec964369a5ec99d1ef7def4f7c41cf6cccc86	["*"]	2026-05-31 02:06:23	\N	2026-05-30 02:30:19	2026-05-31 02:06:23
 \.
 
 
@@ -12138,17 +12138,19 @@ COPY public.users (id, name, email, email_verified_at, password, role_id, phone,
 1	superadmin	admin@prasetia.co.id	\N	$2y$12$BwXA4pRvDoWm3gJ7MD8IIuPVR0EKbvDsHOwBYpij/NEfe4ME/FjEC	1	6287884701947	t	\N	2026-04-20 14:35:47	2026-05-30 02:18:31	1	\N	monthly	\N	JR_AE	20.00
 2	Admin	admin@prasetia.com	\N	$2y$12$BwXA4pRvDoWm3gJ7MD8IIuPVR0EKbvDsHOwBYpij/NEfe4ME/FjEC	1	\N	t	\N	2026-04-25 05:30:10	2026-05-30 02:18:31	1	\N	monthly	\N	JR_AE	20.00
 7	Kodrat Santoso	kodratsantoso@prasetia.co.id	\N	$2y$12$5lFXigCy394HEDjv.7LYrODst435QC05jcBu.FqgbpwxdxwT9bqnW	1	\N	t	\N	2026-05-25 09:10:49	2026-05-30 02:38:55	1	\N	yearly	7129460000.00	JR_AE	20.00
-8	VP of Sales	vp@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	3	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	\N	monthly	1200000000.00	VP	20.00
-9	Sales Manager 1	manager1@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	3	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	8	monthly	600000000.00	MANAGER	20.00
-10	Sales Manager 2	manager2@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	3	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	8	monthly	600000000.00	MANAGER	20.00
-11	Senior AE 1	srae1@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	9	monthly	250000000.00	SR_AE	20.00
-12	Senior AE 2	srae2@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	10	monthly	250000000.00	SR_AE	20.00
-13	Junior AE 1	jrae1@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	9	monthly	175000000.00	JR_AE	20.00
-14	Junior AE 2	jrae2@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	9	monthly	175000000.00	JR_AE	20.00
-15	Junior AE 3	jrae3@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	10	monthly	175000000.00	JR_AE	20.00
-16	Junior AE 4	jrae4@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	10	monthly	175000000.00	JR_AE	20.00
-17	SDR 1	sdr1@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	5	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	9	monthly	2400000000.00	SDR	20.00
-18	SDR 2	sdr2@leadsy.ai	\N	$2y$12$8vmmSuhNMZ2fPASq3eh/uOoKXFikOiuBbfdzLCUSKHI6DZ2i6og6S	5	\N	t	\N	2026-05-31 01:58:30	2026-05-31 01:58:30	1	10	monthly	2400000000.00	SDR	20.00
+18	SDR 2	sdr2@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	5	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	10	monthly	2400000000.00	SDR	20.00
+20	Solution Architect 1	sa1@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	5	\N	t	\N	2026-05-31 02:08:07	2026-05-31 02:11:11	1	9	monthly	50.00	PRESALES	20.00
+21	Solution Architect 2	sa2@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	5	\N	t	\N	2026-05-31 02:08:07	2026-05-31 02:11:11	1	10	monthly	50.00	PRESALES	20.00
+8	VP of Sales	vp@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	3	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	\N	monthly	1200000000.00	VP	20.00
+9	Sales Manager 1	manager1@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	3	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	8	monthly	600000000.00	MANAGER	20.00
+10	Sales Manager 2	manager2@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	3	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	8	monthly	600000000.00	MANAGER	20.00
+11	Senior AE 1	srae1@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	9	monthly	250000000.00	SR_AE	20.00
+12	Senior AE 2	srae2@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	10	monthly	250000000.00	SR_AE	20.00
+13	Junior AE 1	jrae1@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	9	monthly	175000000.00	JR_AE	20.00
+14	Junior AE 2	jrae2@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	9	monthly	175000000.00	JR_AE	20.00
+15	Junior AE 3	jrae3@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	10	monthly	175000000.00	JR_AE	20.00
+16	Junior AE 4	jrae4@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	4	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	10	monthly	175000000.00	JR_AE	20.00
+17	SDR 1	sdr1@leadsy.ai	\N	$2y$12$3DUyq7RKxSUFISG/NGEa1uvBO/K3AVul5b921qjDdlqzHelZX.pKS	5	\N	t	\N	2026-05-31 01:58:30	2026-05-31 02:11:11	1	9	monthly	2400000000.00	SDR	20.00
 \.
 
 
@@ -12637,7 +12639,7 @@ SELECT pg_catalog.setval('public.map_search_history_id_seq', 19, true);
 -- Name: migrations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.migrations_id_seq', 71, true);
+SELECT pg_catalog.setval('public.migrations_id_seq', 72, true);
 
 
 --
@@ -12777,7 +12779,7 @@ SELECT pg_catalog.setval('public.territories_id_seq', 1, true);
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 18, true);
+SELECT pg_catalog.setval('public.users_id_seq', 21, true);
 
 
 --
@@ -16030,5 +16032,5 @@ ALTER TABLE ONLY public.whatsapp_messages
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7HPUvfrs31vo0JCs3uF13I7rTPFq7ByVYh5caKJyFV1q0WalJ0RK1gTfVbGBLUW
+\unrestrict hK2eAmKtEmij84KSXbIY7GI6IRIsJR1XJAlCseexcprpNM0eh1oK6wZjO8ePeRj
 
