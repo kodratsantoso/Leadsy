@@ -84,7 +84,7 @@ class WhatsAppController extends Controller
     public function status(): JsonResponse
     {
         $session = WhatsappSession::where('session_name', $this->defaultSession)->first();
-        if (! $session) {
+        if (!$session) {
             $session = WhatsappSession::create([
                 'session_name' => $this->defaultSession,
                 'status' => 'disconnected',
@@ -206,7 +206,7 @@ class WhatsAppController extends Controller
                 'text' => $data['text'],
             ], 10);
 
-            if (! $res->successful()) {
+            if (!$res->successful()) {
                 return response()->json(['error' => $res->json('error', 'Send failed')], $res->status());
             }
 
@@ -259,9 +259,11 @@ class WhatsAppController extends Controller
 
     public function listCampaigns(): JsonResponse
     {
-        $campaigns = WhatsappCampaign::with(['recipients' => function ($q) {
-            $q->select('id', 'campaign_id', 'phone_number', 'send_status', 'sent_at');
-        }])
+        $campaigns = WhatsappCampaign::with([
+            'recipients' => function ($q) {
+                $q->select('id', 'campaign_id', 'phone_number', 'send_status', 'sent_at');
+            }
+        ])
             ->orderBy('created_at', 'desc')
             ->take(50)
             ->get();
@@ -417,9 +419,17 @@ class WhatsAppController extends Controller
      *  CONVERSATIONS
      * ────────────────────────────────────────────────────────────── */
 
-    public function getConversations(): JsonResponse
+    public function getConversations(Request $request): JsonResponse
     {
+        $platform = $request->query('platform', 'whatsapp');
+
+        if ($platform === 'mekari_qontak') {
+            $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id;
+            resolve(\App\Services\MekariQontakService::class)->syncRooms($tenantId);
+        }
+
         $convs = WhatsappConversation::with(['contact', 'aiAnalysis'])
+            ->where('platform', $platform)
             ->where('approved_for_sync', true)
             ->orderBy('last_message_at', 'desc')
             ->get();
@@ -427,8 +437,18 @@ class WhatsAppController extends Controller
         return response()->json(['data' => $convs]);
     }
 
-    public function getConversationMessages($id): JsonResponse
+    public function getConversationMessages(Request $request, $id): JsonResponse
     {
+        $conversation = WhatsappConversation::find($id);
+        if (!$conversation) {
+            return response()->json(['error' => 'Conversation not found'], 404);
+        }
+
+        if ($conversation->platform === 'mekari_qontak') {
+            $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id;
+            resolve(\App\Services\MekariQontakService::class)->syncRoomMessages($conversation->external_chat_id, $tenantId);
+        }
+
         $messages = WhatsappMessage::where('conversation_id', $id)
             ->orderBy('sent_at', 'asc')
             ->get();
@@ -439,7 +459,7 @@ class WhatsAppController extends Controller
     public function analyzeConversation($id): JsonResponse
     {
         $conversation = WhatsappConversation::find($id);
-        if (! $conversation) {
+        if (!$conversation) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 

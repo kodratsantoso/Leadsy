@@ -143,9 +143,10 @@ export function useWhatsApp() {
   }, []);
 
   // ── Conversations ──
-  const getConversations = useCallback(async (): Promise<WaConversation[]> => {
+  const getConversations = useCallback(async (platform?: string): Promise<WaConversation[]> => {
     try {
-      const res = await apiFetch('/whatsapp/conversations');
+      const url = platform ? `/whatsapp/conversations?platform=${encodeURIComponent(platform)}` : '/whatsapp/conversations';
+      const res = await apiFetch(url);
       const data = await res.json();
       return data.data || [];
     } catch {

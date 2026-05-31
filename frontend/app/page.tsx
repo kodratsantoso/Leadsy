@@ -143,7 +143,7 @@ function CountdownWidget() {
       const year = now.getFullYear();
       const month = now.getMonth(); // 0-indexed
       let endMonth;
-      
+
       if (month >= 0 && month <= 2) {
         endMonth = 2; // March
       } else if (month >= 3 && month <= 5) {
@@ -153,14 +153,14 @@ function CountdownWidget() {
       } else {
         endMonth = 11; // December
       }
-      
+
       const endOfQuarter = new Date(year, endMonth + 1, 0, 23, 59, 59, 999);
       const diff = endOfQuarter.getTime() - now.getTime();
-      
+
       if (diff <= 0) {
         return { days: 0, hours: 0, minutes: 0, seconds: 0 };
       }
-      
+
       return {
         days: Math.floor(diff / (1000 * 60 * 60 * 24)),
         hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
@@ -524,14 +524,14 @@ export default function DashboardPage() {
       },
       tooltip: {
         theme: "dark",
-        custom: function({ series, seriesIndex, dataPointIndex, w }) {
+        custom: function ({ series, seriesIndex, dataPointIndex, w }) {
           const step = steps[dataPointIndex];
           if (!step) return '';
           const totalLeads = formatNumber(step.value, { decimals: 0 });
           const conversionPct = formatNumber(step.percentage ?? 0, { decimals: 1 });
           const estAmount = formatCurrency(step.estimated_amount ?? 0);
           const estPct = formatNumber(step.estimated_percentage ?? 0, { decimals: 1 });
-          
+
           return `
             <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg shadow-xl text-white font-sans min-w-[220px]">
               <div class="font-semibold text-sm mb-2 pb-1 border-b border-slate-800 text-white">${step.label}</div>
@@ -639,7 +639,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Overview of your lead intelligence pipeline</p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3">
           <CountdownWidget />
 
@@ -649,11 +649,10 @@ export default function DashboardPage() {
                 key={p}
                 type="button"
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize ${
-                  period === p
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize ${period === p
                     ? "bg-[color:var(--brand)] text-white shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 {p === "biweekly" ? "Biweekly" : p}
               </button>
@@ -667,1101 +666,1099 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-          {/* Key Metrics — each opens an in-dashboard filtered drilldown */}
-          <div className="md:col-span-8" data-tour="dashboard-kpis">
-            <Card className="h-full flex flex-col justify-between">
-              <CardHeader>
-                <div>
-                  <CardTitle>Key Metrics</CardTitle>
-                  <CardDescription>Core lead indicators with historical trends.</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col justify-center">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {stats.map((s) => (
-                    <button
-                      key={s.label}
-                      type="button"
-                      onClick={() => openDrilldown({
-                        title: s.label,
-                        description: `${s.label} leads filtered from the dashboard metric.`,
-                        href: s.href,
-                      })}
-                      className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-background p-4 text-left transition-all hover:border-[var(--brand)]/40 shadow-sm"
-                    >
-                      <div className="flex w-full items-start justify-between">
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
-                          <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? formatNumber(s.value, { decimals: 0 }) : s.value}</p>
-                        </div>
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} shadow-lg`}>
-                          <s.icon className="h-5 w-5 text-white" />
-                        </div>
-                      </div>
-
-                      {/* Sparkline & Deltas */}
-                      <div className="mt-4 flex w-full items-center justify-between gap-4">
-                        <div className="text-xs font-semibold">
-                          {s.change ? (
-                            <span className={s.change.startsWith("+") ? "text-emerald-500" : s.change.startsWith("-") ? "text-rose-500" : "text-muted-foreground"}>
-                              {s.change}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </div>
-                        {s.trend && s.trend.length > 0 ? (
-                          <div className="h-10 w-24">
-                            <Chart
-                              type="area"
-                              options={{
-                                chart: {
-                                  sparkline: { enabled: true },
-                                  animations: { enabled: false }
-                                },
-                                stroke: { curve: "smooth", width: 1.5 },
-                                fill: {
-                                  type: "gradient",
-                                  gradient: {
-                                    shadeIntensity: 1,
-                                    opacityFrom: 0.35,
-                                    opacityTo: 0.05
-                                  }
-                                },
-                                colors: [s.change?.startsWith("-") ? "#ef4444" : "#10b981"],
-                                tooltip: { enabled: false }
-                              }}
-                              series={[{ data: s.trend }]}
-                              height={40}
-                              width={96}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Qualification Status */}
-          <div className="md:col-span-4" data-tour="dashboard-qualification">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Qualification Status</CardTitle>
-                  <CardDescription>Pipeline distribution by validation status.</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-3">
-                  {statusStats.map((status) => (
-                    <button
-                      key={status.label}
-                      type="button"
-                      onClick={() => openDrilldown({
-                        title: `${status.label} Leads`,
-                        description: `Leads with qualification status: ${status.label.toLowerCase()}.`,
-                        href: status.href,
-                      })}
-                      className="group relative flex items-center justify-between rounded-xl border border-border bg-background p-3 text-left transition-all hover:border-[var(--brand)]/40 hover:bg-muted/10"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-9 w-9 items-center justify-center rounded-lg border ${status.color}`}>
-                          <status.icon className="h-4.5 w-4.5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{status.label}</p>
-                          <p className="text-xs text-muted-foreground">Click to view leads</p>
-                        </div>
-                      </div>
-                      <p className="text-xl font-bold">{formatNumber(status.value, { decimals: 0 })}</p>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-6" data-tour="dashboard-funnel">
-            {renderFunnelCard("won", "Leads → Closed Won", wonTrackingFunnel)}
-          </div>
-
-          <div className="md:col-span-6">
-            {renderFunnelCard("lost", "Leads → Closed Lost", lostTrackingFunnel)}
-          </div>
-
-          <div className="md:col-span-6">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Sales Volume</CardTitle>
-                  <CardDescription>Closed Won value grouped by product. Click columns to drill down.</CardDescription>
-                </div>
-                <Badge variant="info">Won value</Badge>
-              </CardHeader>
-              <CardContent>
-                {salesVolumeRows.length > 0 ? (
-                  <div className="w-full">
-                    <HighchartsReact
-                      highcharts={Highcharts}
-                      options={{
-                        chart: {
-                          type: 'column',
-                          backgroundColor: 'transparent',
-                          height: 300,
-                          style: {
-                            fontFamily: 'var(--font-sans)'
-                          }
-                        },
-                        title: { text: null },
-                        credits: { enabled: false },
-                        xAxis: {
-                          categories: salesVolumeRows.map(row => row.label),
-                          labels: {
-                            style: { color: colors.mutedForeground }
-                          },
-                          lineColor: 'var(--border)',
-                          tickColor: 'var(--border)'
-                        },
-                        yAxis: {
-                          title: {
-                            text: 'Value (Rp)',
-                            style: { color: colors.mutedForeground }
-                          },
-                          labels: {
-                            style: { color: colors.mutedForeground },
-                            formatter: function(this: Highcharts.AxisLabelsFormatterContextObject) {
-                              return formatNumber(Number(this.value) / 1e6, { decimals: 0 }) + 'M';
-                            }
-                          },
-                          gridLineColor: 'var(--border)'
-                        },
-                        legend: { enabled: false },
-                        plotOptions: {
-                          column: {
-                            borderRadius: 5,
-                            color: colors.info,
-                            cursor: 'pointer',
-                            point: {
-                              events: {
-                                click: function(this: Highcharts.Point) {
-                                  const idx = this.index;
-                                  const item = salesVolumeRows[idx];
-                                  if (item) {
-                                    openDrilldown({
-                                      title: `Sales Volume · ${item.label}`,
-                                      description: `Closed Won leads for ${item.label}.`,
-                                      href: hrefWithParam(item.href, "outcome", "won"),
-                                    });
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        },
-                        tooltip: {
-                          formatter: function(this: any) {
-                            return `<b>${this.key}</b><br/>Value: ${formatCurrency(this.y ?? 0)}`;
-                          }
-                        },
-                        series: [{
-                          name: 'Sales Volume',
-                          data: salesVolumeRows.map(row => Number(row.value) || 0)
-                        }]
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <p className="py-6 text-center text-sm text-muted-foreground">No Closed Won sales volume yet.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-6">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Total Market</CardTitle>
-                  <CardDescription>Lead count grouped by product. Click columns to drill down.</CardDescription>
-                </div>
-                <Badge variant="neutral">Lead count</Badge>
-              </CardHeader>
-              <CardContent>
-                {totalMarket.length > 0 ? (
-                  <div className="w-full">
-                    <HighchartsReact
-                      highcharts={Highcharts}
-                      options={{
-                        chart: {
-                          type: 'column',
-                          backgroundColor: 'transparent',
-                          height: 300,
-                          style: {
-                            fontFamily: 'var(--font-sans)'
-                          }
-                        },
-                        title: { text: null },
-                        credits: { enabled: false },
-                        xAxis: {
-                          categories: totalMarket.map(row => row.label),
-                          labels: {
-                            style: { color: colors.mutedForeground }
-                          },
-                          lineColor: 'var(--border)',
-                          tickColor: 'var(--border)'
-                        },
-                        yAxis: {
-                          title: {
-                            text: 'Lead Count',
-                            style: { color: colors.mutedForeground }
-                          },
-                          labels: {
-                            style: { color: colors.mutedForeground }
-                          },
-                          gridLineColor: 'var(--border)'
-                        },
-                        legend: { enabled: false },
-                        plotOptions: {
-                          column: {
-                            borderRadius: 5,
-                            color: colors.brand,
-                            cursor: 'pointer',
-                            point: {
-                              events: {
-                                click: function(this: Highcharts.Point) {
-                                  const idx = this.index;
-                                  const item = totalMarket[idx];
-                                  if (item) {
-                                    openDrilldown({
-                                      title: `Total Market · ${item.label}`,
-                                      description: `Leads grouped under ${item.label} (${formatCurrency(item.estimated_volume ?? 0)} est. volume)`,
-                                      href: item.href,
-                                    });
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        },
-                        tooltip: {
-                          formatter: function(this: any) {
-                            const idx = this.point.index;
-                            const item = totalMarket[idx];
-                            return `<b>${this.key}</b><br/>Leads: ${formatNumber(this.y ?? 0, { decimals: 0 })}<br/>Est. Volume: ${formatCurrency(item?.estimated_volume ?? 0)}`;
-                          }
-                        },
-                        series: [{
-                          name: 'Total Market',
-                          data: totalMarket.map(row => Number(row.value) || 0)
-                        }]
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <p className="py-6 text-center text-sm text-muted-foreground">No product market aggregate yet.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-12" data-tour="dashboard-source-channel">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Lead Sources & Channels</CardTitle>
-                  <CardDescription>Total leads grouped by source and channel, with drilldown. Click pie slices to filter.</CardDescription>
-                </div>
-                <Badge variant="info">Lead origin</Badge>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <div>
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">Lead Sources</p>
-                        <p className="text-xs text-muted-foreground">Origin taxonomy from lead source records.</p>
-                      </div>
-                      <BarChart3 className="h-4 w-4 text-[color:var(--status-info)]" />
-                    </div>
-                    {leadSources.length > 0 ? (
-                      <div className="w-full">
-                        <HighchartsReact
-                          highcharts={Highcharts}
-                          options={{
-                            chart: {
-                              type: 'pie',
-                              backgroundColor: 'transparent',
-                              height: 300,
-                              style: {
-                                fontFamily: 'var(--font-sans)'
-                              }
-                            },
-                            title: { text: null },
-                            credits: { enabled: false },
-                            plotOptions: {
-                              pie: {
-                                innerSize: '60%',
-                                cursor: 'pointer',
-                                dataLabels: {
-                                  enabled: true,
-                                  format: '<b>{point.name}</b>: {point.y}',
-                                  style: {
-                                    color: colors.mutedForeground,
-                                    textOutline: 'none',
-                                    fontSize: '11px'
-                                  }
-                                },
-                                point: {
-                                  events: {
-                                    click: function(this: Highcharts.Point) {
-                                      const idx = this.index;
-                                      const item = leadSources[idx];
-                                      if (item) {
-                                        openDrilldown({
-                                          title: `Lead Source · ${item.label}`,
-                                          description: `${item.label}: ${formatNumber(item.value, { decimals: 0 })} leads.`,
-                                          href: item.href,
-                                        });
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            series: [{
-                              name: 'Lead Sources',
-                              colorByPoint: true,
-                              data: leadSources.map(item => ({
-                                name: item.label,
-                                y: Number(item.value) || 0
-                              }))
-                            }]
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead source data yet.</p>
-                    )}
-                  </div>
-                  <div>
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">Lead Channels</p>
-                        <p className="text-xs text-muted-foreground">Channel detail under each lead source.</p>
-                      </div>
-                      <Activity className="h-4 w-4 text-[color:var(--brand)]" />
-                    </div>
-                    {leadChannels.length > 0 ? (
-                      <div className="w-full">
-                        <HighchartsReact
-                          highcharts={Highcharts}
-                          options={{
-                            chart: {
-                              type: 'pie',
-                              backgroundColor: 'transparent',
-                              height: 300,
-                              style: {
-                                fontFamily: 'var(--font-sans)'
-                              }
-                            },
-                            title: { text: null },
-                            credits: { enabled: false },
-                            plotOptions: {
-                              pie: {
-                                innerSize: '60%',
-                                cursor: 'pointer',
-                                dataLabels: {
-                                  enabled: true,
-                                  format: '<b>{point.name}</b>: {point.y}',
-                                  style: {
-                                    color: colors.mutedForeground,
-                                    textOutline: 'none',
-                                    fontSize: '11px'
-                                  }
-                                },
-                                point: {
-                                  events: {
-                                    click: function(this: Highcharts.Point) {
-                                      const idx = this.index;
-                                      const item = leadChannels[idx];
-                                      if (item) {
-                                        openDrilldown({
-                                          title: `Lead Channel · ${item.label}`,
-                                          description: `${item.label}: ${formatNumber(item.value, { decimals: 0 })} leads (Source: ${item.source_label ?? "Unassigned"}).`,
-                                          href: item.href,
-                                        });
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            series: [{
-                              name: 'Lead Channels',
-                              colorByPoint: true,
-                              data: leadChannels.map(item => ({
-                                name: item.label,
-                                y: Number(item.value) || 0
-                              }))
-                            }]
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead channel data yet.</p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-12">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Pipeline Quality</CardTitle>
-                  <CardDescription>Score health, distribution, and actionable quality notes.</CardDescription>
-                </div>
-                {pq ? <PipelineHealthBadge health={pq.pipeline_health} /> : null}
-              </CardHeader>
-              <CardContent>
-                {pq ? (
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    <div className="rounded-xl border border-border bg-background p-5 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingUp className="h-4 w-4 text-[var(--status-success)]" />
-                          <p className="text-sm font-semibold">Average Score</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-4">
-                          Average lead quality across the current database.
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-center py-2">
-                        <Chart
-                          type="radialBar"
-                          options={{
-                            chart: {
-                              type: "radialBar",
-                              height: 320,
-                              sparkline: { enabled: true }
-                            },
-                            plotOptions: {
-                              radialBar: {
-                                startAngle: -90,
-                                endAngle: 90,
-                                hollow: { size: "65%" },
-                                track: {
-                                  background: 'var(--muted)',
-                                  strokeWidth: '97%',
-                                },
-                                dataLabels: {
-                                  name: {
-                                    show: true,
-                                    fontSize: "14px",
-                                    color: colors.mutedForeground,
-                                    offsetY: 45
-                                  },
-                                  value: {
-                                    offsetY: -10,
-                                    fontSize: "36px",
-                                    fontWeight: "bold",
-                                    color: getCSSVar("--foreground", "#000")
-                                  }
-                                }
-                              }
-                            },
-                            colors: [
-                              pq.average_score >= 80 ? colors.success : pq.average_score >= 60 ? colors.warning : colors.danger
-                            ],
-                            labels: ["Avg Score"]
-                          }}
-                          series={[pq.average_score ?? 0]}
-                          height={320}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-border bg-background p-5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <BarChart3 className="h-4 w-4 text-[var(--status-info)]" />
-                        <p className="text-sm font-semibold">Score Distribution</p>
-                      </div>
-                      <div className="w-full flex items-center justify-center">
-                        <HighchartsReact
-                          highcharts={Highcharts}
-                          options={{
-                            chart: {
-                              type: 'pie',
-                              backgroundColor: 'transparent',
-                              height: 320,
-                              style: {
-                                fontFamily: 'var(--font-sans)'
-                              }
-                            },
-                            title: { text: null },
-                            credits: { enabled: false },
-                            plotOptions: {
-                              pie: {
-                                innerSize: '60%',
-                                cursor: 'pointer',
-                                dataLabels: {
-                                  enabled: true,
-                                  format: '<b>{point.name}</b><br>{point.percentage:.0f}%',
-                                  style: {
-                                    color: colors.mutedForeground,
-                                    textOutline: 'none',
-                                    fontSize: '12px'
-                                  }
-                                }
-                              }
-                            },
-                            series: [{
-                              name: 'Distribution',
-                              data: scoreDistribution.map((item: any) => {
-                                let color = colors.info;
-                                if (item.band === "hot") color = colors.success;
-                                if (item.band === "warm") color = colors.warning;
-                                return {
-                                  name: item.band.toUpperCase(),
-                                  y: Number(item.count) || 0,
-                                  color: color
-                                };
-                              })
-                            }]
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-border bg-background p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Sparkles className="h-4 w-4 text-[var(--brand)]" />
-                        <p className="text-sm font-semibold">Quality Insights</p>
-                      </div>
-                      {qualityInsights.length > 0 ? (
-                        <div className="space-y-3">
-                          {qualityInsights.map((insight) => (
-                            <div key={insight} className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">
-                              {insight}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Insights will appear as lead quality data accumulates.</p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">Pipeline quality data is still loading.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-8" data-tour="dashboard-map">
-            <Card className="flex h-full flex-col">
-              <CardHeader>
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <CardTitle>Lead Geography</CardTitle>
-                    <CardDescription>Database-backed leads with stage-colored POI markers.</CardDescription>
-                  </div>
-                  <Badge variant="info">{formatNumber(mapPoints.length, { decimals: 0 })} mapped</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="min-h-0 flex-1">
-                <div className="h-full min-h-[260px] overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)]">
-                {mapsEnabled && mapsApiKey ? (
-                  <APIProvider apiKey={mapsApiKey}>
-                    <Map
-                      mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
-                      defaultCenter={mapCenter}
-                      defaultZoom={mapPoints.length > 0 ? 11 : 6}
-                      gestureHandling="greedy"
-                      disableDefaultUI={false}
-                    >
-                      <MapMarkersAndInfo
-                        mapPoints={mapPoints}
-                        selectedMapPoint={selectedMapPoint}
-                        setSelectedMapPoint={setSelectedMapPoint}
-                      />
-                    </Map>
-                  </APIProvider>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    Maps are unavailable. Configure the public Google Maps browser key to enable this block.
-                  </div>
-                )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-4">
-            {salesAchievement.tier_level === "PRESALES" ? (
-              <Card className="h-full">
+            {/* Key Metrics — each opens an in-dashboard filtered drilldown */}
+            <div className="md:col-span-8" data-tour="dashboard-kpis">
+              <Card className="h-full flex flex-col justify-between">
                 <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
-                    <div>
-                      <CardTitle>Technical Trust Validation</CardTitle>
-                      <CardDescription>Presales Solution Architect KPIs</CardDescription>
-                    </div>
+                  <div>
+                    <CardTitle>Key Metrics</CardTitle>
+                    <CardDescription>Core lead indicators with historical trends.</CardDescription>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 flex flex-col justify-between h-full">
-                    {/* 2x2 KPI Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg bg-muted/40 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Technical Win Rate</p>
-                        <p className="text-lg font-bold text-[color:var(--brand)]">{salesAchievement.technical_win_rate}%</p>
-                      </div>
-                      <div className="rounded-lg bg-muted/40 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">POC Success Rate</p>
-                        <p className="text-lg font-bold text-emerald-500">{salesAchievement.poc_success_rate}%</p>
-                      </div>
-                      <div className="rounded-lg bg-muted/40 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Integration Fit</p>
-                        <p className="text-lg font-bold text-blue-500">{salesAchievement.integration_fit_score}%</p>
-                      </div>
-                      <div className="rounded-lg bg-muted/40 p-3">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">SLA Response</p>
-                        <p className="text-lg font-bold text-amber-500">{salesAchievement.sla_response_time} hrs</p>
-                      </div>
-                    </div>
-
-                    {/* Quota Progress */}
-                    <div>
-                      <div className="flex items-end justify-between gap-3">
-                        <div>
-                          <p className="text-xs uppercase text-muted-foreground">Opportunities Assigned</p>
-                          <p className="text-xl font-bold">{formatNumber(salesAchievement.realized_revenue, { decimals: 0 })} Leads</p>
-                        </div>
-                        <p className="text-sm font-semibold text-[color:var(--brand)]">
-                          {Number(salesAchievement.target_revenue ?? 0) > 0
-                            ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
-                            : "No target"}
-                        </p>
-                      </div>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
-                        <div
-                          className="h-full rounded-full bg-[color:var(--brand)]"
-                          style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-muted/40 p-3 flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Target Opportunities:</span>
-                      <span className="font-semibold">{formatNumber(salesAchievement.target_revenue, { decimals: 0 })}</span>
-                    </div>
-
-                    {/* Opportunity Sourcing Trend */}
-                    <div className="pt-2">
-                      {(salesAchievement.trend ?? []).length > 0 ? (
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-2">Assignment Intake Trend</p>
-                          <Chart
-                            type="area"
-                            options={{
-                              chart: {
-                                type: "area",
-                                height: 120,
-                                toolbar: { show: false },
-                                zoom: { enabled: false },
-                                animations: { enabled: false }
-                              },
-                              colors: [colors.brand],
-                              fill: {
-                                type: "gradient",
-                                gradient: {
-                                  shadeIntensity: 1,
-                                  opacityFrom: 0.45,
-                                  opacityTo: 0.05,
-                                  stops: [0, 100]
-                                }
-                              },
-                              stroke: {
-                                curve: "smooth",
-                                width: 3
-                              },
-                              dataLabels: { enabled: false },
-                              grid: {
-                                borderColor: "var(--border)",
-                                xaxis: { lines: { show: false } },
-                                yaxis: { lines: { show: true } }
-                              },
-                              xaxis: {
-                                categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
-                                labels: {
-                                  style: { colors: colors.mutedForeground, fontSize: '10px' }
-                                },
-                                axisBorder: { show: false },
-                                axisTicks: { show: false }
-                              },
-                              yaxis: {
-                                labels: {
-                                  style: { colors: colors.mutedForeground, fontSize: '10px' },
-                                  formatter: (val) => formatNumber(val, { decimals: 0 })
-                                }
-                              },
-                              tooltip: {
-                                theme: "dark",
-                                y: {
-                                  formatter: (val) => formatNumber(val, { decimals: 0 }) + ' leads'
-                                }
-                              }
-                            }}
-                            series={[{
-                              name: "Opportunities",
-                              data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
-                            }]}
-                            height={120}
-                          />
-                        </div>
-                      ) : (
-                        <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Assignment trend will appear here.</p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="h-full">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Target className="h-4 w-4 text-[color:var(--brand)]" />
-                    <div>
-                      <CardTitle>
-                        {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourcing" : "Achievement Sales"}
-                      </CardTitle>
-                      <CardDescription className="capitalize">{salesAchievement.period ?? "monthly"} target</CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 flex flex-col justify-between h-full">
-                    <div>
-                      <div className="flex items-end justify-between gap-3">
-                        <div>
-                          <p className="text-xs uppercase text-muted-foreground">
-                            {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced" : "Realisasi Revenue"}
-                          </p>
-                          <p className="text-2xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
-                        </div>
-                        <p className="text-sm font-semibold text-[color:var(--brand)]">
-                          {Number(salesAchievement.target_revenue ?? 0) > 0
-                            ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
-                            : "No target"}
-                        </p>
-                      </div>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
-                        <div
-                          className="h-full rounded-full bg-[color:var(--brand)]"
-                          style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg bg-muted/40 p-3">
-                        <p className="text-xs text-muted-foreground">
-                          {salesAchievement.target_type === "pipeline_value" ? "Target Pipeline" : "Target Revenue"}
-                        </p>
-                        <p className="font-semibold text-xs sm:text-sm truncate">{formatCurrency(salesAchievement.target_revenue)}</p>
-                      </div>
+                <CardContent className="flex-1 flex flex-col justify-center">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {stats.map((s) => (
                       <button
+                        key={s.label}
                         type="button"
-                        onClick={() => {
-                          const params = new URLSearchParams();
-                          if (salesAchievement.target_type === "pipeline_value") {
-                            // SDR sourced leads list
-                            params.set("created_by", String(dashboard.user?.id || ""));
-                          } else {
-                            params.set("outcome", "won");
-                          }
-                          if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
-                          if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
-                          openDrilldown({
-                            title: salesAchievement.target_type === "pipeline_value" ? "SDR Sourced Leads" : "Achievement Sales · Closed Won",
-                            description: salesAchievement.target_type === "pipeline_value" ? "Leads generated in the active target period." : "Closed Won leads inside the active target period.",
-                            href: `/leads?${params.toString()}`,
-                          });
-                        }}
-                        className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70 cursor-pointer"
+                        onClick={() => openDrilldown({
+                          title: s.label,
+                          description: `${s.label} leads filtered from the dashboard metric.`,
+                          href: s.href,
+                        })}
+                        className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-background p-4 text-left transition-all hover:border-[var(--brand)]/40 shadow-sm"
                       >
-                        <p className="text-xs text-muted-foreground">
-                          {salesAchievement.target_type === "pipeline_value" ? "Sourced Leads" : "Closed Won"}
-                        </p>
-                        <p className="font-semibold text-xs sm:text-sm">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
-                      </button>
-                    </div>
-                    <div className="pt-2">
-                      {(salesAchievement.trend ?? []).length > 0 ? (
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-2">
-                            {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced Trend" : "Revenue Realization Trend"}
-                          </p>
-                          <Chart
-                            type="area"
-                            options={{
-                              chart: {
-                                type: "area",
-                                height: 160,
-                                toolbar: { show: false },
-                                zoom: { enabled: false },
-                                animations: { enabled: false }
-                              },
-                              colors: [colors.brand],
-                              fill: {
-                                type: "gradient",
-                                gradient: {
-                                  shadeIntensity: 1,
-                                  opacityFrom: 0.45,
-                                  opacityTo: 0.05,
-                                  stops: [0, 100]
-                                }
-                              },
-                              stroke: {
-                                curve: "smooth",
-                                width: 3
-                              },
-                              dataLabels: { enabled: false },
-                              grid: {
-                                borderColor: "var(--border)",
-                                xaxis: { lines: { show: false } },
-                                yaxis: { lines: { show: true } }
-                              },
-                              xaxis: {
-                                categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
-                                labels: {
-                                  style: { colors: colors.mutedForeground, fontSize: '10px' }
-                                },
-                                axisBorder: { show: false },
-                                axisTicks: { show: false }
-                              },
-                              yaxis: {
-                                labels: {
-                                  style: { colors: colors.mutedForeground, fontSize: '10px' },
-                                  formatter: (val) => formatNumber(val / 1e6, { decimals: 0 }) + 'M'
-                                }
-                              },
-                              tooltip: {
-                                theme: "dark",
-                                y: {
-                                  formatter: (val) => formatCurrency(val)
-                                }
-                              }
-                            }}
-                            series={[{
-                              name: "Revenue",
-                              data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
-                            }]}
-                            height={160}
-                          />
+                        <div className="flex w-full items-start justify-between">
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
+                            <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? formatNumber(s.value, { decimals: 0 }) : s.value}</p>
+                          </div>
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} shadow-lg`}>
+                            <s.icon className="h-5 w-5 text-white" />
+                          </div>
                         </div>
-                      ) : (
-                        <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Closed Won realization will appear here.</p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
 
-          {/* Quota Cascading & Team Breakdown for Manager/VP */}
-          {(salesAchievement.tier_level === "VP" || salesAchievement.tier_level === "MANAGER") && (salesAchievement.team_breakdown ?? []).length > 0 ? (
-            <div className="md:col-span-12">
-              <Card className="h-full">
-                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <CardTitle>Sales Quota Cascading & Target Accumulation</CardTitle>
-                    <CardDescription>
-                      Bottom-up target accumulation with a {salesAchievement.buffer_rate}% buffer protection.
-                    </CardDescription>
-                  </div>
-                  <Badge variant="success">
-                    Net Target Secured: {formatCurrency(salesAchievement.net_target)}
-                  </Badge>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Summary Cards */}
-                  <div className="grid gap-4 sm:grid-cols-4">
-                    <div className="rounded-xl border border-border bg-background p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Team Quota (Gross)</p>
-                      <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.gross_target)}</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-background p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expected Buffer Rate</p>
-                      <p className="mt-1 text-xl font-bold text-amber-500">{salesAchievement.buffer_rate}%</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-background p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company Target (Net)</p>
-                      <p className="mt-1 text-xl font-bold text-emerald-500">{formatCurrency(salesAchievement.net_target)}</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-background p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Realized Revenue</p>
-                      <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
-                    </div>
-                  </div>
-
-                  {/* Team Breakdown Table */}
-                  <div className="rounded-lg border border-border overflow-hidden bg-background">
-                    <TableShell>
-                      <Table>
-                        <TableHead>
-                          <TableRow className="hover:bg-transparent">
-                            <TableHeaderCell>Rep Name</TableHeaderCell>
-                            <TableHeaderCell>Tier Level</TableHeaderCell>
-                            <TableHeaderCell>Target Type</TableHeaderCell>
-                            <TableHeaderCell>Quota Target</TableHeaderCell>
-                            <TableHeaderCell>Realized Achievement</TableHeaderCell>
-                            <TableHeaderCell className="text-right">Progress</TableHeaderCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {salesAchievement.team_breakdown.map((rep: any) => {
-                            const isSdr = rep.tier_level === "SDR";
-                            const isPresales = rep.tier_level === "PRESALES";
-                            const barColor = isSdr 
-                              ? "bg-indigo-500" 
-                              : isPresales 
-                                ? "bg-emerald-500" 
-                                : "bg-[color:var(--brand)]";
-                            return (
-                              <TableRow key={rep.id} className="hover:bg-muted/30">
-                                <TableCell>
-                                  <div className="font-semibold text-sm">{rep.name}</div>
-                                  <div className="text-xs text-muted-foreground">{rep.email}</div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge className="capitalize" variant={
-                                    rep.tier_level === "VP" ? "danger"
-                                    : rep.tier_level === "MANAGER" ? "warning"
-                                    : rep.tier_level === "SR_AE" ? "info"
-                                    : rep.tier_level === "JR_AE" ? "success"
-                                    : rep.tier_level === "PRESALES" ? "brand"
-                                    : "neutral"
-                                  }>
-                                    {rep.tier_level.replace("_", " ")}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-xs font-medium uppercase">
-                                  {rep.target_type === "pipeline_value" ? (
-                                    <span className="text-indigo-400 font-semibold">Pipeline Sourced</span>
-                                  ) : rep.target_type === "opportunities" ? (
-                                    <span className="text-amber-400 font-semibold">Opportunities Assigned</span>
-                                  ) : (
-                                    <span className="text-emerald-400 font-semibold">Closed-Won</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="font-mono text-sm">
-                                  {rep.target_type === "opportunities" 
-                                    ? `${formatNumber(rep.target_revenue, { decimals: 0 })} Leads` 
-                                    : formatCurrency(rep.target_revenue)}
-                                </TableCell>
-                                <TableCell className="font-mono text-sm">
-                                  {rep.target_type === "opportunities" 
-                                    ? `${formatNumber(rep.realized_revenue, { decimals: 0 })} Leads` 
-                                    : formatCurrency(rep.realized_revenue)}
-                                </TableCell>
-                                <TableCell className="text-right min-w-[150px]">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const params = new URLSearchParams();
-                                      if (isSdr) {
-                                        params.set("created_by", rep.id);
-                                      } else if (isPresales) {
-                                        params.set("owner_id", rep.id);
-                                      } else {
-                                        params.set("outcome", "won");
-                                        params.set("owner_id", rep.id);
-                                      }
-                                      if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
-                                      if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
-
-                                      openDrilldown({
-                                        title: `${rep.name} · ${
-                                          isSdr 
-                                            ? "Sourced Leads" 
-                                            : isPresales 
-                                              ? "Assigned Opportunities" 
-                                              : "Closed Won Leads"
-                                        }`,
-                                        description: `Leads contributed by ${rep.name} in the selected period.`,
-                                        href: `/leads?${params.toString()}`,
-                                      });
-                                    }}
-                                    className="block w-full text-left cursor-pointer group"
-                                  >
-                                    <div className="flex items-center justify-between text-xs font-bold mb-1">
-                                      <span className="group-hover:text-[var(--brand)] transition-colors">
-                                        {formatNumber(rep.achievement_percentage, { decimals: 1 })}%
-                                      </span>
-                                      <span className="text-muted-foreground group-hover:underline text-[10px]">Detail →</span>
-                                    </div>
-                                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                                      <div
-                                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-                                        style={{ width: `${Math.min(100, rep.achievement_percentage)}%` }}
-                                      />
-                                    </div>
-                                  </button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableShell>
+                        {/* Sparkline & Deltas */}
+                        <div className="mt-4 flex w-full items-center justify-between gap-4">
+                          <div className="text-xs font-semibold">
+                            {s.change ? (
+                              <span className={s.change.startsWith("+") ? "text-emerald-500" : s.change.startsWith("-") ? "text-rose-500" : "text-muted-foreground"}>
+                                {s.change}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
+                          {s.trend && s.trend.length > 0 ? (
+                            <div className="h-10 w-24">
+                              <Chart
+                                type="area"
+                                options={{
+                                  chart: {
+                                    sparkline: { enabled: true },
+                                    animations: { enabled: false }
+                                  },
+                                  stroke: { curve: "smooth", width: 1.5 },
+                                  fill: {
+                                    type: "gradient",
+                                    gradient: {
+                                      shadeIntensity: 1,
+                                      opacityFrom: 0.35,
+                                      opacityTo: 0.05
+                                    }
+                                  },
+                                  colors: [s.change?.startsWith("-") ? "#ef4444" : "#10b981"],
+                                  tooltip: { enabled: false }
+                                }}
+                                series={[{ data: s.trend }]}
+                                height={40}
+                                width={96}
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
             </div>
-          ) : null}
 
-          <div className="md:col-span-12">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Recent Leads</CardTitle>
-                  <CardDescription>Latest leads in your accessible workspace.</CardDescription>
-                </div>
-                <Link href="/leads" className="text-xs text-[var(--brand)] hover:text-[var(--brand-light)]">View all →</Link>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {recentLeads.length > 0 ? recentLeads.map((lead: any) => (
-                    <Link href={`/leads/${lead.id}`} key={lead.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5 transition-colors hover:bg-accent/30">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{lead.company_name}</p>
-                        <p className="text-sm text-muted-foreground">{lead.created_at ? new Date(lead.created_at).toLocaleDateString() : ""}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${
-                          lead.qualification_status === "eligible" ? "bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]"
-                          : lead.qualification_status === "potential" ? "bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] text-[var(--status-warning)]"
-                          : "bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]"
-                        }`}>
-                          {(lead.qualification_status || "pending").replace("_", " ")}
-                        </span>
-                        <span className="text-sm font-bold tabular-nums">{lead.lead_score ?? "—"}</span>
-                      </div>
-                    </Link>
-                  )) : (
-                    <p className="py-8 text-center text-xs text-muted-foreground">No recent leads.</p>
+            {/* Qualification Status */}
+            <div className="md:col-span-4" data-tour="dashboard-qualification">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Qualification Status</CardTitle>
+                    <CardDescription>Pipeline distribution by validation status.</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-3">
+                    {statusStats.map((status) => (
+                      <button
+                        key={status.label}
+                        type="button"
+                        onClick={() => openDrilldown({
+                          title: `${status.label} Leads`,
+                          description: `Leads with qualification status: ${status.label.toLowerCase()}.`,
+                          href: status.href,
+                        })}
+                        className="group relative flex items-center justify-between rounded-xl border border-border bg-background p-3 text-left transition-all hover:border-[var(--brand)]/40 hover:bg-muted/10"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-lg border ${status.color}`}>
+                            <status.icon className="h-4.5 w-4.5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{status.label}</p>
+                            <p className="text-xs text-muted-foreground">Click to view leads</p>
+                          </div>
+                        </div>
+                        <p className="text-xl font-bold">{formatNumber(status.value, { decimals: 0 })}</p>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-6" data-tour="dashboard-funnel">
+              {renderFunnelCard("won", "Leads → Closed Won", wonTrackingFunnel)}
+            </div>
+
+            <div className="md:col-span-6">
+              {renderFunnelCard("lost", "Leads → Closed Lost", lostTrackingFunnel)}
+            </div>
+
+            <div className="md:col-span-6">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Sales Volume</CardTitle>
+                    <CardDescription>Closed Won value grouped by product. Click columns to drill down.</CardDescription>
+                  </div>
+                  <Badge variant="info">Won value</Badge>
+                </CardHeader>
+                <CardContent>
+                  {salesVolumeRows.length > 0 ? (
+                    <div className="w-full">
+                      <HighchartsReact
+                        highcharts={Highcharts}
+                        options={{
+                          chart: {
+                            type: 'column',
+                            backgroundColor: 'transparent',
+                            height: 300,
+                            style: {
+                              fontFamily: 'var(--font-sans)'
+                            }
+                          },
+                          title: { text: null },
+                          credits: { enabled: false },
+                          xAxis: {
+                            categories: salesVolumeRows.map(row => row.label),
+                            labels: {
+                              style: { color: colors.mutedForeground }
+                            },
+                            lineColor: 'var(--border)',
+                            tickColor: 'var(--border)'
+                          },
+                          yAxis: {
+                            title: {
+                              text: 'Value (Rp)',
+                              style: { color: colors.mutedForeground }
+                            },
+                            labels: {
+                              style: { color: colors.mutedForeground },
+                              formatter: function (this: Highcharts.AxisLabelsFormatterContextObject) {
+                                return formatNumber(Number(this.value) / 1e6, { decimals: 0 }) + 'M';
+                              }
+                            },
+                            gridLineColor: 'var(--border)'
+                          },
+                          legend: { enabled: false },
+                          plotOptions: {
+                            column: {
+                              borderRadius: 5,
+                              color: colors.info,
+                              cursor: 'pointer',
+                              point: {
+                                events: {
+                                  click: function (this: Highcharts.Point) {
+                                    const idx = this.index;
+                                    const item = salesVolumeRows[idx];
+                                    if (item) {
+                                      openDrilldown({
+                                        title: `Sales Volume · ${item.label}`,
+                                        description: `Closed Won leads for ${item.label}.`,
+                                        href: hrefWithParam(item.href, "outcome", "won"),
+                                      });
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          tooltip: {
+                            formatter: function (this: any) {
+                              return `<b>${this.key}</b><br/>Value: ${formatCurrency(this.y ?? 0)}`;
+                            }
+                          },
+                          series: [{
+                            name: 'Sales Volume',
+                            data: salesVolumeRows.map(row => Number(row.value) || 0)
+                          }]
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <p className="py-6 text-center text-sm text-muted-foreground">No Closed Won sales volume yet.</p>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-6">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Total Market</CardTitle>
+                    <CardDescription>Lead count grouped by product. Click columns to drill down.</CardDescription>
+                  </div>
+                  <Badge variant="neutral">Lead count</Badge>
+                </CardHeader>
+                <CardContent>
+                  {totalMarket.length > 0 ? (
+                    <div className="w-full">
+                      <HighchartsReact
+                        highcharts={Highcharts}
+                        options={{
+                          chart: {
+                            type: 'column',
+                            backgroundColor: 'transparent',
+                            height: 300,
+                            style: {
+                              fontFamily: 'var(--font-sans)'
+                            }
+                          },
+                          title: { text: null },
+                          credits: { enabled: false },
+                          xAxis: {
+                            categories: totalMarket.map(row => row.label),
+                            labels: {
+                              style: { color: colors.mutedForeground }
+                            },
+                            lineColor: 'var(--border)',
+                            tickColor: 'var(--border)'
+                          },
+                          yAxis: {
+                            title: {
+                              text: 'Lead Count',
+                              style: { color: colors.mutedForeground }
+                            },
+                            labels: {
+                              style: { color: colors.mutedForeground }
+                            },
+                            gridLineColor: 'var(--border)'
+                          },
+                          legend: { enabled: false },
+                          plotOptions: {
+                            column: {
+                              borderRadius: 5,
+                              color: colors.brand,
+                              cursor: 'pointer',
+                              point: {
+                                events: {
+                                  click: function (this: Highcharts.Point) {
+                                    const idx = this.index;
+                                    const item = totalMarket[idx];
+                                    if (item) {
+                                      openDrilldown({
+                                        title: `Total Market · ${item.label}`,
+                                        description: `Leads grouped under ${item.label} (${formatCurrency(item.estimated_volume ?? 0)} est. volume)`,
+                                        href: item.href,
+                                      });
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          tooltip: {
+                            formatter: function (this: any) {
+                              const idx = this.point.index;
+                              const item = totalMarket[idx];
+                              return `<b>${this.key}</b><br/>Leads: ${formatNumber(this.y ?? 0, { decimals: 0 })}<br/>Est. Volume: ${formatCurrency(item?.estimated_volume ?? 0)}`;
+                            }
+                          },
+                          series: [{
+                            name: 'Total Market',
+                            data: totalMarket.map(row => Number(row.value) || 0)
+                          }]
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <p className="py-6 text-center text-sm text-muted-foreground">No product market aggregate yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-12" data-tour="dashboard-source-channel">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Lead Sources & Channels</CardTitle>
+                    <CardDescription>Total leads grouped by source and channel, with drilldown. Click pie slices to filter.</CardDescription>
+                  </div>
+                  <Badge variant="info">Lead origin</Badge>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <div>
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">Lead Sources</p>
+                          <p className="text-xs text-muted-foreground">Origin taxonomy from lead source records.</p>
+                        </div>
+                        <BarChart3 className="h-4 w-4 text-[color:var(--status-info)]" />
+                      </div>
+                      {leadSources.length > 0 ? (
+                        <div className="w-full">
+                          <HighchartsReact
+                            highcharts={Highcharts}
+                            options={{
+                              chart: {
+                                type: 'pie',
+                                backgroundColor: 'transparent',
+                                height: 300,
+                                style: {
+                                  fontFamily: 'var(--font-sans)'
+                                }
+                              },
+                              title: { text: null },
+                              credits: { enabled: false },
+                              plotOptions: {
+                                pie: {
+                                  innerSize: '60%',
+                                  cursor: 'pointer',
+                                  dataLabels: {
+                                    enabled: true,
+                                    format: '<b>{point.name}</b>: {point.y}',
+                                    style: {
+                                      color: colors.mutedForeground,
+                                      textOutline: 'none',
+                                      fontSize: '11px'
+                                    }
+                                  },
+                                  point: {
+                                    events: {
+                                      click: function (this: Highcharts.Point) {
+                                        const idx = this.index;
+                                        const item = leadSources[idx];
+                                        if (item) {
+                                          openDrilldown({
+                                            title: `Lead Source · ${item.label}`,
+                                            description: `${item.label}: ${formatNumber(item.value, { decimals: 0 })} leads.`,
+                                            href: item.href,
+                                          });
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              series: [{
+                                name: 'Lead Sources',
+                                colorByPoint: true,
+                                data: leadSources.map(item => ({
+                                  name: item.label,
+                                  y: Number(item.value) || 0
+                                }))
+                              }]
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead source data yet.</p>
+                      )}
+                    </div>
+                    <div>
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">Lead Channels</p>
+                          <p className="text-xs text-muted-foreground">Channel detail under each lead source.</p>
+                        </div>
+                        <Activity className="h-4 w-4 text-[color:var(--brand)]" />
+                      </div>
+                      {leadChannels.length > 0 ? (
+                        <div className="w-full">
+                          <HighchartsReact
+                            highcharts={Highcharts}
+                            options={{
+                              chart: {
+                                type: 'pie',
+                                backgroundColor: 'transparent',
+                                height: 300,
+                                style: {
+                                  fontFamily: 'var(--font-sans)'
+                                }
+                              },
+                              title: { text: null },
+                              credits: { enabled: false },
+                              plotOptions: {
+                                pie: {
+                                  innerSize: '60%',
+                                  cursor: 'pointer',
+                                  dataLabels: {
+                                    enabled: true,
+                                    format: '<b>{point.name}</b>: {point.y}',
+                                    style: {
+                                      color: colors.mutedForeground,
+                                      textOutline: 'none',
+                                      fontSize: '11px'
+                                    }
+                                  },
+                                  point: {
+                                    events: {
+                                      click: function (this: Highcharts.Point) {
+                                        const idx = this.index;
+                                        const item = leadChannels[idx];
+                                        if (item) {
+                                          openDrilldown({
+                                            title: `Lead Channel · ${item.label}`,
+                                            description: `${item.label}: ${formatNumber(item.value, { decimals: 0 })} leads (Source: ${item.source_label ?? "Unassigned"}).`,
+                                            href: item.href,
+                                          });
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              series: [{
+                                name: 'Lead Channels',
+                                colorByPoint: true,
+                                data: leadChannels.map(item => ({
+                                  name: item.label,
+                                  y: Number(item.value) || 0
+                                }))
+                              }]
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead channel data yet.</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-12">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Pipeline Quality</CardTitle>
+                    <CardDescription>Score health, distribution, and actionable quality notes.</CardDescription>
+                  </div>
+                  {pq ? <PipelineHealthBadge health={pq.pipeline_health} /> : null}
+                </CardHeader>
+                <CardContent>
+                  {pq ? (
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <div className="rounded-xl border border-border bg-background p-5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-4 w-4 text-[var(--status-success)]" />
+                            <p className="text-sm font-semibold">Average Score</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-4">
+                            Average lead quality across the current database.
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-center py-2">
+                          <Chart
+                            type="radialBar"
+                            options={{
+                              chart: {
+                                type: "radialBar",
+                                height: 320,
+                                sparkline: { enabled: true }
+                              },
+                              plotOptions: {
+                                radialBar: {
+                                  startAngle: -90,
+                                  endAngle: 90,
+                                  hollow: { size: "65%" },
+                                  track: {
+                                    background: 'var(--muted)',
+                                    strokeWidth: '97%',
+                                  },
+                                  dataLabels: {
+                                    name: {
+                                      show: true,
+                                      fontSize: "14px",
+                                      color: colors.mutedForeground,
+                                      offsetY: 45
+                                    },
+                                    value: {
+                                      offsetY: -10,
+                                      fontSize: "36px",
+                                      fontWeight: "bold",
+                                      color: getCSSVar("--foreground", "#000")
+                                    }
+                                  }
+                                }
+                              },
+                              colors: [
+                                pq.average_score >= 80 ? colors.success : pq.average_score >= 60 ? colors.warning : colors.danger
+                              ],
+                              labels: ["Avg Score"]
+                            }}
+                            series={[pq.average_score ?? 0]}
+                            height={320}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-border bg-background p-5">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BarChart3 className="h-4 w-4 text-[var(--status-info)]" />
+                          <p className="text-sm font-semibold">Score Distribution</p>
+                        </div>
+                        <div className="w-full flex items-center justify-center">
+                          <HighchartsReact
+                            highcharts={Highcharts}
+                            options={{
+                              chart: {
+                                type: 'pie',
+                                backgroundColor: 'transparent',
+                                height: 320,
+                                style: {
+                                  fontFamily: 'var(--font-sans)'
+                                }
+                              },
+                              title: { text: null },
+                              credits: { enabled: false },
+                              plotOptions: {
+                                pie: {
+                                  innerSize: '60%',
+                                  cursor: 'pointer',
+                                  dataLabels: {
+                                    enabled: true,
+                                    format: '<b>{point.name}</b><br>{point.percentage:.0f}%',
+                                    style: {
+                                      color: colors.mutedForeground,
+                                      textOutline: 'none',
+                                      fontSize: '12px'
+                                    }
+                                  }
+                                }
+                              },
+                              series: [{
+                                name: 'Distribution',
+                                data: scoreDistribution.map((item: any) => {
+                                  let color = colors.info;
+                                  if (item.band === "hot") color = colors.success;
+                                  if (item.band === "warm") color = colors.warning;
+                                  return {
+                                    name: item.band.toUpperCase(),
+                                    y: Number(item.count) || 0,
+                                    color: color
+                                  };
+                                })
+                              }]
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-border bg-background p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Sparkles className="h-4 w-4 text-[var(--brand)]" />
+                          <p className="text-sm font-semibold">Quality Insights</p>
+                        </div>
+                        {qualityInsights.length > 0 ? (
+                          <div className="space-y-3">
+                            {qualityInsights.map((insight) => (
+                              <div key={insight} className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">
+                                {insight}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Insights will appear as lead quality data accumulates.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">Pipeline quality data is still loading.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-8" data-tour="dashboard-map">
+              <Card className="flex h-full flex-col">
+                <CardHeader>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <CardTitle>Lead Geography</CardTitle>
+                      <CardDescription>Database-backed leads with stage-colored POI markers.</CardDescription>
+                    </div>
+                    <Badge variant="info">{formatNumber(mapPoints.length, { decimals: 0 })} mapped</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="min-h-0 flex-1">
+                  <div className="h-full min-h-[260px] overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)]">
+                    {mapsEnabled && mapsApiKey ? (
+                      <APIProvider apiKey={mapsApiKey}>
+                        <Map
+                          mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
+                          defaultCenter={mapCenter}
+                          defaultZoom={mapPoints.length > 0 ? 11 : 6}
+                          gestureHandling="greedy"
+                          disableDefaultUI={false}
+                        >
+                          <MapMarkersAndInfo
+                            mapPoints={mapPoints}
+                            selectedMapPoint={selectedMapPoint}
+                            setSelectedMapPoint={setSelectedMapPoint}
+                          />
+                        </Map>
+                      </APIProvider>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                        Maps are unavailable. Configure the public Google Maps browser key to enable this block.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-4">
+              {salesAchievement.tier_level === "PRESALES" ? (
+                <Card className="h-full">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
+                      <div>
+                        <CardTitle>Technical Trust Validation</CardTitle>
+                        <CardDescription>Presales Solution Architect KPIs</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 flex flex-col justify-between h-full">
+                      {/* 2x2 KPI Grid */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Technical Win Rate</p>
+                          <p className="text-lg font-bold text-[color:var(--brand)]">{salesAchievement.technical_win_rate}%</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">POC Success Rate</p>
+                          <p className="text-lg font-bold text-emerald-500">{salesAchievement.poc_success_rate}%</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Integration Fit</p>
+                          <p className="text-lg font-bold text-blue-500">{salesAchievement.integration_fit_score}%</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">SLA Response</p>
+                          <p className="text-lg font-bold text-amber-500">{salesAchievement.sla_response_time} hrs</p>
+                        </div>
+                      </div>
+
+                      {/* Quota Progress */}
+                      <div>
+                        <div className="flex items-end justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase text-muted-foreground">Opportunities Assigned</p>
+                            <p className="text-xl font-bold">{formatNumber(salesAchievement.realized_revenue, { decimals: 0 })} Leads</p>
+                          </div>
+                          <p className="text-sm font-semibold text-[color:var(--brand)]">
+                            {Number(salesAchievement.target_revenue ?? 0) > 0
+                              ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
+                              : "No target"}
+                          </p>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
+                          <div
+                            className="h-full rounded-full bg-[color:var(--brand)]"
+                            style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-muted/40 p-3 flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">Target Opportunities:</span>
+                        <span className="font-semibold">{formatNumber(salesAchievement.target_revenue, { decimals: 0 })}</span>
+                      </div>
+
+                      {/* Opportunity Sourcing Trend */}
+                      <div className="pt-2">
+                        {(salesAchievement.trend ?? []).length > 0 ? (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Assignment Intake Trend</p>
+                            <Chart
+                              type="area"
+                              options={{
+                                chart: {
+                                  type: "area",
+                                  height: 120,
+                                  toolbar: { show: false },
+                                  zoom: { enabled: false },
+                                  animations: { enabled: false }
+                                },
+                                colors: [colors.brand],
+                                fill: {
+                                  type: "gradient",
+                                  gradient: {
+                                    shadeIntensity: 1,
+                                    opacityFrom: 0.45,
+                                    opacityTo: 0.05,
+                                    stops: [0, 100]
+                                  }
+                                },
+                                stroke: {
+                                  curve: "smooth",
+                                  width: 3
+                                },
+                                dataLabels: { enabled: false },
+                                grid: {
+                                  borderColor: "var(--border)",
+                                  xaxis: { lines: { show: false } },
+                                  yaxis: { lines: { show: true } }
+                                },
+                                xaxis: {
+                                  categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
+                                  labels: {
+                                    style: { colors: colors.mutedForeground, fontSize: '10px' }
+                                  },
+                                  axisBorder: { show: false },
+                                  axisTicks: { show: false }
+                                },
+                                yaxis: {
+                                  labels: {
+                                    style: { colors: colors.mutedForeground, fontSize: '10px' },
+                                    formatter: (val) => formatNumber(val, { decimals: 0 })
+                                  }
+                                },
+                                tooltip: {
+                                  theme: "dark",
+                                  y: {
+                                    formatter: (val) => formatNumber(val, { decimals: 0 }) + ' leads'
+                                  }
+                                }
+                              }}
+                              series={[{
+                                name: "Opportunities",
+                                data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
+                              }]}
+                              height={120}
+                            />
+                          </div>
+                        ) : (
+                          <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Assignment trend will appear here.</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="h-full">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-[color:var(--brand)]" />
+                      <div>
+                        <CardTitle>
+                          {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourcing" : "Achievement Sales"}
+                        </CardTitle>
+                        <CardDescription className="capitalize">{salesAchievement.period ?? "monthly"} target</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 flex flex-col justify-between h-full">
+                      <div>
+                        <div className="flex items-end justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase text-muted-foreground">
+                              {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced" : "Realisasi Revenue"}
+                            </p>
+                            <p className="text-2xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
+                          </div>
+                          <p className="text-sm font-semibold text-[color:var(--brand)]">
+                            {Number(salesAchievement.target_revenue ?? 0) > 0
+                              ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
+                              : "No target"}
+                          </p>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
+                          <div
+                            className="h-full rounded-full bg-[color:var(--brand)]"
+                            style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            {salesAchievement.target_type === "pipeline_value" ? "Target Pipeline" : "Target Revenue"}
+                          </p>
+                          <p className="font-semibold text-xs sm:text-sm truncate">{formatCurrency(salesAchievement.target_revenue)}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            if (salesAchievement.target_type === "pipeline_value") {
+                              // SDR sourced leads list
+                              params.set("created_by", String(dashboard.user?.id || ""));
+                            } else {
+                              params.set("outcome", "won");
+                            }
+                            if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
+                            if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
+                            openDrilldown({
+                              title: salesAchievement.target_type === "pipeline_value" ? "SDR Sourced Leads" : "Achievement Sales · Closed Won",
+                              description: salesAchievement.target_type === "pipeline_value" ? "Leads generated in the active target period." : "Closed Won leads inside the active target period.",
+                              href: `/leads?${params.toString()}`,
+                            });
+                          }}
+                          className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70 cursor-pointer"
+                        >
+                          <p className="text-xs text-muted-foreground">
+                            {salesAchievement.target_type === "pipeline_value" ? "Sourced Leads" : "Closed Won"}
+                          </p>
+                          <p className="font-semibold text-xs sm:text-sm">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
+                        </button>
+                      </div>
+                      <div className="pt-2">
+                        {(salesAchievement.trend ?? []).length > 0 ? (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-2">
+                              {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced Trend" : "Revenue Realization Trend"}
+                            </p>
+                            <Chart
+                              type="area"
+                              options={{
+                                chart: {
+                                  type: "area",
+                                  height: 160,
+                                  toolbar: { show: false },
+                                  zoom: { enabled: false },
+                                  animations: { enabled: false }
+                                },
+                                colors: [colors.brand],
+                                fill: {
+                                  type: "gradient",
+                                  gradient: {
+                                    shadeIntensity: 1,
+                                    opacityFrom: 0.45,
+                                    opacityTo: 0.05,
+                                    stops: [0, 100]
+                                  }
+                                },
+                                stroke: {
+                                  curve: "smooth",
+                                  width: 3
+                                },
+                                dataLabels: { enabled: false },
+                                grid: {
+                                  borderColor: "var(--border)",
+                                  xaxis: { lines: { show: false } },
+                                  yaxis: { lines: { show: true } }
+                                },
+                                xaxis: {
+                                  categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
+                                  labels: {
+                                    style: { colors: colors.mutedForeground, fontSize: '10px' }
+                                  },
+                                  axisBorder: { show: false },
+                                  axisTicks: { show: false }
+                                },
+                                yaxis: {
+                                  labels: {
+                                    style: { colors: colors.mutedForeground, fontSize: '10px' },
+                                    formatter: (val) => formatNumber(val / 1e6, { decimals: 0 }) + 'M'
+                                  }
+                                },
+                                tooltip: {
+                                  theme: "dark",
+                                  y: {
+                                    formatter: (val) => formatCurrency(val)
+                                  }
+                                }
+                              }}
+                              series={[{
+                                name: "Revenue",
+                                data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
+                              }]}
+                              height={160}
+                            />
+                          </div>
+                        ) : (
+                          <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Closed Won realization will appear here.</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Quota Cascading & Team Breakdown for Manager/VP */}
+            {(salesAchievement.tier_level === "VP" || salesAchievement.tier_level === "MANAGER") && (salesAchievement.team_breakdown ?? []).length > 0 ? (
+              <div className="md:col-span-12">
+                <Card className="h-full">
+                  <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <CardTitle>Sales Quota Cascading & Target Accumulation</CardTitle>
+                      <CardDescription>
+                        Bottom-up target accumulation with a {salesAchievement.buffer_rate}% buffer protection.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="success">
+                      Net Target Secured: {formatCurrency(salesAchievement.net_target)}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Summary Cards */}
+                    <div className="grid gap-4 sm:grid-cols-4">
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Team Quota (Gross)</p>
+                        <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.gross_target)}</p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expected Buffer Rate</p>
+                        <p className="mt-1 text-xl font-bold text-amber-500">{salesAchievement.buffer_rate}%</p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company Target (Net)</p>
+                        <p className="mt-1 text-xl font-bold text-emerald-500">{formatCurrency(salesAchievement.net_target)}</p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Realized Revenue</p>
+                        <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
+                      </div>
+                    </div>
+
+                    {/* Team Breakdown Table */}
+                    <div className="rounded-lg border border-border overflow-hidden bg-background">
+                      <TableShell>
+                        <Table>
+                          <TableHead>
+                            <TableRow className="hover:bg-transparent">
+                              <TableHeaderCell>Rep Name</TableHeaderCell>
+                              <TableHeaderCell>Tier Level</TableHeaderCell>
+                              <TableHeaderCell>Target Type</TableHeaderCell>
+                              <TableHeaderCell>Quota Target</TableHeaderCell>
+                              <TableHeaderCell>Realized Achievement</TableHeaderCell>
+                              <TableHeaderCell className="text-right">Progress</TableHeaderCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {salesAchievement.team_breakdown.map((rep: any) => {
+                              const isSdr = rep.tier_level === "SDR";
+                              const isPresales = rep.tier_level === "PRESALES";
+                              const barColor = isSdr
+                                ? "bg-indigo-500"
+                                : isPresales
+                                  ? "bg-emerald-500"
+                                  : "bg-[color:var(--brand)]";
+                              return (
+                                <TableRow key={rep.id} className="hover:bg-muted/30">
+                                  <TableCell>
+                                    <div className="font-semibold text-sm">{rep.name}</div>
+                                    <div className="text-xs text-muted-foreground">{rep.email}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge className="capitalize" variant={
+                                      rep.tier_level === "VP" ? "danger"
+                                        : rep.tier_level === "MANAGER" ? "warning"
+                                          : rep.tier_level === "SR_AE" ? "info"
+                                            : rep.tier_level === "JR_AE" ? "success"
+                                              : rep.tier_level === "PRESALES" ? "brand"
+                                                : "neutral"
+                                    }>
+                                      {rep.tier_level.replace("_", " ")}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs font-medium uppercase">
+                                    {rep.target_type === "pipeline_value" ? (
+                                      <span className="text-indigo-400 font-semibold">Pipeline Sourced</span>
+                                    ) : rep.target_type === "opportunities" ? (
+                                      <span className="text-amber-400 font-semibold">Opportunities Assigned</span>
+                                    ) : (
+                                      <span className="text-emerald-400 font-semibold">Closed-Won</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-sm">
+                                    {rep.target_type === "opportunities"
+                                      ? `${formatNumber(rep.target_revenue, { decimals: 0 })} Leads`
+                                      : formatCurrency(rep.target_revenue)}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-sm">
+                                    {rep.target_type === "opportunities"
+                                      ? `${formatNumber(rep.realized_revenue, { decimals: 0 })} Leads`
+                                      : formatCurrency(rep.realized_revenue)}
+                                  </TableCell>
+                                  <TableCell className="text-right min-w-[150px]">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const params = new URLSearchParams();
+                                        if (isSdr) {
+                                          params.set("created_by", rep.id);
+                                        } else if (isPresales) {
+                                          params.set("owner_id", rep.id);
+                                        } else {
+                                          params.set("outcome", "won");
+                                          params.set("owner_id", rep.id);
+                                        }
+                                        if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
+                                        if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
+
+                                        openDrilldown({
+                                          title: `${rep.name} · ${isSdr
+                                              ? "Sourced Leads"
+                                              : isPresales
+                                                ? "Assigned Opportunities"
+                                                : "Closed Won Leads"
+                                            }`,
+                                          description: `Leads contributed by ${rep.name} in the selected period.`,
+                                          href: `/leads?${params.toString()}`,
+                                        });
+                                      }}
+                                      className="block w-full text-left cursor-pointer group"
+                                    >
+                                      <div className="flex items-center justify-between text-xs font-bold mb-1">
+                                        <span className="group-hover:text-[var(--brand)] transition-colors">
+                                          {formatNumber(rep.achievement_percentage, { decimals: 1 })}%
+                                        </span>
+                                        <span className="text-muted-foreground group-hover:underline text-[10px]">Detail →</span>
+                                      </div>
+                                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                                          style={{ width: `${Math.min(100, rep.achievement_percentage)}%` }}
+                                        />
+                                      </div>
+                                    </button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableShell>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : null}
+
+            <div className="md:col-span-12">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Recent Leads</CardTitle>
+                    <CardDescription>Latest leads in your accessible workspace.</CardDescription>
+                  </div>
+                  <Link href="/leads" className="text-xs text-[var(--brand)] hover:text-[var(--brand-light)]">View all →</Link>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {recentLeads.length > 0 ? recentLeads.map((lead: any) => (
+                      <Link href={`/leads/${lead.id}`} key={lead.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5 transition-colors hover:bg-accent/30">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{lead.company_name}</p>
+                          <p className="text-sm text-muted-foreground">{lead.created_at ? new Date(lead.created_at).toLocaleDateString() : ""}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${lead.qualification_status === "eligible" ? "bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]"
+                              : lead.qualification_status === "potential" ? "bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] text-[var(--status-warning)]"
+                                : "bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]"
+                            }`}>
+                            {(lead.qualification_status || "pending").replace("_", " ")}
+                          </span>
+                          <span className="text-sm font-bold tabular-nums">{lead.lead_score ?? "—"}</span>
+                        </div>
+                      </Link>
+                    )) : (
+                      <p className="py-8 text-center text-xs text-muted-foreground">No recent leads.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </>
       )}

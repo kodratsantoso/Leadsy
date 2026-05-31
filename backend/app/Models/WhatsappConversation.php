@@ -13,6 +13,7 @@ class WhatsappConversation extends Model
         'relevance_status',
         'approved_for_sync',
         'last_message_at',
+        'platform',
     ];
 
     protected $casts = [
