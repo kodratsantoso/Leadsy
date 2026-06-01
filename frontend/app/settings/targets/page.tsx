@@ -2,13 +2,12 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { ChevronDown, ChevronRight, Save, Target, TrendingUp, AlertTriangle, CheckCircle, Info, RefreshCw } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { Tabs } from "@/components/ui/tabs";
 
 interface UserRole {
   name: string;
@@ -56,6 +55,32 @@ export default function TargetCascadesPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // activePeriod state: "month", "quarter", "year"
+  const [activePeriod, setActivePeriod] = useState<"month" | "quarter" | "year">("month");
+  
+  // inputStates tracks raw input strings to prevent cursor jumps and trailing dots/zeros loss
+  const [inputStates, setInputStates] = useState<Record<string, string>>({});
+
+  const periodItems: { key: "month" | "quarter" | "year"; label: string }[] = [
+    { key: "month", label: "Monthly Basis" },
+    { key: "quarter", label: "Quarterly Basis" },
+    { key: "year", label: "Yearly Basis" }
+  ];
+
+  const getDisplayTarget = (baseValue: number) => {
+    let val = baseValue;
+    if (activePeriod === "quarter") val = baseValue * 3;
+    else if (activePeriod === "year") val = baseValue * 12;
+    return Math.round(val * 100) / 100;
+  };
+
+  const getBaseTargetFromDisplay = (displayValue: number) => {
+    let val = displayValue;
+    if (activePeriod === "quarter") val = displayValue / 3;
+    else if (activePeriod === "year") val = displayValue / 12;
+    return Math.round(val * 100) / 100;
+  };
+
   // Fetch initial targets config
   const fetchTargets = async () => {
     setLoading(true);
@@ -66,6 +91,7 @@ export default function TargetCascadesPage() {
         const data = await response.json();
         setCompanyTarget(data.company_target_revenue || 0);
         setOriginalTree(data.tree || []);
+        setInputStates({});
         
         // Expand root nodes by default
         const initialExpanded: Record<number, boolean> = {};
@@ -177,6 +203,16 @@ export default function TargetCascadesPage() {
     });
   };
 
+  const handleToggleCalculationType = (nodeId: number, type: "amount" | "percentage", node: TreeNode) => {
+    setInputStates((prev) => {
+      const updated = { ...prev };
+      delete updated[`node-pct-${nodeId}`];
+      delete updated[`node-amt-${nodeId}`];
+      return updated;
+    });
+    handleUpdateNodeChange(nodeId, "target_calculation_type", type, node);
+  };
+
   // Helper to find a user's parent target in the original tree
   const getParentTarget = (nodes: TreeNode[], childId: number, companyTarget: number): number => {
     for (const node of nodes) {
@@ -229,6 +265,7 @@ export default function TargetCascadesPage() {
         setCompanyTarget(data.company_target_revenue || 0);
         setOriginalTree(data.tree || []);
         setChanges({});
+        setInputStates({});
         setSuccessMessage("Target configurations saved and cascaded successfully.");
       } else {
         const errData = await response.json();
@@ -251,13 +288,18 @@ export default function TargetCascadesPage() {
     const realized = node.metrics.own_realized_revenue;
     const estimated = node.metrics.own_estimated_revenue;
 
-    const realizedPct = target > 0 ? Math.min(Math.round((realized / target) * 100), 100) : 0;
-    const estimatedPct = target > 0 ? Math.min(Math.round((estimated / target) * 100), 100) : 0;
-
     // Reportees allocation breakdown
     const childTargetsSum = (node.reports || []).reduce((sum, r) => sum + r.metrics.own_target_revenue, 0);
     const subRemaining = target - childTargetsSum;
     const isSubFullyAllocated = Math.abs(subRemaining) < 1;
+
+    const pctKey = `node-pct-${node.id}`;
+    const initialPctVal = formatAmountInput(String(node.target_percentage));
+    const displayPctVal = inputStates[pctKey] !== undefined ? inputStates[pctKey] : initialPctVal;
+
+    const amtKey = `node-amt-${node.id}`;
+    const initialAmtVal = formatAmountInput(String(getDisplayTarget(target)));
+    const displayAmtVal = inputStates[amtKey] !== undefined ? inputStates[amtKey] : initialAmtVal;
 
     return (
       <div key={node.id} className="relative mt-3 pl-4 border-l border-border/80">
@@ -284,9 +326,37 @@ export default function TargetCascadesPage() {
               
               {/* Target & Pipeline Micro Achievements */}
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">
-                <span>Own Target: <b className="text-foreground">{formatCurrency(target)}</b></span>
-                <span className="text-[color:var(--success)]">Won (Realized): <b>{formatCurrency(realized)}</b></span>
-                <span className="text-[color:var(--info)]">Pipeline (Est): <b>{formatCurrency(estimated)}</b></span>
+                <span>Own Target ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): <b className="text-foreground">{formatCurrency(getDisplayTarget(target))}</b></span>
+                <span className="text-[color:var(--success)] font-medium">Total Won (Realized): <b>{formatCurrency(realized)}</b></span>
+                <span className="text-[color:var(--info)] font-medium">Total Pipeline (Est): <b>{formatCurrency(estimated)}</b></span>
+              </div>
+
+              {/* Period Target Grid Breakdown */}
+              <div className="mt-2.5 grid grid-cols-3 gap-3 border-t border-border/40 pt-2 text-[10px] text-muted-foreground font-mono max-w-md">
+                <div className={`p-1.5 rounded-lg border transition-all ${
+                  activePeriod === 'month' 
+                    ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
+                    : 'border-transparent'
+                }`}>
+                  <span className="block text-[8px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-0.5">Per Month</span>
+                  <span className={`font-semibold text-xs tabular-nums ${activePeriod === 'month' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(target)}</span>
+                </div>
+                <div className={`p-1.5 rounded-lg border transition-all ${
+                  activePeriod === 'quarter' 
+                    ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
+                    : 'border-transparent'
+                }`}>
+                  <span className="block text-[8px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-0.5">Per Quarter</span>
+                  <span className={`font-semibold text-xs tabular-nums ${activePeriod === 'quarter' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(target * 3)}</span>
+                </div>
+                <div className={`p-1.5 rounded-lg border transition-all ${
+                  activePeriod === 'year' 
+                    ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
+                    : 'border-transparent'
+                }`}>
+                  <span className="block text-[8px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-0.5">Per Year</span>
+                  <span className={`font-semibold text-xs tabular-nums ${activePeriod === 'year' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(target * 12)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -297,7 +367,7 @@ export default function TargetCascadesPage() {
             <div className="inline-flex rounded-lg border border-input p-0.5 bg-muted/40">
               <button
                 type="button"
-                onClick={() => handleUpdateNodeChange(node.id, "target_calculation_type", "amount", node)}
+                onClick={() => handleToggleCalculationType(node.id, "amount", node)}
                 className={`px-2 py-1 text-xs rounded-md font-medium transition-all ${
                   node.target_calculation_type === "amount"
                     ? "bg-card text-foreground shadow-xs"
@@ -308,7 +378,7 @@ export default function TargetCascadesPage() {
               </button>
               <button
                 type="button"
-                onClick={() => handleUpdateNodeChange(node.id, "target_calculation_type", "percentage", node)}
+                onClick={() => handleToggleCalculationType(node.id, "percentage", node)}
                 className={`px-2 py-1 text-xs rounded-md font-medium transition-all ${
                   node.target_calculation_type === "percentage"
                     ? "bg-card text-foreground shadow-xs"
@@ -325,15 +395,15 @@ export default function TargetCascadesPage() {
                 <input
                   type="text"
                   className="w-16 text-right text-xs bg-transparent border-none outline-none focus:ring-0 font-mono"
-                  value={formatAmountInput(String(node.target_percentage))}
-                  onChange={(e) =>
-                    handleUpdateNodeChange(
-                      node.id,
-                      "target_percentage",
-                      Number(normalizeAmountInput(e.target.value)) || 0,
-                      node
-                    )
-                  }
+                  value={displayPctVal}
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    const normalized = normalizeAmountInput(rawValue);
+                    const formatted = formatAmountInput(normalized);
+                    setInputStates(prev => ({ ...prev, [pctKey]: formatted }));
+                    const numeric = Number(normalized) || 0;
+                    handleUpdateNodeChange(node.id, "target_percentage", numeric, node);
+                  }}
                 />
                 <span className="text-xs text-muted-foreground">%</span>
               </div>
@@ -343,15 +413,16 @@ export default function TargetCascadesPage() {
                 <input
                   type="text"
                   className="w-32 text-right text-xs bg-transparent border-none outline-none focus:ring-0 font-mono"
-                  value={formatAmountInput(String(node.metrics.own_target_revenue))}
-                  onChange={(e) =>
-                    handleUpdateNodeChange(
-                      node.id,
-                      "target_revenue",
-                      Number(normalizeAmountInput(e.target.value)) || 0,
-                      node
-                    )
-                  }
+                  value={displayAmtVal}
+                  onChange={(e) => {
+                    const rawValue = e.target.value;
+                    const normalized = normalizeAmountInput(rawValue);
+                    const formatted = formatAmountInput(normalized);
+                    setInputStates(prev => ({ ...prev, [amtKey]: formatted }));
+                    const numeric = Number(normalized) || 0;
+                    const baseVal = getBaseTargetFromDisplay(numeric);
+                    handleUpdateNodeChange(node.id, "target_revenue", baseVal, node);
+                  }}
                 />
               </div>
             )}
@@ -359,7 +430,7 @@ export default function TargetCascadesPage() {
             {/* Resolved display value (read-only context visualizer) */}
             {node.target_calculation_type === "percentage" && (
               <Badge variant="neutral" className="font-mono text-[11px] h-7 px-2">
-                = {formatCurrency(target)}
+                = {formatCurrency(getDisplayTarget(target))}
               </Badge>
             )}
           </div>
@@ -367,28 +438,59 @@ export default function TargetCascadesPage() {
 
         {/* Micro allocation / rollup summary when has sub-reports */}
         {hasReports && (
-          <div className="mt-1 px-4 py-1.5 flex flex-wrap justify-between items-center gap-2 bg-muted/20 border-x border-b border-border/60 rounded-b-lg text-xs">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span>Rollup Target: <b>{formatCurrency(node.metrics.rollup_target_revenue)}</b></span>
-              <span className="mx-1">•</span>
-              <span>Sub-Pipeline: <b>{formatCurrency(node.metrics.rollup_estimated_revenue)}</b></span>
+          <div className="mt-1 px-4 py-2.5 flex flex-col gap-2 bg-muted/20 border-x border-b border-border/60 rounded-b-lg text-xs">
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <TrendingUp className="h-3.5 w-3.5" />
+                <span>
+                  Rollup Target ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): <b>{formatCurrency(getDisplayTarget(node.metrics.rollup_target_revenue))}</b>
+                </span>
+                <span className="mx-1">•</span>
+                <span>
+                  Sub-Pipeline ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): <b>{formatCurrency(getDisplayTarget(node.metrics.rollup_estimated_revenue))}</b>
+                </span>
+              </div>
+              
+              <div>
+                {isSubFullyAllocated ? (
+                  <span className="text-[color:var(--success)] flex items-center gap-1 font-medium">
+                    <CheckCircle className="h-3 w-3" /> Cascaded 100%
+                  </span>
+                ) : subRemaining > 0 ? (
+                  <span className="text-[color:var(--warning)] font-medium">
+                    Remaining to cascade ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): {formatCurrency(getDisplayTarget(subRemaining))}
+                  </span>
+                ) : (
+                  <span className="text-[color:var(--danger)] font-medium flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Over-allocated ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): {formatCurrency(Math.abs(getDisplayTarget(subRemaining)))}
+                  </span>
+                )}
+              </div>
             </div>
             
-            <div>
-              {isSubFullyAllocated ? (
-                <span className="text-[color:var(--success)] flex items-center gap-1 font-medium">
-                  <CheckCircle className="h-3 w-3" /> Cascaded 100%
-                </span>
-              ) : subRemaining > 0 ? (
-                <span className="text-[color:var(--warning)] font-medium">
-                  Remaining to cascade: {formatCurrency(subRemaining)}
-                </span>
-              ) : (
-                <span className="text-[color:var(--danger)] font-medium flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" /> Over-allocated: {formatCurrency(Math.abs(subRemaining))}
-                </span>
-              )}
+            {/* Rollup Period Details */}
+            <div className="grid grid-cols-3 gap-3 border-t border-border/40 pt-2 text-[10px] text-muted-foreground font-mono">
+              <div className={`p-1.5 rounded-lg border transition-all ${
+                activePeriod === 'month' 
+                  ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
+                  : 'border-transparent'
+              }`}>
+                <span>Rollup Month:</span> <b className={`ml-1 ${activePeriod === 'month' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(node.metrics.rollup_target_revenue)}</b>
+              </div>
+              <div className={`p-1.5 rounded-lg border transition-all ${
+                activePeriod === 'quarter' 
+                  ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
+                  : 'border-transparent'
+              }`}>
+                <span>Rollup Quarter:</span> <b className={`ml-1 ${activePeriod === 'quarter' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(node.metrics.rollup_target_revenue * 3)}</b>
+              </div>
+              <div className={`p-1.5 rounded-lg border transition-all ${
+                activePeriod === 'year' 
+                  ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
+                  : 'border-transparent'
+              }`}>
+                <span>Rollup Year:</span> <b className={`ml-1 ${activePeriod === 'year' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(node.metrics.rollup_target_revenue * 12)}</b>
+              </div>
             </div>
           </div>
         )}
@@ -449,6 +551,24 @@ export default function TargetCascadesPage() {
       ) : (
         <div className="grid gap-6">
           
+          {/* Period Selector Tabs */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-card/60 p-2 border border-border rounded-xl gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground font-semibold px-2.5">Cascade Period Mode:</span>
+              <Tabs
+                value={activePeriod}
+                onValueChange={(val) => {
+                  setActivePeriod(val);
+                  setInputStates({});
+                }}
+                items={periodItems}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground/80 font-medium px-2.5">
+              * Editing values in any view automatically recalculates the other periods.
+            </div>
+          </div>
+
           {/* Top company target configurator */}
           <Card className="overflow-hidden border-[color:var(--brand)] bg-[color:var(--brand)]/[0.02]">
             <CardHeader className="bg-[color:var(--brand)]/[0.03] border-b border-border">
@@ -464,13 +584,22 @@ export default function TargetCascadesPage() {
                 </div>
 
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm text-muted-foreground">Company Target IDR:</span>
+                  <span className="text-sm text-muted-foreground font-semibold">
+                    Company Target ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}) IDR:
+                  </span>
                   <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-3 py-1.5 shadow-sm">
                     <input
                       type="text"
-                      className="w-48 text-right font-semibold text-sm bg-transparent border-none outline-none focus:ring-0 font-mono"
-                      value={formatAmountInput(String(companyTarget))}
-                      onChange={(e) => setCompanyTarget(Number(normalizeAmountInput(e.target.value)) || 0)}
+                      className="w-48 text-right font-bold text-sm bg-transparent border-none outline-none focus:ring-0 font-mono text-[color:var(--brand)]"
+                      value={inputStates["company-target"] !== undefined ? inputStates["company-target"] : formatAmountInput(String(getDisplayTarget(companyTarget)))}
+                      onChange={(e) => {
+                        const rawValue = e.target.value;
+                        const normalized = normalizeAmountInput(rawValue);
+                        const formatted = formatAmountInput(normalized);
+                        setInputStates(prev => ({ ...prev, "company-target": formatted }));
+                        const numeric = Number(normalized) || 0;
+                        setCompanyTarget(getBaseTargetFromDisplay(numeric));
+                      }}
                     />
                   </div>
                 </div>
@@ -479,41 +608,83 @@ export default function TargetCascadesPage() {
 
             <CardContent className="p-5">
               <div className="grid md:grid-cols-3 gap-6 pt-2">
+                {/* Column 1: Distributed to GMs */}
                 <div className="p-4 rounded-xl border border-border bg-card/50">
-                  <span className="text-xs text-muted-foreground block">Distributed to GMs</span>
-                  <span className="text-lg font-bold block mt-1 tabular-nums">{formatCurrency(totalGMsTarget)}</span>
-                </div>
-
-                <div className="p-4 rounded-xl border border-border bg-card/50">
-                  <span className="text-xs text-muted-foreground block">Distribution Target Status</span>
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    {allocationStatus === "fully_allocated" && (
-                      <span className="text-[color:var(--success)] flex items-center gap-1 font-semibold text-sm">
-                        <CheckCircle className="h-4 w-4" /> 100% Allocated
-                      </span>
-                    )}
-                    {allocationStatus === "under_allocated" && (
-                      <span className="text-[color:var(--warning)] flex items-center gap-1 font-semibold text-sm">
-                        <Info className="h-4 w-4" /> Under-allocated
-                      </span>
-                    )}
-                    {allocationStatus === "over_allocated" && (
-                      <span className="text-[color:var(--danger)] flex items-center gap-1 font-semibold text-sm">
-                        <AlertTriangle className="h-4 w-4" /> Over-allocated
-                      </span>
-                    )}
+                  <span className="text-xs text-muted-foreground block font-medium">
+                    Distributed to GMs ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"})
+                  </span>
+                  <span className="text-lg font-bold block mt-1 tabular-nums">
+                    {formatCurrency(getDisplayTarget(totalGMsTarget))}
+                  </span>
+                  <div className="mt-2.5 space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-2.5 font-mono">
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'month' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
+                      <span>Per Month:</span> <span>{formatCurrency(totalGMsTarget)}</span>
+                    </div>
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'quarter' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
+                      <span>Per Quarter:</span> <span>{formatCurrency(totalGMsTarget * 3)}</span>
+                    </div>
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'year' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
+                      <span>Per Year:</span> <span>{formatCurrency(totalGMsTarget * 12)}</span>
+                    </div>
                   </div>
                 </div>
 
+                {/* Column 2: Target Allocation Status */}
+                <div className="p-4 rounded-xl border border-border bg-card/50 flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs text-muted-foreground block font-medium">Target Allocation Status</span>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      {allocationStatus === "fully_allocated" && (
+                        <span className="text-[color:var(--success)] flex items-center gap-1 font-semibold text-sm">
+                          <CheckCircle className="h-4 w-4" /> 100% Allocated
+                        </span>
+                      )}
+                      {allocationStatus === "under_allocated" && (
+                        <span className="text-[color:var(--warning)] flex items-center gap-1 font-semibold text-sm">
+                          <Info className="h-4 w-4" /> Under-allocated
+                        </span>
+                      )}
+                      {allocationStatus === "over_allocated" && (
+                        <span className="text-[color:var(--danger)] flex items-center gap-1 font-semibold text-sm">
+                          <AlertTriangle className="h-4 w-4" /> Over-allocated
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-2.5 font-mono">
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'month' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
+                      <span>Target Month:</span> <span>{formatCurrency(companyTarget)}</span>
+                    </div>
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'quarter' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
+                      <span>Target Quarter:</span> <span>{formatCurrency(companyTarget * 3)}</span>
+                    </div>
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'year' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
+                      <span>Target Year:</span> <span>{formatCurrency(companyTarget * 12)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Column 3: Remaining to Distribute */}
                 <div className="p-4 rounded-xl border border-border bg-card/50">
-                  <span className="text-xs text-muted-foreground block">
-                    {allocationStatus === "over_allocated" ? "Exceeded Allocation" : "Remaining to Distribute"}
+                  <span className="text-xs text-muted-foreground block font-medium">
+                    {allocationStatus === "over_allocated" ? "Exceeded Allocation" : "Remaining to Distribute"} ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"})
                   </span>
                   <span className={`text-lg font-bold block mt-1 tabular-nums ${
                     allocationStatus === "over_allocated" ? "text-[color:var(--danger)]" : allocationStatus === "under_allocated" ? "text-[color:var(--warning)]" : "text-[color:var(--success)]"
                   }`}>
-                    {formatCurrency(Math.abs(allocationRemaining))}
+                    {formatCurrency(Math.abs(getDisplayTarget(allocationRemaining)))}
                   </span>
+                  <div className="mt-2.5 space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-2.5 font-mono">
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'month' ? 'bg-[color:var(--brand)]/[0.06] font-bold' : ''}`}>
+                      <span>Monthly Diff:</span> <span className={allocationRemaining < 0 ? "text-[color:var(--danger)]" : "text-foreground"}>{formatCurrency(allocationRemaining)}</span>
+                    </div>
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'quarter' ? 'bg-[color:var(--brand)]/[0.06] font-bold' : ''}`}>
+                      <span>Quarterly Diff:</span> <span className={allocationRemaining < 0 ? "text-[color:var(--danger)]" : "text-foreground"}>{formatCurrency(allocationRemaining * 3)}</span>
+                    </div>
+                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'year' ? 'bg-[color:var(--brand)]/[0.06] font-bold' : ''}`}>
+                      <span>Yearly Diff:</span> <span className={allocationRemaining < 0 ? "text-[color:var(--danger)]" : "text-foreground"}>{formatCurrency(allocationRemaining * 12)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
