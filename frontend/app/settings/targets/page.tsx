@@ -37,7 +37,7 @@ interface TreeNode {
 }
 
 export default function TargetCascadesPage() {
-  const { formatCurrency } = useNumberFormat();
+  const { formatCurrency, formatAmountInput, normalizeAmountInput } = useNumberFormat();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -323,17 +323,14 @@ export default function TargetCascadesPage() {
             {node.target_calculation_type === "percentage" ? (
               <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-2.5 py-1">
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="500"
+                  type="text"
                   className="w-16 text-right text-xs bg-transparent border-none outline-none focus:ring-0 font-mono"
-                  value={node.target_percentage}
+                  value={formatAmountInput(String(node.target_percentage))}
                   onChange={(e) =>
                     handleUpdateNodeChange(
                       node.id,
                       "target_percentage",
-                      parseFloat(e.target.value) || 0,
+                      Number(normalizeAmountInput(e.target.value)) || 0,
                       node
                     )
                   }
@@ -344,16 +341,14 @@ export default function TargetCascadesPage() {
               <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-2.5 py-1">
                 <span className="text-xs text-muted-foreground">IDR</span>
                 <input
-                  type="number"
-                  step="1000000"
-                  min="0"
+                  type="text"
                   className="w-32 text-right text-xs bg-transparent border-none outline-none focus:ring-0 font-mono"
-                  value={node.metrics.own_target_revenue}
+                  value={formatAmountInput(String(node.metrics.own_target_revenue))}
                   onChange={(e) =>
                     handleUpdateNodeChange(
                       node.id,
                       "target_revenue",
-                      parseFloat(e.target.value) || 0,
+                      Number(normalizeAmountInput(e.target.value)) || 0,
                       node
                     )
                   }
@@ -472,12 +467,10 @@ export default function TargetCascadesPage() {
                   <span className="text-sm text-muted-foreground">Company Target IDR:</span>
                   <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-3 py-1.5 shadow-sm">
                     <input
-                      type="number"
-                      step="10000000"
-                      min="0"
+                      type="text"
                       className="w-48 text-right font-semibold text-sm bg-transparent border-none outline-none focus:ring-0 font-mono"
-                      value={companyTarget}
-                      onChange={(e) => setCompanyTarget(parseFloat(e.target.value) || 0)}
+                      value={formatAmountInput(String(companyTarget))}
+                      onChange={(e) => setCompanyTarget(Number(normalizeAmountInput(e.target.value)) || 0)}
                     />
                   </div>
                 </div>
