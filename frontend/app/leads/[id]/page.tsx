@@ -3,7 +3,8 @@
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -673,6 +674,54 @@ export default function LeadDetailPage() {
     queryKey: ['lead', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}`).then((r) => r.json()),
   });
+
+  // Google Maps setup
+  const [mapsApiKey, setMapsApiKey] = useState('');
+  const [mapsEnabled, setMapsEnabled] = useState(true);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [geocodeFeedback, setGeocodeFeedback] = useState('');
+
+  // Fetch public settings for maps browser API key
+  const { data: publicSettingsData } = useQuery({
+    queryKey: ['public-settings'],
+    queryFn: async () => {
+      const response = await apiFetch('/settings/public');
+      return response.json();
+    },
+  });
+
+  useEffect(() => {
+    if (!publicSettingsData?.data) return;
+    const settings = publicSettingsData.data;
+    setMapsApiKey(settings.GOOGLE_MAPS_BROWSER_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '');
+    setMapsEnabled(settings.GOOGLE_MAPS_ENABLED === undefined || settings.GOOGLE_MAPS_ENABLED === true || settings.GOOGLE_MAPS_ENABLED === 'true');
+  }, [publicSettingsData]);
+
+  useEffect(() => {
+    const data = lead?.data;
+    if (!data) return;
+    if (data.lat != null && data.lng != null && String(data.lat).trim() !== '' && String(data.lng).trim() !== '') {
+      setMapCenter({ lat: Number(data.lat), lng: Number(data.lng) });
+    } else if (data.address && data.address.trim() !== '') {
+      setGeocodeFeedback('Geocoding address...');
+      apiFetch(`/maps/geocode?query=${encodeURIComponent(data.address)}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json?.data?.lat && json?.data?.lng) {
+            setMapCenter({ lat: Number(json.data.lat), lng: Number(json.data.lng) });
+            setGeocodeFeedback('');
+          } else {
+            setGeocodeFeedback('Location coordinates not found.');
+          }
+        })
+        .catch(() => {
+          setGeocodeFeedback('Unable to load address location.');
+        });
+    } else {
+      setMapCenter(null);
+      setGeocodeFeedback('');
+    }
+  }, [lead?.data?.lat, lead?.data?.lng, lead?.data?.address]);
 
   // Fetch lead intelligence
   const { data: intelligence } = useQuery({
@@ -1731,36 +1780,39 @@ export default function LeadDetailPage() {
                   {leadData.address}
                 </p>
               )}
-              {leadData.lat != null && leadData.lng != null ? (
-                <div className="overflow-hidden rounded-xl border border-border">
-                  <iframe
-                    title="Lead Location"
-                    width="100%"
-                    height="320"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
-                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${leadData.lat},${leadData.lng}&zoom=15`}
-                  />
+              {mapsEnabled && mapsApiKey ? (
+                <div className="h-[320px] overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)] relative">
+                  {mapCenter ? (
+                    <APIProvider apiKey={mapsApiKey}>
+                      <Map
+                        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
+                        center={mapCenter}
+                        defaultCenter={mapCenter}
+                        defaultZoom={15}
+                        gestureHandling="cooperative"
+                        disableDefaultUI={true}
+                      >
+                        <AdvancedMarker position={mapCenter}>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-[color:var(--brand)] text-white shadow-lg">
+                            <MapPin className="h-4 w-4" />
+                          </div>
+                        </AdvancedMarker>
+                      </Map>
+                    </APIProvider>
+                  ) : (
+                    <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
+                      {geocodeFeedback || "Loading map..."}
+                    </div>
+                  )}
                 </div>
-              ) : leadData.address ? (
-                <div className="overflow-hidden rounded-xl border border-border">
-                  <iframe
-                    title="Lead Location"
-                    width="100%"
-                    height="320"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
-                    src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}&q=${encodeURIComponent(leadData.address)}&zoom=14`}
-                  />
+              ) : (
+                <div className="flex h-[320px] items-center justify-center rounded-xl border border-border bg-[color:var(--surface-subtle)] p-6 text-center text-sm text-muted-foreground">
+                  Maps are unavailable. Configure the public Google Maps browser key to enable map preview.
                 </div>
-              ) : null}
-              {(leadData.lat != null || leadData.lng != null) && (
+              )}
+              {(leadData.lat != null || leadData.lng != null || mapCenter != null) && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Coordinates: {leadData.lat}, {leadData.lng}
+                  Coordinates: {leadData.lat != null ? leadData.lat : mapCenter?.lat.toFixed(6)}, {leadData.lng != null ? leadData.lng : mapCenter?.lng.toFixed(6)}
                 </p>
               )}
             </div>
