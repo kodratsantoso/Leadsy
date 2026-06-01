@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\QualificationWorkflowReviewController;
 use App\Http\Controllers\Api\RevenueRuleController;
 use App\Http\Controllers\Api\SalesVisitController;
 use App\Http\Controllers\Api\TerritoryController;
+use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
@@ -111,6 +112,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/currency-format', [CurrencySettingController::class, 'format']);
     Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
     Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');
+    Route::get('settings/targets', [TargetController::class, 'index'])->middleware('permission:users.manage');
+    Route::post('settings/targets', [TargetController::class, 'update'])->middleware('permission:users.manage');
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/assign', [LeadController::class, 'assign'])->middleware('permission:leads.edit');

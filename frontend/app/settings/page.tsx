@@ -5,6 +5,7 @@ import Link from "next/link";
 
 const settingsItems = [
   { icon: Users,     title: "Users & Roles",         desc: "User accounts, role management, permissions",                        href: "/settings/users",         color: "bg-[color:var(--brand)]" },
+  { icon: Target,    title: "Target Cascades",       desc: "Configure company revenue targets and cascade to user hierarchy",     href: "/settings/targets",       color: "bg-[color:var(--brand)]" },
   { icon: Bot,       title: "AI Defaults",           desc: "Providers, API keys, routing, prompts, health, and fallbacks",      href: "/settings/ai-defaults",   color: "bg-[color:var(--brand)]" },
   { icon: Layers,    title: "Industries",            desc: "Industry and sub-industry master data for lead classification",      href: "/settings/industries",    color: "bg-[color:var(--status-info)]" },
   { icon: Target,    title: "ICP Profiles",          desc: "Ideal Customer Profiles for lead scoring and ICP match evaluation", href: "/settings/icp-profiles",  color: "bg-[color:var(--status-info)]" },

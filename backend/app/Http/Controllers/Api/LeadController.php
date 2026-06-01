@@ -45,7 +45,7 @@ class LeadController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Lead::visibleTo($request->user())
-            ->with(['industry', 'subIndustry', 'funnelStage', 'owner', 'territory', 'product', 'sources.channelType', 'parentLead:id,company_name']);
+            ->with(['industry', 'subIndustry', 'funnelStage', 'owner', 'presalesOwner', 'amOwner', 'csmOwner', 'territory', 'product', 'sources.channelType', 'parentLead:id,company_name']);
 
         // Filters
         if ($request->filled('industry_id')) {
@@ -176,7 +176,7 @@ class LeadController extends Controller
         }
 
         $lead->load([
-            'industry', 'subIndustry', 'funnelStage', 'owner',
+            'industry', 'subIndustry', 'funnelStage', 'owner', 'presalesOwner', 'amOwner', 'csmOwner',
             'territory', 'product', 'contacts.contactSource',
             'sources.channelType', 'funnelHistory.fromStage', 'funnelHistory.toStage',
             'funnelHistory.movedBy', 'creator',
@@ -300,6 +300,9 @@ class LeadController extends Controller
             'realized_closing_amount' => 'nullable|numeric|min:0',
             'funnel_stage_id' => 'nullable|exists:funnel_stages,id',
             'owner_id' => 'nullable|exists:users,id',
+            'presales_owner_id' => 'nullable|exists:users,id',
+            'am_owner_id' => 'nullable|exists:users,id',
+            'csm_owner_id' => 'nullable|exists:users,id',
             'source_type' => 'nullable|exists:lead_source_types,slug',
             'channel_type_id' => 'nullable|exists:lead_channel_types,id',
             'parent_lead_id' => 'nullable|exists:leads,id',
@@ -393,6 +396,9 @@ class LeadController extends Controller
             'ai_explanation' => 'nullable|string',
             'funnel_stage_id' => 'nullable|exists:funnel_stages,id',
             'owner_id' => 'nullable|exists:users,id',
+            'presales_owner_id' => 'nullable|exists:users,id',
+            'am_owner_id' => 'nullable|exists:users,id',
+            'csm_owner_id' => 'nullable|exists:users,id',
             'product_id' => 'nullable|exists:products,id',
             'source_type' => 'nullable|exists:lead_source_types,slug',
             'channel_type_id' => 'nullable|exists:lead_channel_types,id',

@@ -624,6 +624,10 @@ export default function LeadDetailPage() {
     funnel_stage_id: '',
     qualification_status: 'pending',
     parent_lead_id: '',
+    owner_id: '',
+    presales_owner_id: '',
+    am_owner_id: '',
+    csm_owner_id: '',
   });
   const [detailLocationSearch, setDetailLocationSearch] = useState('');
   const [detailParentSearch, setDetailParentSearch] = useState('');
@@ -797,6 +801,26 @@ export default function LeadDetailPage() {
   const selectedIndustrySubIndustries: any[] =
     allIndustries.find((i: any) => String(i.id) === String(companyForm.industry_id))?.sub_industries ?? [];
 
+  // Fetch all users for lead ownership roles assignment
+  const { data: assignableUsersData } = useQuery({
+    queryKey: ['lead-assignable-users'],
+    queryFn: () => apiFetch('/leads/assignable-users').then((r) => r.json()),
+  });
+
+  const usersList = assignableUsersData?.data || [];
+  const salesUsers = usersList.filter((u: any) =>
+    ["sales_exec", "sales_manager", "admin", "super_admin"].includes(u.role?.name)
+  );
+  const presalesUsers = usersList.filter((u: any) =>
+    ["presales", "admin", "super_admin"].includes(u.role?.name)
+  );
+  const amUsers = usersList.filter((u: any) =>
+    ["account_manager", "admin", "super_admin"].includes(u.role?.name)
+  );
+  const csmUsers = usersList.filter((u: any) =>
+    ["csm", "admin", "super_admin"].includes(u.role?.name)
+  );
+
   const invalidateLead = () => qc.invalidateQueries({ queryKey: ['lead', leadId] });
 
   // Update lead company info mutation
@@ -834,6 +858,10 @@ export default function LeadDetailPage() {
       funnel_stage_id:          leadData.funnel_stage_id != null ? String(leadData.funnel_stage_id) : '',
       qualification_status:     leadData.qualification_status   ?? 'pending',
       parent_lead_id:           leadData.parent_lead_id != null ? String(leadData.parent_lead_id) : '',
+      owner_id:                 leadData.owner_id != null ? String(leadData.owner_id) : '',
+      presales_owner_id:        leadData.presales_owner_id != null ? String(leadData.presales_owner_id) : '',
+      am_owner_id:              leadData.am_owner_id != null ? String(leadData.am_owner_id) : '',
+      csm_owner_id:             leadData.csm_owner_id != null ? String(leadData.csm_owner_id) : '',
     });
     setDetailLocationSearch(leadData.address ?? '');
     setDetailParentSearch('');
@@ -880,6 +908,10 @@ export default function LeadDetailPage() {
       funnel_stage_id:          companyForm.funnel_stage_id ? Number(companyForm.funnel_stage_id) : null,
       qualification_status:     companyForm.qualification_status   || null,
       parent_lead_id:           companyForm.parent_lead_id ? Number(companyForm.parent_lead_id) : null,
+      owner_id:                 companyForm.owner_id ? Number(companyForm.owner_id) : null,
+      presales_owner_id:        companyForm.presales_owner_id ? Number(companyForm.presales_owner_id) : null,
+      am_owner_id:              companyForm.am_owner_id ? Number(companyForm.am_owner_id) : null,
+      csm_owner_id:             companyForm.csm_owner_id ? Number(companyForm.csm_owner_id) : null,
     };
     updateLeadMutation.mutate(payload);
   }
@@ -1683,6 +1715,23 @@ export default function LeadDetailPage() {
                     <span className="font-medium text-[var(--status-success)]">{formatCurrency(Number(leadData.realized_closing_amount))}</span>
                   </div>
                 )}
+                <hr className="my-3 border-border" />
+                <div>
+                  <span className="text-muted-foreground">Sales Owner:</span>{' '}
+                  <span className="font-medium">{leadData.owner?.name || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Presales Owner:</span>{' '}
+                  <span className="font-medium">{leadData.presalesOwner?.name || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">AM Owner:</span>{' '}
+                  <span className="font-medium">{leadData.amOwner?.name || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">CSM Owner:</span>{' '}
+                  <span className="font-medium">{leadData.csmOwner?.name || '—'}</span>
+                </div>
               </div>
             </div>
 
@@ -3502,6 +3551,61 @@ export default function LeadDetailPage() {
                   <option value="eligible">Eligible</option>
                   <option value="potential">Potential</option>
                   <option value="not_eligible">Not Eligible</option>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Ownership Roles ── */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ownership Roles</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sales Owner</label>
+                <Select
+                  value={companyForm.owner_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, owner_id: e.target.value }))}
+                  placeholder="— Unassigned Sales —"
+                >
+                  {salesUsers.map((u: any) => (
+                    <option key={u.id} value={String(u.id)}>{u.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Presales Owner</label>
+                <Select
+                  value={companyForm.presales_owner_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, presales_owner_id: e.target.value }))}
+                  placeholder="— Unassigned Presales —"
+                >
+                  {presalesUsers.map((u: any) => (
+                    <option key={u.id} value={String(u.id)}>{u.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Account Manager Owner</label>
+                <Select
+                  value={companyForm.am_owner_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, am_owner_id: e.target.value }))}
+                  placeholder="— Unassigned AM —"
+                >
+                  {amUsers.map((u: any) => (
+                    <option key={u.id} value={String(u.id)}>{u.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">CSM Owner</label>
+                <Select
+                  value={companyForm.csm_owner_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, csm_owner_id: e.target.value }))}
+                  placeholder="— Unassigned CSM —"
+                >
+                  {csmUsers.map((u: any) => (
+                    <option key={u.id} value={String(u.id)}>{u.name}</option>
+                  ))}
                 </Select>
               </div>
             </div>

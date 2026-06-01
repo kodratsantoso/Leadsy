@@ -16,7 +16,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'email', 'password', 'role_id', 'tenant_id', 'direct_manager_id',
-        'phone', 'target_period', 'target_revenue', 'is_active', 'tier_level', 'buffer_rate',
+        'phone', 'target_period', 'target_revenue', 'target_percentage', 'target_calculation_type', 'is_active', 'tier_level', 'buffer_rate',
     ];
 
     protected $hidden = [
@@ -31,6 +31,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'target_revenue' => 'decimal:2',
+            'target_percentage' => 'decimal:2',
             'buffer_rate' => 'float',
         ];
     }
@@ -125,5 +126,38 @@ class User extends Authenticatable
         }
 
         return $ids;
+    }
+
+    /**
+     * Cascade targets recursively down the reporting hierarchy.
+     */
+    public static function cascadeTargets(self $parent): void
+    {
+        $reports = self::where('direct_manager_id', $parent->id)->get();
+        foreach ($reports as $report) {
+            if ($report->target_calculation_type === 'percentage') {
+                $report->target_revenue = round(($parent->target_revenue * $report->target_percentage) / 100.0, 2);
+                $report->save();
+            }
+            self::cascadeTargets($report);
+        }
+    }
+
+    /**
+     * Cascade company target to all top-level managers.
+     */
+    public static function cascadeCompanyTarget(float $companyTarget, int $tenantId): void
+    {
+        $rootUsers = self::where('tenant_id', $tenantId)
+            ->whereNull('direct_manager_id')
+            ->get();
+
+        foreach ($rootUsers as $user) {
+            if ($user->target_calculation_type === 'percentage') {
+                $user->target_revenue = round(($companyTarget * $user->target_percentage) / 100.0, 2);
+                $user->save();
+            }
+            self::cascadeTargets($user);
+        }
     }
 }
