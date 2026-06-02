@@ -124,3 +124,11 @@
 - **Decision**: Dashboard lead source and channel totals are served by `/api/dashboard` as DB-backed aggregates using `COUNT(DISTINCT leads.id)` and `Lead::visibleTo($user)`.
 - **Rationale**: Lead origin analytics must respect hierarchy visibility and avoid double-counting duplicate join rows while still allowing each source/channel row to drill into filtered Leads.
 - **Impact**: `frontend/app/page.tsx` renders a Lead Sources & Channels block with token-based bars and links to `source_type` or `channel_type_id` filters.
+
+## ADR-018: Collapsible Sidebar Parent Toggle Controls
+- **Date**: 2026-06-02
+- **Status**: Active
+- **Decision**: Parent menus with submenus are rendered as `<button>` elements instead of `<Link>` components, avoiding default route navigation and only toggling expand/collapse states of the children items.
+- **Rationale**: Prevents default page route navigation from triggering when clicking parent menus (such as Settings, WhatsApp, and Leads Generator), keeping the user's active page intact while navigating menu options.
+- **Impact**: All main menus with children (Settings, WhatsApp, Leads Generator) support toggled collapse and expand states. Parent menu pages are no longer loaded directly, and clicking a parent menu item when the sidebar is collapsed automatically expands the sidebar and opens the corresponding submenu.
+
