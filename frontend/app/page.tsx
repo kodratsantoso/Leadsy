@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { cn } from "@/lib/utils";
+import { Tabs } from "@/components/ui/tabs";
 import Link from "next/link";
 import { resolveStageColor } from "@/lib/stage-colors";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
@@ -338,6 +340,7 @@ export default function DashboardPage() {
   }, []);
 
   const [period, setPeriod] = useState("month");
+  const [activeTab, setActiveTab] = useState<"pipeline" | "team">("pipeline");
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", period],
@@ -635,9 +638,19 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Overview of your lead intelligence pipeline</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Overview of your lead intelligence pipeline</p>
+          </div>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            items={[
+              { key: "pipeline", label: "My Pipeline", icon: Activity },
+              { key: "team", label: "Team Performance", icon: Users },
+            ]}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -661,10 +674,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : (
-        <>
+      {activeTab === "pipeline" ? (
+        isLoading ? (
+          <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
             {/* Key Metrics — each opens an in-dashboard filtered drilldown */}
             <div className="md:col-span-8" data-tour="dashboard-kpis">
@@ -1760,7 +1774,10 @@ export default function DashboardPage() {
               </Card>
             </div>
           </div>
-        </>
+          </>
+        )
+      ) : (
+        <TeamPerformancePanel />
       )}
       <Modal
         open={Boolean(drilldown)}
@@ -2003,6 +2020,240 @@ export default function DashboardPage() {
           </div>
         )}
       </Modal>
+    </div>
+  );
+}
+
+function TeamPerformancePanel() {
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: teamDataResponse, isLoading } = useQuery({
+    queryKey: ["team-kpis"],
+    queryFn: async () => {
+      const res = await apiFetch("/dashboard/team-kpis");
+      return res.json();
+    },
+  });
+
+  const teamMembers = teamDataResponse?.data ?? [];
+
+  const filteredMembers = teamMembers.filter((m: any) => {
+    const matchesRole = roleFilter === "all" || m.role_category === roleFilter;
+    const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          m.role_display.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesRole && matchesSearch;
+  });
+
+  const { formatCurrency, formatNumber } = useNumberFormat();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <Card>
+        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { key: "all", label: "All Groups" },
+              { key: "sales", label: "Sales" },
+              { key: "presales", label: "Presales" },
+              { key: "am", label: "Account Manager" },
+              { key: "csm", label: "CSM" },
+            ].map((grp) => (
+              <button
+                key={grp.key}
+                type="button"
+                onClick={() => setRoleFilter(grp.key)}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  roleFilter === grp.key
+                    ? "bg-[color:var(--brand)] text-white shadow-sm"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                {grp.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search team members..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grid of Team Cards */}
+      {filteredMembers.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center p-12 text-center">
+          <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
+          <h3 className="text-lg font-semibold">No team members found</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mt-1">
+            Try adjusting your search query or role filter.
+          </p>
+        </Card>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2">
+          {filteredMembers.map((member: any) => {
+            const cat = member.role_category;
+            const metrics = member.metrics[cat] || member.metrics["sales"];
+
+            return (
+              <Card key={member.user_id} className="relative overflow-hidden group hover:shadow-md transition-all">
+                {/* Decorative border matching role */}
+                <div 
+                  className={cn(
+                    "absolute left-0 top-0 bottom-0 w-1.5",
+                    cat === "sales" && "bg-[color:var(--brand)]",
+                    cat === "presales" && "bg-[color:var(--status-info)]",
+                    cat === "am" && "bg-[color:var(--status-success)]",
+                    cat === "csm" && "bg-[color:var(--status-warning)]",
+                    cat === "other" && "bg-muted"
+                  )} 
+                />
+
+                <CardHeader className="flex flex-row items-center gap-4 pb-4">
+                  <div 
+                    className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-inner",
+                      cat === "sales" && "bg-[color:var(--brand)]",
+                      cat === "presales" && "bg-[color:var(--status-info)]",
+                      cat === "am" && "bg-[color:var(--status-success)]",
+                      cat === "csm" && "bg-[color:var(--status-warning)]",
+                      cat === "other" && "bg-muted"
+                    )}
+                  >
+                    {member.name.split(" ").map((n: string) => n.charAt(0)).join("").slice(0, 2).toUpperCase()}
+                  </div>
+
+                  <div className="space-y-1 min-w-0">
+                    <CardTitle className="text-base truncate">{member.name}</CardTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-[10px] py-0.5">
+                        {member.role_display}
+                      </Badge>
+                      {member.target_revenue > 0 && (
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          Target: {formatCurrency(member.target_revenue)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-0 border-t border-border/50 bg-muted/10 p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Render role-specific KPIs */}
+                    {cat === "sales" && (
+                      <>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Leads Managed</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.leads_managed}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Pipeline Value</p>
+                          <p className="text-lg font-bold text-foreground font-mono">{formatCurrency(metrics.pipeline_value)}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Closed Won</p>
+                          <p className="text-lg font-bold text-[color:var(--status-success)] font-mono">{formatCurrency(metrics.won_value)}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Win Rate</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.win_rate}%</p>
+                        </div>
+                      </>
+                    )}
+
+                    {cat === "presales" && (
+                      <>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Leads Managed</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.leads_managed}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Avg Lead Score</p>
+                          <p className="text-lg font-bold text-[color:var(--status-info)]">{metrics.avg_score}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Eligible Leads</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.eligible_count}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Eligibility Rate</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.eligible_rate}%</p>
+                        </div>
+                      </>
+                    )}
+
+                    {cat === "am" && (
+                      <>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Leads Managed</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.leads_managed}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Portfolio Value</p>
+                          <p className="text-lg font-bold text-[color:var(--status-success)] font-mono">{formatCurrency(metrics.portfolio_value)}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Avg Deal Size</p>
+                          <p className="text-lg font-bold text-foreground font-mono">{formatCurrency(metrics.avg_deal_size)}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Won Deals</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.won_count}</p>
+                        </div>
+                      </>
+                    )}
+
+                    {cat === "csm" && (
+                      <>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Clients Managed</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.leads_managed}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Avg Client Score</p>
+                          <p className="text-lg font-bold text-[color:var(--status-warning)]">{metrics.avg_score}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Meetings Count</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.meetings_count}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Total Activities</p>
+                          <p className="text-lg font-bold text-foreground">{metrics.activities_count}</p>
+                        </div>
+                      </>
+                    )}
+
+                    {cat === "other" && (
+                      <div className="col-span-2 py-4 text-center text-xs text-muted-foreground">
+                        No custom KPIs configured for this role group.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -941,4 +941,125 @@ class DashboardController extends Controller
 
         return "{$sign}{$pct}% vs last {$pName}";
     }
+
+    /** GET /api/dashboard/team-kpis */
+    public function teamKpis(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        if ($user->isSuperAdmin() || $user->isExecutive()) {
+            $userIds = \App\Models\User::where('is_active', true)->pluck('id')->all();
+        } else {
+            $userIds = $user->hierarchyUserIds();
+        }
+
+        $users = \App\Models\User::whereIn('id', $userIds)
+            ->where('is_active', true)
+            ->with('role')
+            ->get();
+
+        $result = [];
+
+        foreach ($users as $u) {
+            $roleSlug = $u->role?->name ?? 'unknown';
+            
+            // 1. Sales metrics
+            $salesLeads = Lead::where('owner_id', $u->id);
+            $salesLeadsCount = (clone $salesLeads)->count();
+            $pipelineValue = (clone $salesLeads)->whereHas('funnelStage', function ($q) {
+                $q->whereNotIn('name', ['Won', 'Lost']);
+            })->sum('estimated_closing_amount');
+            $wonValue = (clone $salesLeads)->whereHas('funnelStage', function ($q) {
+                $q->where('name', 'Won');
+            })->sum('realized_closing_amount');
+            $wonCount = (clone $salesLeads)->whereHas('funnelStage', function ($q) {
+                $q->where('name', 'Won');
+            })->count();
+            $lostCount = (clone $salesLeads)->whereHas('funnelStage', function ($q) {
+                $q->where('name', 'Lost');
+            })->count();
+            $winRate = ($wonCount + $lostCount) > 0 ? round(($wonCount / ($wonCount + $lostCount)) * 100, 1) : 0;
+
+            // 2. Presales metrics
+            $presalesLeads = Lead::where('presales_owner_id', $u->id);
+            $presalesLeadsCount = (clone $presalesLeads)->count();
+            $presalesAvgScore = (clone $presalesLeads)->avg('lead_score') ?? 0;
+            $presalesEligibleCount = (clone $presalesLeads)->where('qualification_status', 'eligible')->count();
+            $presalesEligibleRate = $presalesLeadsCount > 0 ? round(($presalesEligibleCount / $presalesLeadsCount) * 100, 1) : 0;
+
+            // 3. AM metrics
+            $amLeads = Lead::where('am_owner_id', $u->id);
+            $amLeadsCount = (clone $amLeads)->count();
+            $amPortfolioValue = (clone $amLeads)->sum('realized_closing_amount');
+            $amWonCount = (clone $amLeads)->whereHas('funnelStage', function ($q) {
+                $q->where('name', 'Won');
+            })->count();
+            $amAvgDealSize = $amWonCount > 0 ? round((clone $amLeads)->whereHas('funnelStage', function ($q) {
+                $q->where('name', 'Won');
+            })->avg('realized_closing_amount') ?? 0, 2) : 0;
+
+            // 4. CSM metrics
+            $csmLeads = Lead::where('csm_owner_id', $u->id);
+            $csmLeadsCount = (clone $csmLeads)->count();
+            $csmAvgScore = (clone $csmLeads)->avg('lead_score') ?? 0;
+            $csmMeetingsCount = \App\Models\LeadActivity::where('type', 'meeting')
+                ->whereIn('lead_id', (clone $csmLeads)->pluck('id'))
+                ->count();
+            $csmActivitiesCount = \App\Models\LeadActivity::whereIn('lead_id', (clone $csmLeads)->pluck('id'))->count();
+
+            // Classify role categories
+            $roleCategory = 'other';
+            if (str_contains($roleSlug, 'sales') || str_contains($roleSlug, 'exec') || str_contains($roleSlug, 'admin')) {
+                $roleCategory = 'sales';
+            } elseif (str_contains($roleSlug, 'presales') || str_contains($roleSlug, 'architect') || str_contains($roleSlug, 'research')) {
+                $roleCategory = 'presales';
+            } elseif (str_contains($roleSlug, 'am') || str_contains($roleSlug, 'account_manager')) {
+                $roleCategory = 'am';
+            } elseif (str_contains($roleSlug, 'csm') || str_contains($roleSlug, 'success') || str_contains($roleSlug, 'customer')) {
+                $roleCategory = 'csm';
+            }
+
+            $result[] = [
+                'user_id' => $u->id,
+                'name' => $u->name,
+                'role_slug' => $roleSlug,
+                'role_display' => $u->role?->display_name ?? 'N/A',
+                'target_revenue' => (float) ($u->target_revenue ?? 0),
+                'role_category' => $roleCategory,
+                'metrics' => [
+                    'sales' => [
+                        'leads_managed' => $salesLeadsCount,
+                        'pipeline_value' => (float) $pipelineValue,
+                        'won_value' => (float) $wonValue,
+                        'win_rate' => $winRate,
+                    ],
+                    'presales' => [
+                        'leads_managed' => $presalesLeadsCount,
+                        'avg_score' => round($presalesAvgScore, 1),
+                        'eligible_count' => $presalesEligibleCount,
+                        'eligible_rate' => $presalesEligibleRate,
+                    ],
+                    'am' => [
+                        'leads_managed' => $amLeadsCount,
+                        'portfolio_value' => (float) $amPortfolioValue,
+                        'avg_deal_size' => (float) $amAvgDealSize,
+                        'won_count' => $amWonCount,
+                    ],
+                    'csm' => [
+                        'leads_managed' => $csmLeadsCount,
+                        'avg_score' => round($csmAvgScore, 1),
+                        'meetings_count' => $csmMeetingsCount,
+                        'activities_count' => $csmActivitiesCount,
+                    ],
+                ]
+            ];
+        }
+
+        return response()->json([
+            'data' => $result
+        ]);
+    }
 }

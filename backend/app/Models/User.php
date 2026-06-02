@@ -90,6 +90,11 @@ class User extends Authenticatable
         return $this->hasRole('super_admin');
     }
 
+    public function isExecutive(): bool
+    {
+        return $this->hasRole('executive');
+    }
+
     public function isManagerLevel(): bool
     {
         $role = $this->role?->name ?? '';
@@ -102,7 +107,7 @@ class User extends Authenticatable
 
     public function hierarchyUserIds(): array
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isExecutive()) {
             return [];
         }
 

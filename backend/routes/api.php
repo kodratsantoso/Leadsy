@@ -100,6 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index']);
     Route::post('dashboard/ai-insight', [DashboardController::class, 'aiInsight']);
     Route::get('dashboard/heatmap', [DashboardController::class, 'heatmap']);
+    Route::get('dashboard/team-kpis', [DashboardController::class, 'teamKpis']);
 
     // Leads — CRUD + Discovery + Export
     Route::get('leads/export', [LeadController::class, 'export'])->middleware('permission:leads.export');
