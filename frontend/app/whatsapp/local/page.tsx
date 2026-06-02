@@ -19,7 +19,24 @@ import {
 type Tab = "session" | "direct" | "broadcast" | "conversations" | "settings";
 
 export default function LocalWhatsAppPage() {
-  const wa = useWhatsApp();
+  const {
+    loading,
+    error,
+    clearError,
+    getStatus,
+    initSession,
+    refreshQr,
+    disconnect,
+    sendMessage,
+    getConversations,
+    getMessages,
+    analyzeConversation,
+    getCampaigns,
+    createCampaign,
+    executeCampaign,
+    getSyncRules,
+    updateSyncRules
+  } = useWhatsApp();
   const platform = "whatsapp";
   const [tab, setTab] = useState<Tab>("session");
 
@@ -50,9 +67,9 @@ export default function LocalWhatsAppPage() {
 
   // ── Poll session status ──
   const pollStatus = useCallback(async () => {
-    const s = await wa.getStatus();
+    const s = await getStatus();
     setSession(s);
-  }, [wa]);
+  }, [getStatus]);
 
   useEffect(() => {
     pollStatus();
@@ -63,35 +80,35 @@ export default function LocalWhatsAppPage() {
   // ── Tab data loaders ──
   useEffect(() => {
     if (tab === "conversations" && session.status === "connected") {
-      wa.getConversations("whatsapp").then(setConversations);
+      getConversations("whatsapp").then(setConversations);
     }
     if (tab === "broadcast") {
-      wa.getCampaigns().then(setCampaigns);
+      getCampaigns().then(setCampaigns);
     }
     if (tab === "settings") {
-      wa.getSyncRules().then(setSyncRules);
+      getSyncRules().then(setSyncRules);
     }
-  }, [tab, session.status, wa]);
+  }, [tab, session.status, getConversations, getCampaigns, getSyncRules]);
 
   // ── Handlers ──
   const handleConnect = async () => {
-    await wa.initSession();
+    await initSession();
     setTimeout(pollStatus, 1500);
   };
 
   const handleDisconnect = async () => {
-    await wa.disconnect();
+    await disconnect();
     setSession({ status: "disconnected", number: null, qr_payload: null, connected_at: null });
   };
 
   const handleRefreshQr = async () => {
-    await wa.refreshQr();
+    await refreshQr();
     setTimeout(pollStatus, 2000);
   };
 
   const handleSendDm = async () => {
     if (!dmPhone || !dmText) return;
-    const result = await wa.sendMessage(dmPhone, dmText);
+    const result = await sendMessage(dmPhone, dmText);
     if (result) {
       setDmSent(true);
       setDmText("");
@@ -102,28 +119,28 @@ export default function LocalWhatsAppPage() {
   const handleCreateCampaign = async () => {
     if (!bcName || !bcMessage || !bcLeadIds) return;
     const ids = bcLeadIds.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-    const result = await wa.createCampaign(bcName, bcMessage, ids);
+    const result = await createCampaign(bcName, bcMessage, ids);
     if (result) {
       setBcName(""); setBcMessage(""); setBcLeadIds("");
-      wa.getCampaigns().then(setCampaigns);
+      getCampaigns().then(setCampaigns);
     }
   };
 
   const handleExecuteCampaign = async (id: number) => {
-    await wa.executeCampaign(id);
-    wa.getCampaigns().then(setCampaigns);
+    await executeCampaign(id);
+    getCampaigns().then(setCampaigns);
   };
 
   const handleViewConv = async (conv: WaConversation) => {
     setActiveConv(conv);
-    const msgs = await wa.getMessages(conv.id);
+    const msgs = await getMessages(conv.id);
     setActiveMessages(msgs);
   };
 
   const handleAnalyze = async (convId: number) => {
-    await wa.analyzeConversation(convId);
+    await analyzeConversation(convId);
     setTimeout(() => {
-      wa.getConversations(platform).then(res => {
+      getConversations(platform).then(res => {
         setConversations(res);
         const updated = res.find(c => c.id === convId);
         if (updated) {
@@ -134,7 +151,7 @@ export default function LocalWhatsAppPage() {
   };
 
   const handleSaveRules = async () => {
-    const ok = await wa.updateSyncRules(syncRules);
+    const ok = await updateSyncRules(syncRules);
     if (ok) { setRulesSaved(true); setTimeout(() => setRulesSaved(false), 3000); }
   };
 
@@ -164,10 +181,10 @@ export default function LocalWhatsAppPage() {
       </div>
 
       {/* Error Banner */}
-      {wa.error && (
+      {error && (
         <div className="flex items-center gap-2 rounded-lg border border-[var(--status-danger)]/20 bg-[color-mix(in_oklch,var(--status-danger)_5%,transparent)] px-4 py-2 text-sm text-[var(--status-danger)]">
-          <AlertCircle className="h-4 w-4" /> {wa.error}
-          <button onClick={wa.clearError} className="ml-auto text-xs underline">Dismiss</button>
+          <AlertCircle className="h-4 w-4" /> {error}
+          <button onClick={clearError} className="ml-auto text-xs underline">Dismiss</button>
         </div>
       )}
 
@@ -188,14 +205,14 @@ export default function LocalWhatsAppPage() {
           </div>
           <div className="flex gap-2">
             {session.status === "connected" && (
-              <button onClick={handleDisconnect} disabled={wa.loading}
+              <button onClick={handleDisconnect} disabled={loading}
                 className="flex items-center gap-1.5 rounded-lg border border-[var(--status-danger)]/20 px-3 py-1.5 text-xs font-medium text-[var(--status-danger)] hover:bg-[var(--status-danger)]/10 disabled:opacity-50">
                 Disconnect
               </button>
             )}
             {session.status === "disconnected" && (
-              <Button variant="default" size="sm" disabled={wa.loading} onClick={handleConnect}>
-                {wa.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wifi className="h-3.5 w-3.5" />}
+              <Button variant="default" size="sm" disabled={loading} onClick={handleConnect}>
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wifi className="h-3.5 w-3.5" />}
                 Connect
               </Button>
             )}
@@ -242,7 +259,7 @@ export default function LocalWhatsAppPage() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <p className="text-xs font-medium">Waiting for scan on mobile device...</p>
                 </div>
-                <button onClick={handleRefreshQr} disabled={wa.loading}
+                <button onClick={handleRefreshQr} disabled={loading}
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
                   <RefreshCw className="h-3 w-3" /> Refresh QR
                 </button>
@@ -302,8 +319,8 @@ export default function LocalWhatsAppPage() {
                   <label className="text-xs font-medium text-muted-foreground">Message</label>
                   <Textarea value={dmText} onChange={e => setDmText(e.target.value)} placeholder="Type your message..." rows={4} className="mt-1" />
                 </div>
-                <Button variant="default" className="w-full" disabled={wa.loading || !dmPhone || !dmText} onClick={handleSendDm}>
-                  {wa.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Send Message
+                <Button variant="default" className="w-full" disabled={loading || !dmPhone || !dmText} onClick={handleSendDm}>
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Send Message
                 </Button>
                 {dmSent && (
                   <p className="flex items-center gap-1 text-xs text-[var(--status-success)] font-medium"><CheckCircle2 className="h-3.5 w-3.5" /> Message sent successfully!</p>
@@ -337,8 +354,8 @@ export default function LocalWhatsAppPage() {
                   <label className="text-xs font-medium text-muted-foreground">Message Template</label>
                   <Textarea value={bcMessage} onChange={e => setBcMessage(e.target.value)} placeholder="Hello! We'd like to introduce..." rows={3} className="mt-1" />
                 </div>
-                <Button variant="default" size="sm" disabled={wa.loading || !bcName || !bcMessage || !bcLeadIds} onClick={handleCreateCampaign}>
-                  {wa.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Create Campaign
+                <Button variant="default" size="sm" disabled={loading || !bcName || !bcMessage || !bcLeadIds} onClick={handleCreateCampaign}>
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Create Campaign
                 </Button>
               </div>
             )}
@@ -361,7 +378,7 @@ export default function LocalWhatsAppPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">{c.total_targets} recipients</span>
                       {c.status === "draft" && (
-                        <button onClick={() => handleExecuteCampaign(c.id)} disabled={wa.loading || session.status !== "connected"}
+                        <button onClick={() => handleExecuteCampaign(c.id)} disabled={loading || session.status !== "connected"}
                           className="flex items-center gap-1 rounded bg-[var(--status-success)] px-2.5 py-1 text-[10px] font-medium text-white hover:opacity-80 disabled:opacity-50">
                           <Send className="h-3 w-3" /> Execute
                         </button>
@@ -520,8 +537,8 @@ export default function LocalWhatsAppPage() {
                 <Button variant="secondary" size="sm" onClick={addRule}>
                   <Plus className="h-3 w-3" /> Add Rule
                 </Button>
-                <Button variant="default" size="sm" disabled={wa.loading} onClick={handleSaveRules}>
-                  {wa.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />} Save Rules
+                <Button variant="default" size="sm" disabled={loading} onClick={handleSaveRules}>
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />} Save Rules
                 </Button>
                 {rulesSaved && <span className="text-xs text-[var(--status-success)] font-medium">Saved!</span>}
               </div>

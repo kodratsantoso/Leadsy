@@ -11,7 +11,14 @@ import {
 } from "@/lib/hooks/use-whatsapp";
 
 export default function MekariQontakPage() {
-  const wa = useWhatsApp();
+  const {
+    getConversations,
+    getMessages,
+    analyzeConversation,
+    error,
+    clearError,
+    loading
+  } = useWhatsApp();
   const platform = "mekari_qontak";
 
   // ── Conversations State ──
@@ -25,19 +32,19 @@ export default function MekariQontakPage() {
     setActiveMessages([]);
     setConversations([]);
     // Load rooms
-    wa.getConversations("mekari_qontak").then(setConversations);
-  }, [wa]);
+    getConversations("mekari_qontak").then(setConversations);
+  }, [getConversations]);
 
   const handleViewConv = async (conv: WaConversation) => {
     setActiveConv(conv);
-    const msgs = await wa.getMessages(conv.id);
+    const msgs = await getMessages(conv.id);
     setActiveMessages(msgs);
   };
 
   const handleAnalyze = async (convId: number) => {
-    await wa.analyzeConversation(convId);
+    await analyzeConversation(convId);
     setTimeout(() => {
-      wa.getConversations(platform).then(res => {
+      getConversations(platform).then(res => {
         setConversations(res);
         const updated = res.find(c => c.id === convId);
         if (updated) {
@@ -57,10 +64,10 @@ export default function MekariQontakPage() {
       </div>
 
       {/* Error Banner */}
-      {wa.error && (
+      {error && (
         <div className="flex items-center gap-2 rounded-lg border border-[var(--status-danger)]/20 bg-[color-mix(in_oklch,var(--status-danger)_5%,transparent)] px-4 py-2 text-sm text-[var(--status-danger)]">
-          <AlertCircle className="h-4 w-4" /> {wa.error}
-          <button onClick={wa.clearError} className="ml-auto text-xs underline">Dismiss</button>
+          <AlertCircle className="h-4 w-4" /> {error}
+          <button onClick={clearError} className="ml-auto text-xs underline">Dismiss</button>
         </div>
       )}
 
@@ -73,7 +80,7 @@ export default function MekariQontakPage() {
               <p className="text-[10px] text-muted-foreground">Live rooms synced from Mekari Omnichannel Hub</p>
             </div>
             <button
-              onClick={() => wa.getConversations("mekari_qontak").then(setConversations)}
+              onClick={() => getConversations("mekari_qontak").then(setConversations)}
               className="flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent/30 p-1.5 text-xs"
             >
               <RefreshCw className="h-3.5 w-3.5" />
@@ -136,9 +143,10 @@ export default function MekariQontakPage() {
                 </div>
                 <button
                   onClick={() => handleAnalyze(activeConv.id)}
-                  className="flex items-center gap-1.5 rounded-md bg-[var(--brand)] px-2.5 py-1.5 text-xs font-semibold text-white hover:opacity-90 shadow-sm"
+                  disabled={loading}
+                  className="flex items-center gap-1.5 rounded-md bg-[var(--brand)] px-2.5 py-1.5 text-xs font-semibold text-white hover:opacity-90 shadow-sm disabled:opacity-55"
                 >
-                  <Sparkles className="h-3.5 w-3.5" /> Analyze Lead
+                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Analyze Lead
                 </button>
               </div>
 
