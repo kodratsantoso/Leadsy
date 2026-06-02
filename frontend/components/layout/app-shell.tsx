@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Map, Building2, Package,
   MessageSquare, Settings, ClipboardCheck,
-  ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2
+  ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
+  Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText
 } from "lucide-react";
 import { useState, useRef, useEffect, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -52,7 +53,29 @@ const navItems: NavItem[] = [
       { href: "/whatsapp/qontak", icon: MessageSquare, label: "Mekari Qontak" },
     ],
   },
-  { href: "/settings",               icon: Settings,        label: "Settings" },
+  {
+    href: "/settings",
+    icon: Settings,
+    label: "Settings",
+    children: [
+      { href: "/settings/users",          icon: Users,        label: "Users & Roles" },
+      { href: "/settings/targets",        icon: Target,       label: "Target Cascades" },
+      { href: "/settings/ai-defaults",    icon: Bot,          label: "AI Defaults" },
+      { href: "/settings/industries",     icon: Layers,       label: "Industries" },
+      { href: "/settings/icp-profiles",   icon: Target,       label: "ICP Profiles" },
+      { href: "/settings/audit-logs",     icon: FileText,     label: "Audit Logs" },
+      { href: "/settings/lead-sources",    icon: Tags,         label: "Lead Sources" },
+      { href: "/settings/lead-channels",   icon: GitBranch,    label: "Lead Channels" },
+      { href: "/settings/lead-stages",     icon: GitBranch,    label: "Lead Stages" },
+      { href: "/settings/currency",        icon: Coins,        label: "Currency" },
+      { href: "/settings/integrations",    icon: Key,          label: "Integration Settings" },
+      { href: "/settings/webhooks",        icon: Webhook,      label: "Webhooks" },
+      { href: "/settings/environment",     icon: Globe,        label: "Environment" },
+      { href: "/settings/notifications",   icon: Bell,         label: "Notifications" },
+      { href: "/settings/backup",          icon: Database,     label: "Backup & Recovery" },
+      { href: "/settings/security",        icon: Shield,       label: "Security" },
+    ],
+  },
 ];
 
 function ThemedLogo({ collapsed }: { collapsed: boolean }) {
