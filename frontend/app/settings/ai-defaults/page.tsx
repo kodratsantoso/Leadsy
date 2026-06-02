@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  ArrowLeft,
   Bot,
   Check,
   ChevronDown,
@@ -24,7 +22,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -553,9 +552,7 @@ export default function AiDefaultsPage() {
   if (error || !data) {
     return (
       <div className="space-y-4 p-6">
-        <Link href="/settings" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back to Settings
-        </Link>
+        <BackToSettings />
         <div className="rounded-3xl border border-[var(--status-danger)]/20 bg-[color-mix(in_oklch,var(--status-danger)_5%,transparent)] p-6">
           <p className="font-semibold text-[var(--status-danger)]">Unable to load AI Defaults</p>
           <p className="mt-2 text-sm text-muted-foreground">{(error as Error)?.message ?? "Unknown error"}</p>
@@ -569,10 +566,7 @@ export default function AiDefaultsPage() {
       <Card>
         <CardHeader>
           <div className="space-y-1">
-            <Link href="/settings" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}>
-              <ArrowLeft className="h-4 w-4" />
-              Back to Settings
-            </Link>
+            <BackToSettings />
             <CardTitle>AI Default</CardTitle>
             <CardDescription>
               One standardized control center for providers, routing, prompts, and usage health.

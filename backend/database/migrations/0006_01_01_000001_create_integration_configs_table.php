@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('integration_configs', function (Blueprint $table) {
             $table->id();
             $table->string('category')->index(); // 'maps', 'whatsapp', 'general'
-            $table->string('key')->unique();
+            $table->string('key');
             $table->text('value_encrypted')->nullable(); // Stored encrypted
             $table->string('value_type')->default('string'); // 'string', 'boolean', 'json'
             $table->boolean('is_secret')->default(false);

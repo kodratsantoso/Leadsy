@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import {
   Plus, Pencil, Trash2, Loader2, Target, CheckCircle,
-  XCircle, ArrowLeft, Zap, Sparkles, AlertCircle, ChevronDown, ChevronUp,
+  XCircle, Zap, Sparkles, AlertCircle, ChevronDown, ChevronUp,
 } from "lucide-react";
-import Link from "next/link";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -292,11 +292,7 @@ export default function IcpProfilesPage() {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/settings">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" />
-          </span>
-        </Link>
+        <BackToSettings />
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">ICP Profiles</h1>
           <p className="text-sm text-muted-foreground">

@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterBar, FilterBarSearch } from "@/components/ui/filter-bar";
 import { Input, Textarea } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
 import { apiFetch } from "@/lib/apiFetch";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { cn } from "@/lib/utils";
 
 type RolePermission = {
@@ -99,6 +100,7 @@ const tabItems = [
 
 export default function SettingsUsersPage() {
   const queryClient = useQueryClient();
+  const { formatCurrency, formatAmountInput, normalizeAmountInput } = useNumberFormat();
   const [tab, setTab] = useState<(typeof tabItems)[number]["key"]>("users");
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -331,13 +333,7 @@ export default function SettingsUsersPage() {
       <Card>
         <CardHeader>
           <div className="space-y-1">
-            <Link
-              href="/settings"
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Settings
-            </Link>
+            <BackToSettings />
             <CardTitle>Users & Roles</CardTitle>
             <CardDescription>Unified RBAC management using the shared admin table, tabs, and modal system.</CardDescription>
           </div>
@@ -409,7 +405,7 @@ export default function SettingsUsersPage() {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1 text-sm">
-                        <p className="font-medium">{user.target_revenue ?? "—"}</p>
+                        <p className="font-medium">{formatCurrency(user.target_revenue)}</p>
                         <p className="text-xs capitalize text-muted-foreground">{user.target_period ?? "monthly"}</p>
                       </div>
                     </TableCell>
@@ -659,12 +655,12 @@ export default function SettingsUsersPage() {
             <div className="grid gap-2">
               <label className="text-sm font-medium">Target Revenue</label>
               <Input
-                type="number"
-                min="0"
-                value={userForm.target_revenue}
+                inputMode="decimal"
+                value={formatAmountInput(userForm.target_revenue)}
                 onChange={(event) =>
-                  setUserForm((current) => ({ ...current, target_revenue: event.target.value }))
+                  setUserForm((current) => ({ ...current, target_revenue: normalizeAmountInput(event.target.value) }))
                 }
+                placeholder="e.g. 100,000,000"
               />
             </div>
           </div>

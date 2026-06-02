@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\QualificationWorkflowReviewController;
 use App\Http\Controllers\Api\RevenueRuleController;
 use App\Http\Controllers\Api\SalesVisitController;
 use App\Http\Controllers\Api\TerritoryController;
+use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
@@ -67,6 +68,7 @@ Route::prefix('auth')->group(function () {
 
 // ── Public Integrations (e.g. Browser Maps Key, APP_NAME, APP_ENV) ──
 Route::get('settings/public', [IntegrationConfigController::class, 'publicSettings']);
+Route::get('opensearch/contacts', [\App\Http\Controllers\Api\OpenSearchController::class, 'searchContacts']);
 
 // ── Webhooks (Must be outside Sanctum) ──
 Route::prefix('webhooks')->group(function () {
@@ -96,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard
     Route::get('dashboard', [DashboardController::class, 'index']);
+    Route::post('dashboard/ai-insight', [DashboardController::class, 'aiInsight']);
     Route::get('dashboard/heatmap', [DashboardController::class, 'heatmap']);
 
     // Leads — CRUD + Discovery + Export
@@ -109,6 +112,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/currency-format', [CurrencySettingController::class, 'format']);
     Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
     Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');
+    Route::get('settings/targets', [TargetController::class, 'index'])->middleware('permission:users.manage');
+    Route::post('settings/targets', [TargetController::class, 'update'])->middleware('permission:users.manage');
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/assign', [LeadController::class, 'assign'])->middleware('permission:leads.edit');
@@ -120,9 +125,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('leads/{lead}/contacts/{contact}', [LeadController::class, 'deleteContact'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts/{contact}/set-primary', [LeadController::class, 'setPrimaryContact'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/enrich-contacts', [LeadController::class, 'triggerContactEnrichment'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/contact-enrichment/google-linkedin/candidates', [ContactEnrichmentController::class, 'googleCandidates'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/contact-enrichment/google-linkedin/search', [ContactEnrichmentController::class, 'searchGoogleLinkedin'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/contact-enrichment/google-linkedin/candidates/{candidate}/add-contact', [ContactEnrichmentController::class, 'addGoogleCandidateToContact'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/contact-enrichment/lusha/candidates', [ContactEnrichmentController::class, 'lushaCandidates'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/contact-enrichment/lusha/search', [ContactEnrichmentController::class, 'searchLusha'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contact-enrichment/lusha/candidates/{candidate}/reveal-phone', [ContactEnrichmentController::class, 'revealLushaPhone'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/contact-enrichment/linkedin/candidates', [ContactEnrichmentController::class, 'linkedinCandidates'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/contact-enrichment/linkedin/search', [ContactEnrichmentController::class, 'searchLinkedin'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/contact-enrichment/linkedin/candidates/{candidate}/add-contact', [ContactEnrichmentController::class, 'addLinkedinCandidateToContact'])->middleware('permission:leads.edit');
 
     // Lead Intelligence Routes (Module A — Lead Scoring, Qualification, Product Matching, AI Analysis)
     Route::post('qualification/evaluate', [QualificationController::class, 'evaluate'])->middleware('permission:leads.view');
@@ -233,6 +244,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Integration Configurations (settings)
     Route::get('settings/integrations', [IntegrationConfigController::class, 'index'])->middleware('permission:integrations.manage');
+    Route::get('settings/integrations/google/permissions', [IntegrationConfigController::class, 'googlePermissions'])->middleware('permission:integrations.manage');
     Route::post('settings/integrations', [IntegrationConfigController::class, 'store'])->middleware('permission:integrations.manage');
     Route::delete('settings/integrations/{integrationConfig}', [IntegrationConfigController::class, 'destroy'])->middleware('permission:integrations.manage');
     Route::get('settings/integration-platforms', [IntegrationPlatformController::class, 'registry'])->middleware('permission:integrations.manage');

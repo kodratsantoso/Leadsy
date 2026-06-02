@@ -16,6 +16,7 @@ class AIRoutingService
         'product_understanding' => 'Product Understanding',
         'icp_generation' => 'ICP Profile Generation',
         'meeting_evaluation' => 'Meeting Evaluation',
+        'conversation_evaluation' => 'Conversation Evaluation',
         'transcript_evaluation' => 'Transcript Evaluation',
         'next_action_recommendation' => 'Next Action Recommendation',
         'recommendation_engine' => 'Recommendation Engine',
@@ -26,6 +27,8 @@ class AIRoutingService
         'geo_product_fit_analysis' => 'Geo Product Fit Analysis',
         'product_question_generation' => 'Product Question Guide Generation',
         'lead_bantc_question_generation' => 'Lead BANTC Question Guide Generation',
+        'lead_contact_google_search_keyword' => 'Lead Contact Google Search Keyword',
+        'dashboard_ai_insight' => 'Dashboard AI Insight',
     ];
 
     public function listRoutes(): Collection

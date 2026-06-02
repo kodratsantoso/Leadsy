@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { APIProvider, AdvancedMarker, InfoWindow, Map } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search } from "lucide-react";
+import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import Link from "next/link";
@@ -14,6 +14,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeaderCell, TableRow, TableShell } from "@/components/ui/table";
+import dynamic from "next/dynamic";
+import Highcharts from "highcharts";
+
+// Dynamically import chart libraries to bypass Next.js SSR document reference errors
+const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+const HighchartsReact = dynamic(() => import("highcharts-react-official"), { ssr: false });
 
 const DEFAULT_CENTER = { lat: -6.2088, lng: 106.8456 };
 
@@ -128,6 +134,127 @@ function hrefWithParam(href: string, key: string, value: string): string {
   return `${url.pathname}${url.search}`;
 }
 
+function CountdownWidget() {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth(); // 0-indexed
+      let endMonth;
+
+      if (month >= 0 && month <= 2) {
+        endMonth = 2; // March
+      } else if (month >= 3 && month <= 5) {
+        endMonth = 5; // June
+      } else if (month >= 6 && month <= 8) {
+        endMonth = 8; // September
+      } else {
+        endMonth = 11; // December
+      }
+
+      const endOfQuarter = new Date(year, endMonth + 1, 0, 23, 59, 59, 999);
+      const diff = endOfQuarter.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+      }
+
+      return {
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      };
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatNum = (n: number) => String(n).padStart(2, "0");
+  const quarterNum = Math.floor(new Date().getMonth() / 3) + 1;
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_5%,transparent)] px-3 py-1.5 backdrop-blur-sm shadow-sm">
+      <Clock className="h-4 w-4 text-[color:var(--brand)] animate-pulse" />
+      <span className="text-xs font-semibold text-muted-foreground mr-1">Q{quarterNum} Ends:</span>
+      <div className="flex items-center gap-1 font-mono text-xs font-bold text-[color:var(--brand)]">
+        <span>{formatNum(timeLeft.days)}</span>
+        <span className="text-muted-foreground font-sans font-medium text-[10px]">d</span>
+        <span className="text-muted-foreground/50">:</span>
+        <span>{formatNum(timeLeft.hours)}</span>
+        <span className="text-muted-foreground font-sans font-medium text-[10px]">h</span>
+        <span className="text-muted-foreground/50">:</span>
+        <span>{formatNum(timeLeft.minutes)}</span>
+        <span className="text-muted-foreground font-sans font-medium text-[10px]">m</span>
+        <span className="text-muted-foreground/50">:</span>
+        <span className="text-rose-500">{formatNum(timeLeft.seconds)}</span>
+        <span className="text-muted-foreground font-sans font-medium text-[10px]">s</span>
+      </div>
+    </div>
+  );
+}
+
+function MapMarkersAndInfo({
+  mapPoints,
+  selectedMapPoint,
+  setSelectedMapPoint
+}: {
+  mapPoints: DashboardMapPoint[];
+  selectedMapPoint: DashboardMapPoint | null;
+  setSelectedMapPoint: (point: DashboardMapPoint | null) => void;
+}) {
+  const apiIsLoaded = useApiIsLoaded();
+  if (!apiIsLoaded) return null;
+
+  return (
+    <>
+      {mapPoints.map((point) => (
+        <AdvancedMarker
+          key={point.id}
+          position={{ lat: Number(point.lat), lng: Number(point.lng) }}
+          onClick={() => setSelectedMapPoint(point)}
+        >
+          <div className="flex flex-col items-center">
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background text-white shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer animate-fade-in"
+              style={{ backgroundColor: resolveStageColor(point.funnel_stage?.color) }}
+            >
+              <MapPin className="h-4 w-4" />
+            </div>
+          </div>
+        </AdvancedMarker>
+      ))}
+      {selectedMapPoint ? (
+        <InfoWindow
+          position={{ lat: Number(selectedMapPoint.lat), lng: Number(selectedMapPoint.lng) }}
+          onCloseClick={() => setSelectedMapPoint(null)}
+        >
+          <div className="min-w-48 space-y-2 text-sm text-foreground p-1">
+            <p className="font-semibold">{selectedMapPoint.company_name}</p>
+            <p className="text-xs text-muted-foreground">{selectedMapPoint.address || "No address"}</p>
+            <div className="flex items-center justify-between gap-2 border-t border-border pt-1.5 mt-1 text-xs">
+              <span className="font-medium flex items-center gap-1.5" style={{ color: resolveStageColor(selectedMapPoint.funnel_stage?.color) }}>
+                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: resolveStageColor(selectedMapPoint.funnel_stage?.color) }} />
+                {selectedMapPoint.funnel_stage?.name ?? "Unassigned"}
+              </span>
+              <span className="text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                Score {selectedMapPoint.lead_score ?? "—"}
+              </span>
+            </div>
+          </div>
+        </InfoWindow>
+      ) : null}
+    </>
+  );
+}
+
 export default function DashboardPage() {
   const { formatNumber, formatCurrency } = useNumberFormat();
   const [mapsApiKey, setMapsApiKey] = useState("");
@@ -136,6 +263,65 @@ export default function DashboardPage() {
   const [drilldown, setDrilldown] = useState<DrilldownState>(null);
   const [drilldownSearch, setDrilldownSearch] = useState("");
   const [drilldownPage, setDrilldownPage] = useState(1);
+
+  const [colors, setColors] = useState({
+    brand: "#8b5cf6",
+    success: "#10b981",
+    warning: "#f59e0b",
+    danger: "#ef4444",
+    info: "#3b82f6",
+    mutedForeground: "#6b7280"
+  });
+
+  const getCSSVar = (name: string, fallback: string) => {
+    if (typeof window === "undefined") return fallback;
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  };
+
+  useEffect(() => {
+    const updateColors = () => {
+      setColors({
+        brand: getCSSVar("--brand", "#8b5cf6"),
+        success: getCSSVar("--success", "#10b981"),
+        warning: getCSSVar("--warning", "#f59e0b"),
+        danger: getCSSVar("--danger", "#ef4444"),
+        info: getCSSVar("--info", "#3b82f6"),
+        mutedForeground: getCSSVar("--muted-foreground", "#6b7280"),
+      });
+    };
+    updateColors();
+    const observer = new MutationObserver(updateColors);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const apiIsLoaded = useApiIsLoaded();
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiData, setAiData] = useState<{
+    explanation?: string;
+    strategic_suggestions?: string[];
+    critical_points?: string[];
+  } | null>(null);
+  const [aiError, setAiError] = useState("");
+
+  const fetchAiInsight = async (refresh = false) => {
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const res = await apiFetch(`/dashboard/ai-insight${refresh ? "?refresh=true" : ""}`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Gagal memuat insight");
+      const json = await res.json();
+      setAiData(json.data);
+    } catch (err: any) {
+      setAiError(err.message || "Gagal menghubungi server");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   useEffect(() => {
     apiFetch("/settings/public")
@@ -151,9 +337,11 @@ export default function DashboardPage() {
       });
   }, []);
 
+  const [period, setPeriod] = useState("month");
+
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: async () => { const r = await apiFetch("/dashboard"); return r.json(); },
+    queryKey: ["dashboard", period],
+    queryFn: async () => { const r = await apiFetch(`/dashboard?period=${period}`); return r.json(); },
   });
 
   const { data: pqData } = useQuery({
@@ -194,6 +382,7 @@ export default function DashboardPage() {
       change: dashboard.leads_change ?? null,
       color: "from-[var(--brand)] to-[oklch(0.558_0.288_302.321)]",
       href: "/leads",
+      trend: dashboard.metrics_trends?.total_leads ?? [],
     },
     {
       label: "Qualified",
@@ -202,23 +391,57 @@ export default function DashboardPage() {
       change: dashboard.qualified_change ?? null,
       color: "from-[var(--status-success)] to-[oklch(0.627_0.194_149)]",
       href: "/leads?qualification_status=eligible",
+      trend: dashboard.metrics_trends?.qualified_leads ?? [],
     },
     {
       label: "In Pipeline",
       value: dashboard.pipeline_leads ?? dashboard.total_leads ?? "—",
       icon: TrendingUp,
-      change: null,
+      change: dashboard.pipeline_change ?? null,
       color: "from-[var(--status-info)] to-[oklch(0.527_0.183_249)]",
       href: "/leads?pipeline_status=active",
+      trend: dashboard.metrics_trends?.pipeline_leads ?? [],
     },
     {
       label: "Duplicate Rate",
       value: dashboard.duplicate_rate ?? (dashboard.duplicate_ratio != null ? `${dashboard.duplicate_ratio}%` : "—"),
       icon: AlertTriangle,
-      change: null,
+      change: dashboard.duplicate_change ?? null,
       color: "from-[var(--status-warning)] to-[oklch(0.65_0.22_50)]",
       href: "/leads?duplicate_status=duplicates",
+      trend: dashboard.metrics_trends?.duplicate_rate ?? [],
     },
+  ];
+
+  const statusStats = [
+    {
+      label: "Pending",
+      value: dashboard.by_status?.pending ?? 0,
+      color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+      icon: RefreshCw,
+      href: "/leads?qualification_status=pending"
+    },
+    {
+      label: "Potential",
+      value: dashboard.by_status?.potential ?? 0,
+      color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+      icon: Activity,
+      href: "/leads?qualification_status=potential"
+    },
+    {
+      label: "Eligible",
+      value: dashboard.by_status?.eligible ?? 0,
+      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+      icon: CheckCircle2,
+      href: "/leads?qualification_status=eligible"
+    },
+    {
+      label: "Not Eligible",
+      value: dashboard.by_status?.not_eligible ?? 0,
+      color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+      icon: AlertTriangle,
+      href: "/leads?qualification_status=not_eligible"
+    }
   ];
 
   const recentLeads = dashboard.recent_leads || [];
@@ -238,74 +461,129 @@ export default function DashboardPage() {
     funnelKey: "won" | "lost",
     title: string,
     steps: TrackingFunnelStep[]
-  ) => (
-    <Card className="h-full bg-background">
-      <div className="flex items-center justify-between p-5 pb-3">
-        <div>
-          <h3 className="text-base font-semibold">{title}</h3>
-          <p className="text-xs text-muted-foreground">Conversion starts from Belum Di Klasifikasi. Click any bar to drill down.</p>
-        </div>
-        <Badge variant={funnelKey === "won" ? "success" : "danger"}>
-          {funnelKey === "won" ? "Won" : "Lost"}
-        </Badge>
-      </div>
-      <div className="space-y-4 px-5 pb-5 pt-2">
-        {steps.map((step: TrackingFunnelStep, index: number) => {
-          const firstValue = Math.max(Number(steps[0]?.value ?? 0), 1);
-          const count = Number(step.value) || 0;
-          const percentage = Number(step.percentage ?? ((count / firstValue) * 100));
-          const barPct = index === 0
-            ? 100
-            : count <= 0
-              ? 0
-              : Math.max(3, Math.min(100, percentage));
-          const tooltip = `${step.label}: ${formatNumber(step.value, { decimals: 0 })} leads, ${formatNumber(percentage, { decimals: 1 })}% conversion. Click to open filtered data.`;
-          return (
-            <button
-              type="button"
-              key={`${funnelKey}-${step.id ?? step.label}`}
-              onClick={() => openDrilldown({
+  ) => {
+    const hasData = steps.length > 0;
+    const chartOptions: ApexCharts.ApexOptions = {
+      chart: {
+        type: "bar",
+        height: 380,
+        toolbar: { show: false },
+        events: {
+          dataPointSelection: (event: any, chartContext: any, config: any) => {
+            const stepIndex = config.dataPointIndex;
+            const step = steps[stepIndex];
+            if (step) {
+              const tooltip = `${step.label}: ${formatNumber(step.value, { decimals: 0 })} leads, ${formatNumber(step.percentage ?? 0, { decimals: 1 })}% conversion.`;
+              openDrilldown({
                 title: `${title} · ${step.label}`,
                 description: tooltip,
                 href: step.href,
-              })}
-              className="group grid w-full grid-cols-[112px_minmax(0,1fr)_116px] items-center gap-3 text-left text-sm sm:grid-cols-[150px_minmax(0,1fr)_144px]"
-              aria-label={tooltip}
-              title={tooltip}
-            >
-              <span className="truncate text-right text-xs font-medium text-muted-foreground sm:text-sm">
-                {step.label}
-              </span>
-              <span className="relative h-12 min-w-0">
-                <span
-                  className="absolute top-1/2 h-px -translate-y-1/2 bg-border"
-                  style={{ left: `${barPct}%`, right: 0 }}
-                />
-                <span
-                  className="absolute left-0 top-0 h-full rounded-sm bg-[color-mix(in_oklch,var(--status-info)_58%,var(--status-success))] transition-all duration-500 group-hover:bg-[color-mix(in_oklch,var(--status-info)_70%,var(--status-success))]"
-                  style={{ width: `${barPct}%` }}
-                />
-              </span>
-              <span className="border-l border-border pl-2">
-                <span className="block text-sm font-bold tabular-nums text-foreground">
-                  {formatNumber(step.value, { decimals: 0 })}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {formatNumber(percentage, { decimals: 1 })}%
-                </span>
-                <span className="mt-1 block text-xs font-medium tabular-nums text-foreground">
-                  {formatCurrency(step.estimated_amount ?? 0)}
-                </span>
-                <span className="block text-[11px] text-muted-foreground">
-                  Est. {formatNumber(step.estimated_percentage ?? 0, { decimals: 1 })}%
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </Card>
-  );
+              });
+            }
+          }
+        }
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          barHeight: "55%",
+          distributed: true,
+          borderRadius: 4,
+        }
+      },
+      colors: funnelKey === "won"
+        ? [colors.brand, "oklch(0.67 0.13 276)", "oklch(0.72 0.16 281)", "oklch(0.78 0.13 281)", "oklch(0.84 0.08 281)"]
+        : [colors.danger, "oklch(0.75 0.14 24)", "oklch(0.8 0.12 24)", "oklch(0.85 0.1 24)", "oklch(0.9 0.08 24)"],
+      dataLabels: {
+        enabled: false,
+      },
+      grid: {
+        borderColor: "var(--border)",
+        xaxis: { lines: { show: false } },
+        yaxis: { lines: { show: false } }
+      },
+      xaxis: {
+        categories: steps.map(s => s.label),
+        labels: {
+          show: true,
+          style: {
+            colors: colors.mutedForeground,
+          }
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false }
+      },
+      yaxis: {
+        labels: {
+          show: true,
+          style: {
+            colors: colors.mutedForeground,
+            fontSize: "12px",
+          }
+        }
+      },
+      tooltip: {
+        theme: "dark",
+        custom: function ({ series, seriesIndex, dataPointIndex, w }) {
+          const step = steps[dataPointIndex];
+          if (!step) return '';
+          const totalLeads = formatNumber(step.value, { decimals: 0 });
+          const conversionPct = formatNumber(step.percentage ?? 0, { decimals: 1 });
+          const estAmount = formatCurrency(step.estimated_amount ?? 0);
+          const estPct = formatNumber(step.estimated_percentage ?? 0, { decimals: 1 });
+
+          return `
+            <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg shadow-xl text-white font-sans min-w-[220px]">
+              <div class="font-semibold text-sm mb-2 pb-1 border-b border-slate-800 text-white">${step.label}</div>
+              <div class="space-y-1 text-xs">
+                <div class="flex justify-between gap-4">
+                  <span class="text-slate-400">Total Leads:</span>
+                  <span class="font-medium text-white">${totalLeads}</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <span class="text-slate-400">Presentase Konversi:</span>
+                  <span class="font-medium text-white">${conversionPct}%</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <span class="text-slate-400">Amount Estimated:</span>
+                  <span class="font-medium text-white">${estAmount} (${estPct}%)</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      },
+      legend: { show: false }
+    };
+
+    const series = [{
+      name: "Leads",
+      data: steps.map(s => Number(s.value) || 0)
+    }];
+
+    return (
+      <Card className="h-full bg-background">
+        <div className="flex items-center justify-between p-5 pb-3">
+          <div>
+            <h3 className="text-base font-semibold">{title}</h3>
+            <p className="text-xs text-muted-foreground">Conversion starts from Belum Di Klasifikasi. Click any bar to drill down.</p>
+          </div>
+          <Badge variant={funnelKey === "won" ? "success" : "danger"}>
+            {funnelKey === "won" ? "Won" : "Lost"}
+          </Badge>
+        </div>
+        <div className="px-5 pb-5 pt-2">
+          {hasData ? (
+            <div className="w-full min-h-[380px]">
+              <Chart type="bar" options={chartOptions} series={series} height={380} />
+            </div>
+          ) : (
+            <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No tracking funnel data yet.</p>
+          )}
+        </div>
+      </Card>
+    );
+  };
 
   const renderSourceChannelList = (
     items: SourceChannelAggregate[],
@@ -356,9 +634,31 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Overview of your lead intelligence pipeline</p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Overview of your lead intelligence pipeline</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <CountdownWidget />
+
+          <div className="flex items-center rounded-lg border border-border bg-background/50 p-1 backdrop-blur-sm shadow-sm">
+            {["week", "biweekly", "month", "quarter", "year"].map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize ${period === p
+                    ? "bg-[color:var(--brand)] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                  }`}
+              >
+                {p === "biweekly" ? "Biweekly" : p}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
@@ -366,427 +666,1099 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-          {/* Stat cards — each opens an in-dashboard filtered drilldown */}
-          <div className="md:col-span-12" data-tour="dashboard-kpis">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Key Metrics</CardTitle>
-                  <CardDescription>Core lead indicators with drilldown shortcuts.</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {stats.map((s) => (
-                    <button
-                      key={s.label}
-                      type="button"
-                      onClick={() => openDrilldown({
-                        title: s.label,
-                        description: `${s.label} leads filtered from the dashboard metric.`,
-                        href: s.href,
-                      })}
-                      className="group relative block overflow-hidden rounded-xl border border-border bg-background p-4 text-left transition-all hover:border-[var(--brand)]/40"
-                    >
-                      <div className="flex items-center justify-between">
+            {/* Key Metrics — each opens an in-dashboard filtered drilldown */}
+            <div className="md:col-span-8" data-tour="dashboard-kpis">
+              <Card className="h-full flex flex-col justify-between">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Key Metrics</CardTitle>
+                    <CardDescription>Core lead indicators with historical trends.</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col justify-center">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {stats.map((s) => (
+                      <button
+                        key={s.label}
+                        type="button"
+                        onClick={() => openDrilldown({
+                          title: s.label,
+                          description: `${s.label} leads filtered from the dashboard metric.`,
+                          href: s.href,
+                        })}
+                        className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border bg-background p-4 text-left transition-all hover:border-[var(--brand)]/40 shadow-sm"
+                      >
+                        <div className="flex w-full items-start justify-between">
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
+                            <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? formatNumber(s.value, { decimals: 0 }) : s.value}</p>
+                          </div>
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} shadow-lg`}>
+                            <s.icon className="h-5 w-5 text-white" />
+                          </div>
+                        </div>
+
+                        {/* Sparkline & Deltas */}
+                        <div className="mt-4 flex w-full items-center justify-between gap-4">
+                          <div className="text-xs font-semibold">
+                            {s.change ? (
+                              <span className={s.change.startsWith("+") ? "text-emerald-500" : s.change.startsWith("-") ? "text-rose-500" : "text-muted-foreground"}>
+                                {s.change}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
+                          {s.trend && s.trend.length > 0 ? (
+                            <div className="h-10 w-24">
+                              <Chart
+                                type="area"
+                                options={{
+                                  chart: {
+                                    sparkline: { enabled: true },
+                                    animations: { enabled: false }
+                                  },
+                                  stroke: { curve: "smooth", width: 1.5 },
+                                  fill: {
+                                    type: "gradient",
+                                    gradient: {
+                                      shadeIntensity: 1,
+                                      opacityFrom: 0.35,
+                                      opacityTo: 0.05
+                                    }
+                                  },
+                                  colors: [s.change?.startsWith("-") ? "#ef4444" : "#10b981"],
+                                  tooltip: { enabled: false }
+                                }}
+                                series={[{ data: s.trend }]}
+                                height={40}
+                                width={96}
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Qualification Status */}
+            <div className="md:col-span-4" data-tour="dashboard-qualification">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Qualification Status</CardTitle>
+                    <CardDescription>Pipeline distribution by validation status.</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-3">
+                    {statusStats.map((status) => (
+                      <button
+                        key={status.label}
+                        type="button"
+                        onClick={() => openDrilldown({
+                          title: `${status.label} Leads`,
+                          description: `Leads with qualification status: ${status.label.toLowerCase()}.`,
+                          href: status.href,
+                        })}
+                        className="group relative flex items-center justify-between rounded-xl border border-border bg-background p-3 text-left transition-all hover:border-[var(--brand)]/40 hover:bg-muted/10"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-lg border ${status.color}`}>
+                            <status.icon className="h-4.5 w-4.5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{status.label}</p>
+                            <p className="text-xs text-muted-foreground">Click to view leads</p>
+                          </div>
+                        </div>
+                        <p className="text-xl font-bold">{formatNumber(status.value, { decimals: 0 })}</p>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-6" data-tour="dashboard-funnel">
+              {renderFunnelCard("won", "Leads → Closed Won", wonTrackingFunnel)}
+            </div>
+
+            <div className="md:col-span-6">
+              {renderFunnelCard("lost", "Leads → Closed Lost", lostTrackingFunnel)}
+            </div>
+
+            <div className="md:col-span-6">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Sales Volume</CardTitle>
+                    <CardDescription>Closed Won value grouped by product. Click columns to drill down.</CardDescription>
+                  </div>
+                  <Badge variant="info">Won value</Badge>
+                </CardHeader>
+                <CardContent>
+                  {salesVolumeRows.length > 0 ? (
+                    <div className="w-full">
+                      <HighchartsReact
+                        highcharts={Highcharts}
+                        options={{
+                          chart: {
+                            type: 'column',
+                            backgroundColor: 'transparent',
+                            height: 300,
+                            style: {
+                              fontFamily: 'var(--font-sans)'
+                            }
+                          },
+                          title: { text: null },
+                          credits: { enabled: false },
+                          xAxis: {
+                            categories: salesVolumeRows.map(row => row.label),
+                            labels: {
+                              style: { color: colors.mutedForeground }
+                            },
+                            lineColor: 'var(--border)',
+                            tickColor: 'var(--border)'
+                          },
+                          yAxis: {
+                            title: {
+                              text: 'Value (Rp)',
+                              style: { color: colors.mutedForeground }
+                            },
+                            labels: {
+                              style: { color: colors.mutedForeground },
+                              formatter: function (this: Highcharts.AxisLabelsFormatterContextObject) {
+                                return formatNumber(Number(this.value) / 1e6, { decimals: 0 }) + 'M';
+                              }
+                            },
+                            gridLineColor: 'var(--border)'
+                          },
+                          legend: { enabled: false },
+                          plotOptions: {
+                            column: {
+                              borderRadius: 5,
+                              color: colors.info,
+                              cursor: 'pointer',
+                              point: {
+                                events: {
+                                  click: function (this: Highcharts.Point) {
+                                    const idx = this.index;
+                                    const item = salesVolumeRows[idx];
+                                    if (item) {
+                                      openDrilldown({
+                                        title: `Sales Volume · ${item.label}`,
+                                        description: `Closed Won leads for ${item.label}.`,
+                                        href: hrefWithParam(item.href, "outcome", "won"),
+                                      });
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          tooltip: {
+                            formatter: function (this: any) {
+                              return `<b>${this.key}</b><br/>Value: ${formatCurrency(this.y ?? 0)}`;
+                            }
+                          },
+                          series: [{
+                            name: 'Sales Volume',
+                            data: salesVolumeRows.map(row => Number(row.value) || 0)
+                          }]
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <p className="py-6 text-center text-sm text-muted-foreground">No Closed Won sales volume yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-6">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Total Market</CardTitle>
+                    <CardDescription>Lead count grouped by product. Click columns to drill down.</CardDescription>
+                  </div>
+                  <Badge variant="neutral">Lead count</Badge>
+                </CardHeader>
+                <CardContent>
+                  {totalMarket.length > 0 ? (
+                    <div className="w-full">
+                      <HighchartsReact
+                        highcharts={Highcharts}
+                        options={{
+                          chart: {
+                            type: 'column',
+                            backgroundColor: 'transparent',
+                            height: 300,
+                            style: {
+                              fontFamily: 'var(--font-sans)'
+                            }
+                          },
+                          title: { text: null },
+                          credits: { enabled: false },
+                          xAxis: {
+                            categories: totalMarket.map(row => row.label),
+                            labels: {
+                              style: { color: colors.mutedForeground }
+                            },
+                            lineColor: 'var(--border)',
+                            tickColor: 'var(--border)'
+                          },
+                          yAxis: {
+                            title: {
+                              text: 'Lead Count',
+                              style: { color: colors.mutedForeground }
+                            },
+                            labels: {
+                              style: { color: colors.mutedForeground }
+                            },
+                            gridLineColor: 'var(--border)'
+                          },
+                          legend: { enabled: false },
+                          plotOptions: {
+                            column: {
+                              borderRadius: 5,
+                              color: colors.brand,
+                              cursor: 'pointer',
+                              point: {
+                                events: {
+                                  click: function (this: Highcharts.Point) {
+                                    const idx = this.index;
+                                    const item = totalMarket[idx];
+                                    if (item) {
+                                      openDrilldown({
+                                        title: `Total Market · ${item.label}`,
+                                        description: `Leads grouped under ${item.label} (${formatCurrency(item.estimated_volume ?? 0)} est. volume)`,
+                                        href: item.href,
+                                      });
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          tooltip: {
+                            formatter: function (this: any) {
+                              const idx = this.point.index;
+                              const item = totalMarket[idx];
+                              return `<b>${this.key}</b><br/>Leads: ${formatNumber(this.y ?? 0, { decimals: 0 })}<br/>Est. Volume: ${formatCurrency(item?.estimated_volume ?? 0)}`;
+                            }
+                          },
+                          series: [{
+                            name: 'Total Market',
+                            data: totalMarket.map(row => Number(row.value) || 0)
+                          }]
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <p className="py-6 text-center text-sm text-muted-foreground">No product market aggregate yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-12" data-tour="dashboard-source-channel">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Lead Sources & Channels</CardTitle>
+                    <CardDescription>Total leads grouped by source and channel, with drilldown. Click pie slices to filter.</CardDescription>
+                  </div>
+                  <Badge variant="info">Lead origin</Badge>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <div>
+                      <div className="mb-4 flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
-                          <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? formatNumber(s.value, { decimals: 0 }) : s.value}</p>
+                          <p className="text-sm font-semibold">Lead Sources</p>
+                          <p className="text-xs text-muted-foreground">Origin taxonomy from lead source records.</p>
                         </div>
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} shadow-lg`}>
-                          <s.icon className="h-5 w-5 text-white" />
-                        </div>
+                        <BarChart3 className="h-4 w-4 text-[color:var(--status-info)]" />
                       </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-6" data-tour="dashboard-funnel">
-            {renderFunnelCard("won", "Leads → Closed Won", wonTrackingFunnel)}
-          </div>
-
-          <div className="md:col-span-6">
-            {renderFunnelCard("lost", "Leads → Closed Lost", lostTrackingFunnel)}
-          </div>
-
-          <div className="md:col-span-6">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Sales Volume</CardTitle>
-                  <CardDescription>Closed Won value grouped by product.</CardDescription>
-                </div>
-                <Badge variant="info">Won value</Badge>
-              </CardHeader>
-              <CardContent>
-                  <div className="mb-4 flex items-center justify-between">
-                  </div>
-                  <div className="space-y-3">
-                    {salesVolumeRows.length > 0 ? salesVolumeRows.map((item) => {
-                      const maxValue = Math.max(...salesVolumeRows.map((row) => Number(row.value) || 0), 1);
-                      const pct = Number(item.value) <= 0 ? 0 : Math.max(3, (Number(item.value) / maxValue) * 100);
-                      return (
-                        <button
-                          key={item.href}
-                          type="button"
-                          onClick={() => openDrilldown({
-                            title: `Sales Volume · ${item.label}`,
-                            description: `Closed Won leads for ${item.label}.`,
-                            href: hrefWithParam(item.href, "outcome", "won"),
-                          })}
-                          className="group block w-full rounded-lg border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/30"
-                        >
-                          <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                            <span className="min-w-0 truncate text-muted-foreground">{item.label}</span>
-                            <span className="shrink-0 whitespace-nowrap text-xs font-semibold">{formatCurrency(item.value)}</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted/50">
-                            <div className="h-full rounded-full bg-[color:var(--status-info)] transition-all duration-500 group-hover:bg-[color:var(--brand)]" style={{ width: `${pct}%` }} />
-                          </div>
-                        </button>
-                      );
-                    }) : (
-                      <p className="py-6 text-center text-sm text-muted-foreground">No Closed Won sales volume yet.</p>
-                    )}
-                  </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-6">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Total Market</CardTitle>
-                  <CardDescription>Lead count grouped by product.</CardDescription>
-                </div>
-                <Badge variant="neutral">Lead count</Badge>
-              </CardHeader>
-              <CardContent>
-                  <div className="space-y-3">
-                    {totalMarket.length > 0 ? totalMarket.map((item) => {
-                      const maxValue = Math.max(...totalMarket.map((row) => Number(row.value) || 0), 1);
-                      const pct = Number(item.value) <= 0 ? 0 : Math.max(4, (Number(item.value) / maxValue) * 100);
-                      return (
-                        <button
-                          key={item.href}
-                          type="button"
-                          onClick={() => openDrilldown({
-                            title: `Total Market · ${item.label}`,
-                            description: `Leads grouped under ${item.label}.`,
-                            href: item.href,
-                          })}
-                          className="group block w-full rounded-lg border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/30"
-                        >
-                          <div className="mb-2 flex items-start justify-between gap-3 text-sm">
-                            <div className="min-w-0">
-                              <p className="truncate text-muted-foreground">{item.label}</p>
-                              <p className="text-xs text-muted-foreground">{formatCurrency(item.estimated_volume ?? 0)} est.</p>
-                            </div>
-                            <span className="shrink-0 text-sm font-bold tabular-nums">{formatNumber(item.value, { decimals: 0 })}</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-muted/50">
-                            <div className="h-full rounded-full bg-[color:var(--brand)] transition-all duration-500 group-hover:bg-[color:var(--status-info)]" style={{ width: `${pct}%` }} />
-                          </div>
-                        </button>
-                      );
-                    }) : (
-                      <p className="py-6 text-center text-sm text-muted-foreground">No product market aggregate yet.</p>
-                    )}
-                  </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-12" data-tour="dashboard-source-channel">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Lead Sources & Channels</CardTitle>
-                  <CardDescription>Total leads grouped by source and channel, with drilldown to filtered Leads.</CardDescription>
-                </div>
-                <Badge variant="info">Lead origin</Badge>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <div>
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">Lead Sources</p>
-                        <p className="text-xs text-muted-foreground">Origin taxonomy from lead source records.</p>
-                      </div>
-                      <BarChart3 className="h-4 w-4 text-[color:var(--status-info)]" />
-                    </div>
-                    {renderSourceChannelList(leadSources, Math.max(...leadSources.map((item) => Number(item.value) || 0), 1))}
-                  </div>
-                  <div>
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">Lead Channels</p>
-                        <p className="text-xs text-muted-foreground">Channel detail under each lead source.</p>
-                      </div>
-                      <Activity className="h-4 w-4 text-[color:var(--brand)]" />
-                    </div>
-                    {renderSourceChannelList(
-                      leadChannels,
-                      Math.max(...leadChannels.map((item) => Number(item.value) || 0), 1),
-                      { showSource: true }
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-12">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Pipeline Quality</CardTitle>
-                  <CardDescription>Score health, distribution, and actionable quality notes.</CardDescription>
-                </div>
-                {pq ? <PipelineHealthBadge health={pq.pipeline_health} /> : null}
-              </CardHeader>
-              <CardContent>
-                {pq ? (
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    <div className="rounded-xl border border-border bg-background p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <TrendingUp className="h-4 w-4 text-[var(--status-success)]" />
-                        <p className="text-sm font-semibold">Average Score</p>
-                      </div>
-                      <p className="text-4xl font-bold tabular-nums">{formatNumber(pq.average_score, { decimals: 0 })}</p>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Average lead quality across the current database.
-                      </p>
-                      <div className="mt-4">
-                        <ScoreMeter
-                          value={pq.average_score}
-                          color={pq.average_score >= 80 ? "var(--status-success)" : pq.average_score >= 60 ? "var(--status-warning)" : "var(--status-danger)"}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-border bg-background p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <BarChart3 className="h-4 w-4 text-[var(--status-info)]" />
-                        <p className="text-sm font-semibold">Score Distribution</p>
-                      </div>
-                      <div className="space-y-3">
-                        {scoreDistribution.map((item: { band: "hot" | "warm" | "cold"; count: number; percentage: number }) => (
-                          <div key={item.band}>
-                            <div className="mb-1 flex items-center justify-between text-xs">
-                              <span className="font-medium uppercase">{item.band}</span>
-                              <span className="text-muted-foreground">{item.count} leads · {item.percentage}%</span>
-                            </div>
-                            <ScoreMeter
-                              value={item.percentage}
-                              color={item.band === "hot" ? "var(--status-success)" : item.band === "warm" ? "var(--status-warning)" : "var(--status-info)"}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-border bg-background p-5">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Sparkles className="h-4 w-4 text-[var(--brand)]" />
-                        <p className="text-sm font-semibold">Quality Insights</p>
-                      </div>
-                      {qualityInsights.length > 0 ? (
-                        <div className="space-y-3">
-                          {qualityInsights.map((insight) => (
-                            <div key={insight} className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">
-                              {insight}
-                            </div>
-                          ))}
+                      {leadSources.length > 0 ? (
+                        <div className="w-full">
+                          <HighchartsReact
+                            highcharts={Highcharts}
+                            options={{
+                              chart: {
+                                type: 'pie',
+                                backgroundColor: 'transparent',
+                                height: 300,
+                                style: {
+                                  fontFamily: 'var(--font-sans)'
+                                }
+                              },
+                              title: { text: null },
+                              credits: { enabled: false },
+                              plotOptions: {
+                                pie: {
+                                  innerSize: '60%',
+                                  cursor: 'pointer',
+                                  dataLabels: {
+                                    enabled: true,
+                                    format: '<b>{point.name}</b>: {point.y}',
+                                    style: {
+                                      color: colors.mutedForeground,
+                                      textOutline: 'none',
+                                      fontSize: '11px'
+                                    }
+                                  },
+                                  point: {
+                                    events: {
+                                      click: function (this: Highcharts.Point) {
+                                        const idx = this.index;
+                                        const item = leadSources[idx];
+                                        if (item) {
+                                          openDrilldown({
+                                            title: `Lead Source · ${item.label}`,
+                                            description: `${item.label}: ${formatNumber(item.value, { decimals: 0 })} leads.`,
+                                            href: item.href,
+                                          });
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              series: [{
+                                name: 'Lead Sources',
+                                colorByPoint: true,
+                                data: leadSources.map(item => ({
+                                  name: item.label,
+                                  y: Number(item.value) || 0
+                                }))
+                              }]
+                            }}
+                          />
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Insights will appear as lead quality data accumulates.</p>
+                        <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead source data yet.</p>
+                      )}
+                    </div>
+                    <div>
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">Lead Channels</p>
+                          <p className="text-xs text-muted-foreground">Channel detail under each lead source.</p>
+                        </div>
+                        <Activity className="h-4 w-4 text-[color:var(--brand)]" />
+                      </div>
+                      {leadChannels.length > 0 ? (
+                        <div className="w-full">
+                          <HighchartsReact
+                            highcharts={Highcharts}
+                            options={{
+                              chart: {
+                                type: 'pie',
+                                backgroundColor: 'transparent',
+                                height: 300,
+                                style: {
+                                  fontFamily: 'var(--font-sans)'
+                                }
+                              },
+                              title: { text: null },
+                              credits: { enabled: false },
+                              plotOptions: {
+                                pie: {
+                                  innerSize: '60%',
+                                  cursor: 'pointer',
+                                  dataLabels: {
+                                    enabled: true,
+                                    format: '<b>{point.name}</b>: {point.y}',
+                                    style: {
+                                      color: colors.mutedForeground,
+                                      textOutline: 'none',
+                                      fontSize: '11px'
+                                    }
+                                  },
+                                  point: {
+                                    events: {
+                                      click: function (this: Highcharts.Point) {
+                                        const idx = this.index;
+                                        const item = leadChannels[idx];
+                                        if (item) {
+                                          openDrilldown({
+                                            title: `Lead Channel · ${item.label}`,
+                                            description: `${item.label}: ${formatNumber(item.value, { decimals: 0 })} leads (Source: ${item.source_label ?? "Unassigned"}).`,
+                                            href: item.href,
+                                          });
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              series: [{
+                                name: 'Lead Channels',
+                                colorByPoint: true,
+                                data: leadChannels.map(item => ({
+                                  name: item.label,
+                                  y: Number(item.value) || 0
+                                }))
+                              }]
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">No lead channel data yet.</p>
                       )}
                     </div>
                   </div>
-                ) : (
-                  <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">Pipeline quality data is still loading.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="md:col-span-8" data-tour="dashboard-map">
-            <Card className="flex h-full flex-col">
-              <CardHeader>
-                <div className="mb-4 flex items-center justify-between">
+            <div className="md:col-span-12">
+              <Card className="h-full">
+                <CardHeader>
                   <div>
-                    <CardTitle>Lead Geography</CardTitle>
-                    <CardDescription>Database-backed leads with stage-colored POI markers.</CardDescription>
+                    <CardTitle>Pipeline Quality</CardTitle>
+                    <CardDescription>Score health, distribution, and actionable quality notes.</CardDescription>
                   </div>
-                  <Badge variant="info">{formatNumber(mapPoints.length, { decimals: 0 })} mapped</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="min-h-0 flex-1">
-                <div className="h-full min-h-[260px] overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)]">
-                {mapsEnabled && mapsApiKey ? (
-                  <APIProvider apiKey={mapsApiKey}>
-                    <Map
-                      mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
-                      defaultCenter={mapCenter}
-                      defaultZoom={mapPoints.length > 0 ? 11 : 6}
-                      gestureHandling="greedy"
-                      disableDefaultUI={false}
-                    >
-                      {mapPoints.map((point) => (
-                        <AdvancedMarker
-                          key={point.id}
-                          position={{ lat: Number(point.lat), lng: Number(point.lng) }}
-                          onClick={() => setSelectedMapPoint(point)}
-                        >
-                          <div className="flex flex-col items-center">
-                            <div
-                              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background text-white shadow-lg"
-                              style={{ backgroundColor: resolveStageColor(point.funnel_stage?.color) }}
-                            >
-                              <MapPin className="h-4 w-4" />
-                            </div>
+                  {pq ? <PipelineHealthBadge health={pq.pipeline_health} /> : null}
+                </CardHeader>
+                <CardContent>
+                  {pq ? (
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      <div className="rounded-xl border border-border bg-background p-5 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-4 w-4 text-[var(--status-success)]" />
+                            <p className="text-sm font-semibold">Average Score</p>
                           </div>
-                        </AdvancedMarker>
-                      ))}
-                      {selectedMapPoint ? (
-                        <InfoWindow
-                          position={{ lat: Number(selectedMapPoint.lat), lng: Number(selectedMapPoint.lng) }}
-                          onCloseClick={() => setSelectedMapPoint(null)}
-                        >
-                          <div className="min-w-48 space-y-2 text-sm text-foreground">
-                            <p className="font-semibold">{selectedMapPoint.company_name}</p>
-                            <p className="text-xs text-muted-foreground">{selectedMapPoint.address || "No address"}</p>
-                            <div className="flex items-center gap-2">
-                              <span>{selectedMapPoint.funnel_stage?.name ?? "Unassigned"}</span>
-                              <span>Score {selectedMapPoint.lead_score ?? "—"}</span>
-                            </div>
+                          <p className="text-xs text-muted-foreground mb-4">
+                            Average lead quality across the current database.
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-center py-2">
+                          <Chart
+                            type="radialBar"
+                            options={{
+                              chart: {
+                                type: "radialBar",
+                                height: 320,
+                                sparkline: { enabled: true }
+                              },
+                              plotOptions: {
+                                radialBar: {
+                                  startAngle: -90,
+                                  endAngle: 90,
+                                  hollow: { size: "65%" },
+                                  track: {
+                                    background: 'var(--muted)',
+                                    strokeWidth: '97%',
+                                  },
+                                  dataLabels: {
+                                    name: {
+                                      show: true,
+                                      fontSize: "14px",
+                                      color: colors.mutedForeground,
+                                      offsetY: 45
+                                    },
+                                    value: {
+                                      offsetY: -10,
+                                      fontSize: "36px",
+                                      fontWeight: "bold",
+                                      color: getCSSVar("--foreground", "#000")
+                                    }
+                                  }
+                                }
+                              },
+                              colors: [
+                                pq.average_score >= 80 ? colors.success : pq.average_score >= 60 ? colors.warning : colors.danger
+                              ],
+                              labels: ["Avg Score"]
+                            }}
+                            series={[pq.average_score ?? 0]}
+                            height={320}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-border bg-background p-5">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BarChart3 className="h-4 w-4 text-[var(--status-info)]" />
+                          <p className="text-sm font-semibold">Score Distribution</p>
+                        </div>
+                        <div className="w-full flex items-center justify-center">
+                          <HighchartsReact
+                            highcharts={Highcharts}
+                            options={{
+                              chart: {
+                                type: 'pie',
+                                backgroundColor: 'transparent',
+                                height: 320,
+                                style: {
+                                  fontFamily: 'var(--font-sans)'
+                                }
+                              },
+                              title: { text: null },
+                              credits: { enabled: false },
+                              plotOptions: {
+                                pie: {
+                                  innerSize: '60%',
+                                  cursor: 'pointer',
+                                  dataLabels: {
+                                    enabled: true,
+                                    format: '<b>{point.name}</b><br>{point.percentage:.0f}%',
+                                    style: {
+                                      color: colors.mutedForeground,
+                                      textOutline: 'none',
+                                      fontSize: '12px'
+                                    }
+                                  }
+                                }
+                              },
+                              series: [{
+                                name: 'Distribution',
+                                data: scoreDistribution.map((item: any) => {
+                                  let color = colors.info;
+                                  if (item.band === "hot") color = colors.success;
+                                  if (item.band === "warm") color = colors.warning;
+                                  return {
+                                    name: item.band.toUpperCase(),
+                                    y: Number(item.count) || 0,
+                                    color: color
+                                  };
+                                })
+                              }]
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-border bg-background p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Sparkles className="h-4 w-4 text-[var(--brand)]" />
+                          <p className="text-sm font-semibold">Quality Insights</p>
+                        </div>
+                        {qualityInsights.length > 0 ? (
+                          <div className="space-y-3">
+                            {qualityInsights.map((insight) => (
+                              <div key={insight} className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">
+                                {insight}
+                              </div>
+                            ))}
                           </div>
-                        </InfoWindow>
-                      ) : null}
-                    </Map>
-                  </APIProvider>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                    Maps are unavailable. Configure the public Google Maps browser key to enable this block.
-                  </div>
-                )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-4">
-            <Card className="h-full">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-[color:var(--brand)]" />
-                  <div>
-                    <CardTitle>Achievement Sales</CardTitle>
-                    <CardDescription className="capitalize">{salesAchievement.period ?? "monthly"} target</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-end justify-between gap-3">
-                      <div>
-                        <p className="text-xs uppercase text-muted-foreground">Realisasi Revenue</p>
-                        <p className="text-2xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Insights will appear as lead quality data accumulates.</p>
+                        )}
                       </div>
-                      <p className="text-sm font-semibold text-[color:var(--brand)]">
-                        {Number(salesAchievement.target_revenue ?? 0) > 0
-                          ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
-                          : "No target"}
-                      </p>
                     </div>
-                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
-                      <div
-                        className="h-full rounded-full bg-[color:var(--brand)]"
-                        style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Target Revenue</p>
-                      <p className="font-semibold">{formatCurrency(salesAchievement.target_revenue)}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const params = new URLSearchParams({ outcome: "won" });
-                        if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
-                        if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
-                        openDrilldown({
-                          title: "Achievement Sales · Closed Won",
-                          description: "Closed Won leads inside the active target period.",
-                          href: `/leads?${params.toString()}`,
-                        });
-                      }}
-                      className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70"
-                    >
-                      <p className="text-xs text-muted-foreground">Closed Won</p>
-                      <p className="font-semibold">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {(salesAchievement.trend ?? []).slice(-6).map((item: { date: string; total: number }) => (
-                      <div key={item.date} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">
-                        <span className="text-muted-foreground">{item.date}</span>
-                        <span className="font-medium">{formatCurrency(item.total)}</span>
-                      </div>
-                    ))}
-                    {(salesAchievement.trend ?? []).length === 0 ? (
-                      <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Closed Won realization will appear here.</p>
-                    ) : null}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-12">
-            <Card className="h-full">
-              <CardHeader>
-                <div>
-                  <CardTitle>Recent Leads</CardTitle>
-                  <CardDescription>Latest leads in your accessible workspace.</CardDescription>
-                </div>
-                <Link href="/leads" className="text-xs text-[var(--brand)] hover:text-[var(--brand-light)]">View all →</Link>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {recentLeads.length > 0 ? recentLeads.map((lead: any) => (
-                    <Link href={`/leads/${lead.id}`} key={lead.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5 transition-colors hover:bg-accent/30">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{lead.company_name}</p>
-                        <p className="text-sm text-muted-foreground">{lead.created_at ? new Date(lead.created_at).toLocaleDateString() : ""}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${
-                          lead.qualification_status === "eligible" ? "bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]"
-                          : lead.qualification_status === "potential" ? "bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] text-[var(--status-warning)]"
-                          : "bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]"
-                        }`}>
-                          {(lead.qualification_status || "pending").replace("_", " ")}
-                        </span>
-                        <span className="text-sm font-bold tabular-nums">{lead.lead_score ?? "—"}</span>
-                      </div>
-                    </Link>
-                  )) : (
-                    <p className="py-8 text-center text-xs text-muted-foreground">No recent leads.</p>
+                  ) : (
+                    <p className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">Pipeline quality data is still loading.</p>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-8" data-tour="dashboard-map">
+              <Card className="flex h-full flex-col">
+                <CardHeader>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <CardTitle>Lead Geography</CardTitle>
+                      <CardDescription>Database-backed leads with stage-colored POI markers.</CardDescription>
+                    </div>
+                    <Badge variant="info">{formatNumber(mapPoints.length, { decimals: 0 })} mapped</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="min-h-0 flex-1">
+                  <div className="h-full min-h-[260px] overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)]">
+                    {mapsEnabled && mapsApiKey ? (
+                      <APIProvider apiKey={mapsApiKey}>
+                        <Map
+                          mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
+                          defaultCenter={mapCenter}
+                          defaultZoom={mapPoints.length > 0 ? 11 : 6}
+                          gestureHandling="greedy"
+                          disableDefaultUI={false}
+                        >
+                          <MapMarkersAndInfo
+                            mapPoints={mapPoints}
+                            selectedMapPoint={selectedMapPoint}
+                            setSelectedMapPoint={setSelectedMapPoint}
+                          />
+                        </Map>
+                      </APIProvider>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                        Maps are unavailable. Configure the public Google Maps browser key to enable this block.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="md:col-span-4">
+              {salesAchievement.tier_level === "PRESALES" ? (
+                <Card className="h-full">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
+                      <div>
+                        <CardTitle>Technical Trust Validation</CardTitle>
+                        <CardDescription>Presales Solution Architect KPIs</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 flex flex-col justify-between h-full">
+                      {/* 2x2 KPI Grid */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Technical Win Rate</p>
+                          <p className="text-lg font-bold text-[color:var(--brand)]">{salesAchievement.technical_win_rate}%</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">POC Success Rate</p>
+                          <p className="text-lg font-bold text-emerald-500">{salesAchievement.poc_success_rate}%</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Integration Fit</p>
+                          <p className="text-lg font-bold text-blue-500">{salesAchievement.integration_fit_score}%</p>
+                        </div>
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">SLA Response</p>
+                          <p className="text-lg font-bold text-amber-500">{salesAchievement.sla_response_time} hrs</p>
+                        </div>
+                      </div>
+
+                      {/* Quota Progress */}
+                      <div>
+                        <div className="flex items-end justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase text-muted-foreground">Opportunities Assigned</p>
+                            <p className="text-xl font-bold">{formatNumber(salesAchievement.realized_revenue, { decimals: 0 })} Leads</p>
+                          </div>
+                          <p className="text-sm font-semibold text-[color:var(--brand)]">
+                            {Number(salesAchievement.target_revenue ?? 0) > 0
+                              ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
+                              : "No target"}
+                          </p>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
+                          <div
+                            className="h-full rounded-full bg-[color:var(--brand)]"
+                            style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-muted/40 p-3 flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">Target Opportunities:</span>
+                        <span className="font-semibold">{formatNumber(salesAchievement.target_revenue, { decimals: 0 })}</span>
+                      </div>
+
+                      {/* Opportunity Sourcing Trend */}
+                      <div className="pt-2">
+                        {(salesAchievement.trend ?? []).length > 0 ? (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Assignment Intake Trend</p>
+                            <Chart
+                              type="area"
+                              options={{
+                                chart: {
+                                  type: "area",
+                                  height: 120,
+                                  toolbar: { show: false },
+                                  zoom: { enabled: false },
+                                  animations: { enabled: false }
+                                },
+                                colors: [colors.brand],
+                                fill: {
+                                  type: "gradient",
+                                  gradient: {
+                                    shadeIntensity: 1,
+                                    opacityFrom: 0.45,
+                                    opacityTo: 0.05,
+                                    stops: [0, 100]
+                                  }
+                                },
+                                stroke: {
+                                  curve: "smooth",
+                                  width: 3
+                                },
+                                dataLabels: { enabled: false },
+                                grid: {
+                                  borderColor: "var(--border)",
+                                  xaxis: { lines: { show: false } },
+                                  yaxis: { lines: { show: true } }
+                                },
+                                xaxis: {
+                                  categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
+                                  labels: {
+                                    style: { colors: colors.mutedForeground, fontSize: '10px' }
+                                  },
+                                  axisBorder: { show: false },
+                                  axisTicks: { show: false }
+                                },
+                                yaxis: {
+                                  labels: {
+                                    style: { colors: colors.mutedForeground, fontSize: '10px' },
+                                    formatter: (val) => formatNumber(val, { decimals: 0 })
+                                  }
+                                },
+                                tooltip: {
+                                  theme: "dark",
+                                  y: {
+                                    formatter: (val) => formatNumber(val, { decimals: 0 }) + ' leads'
+                                  }
+                                }
+                              }}
+                              series={[{
+                                name: "Opportunities",
+                                data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
+                              }]}
+                              height={120}
+                            />
+                          </div>
+                        ) : (
+                          <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Assignment trend will appear here.</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="h-full">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-[color:var(--brand)]" />
+                      <div>
+                        <CardTitle>
+                          {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourcing" : "Achievement Sales"}
+                        </CardTitle>
+                        <CardDescription className="capitalize">{salesAchievement.period ?? "monthly"} target</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 flex flex-col justify-between h-full">
+                      <div>
+                        <div className="flex items-end justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase text-muted-foreground">
+                              {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced" : "Realisasi Revenue"}
+                            </p>
+                            <p className="text-2xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
+                          </div>
+                          <p className="text-sm font-semibold text-[color:var(--brand)]">
+                            {Number(salesAchievement.target_revenue ?? 0) > 0
+                              ? `${formatNumber(salesAchievement.achievement_percentage ?? 0, { decimals: 1 })}%`
+                              : "No target"}
+                          </p>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
+                          <div
+                            className="h-full rounded-full bg-[color:var(--brand)]"
+                            style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            {salesAchievement.target_type === "pipeline_value" ? "Target Pipeline" : "Target Revenue"}
+                          </p>
+                          <p className="font-semibold text-xs sm:text-sm truncate">{formatCurrency(salesAchievement.target_revenue)}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            if (salesAchievement.target_type === "pipeline_value") {
+                              // SDR sourced leads list
+                              params.set("created_by", String(dashboard.user?.id || ""));
+                            } else {
+                              params.set("outcome", "won");
+                            }
+                            if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
+                            if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
+                            openDrilldown({
+                              title: salesAchievement.target_type === "pipeline_value" ? "SDR Sourced Leads" : "Achievement Sales · Closed Won",
+                              description: salesAchievement.target_type === "pipeline_value" ? "Leads generated in the active target period." : "Closed Won leads inside the active target period.",
+                              href: `/leads?${params.toString()}`,
+                            });
+                          }}
+                          className="rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted/70 cursor-pointer"
+                        >
+                          <p className="text-xs text-muted-foreground">
+                            {salesAchievement.target_type === "pipeline_value" ? "Sourced Leads" : "Closed Won"}
+                          </p>
+                          <p className="font-semibold text-xs sm:text-sm">{formatNumber(salesAchievement.closed_won_count ?? 0, { decimals: 0 })} leads</p>
+                        </button>
+                      </div>
+                      <div className="pt-2">
+                        {(salesAchievement.trend ?? []).length > 0 ? (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-2">
+                              {salesAchievement.target_type === "pipeline_value" ? "Pipeline Sourced Trend" : "Revenue Realization Trend"}
+                            </p>
+                            <Chart
+                              type="area"
+                              options={{
+                                chart: {
+                                  type: "area",
+                                  height: 160,
+                                  toolbar: { show: false },
+                                  zoom: { enabled: false },
+                                  animations: { enabled: false }
+                                },
+                                colors: [colors.brand],
+                                fill: {
+                                  type: "gradient",
+                                  gradient: {
+                                    shadeIntensity: 1,
+                                    opacityFrom: 0.45,
+                                    opacityTo: 0.05,
+                                    stops: [0, 100]
+                                  }
+                                },
+                                stroke: {
+                                  curve: "smooth",
+                                  width: 3
+                                },
+                                dataLabels: { enabled: false },
+                                grid: {
+                                  borderColor: "var(--border)",
+                                  xaxis: { lines: { show: false } },
+                                  yaxis: { lines: { show: true } }
+                                },
+                                xaxis: {
+                                  categories: (salesAchievement.trend ?? []).slice(-6).map((item: any) => item.date),
+                                  labels: {
+                                    style: { colors: colors.mutedForeground, fontSize: '10px' }
+                                  },
+                                  axisBorder: { show: false },
+                                  axisTicks: { show: false }
+                                },
+                                yaxis: {
+                                  labels: {
+                                    style: { colors: colors.mutedForeground, fontSize: '10px' },
+                                    formatter: (val) => formatNumber(val / 1e6, { decimals: 0 }) + 'M'
+                                  }
+                                },
+                                tooltip: {
+                                  theme: "dark",
+                                  y: {
+                                    formatter: (val) => formatCurrency(val)
+                                  }
+                                }
+                              }}
+                              series={[{
+                                name: "Revenue",
+                                data: (salesAchievement.trend ?? []).slice(-6).map((item: any) => Number(item.total) || 0)
+                              }]}
+                              height={160}
+                            />
+                          </div>
+                        ) : (
+                          <p className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">Closed Won realization will appear here.</p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Quota Cascading & Team Breakdown for Manager/VP */}
+            {(salesAchievement.tier_level === "VP" || salesAchievement.tier_level === "MANAGER") && (salesAchievement.team_breakdown ?? []).length > 0 ? (
+              <div className="md:col-span-12">
+                <Card className="h-full">
+                  <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <CardTitle>Sales Quota Cascading & Target Accumulation</CardTitle>
+                      <CardDescription>
+                        Bottom-up target accumulation with a {salesAchievement.buffer_rate}% buffer protection.
+                      </CardDescription>
+                    </div>
+                    <Badge variant="success">
+                      Net Target Secured: {formatCurrency(salesAchievement.net_target)}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Summary Cards */}
+                    <div className="grid gap-4 sm:grid-cols-4">
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Team Quota (Gross)</p>
+                        <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.gross_target)}</p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expected Buffer Rate</p>
+                        <p className="mt-1 text-xl font-bold text-amber-500">{salesAchievement.buffer_rate}%</p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company Target (Net)</p>
+                        <p className="mt-1 text-xl font-bold text-emerald-500">{formatCurrency(salesAchievement.net_target)}</p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Realized Revenue</p>
+                        <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.realized_revenue)}</p>
+                      </div>
+                    </div>
+
+                    {/* Team Breakdown Table */}
+                    <div className="rounded-lg border border-border overflow-hidden bg-background">
+                      <TableShell>
+                        <Table>
+                          <TableHead>
+                            <TableRow className="hover:bg-transparent">
+                              <TableHeaderCell>Rep Name</TableHeaderCell>
+                              <TableHeaderCell>Tier Level</TableHeaderCell>
+                              <TableHeaderCell>Target Type</TableHeaderCell>
+                              <TableHeaderCell>Quota Target</TableHeaderCell>
+                              <TableHeaderCell>Realized Achievement</TableHeaderCell>
+                              <TableHeaderCell className="text-right">Progress</TableHeaderCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {salesAchievement.team_breakdown.map((rep: any) => {
+                              const isSdr = rep.tier_level === "SDR";
+                              const isPresales = rep.tier_level === "PRESALES";
+                              const barColor = isSdr
+                                ? "bg-indigo-500"
+                                : isPresales
+                                  ? "bg-emerald-500"
+                                  : "bg-[color:var(--brand)]";
+                              return (
+                                <TableRow key={rep.id} className="hover:bg-muted/30">
+                                  <TableCell>
+                                    <div className="font-semibold text-sm">{rep.name}</div>
+                                    <div className="text-xs text-muted-foreground">{rep.email}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge className="capitalize" variant={
+                                      rep.tier_level === "VP" ? "danger"
+                                        : rep.tier_level === "MANAGER" ? "warning"
+                                          : rep.tier_level === "SR_AE" ? "info"
+                                            : rep.tier_level === "JR_AE" ? "success"
+                                              : rep.tier_level === "PRESALES" ? "brand"
+                                                : "neutral"
+                                    }>
+                                      {rep.tier_level.replace("_", " ")}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs font-medium uppercase">
+                                    {rep.target_type === "pipeline_value" ? (
+                                      <span className="text-indigo-400 font-semibold">Pipeline Sourced</span>
+                                    ) : rep.target_type === "opportunities" ? (
+                                      <span className="text-amber-400 font-semibold">Opportunities Assigned</span>
+                                    ) : (
+                                      <span className="text-emerald-400 font-semibold">Closed-Won</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-sm">
+                                    {rep.target_type === "opportunities"
+                                      ? `${formatNumber(rep.target_revenue, { decimals: 0 })} Leads`
+                                      : formatCurrency(rep.target_revenue)}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-sm">
+                                    {rep.target_type === "opportunities"
+                                      ? `${formatNumber(rep.realized_revenue, { decimals: 0 })} Leads`
+                                      : formatCurrency(rep.realized_revenue)}
+                                  </TableCell>
+                                  <TableCell className="text-right min-w-[150px]">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const params = new URLSearchParams();
+                                        if (isSdr) {
+                                          params.set("created_by", rep.id);
+                                        } else if (isPresales) {
+                                          params.set("owner_id", rep.id);
+                                        } else {
+                                          params.set("outcome", "won");
+                                          params.set("owner_id", rep.id);
+                                        }
+                                        if (salesAchievement.period_start) params.set("closed_from", salesAchievement.period_start);
+                                        if (salesAchievement.period_end) params.set("closed_to", salesAchievement.period_end);
+
+                                        openDrilldown({
+                                          title: `${rep.name} · ${isSdr
+                                              ? "Sourced Leads"
+                                              : isPresales
+                                                ? "Assigned Opportunities"
+                                                : "Closed Won Leads"
+                                            }`,
+                                          description: `Leads contributed by ${rep.name} in the selected period.`,
+                                          href: `/leads?${params.toString()}`,
+                                        });
+                                      }}
+                                      className="block w-full text-left cursor-pointer group"
+                                    >
+                                      <div className="flex items-center justify-between text-xs font-bold mb-1">
+                                        <span className="group-hover:text-[var(--brand)] transition-colors">
+                                          {formatNumber(rep.achievement_percentage, { decimals: 1 })}%
+                                        </span>
+                                        <span className="text-muted-foreground group-hover:underline text-[10px]">Detail →</span>
+                                      </div>
+                                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                                          style={{ width: `${Math.min(100, rep.achievement_percentage)}%` }}
+                                        />
+                                      </div>
+                                    </button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </TableShell>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : null}
+
+            <div className="md:col-span-12">
+              <Card className="h-full">
+                <CardHeader>
+                  <div>
+                    <CardTitle>Recent Leads</CardTitle>
+                    <CardDescription>Latest leads in your accessible workspace.</CardDescription>
+                  </div>
+                  <Link href="/leads" className="text-xs text-[var(--brand)] hover:text-[var(--brand-light)]">View all →</Link>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {recentLeads.length > 0 ? recentLeads.map((lead: any) => (
+                      <Link href={`/leads/${lead.id}`} key={lead.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5 transition-colors hover:bg-accent/30">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{lead.company_name}</p>
+                          <p className="text-sm text-muted-foreground">{lead.created_at ? new Date(lead.created_at).toLocaleDateString() : ""}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold uppercase ${lead.qualification_status === "eligible" ? "bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]"
+                              : lead.qualification_status === "potential" ? "bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] text-[var(--status-warning)]"
+                                : "bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]"
+                            }`}>
+                            {(lead.qualification_status || "pending").replace("_", " ")}
+                          </span>
+                          <span className="text-sm font-bold tabular-nums">{lead.lead_score ?? "—"}</span>
+                        </div>
+                      </Link>
+                    )) : (
+                      <p className="py-8 text-center text-xs text-muted-foreground">No recent leads.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </>
       )}
@@ -889,6 +1861,147 @@ export default function DashboardPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Floating Action Button for AI Insights */}
+      <button
+        onClick={() => {
+          setAiModalOpen(true);
+          fetchAiInsight(false);
+        }}
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[color:var(--brand)] text-white shadow-lg shadow-[color:var(--brand)]/30 hover:scale-110 active:scale-95 transition-all duration-300 group cursor-pointer"
+        aria-label="AI Executive Insights"
+        title="AI Executive Insights"
+      >
+        <span className="absolute inset-0 rounded-full bg-[color:var(--brand)]/20 animate-ping group-hover:animate-none" />
+        <BrainCircuit className="h-6 w-6 relative z-10" />
+      </button>
+
+      {/* AI Executive Insights Modal */}
+      <Modal
+        open={aiModalOpen}
+        onOpenChange={setAiModalOpen}
+        title="AI Executive Insights"
+        description={aiLoading ? "Generating real-time intelligence..." : "Automated pipeline analytics, strategic recommendations, and critical alerts"}
+        size="xl"
+      >
+        {aiLoading ? (
+          <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)]">
+              <span className="absolute inset-0 rounded-full bg-[color:var(--brand)]/10 animate-ping" />
+              <BrainCircuit className="h-10 w-10 animate-pulse text-[var(--brand)]" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-foreground">AI is analyzing your sales funnel...</p>
+              <p className="text-xs text-muted-foreground max-w-md">
+                We are processing your latest lead statuses, estimated values, and conversion ratios to build strategic insights.
+              </p>
+            </div>
+          </div>
+        ) : aiError ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-sm">
+            <AlertTriangle className="h-12 w-12 text-[var(--status-danger)] mb-3" />
+            <p className="font-semibold text-foreground text-base">Gagal memuat AI Insight</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-md">{aiError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchAiInsight(false)}
+              className="mt-4 h-9 px-4 text-xs cursor-pointer"
+            >
+              Coba Lagi
+            </Button>
+          </div>
+        ) : aiData ? (
+          <div className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-12">
+              {/* Explanation / Maksud Angka */}
+              <div className="md:col-span-5 space-y-2 md:border-r border-border/50 md:pr-6 last:border-0 last:pr-0">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Activity className="h-3.5 w-3.5 text-[var(--status-info)]" />
+                  What the Numbers Mean
+                </h4>
+                <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
+                  {aiData.explanation || "No narrative explanation generated yet."}
+                </p>
+              </div>
+
+              {/* Critical Points */}
+              <div className="md:col-span-3 space-y-3 md:border-r border-border/50 md:pr-6 last:border-0 last:pr-0">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-[var(--status-danger)]" />
+                  Critical Risks & Points
+                </h4>
+                {aiData.critical_points && aiData.critical_points.length > 0 ? (
+                  <ul className="space-y-2">
+                    {aiData.critical_points.map((pt, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                        <span className="mt-1 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--status-danger)]" />
+                        <span>{pt}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No critical alerts detected in the current pipeline.</p>
+                )}
+              </div>
+
+              {/* Strategic Suggestions */}
+              <div className="md:col-span-4 space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
+                  Strategic Recommendations
+                </h4>
+                {aiData.strategic_suggestions && aiData.strategic_suggestions.length > 0 ? (
+                  <ul className="space-y-2">
+                    {aiData.strategic_suggestions.map((sug, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                        <span className="mt-1.5 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--brand)]" />
+                        <span>{sug}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No recommendations generated.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between border-t border-border pt-4 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchAiInsight(true)}
+                disabled={aiLoading}
+                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${aiLoading ? "animate-spin" : ""}`} />
+                Refresh Analytics
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAiModalOpen(false)}
+                className="h-8 text-xs cursor-pointer"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-sm">
+            <BrainCircuit className="h-10 w-10 text-muted-foreground mb-2" />
+            <p className="font-semibold text-foreground">No AI Insight loaded</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchAiInsight(false)}
+              className="mt-3 h-8 text-xs cursor-pointer"
+            >
+              Generate Insight
+            </Button>
+          </div>
+        )}
       </Modal>
     </div>
   );

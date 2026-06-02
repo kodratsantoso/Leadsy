@@ -80,5 +80,53 @@ export function useNumberFormat() {
       : `${symbol}${spacer}${formatted}`;
   };
 
-  return { setting, formatNumber, formatCurrency };
+  /** Strip thousand separators and normalise decimal separator so the stored
+   *  value is always a plain numeric string (e.g. "15000000" or "15000000.5").
+   *  This is safe to feed straight into `Number()` when submitting to the API. */
+  const normalizeAmountInput = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+
+    let normalized = trimmed;
+    const tSep = setting?.thousands_separator ?? ",";
+    const dSep = setting?.decimal_separator ?? ".";
+
+    if (tSep) {
+      normalized = normalized.replace(new RegExp(escapeRegExp(tSep), "g"), "");
+    }
+    if (dSep && dSep !== ".") {
+      normalized = normalized.replace(new RegExp(escapeRegExp(dSep), "g"), ".");
+    }
+
+    const sanitized = normalized.replace(/[^\d.]/g, "");
+    const [integerPart, ...fractionParts] = sanitized.split(".");
+    const integer = integerPart.replace(/^0+(?=\d)/, "");
+
+    if (fractionParts.length === 0) return integer;
+
+    const maxDecimalDigits = Math.max(0, setting?.decimal_digits ?? 2);
+    const fraction = fractionParts.join("").slice(0, maxDecimalDigits);
+    return maxDecimalDigits === 0 ? integer : `${integer || "0"}.${fraction}`;
+  };
+
+  /** Format a plain numeric string with thousand separators while the user is
+   *  typing, keeping the decimal part intact so the cursor doesn't jump. */
+  const formatAmountInput = (value: string) => {
+    if (!value) return "";
+
+    const [integerPart, fractionPart] = value.split(".");
+    const formattedInteger = formatNumber(integerPart || "0", { decimals: 0 });
+    const dSep = setting?.decimal_separator ?? ".";
+
+    if (fractionPart === undefined) {
+      return formattedInteger === "—" ? "" : formattedInteger;
+    }
+    return `${formattedInteger === "—" ? "0" : formattedInteger}${dSep}${fractionPart}`;
+  };
+
+  return { setting, formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput };
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

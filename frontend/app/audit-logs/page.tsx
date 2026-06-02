@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Calendar, ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +46,7 @@ function actionVariant(action?: string) {
 }
 
 export default function AuditLogsPage() {
+  const pathname = usePathname();
   const [moduleFilter, setModuleFilter] = useState<(typeof modules)[number]>("all");
   const [page, setPage] = useState(1);
   const [searchQ, setSearchQ] = useState("");
@@ -112,7 +115,8 @@ export default function AuditLogsPage() {
     <div className="space-y-6 p-6">
       <Card>
         <CardHeader>
-          <div>
+          <div className="space-y-1">
+            {pathname.startsWith("/settings/") ? <BackToSettings /> : null}
             <CardTitle>Audit Logs</CardTitle>
             <CardDescription>Standardized audit trail view using the same admin layout as Leads and Users.</CardDescription>
           </div>

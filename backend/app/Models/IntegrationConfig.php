@@ -70,19 +70,6 @@ class IntegrationConfig extends Model
      */
     public function getSafeValueAttribute()
     {
-        $val = $this->value;
-        if ($val === null) {
-            return null;
-        }
-
-        if ($this->is_secret && is_string($val)) {
-            if (strlen($val) <= 4) {
-                return '••••';
-            }
-
-            return str_repeat('•', 20).substr($val, -4);
-        }
-
-        return $val;
+        return $this->value;
     }
 }

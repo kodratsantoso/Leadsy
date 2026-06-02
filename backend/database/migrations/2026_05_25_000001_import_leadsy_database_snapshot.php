@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    private const SNAPSHOT_FILE = 'leadsy_deploy_data_2026_05_27.sql';
+    private const SNAPSHOT_FILE = 'leadsy_deploy_data_2026_05_30.sql';
 
     public function up(): void
     {

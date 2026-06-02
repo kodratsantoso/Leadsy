@@ -2,8 +2,9 @@
 
 import { useState, useEffect, type ComponentType } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2 } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import Link from "next/link";
 
 type IntegrationConfig = {
@@ -23,7 +25,15 @@ type IntegrationConfig = {
   value_type: "string" | "boolean" | "number" | "json";
 };
 
-type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark";
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark" | "linkedin";
+type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
+type GooglePermission = {
+  id: string;
+  label: string;
+  description: string;
+  status: GooglePermissionStatus;
+  message: string;
+};
 type LeadPlatformField = {
   suffix: string;
   label: string;
@@ -47,6 +57,22 @@ type LeadPlatformDefinition = {
 
 const asBooleanString = (value: unknown) => (value === true || value === "true" || value === 1 || value === "1" ? "true" : "false");
 const asStringValue = (value: unknown) => (value == null ? "" : String(value));
+
+const Linkedin = (props: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={props.className}
+  >
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
 
 const normalizeLarkModuleValue = (value: unknown) => value === true || value === "true";
 const normalizeLarkModules = (modules: Record<string, unknown> | null | undefined) => ({
@@ -154,9 +180,42 @@ type LarkBaseSyncDialogState = {
 const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   GOOGLE_MAPS_ENABLED:            { category: "maps", key: "GOOGLE_MAPS_ENABLED",            value: "true",    is_secret: false, is_active: true, value_type: "boolean" },
   GOOGLE_MAPS_BROWSER_API_KEY:    { category: "maps", key: "GOOGLE_MAPS_BROWSER_API_KEY",    value: "",        is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_API_KEY:          { category: "maps", key: "GOOGLE_SEARCH_API_KEY",          value: "",        is_secret: true,  is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_ENGINE_ID:        { category: "maps", key: "GOOGLE_SEARCH_ENGINE_ID",        value: "",        is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_SAFE:             { category: "maps", key: "GOOGLE_SEARCH_SAFE",             value: "off",     is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_GL:               { category: "maps", key: "GOOGLE_SEARCH_GL",               value: "id",      is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_HL:               { category: "maps", key: "GOOGLE_SEARCH_HL",               value: "id",      is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_LR:               { category: "maps", key: "GOOGLE_SEARCH_LR",               value: "",        is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_NUM_RESULTS:      { category: "maps", key: "GOOGLE_SEARCH_NUM_RESULTS",      value: "10",      is_secret: false, is_active: true, value_type: "number"  },
+  GOOGLE_SEARCH_SITE_SEARCH:      { category: "maps", key: "GOOGLE_SEARCH_SITE_SEARCH",      value: "linkedin.com/in", is_secret: false, is_active: true, value_type: "string" },
+  GOOGLE_SEARCH_SITE_SEARCH_FILTER: { category: "maps", key: "GOOGLE_SEARCH_SITE_SEARCH_FILTER", value: "i",   is_secret: false, is_active: true, value_type: "string"  },
+  GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL: { category: "maps", key: "GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL", value: "", is_secret: false, is_active: true, value_type: "string" },
+  GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY: { category: "maps", key: "GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY", value: "", is_secret: true, is_active: true, value_type: "string" },
+  GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID: { category: "maps", key: "GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
   GOOGLE_MAPS_DEFAULT_CENTER_LAT: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LAT", value: "-6.2088", is_secret: false, is_active: true, value_type: "number"  },
   GOOGLE_MAPS_DEFAULT_CENTER_LNG: { category: "maps", key: "GOOGLE_MAPS_DEFAULT_CENTER_LNG", value: "106.8456",is_secret: false, is_active: true, value_type: "number"  },
+  VERTEX_AI_VECTOR_SEARCH_ENABLED: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_ENABLED", value: "false", is_secret: false, is_active: true, value_type: "boolean" },
+  VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT", value: "", is_secret: false, is_active: true, value_type: "string" },
+  VERTEX_AI_VECTOR_SEARCH_LOCATION: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_LOCATION", value: "", is_secret: false, is_active: true, value_type: "string" },
+  VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
+  VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
 };
+
+const googlePermissionVariant = (status: GooglePermissionStatus): "success" | "warning" | "danger" => {
+  if (status === "available") return "success";
+  if (status === "restricted" || status === "not_configured" || status === "unknown") return "warning";
+  return "danger";
+};
+
+const googlePermissionLabel = (status: GooglePermissionStatus) => ({
+  available: "Available",
+  restricted: "Restricted",
+  not_enabled: "Not Enabled",
+  invalid_key: "Invalid Key",
+  not_configured: "Not Configured",
+  not_available: "Unavailable",
+  unknown: "Unknown",
+}[status] ?? "Unknown");
 
 const DEFAULT_WHATSAPP: Record<string, IntegrationConfig> = {
   WHATSAPP_ENABLED:      { category: "whatsapp", key: "WHATSAPP_ENABLED",      value: "true",                  is_secret: false, is_active: true, value_type: "boolean" },
@@ -170,6 +229,13 @@ const DEFAULT_LUSHA: Record<string, IntegrationConfig> = {
   LUSHA_MAX_DAILY_REQUESTS:   { category: "lusha", key: "LUSHA_MAX_DAILY_REQUESTS",   value: "50",    is_secret: false, is_active: true, value_type: "number"  },
   LUSHA_MAX_PER_BATCH:        { category: "lusha", key: "LUSHA_MAX_PER_BATCH",        value: "10",    is_secret: false, is_active: true, value_type: "number"  },
   LUSHA_ENRICHMENT_PRIORITY:  { category: "lusha", key: "LUSHA_ENRICHMENT_PRIORITY",  value: "1",     is_secret: false, is_active: true, value_type: "number"  },
+};
+
+const DEFAULT_LINKEDIN: Record<string, IntegrationConfig> = {
+  LINKEDIN_ENABLED:       { category: "linkedin", key: "LINKEDIN_ENABLED",       value: "false", is_secret: false, is_active: true, value_type: "boolean" },
+  LINKEDIN_CLIENT_ID:     { category: "linkedin", key: "LINKEDIN_CLIENT_ID",     value: "",      is_secret: false, is_active: true, value_type: "string"  },
+  LINKEDIN_CLIENT_SECRET: { category: "linkedin", key: "LINKEDIN_CLIENT_SECRET", value: "",      is_secret: false, is_active: true, value_type: "string"  },
+  LINKEDIN_REDIRECT_URI:  { category: "linkedin", key: "LINKEDIN_REDIRECT_URI",  value: "",      is_secret: false, is_active: true, value_type: "string"  },
 };
 
 const baseOauthFields: LeadPlatformField[] = [
@@ -293,8 +359,9 @@ const LEAD_PLATFORM_DEFINITIONS: LeadPlatformDefinition[] = [
     docsUrl: "https://docs.qontak.com/",
     fields: [
       { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
-      { suffix: "BASE_URL", label: "Base URL", value_type: "string", is_secret: false, defaultValue: "https://api.mekari.com" },
-      { suffix: "ACCESS_TOKEN", label: "Bearer Access Token", value_type: "string", is_secret: true, defaultValue: "" },
+      { suffix: "BASE_URL", label: "Base URL", value_type: "string", is_secret: false, defaultValue: "https://api.mekari.com", help: "Use https://api.mekari.com for production or https://sandbox-api.mekari.com for sandbox. Do not use the developer portal website URL." },
+      { suffix: "CLIENT_ID", label: "Client ID", value_type: "string", is_secret: false, defaultValue: "", help: "Generate from developers.mekari.com → Applications → Create Application." },
+      { suffix: "CLIENT_SECRET", label: "Client Secret", value_type: "string", is_secret: true, defaultValue: "", help: "HMAC secret from your Mekari Developer application." },
       { suffix: "CHANNEL_ID", label: "WhatsApp / Omnichannel Channel ID", value_type: "string", is_secret: false, defaultValue: "" },
     ],
   },
@@ -428,6 +495,7 @@ export default function IntegrationsSettingsPage() {
   const [whatsappConfig, setWhatsappConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_WHATSAPP);
   const [lushaConfig, setLushaConfig]       = useState<Record<string, IntegrationConfig>>(DEFAULT_LUSHA);
   const [leadPlatformsConfig, setLeadPlatformsConfig] = useState<Record<string, IntegrationConfig>>(createDefaultLeadPlatforms);
+  const [linkedinConfig, setLinkedinConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_LINKEDIN);
   const [larkConfig, setLarkConfig] = useState({
     app_id: '',
     app_secret: '',
@@ -501,6 +569,17 @@ export default function IntegrationsSettingsPage() {
           });
           setLeadPlatformsConfig(next);
         }
+
+        if (json.data.linkedin) {
+          const next = { ...DEFAULT_LINKEDIN };
+          (json.data.linkedin as IntegrationConfig[]).forEach((c) => {
+            next[c.key] = {
+              ...c,
+              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
+            };
+          });
+          setLinkedinConfig(next);
+        }
       })
       .catch(err => console.warn("Integration config load:", err))
       .finally(() => setLoading(false));
@@ -522,6 +601,28 @@ export default function IntegrationsSettingsPage() {
       return res.json();
     },
     refetchInterval: 5000,
+  });
+
+  const googlePermissionsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch("/settings/integrations/google/permissions");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.message || `Google permission check failed (HTTP ${res.status})`);
+      }
+      return json as {
+        data: {
+          api_key_present: boolean;
+          search_engine_id_present: boolean;
+          checked_at: string;
+          permissions: GooglePermission[];
+        };
+      };
+    },
+    onError: (error: any) => {
+      setErrorMsg(error?.message || "Failed to check Google permissions");
+      setTimeout(() => setErrorMsg(""), 5000);
+    },
   });
 
   const { data: baseMappingsData, refetch: refetchBaseMappings } = useQuery({
@@ -752,6 +853,25 @@ export default function IntegrationsSettingsPage() {
     syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction, mappingName });
   };
 
+  const handleDownloadSyncReport = () => {
+    if (!baseSyncDialog.result) return;
+
+    const rows = (baseSyncDialog.result.results || []).map((item) => ({
+      Status: item.status,
+      Action: item.action,
+      "Lead ID": item.lead_id || "",
+      "Record ID": item.record_id || item.lark_record_id || "",
+      "Company Name": item.company_name || "",
+      Reason: item.reason || "",
+    }));
+
+    downloadTimestampedReport(
+      rows,
+      `lark_sync_${baseSyncDialog.direction}_report`,
+      ["Status", "Action", "Lead ID", "Record ID", "Company Name", "Reason"]
+    );
+  };
+
   useEffect(() => {
     if (larkConfigData?.configured) {
       setLarkConfig({
@@ -949,7 +1069,8 @@ export default function IntegrationsSettingsPage() {
 
   return (
     <div className="space-y-6 p-6 max-w-4xl">
-      <div>
+      <div className="space-y-1">
+        <BackToSettings />
         <h1 className="text-3xl font-bold tracking-tight">Integration Setting</h1>
         <p className="text-sm text-muted-foreground">
           Manage social media, ad platform, CRM, event, SSO, and non-AI integration credentials.
@@ -968,9 +1089,10 @@ export default function IntegrationsSettingsPage() {
         onValueChange={setTab}
         items={[
           { key: "lead_platforms", label: "Lead Platforms", icon: Share2 },
-          { key: "maps", label: "Google Maps", icon: MapPin },
+          { key: "maps", label: "Google", icon: MapPin },
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
           { key: "lusha", label: "Lusha", icon: Key },
+          { key: "linkedin", label: "LinkedIn", icon: Linkedin },
           { key: "lark", label: "Lark", icon: Key },
           { key: "webhooks", label: "Webhooks", icon: Key },
         ]}
@@ -1153,13 +1275,14 @@ export default function IntegrationsSettingsPage() {
         </div>
       )}
 
-      {/* ── Google Maps ── */}
+      {/* ── Google ── */}
       {tab === "maps" && (
         <div className="space-y-4">
+          {/* Card 1: Google Maps & Places */}
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-1">Google Maps Configuration</h2>
+            <h2 className="text-xl font-semibold mb-1">Google Maps & Places</h2>
             <p className="text-xs text-muted-foreground mb-6">
-              Configure the Google Maps API key for the Map & Territory page.
+              Configure the Google Cloud API key used by browser Maps, Lead Discovery place search, and Geocoding APIs.
               Get a key from{" "}
               <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-indigo-400 underline">
                 Google Cloud Console
@@ -1168,30 +1291,17 @@ export default function IntegrationsSettingsPage() {
             </p>
 
             <div className="space-y-5">
-              {/* Enable toggle */}
-              <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
-                <div>
-                  <label className="text-sm font-medium">Enable Maps Integration</label>
-                  <p className="text-xs text-muted-foreground">Toggle the map interface across the entire application.</p>
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Google Cloud Project</h3>
+                    <p className="text-xs text-muted-foreground">Shared browser key for Maps JavaScript, Places, and Geocoding.</p>
+                  </div>
+                  <Badge variant="info">API key</Badge>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={mapsConfig.GOOGLE_MAPS_ENABLED.value === "true"}
-                  onChange={(e) => setMapsConfig({
-                    ...mapsConfig,
-                    GOOGLE_MAPS_ENABLED: { ...mapsConfig.GOOGLE_MAPS_ENABLED, value: e.target.checked ? "true" : "false" },
-                  })}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                />
-              </div>
-
-              {/* Browser API Key */}
-              <div>
-                <label className="text-sm font-semibold">Browser API Key (Public)</label>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Key used for client-side map rendering. Must be restricted by HTTP referrer in Google Cloud Console.
-                </p>
-                <input
+                <label className="text-sm font-semibold">Google API Key</label>
+                <Input
+                  className="mt-2 font-mono"
                   type="text"
                   placeholder="AIzaSy..."
                   value={mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value}
@@ -1199,62 +1309,109 @@ export default function IntegrationsSettingsPage() {
                     ...mapsConfig,
                     GOOGLE_MAPS_BROWSER_API_KEY: { ...mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY, value: e.target.value },
                   })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground/40"
                   autoComplete="off"
                   spellCheck={false}
                 />
-                {mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value && (
-                  <p className="mt-1 flex items-center gap-1 text-xs text-emerald-500">
-                    <CheckCircle2 className="h-3 w-3" /> API key entered — save to apply
+                {mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value ? (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[color:var(--success)]">
+                    <CheckCircle2 className="h-3 w-3" /> API key entered - save to apply
                   </p>
-                )}
-                {!mapsConfig.GOOGLE_MAPS_BROWSER_API_KEY.value && (
-                  <p className="mt-1 flex items-center gap-1 text-xs text-amber-500">
-                    <AlertCircle className="h-3 w-3" /> No key configured — map runs in preview mode
+                ) : (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-[color:var(--warning)]">
+                    <AlertCircle className="h-3 w-3" /> No key configured - map runs in preview mode
                   </p>
                 )}
               </div>
 
-              {/* Lat / Lng */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium">Default Center Latitude</label>
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Maps JavaScript API</h3>
+                    <p className="text-xs text-muted-foreground">Controls browser map rendering and default map center.</p>
+                  </div>
+                  <Badge variant={mapsConfig.GOOGLE_MAPS_ENABLED.value === "true" ? "success" : "neutral"}>
+                    {mapsConfig.GOOGLE_MAPS_ENABLED.value === "true" ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
+                <label className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
+                  <span>
+                    <span className="block text-sm font-medium">Enable Google Maps Interface</span>
+                    <span className="block text-xs text-muted-foreground">Toggle the map interface across the entire application.</span>
+                  </span>
                   <input
-                    type="number"
-                    step="any"
-                    value={mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LAT.value}
+                    type="checkbox"
+                    checked={mapsConfig.GOOGLE_MAPS_ENABLED.value === "true"}
                     onChange={(e) => setMapsConfig({
                       ...mapsConfig,
-                      GOOGLE_MAPS_DEFAULT_CENTER_LAT: { ...mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LAT, value: e.target.value },
+                      GOOGLE_MAPS_ENABLED: { ...mapsConfig.GOOGLE_MAPS_ENABLED, value: e.target.checked ? "true" : "false" },
                     })}
-                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="h-4 w-4 rounded border-border"
                   />
+                </label>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-medium">Default Center Latitude</label>
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      step="any"
+                      value={mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LAT.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_MAPS_DEFAULT_CENTER_LAT: { ...mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LAT, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Default Center Longitude</label>
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      step="any"
+                      value={mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LNG.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_MAPS_DEFAULT_CENTER_LNG: { ...mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LNG, value: e.target.value },
+                      })}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Default Center Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LNG.value}
-                    onChange={(e) => setMapsConfig({
-                      ...mapsConfig,
-                      GOOGLE_MAPS_DEFAULT_CENTER_LNG: { ...mapsConfig.GOOGLE_MAPS_DEFAULT_CENTER_LNG, value: e.target.value },
-                    })}
-                    className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
+              </div>
+
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Places & Geocoding APIs</h3>
+                    <p className="text-xs text-muted-foreground">Used by Lead Discovery for area geocoding, place search, and place details.</p>
+                  </div>
+                  <Badge variant="neutral">Uses shared key</Badge>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Enable Geocoding API and Places API in the same Google Cloud project as the key above.
+                </p>
               </div>
             </div>
 
-            <div className="mt-6 flex items-center gap-3">
-              <button
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button
                 onClick={() => handleSave("maps", mapsConfig)}
                 disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Maps Config
-              </button>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  if (await handleSave("maps", mapsConfig)) {
+                    googlePermissionsMutation.mutate();
+                  }
+                }}
+                disabled={saving || googlePermissionsMutation.isPending}
+              >
+                {googlePermissionsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Check Google Permissions
+              </Button>
               {successMsg && (
                 <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
@@ -1267,6 +1424,346 @@ export default function IntegrationsSettingsPage() {
               )}
             </div>
           </div>
+
+          {/* Card 2: Google Custom Search */}
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-1">Google Custom Search</h2>
+            <p className="text-xs text-muted-foreground mb-6">
+              Configure the Custom Search JSON API and Programmable Search Engine for LinkedIn profile finding.
+            </p>
+
+            <div className="space-y-5">
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Custom Search API & Service Account</h3>
+                    <p className="text-xs text-muted-foreground">Used by Contact Search to find public LinkedIn profile candidates.</p>
+                  </div>
+                  <Badge variant="warning">key + cx required</Badge>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-semibold">Custom Search API Key Override</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Optional. Leave blank to use the shared Google API key.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="Uses shared key when empty"
+                      value={mapsConfig.GOOGLE_SEARCH_API_KEY.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_API_KEY: { ...mapsConfig.GOOGLE_SEARCH_API_KEY, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Programmable Search Engine ID</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Required `cx` value from Programmable Search Engine.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="cx / search engine ID"
+                      value={mapsConfig.GOOGLE_SEARCH_ENGINE_ID.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_ENGINE_ID: { ...mapsConfig.GOOGLE_SEARCH_ENGINE_ID, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Service Account Email</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Google Cloud Service Account Client Email.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. search-service@project-id.iam.gserviceaccount.com"
+                      value={mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL: { ...mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Service Account Private Key</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">PEM private key file content or JSON credentials key.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="-----BEGIN PRIVATE KEY-----..."
+                      value={mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY: { ...mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Google Cloud Project ID</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">The project ID for Google Cloud Service Account.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. leadsy-search-project"
+                      value={mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID: { ...mapsConfig.GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Search Result Count</label>
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={mapsConfig.GOOGLE_SEARCH_NUM_RESULTS.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_NUM_RESULTS: { ...mapsConfig.GOOGLE_SEARCH_NUM_RESULTS, value: e.target.value },
+                      })}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">Custom Search supports 1-10 results per request.</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Safe Search</label>
+                    <Select
+                      className="mt-1"
+                      value={mapsConfig.GOOGLE_SEARCH_SAFE.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SAFE: { ...mapsConfig.GOOGLE_SEARCH_SAFE, value: e.target.value },
+                      })}
+                    >
+                      <option value="off">Off</option>
+                      <option value="active">Active</option>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Country Boost (`gl`)</label>
+                    <Input
+                      className="mt-1"
+                      value={mapsConfig.GOOGLE_SEARCH_GL.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_GL: { ...mapsConfig.GOOGLE_SEARCH_GL, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Interface Language (`hl`)</label>
+                    <Input
+                      className="mt-1"
+                      value={mapsConfig.GOOGLE_SEARCH_HL.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_HL: { ...mapsConfig.GOOGLE_SEARCH_HL, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Language Restriction (`lr`)</label>
+                    <Input
+                      className="mt-1"
+                      placeholder="Example: lang_id"
+                      value={mapsConfig.GOOGLE_SEARCH_LR.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_LR: { ...mapsConfig.GOOGLE_SEARCH_LR, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Site Search</label>
+                    <Input
+                      className="mt-1"
+                      value={mapsConfig.GOOGLE_SEARCH_SITE_SEARCH.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        GOOGLE_SEARCH_SITE_SEARCH: { ...mapsConfig.GOOGLE_SEARCH_SITE_SEARCH, value: e.target.value },
+                      })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Vertex AI Vector Search API</h3>
+                    <p className="text-xs text-muted-foreground">High-performance vector searches. Uses the Service Account credentials above.</p>
+                  </div>
+                  <Badge variant={mapsConfig.VERTEX_AI_VECTOR_SEARCH_ENABLED.value === "true" ? "success" : "neutral"}>
+                    {mapsConfig.VERTEX_AI_VECTOR_SEARCH_ENABLED.value === "true" ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
+                <label className="mb-4 flex items-center justify-between rounded-lg border border-border/50 px-4 py-3 bg-[color:var(--surface-subtle)]">
+                  <span>
+                    <span className="block text-sm font-medium">Enable Vertex AI Vector Search</span>
+                    <span className="block text-xs text-muted-foreground">Use Google Vertex AI Vector Search to perform nearest neighbor queries.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={mapsConfig.VERTEX_AI_VECTOR_SEARCH_ENABLED.value === "true"}
+                    onChange={(e) => setMapsConfig({
+                      ...mapsConfig,
+                      VERTEX_AI_VECTOR_SEARCH_ENABLED: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_ENABLED, value: e.target.checked ? "true" : "false" },
+                    })}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                </label>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-semibold">API Endpoint / Public Domain Name</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Public domain from GCP console, e.g. `*.vdb.vertexai.goog`.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. 123456.us-central1.vdb.vertexai.goog"
+                      value={mapsConfig.VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_API_ENDPOINT, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Location / Region</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">GCP region hosting the index, e.g. `us-central1`.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. us-central1"
+                      value={mapsConfig.VERTEX_AI_VECTOR_SEARCH_LOCATION.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        VERTEX_AI_VECTOR_SEARCH_LOCATION: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_LOCATION, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Index Endpoint ID</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">The resource ID of your Vertex AI Index Endpoint.</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. 1234567890123456789"
+                      value={mapsConfig.VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Deployed Index ID</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Unique ID of deployed index (starts with a letter).</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="e.g. my_deployed_index_id"
+                      value={mapsConfig.VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID: { ...mapsConfig.VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => handleSave("maps", mapsConfig)}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Search Config
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  if (await handleSave("maps", mapsConfig)) {
+                    googlePermissionsMutation.mutate();
+                  }
+                }}
+                disabled={saving || googlePermissionsMutation.isPending}
+              >
+                {googlePermissionsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Check Google Permissions
+              </Button>
+              {successMsg && (
+                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                  <CheckCircle2 className="h-4 w-4" /> {successMsg}
+                </span>
+              )}
+              {errorMsg && (
+                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                  <AlertCircle className="h-4 w-4" /> {errorMsg}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <Card className="p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-base font-semibold">Google Project Permissions</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Leadsy checks the registered API key against the Google APIs used in this app. Google does not expose the full Cloud project permission list from an API key, so this shows verified availability per API.
+                </p>
+              </div>
+              {googlePermissionsMutation.data?.data?.checked_at ? (
+                <Badge variant="neutral">
+                  Checked {new Date(googlePermissionsMutation.data.data.checked_at).toLocaleString()}
+                </Badge>
+              ) : null}
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              {(googlePermissionsMutation.data?.data?.permissions || []).map((permission) => (
+                <div key={permission.id} className="rounded-xl border border-border bg-[color:var(--surface-subtle)] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">{permission.label}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{permission.description}</p>
+                    </div>
+                    <Badge variant={googlePermissionVariant(permission.status)}>
+                      {googlePermissionLabel(permission.status)}
+                    </Badge>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">{permission.message}</p>
+                </div>
+              ))}
+            </div>
+
+            {!googlePermissionsMutation.data && !googlePermissionsMutation.isPending ? (
+              <div className="mt-4 rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
+                Save the Google config, then run Check Google Permissions to see Maps JavaScript, Geocoding, Places, and Custom Search status.
+              </div>
+            ) : null}
+          </Card>
         </div>
       )}
 
@@ -1379,7 +1876,7 @@ export default function IntegrationsSettingsPage() {
               <div>
                 <label className="text-sm font-medium">Lusha API Key</label>
                 <input
-                  type="password"
+                  type="text"
                   placeholder="Secret Key..."
                   value={lushaConfig.LUSHA_API_KEY.value}
                   onChange={(e) => setLushaConfig({
@@ -1444,6 +1941,100 @@ export default function IntegrationsSettingsPage() {
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Lusha Config
+              </button>
+              {successMsg && (
+                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                  <CheckCircle2 className="h-4 w-4" /> {successMsg}
+                </span>
+              )}
+              {errorMsg && (
+                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                  <AlertCircle className="h-4 w-4" /> {errorMsg}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── LinkedIn Developer Integration ── */}
+      {tab === "linkedin" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-1">LinkedIn Developer Integration</h2>
+            <p className="text-xs text-muted-foreground mb-6">
+              Configure LinkedIn App ID, App Secret, and Redirect URI to manage integration settings.
+            </p>
+
+            <div className="space-y-5">
+              <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
+                <div>
+                  <label className="text-sm font-medium">Enable LinkedIn Features</label>
+                  <p className="text-xs text-muted-foreground">Allows searching and discovering contacts via LinkedIn provider.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={linkedinConfig.LINKEDIN_ENABLED.value === "true"}
+                  onChange={(e) => setLinkedinConfig({
+                    ...linkedinConfig,
+                    LINKEDIN_ENABLED: { ...linkedinConfig.LINKEDIN_ENABLED, value: e.target.checked ? "true" : "false" },
+                  })}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Client ID / App ID</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Your LinkedIn Developer application Client ID.</p>
+                <input
+                  value={linkedinConfig.LINKEDIN_CLIENT_ID.value}
+                  onChange={(e) => setLinkedinConfig({
+                    ...linkedinConfig,
+                    LINKEDIN_CLIENT_ID: { ...linkedinConfig.LINKEDIN_CLIENT_ID, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Enter Client ID"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Client Secret / App Secret</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Your LinkedIn Developer application Client Secret.</p>
+                <input
+                  type="text"
+                  value={linkedinConfig.LINKEDIN_CLIENT_SECRET.value}
+                  onChange={(e) => setLinkedinConfig({
+                    ...linkedinConfig,
+                    LINKEDIN_CLIENT_SECRET: { ...linkedinConfig.LINKEDIN_CLIENT_SECRET, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Enter Client Secret"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Redirect URI</label>
+                <p className="text-xs text-muted-foreground mt-0.5">Authorized Redirect URL registered in LinkedIn Developer portal.</p>
+                <input
+                  value={linkedinConfig.LINKEDIN_REDIRECT_URI.value}
+                  onChange={(e) => setLinkedinConfig({
+                    ...linkedinConfig,
+                    LINKEDIN_REDIRECT_URI: { ...linkedinConfig.LINKEDIN_REDIRECT_URI, value: e.target.value },
+                  })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="http://localhost:3000/auth/linkedin/callback"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center gap-3">
+              <button
+                onClick={() => handleSave("linkedin", linkedinConfig)}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save LinkedIn Config
               </button>
               {successMsg && (
                 <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
@@ -1861,13 +2452,24 @@ export default function IntegrationsSettingsPage() {
         description={baseSyncDialog.mappingName ? `Mapping: ${baseSyncDialog.mappingName}` : undefined}
         size="lg"
         footer={
-          <Button
-            variant="outline"
-            onClick={() => setBaseSyncDialog((current) => ({ ...current, open: false }))}
-            disabled={baseSyncDialog.status === "running"}
-          >
-            Close
-          </Button>
+          <>
+            {baseSyncDialog.status !== "running" && baseSyncDialog.result ? (
+              <Button
+                variant="outline"
+                onClick={handleDownloadSyncReport}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Report (.csv)
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              onClick={() => setBaseSyncDialog((current) => ({ ...current, open: false }))}
+              disabled={baseSyncDialog.status === "running"}
+            >
+              Close
+            </Button>
+          </>
         }
       >
         <div className="space-y-5">

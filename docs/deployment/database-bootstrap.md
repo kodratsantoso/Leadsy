@@ -54,12 +54,12 @@ database data, so deleted products must not reappear after `db:seed --force`.
 
 ## Snapshot Import for Fresh Deploys
 
-For environments that must start with the current application records, this repository includes a database snapshot generated on 2026-05-27:
+For environments that must start with the current application records, this repository includes a database snapshot generated on 2026-05-30:
 
 | File | Purpose |
 |------|---------|
-| `backend/database/snapshots/leadsy_full_structure_and_data_2026_05_27.sql` | Complete PostgreSQL structure + data archive for manual restore or audit. |
-| `backend/database/snapshots/leadsy_deploy_data_2026_05_27.sql` | Public-schema application data used by the guarded Laravel import migration. |
+| `backend/database/snapshots/leadsy_full_structure_and_data_2026_05_30.sql` | Complete PostgreSQL structure + data archive for manual restore or audit. |
+| `backend/database/snapshots/leadsy_deploy_data_2026_05_30.sql` | Public-schema application data used by the guarded Laravel import migration. |
 | `backend/database/migrations/2026_05_25_000001_import_leadsy_database_snapshot.php` | Optional importer that runs during `php artisan migrate` only when enabled. |
 
 Enable it only for the first deploy into an empty database:

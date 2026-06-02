@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');

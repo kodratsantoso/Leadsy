@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.2.7',
-    'released_at' => '2026-05-27',
-    'type' => 'patch',   // major | minor | patch
-    'notes' => 'Lark Base field type coercion and setup guide',
+    'version' => '1.5.0',
+    'released_at' => '2026-05-30',
+    'type' => 'minor',   // major | minor | patch
+    'notes' => 'Interactive and animated charts dashboard using ApexCharts & Highcharts, AI Insight card, prompt templates routing settings',
 ];

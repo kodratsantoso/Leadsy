@@ -9,6 +9,34 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.5.0] — 2026-05-30 · Minor Release
+
+### Fitur Baru
+- **Animated & Interactive Charts Dashboard** — Mengupgrade seluruh widget dashboard (funnels, sales volume, total market, lead sources/channels, pipeline quality, revenue trends) menggunakan ApexCharts dan Highcharts yang interaktif dengan animasi smooth, rendering client-side yang dinamis, serta mendukung transisi dark/light mode secara real-time.
+- **AI Executive Insights (C-Suite Ready)** — Menambahkan panel ringkasan AI pada dashboard untuk membantu C-level menganalisis data pipeline secara cepat dengan penjelasan metrik, critical points (alert risiko), dan strategic suggestions (rekomendasi strategis).
+- **Konfigurasi Routing & Prompt Template AI** — Mengintegrasikan modul AI Insight ke sistem pengaturan default (`Settings -> AI Defaults`), memungkinkan admin mengedit template prompt dan memilih provider model AI (seperti Gemini 2.5 Flash).
+
+### Quality
+- Menambahkan test backend PHPUnit dan integrasi caching 30-menit di `DashboardController`.
+- Menyelaraskan seluruh styling grafik menggunakan palette HSL CSS variables dari global tokens.
+- Memperbarui file database snapshots (`leadsy_deploy_data_2026_05_30.sql` dan `leadsy_full_structure_and_data_2026_05_30.sql`).
+
+## [1.4.0] — 2026-05-30 · Minor Release
+
+### Fitur Baru
+- **Lead Subsidiaries ("Subsidiary of")** — menambahkan relasi hierarki perusahaan sehingga lead dapat ditandai sebagai anak perusahaan dari lead lain, mempermudah pengelompokan group company.
+- **Map Preview di Detail Lead** — menampilkan card Google Maps Preview menggunakan static embed (`<iframe>`) di tab Overview pada detail Lead untuk membantu onsite meeting.
+- **Unified Lead Edit Form** — menyatukan form Edit Leads dan Edit Company Information sehingga modal edit di tab detail Lead menampilkan dan dapat mengedit seluruh field Leads.
+
+### Quality
+- Refresh database snapshot `leadsy_deploy_data_2026_05_30.sql` dan `leadsy_full_structure_and_data_2026_05_30.sql` untuk fresh deployments.
+
+## [1.3.0] — 2026-05-30 · Minor Release
+
+### Fitur Baru
+- **Native macOS Stack Migration** — memindahkan development stack dari Docker Desktop ke Homebrew services asli (PostgreSQL, Redis, native PHP, Node.js) pada host macOS.
+- **LinkedIn Contact URL Integration** — menambahkan input manual LinkedIn URL / Username pada form kontak lead, dengan pembersihan otomatis handle ke full URL di backend.
+
 ## [1.2.7] — 2026-05-27 · Patch Release
 
 ### What's New

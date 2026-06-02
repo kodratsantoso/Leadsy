@@ -45,11 +45,21 @@ class AiProvider extends Model
             return null;
         }
 
-        try {
-            return Crypt::decryptString($value);
-        } catch (\Throwable) {
-            return $value;
+        for ($depth = 0; $depth < 5; $depth++) {
+            try {
+                $decrypted = Crypt::decryptString($value);
+            } catch (\Throwable) {
+                return $value;
+            }
+
+            if ($decrypted === $value || ! str_starts_with($decrypted, 'eyJpdiI6')) {
+                return $decrypted;
+            }
+
+            $value = $decrypted;
         }
+
+        return $value;
     }
 
     public function models(): HasMany

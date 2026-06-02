@@ -22,7 +22,7 @@ class IntegrationPlatformController extends Controller
     public function oauthUrl(Request $request, string $platform): JsonResponse
     {
         $definition = $this->platform($platform);
-        if (! $definition || ! isset($definition['oauth'])) {
+        if (!$definition || !isset($definition['oauth'])) {
             return response()->json(['message' => 'OAuth is not available for this platform.'], 422);
         }
 
@@ -30,7 +30,7 @@ class IntegrationPlatformController extends Controller
         $clientId = $values['client_id'] ?? null;
         $redirectUri = $values['redirect_uri'] ?? null;
 
-        if (! $clientId || ! $redirectUri) {
+        if (!$clientId || !$redirectUri) {
             return response()->json(['message' => 'Client ID and Redirect URI are required before starting OAuth.'], 422);
         }
 
@@ -41,17 +41,17 @@ class IntegrationPlatformController extends Controller
             'state' => Str::random(40),
         ];
 
-        if (($definition['oauth']['scope_param'] ?? 'scope') !== null && ! empty($definition['oauth']['scopes'])) {
+        if (($definition['oauth']['scope_param'] ?? 'scope') !== null && !empty($definition['oauth']['scopes'])) {
             $query[$definition['oauth']['scope_param'] ?? 'scope'] = implode($definition['oauth']['scope_separator'] ?? ' ', $definition['oauth']['scopes']);
         }
 
-        if (! empty($definition['oauth']['extra_query'])) {
+        if (!empty($definition['oauth']['extra_query'])) {
             $query = array_merge($query, $definition['oauth']['extra_query']);
         }
 
         return response()->json([
             'data' => [
-                'authorization_url' => $definition['oauth']['authorize_url'].'?'.http_build_query($query),
+                'authorization_url' => $definition['oauth']['authorize_url'] . '?' . http_build_query($query),
                 'callback_status' => 'pending_backend_exchange',
             ],
         ]);
@@ -60,7 +60,7 @@ class IntegrationPlatformController extends Controller
     public function test(Request $request, string $platform): JsonResponse
     {
         $definition = $this->platform($platform);
-        if (! $definition) {
+        if (!$definition) {
             return response()->json(['message' => 'Unknown integration platform.'], 404);
         }
 
@@ -77,7 +77,7 @@ class IntegrationPlatformController extends Controller
                 'hunter' => $this->testHunter($values),
                 'zapier', 'make' => $this->validateWebhookUrl($values, $platform),
                 'google_ads' => $this->validateGoogleAds($values),
-                'mekari_qontak' => $this->validateRequired($values, ['access_token', 'base_url']),
+                'mekari_qontak' => resolve(\App\Services\MekariQontakService::class)->testConnection($values),
                 default => ['status' => 'unsupported', 'message' => 'Connection test is not implemented for this platform yet.'],
             };
         } catch (\Throwable $exception) {
@@ -117,7 +117,7 @@ class IntegrationPlatformController extends Controller
 
         $response = Http::timeout(15)->get('https://graph.facebook.com/v25.0/debug_token', [
             'input_token' => $values['access_token'],
-            'access_token' => $values['client_id'].'|'.$values['client_secret'],
+            'access_token' => $values['client_id'] . '|' . $values['client_secret'],
         ]);
 
         return $this->responseSummary($response, 'Meta token debug');
@@ -151,7 +151,7 @@ class IntegrationPlatformController extends Controller
     {
         $this->requireFields($values, ['access_token', 'instance_url']);
 
-        return $this->testBearer(rtrim($values['instance_url'], '/').'/services/oauth2/userinfo', $values);
+        return $this->testBearer(rtrim($values['instance_url'], '/') . '/services/oauth2/userinfo', $values);
     }
 
     private function testPipedrive(array $values): array
@@ -159,15 +159,15 @@ class IntegrationPlatformController extends Controller
         $this->requireFields($values, ['api_domain']);
         $request = Http::timeout(15);
 
-        if (! empty($values['api_token'])) {
+        if (!empty($values['api_token'])) {
             $request = $request->withHeaders(['x-api-token' => $values['api_token']]);
-        } elseif (! empty($values['access_token'])) {
+        } elseif (!empty($values['access_token'])) {
             $request = $request->withToken($values['access_token']);
         } else {
             $this->requireFields($values, ['api_token']);
         }
 
-        $response = $request->get(rtrim($values['api_domain'], '/').'/api/v2/users/me');
+        $response = $request->get(rtrim($values['api_domain'], '/') . '/api/v2/users/me');
 
         return $this->responseSummary($response, 'Pipedrive user profile');
     }
@@ -187,21 +187,21 @@ class IntegrationPlatformController extends Controller
     {
         $this->requireFields($values, ['webhook_url']);
 
-        if (! filter_var($values['webhook_url'], FILTER_VALIDATE_URL)) {
+        if (!filter_var($values['webhook_url'], FILTER_VALIDATE_URL)) {
             return ['status' => 'error', 'message' => 'Webhook URL is not valid.'];
         }
 
         return [
             'status' => 'configured',
-            'message' => ucfirst($platform).' webhook URL is configured. Live delivery is verified from the provider scenario history.',
+            'message' => ucfirst($platform) . ' webhook URL is configured. Live delivery is verified from the provider scenario history.',
         ];
     }
 
     private function validateGoogleAds(array $values): array
     {
-        $hasApiCredentials = ! empty($values['developer_token'])
-            && ! empty($values['client_customer_id'])
-            && (! empty($values['access_token']) || ! empty($values['refresh_token']));
+        $hasApiCredentials = !empty($values['developer_token'])
+            && !empty($values['client_customer_id'])
+            && (!empty($values['access_token']) || !empty($values['refresh_token']));
 
         if (($values['api_mode'] ?? null) === 'api' || $hasApiCredentials) {
             return $this->testGoogleAdsApi($values);
@@ -218,7 +218,7 @@ class IntegrationPlatformController extends Controller
         $accessToken = $this->cleanGoogleCredential($values['access_token'] ?? null);
         $tokenWasRefreshed = false;
 
-        if (! $accessToken) {
+        if (!$accessToken) {
             $this->requireFields($values, ['client_id', 'client_secret', 'refresh_token']);
             $tokenResponse = Http::asForm()->timeout(15)->post('https://oauth2.googleapis.com/token', [
                 'client_id' => $this->cleanGoogleCredential($values['client_id'] ?? null),
@@ -227,7 +227,7 @@ class IntegrationPlatformController extends Controller
                 'grant_type' => 'refresh_token',
             ]);
 
-            if (! $tokenResponse->successful()) {
+            if (!$tokenResponse->successful()) {
                 return $this->responseSummary($tokenResponse, 'Google OAuth refresh token exchange', true);
             }
 
@@ -239,7 +239,7 @@ class IntegrationPlatformController extends Controller
             'developer-token' => $developerToken,
         ];
 
-        if (! empty($values['login_customer_id'])) {
+        if (!empty($values['login_customer_id'])) {
             $headers['login-customer-id'] = $this->normalizeGoogleAdsCustomerId($values['login_customer_id']);
         }
 
@@ -293,13 +293,13 @@ class IntegrationPlatformController extends Controller
         $this->requireFields($values, ['api_domain']);
 
         $request = Http::timeout(15);
-        if (! empty($values['api_token'])) {
+        if (!empty($values['api_token'])) {
             $request = $request->withHeaders(['x-api-token' => $values['api_token']]);
-        } elseif (! empty($values['access_token'])) {
+        } elseif (!empty($values['access_token'])) {
             $request = $request->withToken($values['access_token']);
         }
 
-        $response = $request->get(rtrim($values['api_domain'], '/').'/api/v2/persons', ['limit' => 5]);
+        $response = $request->get(rtrim($values['api_domain'], '/') . '/api/v2/persons', ['limit' => 5]);
 
         return $this->responseSummary($response, 'Pipedrive persons preview') + ['items' => $response->json('data') ?? []];
     }
@@ -320,10 +320,10 @@ class IntegrationPlatformController extends Controller
             ? "{$label} verified."
             : "{$label} returned HTTP {$response->status()}.";
 
-        if (! $response->successful() && $includeProviderError && is_array($body)) {
+        if (!$response->successful() && $includeProviderError && is_array($body)) {
             $providerMessage = $body['error_description'] ?? $body['error'] ?? $body['message'] ?? null;
             if ($providerMessage) {
-                $message .= ' '.$providerMessage;
+                $message .= ' ' . $providerMessage;
             }
         }
 
@@ -332,19 +332,19 @@ class IntegrationPlatformController extends Controller
             'message' => $message,
             'http_status' => $response->status(),
             'sample' => $response->successful() ? $body : null,
-            'provider_error' => ! $response->successful() && $includeProviderError ? $this->safeProviderError($body) : null,
+            'provider_error' => !$response->successful() && $includeProviderError ? $this->safeProviderError($body) : null,
         ];
     }
 
     private function requireFields(array $values, array $fields): void
     {
         $missing = collect($fields)
-            ->filter(fn (string $field): bool => empty($values[$field]))
+            ->filter(fn(string $field): bool => empty($values[$field]))
             ->values()
             ->all();
 
         if ($missing !== []) {
-            throw new \InvalidArgumentException('Missing required credential fields: '.implode(', ', $missing));
+            throw new \InvalidArgumentException('Missing required credential fields: ' . implode(', ', $missing));
         }
     }
 
@@ -360,24 +360,24 @@ class IntegrationPlatformController extends Controller
 
     private function safeProviderError(mixed $body): ?array
     {
-        if (! is_array($body)) {
+        if (!is_array($body)) {
             return null;
         }
 
         return collect($body)
             ->only(['error', 'error_description', 'error_uri', 'message'])
-            ->filter(fn ($value): bool => $value !== null && $value !== '')
+            ->filter(fn($value): bool => $value !== null && $value !== '')
             ->all();
     }
 
     private function values(Request $request, string $platform): array
     {
         $tenantId = $this->currentTenantId($request);
-        $prefix = Str::upper($platform).'_';
+        $prefix = Str::upper($platform) . '_';
 
         return IntegrationConfig::query()
             ->where('category', self::CATEGORY)
-            ->where('key', 'like', $prefix.'%')
+            ->where('key', 'like', $prefix . '%')
             ->where(function ($query) use ($tenantId) {
                 $query->whereNull('tenant_id');
 
@@ -386,9 +386,9 @@ class IntegrationPlatformController extends Controller
                 }
             })
             ->get()
-            ->sortBy(fn (IntegrationConfig $config) => $config->tenant_id === $tenantId ? 0 : 1)
+            ->sortBy(fn(IntegrationConfig $config) => $config->tenant_id === $tenantId ? 0 : 1)
             ->groupBy('key')
-            ->map(fn ($rows) => $rows->first()->value)
+            ->map(fn($rows) => $rows->first()->value)
             ->mapWithKeys(function ($value, string $key) use ($prefix) {
                 return [Str::lower(Str::after($key, $prefix)) => $value];
             })

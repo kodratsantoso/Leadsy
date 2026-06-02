@@ -23,6 +23,7 @@ class DevelopmentSeeder extends Seeder
         // Development-only data — never runs in production
         $this->call([
             SampleLeadSeeder::class,
+            \Database\Seeders\Development\SalesTeamSeeder::class,
         ]);
     }
 }

@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { APIProvider, AdvancedMarker, Map } from "@vis.gl/react-google-maps";
 import {
   ArrowRight,
+  Building2,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -20,6 +22,7 @@ import {
   Upload,
   UserCheck,
   UserPlus,
+  X,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -42,6 +45,7 @@ import {
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
 
 type LeadRecord = {
@@ -69,6 +73,10 @@ type LeadRecord = {
   product?: { id: number; name: string } | null;
   owner?: { id: number; name: string; email?: string | null } | null;
   sources?: LeadSource[];
+  parent_lead_id?: number | null;
+  parentLead?: { id: number; company_name: string } | null;
+  subsidiaries?: { id: number; company_name: string }[] | null;
+  duplicate_status?: string | null;
 };
 
 type FunnelStage = { id: number; name: string; sequence: number };
@@ -121,6 +129,7 @@ type LeadFormState = {
   channel_type_id: string;
   funnel_stage_id: string;
   qualification_status: string;
+  parent_lead_id: string;
 };
 
 type ImportContact = {
@@ -191,6 +200,7 @@ const emptyForm: LeadFormState = {
   channel_type_id: "",
   funnel_stage_id: "",
   qualification_status: "pending",
+  parent_lead_id: "",
 };
 
 const importHeaderAliases: Record<keyof Omit<ImportLead, "contacts">, string[]> = {
@@ -581,11 +591,35 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function formatApiError(body: unknown, fallback: string) {
+  if (!body || typeof body !== "object") return fallback;
+
+  const response = body as { message?: unknown; errors?: unknown };
+  const fieldMessages = response.errors && typeof response.errors === "object"
+    ? Object.values(response.errors as Record<string, unknown>)
+        .flatMap((value) => Array.isArray(value) ? value : [value])
+        .filter((value): value is string => typeof value === "string")
+    : [];
+
+  if (fieldMessages.length > 0) {
+    return fieldMessages.slice(0, 3).join(" ");
+  }
+
+  return typeof response.message === "string" ? response.message : fallback;
+}
+
+function normalizeWebsiteInput(value: string) {
+  const website = value.trim();
+  if (!website) return "";
+
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(website) ? website : `https://${website}`;
+}
+
 export default function LeadsPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { setting: numberFormatSetting, formatNumber, formatCurrency } = useNumberFormat();
+  const { setting: numberFormatSetting, formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [page, setPage] = useState(1);
@@ -602,6 +636,7 @@ export default function LeadsPage() {
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
   const [feedback, setFeedback] = useState("");
+  const [formError, setFormError] = useState("");
   const [formState, setFormState] = useState<LeadFormState>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
   const [locationSearch, setLocationSearch] = useState("");
@@ -616,54 +651,21 @@ export default function LeadsPage() {
   const [importFileName, setImportFileName] = useState("");
   const [importSourceType, setImportSourceType] = useState("csv_import");
   const [importChannelTypeId, setImportChannelTypeId] = useState("");
+  const [importResult, setImportResult] = useState<{
+    created: number;
+    contacts_created: number;
+    skipped: { company_name: string; reason: string }[];
+    leads: { id: number; company_name: string; duplicate_status: string }[];
+  } | null>(null);
   const [editLead, setEditLead] = useState<LeadRecord | null>(null);
   const [deleteLead, setDeleteLead] = useState<LeadRecord | null>(null);
   const [assignLead, setAssignLead] = useState<LeadRecord | null>(null);
   const [assignOwnerId, setAssignOwnerId] = useState("");
+  const [parentLeadSearch, setParentLeadSearch] = useState("");
+  const [parentLeadResults, setParentLeadResults] = useState<{ id: number; company_name: string }[]>([]);
+  const [parentLeadSearching, setParentLeadSearching] = useState(false);
 
-  const normalizeAmountInput = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return "";
 
-    let normalized = trimmed;
-    const thousandsSeparator = numberFormatSetting?.thousands_separator ?? ",";
-    const decimalSeparator = numberFormatSetting?.decimal_separator ?? ".";
-
-    if (thousandsSeparator) {
-      normalized = normalized.replace(new RegExp(escapeRegExp(thousandsSeparator), "g"), "");
-    }
-
-    if (decimalSeparator && decimalSeparator !== ".") {
-      normalized = normalized.replace(new RegExp(escapeRegExp(decimalSeparator), "g"), ".");
-    }
-
-    const sanitized = normalized.replace(/[^\d.]/g, "");
-    const [integerPart, ...fractionParts] = sanitized.split(".");
-    const integer = integerPart.replace(/^0+(?=\d)/, "");
-
-    if (fractionParts.length === 0) {
-      return integer;
-    }
-
-    const maxDecimalDigits = Math.max(0, numberFormatSetting?.decimal_digits ?? 2);
-    const fraction = fractionParts.join("").slice(0, maxDecimalDigits);
-
-    return maxDecimalDigits === 0 ? integer : `${integer || "0"}.${fraction}`;
-  };
-
-  const formatAmountInput = (value: string) => {
-    if (!value) return "";
-
-    const [integerPart, fractionPart] = value.split(".");
-    const formattedInteger = formatNumber(integerPart || "0", { decimals: 0 });
-    const decimalSeparator = numberFormatSetting?.decimal_separator ?? ".";
-
-    if (fractionPart === undefined) {
-      return formattedInteger === "—" ? "" : formattedInteger;
-    }
-
-    return `${formattedInteger === "—" ? "0" : formattedInteger}${decimalSeparator}${fractionPart}`;
-  };
 
   const { data: stagesData } = useQuery({
     queryKey: ["funnel-stages"],
@@ -789,6 +791,7 @@ export default function LeadsPage() {
     setImportFileName("");
     setImportSourceType(activeLeadSources.some((source) => source.slug === "csv_import") ? "csv_import" : activeLeadSources[0]?.slug ?? "");
     setImportChannelTypeId("");
+    setImportResult(null);
   };
 
   const applyImportMapping = (mapping: Record<string, string>, rows = importRows) => {
@@ -805,17 +808,19 @@ export default function LeadsPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? `Failed to create lead (${res.status})`);
+        throw new Error(formatApiError(body, `Failed to create lead (${res.status})`));
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       setCreateOpen(false);
+      setFormError("");
       resetForm();
       setFeedback("Lead created successfully.");
     },
     onError: (err: Error) => {
+      setFormError(err.message);
       setFeedback(err.message);
     },
   });
@@ -829,17 +834,19 @@ export default function LeadsPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? `Failed to update lead (${res.status})`);
+        throw new Error(formatApiError(body, `Failed to update lead (${res.status})`));
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       setEditLead(null);
+      setFormError("");
       resetForm();
       setFeedback("Lead updated successfully.");
     },
     onError: (err: Error) => {
+      setFormError(err.message);
       setFeedback(err.message);
     },
   });
@@ -875,8 +882,8 @@ export default function LeadsPage() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
-      setImportOpen(false);
-      resetImport();
+      // Store the result so the modal can display the report — don't auto-close.
+      setImportResult(result);
       setFeedback(
         `Import completed: ${result.created ?? 0} leads and ${result.contacts_created ?? 0} PIC/contact records created.`
       );
@@ -885,6 +892,33 @@ export default function LeadsPage() {
       setFeedback(err.message);
     },
   });
+
+  const handleDownloadImportReport = () => {
+    if (!importResult) return;
+    const rows = [
+      // Created rows
+      ...(importResult.leads ?? []).map((lead) => ({
+        Status: "imported",
+        "Lead ID": lead.id,
+        "Company Name": lead.company_name,
+        "Duplicate Status": lead.duplicate_status ?? "",
+        Reason: "",
+      })),
+      // Skipped rows
+      ...(importResult.skipped ?? []).map((item) => ({
+        Status: "skipped",
+        "Lead ID": "",
+        "Company Name": item.company_name,
+        "Duplicate Status": "",
+        Reason: item.reason,
+      })),
+    ];
+    downloadTimestampedReport(
+      rows,
+      "lead_import_report",
+      ["Status", "Lead ID", "Company Name", "Duplicate Status", "Reason"]
+    );
+  };
 
   const pushToFunnel = useMutation({
     mutationFn: async ({ id, funnelStageId }: { id: number; funnelStageId: number }) => {
@@ -958,6 +992,7 @@ export default function LeadsPage() {
 
   const openEdit = (lead: LeadRecord) => {
     setEditLead(lead);
+    setFormError("");
     setLocationSearch(lead.address || "");
     setLocationFeedback("");
     setFormState({
@@ -979,6 +1014,7 @@ export default function LeadsPage() {
       channel_type_id:       primaryChannelId(lead) != null ? String(primaryChannelId(lead)) : "",
       funnel_stage_id:       String(lead.funnel_stage_id ?? lead.current_funnel_stage?.id ?? ""),
       qualification_status:  lead.qualification_status || "pending",
+      parent_lead_id:        lead.parent_lead_id != null ? String(lead.parent_lead_id) : "",
     });
   };
 
@@ -997,51 +1033,71 @@ export default function LeadsPage() {
   };
 
   const submitCreate = () => {
+    setFormError("");
+    const website = normalizeWebsiteInput(formState.website);
+
     createMutation.mutate({
-      company_name:          formState.company_name,
-      address:               formState.address || undefined,
+      company_name:          formState.company_name.trim(),
+      address:               formState.address.trim() || undefined,
       lat:                   formState.lat ? Number(formState.lat) : undefined,
       lng:                   formState.lng ? Number(formState.lng) : undefined,
-      email:                 formState.email || undefined,
-      phone:                 formState.phone || undefined,
-      website:               formState.website || undefined,
+      email:                 formState.email.trim() || undefined,
+      phone:                 formState.phone.trim() || undefined,
+      website:               website || undefined,
       industry_id:           formState.industry_id ? Number(formState.industry_id) : undefined,
       sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : undefined,
-      company_size_estimate: formState.company_size_estimate || undefined,
-      business_category:     formState.business_category || undefined,
+      company_size_estimate: formState.company_size_estimate.trim() || undefined,
+      business_category:     formState.business_category.trim() || undefined,
       product_id:            formState.product_id ? Number(formState.product_id) : undefined,
       estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : undefined,
       realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : undefined,
       source_type:           formState.source_type || undefined,
       channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : undefined,
+      parent_lead_id:        formState.parent_lead_id ? Number(formState.parent_lead_id) : undefined,
     });
   };
 
   const submitUpdate = () => {
     if (!editLead) return;
+    setFormError("");
+    const website = normalizeWebsiteInput(formState.website);
+
     updateMutation.mutate({
       id: editLead.id,
       payload: {
-        company_name:          formState.company_name,
-        address:               formState.address || null,
+        company_name:          formState.company_name.trim(),
+        address:               formState.address.trim() || null,
         lat:                   formState.lat ? Number(formState.lat) : null,
         lng:                   formState.lng ? Number(formState.lng) : null,
-        email:                 formState.email || null,
-        phone:                 formState.phone || null,
-        website:               formState.website || null,
+        email:                 formState.email.trim() || null,
+        phone:                 formState.phone.trim() || null,
+        website:               website || null,
         industry_id:           formState.industry_id ? Number(formState.industry_id) : null,
         sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : null,
-        company_size_estimate: formState.company_size_estimate || null,
-        business_category:     formState.business_category || null,
+        company_size_estimate: formState.company_size_estimate.trim() || null,
+        business_category:     formState.business_category.trim() || null,
         product_id:            formState.product_id ? Number(formState.product_id) : null,
         estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : null,
         realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : null,
         source_type:           formState.source_type || null,
         channel_type_id:       formState.channel_type_id ? Number(formState.channel_type_id) : null,
-        funnel_stage_id:       formState.funnel_stage_id || null,
+        funnel_stage_id:       formState.funnel_stage_id ? Number(formState.funnel_stage_id) : null,
         qualification_status:  formState.qualification_status || null,
+        parent_lead_id:        formState.parent_lead_id ? Number(formState.parent_lead_id) : null,
       },
     });
+  };
+
+  const searchParentLead = async (query: string) => {
+    if (!query.trim()) { setParentLeadResults([]); return; }
+    setParentLeadSearching(true);
+    try {
+      const res = await apiFetch(`/leads?search=${encodeURIComponent(query)}&per_page=8`);
+      const json = await res.json();
+      const items = (json?.data ?? []).map((l: any) => ({ id: l.id, company_name: l.company_name }));
+      setParentLeadResults(items);
+    } catch { setParentLeadResults([]); }
+    finally { setParentLeadSearching(false); }
   };
 
   const handleExport = async () => {
@@ -1257,6 +1313,7 @@ export default function LeadsPage() {
             <Button
               onClick={() => {
                 resetForm();
+                setFormError("");
                 setCreateOpen(true);
               }}
             >
@@ -1623,171 +1680,285 @@ export default function LeadsPage() {
         size="xl"
         footer={
           <>
-            <Button variant="outline" onClick={() => setImportOpen(false)}>
-              Cancel
-            </Button>
             <Button
-              onClick={() => importMutation.mutate()}
-              disabled={importMutation.isPending || importLeads.length === 0}
+              variant="outline"
+              onClick={() => {
+                setImportOpen(false);
+                resetImport();
+              }}
             >
-              {importMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Import {importLeads.length || ""} Leads
+              {importResult ? "Close" : "Cancel"}
             </Button>
+            {importResult ? (
+              <Button variant="outline" onClick={handleDownloadImportReport}>
+                <Download className="h-4 w-4" />
+                Download Report (.csv)
+              </Button>
+            ) : null}
+            {!importResult ? (
+              <Button
+                onClick={() => importMutation.mutate()}
+                disabled={importMutation.isPending || importLeads.length === 0}
+              >
+                {importMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Import {importLeads.length || ""} Leads
+              </Button>
+            ) : null}
           </>
         }
       >
         <div className="grid gap-5">
-          <div className="grid gap-4 md:grid-cols-[180px_1fr_180px_220px]">
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Template</label>
-              <Button variant="outline" onClick={handleDownloadImportTemplate}>
-                <Download className="h-4 w-4" />
-                Template
-              </Button>
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Excel or CSV File</label>
-              <Input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={(event) => handleImportFile(event.target.files?.[0])}
-              />
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Lead Source</label>
-              <Select
-                value={importSourceType}
-                onChange={(event) => {
-                  setImportSourceType(event.target.value);
-                  setImportChannelTypeId("");
-                }}
-                placeholder="Select source"
-              >
-                {activeLeadSources.map((source) => (
-                  <option key={source.id} value={source.slug}>{source.name}</option>
-                ))}
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <label className="text-sm font-medium">Channel Type</label>
-              <Select
-                value={importChannelTypeId}
-                onChange={(event) => setImportChannelTypeId(event.target.value)}
-                placeholder="Select channel"
-                disabled={!importSourceType || selectedImportChannels.length === 0}
-              >
-                {selectedImportChannels.map((channel) => (
-                  <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
-                ))}
-              </Select>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <div>
-                <CardTitle className="text-base">Column Mapping</CardTitle>
-                <CardDescription>
-                  Match each database field with a column from the uploaded file before importing.
-                </CardDescription>
-              </div>
-              {importHeaders.length > 0 ? (
-                <Badge variant="info">{importHeaders.length} columns detected</Badge>
-              ) : null}
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid gap-3 md:grid-cols-2">
-                {importMappingTargets.map((target) => (
-                  <div key={target.key} className="grid gap-2">
-                    <label className="text-sm font-medium">
-                      {target.group} · {target.label}
-                      {target.required ? <span className="text-destructive"> *</span> : null}
-                    </label>
-                    <Select
-                      value={importMapping[target.key] ?? ""}
-                      onChange={(event) => {
-                        const nextMapping = { ...importMapping };
-                        if (event.target.value) {
-                          nextMapping[target.key] = event.target.value;
-                        } else {
-                          delete nextMapping[target.key];
-                        }
-                        applyImportMapping(nextMapping);
-                      }}
-                      placeholder="Not mapped"
-                      disabled={importHeaders.length === 0}
-                    >
-                      {importHeaders.map((header) => (
-                        <option key={`${target.key}-${header}`} value={header}>
-                          {header}
-                        </option>
-                      ))}
-                    </Select>
+          {/* ── Import Result Report ─────────────────────────────── */}
+          {importResult ? (
+            <div className="grid gap-4">
+              {/* Summary pills */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Imported", value: importResult.created, variant: "success" as const },
+                  { label: "PIC / Contacts", value: importResult.contacts_created, variant: "info" as const },
+                  { label: "Skipped", value: importResult.skipped.length, variant: importResult.skipped.length > 0 ? "warning" as const : "neutral" as const },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="flex flex-col items-center justify-center rounded-lg border border-border bg-[var(--background)] py-3 px-4"
+                  >
+                    <span className="text-2xl font-semibold">{stat.value}</span>
+                    <span className="mt-0.5 text-xs text-muted-foreground">{stat.label}</span>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <div>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Import Preview
-                </CardTitle>
-                <CardDescription>
-                  {importFileName || "No file selected"} · {importLeads.length} valid lead rows detected
-                </CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <TableShell>
-                <Table>
-                  <TableHead>
-                    <tr>
-                      <TableHeaderCell>Company</TableHeaderCell>
-                      <TableHeaderCell>Contact</TableHeaderCell>
-                      <TableHeaderCell>Email</TableHeaderCell>
-                      <TableHeaderCell>Phone</TableHeaderCell>
-                      <TableHeaderCell>PIC Count</TableHeaderCell>
-                    </tr>
-                  </TableHead>
-                  <TableBody>
-                    {importLeads.length === 0 ? (
-                      <TableEmpty colSpan={5}>
-                        Upload a sheet with columns such as Company Name, Address, Email, Phone, PIC Name, PIC Email, and PIC Phone.
-                      </TableEmpty>
-                    ) : (
-                      importLeads.slice(0, 10).map((lead, index) => (
-                        <TableRow key={`${lead.company_name}-${index}`}>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <p className="font-medium">{lead.company_name}</p>
-                              <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>{lead.contacts?.[0]?.name ?? "—"}</TableCell>
-                          <TableCell>{lead.email ?? lead.contacts?.[0]?.email ?? "—"}</TableCell>
-                          <TableCell>{lead.phone ?? lead.contacts?.[0]?.phone ?? "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant={lead.contacts?.length ? "info" : "neutral"}>
-                              {lead.contacts?.length ?? 0}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableShell>
-              {importLeads.length > 10 ? (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Showing the first 10 rows. All {importLeads.length} valid rows will be imported.
+              {/* Success banner */}
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--success)]/30 bg-[var(--success)]/10 px-4 py-3">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--success)]" />
+                <p className="text-sm font-medium text-[var(--success)]">
+                  Import complete — {importResult.created} lead{importResult.created !== 1 ? "s" : ""} added.
+                  {importResult.contacts_created > 0
+                    ? ` ${importResult.contacts_created} PIC / contact record${importResult.contacts_created !== 1 ? "s" : ""} also created.`
+                    : ""}
                 </p>
+              </div>
+
+              {/* Skipped table */}
+              {importResult.skipped.length > 0 ? (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="border-b border-border bg-[var(--background)] px-3 py-2 text-sm font-semibold">
+                    Skipped Rows ({importResult.skipped.length})
+                  </div>
+                  <div className="max-h-56 overflow-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="sticky top-0 bg-card">
+                        <tr>
+                          <th className="border-b border-border px-3 py-2">Company Name</th>
+                          <th className="border-b border-border px-3 py-2">Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.skipped.map((item, idx) => (
+                          <tr key={idx} className="border-b border-border/60">
+                            <td className="max-w-48 truncate px-3 py-2 font-medium">{item.company_name}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{item.reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No rows were skipped — all leads imported successfully.</p>
+              )}
+
+              {/* Imported leads compact list */}
+              {(importResult.leads ?? []).length > 0 ? (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="border-b border-border bg-[var(--background)] px-3 py-2 text-sm font-semibold">
+                    Imported Leads ({importResult.leads.length})
+                  </div>
+                  <div className="max-h-48 overflow-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="sticky top-0 bg-card">
+                        <tr>
+                          <th className="border-b border-border px-3 py-2">ID</th>
+                          <th className="border-b border-border px-3 py-2">Company Name</th>
+                          <th className="border-b border-border px-3 py-2">Duplicate Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importResult.leads.map((lead) => (
+                          <tr key={lead.id} className="border-b border-border/60">
+                            <td className="px-3 py-2 font-mono text-muted-foreground">{lead.id}</td>
+                            <td className="max-w-56 truncate px-3 py-2 font-medium">{lead.company_name}</td>
+                            <td className="px-3 py-2">
+                              <Badge variant={lead.duplicate_status === "unique" ? "success" : "warning"}>
+                                {lead.duplicate_status ?? "—"}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               ) : null}
-            </CardContent>
-          </Card>
+            </div>
+          ) : null}
+
+          {/* ── Upload form (hidden after result is shown) ─── */}
+          {!importResult ? (
+            <>
+              <div className="grid gap-4 md:grid-cols-[180px_1fr_180px_220px]">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Template</label>
+                  <Button variant="outline" onClick={handleDownloadImportTemplate}>
+                    <Download className="h-4 w-4" />
+                    Template
+                  </Button>
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Excel or CSV File</label>
+                  <Input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={(event) => handleImportFile(event.target.files?.[0])}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Lead Source</label>
+                  <Select
+                    value={importSourceType}
+                    onChange={(event) => {
+                      setImportSourceType(event.target.value);
+                      setImportChannelTypeId("");
+                    }}
+                    placeholder="Select source"
+                  >
+                    {activeLeadSources.map((source) => (
+                      <option key={source.id} value={source.slug}>{source.name}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Channel Type</label>
+                  <Select
+                    value={importChannelTypeId}
+                    onChange={(event) => setImportChannelTypeId(event.target.value)}
+                    placeholder="Select channel"
+                    disabled={!importSourceType || selectedImportChannels.length === 0}
+                  >
+                    {selectedImportChannels.map((channel) => (
+                      <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+    
+              <Card>
+                <CardHeader>
+                  <div>
+                    <CardTitle className="text-base">Column Mapping</CardTitle>
+                    <CardDescription>
+                      Match each database field with a column from the uploaded file before importing.
+                    </CardDescription>
+                  </div>
+                  {importHeaders.length > 0 ? (
+                    <Badge variant="info">{importHeaders.length} columns detected</Badge>
+                  ) : null}
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {importMappingTargets.map((target) => (
+                      <div key={target.key} className="grid gap-2">
+                        <label className="text-sm font-medium">
+                          {target.group} · {target.label}
+                          {target.required ? <span className="text-destructive"> *</span> : null}
+                        </label>
+                        <Select
+                          value={importMapping[target.key] ?? ""}
+                          onChange={(event) => {
+                            const nextMapping = { ...importMapping };
+                            if (event.target.value) {
+                              nextMapping[target.key] = event.target.value;
+                            } else {
+                              delete nextMapping[target.key];
+                            }
+                            applyImportMapping(nextMapping);
+                          }}
+                          placeholder="Not mapped"
+                          disabled={importHeaders.length === 0}
+                        >
+                          {importHeaders.map((header) => (
+                            <option key={`${target.key}-${header}`} value={header}>
+                              {header}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+    
+              <Card>
+                <CardHeader>
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Import Preview
+                    </CardTitle>
+                    <CardDescription>
+                      {importFileName || "No file selected"} · {importLeads.length} valid lead rows detected
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <TableShell>
+                    <Table>
+                      <TableHead>
+                        <tr>
+                          <th className="border-b border-border px-3 py-2">Company</th>
+                          <th className="border-b border-border px-3 py-2">Contact</th>
+                          <th className="border-b border-border px-3 py-2">Email</th>
+                          <th className="border-b border-border px-3 py-2">Phone</th>
+                          <th className="border-b border-border px-3 py-2">PIC Count</th>
+                        </tr>
+                      </TableHead>
+                      <TableBody>
+                        {importLeads.length === 0 ? (
+                          <TableEmpty colSpan={5}>
+                            Upload a sheet with columns such as Company Name, Address, Email, Phone, PIC Name, PIC Email, and PIC Phone.
+                          </TableEmpty>
+                        ) : (
+                          importLeads.slice(0, 10).map((lead, index) => (
+                            <TableRow key={`${lead.company_name}-${index}`}>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <p className="font-medium">{lead.company_name}</p>
+                                  <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>{lead.contacts?.[0]?.name ?? "—"}</TableCell>
+                              <TableCell>{lead.email ?? lead.contacts?.[0]?.email ?? "—"}</TableCell>
+                              <TableCell>{lead.phone ?? lead.contacts?.[0]?.phone ?? "—"}</TableCell>
+                              <TableCell>
+                                <Badge variant={lead.contacts?.length ? "info" : "neutral"}>
+                                  {lead.contacts?.length ?? 0}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableShell>
+                  {importLeads.length > 10 ? (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Showing the first 10 rows. All {importLeads.length} valid rows will be imported.
+                    </p>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </>
+          ) : null}
         </div>
       </Modal>
 
@@ -1795,7 +1966,10 @@ export default function LeadsPage() {
         open={createOpen}
         onOpenChange={(open) => {
           setCreateOpen(open);
-          if (!open) resetForm();
+          if (!open) {
+            resetForm();
+            setFormError("");
+          }
         }}
         title="Create Lead"
         description="Add a new lead company to the platform."
@@ -1815,6 +1989,11 @@ export default function LeadsPage() {
         }
       >
         <div className="grid gap-4">
+          {formError ? (
+            <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left">
+              {formError}
+            </Badge>
+          ) : null}
           <div className="grid gap-2">
             <label className="text-sm font-medium">Company Name <span className="text-destructive">*</span></label>
             <Input
@@ -1977,6 +2156,53 @@ export default function LeadsPage() {
               ))}
             </Select>
           </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Subsidiary of (Parent Company)</label>
+            {formState.parent_lead_id ? (
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] px-3 py-2">
+                <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                <span className="flex-1 text-sm font-medium">
+                  {parentLeadResults.find(r => String(r.id) === formState.parent_lead_id)?.company_name ?? `Lead #${formState.parent_lead_id}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setFormState(s => ({ ...s, parent_lead_id: "" })); setParentLeadSearch(""); setParentLeadResults([]); }}
+                  className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Input
+                  value={parentLeadSearch}
+                  onChange={(e) => { setParentLeadSearch(e.target.value); searchParentLead(e.target.value); }}
+                  placeholder="Search company name…"
+                />
+                {parentLeadSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                {parentLeadResults.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
+                    {parentLeadResults.map(r => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => { setFormState(s => ({ ...s, parent_lead_id: String(r.id) })); setParentLeadSearch(""); setParentLeadResults([]); }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                      >
+                        <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        {r.company_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Tandai lead ini sebagai anak perusahaan (subsidiary) dari perusahaan lain.</p>
+          </div>
         </div>
       </Modal>
 
@@ -1986,6 +2212,7 @@ export default function LeadsPage() {
           if (!open) {
             setEditLead(null);
             resetForm();
+            setFormError("");
           }
         }}
         title="Edit Lead"
@@ -1997,6 +2224,7 @@ export default function LeadsPage() {
               onClick={() => {
                 setEditLead(null);
                 resetForm();
+                setFormError("");
               }}
             >
               Cancel
@@ -2010,7 +2238,7 @@ export default function LeadsPage() {
             </Button>
             <Button
               onClick={submitUpdate}
-              disabled={updateMutation.isPending || !formState.company_name}
+              disabled={updateMutation.isPending || !formState.company_name.trim()}
             >
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Save Changes
@@ -2019,6 +2247,11 @@ export default function LeadsPage() {
         }
       >
         <div className="grid gap-4">
+          {formError ? (
+            <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left">
+              {formError}
+            </Badge>
+          ) : null}
           <div className="grid gap-2">
             <label className="text-sm font-medium">Company Name <span className="text-destructive">*</span></label>
             <Input
@@ -2212,6 +2445,64 @@ export default function LeadsPage() {
                 <option value="not_eligible">Not eligible</option>
               </Select>
             </div>
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Subsidiary of (Parent Company)</label>
+            {formState.parent_lead_id ? (
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] px-3 py-2">
+                <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                <span className="flex-1 text-sm font-medium">
+                  {parentLeadResults.find(r => String(r.id) === formState.parent_lead_id)?.company_name
+                    ?? editLead?.parentLead?.company_name
+                    ?? `Lead #${formState.parent_lead_id}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setFormState(s => ({ ...s, parent_lead_id: "" })); setParentLeadSearch(""); setParentLeadResults([]); }}
+                  className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Input
+                  value={parentLeadSearch}
+                  onChange={(e) => {
+                    setParentLeadSearch(e.target.value);
+                    searchParentLead(e.target.value);
+                  }}
+                  placeholder="Search company name…"
+                />
+                {parentLeadSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                {parentLeadResults.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
+                    {parentLeadResults
+                      .filter(r => String(r.id) !== String(editLead?.id))
+                      .map(r => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => {
+                            setFormState(s => ({ ...s, parent_lead_id: String(r.id) }));
+                            setParentLeadSearch("");
+                            setParentLeadResults([]);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                        >
+                          <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          {r.company_name}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Tandai lead ini sebagai anak perusahaan (subsidiary) dari perusahaan lain.</p>
           </div>
         </div>
       </Modal>

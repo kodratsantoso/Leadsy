@@ -25,8 +25,9 @@ class Lead extends Model
         'use_ai_reference', 'ai_mode', 'ai_reference_source_type',
         'ai_reference_id', 'ai_processing_status',
         'funnel_stage_id', 'owner_id',
+        'presales_owner_id', 'am_owner_id', 'csm_owner_id',
         'territory_id', 'product_id', 'created_by',
-        'tenant_id',
+        'tenant_id', 'parent_lead_id',
     ];
 
     protected $casts = [
@@ -62,6 +63,21 @@ class Lead extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    public function presalesOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'presales_owner_id');
+    }
+
+    public function amOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'am_owner_id');
+    }
+
+    public function csmOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'csm_owner_id');
+    }
+
     public function territory(): BelongsTo
     {
         return $this->belongsTo(Territory::class);
@@ -95,6 +111,16 @@ class Lead extends Model
     public function duplicateOf(): BelongsTo
     {
         return $this->belongsTo(self::class, 'duplicate_of_id');
+    }
+
+    public function parentLead(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_lead_id');
+    }
+
+    public function subsidiaries(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_lead_id');
     }
 
     public function creator(): BelongsTo
@@ -223,6 +249,9 @@ class Lead extends Model
         return $query->where(function (Builder $visibility) use ($visibleUserIds) {
             $visibility
                 ->whereIn('owner_id', $visibleUserIds)
+                ->orWhereIn('presales_owner_id', $visibleUserIds)
+                ->orWhereIn('am_owner_id', $visibleUserIds)
+                ->orWhereIn('csm_owner_id', $visibleUserIds)
                 ->orWhereIn('created_by', $visibleUserIds);
         });
     }

@@ -1,7 +1,8 @@
 "use client";
-import { Globe, ArrowLeft, Server, Database, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Database, Globe, Loader2, Server } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 
 export default function EnvironmentPage() {
   // Fetch APP_NAME and APP_ENV from public settings endpoint (no auth required)
@@ -27,9 +28,7 @@ export default function EnvironmentPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <Link href="/settings" className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
+        <BackToSettings />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Environment</h1>
           <p className="text-sm text-muted-foreground">Runtime environment overview</p>

@@ -3,16 +3,17 @@
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   ArrowLeft, Plus, Zap, TrendingUp, MessageSquare, Calendar,
   AlertCircle, CheckCircle, Clock, User, FileText, Loader2,
-  Phone, Mail, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
+  Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info,
+  Activity, Info, Search, ExternalLink,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -26,13 +27,15 @@ import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuid
 
 const SOURCE_STYLES: Record<string, string> = {
   LUSHA:   'bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30',
+  GOOGLE_SEARCH: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
+  LINKEDIN: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
   manual:  'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[var(--status-success)]/30',
   website: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
   other:   'bg-muted text-muted-foreground border-border',
 };
 
 function SourceBadge({ source }: { source?: string | null }) {
-  const label = source?.toUpperCase() ?? 'OTHER';
+  const label = source === 'GOOGLE_SEARCH' ? 'GOOGLE' : source?.toUpperCase() ?? 'OTHER';
   const style = SOURCE_STYLES[source ?? 'other'] ?? SOURCE_STYLES.other;
   return (
     <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${style}`}>
@@ -91,6 +94,20 @@ type LushaCandidate = {
   has_email: boolean;
   has_phone: boolean;
   reveal_phone_credits: number;
+  status: string;
+};
+
+type GoogleContactCandidate = {
+  id: number;
+  name: string | null;
+  title: string | null;
+  company_name: string | null;
+  company_domain: string | null;
+  linkedin_url?: string | null;
+  linkedin_id?: string | null;
+  confidence_score?: number | null;
+  relevance_reason?: string | null;
+  evidence?: string | null;
   status: string;
 };
 
@@ -278,8 +295,8 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
 
 /* ── Contact form modal ────────────────────────────────────────────── */
 
-type ContactFormData = { name: string; title: string; email: string; phone: string };
-const EMPTY_FORM: ContactFormData = { name: '', title: '', email: '', phone: '' };
+type ContactFormData = { name: string; title: string; email: string; phone: string; linkedin_url?: string };
+const EMPTY_FORM: ContactFormData = { name: '', title: '', email: '', phone: '', linkedin_url: '' };
 const EMPTY_BANTC = { budget: '', authority: '', needs: '', timeline: '', competitor: '' };
 
 function toDateTimeLocalValue(value?: string | null) {
@@ -378,6 +395,10 @@ function ContactFormModal({
             <label className="text-xs font-medium text-muted-foreground">Phone</label>
             <input type="tel" value={form.phone} onChange={set('phone')} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">LinkedIn URL / Username</label>
+            <input value={form.linkedin_url || ''} onChange={set('linkedin_url')} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="e.g. https://www.linkedin.com/in/username or username" />
+          </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">
@@ -397,20 +418,197 @@ function ContactFormModal({
   );
 }
 
+function AddContactModal({
+  mode,
+  setMode,
+  candidates,
+  feedback,
+  searching,
+  adding,
+  saving,
+  onSearch,
+  onAddCandidate,
+  onClose,
+  onSaveManual,
+}: {
+  mode: 'manual' | 'google' | 'linkedin';
+  setMode: (mode: 'manual' | 'google' | 'linkedin') => void;
+  candidates: GoogleContactCandidate[];
+  feedback: { type: 'success' | 'error'; msg: string } | null;
+  searching: boolean;
+  adding: boolean;
+  saving: boolean;
+  onSearch: () => void;
+  onAddCandidate: (candidateId: number) => void;
+  onClose: () => void;
+  onSaveManual: (data: ContactFormData) => void;
+}) {
+  const [form, setForm] = useState<ContactFormData>(EMPTY_FORM);
+  const set = (k: keyof ContactFormData) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  return (
+    <Modal
+      open
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      title="Add Contact"
+      description="Choose manual entry, Google Search, or LinkedIn Search to find PIC candidates."
+      size="lg"
+      footer={
+        mode === 'manual' ? (
+          <>
+            <Button variant="outline" onClick={onClose}>Cancel</Button>
+            <Button onClick={() => onSaveManual(form)} disabled={saving || !form.name.trim()}>
+              {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Save Contact
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="outline" onClick={onClose}>Close</Button>
+            <Button onClick={onSearch} disabled={searching}>
+              {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              {mode === 'google' ? 'Search by Google' : 'LinkedIn Search'}
+            </Button>
+          </>
+        )
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Add Method</label>
+          <Select value={mode} onChange={(e) => setMode(e.target.value as 'manual' | 'google' | 'linkedin')}>
+            <option value="manual">Manual Add</option>
+            <option value="google">Search by Google</option>
+            <option value="linkedin">LinkedIn Search</option>
+          </Select>
+        </div>
+
+        {mode === 'manual' ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Name *</label>
+              <Input value={form.name} onChange={set('name')} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Job Title / Role</label>
+              <Input value={form.title} onChange={set('title')} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
+              <Input type="email" value={form.email} onChange={set('email')} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
+              <Input type="tel" value={form.phone} onChange={set('phone')} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">LinkedIn URL / Username</label>
+              <Input value={form.linkedin_url || ''} onChange={set('linkedin_url')} placeholder="e.g. https://www.linkedin.com/in/username or username" />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+              {mode === 'google' ? (
+                <>Google Search uses the keyword template in Settings &gt; AI Default &gt; Prompt Templates under <strong>Lead Contact Google Search Keyword</strong>.</>
+              ) : (
+                <>LinkedIn search discovers matching public profiles scoped under the LINKEDIN provider using Google search engine scoped to site:linkedin.com/in.</>
+              )}
+            </div>
+
+            {feedback ? (
+              <div className={cn(
+                'rounded-xl border p-3 text-xs',
+                feedback.type === 'success'
+                  ? 'border-[var(--status-success)]/30 bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]'
+                  : 'border-[var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
+              )}>
+                {feedback.msg}
+              </div>
+            ) : null}
+
+            {candidates.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">PIC Candidates</p>
+                  <Badge variant="neutral">{candidates.length} found</Badge>
+                </div>
+                {candidates.map((candidate) => (
+                  <div key={candidate.id} className="rounded-xl border border-border p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-medium">{candidate.name || 'Unnamed contact'}</p>
+                          <Badge variant={candidate.status === 'added' ? 'success' : 'info'}>
+                            {candidate.status === 'added' ? 'Added' : `${candidate.confidence_score ?? 0}%`}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{candidate.title || 'Role unavailable'}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {candidate.company_name || 'Company unavailable'}
+                          {candidate.linkedin_id ? ` · ${candidate.linkedin_id}` : ''}
+                        </p>
+                        {candidate.relevance_reason && (
+                          <p className="mt-2 text-xs text-muted-foreground">{candidate.relevance_reason}</p>
+                        )}
+                      </div>
+                      {candidate.linkedin_url ? (
+                        <a
+                          href={candidate.linkedin_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }))}
+                          aria-label="Open LinkedIn profile"
+                          title="Open LinkedIn profile"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        size="sm"
+                        disabled={candidate.status === 'added' || adding}
+                        onClick={() => onAddCandidate(candidate.id)}
+                      >
+                        {adding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        Add to Contact
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {mode === 'google'
+                  ? 'Run Search by Google to find public LinkedIn profile results by company name and role keywords.'
+                  : 'Run LinkedIn Search to discover PIC profiles using the LinkedIn integration.'}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function LeadDetailPage() {
   const params = useParams();
   const leadId = params.id as string;
   const qc = useQueryClient();
-  const { formatNumber, formatCurrency } = useNumberFormat();
+  const { formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Company info edit state
+  // Company info edit state (unified with Edit Lead form)
   const [showEditCompanyInfo, setShowEditCompanyInfo] = useState(false);
   const [companyForm, setCompanyForm] = useState({
     company_name: '',
     address: '',
+    lat: '',
+    lng: '',
     phone: '',
     email: '',
     website: '',
@@ -419,14 +617,31 @@ export default function LeadDetailPage() {
     company_size_estimate: '',
     business_category: '',
     product_id: '',
+    estimated_closing_amount: '',
+    realized_closing_amount: '',
+    source_type: '',
+    channel_type_id: '',
+    funnel_stage_id: '',
+    qualification_status: 'pending',
+    parent_lead_id: '',
+    owner_id: '',
+    presales_owner_id: '',
+    am_owner_id: '',
+    csm_owner_id: '',
   });
+  const [detailLocationSearch, setDetailLocationSearch] = useState('');
+  const [detailParentSearch, setDetailParentSearch] = useState('');
+  const [detailParentResults, setDetailParentResults] = useState<{ id: number; company_name: string }[]>([]);
+  const [detailParentSearching, setDetailParentSearching] = useState(false);
 
   // Contact UI state
   const [showAddContact, setShowAddContact]       = useState(false);
+  const [addContactMode, setAddContactMode]       = useState<'manual' | 'google' | 'linkedin'>('manual');
   const [editingContact, setEditingContact]       = useState<any | null>(null);
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
   const [showEnrichModal, setShowEnrichModal]     = useState(false);
-  const [selectedEnrichSources, setSelectedEnrichSources] = useState<string[]>(['lusha']);
+  const [lushaContact, setLushaContact]           = useState<any | null>(null);
+  const [confirmingLushaCandidate, setConfirmingLushaCandidate] = useState<LushaCandidate | null>(null);
   const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   // Activity form state (controlled)
@@ -463,6 +678,54 @@ export default function LeadDetailPage() {
     queryKey: ['lead', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}`).then((r) => r.json()),
   });
+
+  // Google Maps setup
+  const [mapsApiKey, setMapsApiKey] = useState('');
+  const [mapsEnabled, setMapsEnabled] = useState(true);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [geocodeFeedback, setGeocodeFeedback] = useState('');
+
+  // Fetch public settings for maps browser API key
+  const { data: publicSettingsData } = useQuery({
+    queryKey: ['public-settings'],
+    queryFn: async () => {
+      const response = await apiFetch('/settings/public');
+      return response.json();
+    },
+  });
+
+  useEffect(() => {
+    if (!publicSettingsData?.data) return;
+    const settings = publicSettingsData.data;
+    setMapsApiKey(settings.GOOGLE_MAPS_BROWSER_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '');
+    setMapsEnabled(settings.GOOGLE_MAPS_ENABLED === undefined || settings.GOOGLE_MAPS_ENABLED === true || settings.GOOGLE_MAPS_ENABLED === 'true');
+  }, [publicSettingsData]);
+
+  useEffect(() => {
+    const data = lead?.data;
+    if (!data) return;
+    if (data.lat != null && data.lng != null && String(data.lat).trim() !== '' && String(data.lng).trim() !== '') {
+      setMapCenter({ lat: Number(data.lat), lng: Number(data.lng) });
+    } else if (data.address && data.address.trim() !== '') {
+      setGeocodeFeedback('Geocoding address...');
+      apiFetch(`/maps/geocode?query=${encodeURIComponent(data.address)}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json?.data?.lat && json?.data?.lng) {
+            setMapCenter({ lat: Number(json.data.lat), lng: Number(json.data.lng) });
+            setGeocodeFeedback('');
+          } else {
+            setGeocodeFeedback('Location coordinates not found.');
+          }
+        })
+        .catch(() => {
+          setGeocodeFeedback('Unable to load address location.');
+        });
+    } else {
+      setMapCenter(null);
+      setGeocodeFeedback('');
+    }
+  }, [lead?.data?.lat, lead?.data?.lng, lead?.data?.address]);
 
   // Fetch lead intelligence
   const { data: intelligence } = useQuery({
@@ -521,10 +784,42 @@ export default function LeadDetailPage() {
     queryKey: ['products'],
     queryFn: () => apiFetch('/products').then((r) => r.json()),
   });
+  const { data: leadSourcesData } = useQuery({
+    queryKey: ['lead-source-types'],
+    queryFn: () => apiFetch('/settings/lead-sources').then((r) => r.json()),
+  });
   const allIndustries: any[] = industriesData?.data ?? [];
   const products: any[] = productsData?.data ?? [];
+  const leadSources: any[] = leadSourcesData?.data ?? [];
+  const activeLeadSources = leadSources.filter((s: any) => s.is_active);
+  const activeLeadChannels = activeLeadSources.flatMap((s: any) =>
+    (s.channels ?? []).filter((c: any) => c.is_active).map((c: any) => ({ ...c, source_slug: s.slug }))
+  );
+  const selectedLeadChannels = activeLeadChannels.filter((c: any) =>
+    !companyForm.source_type || c.source_slug === companyForm.source_type
+  );
   const selectedIndustrySubIndustries: any[] =
     allIndustries.find((i: any) => String(i.id) === String(companyForm.industry_id))?.sub_industries ?? [];
+
+  // Fetch all users for lead ownership roles assignment
+  const { data: assignableUsersData } = useQuery({
+    queryKey: ['lead-assignable-users'],
+    queryFn: () => apiFetch('/leads/assignable-users').then((r) => r.json()),
+  });
+
+  const usersList = assignableUsersData?.data || [];
+  const salesUsers = usersList.filter((u: any) =>
+    ["sales_exec", "sales_manager", "admin", "super_admin"].includes(u.role?.name)
+  );
+  const presalesUsers = usersList.filter((u: any) =>
+    ["presales", "admin", "super_admin"].includes(u.role?.name)
+  );
+  const amUsers = usersList.filter((u: any) =>
+    ["account_manager", "admin", "super_admin"].includes(u.role?.name)
+  );
+  const csmUsers = usersList.filter((u: any) =>
+    ["csm", "admin", "super_admin"].includes(u.role?.name)
+  );
 
   const invalidateLead = () => qc.invalidateQueries({ queryKey: ['lead', leadId] });
 
@@ -544,32 +839,79 @@ export default function LeadDetailPage() {
 
   function openEditCompanyInfo() {
     setCompanyForm({
-      company_name:          leadData.company_name         ?? '',
-      address:               leadData.address              ?? '',
-      phone:                 leadData.phone                ?? '',
-      email:                 leadData.email                ?? '',
-      website:               leadData.website              ?? '',
-      industry_id:           leadData.industry_id != null ? String(leadData.industry_id) : '',
-      sub_industry_id:       leadData.sub_industry_id != null ? String(leadData.sub_industry_id) : '',
-      company_size_estimate: leadData.company_size_estimate ?? '',
-      business_category:     leadData.business_category    ?? '',
-      product_id:            leadData.product_id != null ? String(leadData.product_id) : '',
+      company_name:             leadData.company_name           ?? '',
+      address:                  leadData.address                ?? '',
+      lat:                      leadData.lat != null ? String(leadData.lat) : '',
+      lng:                      leadData.lng != null ? String(leadData.lng) : '',
+      phone:                    leadData.phone                  ?? '',
+      email:                    leadData.email                  ?? '',
+      website:                  leadData.website                ?? '',
+      industry_id:              leadData.industry_id != null ? String(leadData.industry_id) : '',
+      sub_industry_id:          leadData.sub_industry_id != null ? String(leadData.sub_industry_id) : '',
+      company_size_estimate:    leadData.company_size_estimate  ?? '',
+      business_category:        leadData.business_category      ?? '',
+      product_id:               leadData.product_id != null ? String(leadData.product_id) : '',
+      estimated_closing_amount: leadData.estimated_closing_amount != null ? String(leadData.estimated_closing_amount) : '',
+      realized_closing_amount:  leadData.realized_closing_amount != null ? String(leadData.realized_closing_amount) : '',
+      source_type:              leadData.sources?.[0]?.source_type ?? '',
+      channel_type_id:          leadData.sources?.[0]?.channel_type_id != null ? String(leadData.sources[0].channel_type_id) : '',
+      funnel_stage_id:          leadData.funnel_stage_id != null ? String(leadData.funnel_stage_id) : '',
+      qualification_status:     leadData.qualification_status   ?? 'pending',
+      parent_lead_id:           leadData.parent_lead_id != null ? String(leadData.parent_lead_id) : '',
+      owner_id:                 leadData.owner_id != null ? String(leadData.owner_id) : '',
+      presales_owner_id:        leadData.presales_owner_id != null ? String(leadData.presales_owner_id) : '',
+      am_owner_id:              leadData.am_owner_id != null ? String(leadData.am_owner_id) : '',
+      csm_owner_id:             leadData.csm_owner_id != null ? String(leadData.csm_owner_id) : '',
     });
+    setDetailLocationSearch(leadData.address ?? '');
+    setDetailParentSearch('');
+    setDetailParentResults([]);
     setShowEditCompanyInfo(true);
   }
 
+  function normalizeWebsiteInput(value: string) {
+    const w = value.trim();
+    if (!w) return '';
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(w) ? w : `https://${w}`;
+  }
+
+  async function searchDetailParentLead(query: string) {
+    if (!query.trim()) { setDetailParentResults([]); return; }
+    setDetailParentSearching(true);
+    try {
+      const res = await apiFetch(`/leads?search=${encodeURIComponent(query)}&per_page=8`);
+      const json = await res.json();
+      setDetailParentResults((json?.data ?? []).map((l: any) => ({ id: l.id, company_name: l.company_name })));
+    } catch { setDetailParentResults([]); }
+    finally { setDetailParentSearching(false); }
+  }
+
   function submitCompanyInfo() {
+    const website = normalizeWebsiteInput(companyForm.website);
     const payload: Record<string, any> = {
-      company_name:          companyForm.company_name      || undefined,
-      address:               companyForm.address           || null,
-      phone:                 companyForm.phone             || null,
-      email:                 companyForm.email             || null,
-      website:               companyForm.website           || null,
-      industry_id:           companyForm.industry_id       ? Number(companyForm.industry_id)     : null,
-      sub_industry_id:       companyForm.sub_industry_id   ? Number(companyForm.sub_industry_id) : null,
-      company_size_estimate: companyForm.company_size_estimate || null,
-      business_category:     companyForm.business_category || null,
-      product_id:            companyForm.product_id ? Number(companyForm.product_id) : null,
+      company_name:             companyForm.company_name           || undefined,
+      address:                  companyForm.address                || null,
+      lat:                      companyForm.lat ? Number(companyForm.lat) : null,
+      lng:                      companyForm.lng ? Number(companyForm.lng) : null,
+      phone:                    companyForm.phone                  || null,
+      email:                    companyForm.email                  || null,
+      website:                  website                            || null,
+      industry_id:              companyForm.industry_id ? Number(companyForm.industry_id) : null,
+      sub_industry_id:          companyForm.sub_industry_id ? Number(companyForm.sub_industry_id) : null,
+      company_size_estimate:    companyForm.company_size_estimate  || null,
+      business_category:        companyForm.business_category      || null,
+      product_id:               companyForm.product_id ? Number(companyForm.product_id) : null,
+      estimated_closing_amount: companyForm.estimated_closing_amount ? Number(companyForm.estimated_closing_amount) : null,
+      realized_closing_amount:  companyForm.realized_closing_amount ? Number(companyForm.realized_closing_amount) : null,
+      source_type:              companyForm.source_type             || null,
+      channel_type_id:          companyForm.channel_type_id ? Number(companyForm.channel_type_id) : null,
+      funnel_stage_id:          companyForm.funnel_stage_id ? Number(companyForm.funnel_stage_id) : null,
+      qualification_status:     companyForm.qualification_status   || null,
+      parent_lead_id:           companyForm.parent_lead_id ? Number(companyForm.parent_lead_id) : null,
+      owner_id:                 companyForm.owner_id ? Number(companyForm.owner_id) : null,
+      presales_owner_id:        companyForm.presales_owner_id ? Number(companyForm.presales_owner_id) : null,
+      am_owner_id:              companyForm.am_owner_id ? Number(companyForm.am_owner_id) : null,
+      csm_owner_id:             companyForm.csm_owner_id ? Number(companyForm.csm_owner_id) : null,
     };
     updateLeadMutation.mutate(payload);
   }
@@ -626,6 +968,84 @@ export default function LeadDetailPage() {
     onSuccess: invalidateLead,
   });
 
+  const { data: googleContactCandidatesData, refetch: refetchGoogleContactCandidates } = useQuery({
+    queryKey: ['lead-google-contact-candidates', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/google-linkedin/candidates`).then((r) => r.json()),
+    enabled: showAddContact && addContactMode === 'google',
+  });
+
+  const searchGoogleContactsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-linkedin/search`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to search Google contacts');
+      return json;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['lead-google-contact-candidates', leadId] });
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Google LinkedIn candidates loaded' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search Google contacts' });
+    },
+  });
+
+  const addGoogleCandidateMutation = useMutation({
+    mutationFn: async (candidateId: number) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-linkedin/candidates/${candidateId}/add-contact`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to add Google candidate');
+      return json;
+    },
+    onSuccess: (data) => {
+      invalidateLead();
+      refetchGoogleContactCandidates();
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Candidate added to contacts' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add Google candidate' });
+    },
+  });
+
+  const { data: linkedinContactCandidatesData, refetch: refetchLinkedinContactCandidates } = useQuery({
+    queryKey: ['lead-linkedin-contact-candidates', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/linkedin/candidates`).then((r) => r.json()),
+    enabled: showAddContact && addContactMode === 'linkedin',
+  });
+
+  const searchLinkedinContactsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/linkedin/search`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to search LinkedIn contacts');
+      return json;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['lead-linkedin-contact-candidates', leadId] });
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'LinkedIn candidates loaded' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search LinkedIn contacts' });
+    },
+  });
+
+  const addLinkedinCandidateMutation = useMutation({
+    mutationFn: async (candidateId: number) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/linkedin/candidates/${candidateId}/add-contact`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to add LinkedIn candidate');
+      return json;
+    },
+    onSuccess: (data) => {
+      invalidateLead();
+      refetchLinkedinContactCandidates();
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Candidate added to contacts' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add LinkedIn candidate' });
+    },
+  });
+
   const { data: lushaCandidatesData, refetch: refetchLushaCandidates } = useQuery({
     queryKey: ['lead-lusha-candidates', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/lusha/candidates`).then((r) => r.json()),
@@ -633,15 +1053,27 @@ export default function LeadDetailPage() {
   });
 
   const searchLushaMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/lusha/search`, { method: 'POST' });
+    mutationFn: async (contactId?: number) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/lusha/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact_id: contactId }),
+      });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.message || 'Failed to search Lusha candidates');
       return json;
     },
     onSuccess: (data) => {
+      qc.setQueryData(['lead-lusha-candidates', leadId], data);
       qc.invalidateQueries({ queryKey: ['lead-lusha-candidates', leadId] });
-      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Lusha candidates loaded' });
+      const count = Array.isArray(data?.data) ? data.data.length : 0;
+      const billing = data?.meta?.billing;
+      setEnrichmentFeedback({
+        type: count > 0 ? 'success' : 'error',
+        msg: count > 0
+          ? `${count} Lusha candidate${count === 1 ? '' : 's'} loaded. Choose one to reveal and save.`
+          : `Lusha did not return a matching candidate for this contact.${billing?.resultsReturned === 0 ? ' Results returned: 0.' : ''}`,
+      });
     },
     onError: (error: any) => {
       setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to search Lusha candidates' });
@@ -658,6 +1090,7 @@ export default function LeadDetailPage() {
     onSuccess: (data) => {
       invalidateLead();
       refetchLushaCandidates();
+      setConfirmingLushaCandidate(null);
       setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Lusha phone saved to contacts' });
     },
     onError: (error: any) => {
@@ -922,20 +1355,15 @@ export default function LeadDetailPage() {
 
   const leadInitialScore = Number(latestScore?.score ?? leadData.lead_score ?? 0);
   const lushaEligible = leadInitialScore >= 60;
-  const lushaCandidates: LushaCandidate[] = lushaCandidatesData?.data || [];
-
-  const ENRICH_SOURCES = [
-    {
-      id: 'lusha',
-      label: 'Lusha',
-      available: lushaEligible,
-      note: lushaEligible ? 'Preview PIC candidates before revealing phone' : 'Requires initial lead score of 60+',
-    },
-    { id: 'linkedin', label: 'LinkedIn',          available: false, note: 'Requires LinkedIn API key' },
-    { id: 'apollo',   label: 'Apollo.io',         available: false, note: 'Requires Apollo API key' },
-    { id: 'hunter',   label: 'Hunter.io',         available: false, note: 'Requires Hunter API key' },
-    { id: 'manual',   label: 'Manual Input',      available: true,  note: 'Add contacts manually' },
-  ];
+  const lushaCandidates: LushaCandidate[] =
+    (Array.isArray(lushaCandidatesData?.data) && lushaCandidatesData.data.length > 0)
+      ? lushaCandidatesData.data
+      : (searchLushaMutation.data?.data || []);
+  const googleContactCandidates: GoogleContactCandidate[] = googleContactCandidatesData?.data || [];
+  const linkedinContactCandidates: GoogleContactCandidate[] = linkedinContactCandidatesData?.data || [];
+  const lushaContactOptions = contacts.filter((contact: any) =>
+    Boolean(contact.linkedin_url || contact.email || String(contact.name ?? '').trim().split(/\s+/).length > 1)
+  );
 
   function openActivityModal(existing?: any) {
     if (existing) {
@@ -1171,71 +1599,273 @@ export default function LeadDetailPage() {
 
       {/* ── OVERVIEW TAB ── */}
       {activeTab === 'overview' && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-lg border border-border bg-card p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold">Company Information</h3>
-              <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit company information">
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <div className="space-y-3 text-sm">
-              <div><span className="text-muted-foreground">Industry:</span> {leadData.industry?.name || '—'}</div>
-              {leadData.subIndustry?.name && (
-                <div><span className="text-muted-foreground">Sub-Industry:</span> {leadData.subIndustry.name}</div>
-              )}
-              <div><span className="text-muted-foreground">Email:</span> {leadData.email || '—'}</div>
-              <div><span className="text-muted-foreground">Phone:</span> {leadData.phone || '—'}</div>
-              <div>
-                <span className="text-muted-foreground">Website:</span>{' '}
-                {leadData.website ? (
-                  <a href={leadData.website} target="_blank" className="text-[var(--brand)] hover:underline">
-                    {leadData.website}
-                  </a>
-                ) : '—'}
+        <div className="space-y-6">
+          {/* Row 1: Company Info + Key Contacts */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Company Information</h3>
+                <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit lead information">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
               </div>
-              <div><span className="text-muted-foreground">Company Size:</span> {leadData.company_size_estimate || '—'}</div>
-              <div><span className="text-muted-foreground">Initial Product:</span> {leadData.product?.name || '—'}</div>
-              {leadData.business_category && (
-                <div><span className="text-muted-foreground">Business Category:</span> {leadData.business_category}</div>
+              <div className="space-y-3 text-sm">
+                <div><span className="text-muted-foreground">Industry:</span> {leadData.industry?.name || '—'}</div>
+                {leadData.subIndustry?.name && (
+                  <div><span className="text-muted-foreground">Sub-Industry:</span> {leadData.subIndustry.name}</div>
+                )}
+                {leadData.business_category && (
+                  <div><span className="text-muted-foreground">Business Category:</span> {leadData.business_category}</div>
+                )}
+                <div><span className="text-muted-foreground">Company Size:</span> {leadData.company_size_estimate || '—'}</div>
+                <div><span className="text-muted-foreground">Email:</span> {leadData.email || '—'}</div>
+                <div><span className="text-muted-foreground">Phone:</span> {leadData.phone || '—'}</div>
+                <div>
+                  <span className="text-muted-foreground">Website:</span>{' '}
+                  {leadData.website ? (
+                    <a href={leadData.website} target="_blank" rel="noreferrer" className="text-[var(--brand)] hover:underline">
+                      {leadData.website}
+                    </a>
+                  ) : '—'}
+                </div>
+                <div><span className="text-muted-foreground">Initial Product:</span> {leadData.product?.name || '—'}</div>
+              </div>
+            </div>
+
+            {/* Mini contacts card in overview */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Key Contacts</h3>
+                <button
+                  onClick={() => setActiveTab('contacts')}
+                  className="text-xs text-[var(--brand)] hover:underline"
+                >
+                  Manage all →
+                </button>
+              </div>
+              {contacts.length > 0 ? (
+                <div className="space-y-3">
+                  {contacts.slice(0, 3).map((c: any) => (
+                    <div key={c.id} className="flex items-start gap-3 rounded-lg bg-muted/20 p-3 text-sm">
+                      <User className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium">{c.name}</p>
+                          {c.is_primary && <Star className="h-3 w-3 fill-[var(--status-warning)] text-[var(--status-warning)]" />}
+                        </div>
+                        {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
+                        {c.email && <p className="truncate text-xs text-muted-foreground">{c.email}</p>}
+                      </div>
+                    </div>
+                  ))}
+                  {contacts.length > 3 && (
+                    <p className="text-xs text-muted-foreground">+{contacts.length - 3} more</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No contacts recorded</p>
               )}
             </div>
           </div>
 
-          {/* Mini contacts card in overview */}
-          <div className="rounded-lg border border-border bg-card p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-semibold">Key Contacts</h3>
-              <button
-                onClick={() => setActiveTab('contacts')}
-                className="text-xs text-[var(--brand)] hover:underline"
-              >
-                Manage all →
-              </button>
+          {/* Row 2: Sales Info + Group Company */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Sales Information */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Sales Information</h3>
+                <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit lead information">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Lead Source:</span>{' '}
+                  {leadData.sources?.[0]?.source_type ? (
+                    <span className="font-medium capitalize">{leadData.sources[0].source_type.replace(/_/g, ' ')}</span>
+                  ) : '—'}
+                </div>
+                {leadData.sources?.[0]?.channel_type?.name && (
+                  <div><span className="text-muted-foreground">Channel:</span> {leadData.sources[0].channel_type.name}</div>
+                )}
+                <div>
+                  <span className="text-muted-foreground">Funnel Stage:</span>{' '}
+                  {leadData.funnelStage?.name || leadData.current_funnel_stage?.name || '—'}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Qualification:</span>{' '}
+                  <span className={`font-medium capitalize ${
+                    leadData.qualification_status === 'eligible' ? 'text-[var(--status-success)]' :
+                    leadData.qualification_status === 'potential' ? 'text-[var(--status-warning)]' :
+                    leadData.qualification_status === 'not_eligible' ? 'text-[var(--status-danger)]' :
+                    'text-muted-foreground'
+                  }`}>
+                    {leadData.qualification_status?.replace(/_/g, ' ') || 'pending'}
+                  </span>
+                </div>
+                {leadData.estimated_closing_amount != null && (
+                  <div>
+                    <span className="text-muted-foreground">Est. Closing:</span>{' '}
+                    <span className="font-medium">{formatCurrency(Number(leadData.estimated_closing_amount))}</span>
+                  </div>
+                )}
+                {leadData.realized_closing_amount != null && Number(leadData.realized_closing_amount) > 0 && (
+                  <div>
+                    <span className="text-muted-foreground">Realized:</span>{' '}
+                    <span className="font-medium text-[var(--status-success)]">{formatCurrency(Number(leadData.realized_closing_amount))}</span>
+                  </div>
+                )}
+                <hr className="my-3 border-border" />
+                <div>
+                  <span className="text-muted-foreground">Sales Owner:</span>{' '}
+                  <span className="font-medium">{leadData.owner?.name || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Presales Owner:</span>{' '}
+                  <span className="font-medium">{leadData.presalesOwner?.name || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">AM Owner:</span>{' '}
+                  <span className="font-medium">{leadData.amOwner?.name || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">CSM Owner:</span>{' '}
+                  <span className="font-medium">{leadData.csmOwner?.name || '—'}</span>
+                </div>
+              </div>
             </div>
-            {contacts.length > 0 ? (
-              <div className="space-y-3">
-                {contacts.slice(0, 3).map((c: any) => (
-                  <div key={c.id} className="flex items-start gap-3 rounded-lg bg-muted/20 p-3 text-sm">
-                    <User className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-medium">{c.name}</p>
-                        {c.is_primary && <Star className="h-3 w-3 fill-[var(--status-warning)] text-[var(--status-warning)]" />}
-                      </div>
-                      {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
-                      {c.email && <p className="truncate text-xs text-muted-foreground">{c.email}</p>}
+
+            {/* Group Company */}
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Group Company</h3>
+                <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit lead information">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <div className="space-y-4 text-sm">
+                {/* Parent company */}
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Parent Company</p>
+                  {leadData.parentLead ? (
+                    <Link
+                      href={`/leads/${leadData.parentLead.id}`}
+                      className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_6%,transparent)] px-3 py-2 transition-colors hover:bg-[color-mix(in_oklch,var(--brand)_10%,transparent)]"
+                    >
+                      <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                      <span className="font-medium text-[var(--brand)]">{leadData.parentLead.company_name}</span>
+                      <ExternalLink className="ml-auto h-3 w-3 text-[var(--brand)]/60" />
+                    </Link>
+                  ) : (
+                    <p className="text-muted-foreground">— Standalone company —</p>
+                  )}
+                </div>
+
+                {/* Subsidiaries */}
+                {leadData.subsidiaries && leadData.subsidiaries.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Subsidiaries ({leadData.subsidiaries.length})
+                    </p>
+                    <div className="space-y-1.5">
+                      {leadData.subsidiaries.map((sub: any) => (
+                        <Link
+                          key={sub.id}
+                          href={`/leads/${sub.id}`}
+                          className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:border-[var(--brand)]/30 hover:bg-muted/30"
+                        >
+                          <CornerDownRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className="flex-1 font-medium">{sub.company_name}</span>
+                          {sub.qualification_status && (
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                              sub.qualification_status === 'eligible' ? 'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)]' :
+                              sub.qualification_status === 'potential' ? 'bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] text-[var(--status-warning)]' :
+                              'bg-muted text-muted-foreground'
+                            }`}>
+                              {sub.qualification_status.replace(/_/g, ' ')}
+                            </span>
+                          )}
+                        </Link>
+                      ))}
                     </div>
                   </div>
-                ))}
-                {contacts.length > 3 && (
-                  <p className="text-xs text-muted-foreground">+{contacts.length - 3} more</p>
+                )}
+
+                {!leadData.parentLead && (!leadData.subsidiaries || leadData.subsidiaries.length === 0) && (
+                  <p className="text-xs text-muted-foreground">
+                    No group company relationship set. Use the edit button to link this lead to a parent company.
+                  </p>
                 )}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No contacts recorded</p>
-            )}
+            </div>
           </div>
+
+          {/* Row 3: Map Preview */}
+          {(leadData.lat != null && leadData.lng != null) || leadData.address ? (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Location</h3>
+                <div className="flex items-center gap-2">
+                  {leadData.address && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        leadData.lat && leadData.lng
+                          ? `${leadData.lat},${leadData.lng}`
+                          : leadData.address
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 text-xs text-[var(--brand)] hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Open in Google Maps
+                    </a>
+                  )}
+                </div>
+              </div>
+              {leadData.address && (
+                <p className="mb-3 flex items-start gap-2 text-sm text-muted-foreground">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
+                  {leadData.address}
+                </p>
+              )}
+              {mapsEnabled && mapsApiKey ? (
+                <div className="h-[320px] overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)] relative">
+                  {mapCenter ? (
+                    <APIProvider apiKey={mapsApiKey}>
+                      <Map
+                        mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
+                        center={mapCenter}
+                        defaultCenter={mapCenter}
+                        defaultZoom={15}
+                        gestureHandling="cooperative"
+                        disableDefaultUI={true}
+                      >
+                        <AdvancedMarker position={mapCenter}>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-background bg-[color:var(--brand)] text-white shadow-lg">
+                            <MapPin className="h-4 w-4" />
+                          </div>
+                        </AdvancedMarker>
+                      </Map>
+                    </APIProvider>
+                  ) : (
+                    <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
+                      {geocodeFeedback || "Loading map..."}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex h-[320px] items-center justify-center rounded-xl border border-border bg-[color:var(--surface-subtle)] p-6 text-center text-sm text-muted-foreground">
+                  Maps are unavailable. Configure the public Google Maps browser key to enable map preview.
+                </div>
+              )}
+              {(leadData.lat != null || leadData.lng != null || mapCenter != null) && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Coordinates: {leadData.lat != null ? leadData.lat : mapCenter?.lat.toFixed(6)}, {leadData.lng != null ? leadData.lng : mapCenter?.lng.toFixed(6)}
+                </p>
+              )}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -1244,19 +1874,37 @@ export default function LeadDetailPage() {
         <div className="space-y-4">
           {/* Action bar */}
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setShowAddContact(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-[var(--brand)] px-3 py-2 text-xs font-medium text-white hover:bg-[var(--brand-hover)]"
+            <Button
+              onClick={() => {
+                setAddContactMode('manual');
+                setEnrichmentFeedback(null);
+                setShowAddContact(true);
+              }}
+              size="sm"
             >
               <Plus className="h-3.5 w-3.5" /> Add Contact
-            </button>
-            <button
-              onClick={() => setShowEnrichModal(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--brand)]/40 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-2 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)]"
+            </Button>
+            <Button
+              onClick={() => {
+                setLushaContact(lushaContactOptions[0] ?? null);
+                setEnrichmentFeedback(null);
+                qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
+                searchLushaMutation.reset();
+                setShowEnrichModal(true);
+              }}
+              disabled={!lushaEligible || lushaContactOptions.length === 0}
+              variant="outline"
+              size="sm"
+              tooltip={
+                !lushaEligible
+                  ? 'Requires initial lead score of 60+'
+                  : lushaContactOptions.length === 0
+                    ? 'Add a contact with LinkedIn, email, or full name first'
+                    : 'Search Lusha for hidden email and phone data'
+              }
             >
-              <Zap className="h-3.5 w-3.5" />
-              Enrich Contacts
-            </button>
+              <Zap className="h-3.5 w-3.5" /> Lusha
+            </Button>
           </div>
 
           {/* Contacts list */}
@@ -1265,7 +1913,7 @@ export default function LeadDetailPage() {
               <User className="mb-3 h-8 w-8 text-muted-foreground/40" />
               <p className="text-sm font-medium text-muted-foreground">No contacts yet</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Add manually or trigger Lusha enrichment to discover contacts.
+                Add manually or use Search by Google from Add Contact to discover LinkedIn PIC candidates.
               </p>
             </div>
           ) : (
@@ -1299,6 +1947,16 @@ export default function LeadDetailPage() {
                       )}
 
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                        {contact.linkedin_url && (
+                          <a
+                            href={contact.linkedin_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="h-3 w-3" /> LinkedIn
+                          </a>
+                        )}
                         {contact.email && (
                           <a
                             href={`mailto:${contact.email}`}
@@ -2507,12 +3165,36 @@ export default function LeadDetailPage() {
 
       {/* ── Add Contact Modal ── */}
       {showAddContact && (
-        <ContactFormModal
-          title="Add Contact"
-          initial={EMPTY_FORM}
+        <AddContactModal
+          mode={addContactMode}
+          setMode={(mode) => {
+            setAddContactMode(mode);
+            setEnrichmentFeedback(null);
+          }}
+          candidates={addContactMode === 'google' ? googleContactCandidates : (addContactMode === 'linkedin' ? linkedinContactCandidates : [])}
+          feedback={enrichmentFeedback}
+          searching={addContactMode === 'google' ? searchGoogleContactsMutation.isPending : (addContactMode === 'linkedin' ? searchLinkedinContactsMutation.isPending : false)}
+          adding={addContactMode === 'google' ? addGoogleCandidateMutation.isPending : (addContactMode === 'linkedin' ? addLinkedinCandidateMutation.isPending : false)}
           saving={addContactMutation.isPending}
-          onClose={() => setShowAddContact(false)}
-          onSave={(data) => addContactMutation.mutate(data)}
+          onSearch={() => {
+            if (addContactMode === 'google') {
+              searchGoogleContactsMutation.mutate();
+            } else if (addContactMode === 'linkedin') {
+              searchLinkedinContactsMutation.mutate();
+            }
+          }}
+          onAddCandidate={(candidateId) => {
+            if (addContactMode === 'google') {
+              addGoogleCandidateMutation.mutate(candidateId);
+            } else if (addContactMode === 'linkedin') {
+              addLinkedinCandidateMutation.mutate(candidateId);
+            }
+          }}
+          onClose={() => {
+            setShowAddContact(false);
+            setEnrichmentFeedback(null);
+          }}
+          onSaveManual={(data) => addContactMutation.mutate(data)}
         />
       )}
 
@@ -2525,6 +3207,7 @@ export default function LeadDetailPage() {
             title: editingContact.title ?? '',
             email: editingContact.email ?? '',
             phone: editingContact.phone ?? '',
+            linkedin_url: editingContact.linkedin_url ?? '',
           }}
           saving={updateContactMutation.isPending}
           onClose={() => setEditingContact(null)}
@@ -2583,10 +3266,10 @@ export default function LeadDetailPage() {
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Size (optional)</label>
                 <input
-                  type="number"
-                  value={outcomeForm.deal_size}
-                  onChange={(e) => setOutcomeForm({ ...outcomeForm, deal_size: e.target.value })}
-                  placeholder="e.g. 50000"
+                  inputMode="decimal"
+                  value={formatAmountInput(outcomeForm.deal_size)}
+                  onChange={(e) => setOutcomeForm({ ...outcomeForm, deal_size: normalizeAmountInput(e.target.value) })}
+                  placeholder="e.g. 50,000,000"
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                 />
               </div>
@@ -2625,12 +3308,12 @@ export default function LeadDetailPage() {
         </div>
       )}
 
-      {/* ── Edit Company Information Modal ── */}
+      {/* ── Edit Lead Information Modal (Unified) ── */}
       <Modal
         open={showEditCompanyInfo}
         onOpenChange={setShowEditCompanyInfo}
-        title="Edit Company Information"
-        description="Update the company details for this lead."
+        title="Edit Lead Information"
+        description="Update all lead details — company info, sales data, and relationship."
         size="lg"
         footer={
           <>
@@ -2647,138 +3330,340 @@ export default function LeadDetailPage() {
           </>
         }
       >
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Company Name */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                Company Name <span className="text-[var(--status-danger)]">*</span>
-              </label>
-              <Input
-                value={companyForm.company_name}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
-                placeholder="e.g. PT. Asahimas Flat Glass"
-              />
-            </div>
+        <div className="space-y-5">
+          {/* ── Section: Company ── */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Company Name <span className="text-[var(--status-danger)]">*</span>
+                </label>
+                <Input
+                  value={companyForm.company_name}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
+                  placeholder="e.g. PT. Asahimas Flat Glass"
+                />
+              </div>
 
-            {/* Address */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Address</label>
-              <textarea
-                value={companyForm.address}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value }))}
-                placeholder="Full address"
-                rows={2}
-                className="min-h-[60px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
-              />
-            </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Address</label>
+                <textarea
+                  value={companyForm.address}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value, lat: f.lat, lng: f.lng }))}
+                  placeholder="Full address"
+                  rows={2}
+                  className="min-h-[60px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
+                />
+              </div>
 
-            {/* Industry */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Industry</label>
-              <Select
-                value={companyForm.industry_id}
-                onChange={(e) =>
-                  setCompanyForm((f) => ({ ...f, industry_id: e.target.value, sub_industry_id: '' }))
-                }
-                placeholder="— Select industry —"
-              >
-                {allIndustries.map((ind: any) => (
-                  <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
-                ))}
-              </Select>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Latitude</label>
+                <Input
+                  type="number"
+                  value={companyForm.lat}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, lat: e.target.value }))}
+                  placeholder="-6.2088"
+                  step="any"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Longitude</label>
+                <Input
+                  type="number"
+                  value={companyForm.lng}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, lng: e.target.value }))}
+                  placeholder="106.8456"
+                  step="any"
+                />
+              </div>
 
-            {/* Sub-Industry */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sub-Industry</label>
-              <Select
-                value={companyForm.sub_industry_id}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, sub_industry_id: e.target.value }))}
-                placeholder="— Select sub-industry —"
-                disabled={!companyForm.industry_id || selectedIndustrySubIndustries.length === 0}
-              >
-                {selectedIndustrySubIndustries.map((sub: any) => (
-                  <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
-                ))}
-              </Select>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Industry</label>
+                <Select
+                  value={companyForm.industry_id}
+                  onChange={(e) =>
+                    setCompanyForm((f) => ({ ...f, industry_id: e.target.value, sub_industry_id: '' }))
+                  }
+                  placeholder="— Select industry —"
+                >
+                  {allIndustries.map((ind: any) => (
+                    <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
+                  ))}
+                </Select>
+              </div>
 
-            {/* Phone */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
-              <Input
-                type="tel"
-                value={companyForm.phone}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, phone: e.target.value }))}
-                placeholder="+62 31 7882383"
-              />
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sub-Industry</label>
+                <Select
+                  value={companyForm.sub_industry_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, sub_industry_id: e.target.value }))}
+                  placeholder="— Select sub-industry —"
+                  disabled={!companyForm.industry_id || selectedIndustrySubIndustries.length === 0}
+                >
+                  {selectedIndustrySubIndustries.map((sub: any) => (
+                    <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
+                  ))}
+                </Select>
+              </div>
 
-            {/* Email */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
-              <Input
-                type="email"
-                value={companyForm.email}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, email: e.target.value }))}
-                placeholder="info@company.com"
-              />
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
+                <Input
+                  type="tel"
+                  value={companyForm.phone}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+62 31 7882383"
+                />
+              </div>
 
-            {/* Website */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Website</label>
-              <Input
-                type="url"
-                value={companyForm.website}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, website: e.target.value }))}
-                placeholder="https://www.company.com"
-              />
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
+                <Input
+                  type="email"
+                  value={companyForm.email}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="info@company.com"
+                />
+              </div>
 
-            {/* Company Size */}
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company Size</label>
-              <Select
-                value={companyForm.company_size_estimate}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, company_size_estimate: e.target.value }))}
-                placeholder="— Select size —"
-              >
-                <option value="1-10">1–10 employees</option>
-                <option value="11-50">11–50 employees</option>
-                <option value="51-200">51–200 employees</option>
-                <option value="201-500">201–500 employees</option>
-                <option value="501-1000">501–1,000 employees</option>
-                <option value="1000+">1,000+ employees</option>
-              </Select>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Website</label>
+                <Input
+                  type="url"
+                  value={companyForm.website}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, website: e.target.value }))}
+                  placeholder="https://www.company.com"
+                />
+              </div>
 
-            {/* Business Category */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category</label>
-              <Input
-                value={companyForm.business_category}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, business_category: e.target.value }))}
-                placeholder="e.g. Manufacturing, Retail, Services"
-              />
-            </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company Size</label>
+                <Select
+                  value={companyForm.company_size_estimate}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, company_size_estimate: e.target.value }))}
+                  placeholder="— Select size —"
+                >
+                  <option value="1-10">1–10 employees</option>
+                  <option value="11-50">11–50 employees</option>
+                  <option value="51-200">51–200 employees</option>
+                  <option value="201-500">201–500 employees</option>
+                  <option value="501-1000">501–1,000 employees</option>
+                  <option value="1000+">1,000+ employees</option>
+                </Select>
+              </div>
 
-            {/* Initial Product */}
-            <div className="sm:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Initial Product</label>
-              <Select
-                value={companyForm.product_id}
-                onChange={(e) => setCompanyForm((f) => ({ ...f, product_id: e.target.value }))}
-                placeholder="— Select product —"
-              >
-                {products.map((product: any) => (
-                  <option key={product.id} value={String(product.id)}>{product.name}</option>
-                ))}
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Use this as the first product interest. Additional product purchases are tracked as outcomes in the Revenue tab.
-              </p>
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category</label>
+                <Input
+                  value={companyForm.business_category}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, business_category: e.target.value }))}
+                  placeholder="e.g. Manufacturing, Retail, Services"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Initial Product</label>
+                <Select
+                  value={companyForm.product_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, product_id: e.target.value }))}
+                  placeholder="— Select product —"
+                >
+                  {products.map((product: any) => (
+                    <option key={product.id} value={String(product.id)}>{product.name}</option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Use this as the first product interest. Additional product purchases are tracked as outcomes in the Revenue tab.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Sales ── */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sales</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Estimated Closing Amount</label>
+                <Input
+                  type="text"
+                  value={companyForm.estimated_closing_amount}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, estimated_closing_amount: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Realized Closing Amount</label>
+                <Input
+                  type="text"
+                  value={companyForm.realized_closing_amount}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, realized_closing_amount: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Lead Source</label>
+                <Select
+                  value={companyForm.source_type}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, source_type: e.target.value, channel_type_id: '' }))}
+                  placeholder="— Select source —"
+                >
+                  {activeLeadSources.map((src: any) => (
+                    <option key={src.slug} value={src.slug}>{src.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Channel Type</label>
+                <Select
+                  value={companyForm.channel_type_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, channel_type_id: e.target.value }))}
+                  placeholder="— Select channel —"
+                  disabled={!companyForm.source_type || selectedLeadChannels.length === 0}
+                >
+                  {selectedLeadChannels.map((ch: any) => (
+                    <option key={ch.id} value={String(ch.id)}>{ch.name}</option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Funnel Stage</label>
+                <Select
+                  value={companyForm.funnel_stage_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, funnel_stage_id: e.target.value }))}
+                  placeholder="— Unassigned —"
+                >
+                  {(funnelStagesData?.data ?? funnelStagesData ?? []).map((stage: any) => (
+                    <option key={stage.id} value={String(stage.id)}>{stage.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Qualification</label>
+                <Select
+                  value={companyForm.qualification_status}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, qualification_status: e.target.value }))}
+                >
+                  <option value="pending">Pending</option>
+                  <option value="eligible">Eligible</option>
+                  <option value="potential">Potential</option>
+                  <option value="not_eligible">Not Eligible</option>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Ownership Roles ── */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ownership Roles</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sales Owner</label>
+                <Select
+                  value={companyForm.owner_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, owner_id: e.target.value }))}
+                  placeholder="— Unassigned Sales —"
+                >
+                  {salesUsers.map((u: any) => (
+                    <option key={u.id} value={String(u.id)}>{u.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Presales Owner</label>
+                <Select
+                  value={companyForm.presales_owner_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, presales_owner_id: e.target.value }))}
+                  placeholder="— Unassigned Presales —"
+                >
+                  {presalesUsers.map((u: any) => (
+                    <option key={u.id} value={String(u.id)}>{u.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Account Manager Owner</label>
+                <Select
+                  value={companyForm.am_owner_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, am_owner_id: e.target.value }))}
+                  placeholder="— Unassigned AM —"
+                >
+                  {amUsers.map((u: any) => (
+                    <option key={u.id} value={String(u.id)}>{u.name}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">CSM Owner</label>
+                <Select
+                  value={companyForm.csm_owner_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, csm_owner_id: e.target.value }))}
+                  placeholder="— Unassigned CSM —"
+                >
+                  {csmUsers.map((u: any) => (
+                    <option key={u.id} value={String(u.id)}>{u.name}</option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section: Group Company ── */}
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Group Company</p>
+            <div className="grid gap-2">
+              <label className="text-xs font-medium text-muted-foreground">Subsidiary of (Parent Company)</label>
+              {companyForm.parent_lead_id ? (
+                <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] px-3 py-2">
+                  <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
+                  <span className="flex-1 text-sm font-medium">
+                    {detailParentResults.find(r => String(r.id) === companyForm.parent_lead_id)?.company_name
+                      ?? leadData?.parentLead?.company_name
+                      ?? `Lead #${companyForm.parent_lead_id}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setCompanyForm(f => ({ ...f, parent_lead_id: '' })); setDetailParentSearch(''); setDetailParentResults([]); }}
+                    className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Input
+                    value={detailParentSearch}
+                    onChange={(e) => { setDetailParentSearch(e.target.value); searchDetailParentLead(e.target.value); }}
+                    placeholder="Search company name…"
+                  />
+                  {detailParentSearching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                  {detailParentResults.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
+                      {detailParentResults
+                        .filter(r => String(r.id) !== leadId)
+                        .map(r => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() => { setCompanyForm(f => ({ ...f, parent_lead_id: String(r.id) })); setDetailParentSearch(''); setDetailParentResults([]); }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                          >
+                            <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            {r.company_name}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Tandai lead ini sebagai anak perusahaan (subsidiary) dari perusahaan lain.</p>
             </div>
           </div>
         </div>
@@ -2941,59 +3826,60 @@ export default function LeadDetailPage() {
         open={showEnrichModal}
         onOpenChange={(open) => {
           setShowEnrichModal(open);
-          if (!open) setEnrichmentFeedback(null);
+          if (!open) {
+            setEnrichmentFeedback(null);
+            setLushaContact(null);
+            setConfirmingLushaCandidate(null);
+            searchLushaMutation.reset();
+            qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
+          }
         }}
-        title="Enrich Contacts"
-        description="Preview PIC candidates first. Phone reveal is saved to this lead only after confirmation."
+        title="Lusha Contact Enrichment"
+        description="Pick a saved contact, preview Lusha matches, then confirm before spending reveal credits."
         size="sm"
         footer={
           <>
             <Button variant="outline" onClick={() => setShowEnrichModal(false)}>Cancel</Button>
             <Button
-              onClick={() => searchLushaMutation.mutate()}
-              disabled={searchLushaMutation.isPending || !selectedEnrichSources.includes('lusha') || !lushaEligible}
+              onClick={() => searchLushaMutation.mutate(lushaContact?.id)}
+              disabled={searchLushaMutation.isPending || !lushaEligible || !lushaContact}
             >
               {searchLushaMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Search PIC
+              Search Lusha
             </Button>
           </>
         }
       >
         <div className="space-y-3">
-          {ENRICH_SOURCES.map((src) => (
-            <label
-              key={src.id}
-              className={`flex items-start gap-3 rounded-xl border p-3 transition-colors cursor-pointer ${
-                src.available
-                  ? 'border-border hover:bg-muted/30'
-                  : 'border-border/50 opacity-50 cursor-not-allowed'
-              }`}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Contact to enrich</label>
+            <Select
+              value={lushaContact?.id ? String(lushaContact.id) : ''}
+              onChange={(event) => {
+                const nextContact = lushaContactOptions.find((contact: any) => String(contact.id) === event.target.value) ?? null;
+                setLushaContact(nextContact);
+                setEnrichmentFeedback(null);
+                searchLushaMutation.reset();
+                qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
+              }}
+              placeholder="Select contact"
+              disabled={lushaContactOptions.length === 0}
             >
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                disabled={!src.available}
-                checked={src.available && selectedEnrichSources.includes(src.id)}
-                onChange={(e) =>
-                  setSelectedEnrichSources((prev) =>
-                    e.target.checked ? [...prev, src.id] : prev.filter((s) => s !== src.id)
-                  )
-                }
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{src.label}</span>
-                  {src.available
-                    ? <Badge variant="success">Active</Badge>
-                    : <Badge variant="neutral">Not configured</Badge>}
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{src.note}</p>
-              </div>
-            </label>
-          ))}
+              {lushaContactOptions.map((contact: any) => (
+                <option key={contact.id} value={String(contact.id)}>
+                  {contact.name}{contact.title ? ` — ${contact.title}` : ''}
+                </option>
+              ))}
+            </Select>
+            {lushaContact ? (
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                {lushaContact.linkedin_url || lushaContact.email || 'Using full name + company identity'}
+              </p>
+            ) : null}
+          </div>
           <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
             <p>Lead score: <strong>{leadInitialScore}</strong>. Lusha is available when the initial score reaches 60.</p>
-            <p className="mt-1">Search may use Lusha API search billing. Phone reveal happens only when you confirm a candidate below.</p>
+            <p className="mt-1">Search previews matching candidates and availability only. Phone/email values stay hidden until you confirm Reveal & Save.</p>
           </div>
 
           {enrichmentFeedback ? (
@@ -3043,21 +3929,87 @@ export default function LeadDetailPage() {
                         candidate.status === 'revealed' ||
                         revealLushaPhoneMutation.isPending
                       }
-                      onClick={() => revealLushaPhoneMutation.mutate(candidate.id)}
+                      onClick={() => setConfirmingLushaCandidate(candidate)}
                     >
                       {revealLushaPhoneMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                      Reveal Phone
+                      Reveal & Save
                     </Button>
                   </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Preview does not include the phone number. Confirm Reveal & Save only if the name and role match the selected contact.
+                  </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
-              Search Lusha to preview PIC names and roles. Revealed phone numbers will be written to this lead contact list after confirmation.
-            </p>
+            <div className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+              {searchLushaMutation.isSuccess
+                ? 'No matching Lusha candidate was returned for this contact. Try another LinkedIn contact or enrich after adding email/company domain data.'
+                : 'Search Lusha after selecting a LinkedIn contact. Matching candidates will appear here with a Reveal & Save confirmation action.'}
+              {searchLushaMutation.data?.meta?.search_identity ? (
+                <div className="mt-3 space-y-1 border-t border-border pt-3">
+                  <p className="font-medium text-foreground">Search identity sent to Lusha</p>
+                  <p>LinkedIn: {searchLushaMutation.data.meta.search_identity.linkedin_url || 'not available'}</p>
+                  <p>Email: {searchLushaMutation.data.meta.search_identity.email || 'not available'}</p>
+                  <p>Name: {[searchLushaMutation.data.meta.search_identity.first_name, searchLushaMutation.data.meta.search_identity.last_name].filter(Boolean).join(' ') || 'not available'}</p>
+                  <p>Company: {searchLushaMutation.data.meta.search_identity.company_name || 'not available'} · {searchLushaMutation.data.meta.search_identity.company_domain || 'domain not available'}</p>
+                  {searchLushaMutation.data?.meta?.billing ? (
+                    <p>Billing: {searchLushaMutation.data.meta.billing.resultsReturned ?? 0} result returned, {searchLushaMutation.data.meta.billing.creditsCharged ?? 0} credit charged</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           )}
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(confirmingLushaCandidate)}
+        onOpenChange={(open) => {
+          if (!open && !revealLushaPhoneMutation.isPending) {
+            setConfirmingLushaCandidate(null);
+          }
+        }}
+        title="Use Lusha Credit?"
+        description="Confirm this match before revealing hidden contact data."
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmingLushaCandidate(null)}
+              disabled={revealLushaPhoneMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => confirmingLushaCandidate && revealLushaPhoneMutation.mutate(confirmingLushaCandidate.id)}
+              disabled={!confirmingLushaCandidate || revealLushaPhoneMutation.isPending}
+            >
+              {revealLushaPhoneMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Confirm Reveal & Save
+            </Button>
+          </>
+        }
+      >
+        {confirmingLushaCandidate ? (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-border p-3">
+              <p className="text-sm font-medium">{confirmingLushaCandidate.name || 'Unnamed contact'}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{confirmingLushaCandidate.title || 'Role unavailable'}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {confirmingLushaCandidate.company_name || leadData.company_name}
+                {confirmingLushaCandidate.company_domain ? ` · ${confirmingLushaCandidate.company_domain}` : ''}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[var(--status-warning)]/30 bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] p-3 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">Credit confirmation</p>
+              <p className="mt-1">
+                Phone reveal may use {confirmingLushaCandidate.reveal_phone_credits ?? 0} Lusha credit. The phone number is not shown in preview and will be saved to this lead contact only after confirmation.
+              </p>
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       {/* ── Delete Contact Confirmation ── */}

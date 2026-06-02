@@ -18,6 +18,7 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/settings/icp-profiles": { any: ["leads.view", "leads.edit"] },
   "/settings/ai-defaults": { any: ["ai.manage"] },
   "/settings/users": { any: ["users.manage"] },
+  "/settings/targets": { any: ["users.manage"] },
   "/settings/lead-sources": { any: ["leads.edit"] },
   "/settings/lead-channels": { any: ["leads.edit"] },
   "/settings/lead-stages": { any: ["leads.edit"] },

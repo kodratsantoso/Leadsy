@@ -3,8 +3,9 @@
 namespace App\Services\Enrichment\Providers;
 
 use App\Contracts\ContactEnrichmentProviderInterface;
-use App\Models\IntegrationConfig;
 use App\Models\Lead;
+use App\Models\LeadContact;
+use App\Models\IntegrationConfig;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -42,19 +43,30 @@ class LushaProvider implements ContactEnrichmentProviderInterface
 
     public function searchCandidates(Lead $lead, ?int $tenantId = null): array
     {
+        return $this->searchCandidatesForContact($lead, null, $tenantId);
+    }
+
+    public function searchCandidatesForContact(Lead $lead, ?LeadContact $contact = null, ?int $tenantId = null): array
+    {
         $this->assertEnabled($tenantId);
 
         $clientReferenceId = 'lead-'.$lead->id.'-'.Str::slug($lead->company_name).'-'.now()->format('YmdHis');
-        $payload = [
-            'contacts' => [[
-                'clientReferenceId' => $clientReferenceId,
-                'companyName' => $lead->company_name,
-            ]],
+        $contactPayload = [
+            'clientReferenceId' => $clientReferenceId,
+            'companyName' => $lead->company_name,
         ];
 
         if (! empty($lead->website_domain)) {
-            $payload['contacts'][0]['companyDomain'] = $lead->website_domain;
+            $contactPayload['companyDomain'] = $lead->website_domain;
         }
+
+        if ($contact) {
+            $contactPayload = array_filter($contactPayload + $this->contactSearchIdentity($contact), fn ($value) => $value !== null && $value !== '');
+        }
+
+        $payload = [
+            'contacts' => [$contactPayload],
+        ];
 
         $response = $this->client($tenantId)->post('https://api.lusha.com/v3/contacts/search', $payload);
         if (! $response->successful()) {
@@ -130,6 +142,46 @@ class LushaProvider implements ContactEnrichmentProviderInterface
             'reveal_email_credits' => (int) ($emailReveal['credits'] ?? 0),
             'reveal_phone_credits' => (int) ($phoneReveal['credits'] ?? 0),
             'raw_preview' => $candidate,
+        ];
+    }
+
+    private function contactSearchIdentity(LeadContact $contact): array
+    {
+        [$firstName, $lastName] = $this->splitName($contact->name);
+
+        return [
+            'id' => $this->lushaPersonId($contact),
+            'linkedinUrl' => $contact->linkedin_url,
+            'email' => $contact->email,
+            'firstName' => $firstName,
+            'lastName' => $lastName,
+        ];
+    }
+
+    private function lushaPersonId(LeadContact $contact): ?string
+    {
+        $payload = $contact->payloads()
+            ->where('source_type', 'LUSHA')
+            ->latest()
+            ->value('raw_payload');
+
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        return $payload['provider_candidate_id']
+            ?? $payload['id']
+            ?? $payload['personId']
+            ?? null;
+    }
+
+    private function splitName(?string $name): array
+    {
+        $parts = preg_split('/\s+/', trim((string) $name), 2, PREG_SPLIT_NO_EMPTY);
+
+        return [
+            $parts[0] ?? null,
+            $parts[1] ?? null,
         ];
     }
 

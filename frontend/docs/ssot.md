@@ -7,6 +7,15 @@
 - Theme token source of truth: `frontend/app/globals.css`
 - Runtime shell source of truth: `frontend/components/layout/app-shell.tsx`
 
+## Core Technology Stack
+
+- **Frontend Runtime:** Next.js 15, React 19, Tailwind CSS v4, and Zustand (global store).
+- **Backend API:** Laravel (PHP 8.2+) using Laravel Sanctum for API token-based authentication (used by both web and mobile clients).
+- **Database Engine:** PostgreSQL (port `5435` in dev).
+- **Job Orchestration:** Redis/Horizon for async queues (AI scoring, WhatsApp intent checks, data sync, email routing).
+- **WhatsApp Gateway:** Node.js sidecar service (`whatsapp-service` on port `3002`) running the Baileys library.
+- **Mobile Client:** Expo / React Native for Android/iOS field operations.
+
 ## Design System Lock
 
 All admin UI must inherit the same platform language.
@@ -51,6 +60,10 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/settings/integrations/page.tsx`
 - `frontend/app/auth/lark/callback/page.tsx`
 - `frontend/app/audit-logs/page.tsx`
+- `frontend/app/qualification/reviews/page.tsx`
+- `frontend/app/whatsapp/page.tsx`
+- `frontend/app/lead-generator/page.tsx`
+- `frontend/app/lead-generator/platforms/page.tsx`
 
 ## Post-Refactor Cleanup Applied
 
@@ -188,3 +201,61 @@ Source of truth: `frontend/components/products/QuestionGuide.tsx`
 - Field mapping is edited through a manual mapping grid from Leadsy lead fields to Lark Base field names, then stored as JSON for the backend sync service.
 - Saved mappings expose manual `Pull from Lark` and `Push to Lark` actions.
 - Runtime two-way sync depends on backend record mappings; frontend must not infer record identity from table row order.
+
+## WhatsApp Real Baileys Sidecar Module
+
+Source of truth: `frontend/app/whatsapp/page.tsx` (frontend UI) & `whatsapp-service/` (Node.js daemon).
+
+**Purpose:** Integrates a real, persistent WhatsApp gateway for outbound direct messaging, broadcast campaigns, inbound message sync, and automated AI lead qualification based on keyword and safety criteria.
+
+**Tabs & Features:**
+1. **Session & QR (`session`):** Manages the Baileys daemon session lifecycle. Connect initiates the session; QR code displays live state from a secure remote generator; Disconnect tears down the session. QR scans are polled automatically every 3 seconds.
+2. **Direct Message (`direct`):** Sends ad-hoc WhatsApp text messages to dynamic numbers using the active session.
+3. **Broadcast (`broadcast`):** Handles bulk outbound message campaigns to selected Lead IDs using customizable message templates.
+4. **Conversations (`conversations`):** Real-time conversational threads linked to Leads. Offers **AI Analysis** trigger which dispatches intent and lead potential evaluations to the backend.
+5. **Privacy & Rules (`settings`):** Defines synchronization policies:
+   - *Include Keywords:* Synced only if keywords match.
+   - *Exclude Keywords:* Blocks sync (takes absolute precedence).
+   - *Strict Allowlist:* Syncs only explicitly approved numbers.
+
+**Backend Sync Contract:**
+- Interacts with `/api/whatsapp/...` endpoints for campaign and rule persistence.
+- Auto-syncs inbound messages via webhook callbacks from the Baileys sidecar.
+
+## Human Verification Queue / Qualification Reviews Module
+
+Source of truth: `frontend/app/qualification/reviews/page.tsx`
+
+**Purpose:** Serves as the central review desk where incoming leads must be verified and checked before entering active pipeline stages.
+
+**Verification Lifecycle & Outcomes:**
+- **Approve:** Promotes lead status to a verified pipeline state (e.g., `eligible`).
+- **Reject:** Marks lead as `not_eligible` and halts pipeline movement.
+- **Hold:** Keeps the lead in `pending` review.
+- **Override Score:** Overwrites the AI-calculated lead score with a manual review score.
+
+**Key UI Behaviors:**
+- Filters leads by queue status (`open`, `pending`, `in_review`, `approved`, `rejected`, `overridden`).
+- Utilizes governed `Modal` and `Badge` primitives to manage decisions and input reasons for the immutable audit trail.
+- Action logs are stored via the backend `AuditService`.
+
+## Social & Platform Generator Module
+
+Source of truth: `frontend/app/lead-generator/`
+
+**Purpose:** Serves as the central interface and directory for social media, ads, CRM integrations, events, and webhook-based inbound lead ingestion.
+
+**Features & Layout:**
+- **Platforms List (`/platforms`):** Details capability sets for Instagram Graph API, TikTok Business API, YouTube Analytics, LinkedIn Marketing, Google Ads, Mekari Qontak, and external CRM sync partners (HubSpot, Salesforce, Pipedrive).
+- **Inbound Lead Flow Foundation:** Integrates security policies such as AES-256-GCM encrypted credentials vaulting and idempotency-keyed webhook event queues.
+
+## OpenSearch 1.1 Draft 6 Module
+
+Source of truth: `frontend/public/opensearch.xml` (descriptor) & `backend/app/Http/Controllers/Api/OpenSearchController.php` (search provider).
+
+**Purpose:** Aligns contact search with the open standard for search engine integration, enabling browsers and search client utilities to query Leadsy dynamically.
+
+**Features:**
+- **OSDD XML:** Defines the search metadata and URLs using template keys (`{searchTerms}`, `{count}`, `{startIndex}`).
+- **Multi-Format Output:** The endpoint `/api/opensearch/contacts` renders search results as RSS 2.0 with `<opensearch:totalResults>` namespaces, Atom 1.0, or standard JSON, matching headers and format query strings.
+- **Service Account Credentials:** Supports optional Google Cloud Service Account authentication using `GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY` (secret), and `GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID` config keys.

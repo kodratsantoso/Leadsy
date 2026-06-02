@@ -70,6 +70,7 @@ Leadsy should answer these core questions better than a generic CRM:
 - Show enrichment status per lead.
 - Add retry enrichment.
 - Show last enrichment timestamp and source.
+- Lead Detail Contacts now uses **Add Contact → Search by AI** for LinkedIn PIC discovery via the AI Default route `lead_contact_ai_search`; Lusha enrichment is launched from an existing contact after the LinkedIn contact has been selected.
 - Surface missing data fields.
 
 ### LG-004: Geo Product Fit Enhancements
@@ -136,4 +137,3 @@ Every near-term improvement should strengthen at least one of these loops:
 3. Prioritize leads with explainable intelligence.
 4. Recommend the next sales action.
 5. Feed activity outcomes back into intelligence.
-

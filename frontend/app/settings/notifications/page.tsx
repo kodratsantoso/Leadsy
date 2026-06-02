@@ -1,7 +1,8 @@
 "use client";
-import { Bell, ArrowLeft, Mail, MessageSquare, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Bell, Loader2, Mail, MessageSquare } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { apiFetch } from "@/lib/apiFetch";
 
 const CHANNEL_KEYS = [
@@ -54,9 +55,7 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <Link href="/settings" className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
+        <BackToSettings />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
           <p className="text-sm text-muted-foreground">Alert preferences and channels — BRD §5.4</p>
