@@ -1005,17 +1005,17 @@ class DashboardController extends Controller
             $csmLeads = Lead::where('csm_owner_id', $u->id);
             $csmLeadsCount = (clone $csmLeads)->count();
             $csmAvgScore = (clone $csmLeads)->avg('lead_score') ?? 0;
-            $csmMeetingsCount = \App\Models\LeadActivity::where('type', 'meeting')
+            $csmMeetingsCount = \App\Models\LeadActivity::where('activity_type', 'Meeting')
                 ->whereIn('lead_id', (clone $csmLeads)->pluck('id'))
                 ->count();
             $csmActivitiesCount = \App\Models\LeadActivity::whereIn('lead_id', (clone $csmLeads)->pluck('id'))->count();
 
             // Classify role categories
             $roleCategory = 'other';
-            if (str_contains($roleSlug, 'sales') || str_contains($roleSlug, 'exec') || str_contains($roleSlug, 'admin')) {
-                $roleCategory = 'sales';
-            } elseif (str_contains($roleSlug, 'presales') || str_contains($roleSlug, 'architect') || str_contains($roleSlug, 'research')) {
+            if (str_contains($roleSlug, 'presales') || str_contains($roleSlug, 'architect') || str_contains($roleSlug, 'research')) {
                 $roleCategory = 'presales';
+            } elseif (str_contains($roleSlug, 'sales') || str_contains($roleSlug, 'exec') || str_contains($roleSlug, 'admin')) {
+                $roleCategory = 'sales';
             } elseif (str_contains($roleSlug, 'am') || str_contains($roleSlug, 'account_manager')) {
                 $roleCategory = 'am';
             } elseif (str_contains($roleSlug, 'csm') || str_contains($roleSlug, 'success') || str_contains($roleSlug, 'customer')) {
