@@ -644,7 +644,7 @@ export default function DashboardPage() {
           <CountdownWidget />
 
           <div className="flex items-center rounded-lg border border-border bg-background/50 p-1 backdrop-blur-sm shadow-sm">
-            {["week", "biweekly", "month", "quarter", "year"].map((p) => (
+            {["week", "biweekly", "month", "quarter", "year", "all"].map((p) => (
               <button
                 key={p}
                 type="button"
@@ -654,7 +654,7 @@ export default function DashboardPage() {
                     : "text-muted-foreground hover:text-foreground"
                   }`}
               >
-                {p === "biweekly" ? "Biweekly" : p}
+                {p === "biweekly" ? "Biweekly" : p === "all" ? "All" : p}
               </button>
             ))}
           </div>

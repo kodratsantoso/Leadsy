@@ -37,6 +37,12 @@ class DashboardController extends Controller
         $now = now();
 
         switch ($period) {
+            case 'all':
+                $thisStart = $now->copy()->subYears(50)->startOfDay();
+                $thisEnd = $now->copy()->endOfDay();
+                $lastStart = $thisStart;
+                $lastEnd = $thisEnd;
+                break;
             case 'week':
                 $thisStart = $now->copy()->startOfWeek();
                 $thisEnd = $now->copy()->endOfWeek();
@@ -114,6 +120,12 @@ class DashboardController extends Controller
                     $label = 'Q' . ceil($date->month / 3) . ' ' . $date->year;
                     break;
                 case 'year':
+                    $date->subYears($i);
+                    $start = $date->copy()->startOfYear();
+                    $end = $date->copy()->endOfYear();
+                    $label = $date->format('Y');
+                    break;
+                case 'all':
                     $date->subYears($i);
                     $start = $date->copy()->startOfYear();
                     $end = $date->copy()->endOfYear();
@@ -908,6 +920,10 @@ class DashboardController extends Controller
     /** Calculate percentage change label between two periods */
     private function calcChange(int $current, int $previous, string $period = 'month'): ?string
     {
+        if ($period === 'all') {
+            return null;
+        }
+
         $periodNames = [
             'week' => 'week',
             'biweekly' => 'biweekly period',
