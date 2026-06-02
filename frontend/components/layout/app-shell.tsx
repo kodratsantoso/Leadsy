@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText
 } from "lucide-react";
-import { useState, useRef, useEffect, type ComponentType, type ReactNode } from "react";
+import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -119,12 +119,44 @@ export function AppShell({ children }: { children: ReactNode }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const visibleNavItems = navItems
-    .map((item) => ({
-      ...item,
-      children: item.children?.filter((child) => canAccessPath(child.href, user)),
-    }))
-    .filter((item) => canAccessPath(item.href, user) || Boolean(item.children?.length));
+
+  const visibleNavItems = useMemo(() => {
+    return navItems
+      .map((item) => ({
+        ...item,
+        children: item.children?.filter((child) => canAccessPath(child.href, user)),
+      }))
+      .filter((item) => canAccessPath(item.href, user) || Boolean(item.children?.length));
+  }, [user]);
+
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+
+  // Auto-expand active sub-menus on pathname changes
+  useEffect(() => {
+    visibleNavItems.forEach((item) => {
+      if (item.children?.length) {
+        const isChildActive = item.children.some((child) => pathname.startsWith(child.href));
+        if (isChildActive) {
+          setExpandedMenus((prev) => ({ ...prev, [item.href]: true }));
+        }
+      }
+    });
+  }, [pathname, visibleNavItems]);
+
+  const toggleMenu = (href: string) => {
+    if (collapsed) {
+      setCollapsed(false);
+      setExpandedMenus((prev) => ({
+        ...prev,
+        [href]: true,
+      }));
+    } else {
+      setExpandedMenus((prev) => ({
+        ...prev,
+        [href]: !prev[href],
+      }));
+    }
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -161,28 +193,61 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Nav */}
         <nav className="flex-1 space-y-1 overflow-y-auto p-2" data-tour="sidebar-nav">
           {visibleNavItems.map((item) => {
+            const hasChildren = Boolean(item.children?.length);
+            const isExpanded = expandedMenus[item.href] ?? false;
             const isActive =
               item.href === "/"
                 ? pathname === "/"
                 : pathname.startsWith(item.href) || Boolean(item.children?.some((child) => pathname.startsWith(child.href)));
+            
+            const itemContent = (
+              <>
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && hasChildren && (
+                  <ChevronDown
+                    className={cn(
+                      "ml-auto h-4 w-4 shrink-0 transition-transform duration-200",
+                      isExpanded && "rotate-180"
+                    )}
+                  />
+                )}
+              </>
+            );
+
             return (
               <div key={item.href} className="space-y-1">
-                <Link
-                  href={item.href}
-                  data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
-                </Link>
+                {hasChildren ? (
+                  <button
+                    onClick={() => toggleMenu(item.href)}
+                    data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
+                    className={cn(
+                      "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    )}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    {itemContent}
+                  </button>
+                ) : (
+                  <Link
+                    href={item.href}
+                    data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    )}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    {itemContent}
+                  </Link>
+                )}
 
-                {!collapsed && item.children?.length ? (
+                {!collapsed && isExpanded && item.children ? (
                   <div className="ml-4 space-y-1 border-l border-sidebar-border pl-2">
                     {item.children.map((child) => {
                       const childActive = pathname.startsWith(child.href);
