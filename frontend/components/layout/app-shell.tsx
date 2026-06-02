@@ -43,7 +43,15 @@ const navItems: NavItem[] = [
   { href: "/leads",                  icon: Building2,       label: "Leads" },
   { href: "/qualification/reviews",  icon: ClipboardCheck,  label: "Review Queue" },
   { href: "/products",               icon: Package,         label: "Products" },
-  { href: "/whatsapp",               icon: MessageSquare,   label: "WhatsApp" },
+  {
+    href: "/whatsapp",
+    icon: MessageSquare,
+    label: "WhatsApp",
+    children: [
+      { href: "/whatsapp/local", icon: MessageSquare, label: "Local WhatsApp" },
+      { href: "/whatsapp/qontak", icon: MessageSquare, label: "Mekari Qontak" },
+    ],
+  },
   { href: "/settings",               icon: Settings,        label: "Settings" },
 ];
 
