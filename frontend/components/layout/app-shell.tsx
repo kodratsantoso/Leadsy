@@ -27,6 +27,7 @@ type NavItem = {
     href: string;
     icon: ComponentType<{ className?: string }>;
     label: string;
+    group?: string;
   }>;
 };
 
@@ -58,22 +59,22 @@ const navItems: NavItem[] = [
     icon: Settings,
     label: "Settings",
     children: [
-      { href: "/settings/users",          icon: Users,        label: "Users & Roles" },
-      { href: "/settings/targets",        icon: Target,       label: "Target Cascades" },
-      { href: "/settings/ai-defaults",    icon: Bot,          label: "AI Defaults" },
-      { href: "/settings/industries",     icon: Layers,       label: "Industries" },
-      { href: "/settings/icp-profiles",   icon: Target,       label: "ICP Profiles" },
-      { href: "/settings/audit-logs",     icon: FileText,     label: "Audit Logs" },
-      { href: "/settings/lead-sources",    icon: Tags,         label: "Lead Sources" },
-      { href: "/settings/lead-channels",   icon: GitBranch,    label: "Lead Channels" },
-      { href: "/settings/lead-stages",     icon: GitBranch,    label: "Lead Stages" },
-      { href: "/settings/currency",        icon: Coins,        label: "Currency" },
-      { href: "/settings/integrations",    icon: Key,          label: "Integration Settings" },
-      { href: "/settings/webhooks",        icon: Webhook,      label: "Webhooks" },
-      { href: "/settings/environment",     icon: Globe,        label: "Environment" },
-      { href: "/settings/notifications",   icon: Bell,         label: "Notifications" },
-      { href: "/settings/backup",          icon: Database,     label: "Backup & Recovery" },
-      { href: "/settings/security",        icon: Shield,       label: "Security" },
+      { href: "/settings/users",          icon: Users,        label: "Users & Roles", group: "User & Targets" },
+      { href: "/settings/targets",        icon: Target,       label: "Target Cascades", group: "User & Targets" },
+      { href: "/settings/ai-defaults",    icon: Bot,          label: "AI Defaults", group: "AI Intelligence" },
+      { href: "/settings/icp-profiles",   icon: Target,       label: "ICP Profiles", group: "AI Intelligence" },
+      { href: "/settings/industries",     icon: Layers,       label: "Industries", group: "CRM Taxonomy" },
+      { href: "/settings/lead-sources",    icon: Tags,         label: "Lead Sources", group: "CRM Taxonomy" },
+      { href: "/settings/lead-channels",   icon: GitBranch,    label: "Lead Channels", group: "CRM Taxonomy" },
+      { href: "/settings/lead-stages",     icon: GitBranch,    label: "Lead Stages", group: "CRM Taxonomy" },
+      { href: "/settings/currency",        icon: Coins,        label: "Currency", group: "CRM Taxonomy" },
+      { href: "/settings/integrations",    icon: Key,          label: "Integration Settings", group: "Integrations" },
+      { href: "/settings/webhooks",        icon: Webhook,      label: "Webhooks", group: "Integrations" },
+      { href: "/settings/security",        icon: Shield,       label: "Security", group: "System & Security" },
+      { href: "/settings/environment",     icon: Globe,        label: "Environment", group: "System & Security" },
+      { href: "/settings/notifications",   icon: Bell,         label: "Notifications", group: "System & Security" },
+      { href: "/settings/backup",          icon: Database,     label: "Backup & Recovery", group: "System & Security" },
+      { href: "/settings/audit-logs",     icon: FileText,     label: "Audit Logs", group: "System & Security" },
     ],
   },
 ];
@@ -249,24 +250,40 @@ export function AppShell({ children }: { children: ReactNode }) {
 
                 {!collapsed && isExpanded && item.children ? (
                   <div className="ml-4 space-y-1 border-l border-sidebar-border pl-2">
-                    {item.children.map((child) => {
-                      const childActive = pathname.startsWith(child.href);
-                      return (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          className={cn(
-                            "group flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
-                            childActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                          )}
-                        >
-                          <child.icon className="h-3.5 w-3.5 shrink-0" />
-                          <span>{child.label}</span>
-                        </Link>
-                      );
-                    })}
+                    {(() => {
+                      let lastGroup: string | undefined = undefined;
+                      return item.children.map((child, index) => {
+                        const showGroupHeader = child.group && child.group !== lastGroup;
+                        if (child.group) {
+                          lastGroup = child.group;
+                        }
+                        const childActive = pathname.startsWith(child.href);
+                        return (
+                          <div key={child.href} className="space-y-0.5">
+                            {showGroupHeader && (
+                              <div className={cn(
+                                "px-2 pb-1 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/45",
+                                index === 0 ? "pt-1.5" : "pt-4 border-t border-sidebar-border/30 mt-2"
+                              )}>
+                                {child.group}
+                              </div>
+                            )}
+                            <Link
+                              href={child.href}
+                              className={cn(
+                                "group flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                                childActive
+                                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                              )}
+                            >
+                              <child.icon className="h-3.5 w-3.5 shrink-0" />
+                              <span>{child.label}</span>
+                            </Link>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 ) : null}
               </div>
