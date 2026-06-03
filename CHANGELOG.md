@@ -9,6 +9,11 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.5.2] — 2026-06-03 · Patch Release
+
+### Perbaikan & Penyelarasan
+- **Penyelarasan Sinkronisasi Database VPS** — Menambahkan flag `--disable-triggers` pada perintah `pg_dump` data-only, memungkinkan pengimpor migrasi Laravel di VPS mengenali tabel skema `public` yang harus di-truncate secara bersih sebelum memasukkan snapshot data lokal terbaru. Hal ini memperbaiki perbedaan data Industri, Saluran Lead (Lead Channel), Pengguna & Peran (Users & Roles), Target Cascade, dan data Leads lengkap pada VPS.
+
 ## [1.5.1] — 2026-06-03 · Patch Release
 
 ### Perbaikan & Penyelarasan

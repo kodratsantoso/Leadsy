@@ -4,7 +4,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.5.1** — 2026-06-03
+Current release: **v1.5.2** — 2026-06-03
+
+## What's New in v1.5.2
+
+- **Database Triggers & Synchronization Fix** — Added `--disable-triggers` to the data-only pg_dump command, enabling the Laravel migration importer to match and truncate target tables on the production VPS before inserting fresh snapshots. This resolves sync discrepancies for Industries, Lead Channels, Users, Roles, Targets, and Leads.
 
 ## What's New in v1.5.1
 
