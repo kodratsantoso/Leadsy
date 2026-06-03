@@ -92,15 +92,49 @@ if [[ "${YES}" != "true" ]]; then
   fi
 fi
 
+# Check if docker compose works for DB_SERVICE, otherwise auto-detect container name
+USE_COMPOSE=true
+CONTAINER_NAME=""
+if ! docker compose -f "${COMPOSE_FILE}" ps "${DB_SERVICE}" >/dev/null 2>&1; then
+  echo "Docker compose service '${DB_SERVICE}' not found in compose file/context."
+  UUID="${COOLIFY_RESOURCE_UUID:-aps4zkidae9b54ogoz8uc6z4}"
+  DETECTED=$(docker ps --filter "name=postgres-${UUID}" --format "{{.Names}}" | head -n 1)
+  if [ -z "${DETECTED}" ]; then
+    DETECTED=$(docker ps --filter "name=postgres-aps4zkidae9b54ogoz8uc6z4" --format "{{.Names}}" | head -n 1)
+  fi
+  if [ -z "${DETECTED}" ]; then
+    DETECTED=$(docker ps --filter "name=postgres-" --format "{{.Names}}" | head -n 1)
+  fi
+
+  if [ -n "${DETECTED}" ]; then
+    echo "Found active PostgreSQL container name: ${DETECTED}"
+    USE_COMPOSE=false
+    CONTAINER_NAME="${DETECTED}"
+  else
+    echo "Warning: Could not auto-detect container. Continuing with Docker Compose."
+  fi
+fi
+
 echo "Creating production backup before restore..."
-docker compose -f "${COMPOSE_FILE}" exec -T "${DB_SERVICE}" \
-  pg_dump \
-    --username="${DB_USERNAME}" \
-    --dbname="${DB_DATABASE}" \
-    --format=custom \
-    --no-owner \
-    --no-privileges \
-  > "${PRE_RESTORE_BACKUP}"
+if [ "${USE_COMPOSE}" = "true" ]; then
+  docker compose -f "${COMPOSE_FILE}" exec -T "${DB_SERVICE}" \
+    pg_dump \
+      --username="${DB_USERNAME}" \
+      --dbname="${DB_DATABASE}" \
+      --format=custom \
+      --no-owner \
+      --no-privileges \
+    > "${PRE_RESTORE_BACKUP}"
+else
+  docker exec -i "${CONTAINER_NAME}" \
+    pg_dump \
+      --username="${DB_USERNAME}" \
+      --dbname="${DB_DATABASE}" \
+      --format=custom \
+      --no-owner \
+      --no-privileges \
+    > "${PRE_RESTORE_BACKUP}"
+fi
 
 if [[ ! -s "${PRE_RESTORE_BACKUP}" ]]; then
   echo "Pre-restore backup is empty. Aborting restore." >&2
@@ -109,8 +143,7 @@ fi
 
 if [[ "${MODE}" == "replace" ]]; then
   echo "Truncating application data tables before import..."
-  docker compose -f "${COMPOSE_FILE}" exec -T "${DB_SERVICE}" \
-    psql --username="${DB_USERNAME}" --dbname="${DB_DATABASE}" --set=ON_ERROR_STOP=1 <<'SQL'
+  SQL_CMD=$(cat <<'SQL'
 DO $$
 DECLARE
   table_list text;
@@ -140,15 +173,30 @@ BEGIN
   END IF;
 END $$;
 SQL
+)
+  if [ "${USE_COMPOSE}" = "true" ]; then
+    echo "${SQL_CMD}" | docker compose -f "${COMPOSE_FILE}" exec -T "${DB_SERVICE}" \
+      psql --username="${DB_USERNAME}" --dbname="${DB_DATABASE}" --set=ON_ERROR_STOP=1
+  else
+    echo "${SQL_CMD}" | docker exec -i "${CONTAINER_NAME}" \
+      psql --username="${DB_USERNAME}" --dbname="${DB_DATABASE}" --set=ON_ERROR_STOP=1
+  fi
 fi
 
 echo "Importing data dump..."
-{
-  echo "SET session_replication_role = replica;"
-  cat "${DUMP_FILE}"
-  echo "SET session_replication_role = DEFAULT;"
-} | docker compose -f "${COMPOSE_FILE}" exec -T "${DB_SERVICE}" \
-  psql --username="${DB_USERNAME}" --dbname="${DB_DATABASE}" --set=ON_ERROR_STOP=1
+IMPORT_PAYLOAD=$(cat <<EOF
+SET session_replication_role = replica;
+$(cat "${DUMP_FILE}")
+SET session_replication_role = DEFAULT;
+EOF
+)
+if [ "${USE_COMPOSE}" = "true" ]; then
+  echo "${IMPORT_PAYLOAD}" | docker compose -f "${COMPOSE_FILE}" exec -T "${DB_SERVICE}" \
+    psql --username="${DB_USERNAME}" --dbname="${DB_DATABASE}" --set=ON_ERROR_STOP=1
+else
+  echo "${IMPORT_PAYLOAD}" | docker exec -i "${CONTAINER_NAME}" \
+    psql --username="${DB_USERNAME}" --dbname="${DB_DATABASE}" --set=ON_ERROR_STOP=1
+fi
 
 echo "Restore completed."
 echo "Production backup kept at: ${PRE_RESTORE_BACKUP}"

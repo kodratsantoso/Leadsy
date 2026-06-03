@@ -45,6 +45,20 @@ if [ -z "$VPS_HOST" ]; then
     exit 1
 fi
 
+echo "Detecting active PostgreSQL container name on VPS (${VPS_HOST})..."
+DETECTED_CONTAINER=$(ssh -o ConnectTimeout=10 -p "$VPS_SSH_PORT" "${VPS_USER}@${VPS_HOST}" "docker ps --filter 'name=postgres-aps4zkidae9b54ogoz8uc6z4' --format '{{.Names}}'" 2>/dev/null | head -n 1)
+
+if [ -z "$DETECTED_CONTAINER" ]; then
+    DETECTED_CONTAINER=$(ssh -o ConnectTimeout=10 -p "$VPS_SSH_PORT" "${VPS_USER}@${VPS_HOST}" "docker ps --filter 'name=postgres-' --format '{{.Names}}'" 2>/dev/null | head -n 1)
+fi
+
+if [ -n "$DETECTED_CONTAINER" ]; then
+    VPS_PG_CONTAINER="$DETECTED_CONTAINER"
+    echo "      Found active container: $VPS_PG_CONTAINER"
+else
+    echo "      Warning: Could not detect active container on VPS. Falling back to default: $VPS_PG_CONTAINER"
+fi
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  Leadsy — Local → VPS Database Sync"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

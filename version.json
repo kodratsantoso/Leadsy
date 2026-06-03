@@ -1,6 +1,6 @@
 {
-  "version": "1.4.0",
-  "released_at": "2026-05-30",
-  "type": "minor",
-  "notes": "Add lead subsidiary relationship, Detail page map preview, and unified edit leads form"
+  "version": "1.5.3",
+  "released_at": "2026-06-03",
+  "type": "patch",
+  "notes": "Container-specific database sync scripts and forced database snapshot restore migration"
 }

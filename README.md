@@ -4,7 +4,12 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.5.2** — 2026-06-03
+Current release: **v1.5.3** — 2026-06-03
+
+## What's New in v1.5.3
+
+- **Targeted Container Detection on VPS** — Enhanced `sync-db-local-to-vps.sh` and `db-restore-prod.sh` to prioritize the exact running PostgreSQL container UUID (`postgres-aps4zkidae9b54ogoz8uc6z4`) before falling back to generic name matching.
+- **Forced Database Snapshot Sync** — Created a dedicated Laravel migration `2026_06_03_000001_force_reimport_leadsy_snapshot.php` to clean and re-import the database snapshot during VPS redeployment, ensuring all missing settings and records (Industries, Lead Channels, Users, Roles, Targets, and Leads) are successfully synchronized.
 
 ## What's New in v1.5.2
 

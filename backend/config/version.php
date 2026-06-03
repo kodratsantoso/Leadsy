@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.5.2',
+    'version' => '1.5.3',
     'released_at' => '2026-06-03',
-    'type' => 'minor',   // major | minor | patch
-    'notes' => 'Interactive and animated charts dashboard using ApexCharts & Highcharts, AI Insight card, prompt templates routing settings',
+    'type' => 'patch',   // major | minor | patch
+    'notes' => 'Container-specific database sync scripts and forced database snapshot restore migration',
 ];

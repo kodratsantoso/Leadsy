@@ -9,6 +9,12 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.5.3] — 2026-06-03 · Patch Release
+
+### Perbaikan & Penyelarasan
+- **Spesifikasi Deteksi Kontainer VPS** — Memperbarui skrip `sync-db-local-to-vps.sh` dan `db-restore-prod.sh` agar secara spesifik menargetkan nama kontainer PostgreSQL berdasarkan UUID resource Coolify (`aps4zkidae9b54ogoz8uc6z4`) yang sedang berjalan saat ini, mencegah kesalahan target (nyasar) ke kontainer lain.
+- **Forced Database Snapshot Migration** — Membuat migrasi paksa `2026_06_03_000001_force_reimport_leadsy_snapshot.php` agar skrip snapshot database `leadsy_deploy_data_2026_05_30.sql` dapat dieksekusi ulang secara bersih saat redeployment di VPS.
+
 ## [1.5.2] — 2026-06-03 · Patch Release
 
 ### Perbaikan & Penyelarasan
