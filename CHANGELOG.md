@@ -9,6 +9,12 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.5.1] — 2026-06-03 · Patch Release
+
+### Perbaikan & Penyelarasan
+- **Settings Navigation & Layout Reorganization** — Menyederhanakan dan mengelompokkan 16 item pengaturan yang sebelumnya flat menjadi 5 kategori terstruktur (User & Targets, CRM Taxonomy, AI Intelligence, Integrations, System & Security) baik di sidebar menu maupun halaman dashboard `/settings`.
+- **Database Snapshots Update** — Memperbarui file backup skema dan data database `leadsy_deploy_data_2026_05_30.sql` dan `leadsy_full_structure_and_data_2026_05_30.sql` untuk menyamakan data records produksi dengan lokal.
+
 ## [1.5.0] — 2026-05-30 · Minor Release
 
 ### Fitur Baru

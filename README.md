@@ -4,7 +4,12 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.5.0** — 2026-05-30
+Current release: **v1.5.1** — 2026-06-03
+
+## What's New in v1.5.1
+
+- **Settings Navigation & Layout Reorganization** — Simplified the platform settings by clustering the 16 flat settings sub-menus into 5 logical categories (User & Targets, CRM Taxonomy, AI Intelligence, Integrations, System & Security) across the sidebar navigation and dashboard landing page.
+- **Database Snapshots Update** — Refreshed the PostgreSQL full and deploy snapshots (`leadsy_full_structure_and_data_2026_05_30.sql` and `leadsy_deploy_data_2026_05_30.sql`) to keep production data records aligned with local development.
 
 ## What's New in v1.5.0
 
