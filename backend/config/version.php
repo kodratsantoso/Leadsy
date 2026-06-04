@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.5.3',
-    'released_at' => '2026-06-03',
+    'version' => '1.5.4',
+    'released_at' => '2026-06-04',
     'type' => 'patch',   // major | minor | patch
-    'notes' => 'Container-specific database sync scripts and forced database snapshot restore migration',
+    'notes' => 'Synchronize local user database records and structure snapshots to VPS environment',
 ];

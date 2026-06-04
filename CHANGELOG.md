@@ -9,6 +9,11 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.5.4] — 2026-06-04 · Patch Release
+
+### Perbaikan & Penyelarasan
+- **Sinkronisasi Database Pengguna Lokal ke VPS** — Memperbarui file snapshot database struktur dan data (`leadsy_full_structure_and_data_2026_05_30.sql` dan `leadsy_deploy_data_2026_05_30.sql`) dari server lokal dan menambahkan migrasi paksa baru `2026_06_04_000001_force_reimport_user_snapshot.php` untuk memastikan seluruh rekor pengguna dan struktur tabel database terbaru disinkronkan secara otomatis pada lingkungan VPS.
+
 ## [1.5.3] — 2026-06-03 · Patch Release
 
 ### Perbaikan & Penyelarasan

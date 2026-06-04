@@ -4,7 +4,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.5.3** — 2026-06-03
+Current release: **v1.5.4** — 2026-06-04
+
+## What's New in v1.5.4
+
+- **Local User Database & Structure Sync to VPS** — Refreshed the local database records and schema snapshots (`leadsy_full_structure_and_data_2026_05_30.sql` and `leadsy_deploy_data_2026_05_30.sql`) and added a new forced re-import migration `2026_06_04_000001_force_reimport_user_snapshot.php` to clean-apply the fresh data on the VPS during deployment.
 
 ## What's New in v1.5.3
 
