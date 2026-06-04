@@ -230,7 +230,7 @@ PROMPT;
                 $parts[] = 'Objections: '.(is_array($m->objections) ? implode(', ', $m->objections) : mb_substr($m->objections, 0, 150));
             }
             if ($m->next_steps) {
-                $parts[] = 'Next Steps: '.mb_substr($m->next_steps, 0, 150);
+                $parts[] = 'Next Steps: '.(is_array($m->next_steps) ? implode(', ', $m->next_steps) : mb_substr($m->next_steps, 0, 150));
             }
 
             return implode("\n  ", $parts);

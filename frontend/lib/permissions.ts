@@ -37,18 +37,33 @@ export function getUserPermissionNames(user: any): string[] {
 }
 
 export function canAccessPath(path: string, user: any): boolean {
-  if (!user) return false;
-  if (user?.role?.name === "super_admin") return true;
+  if (!user) {
+    console.log(`[canAccessPath] path: ${path}, user is null => false`);
+    return false;
+  }
+  if (user?.role?.name === "super_admin") {
+    console.log(`[canAccessPath] path: ${path}, user is super_admin => true`);
+    return true;
+  }
 
   const matched = Object.entries(navPermissionMap)
     .sort((a, b) => b[0].length - a[0].length)
     .find(([href]) => (href === "/" ? path === "/" : path.startsWith(href)));
 
-  if (!matched) return true;
+  if (!matched) {
+    console.log(`[canAccessPath] path: ${path}, no match => true`);
+    return true;
+  }
 
   const rule = matched[1];
-  if (!rule?.any?.length) return true;
+  if (!rule?.any?.length) {
+    console.log(`[canAccessPath] path: ${path}, no permissions required => true`);
+    return true;
+  }
 
   const names = new Set(getUserPermissionNames(user));
-  return rule.any.some((permission) => names.has(permission));
+  const result = rule.any.some((permission) => names.has(permission));
+  console.log(`[canAccessPath] path: ${path}, matched rule permissions: ${rule.any.join(',')}, user has: ${Array.from(names).join(',')}, result: ${result}`);
+  return result;
 }
+

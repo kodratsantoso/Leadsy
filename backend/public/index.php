@@ -7,6 +7,7 @@ define('LARAVEL_START', microtime(true));
 
 ini_set('display_errors', '0');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+@set_time_limit(120);
 
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {

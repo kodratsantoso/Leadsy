@@ -16,7 +16,7 @@ class HumanVerificationWorkflowService
 
     public function requestReview(Lead $lead, User $requester, array $input = []): QualificationWorkflowReview
     {
-        $workflow = $this->activeWorkflowFor($lead);
+        $workflow = $this->activeWorkflowFor($lead, $requester);
 
         if (! $workflow) {
             throw ValidationException::withMessages([
@@ -38,7 +38,7 @@ class HumanVerificationWorkflowService
         $dueAt = $workflow->sla_hours ? Carbon::now()->addHours($workflow->sla_hours) : null;
 
         $review = QualificationWorkflowReview::create([
-            'tenant_id' => $lead->tenant_id,
+            'tenant_id' => $lead->tenant_id ?? $requester->tenant_id,
             'workflow_id' => $workflow->id,
             'lead_id' => $lead->id,
             'lead_qualification_id' => $latestQualification?->id,
@@ -177,13 +177,14 @@ class HumanVerificationWorkflowService
         ];
     }
 
-    private function activeWorkflowFor(Lead $lead): ?QualificationWorkflow
+    private function activeWorkflowFor(Lead $lead, ?User $user = null): ?QualificationWorkflow
     {
+        $tenantId = $lead->tenant_id ?? ($user?->tenant_id ?? (request()->user()?->tenant_id ?? null));
         return QualificationWorkflow::query()
             ->when(
-                $lead->tenant_id,
-                fn ($query) => $query->where(function ($inner) use ($lead) {
-                    $inner->where('tenant_id', $lead->tenant_id)
+                $tenantId,
+                fn ($query) => $query->where(function ($inner) use ($tenantId) {
+                    $inner->where('tenant_id', $tenantId)
                         ->orWhereNull('tenant_id');
                 }),
                 fn ($query) => $query->whereNull('tenant_id')
