@@ -141,11 +141,23 @@ test.describe('Lead Intelligence Features E2E Tests', () => {
     await revenueTab.click();
 
     // Wait for the loader to clear and the buttons to be rendered
-    const predictButton = page.getByRole('button', { name: 'Predict Conversion', exact: true });
-    await expect(predictButton).toBeVisible({ timeout: 40000 });
+    const icpButton = page.getByRole('button', { name: 'Run ICP Match', exact: true }).first();
+    await expect(icpButton).toBeVisible({ timeout: 40000 });
     await page.waitForLoadState('networkidle');
 
-    // 1. Test "Predict Conversion"
+    // 1. Test "Run ICP Match"
+    const icpMatchPromise = page.waitForResponse(
+      response => response.url().includes('/api/leads/15/icp-match') && response.status() === 200,
+      { timeout: 40000 }
+    );
+    await icpButton.click();
+    await icpMatchPromise;
+    await page.waitForLoadState('networkidle');
+    console.log('✓ Run ICP Match API trigger successful');
+
+    // 2. Test "Predict Conversion"
+    const predictButton = page.getByRole('button', { name: 'Predict Conversion', exact: true });
+    await expect(predictButton).toBeVisible();
     const predictPromise = page.waitForResponse(
       response => response.url().includes('/api/leads/15/predict-conversion') && response.status() === 200,
       { timeout: 40000 }
@@ -155,7 +167,7 @@ test.describe('Lead Intelligence Features E2E Tests', () => {
     await page.waitForLoadState('networkidle');
     console.log('✓ Predict Conversion API trigger successful');
 
-    // 2. Test "Get Prescription"
+    // 3. Test "Get Prescription"
     const prescribeButton = page.getByRole('button', { name: 'Get Prescription', exact: true });
     await expect(prescribeButton).toBeVisible();
     const prescribePromise = page.waitForResponse(
@@ -167,7 +179,19 @@ test.describe('Lead Intelligence Features E2E Tests', () => {
     await page.waitForLoadState('networkidle');
     console.log('✓ Get Prescription API trigger successful');
 
-    // 3. Test "Record Outcome" modal workflow
+    // 4. Test "Run AI Analysis"
+    const analysisButton = page.getByRole('button', { name: 'Run AI Analysis', exact: true }).first();
+    await expect(analysisButton).toBeVisible();
+    const aiAnalysisPromise = page.waitForResponse(
+      response => response.url().includes('/api/leads/15/revenue-analysis') && response.status() === 201,
+      { timeout: 40000 }
+    );
+    await analysisButton.click();
+    await aiAnalysisPromise;
+    await page.waitForLoadState('networkidle');
+    console.log('✓ Run AI Analysis API trigger successful');
+
+    // 5. Test "Record Outcome" modal workflow
     const recordOutcomeButton = page.getByRole('button', { name: 'Record Outcome', exact: true });
     await expect(recordOutcomeButton).toBeVisible();
     await recordOutcomeButton.click();
