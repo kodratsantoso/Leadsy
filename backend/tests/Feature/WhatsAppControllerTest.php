@@ -148,6 +148,153 @@ class WhatsAppControllerTest extends TestCase
         $this->assertEquals('outbound', $data[1]['direction']);
     }
 
+    public function test_get_conversations_mekari_qontak_paginated(): void
+    {
+        $user = $this->makeUser();
+
+        $this->saveConfig($user, 'MEKARI_QONTAK_ENABLED', '1', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_BASE_URL', 'https://api.mekari.com', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_ID', 'test-client-id', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_SECRET', 'test-client-secret', true);
+
+        // Mock two pages of rooms
+        Http::fake([
+            'api.mekari.com/qontak/chat/v1/rooms?limit=50' => Http::response([
+                'data' => [
+                    [
+                        'id' => 'qontak-room-1',
+                        'name' => 'John Doe',
+                        'last_message_at' => '2026-05-31T09:00:00Z',
+                        'last_message' => [
+                            'id' => 'msg-1',
+                            'text' => 'Hello from Qontak 1!',
+                            'created_at' => '2026-05-31T09:00:00Z',
+                            'sender_type' => 'Contact',
+                        ],
+                    ]
+                ],
+                'meta' => [
+                    'pagination' => [
+                        'cursor' => [
+                            'next' => 'cursor-token-page-2',
+                        ]
+                    ]
+                ]
+            ]),
+            'api.mekari.com/qontak/chat/v1/rooms?cursor=cursor-token-page-2&limit=50' => Http::response([
+                'data' => [
+                    [
+                        'id' => 'qontak-room-2',
+                        'name' => 'Jane Smith',
+                        'last_message_at' => '2026-05-31T09:10:00Z',
+                        'last_message' => [
+                            'id' => 'msg-2',
+                            'text' => 'Hello from Qontak 2!',
+                            'created_at' => '2026-05-31T09:10:00Z',
+                            'sender_type' => 'Contact',
+                        ],
+                    ]
+                ],
+                'meta' => [
+                    'pagination' => [
+                        'cursor' => [
+                            'next' => null,
+                        ]
+                    ]
+                ]
+            ]),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/whatsapp/conversations?platform=mekari_qontak')
+            ->assertOk();
+
+        $this->assertDatabaseHas('whatsapp_conversations', ['external_chat_id' => 'qontak-room-1']);
+        $this->assertDatabaseHas('whatsapp_conversations', ['external_chat_id' => 'qontak-room-2']);
+        $this->assertDatabaseHas('whatsapp_messages', ['external_message_id' => 'msg-1']);
+        $this->assertDatabaseHas('whatsapp_messages', ['external_message_id' => 'msg-2']);
+    }
+
+    public function test_get_conversation_messages_mekari_qontak_paginated(): void
+    {
+        $user = $this->makeUser();
+
+        $this->saveConfig($user, 'MEKARI_QONTAK_ENABLED', '1', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_BASE_URL', 'https://api.mekari.com', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_ID', 'test-client-id', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_SECRET', 'test-client-secret', true);
+
+        $contact = WhatsappContact::create([
+            'phone_number' => 'qontak-room-1',
+            'normalized_phone_number' => 'qontakroom1',
+            'is_relevant' => true,
+        ]);
+
+        $conv = WhatsappConversation::create([
+            'contact_id' => $contact->id,
+            'external_chat_id' => 'qontak-room-1',
+            'platform' => 'mekari_qontak',
+            'approved_for_sync' => true,
+            'last_message_at' => now(),
+        ]);
+
+        // Mock two pages of messages
+        Http::fake([
+            'api.mekari.com/qontak/chat/v1/rooms/qontak-room-1/messages?limit=50' => Http::response([
+                'data' => [
+                    [
+                        'id' => 'msg-1',
+                        'text' => 'Hello Page 1!',
+                        'created_at' => '2026-05-31T09:00:00Z',
+                        'sender_type' => 'Contact',
+                    ]
+                ],
+                'meta' => [
+                    'pagination' => [
+                        'cursor' => [
+                            'next' => 'cursor-token-msg-2',
+                        ]
+                    ]
+                ]
+            ]),
+            'api.mekari.com/qontak/chat/v1/rooms/qontak-room-1/messages?cursor=cursor-token-msg-2&limit=50' => Http::response([
+                'data' => [
+                    [
+                        'id' => 'msg-2',
+                        'text' => 'Hello Page 2!',
+                        'created_at' => '2026-05-31T09:05:00Z',
+                        'sender_type' => 'AgentAccount',
+                    ]
+                ],
+                'meta' => [
+                    'pagination' => [
+                        'cursor' => [
+                            'next' => null,
+                        ]
+                    ]
+                ]
+            ]),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson("/api/whatsapp/conversations/{$conv->id}/messages")
+            ->assertOk();
+
+        $this->assertDatabaseHas('whatsapp_messages', [
+            'conversation_id' => $conv->id,
+            'external_message_id' => 'msg-1',
+            'body' => 'Hello Page 1!',
+            'direction' => 'inbound',
+        ]);
+
+        $this->assertDatabaseHas('whatsapp_messages', [
+            'conversation_id' => $conv->id,
+            'external_message_id' => 'msg-2',
+            'body' => 'Hello Page 2!',
+            'direction' => 'outbound',
+        ]);
+    }
+
     private function makeUser(): User
     {
         $tenant = Tenant::query()->first() ?? Tenant::create([

@@ -217,103 +217,124 @@ class MekariQontakService
         $baseUrl = rtrim($creds['base_url'], '/');
         $path = $this->resolveApiPath($baseUrl, 'rooms');
 
-        try {
-            $response = $this->makeRequest(
-                'GET',
-                $baseUrl,
-                $path,
-                $creds['client_id'],
-                $creds['client_secret']
-            );
+        $cursor = null;
+        $hasMore = true;
 
-            if (!$response->successful()) {
-                Log::error("[Qontak] Rooms sync API error: HTTP {$response->status()} - {$response->body()}");
-                return;
-            }
-
-            $rooms = $response->json('data') ?? [];
-            foreach ($rooms as $room) {
-                $roomId = $room['id'] ?? null;
-                if (!$roomId) {
-                    continue;
+        while ($hasMore) {
+            try {
+                $queryParams = [
+                    'limit' => 50,
+                ];
+                if ($cursor) {
+                    $queryParams['cursor'] = $cursor;
                 }
 
-                // Extract phone number / identifier
-                $phone = null;
-                if (!empty($room['last_message']['raw_message']['contacts'])) {
-                    $phone = $room['last_message']['raw_message']['contacts'][0]['wa_id'] ?? null;
-                }
-                if (empty($phone) && !empty($room['last_message']['raw_message']['metadata'])) {
-                    $phone = $room['last_message']['raw_message']['metadata']['display_phone_number'] ?? null;
-                }
-                if (empty($phone) && !empty($room['name']) && preg_match('/^[+\d\s-]+$/', $room['name'])) {
-                    $phone = preg_replace('/[^0-9]/', '', $room['name']);
-                }
-                if (empty($phone)) {
-                    $phone = 'qontak_' . $roomId;
-                }
-
-                $normalizedPhone = preg_replace('/[^0-9]/', '', $phone);
-
-                // Upsert Contact
-                $contact = WhatsappContact::updateOrCreate(
-                    ['phone_number' => $phone],
-                    [
-                        'name' => $room['name'] ?? null,
-                        'normalized_phone_number' => $normalizedPhone,
-                        'is_relevant' => true,
-                        'relevance_reason' => 'qontak_sync',
-                    ]
+                $response = $this->makeRequest(
+                    'GET',
+                    $baseUrl,
+                    $path,
+                    $creds['client_id'],
+                    $creds['client_secret'],
+                    $queryParams
                 );
 
-                $lastMsgAt = !empty($room['last_message_at'])
-                    ? Carbon::parse($room['last_message_at'])
-                    : (!empty($room['last_message']['created_at'])
-                        ? Carbon::parse($room['last_message']['created_at'])
-                        : now());
+                if (!$response->successful()) {
+                    Log::error("[Qontak] Rooms sync API error: HTTP {$response->status()} - {$response->body()}");
+                    break;
+                }
 
-                // Upsert Conversation
-                $conversation = WhatsappConversation::updateOrCreate(
-                    ['external_chat_id' => $roomId],
-                    [
-                        'contact_id' => $contact->id,
-                        'sync_status' => 'active',
-                        'relevance_status' => empty($room['last_message']) ? 'pending' : 'high',
-                        'approved_for_sync' => true,
-                        'last_message_at' => $lastMsgAt,
-                        'platform' => 'mekari_qontak',
-                    ]
-                );
-
-                // Save last message if present
-                if (!empty($room['last_message']) && !empty($room['last_message']['text'])) {
-                    $lastMsg = $room['last_message'];
-                    $direction = 'inbound';
-                    
-                    if (!empty($lastMsg['sender_type']) && (
-                        str_contains($lastMsg['sender_type'], 'SystemAccount') || 
-                        str_contains($lastMsg['sender_type'], 'Agent') || 
-                        str_contains($lastMsg['sender_type'], 'User')
-                    )) {
-                        $direction = 'outbound';
-                    } elseif (!empty($lastMsg['participant_type']) && in_array($lastMsg['participant_type'], ['bot', 'agent'])) {
-                        $direction = 'outbound';
+                $rooms = $response->json('data') ?? [];
+                foreach ($rooms as $room) {
+                    $roomId = $room['id'] ?? null;
+                    if (!$roomId) {
+                        continue;
                     }
 
-                    WhatsappMessage::updateOrCreate(
-                        ['external_message_id' => $lastMsg['id'] ?? ('qmsg_' . $roomId . '_' . $lastMsgAt->timestamp)],
+                    // Extract phone number / identifier
+                    $phone = null;
+                    if (!empty($room['last_message']['raw_message']['contacts'])) {
+                        $phone = $room['last_message']['raw_message']['contacts'][0]['wa_id'] ?? null;
+                    }
+                    if (empty($phone) && !empty($room['last_message']['raw_message']['metadata'])) {
+                        $phone = $room['last_message']['raw_message']['metadata']['display_phone_number'] ?? null;
+                    }
+                    if (empty($phone) && !empty($room['name']) && preg_match('/^[+\d\s-]+$/', $room['name'])) {
+                        $phone = preg_replace('/[^0-9]/', '', $room['name']);
+                    }
+                    if (empty($phone)) {
+                        $phone = 'qontak_' . $roomId;
+                    }
+
+                    $normalizedPhone = preg_replace('/[^0-9]/', '', $phone);
+
+                    // Upsert Contact
+                    $contact = WhatsappContact::updateOrCreate(
+                        ['phone_number' => $phone],
                         [
-                            'conversation_id' => $conversation->id,
-                            'direction' => $direction,
-                            'message_type' => $lastMsg['type'] ?? 'text',
-                            'body' => $lastMsg['text'],
-                            'sent_at' => !empty($lastMsg['created_at']) ? Carbon::parse($lastMsg['created_at']) : $lastMsgAt,
+                            'name' => $room['name'] ?? null,
+                            'normalized_phone_number' => $normalizedPhone,
+                            'is_relevant' => true,
+                            'relevance_reason' => 'qontak_sync',
                         ]
                     );
+
+                    $lastMsgAt = !empty($room['last_message_at'])
+                        ? Carbon::parse($room['last_message_at'])
+                        : (!empty($room['last_message']['created_at'])
+                            ? Carbon::parse($room['last_message']['created_at'])
+                            : now());
+
+                    // Upsert Conversation
+                    $conversation = WhatsappConversation::updateOrCreate(
+                        ['external_chat_id' => $roomId],
+                        [
+                            'contact_id' => $contact->id,
+                            'sync_status' => 'active',
+                            'relevance_status' => empty($room['last_message']) ? 'pending' : 'high',
+                            'approved_for_sync' => true,
+                            'last_message_at' => $lastMsgAt,
+                            'platform' => 'mekari_qontak',
+                        ]
+                    );
+
+                    // Save last message if present
+                    if (!empty($room['last_message']) && !empty($room['last_message']['text'])) {
+                        $lastMsg = $room['last_message'];
+                        $direction = 'inbound';
+                        
+                        if (!empty($lastMsg['sender_type']) && (
+                            str_contains($lastMsg['sender_type'], 'SystemAccount') || 
+                            str_contains($lastMsg['sender_type'], 'Agent') || 
+                            str_contains($lastMsg['sender_type'], 'User')
+                        )) {
+                            $direction = 'outbound';
+                        } elseif (!empty($lastMsg['participant_type']) && in_array($lastMsg['participant_type'], ['bot', 'agent'])) {
+                            $direction = 'outbound';
+                        }
+
+                        WhatsappMessage::updateOrCreate(
+                            ['external_message_id' => $lastMsg['id'] ?? ('qmsg_' . $roomId . '_' . $lastMsgAt->timestamp)],
+                            [
+                                'conversation_id' => $conversation->id,
+                                'direction' => $direction,
+                                'message_type' => $lastMsg['type'] ?? 'text',
+                                'body' => $lastMsg['text'],
+                                'sent_at' => !empty($lastMsg['created_at']) ? Carbon::parse($lastMsg['created_at']) : $lastMsgAt,
+                            ]
+                        );
+                    }
                 }
+
+                $nextCursor = $response->json('meta.pagination.cursor.next');
+                if ($nextCursor && $nextCursor !== $cursor) {
+                    $cursor = $nextCursor;
+                } else {
+                    $hasMore = false;
+                }
+            } catch (\Throwable $e) {
+                Log::error('[Qontak] Failed to sync rooms: ' . $e->getMessage());
+                $hasMore = false;
             }
-        } catch (\Throwable $e) {
-            Log::error('[Qontak] Failed to sync rooms: ' . $e->getMessage());
         }
     }
 
@@ -335,57 +356,82 @@ class MekariQontakService
         $baseUrl = rtrim($creds['base_url'], '/');
         $path = $this->resolveApiPath($baseUrl, "rooms/{$roomExternalId}/messages");
 
-        try {
-            $response = $this->makeRequest(
-                'GET',
-                $baseUrl,
-                $path,
-                $creds['client_id'],
-                $creds['client_secret']
-            );
+        $cursor = null;
+        $hasMore = true;
 
-            if (!$response->successful()) {
-                Log::error("[Qontak] Messages sync API error: HTTP {$response->status()} - {$response->body()}");
-                return;
-            }
-
-            $messages = $response->json('data') ?? [];
-            foreach ($messages as $msg) {
-                $msgId = $msg['id'] ?? null;
-                if (!$msgId) {
-                    continue;
+        while ($hasMore) {
+            try {
+                $queryParams = [
+                    'limit' => 50,
+                ];
+                if ($cursor) {
+                    $queryParams['cursor'] = $cursor;
                 }
 
-                $direction = 'inbound';
-                if (!empty($msg['sender_type']) && (
-                    str_contains($msg['sender_type'], 'SystemAccount') || 
-                    str_contains($msg['sender_type'], 'Agent') || 
-                    str_contains($msg['sender_type'], 'User')
-                )) {
-                    $direction = 'outbound';
-                } elseif (!empty($msg['participant_type']) && in_array($msg['participant_type'], ['bot', 'agent'])) {
-                    $direction = 'outbound';
-                }
-
-                WhatsappMessage::updateOrCreate(
-                    ['external_message_id' => $msgId],
-                    [
-                        'conversation_id' => $conversation->id,
-                        'direction' => $direction,
-                        'message_type' => $msg['type'] ?? 'text',
-                        'body' => $msg['text'] ?? $msg['body'] ?? '',
-                        'sent_at' => !empty($msg['created_at']) ? Carbon::parse($msg['created_at']) : now(),
-                    ]
+                $response = $this->makeRequest(
+                    'GET',
+                    $baseUrl,
+                    $path,
+                    $creds['client_id'],
+                    $creds['client_secret'],
+                    $queryParams
                 );
-            }
 
-            // Sync the last message timestamp
+                if (!$response->successful()) {
+                    Log::error("[Qontak] Messages sync API error: HTTP {$response->status()} - {$response->body()}");
+                    break;
+                }
+
+                $messages = $response->json('data') ?? [];
+                foreach ($messages as $msg) {
+                    $msgId = $msg['id'] ?? null;
+                    if (!$msgId) {
+                        continue;
+                    }
+
+                    $direction = 'inbound';
+                    if (!empty($msg['sender_type']) && (
+                        str_contains($msg['sender_type'], 'SystemAccount') || 
+                        str_contains($msg['sender_type'], 'Agent') || 
+                        str_contains($msg['sender_type'], 'User')
+                    )) {
+                        $direction = 'outbound';
+                    } elseif (!empty($msg['participant_type']) && in_array($msg['participant_type'], ['bot', 'agent'])) {
+                        $direction = 'outbound';
+                    }
+
+                    WhatsappMessage::updateOrCreate(
+                        ['external_message_id' => $msgId],
+                        [
+                            'conversation_id' => $conversation->id,
+                            'direction' => $direction,
+                            'message_type' => $msg['type'] ?? 'text',
+                            'body' => $msg['text'] ?? $msg['body'] ?? '',
+                            'sent_at' => !empty($msg['created_at']) ? Carbon::parse($msg['created_at']) : now(),
+                        ]
+                    );
+                }
+
+                $nextCursor = $response->json('meta.pagination.cursor.next');
+                if ($nextCursor && $nextCursor !== $cursor) {
+                    $cursor = $nextCursor;
+                } else {
+                    $hasMore = false;
+                }
+            } catch (\Throwable $e) {
+                Log::error("[Qontak] Failed to sync messages for room {$roomExternalId}: " . $e->getMessage());
+                $hasMore = false;
+            }
+        }
+
+        // Sync the last message timestamp
+        try {
             $latestMsg = $conversation->messages()->orderBy('sent_at', 'desc')->first();
             if ($latestMsg) {
                 $conversation->update(['last_message_at' => $latestMsg->sent_at]);
             }
         } catch (\Throwable $e) {
-            Log::error("[Qontak] Failed to sync messages for room {$roomExternalId}: " . $e->getMessage());
+            Log::error("[Qontak] Failed to update last message timestamp for room {$roomExternalId}: " . $e->getMessage());
         }
     }
 }
