@@ -13,6 +13,7 @@ class WhatsappContact extends Model
         'linked_lead_id',
         'is_relevant',
         'relevance_reason',
+        'user_id',
     ];
 
     protected $casts = [

@@ -14,6 +14,16 @@ import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import Link from "next/link";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeaderCell,
+  TableRow,
+  TableShell,
+} from "@/components/ui/table";
 
 type IntegrationConfig = {
   id?: number;
@@ -360,6 +370,7 @@ const LEAD_PLATFORM_DEFINITIONS: LeadPlatformDefinition[] = [
     fields: [
       { suffix: "ENABLED", label: "Enabled", value_type: "boolean", is_secret: false, defaultValue: "false" },
       { suffix: "BASE_URL", label: "Base URL", value_type: "string", is_secret: false, defaultValue: "https://api.mekari.com", help: "Use https://api.mekari.com for production or https://sandbox-api.mekari.com for sandbox. Do not use the developer portal website URL." },
+      { suffix: "ACCESS_TOKEN", label: "Bearer Access Token", value_type: "string", is_secret: true, defaultValue: "", help: "Optional. Bearer access token generated from Qontak Omnichannel settings." },
       { suffix: "CLIENT_ID", label: "Client ID", value_type: "string", is_secret: false, defaultValue: "", help: "Generate from developers.mekari.com → Applications → Create Application." },
       { suffix: "CLIENT_SECRET", label: "Client Secret", value_type: "string", is_secret: true, defaultValue: "", help: "HMAC secret from your Mekari Developer application." },
       { suffix: "CHANNEL_ID", label: "WhatsApp / Omnichannel Channel ID", value_type: "string", is_secret: false, defaultValue: "" },
@@ -515,6 +526,38 @@ export default function IntegrationsSettingsPage() {
   const [selectedBaseTable, setSelectedBaseTable] = useState<LarkBaseTable | null>(null);
   const [baseSyncDirection, setBaseSyncDirection] = useState<"leadsy_to_lark" | "lark_to_leadsy" | "two_way">("two_way");
   const [baseFieldMapping, setBaseFieldMapping] = useState<Record<LeadsyLeadFieldKey, string>>({ ...DEFAULT_LARK_BASE_FIELD_MAPPING });
+
+  const [configuringPlatform, setConfiguringPlatform] = useState<LeadPlatformDefinition | null>(null);
+
+  const { data: activeWaUsersData, refetch: refetchActiveWaUsers, isLoading: loadingActiveWaUsers } = useQuery({
+    queryKey: ["active-whatsapp-users"],
+    queryFn: async () => {
+      const res = await apiFetch("/settings/whatsapp/active-users");
+      if (!res.ok) throw new Error("Failed to load active WhatsApp users");
+      return res.json() as Promise<{ data: any[] }>;
+    },
+    enabled: tab === "whatsapp",
+    refetchInterval: 10000,
+  });
+
+  const disconnectWaUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiFetch(`/settings/whatsapp/active-users/${userId}/disconnect`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to disconnect user session");
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchActiveWaUsers();
+      setSuccessMsg("Session disconnect request sent successfully");
+      setTimeout(() => setSuccessMsg(""), 4000);
+    },
+    onError: (err: any) => {
+      setErrorMsg(err?.message || "Failed to disconnect user session");
+      setTimeout(() => setErrorMsg(""), 5000);
+    }
+  });
 
   // ── Load saved configs from DB (authenticated) ──────────────────────────────
   useEffect(() => {
@@ -1116,50 +1159,101 @@ export default function IntegrationsSettingsPage() {
             {LEAD_PLATFORM_DEFINITIONS.map((platform) => {
               const enabledKey = leadPlatformKey(platform.id, "ENABLED");
               const Icon = platform.icon;
-              const previewItems = platformPreview[platform.id] || [];
-              const googleAdsMode = leadPlatformsConfig[leadPlatformKey("google_ads", "API_MODE")]?.value || "api";
-              const oauthAvailable = platform.sso && (platform.id !== "google_ads" || googleAdsMode === "api");
               return (
-                <Card key={platform.id} className="p-5">
-                  <div className="mb-4 flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--surface-strong)]">
-                        <Icon className="h-5 w-5 text-[color:var(--brand)]" />
+                <Card key={platform.id} className="p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--surface-strong)]">
+                          <Icon className="h-5 w-5 text-[color:var(--brand)]" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold">{platform.name}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {platform.sso ? "OAuth/SSO Integration" : "Manual token or webhook API"}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-semibold">{platform.name}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {platform.sso ? "OAuth/SSO + manual credentials" : "Manual token or webhook credentials"}
-                        </p>
-                      </div>
+                      <Badge variant={leadPlatformsConfig[enabledKey]?.value === "true" ? "success" : "neutral"}>
+                        {leadPlatformsConfig[enabledKey]?.value === "true" ? "Enabled" : "Disabled"}
+                      </Badge>
                     </div>
-                    <Badge variant={leadPlatformsConfig[enabledKey]?.value === "true" ? "success" : "neutral"}>
-                      {leadPlatformsConfig[enabledKey]?.value === "true" ? "Enabled" : "Disabled"}
-                    </Badge>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      {leadPlatformsConfig[enabledKey]?.value === "true"
+                        ? `Integration is enabled and actively receiving leads from ${platform.name}.`
+                        : `${platform.name} is currently inactive. Configure credentials to enable.`}
+                    </p>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
-                      <span className="text-sm font-medium">Enable {platform.name}</span>
-                      <input
-                        type="checkbox"
-                        checked={leadPlatformsConfig[enabledKey]?.value === "true"}
-                        onChange={(e) => setLeadPlatformsConfig((current) => ({
-                          ...current,
-                          [enabledKey]: {
-                            ...current[enabledKey],
-                            value: e.target.checked ? "true" : "false",
-                          },
-                        }))}
-                        className="h-4 w-4 rounded border-border"
-                      />
-                    </label>
+                  <div className="flex items-center justify-between border-t border-border/50 pt-4 mt-auto">
+                    <a href={platform.docsUrl} target="_blank" rel="noreferrer" className="text-xs text-[color:var(--brand)] hover:underline">
+                      Documentation
+                    </a>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfiguringPlatform(platform)}
+                      id={`configure-${platform.id}`}
+                    >
+                      Configure
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
 
-                    {platform.fields
-                      .filter((field) => field.suffix !== "ENABLED")
-                      .filter((field) => isLeadPlatformFieldVisible(platform.id, field, leadPlatformsConfig))
-                      .map((field) => {
-                      const key = leadPlatformKey(platform.id, field.suffix);
+          <Modal
+            open={Boolean(configuringPlatform)}
+            onOpenChange={(open) => {
+              if (!open) setConfiguringPlatform(null);
+            }}
+            title={configuringPlatform ? `Configure ${configuringPlatform.name}` : "Configure Platform"}
+            description={configuringPlatform ? `Set up your credentials and connection options for ${configuringPlatform.name}.` : ""}
+            size="lg"
+            footer={
+              <>
+                <Button variant="outline" onClick={() => setConfiguringPlatform(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                      setConfiguringPlatform(null);
+                    }
+                  }}
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Save Configuration
+                </Button>
+              </>
+            }
+          >
+            {configuringPlatform && (
+              <div className="space-y-4">
+                <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
+                  <span className="text-sm font-medium">Enable {configuringPlatform.name}</span>
+                  <input
+                    type="checkbox"
+                    checked={leadPlatformsConfig[leadPlatformKey(configuringPlatform.id, "ENABLED")]?.value === "true"}
+                    onChange={(e) => setLeadPlatformsConfig((current) => ({
+                      ...current,
+                      [leadPlatformKey(configuringPlatform.id, "ENABLED")]: {
+                        ...current[leadPlatformKey(configuringPlatform.id, "ENABLED")],
+                        value: e.target.checked ? "true" : "false",
+                      },
+                    }))}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                </label>
+
+                <div className="space-y-3">
+                  {configuringPlatform.fields
+                    .filter((field) => field.suffix !== "ENABLED")
+                    .filter((field) => isLeadPlatformFieldVisible(configuringPlatform.id, field, leadPlatformsConfig))
+                    .map((field) => {
+                      const key = leadPlatformKey(configuringPlatform.id, field.suffix);
                       return (
                         <div key={key}>
                           <label className="text-xs font-medium">{field.label}</label>
@@ -1184,7 +1278,7 @@ export default function IntegrationsSettingsPage() {
                               className="mt-1"
                               type={field.is_secret ? "password" : "text"}
                               value={leadPlatformsConfig[key]?.value ?? ""}
-                              placeholder={field.placeholder || (field.is_secret ? "Encrypted after save" : `${platform.name} ${field.label}`)}
+                              placeholder={field.placeholder || (field.is_secret ? "Encrypted after save" : `${configuringPlatform.name} ${field.label}`)}
                               autoComplete="off"
                               spellCheck={false}
                               onChange={(e) => setLeadPlatformsConfig((current) => ({
@@ -1200,67 +1294,58 @@ export default function IntegrationsSettingsPage() {
                         </div>
                       );
                     })}
-                  </div>
+                </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      disabled={!oauthAvailable}
-                      onClick={async () => {
-                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
-                          await runPlatformAction(platform.id, "oauth-url");
-                        }
-                      }}
-                    >
-                      Login with {platform.name}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={async () => {
-                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
-                          await runPlatformAction(platform.id, "test");
-                        }
-                      }}
-                    >
-                      Test Connection
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={async () => {
-                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
-                          await runPlatformAction(platform.id, "preview");
-                        }
-                      }}
-                    >
-                      View Data
-                    </Button>
-                    <a href={platform.docsUrl} target="_blank" rel="noreferrer">
-                      <Button variant="link">Docs</Button>
-                    </a>
-                  </div>
-                  {platformStatus[platform.id] ? (
-                    <p className="mt-3 rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2 text-xs text-muted-foreground">
-                      {platformStatus[platform.id]}
-                    </p>
-                  ) : null}
-                  {previewItems.length > 0 ? (
-                    <pre className="mt-3 max-h-48 overflow-auto rounded-xl border border-border bg-[color:var(--surface-subtle)] p-3 text-xs text-muted-foreground">
-                      {JSON.stringify(previewItems.slice(0, 3), null, 2)}
-                    </pre>
-                  ) : null}
-                </Card>
-              );
-            })}
-          </div>
+                <div className="mt-4 flex flex-wrap gap-2 border-t pt-4">
+                  <Button
+                    variant="outline"
+                    disabled={!(configuringPlatform.sso && (configuringPlatform.id !== "google_ads" || (leadPlatformsConfig[leadPlatformKey("google_ads", "API_MODE")]?.value || "api") === "api"))}
+                    onClick={async () => {
+                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                        await runPlatformAction(configuringPlatform.id, "oauth-url");
+                      }
+                    }}
+                  >
+                    Login with {configuringPlatform.name}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                        await runPlatformAction(configuringPlatform.id, "test");
+                      }
+                    }}
+                  >
+                    Test Connection
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={async () => {
+                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                        await runPlatformAction(configuringPlatform.id, "preview");
+                      }
+                    }}
+                  >
+                    View Data
+                  </Button>
+                </div>
+
+                {platformStatus[configuringPlatform.id] ? (
+                  <p className="mt-3 rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2 text-xs text-muted-foreground">
+                    {platformStatus[configuringPlatform.id]}
+                  </p>
+                ) : null}
+
+                {platformPreview[configuringPlatform.id] && platformPreview[configuringPlatform.id].length > 0 ? (
+                  <pre className="mt-3 max-h-48 overflow-auto rounded-xl border border-border bg-[color:var(--surface-subtle)] p-3 text-xs text-muted-foreground">
+                    {JSON.stringify(platformPreview[configuringPlatform.id].slice(0, 3), null, 2)}
+                  </pre>
+                ) : null}
+              </div>
+            )}
+          </Modal>
 
           <div className="flex items-center gap-3">
-            <Button
-              onClick={() => handleSave("lead_platforms", leadPlatformsConfig)}
-              disabled={saving}
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Platform Credentials
-            </Button>
             {successMsg && (
               <span className="flex items-center gap-1 text-sm font-medium text-[color:var(--success)]">
                 <CheckCircle2 className="h-4 w-4" /> {successMsg}
@@ -1843,6 +1928,81 @@ export default function IntegrationsSettingsPage() {
                 </span>
               )}
             </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold">Active Local WhatsApp Users</h2>
+                <p className="text-xs text-muted-foreground">
+                  View and manage users currently connected to the local WhatsApp service.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchActiveWaUsers()}
+                disabled={loadingActiveWaUsers}
+                id="refresh-active-wa-users"
+              >
+                {loadingActiveWaUsers ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            {loadingActiveWaUsers && !activeWaUsersData ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : !activeWaUsersData?.data || activeWaUsersData.data.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground border border-dashed rounded-xl bg-[color:var(--surface-subtle)]">
+                No active connected users.
+              </div>
+            ) : (
+              <TableShell>
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <TableHeaderCell>User</TableHeaderCell>
+                      <TableHeaderCell>WhatsApp Number</TableHeaderCell>
+                      <TableHeaderCell>Status</TableHeaderCell>
+                      <TableHeaderCell>Action</TableHeaderCell>
+                    </tr>
+                  </TableHead>
+                  <TableBody>
+                    {activeWaUsersData.data.map((sess: any) => (
+                      <TableRow key={sess.user_id}>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="font-medium text-sm">{sess.user_name}</p>
+                            <p className="text-xs text-muted-foreground">{sess.user_email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-mono">{sess.number || "—"}</span>
+                          {sess.name ? <span className="text-xs text-muted-foreground ml-1">({sess.name})</span> : null}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={sess.status === "connected" ? "success" : "warning"}>
+                            {sess.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={disconnectWaUserMutation.isPending}
+                            onClick={() => disconnectWaUserMutation.mutate(sess.user_id)}
+                            id={`disconnect-user-${sess.user_id}`}
+                          >
+                            Disconnect
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableShell>
+            )}
           </div>
         </div>
       )}

@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Modal } from "@/components/ui/modal";
+import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/apiFetch";
 import {
   useWhatsApp,
   type WaSessionState, type WaConversation, type WaMessage,
@@ -31,6 +34,7 @@ export default function LocalWhatsAppPage() {
     getConversations,
     getMessages,
     analyzeConversation,
+    convertToLead,
     getCampaigns,
     createCampaign,
     executeCampaign,
@@ -39,6 +43,7 @@ export default function LocalWhatsAppPage() {
   } = useWhatsApp();
   const platform = "whatsapp";
   const [tab, setTab] = useState<Tab>("session");
+  const [stages, setStages] = useState<{ id: number; name: string }[]>([]);
 
   // ── Session State ──
   const [session, setSession] = useState<WaSessionState>({
@@ -64,6 +69,70 @@ export default function LocalWhatsAppPage() {
   // ── Sync Rules State ──
   const [syncRules, setSyncRules] = useState<WaSyncRule[]>([]);
   const [rulesSaved, setRulesSaved] = useState(false);
+
+  // ── Convert Modal State ──
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
+  const [convertCompanyName, setConvertCompanyName] = useState("");
+  const [convertStageId, setConvertStageId] = useState("");
+  const [convertError, setConvertError] = useState("");
+  const [converting, setConverting] = useState(false);
+
+  useEffect(() => {
+    apiFetch("/funnel/stages")
+      .then(res => res.json())
+      .then(json => {
+        if (json?.data) {
+          setStages(json.data);
+        }
+      })
+      .catch(err => console.warn("Failed to load stages:", err));
+  }, []);
+
+  const handleOpenConvertModal = (conv: WaConversation) => {
+    setActiveConv(conv);
+    setConvertCompanyName(conv.contact?.name || "");
+    if (stages.length > 0) {
+      setConvertStageId(String(stages[0].id));
+    } else {
+      setConvertStageId("");
+    }
+    setConvertError("");
+    setConvertModalOpen(true);
+  };
+
+  const handleConvertSubmit = async () => {
+    if (!activeConv) return;
+    if (!convertCompanyName.trim()) {
+      setConvertError("Company name is required");
+      return;
+    }
+    setConverting(true);
+    setConvertError("");
+    try {
+      const res = await convertToLead(
+        activeConv.id,
+        convertCompanyName,
+        convertStageId ? Number(convertStageId) : undefined
+      );
+      if (res && res.success) {
+        setConvertModalOpen(false);
+        // Refresh conversations list to update linked_lead_id
+        getConversations("whatsapp").then(res => {
+          setConversations(res);
+          const updated = res.find(c => c.id === activeConv.id);
+          if (updated) {
+            setActiveConv(updated);
+          }
+        });
+      } else {
+        setConvertError("Conversion failed");
+      }
+    } catch (err: any) {
+      setConvertError(err?.message || "Conversion failed");
+    } finally {
+      setConverting(false);
+    }
+  };
 
   // ── Poll session status ──
   const pollStatus = useCallback(async () => {
@@ -445,10 +514,21 @@ export default function LocalWhatsAppPage() {
                     <h3 className="text-sm font-semibold">{activeConv.contact?.name || "Unknown"}</h3>
                     <p className="text-[10px] text-muted-foreground">{activeConv.contact?.phone_number}</p>
                   </div>
-                  <button onClick={() => handleAnalyze(activeConv.id)}
-                    className="flex items-center gap-1 rounded-md bg-[var(--brand)]/10 px-2 py-1 text-[10px] font-medium text-[var(--brand)] hover:bg-[var(--brand)]/20">
-                    <Sparkles className="h-3 w-3" /> Analyze
-                  </button>
+                  <div className="flex gap-2">
+                    {activeConv.contact && !activeConv.contact.linked_lead_id && (
+                      <button
+                        onClick={() => handleOpenConvertModal(activeConv)}
+                        className="flex items-center gap-1 rounded-md bg-[var(--status-success)]/10 px-2 py-1 text-[10px] font-medium text-[var(--status-success)] hover:bg-[var(--status-success)]/20"
+                        id="convert-to-lead-btn"
+                      >
+                        <Plus className="h-3 w-3" /> Convert to Lead
+                      </button>
+                    )}
+                    <button onClick={() => handleAnalyze(activeConv.id)}
+                      className="flex items-center gap-1 rounded-md bg-[var(--brand)]/10 px-2 py-1 text-[10px] font-medium text-[var(--brand)] hover:bg-[var(--brand)]/20">
+                      <Sparkles className="h-3 w-3" /> Analyze
+                    </button>
+                  </div>
                 </div>
 
                 {activeConv.ai_analysis && (
@@ -557,6 +637,52 @@ export default function LocalWhatsAppPage() {
           </div>
         </div>
       )}
+      <Modal
+        open={convertModalOpen}
+        onOpenChange={setConvertModalOpen}
+        title="Convert WhatsApp Contact to Lead"
+        description="Create a new Lead with this contact as primary."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setConvertModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConvertSubmit} disabled={converting}>
+              {converting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Convert
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-4">
+          {convertError ? <Badge variant="danger">{convertError}</Badge> : null}
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Company Name</label>
+            <Input
+              value={convertCompanyName}
+              onChange={(e) => setConvertCompanyName(e.target.value)}
+              placeholder="e.g. Acme Corp"
+              id="convert-company-name-input"
+            />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Funnel Stage</label>
+            <Select
+              value={convertStageId}
+              onChange={(e) => setConvertStageId(e.target.value)}
+              placeholder="Select initial funnel stage"
+              id="convert-funnel-stage-select"
+            >
+              {stages.map((stage) => (
+                <option key={stage.id} value={stage.id}>
+                  {stage.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

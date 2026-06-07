@@ -25,6 +25,7 @@ class WhatsAppControllerTest extends TestCase
             'phone_number' => '628123456789',
             'normalized_phone_number' => '628123456789',
             'is_relevant' => true,
+            'user_id' => $user->id,
         ]);
 
         $conv = WhatsappConversation::create([
@@ -33,6 +34,7 @@ class WhatsAppControllerTest extends TestCase
             'platform' => 'whatsapp',
             'approved_for_sync' => true,
             'last_message_at' => now(),
+            'user_id' => $user->id,
         ]);
 
         $response = $this->actingAs($user)

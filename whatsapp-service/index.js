@@ -16,45 +16,56 @@ const WEBHOOK_URL = process.env.LARAVEL_WEBHOOK_URL || 'http://backend:8000/api/
 const PORT = process.env.PORT || 3002;
 const AUTH_DIR = path.join(__dirname, 'baileys_auth_info');
 
-let sock = null;
-let currentQr = null;
-let currentStatus = 'disconnected'; // 'disconnected', 'qr_ready', 'connected', 'connecting'
-let connectionAttemptInProgress = false;
+const sessions = {};
 
-function clearAuthState() {
+function clearAuthState(sessionName) {
     try {
-        if (!fs.existsSync(AUTH_DIR)) {
-            fs.mkdirSync(AUTH_DIR, { recursive: true });
-            return;
-        }
-
-        for (const entry of fs.readdirSync(AUTH_DIR)) {
-            fs.rmSync(path.join(AUTH_DIR, entry), { recursive: true, force: true });
+        const sessionAuthDir = path.join(AUTH_DIR, sessionName);
+        if (fs.existsSync(sessionAuthDir)) {
+            fs.rmSync(sessionAuthDir, { recursive: true, force: true });
         }
     } catch (e) {
-        console.error('Error removing auth dir:', e.message);
+        console.error(`[${sessionName}] Error removing auth dir:`, e.message);
     }
 }
 
-async function connectToWhatsApp() {
-    if (connectionAttemptInProgress) {
-        console.log('Connection attempt already in progress, skipping...');
+async function connectToWhatsApp(sessionName) {
+    if (!sessions[sessionName]) {
+        sessions[sessionName] = {
+            sock: null,
+            currentQr: null,
+            status: 'disconnected',
+            connectionAttemptInProgress: false
+        };
+    }
+
+    const session = sessions[sessionName];
+
+    if (session.connectionAttemptInProgress) {
+        console.log(`[${sessionName}] Connection attempt already in progress, skipping...`);
         return;
     }
-    connectionAttemptInProgress = true;
-    currentStatus = 'connecting';
+    session.connectionAttemptInProgress = true;
+    session.status = 'connecting';
+
+    const sessionAuthDir = path.join(AUTH_DIR, sessionName);
+    if (!fs.existsSync(sessionAuthDir)) {
+        fs.mkdirSync(sessionAuthDir, { recursive: true });
+    }
 
     try {
-        const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+        const { state, saveCreds } = await useMultiFileAuthState(sessionAuthDir);
         const { version } = await fetchLatestBaileysVersion();
 
-        sock = makeWASocket({
+        const sock = makeWASocket({
             version: version,
             auth: state,
             logger: pino({ level: 'silent' }),
             browser: Browsers.macOS('Desktop'),
             connectTimeoutMs: 60000,
         });
+
+        session.sock = sock;
 
         sock.ev.on('creds.update', saveCreds);
 
@@ -64,6 +75,7 @@ async function connectToWhatsApp() {
             let statusCode = lastDisconnect?.error?.output?.statusCode;
             if (connection || statusCode) {
                 console.log(JSON.stringify({
+                    session: sessionName,
                     event: 'connection.update',
                     connection: connection,
                     statusCode: statusCode
@@ -71,43 +83,43 @@ async function connectToWhatsApp() {
             }
 
             if (qr) {
-                currentQr = qr;
-                currentStatus = 'qr_ready';
-                console.log('QR Generated, awaiting scan...');
-                await sendWebhook({ action: 'qr', payload: qr });
+                session.currentQr = qr;
+                session.status = 'qr_ready';
+                console.log(`[${sessionName}] QR Generated, awaiting scan...`);
+                await sendWebhook({ action: 'qr', payload: qr, session: sessionName });
             }
 
             if (connection === 'close') {
                 const authExpired = statusCode === DisconnectReason.loggedOut || statusCode === 401;
-                const shouldReconnect = true;
-                console.log('Connection closed, status code:', statusCode, ', reconnecting:', shouldReconnect, ', authExpired:', authExpired);
-                currentStatus = 'disconnected';
-                currentQr = null;
-                connectionAttemptInProgress = false;
-                await sendWebhook({ action: 'status', status: 'disconnected' });
+                const shouldReconnect = session.status !== 'disconnected_by_user';
+                console.log(`[${sessionName}] Connection closed, status code:`, statusCode, ', reconnecting:', shouldReconnect, ', authExpired:', authExpired);
+                session.status = 'disconnected';
+                session.currentQr = null;
+                session.connectionAttemptInProgress = false;
+                await sendWebhook({ action: 'status', status: 'disconnected', session: sessionName });
 
                 if (authExpired) {
-                    clearAuthState();
+                    clearAuthState(sessionName);
                 }
 
                 if (shouldReconnect) {
-                    console.log('RECONNECTING...');
-                    setTimeout(connectToWhatsApp, 3000);
+                    console.log(`[${sessionName}] RECONNECTING...`);
+                    setTimeout(() => connectToWhatsApp(sessionName), 3000);
                 }
             } else if (connection === 'open') {
-                console.log('Connected to WhatsApp successfully!');
-                currentStatus = 'connected';
-                currentQr = null;
-                connectionAttemptInProgress = false;
+                console.log(`[${sessionName}] Connected to WhatsApp successfully!`);
+                session.status = 'connected';
+                session.currentQr = null;
+                session.connectionAttemptInProgress = false;
 
-                // Get user info
                 const myId = sock.user?.id || 'unknown';
                 const myName = sock.user?.name || '';
                 await sendWebhook({
                     action: 'status',
                     status: 'connected',
                     number: myId,
-                    name: myName
+                    name: myName,
+                    session: sessionName
                 });
             }
         });
@@ -117,7 +129,6 @@ async function connectToWhatsApp() {
             const msg = m.messages[0];
             if (!msg.message || msg.key.fromMe) return;
 
-            // Extract payload safely
             const type = Object.keys(msg.message)[0];
             let body = '[Unsupported Message Type]';
             if (type === 'conversation') {
@@ -132,13 +143,10 @@ async function connectToWhatsApp() {
 
             const remoteJid = msg.key.remoteJid;
             const msgId = msg.key.id;
-
-            // Extract sender name (pushName)
             const senderName = msg.pushName || msg.key.participant || 'Unknown';
 
-            console.log(`Msg from ${senderName} (${remoteJid}): ${body.substring(0, 80)}`);
+            console.log(`[${sessionName}] Msg from ${senderName} (${remoteJid}): ${body.substring(0, 80)}`);
 
-            // Post to Laravel webhook
             await sendWebhook({
                 action: 'inbound_message',
                 external_id: msgId,
@@ -147,15 +155,15 @@ async function connectToWhatsApp() {
                 body: body,
                 message_type: type,
                 timestamp: msg.messageTimestamp,
-                fromMe: false
+                fromMe: false,
+                session: sessionName
             });
         });
 
     } catch (err) {
-        console.error('Connection error:', err.message);
-        connectionAttemptInProgress = false;
-        // Retry after delay
-        setTimeout(connectToWhatsApp, 5000);
+        console.error(`[${sessionName}] Connection error:`, err.message);
+        session.connectionAttemptInProgress = false;
+        setTimeout(() => connectToWhatsApp(sessionName), 5000);
     }
 }
 
@@ -167,72 +175,116 @@ async function sendWebhook(data) {
     }
 }
 
+function getSessionName(req) {
+    return req.headers['x-session-id'] || req.query.session || req.body.session || 'default_session';
+}
+
+function initExistingSessions() {
+    if (!fs.existsSync(AUTH_DIR)) {
+        fs.mkdirSync(AUTH_DIR, { recursive: true });
+        return;
+    }
+    const entries = fs.readdirSync(AUTH_DIR);
+    for (const entry of entries) {
+        const entryPath = path.join(AUTH_DIR, entry);
+        if (fs.statSync(entryPath).isDirectory() && entry.startsWith('user_session_')) {
+            console.log(`Auto-starting session for: ${entry}`);
+            connectToWhatsApp(entry);
+        }
+    }
+}
+
 // ---------------- REST API ----------------
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', whatsapp_status: currentStatus, uptime: process.uptime() });
+    const sessionName = getSessionName(req);
+    const session = sessions[sessionName];
+    res.json({
+        status: 'ok',
+        whatsapp_status: session ? session.status : 'disconnected',
+        uptime: process.uptime()
+    });
 });
 
 app.post('/api/session/start', async (req, res) => {
-    if (currentStatus === 'connected') {
+    const sessionName = getSessionName(req);
+    if (!sessions[sessionName]) {
+        sessions[sessionName] = {
+            sock: null,
+            currentQr: null,
+            status: 'disconnected',
+            connectionAttemptInProgress: false
+        };
+    }
+    const session = sessions[sessionName];
+
+    if (session.status === 'connected') {
         return res.json({ status: 'connected', message: 'Already connected' });
     }
 
-    // Connect if not already attempting
-    if (!connectionAttemptInProgress) {
-        connectToWhatsApp();
+    if (!session.connectionAttemptInProgress) {
+        connectToWhatsApp(sessionName);
     }
-    res.json({ success: true, message: 'Initialization started', status: currentStatus });
+    res.json({ success: true, message: 'Initialization started', status: session.status });
 });
 
 app.get('/api/session/status', (req, res) => {
+    const sessionName = getSessionName(req);
+    const session = sessions[sessionName] || {
+        status: 'disconnected',
+        currentQr: null,
+        sock: null
+    };
+    const sessionAuthDir = path.join(AUTH_DIR, sessionName);
     res.json({
-        status: currentStatus,
-        qr: currentQr,
-        number: sock?.user?.id || null,
-        has_auth: fs.existsSync(path.join(AUTH_DIR, 'creds.json')),
+        status: session.status,
+        qr: session.currentQr,
+        number: session.sock?.user?.id || null,
+        has_auth: fs.existsSync(path.join(sessionAuthDir, 'creds.json')),
     });
 });
 
 app.post('/api/session/refresh-qr', async (req, res) => {
-    // To refresh QR: disconnect and reconnect
-    if (sock) {
+    const sessionName = getSessionName(req);
+    const session = sessions[sessionName];
+    if (session && session.sock) {
         try {
-            sock.end(new Error('QR refresh requested'));
-        } catch (e) {
-            // Ignore socket teardown errors
-        }
-        sock = null;
+            session.sock.end(new Error('QR refresh requested'));
+        } catch (e) {}
+        session.sock = null;
     }
-    currentStatus = 'disconnected';
-    currentQr = null;
-    connectionAttemptInProgress = false;
-
-    // Remove saved auth to force new QR
-    clearAuthState();
-
-    // Start fresh connection
-    setTimeout(connectToWhatsApp, 500);
+    if (session) {
+        session.status = 'disconnected';
+        session.currentQr = null;
+        session.connectionAttemptInProgress = false;
+    }
+    clearAuthState(sessionName);
+    setTimeout(() => connectToWhatsApp(sessionName), 500);
     res.json({ success: true, message: 'QR refresh initiated' });
 });
 
 app.post('/api/session/disconnect', async (req, res) => {
-    if (sock) {
-        try {
-            await sock.logout();
-        } catch (e) {
-            // Ignore
+    const sessionName = getSessionName(req);
+    const session = sessions[sessionName];
+    if (session) {
+        session.status = 'disconnected_by_user';
+        if (session.sock) {
+            try {
+                await session.sock.logout();
+            } catch (e) {}
+            session.sock = null;
         }
-        sock = null;
+        session.currentQr = null;
+        session.connectionAttemptInProgress = false;
+        clearAuthState(sessionName);
     }
-    currentStatus = 'disconnected';
-    currentQr = null;
-    connectionAttemptInProgress = false;
     res.json({ success: true });
 });
 
 app.post('/api/messages/send', async (req, res) => {
-    if (currentStatus !== 'connected' || !sock) {
+    const sessionName = getSessionName(req);
+    const session = sessions[sessionName];
+    if (!session || session.status !== 'connected' || !session.sock) {
         return res.status(400).json({ error: 'WhatsApp is not connected.' });
     }
 
@@ -242,10 +294,8 @@ app.post('/api/messages/send', async (req, res) => {
     }
 
     try {
-        // jid must be e.g. "6281234567890@s.whatsapp.net"
         const formattedJid = jid.includes('@s.whatsapp.net') ? jid : `${jid}@s.whatsapp.net`;
-        const sentMsg = await sock.sendMessage(formattedJid, { text: text });
-
+        const sentMsg = await session.sock.sendMessage(formattedJid, { text: text });
         res.json({ success: true, external_id: sentMsg.key.id });
     } catch (err) {
         console.error('Send message error:', err.message);
@@ -253,7 +303,23 @@ app.post('/api/messages/send', async (req, res) => {
     }
 });
 
+app.get('/api/sessions/active', (req, res) => {
+    const activeSessions = [];
+    for (const [name, session] of Object.entries(sessions)) {
+        const sessionAuthDir = path.join(AUTH_DIR, name);
+        activeSessions.push({
+            session: name,
+            status: session.status,
+            number: session.sock?.user?.id || null,
+            name: session.sock?.user?.name || null,
+            has_auth: fs.existsSync(path.join(sessionAuthDir, 'creds.json'))
+        });
+    }
+    res.json({ data: activeSessions });
+});
+
 app.listen(PORT, () => {
     console.log(`WhatsApp Baileys Service running on port ${PORT}`);
     console.log(`Pointing webhooks to: ${WEBHOOK_URL}`);
+    initExistingSessions();
 });

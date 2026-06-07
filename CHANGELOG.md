@@ -9,6 +9,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.6.0] — 2026-06-07 · Minor Release
+
+### Fitur Baru
+- **Isolasi WhatsApp Lokal per Pengguna** — Membatasi dan mengisolasi data kontak, percakapan, dan koneksi soket Local WhatsApp per akun pengguna yang login agar privasi percakapan terjaga secara penuh.
+- **Pemantauan Sesi Aktif WhatsApp** — Menambahkan panel administrasi "Active Local WhatsApp Users" di pengaturan Integrasi untuk memantau pengguna yang sedang terhubung ke Local WhatsApp dan memberikan tombol untuk memaksa pemutusan koneksi (force disconnect).
+- **Penyederhanaan Autentikasi Mekari Qontak** — Mendukung integrasi dengan Mekari Qontak menggunakan Bearer Token (Access Token) sederhana selain HMAC Client ID/Secret.
+- **Konversi Percakapan ke Lead** — Menambahkan tombol "Convert to Lead" dan form stage selector pada tab detail percakapan WhatsApp lokal dan Qontak untuk langsung mendaftarkan kontak sebagai lead baru.
+- **Penghapusan Pengguna dengan Transfer Sumber Daya** — Mewajibkan transfer data Leads (pemilik) dan hierarki bawahan ke pengguna pengganti sebelum melakukan penghapusan pengguna secara permanen.
+
 ## [1.5.4] — 2026-06-04 · Patch Release
 
 ### Perbaikan & Penyelarasan

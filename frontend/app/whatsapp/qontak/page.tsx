@@ -2,9 +2,15 @@
 
 import { useState, useEffect } from "react";
 import {
-  MessageSquare, Loader2, RefreshCw, ChevronRight, Sparkles, AlertCircle
+  MessageSquare, Loader2, RefreshCw, ChevronRight, Sparkles, AlertCircle, Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
+import { apiFetch } from "@/lib/apiFetch";
 import {
   useWhatsApp,
   type WaConversation, type WaMessage
@@ -15,6 +21,7 @@ export default function MekariQontakPage() {
     getConversations,
     getMessages,
     analyzeConversation,
+    convertToLead,
     error,
     clearError,
     loading
@@ -25,6 +32,71 @@ export default function MekariQontakPage() {
   const [conversations, setConversations] = useState<WaConversation[]>([]);
   const [activeConv, setActiveConv] = useState<WaConversation | null>(null);
   const [activeMessages, setActiveMessages] = useState<WaMessage[]>([]);
+  const [stages, setStages] = useState<{ id: number; name: string }[]>([]);
+
+  // ── Convert Modal State ──
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
+  const [convertCompanyName, setConvertCompanyName] = useState("");
+  const [convertStageId, setConvertStageId] = useState("");
+  const [convertError, setConvertError] = useState("");
+  const [converting, setConverting] = useState(false);
+
+  useEffect(() => {
+    apiFetch("/funnel/stages")
+      .then(res => res.json())
+      .then(json => {
+        if (json?.data) {
+          setStages(json.data);
+        }
+      })
+      .catch(err => console.warn("Failed to load stages:", err));
+  }, []);
+
+  const handleOpenConvertModal = (conv: WaConversation) => {
+    setActiveConv(conv);
+    setConvertCompanyName(conv.contact?.name || "");
+    if (stages.length > 0) {
+      setConvertStageId(String(stages[0].id));
+    } else {
+      setConvertStageId("");
+    }
+    setConvertError("");
+    setConvertModalOpen(true);
+  };
+
+  const handleConvertSubmit = async () => {
+    if (!activeConv) return;
+    if (!convertCompanyName.trim()) {
+      setConvertError("Company name is required");
+      return;
+    }
+    setConverting(true);
+    setConvertError("");
+    try {
+      const res = await convertToLead(
+        activeConv.id,
+        convertCompanyName,
+        convertStageId ? Number(convertStageId) : undefined
+      );
+      if (res && res.success) {
+        setConvertModalOpen(false);
+        // Refresh conversations list to update linked_lead_id
+        getConversations("mekari_qontak").then(res => {
+          setConversations(res);
+          const updated = res.find(c => c.id === activeConv.id);
+          if (updated) {
+            setActiveConv(updated);
+          }
+        });
+      } else {
+        setConvertError("Conversion failed");
+      }
+    } catch (err: any) {
+      setConvertError(err?.message || "Conversion failed");
+    } finally {
+      setConverting(false);
+    }
+  };
 
   // ── Reset conversation selections when loading ──
   useEffect(() => {
@@ -141,13 +213,24 @@ export default function MekariQontakPage() {
                     ID: <span className="font-mono">{activeConv.external_chat_id}</span>
                   </p>
                 </div>
-                <button
-                  onClick={() => handleAnalyze(activeConv.id)}
-                  disabled={loading}
-                  className="flex items-center gap-1.5 rounded-md bg-[var(--brand)] px-2.5 py-1.5 text-xs font-semibold text-white hover:opacity-90 shadow-sm disabled:opacity-55"
-                >
-                  {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Analyze Lead
-                </button>
+                <div className="flex gap-2">
+                  {activeConv.contact && !activeConv.contact.linked_lead_id && (
+                    <Button
+                      onClick={() => handleOpenConvertModal(activeConv)}
+                      className="flex items-center gap-1 rounded-md bg-[var(--status-success)]/10 px-2.5 py-1.5 text-xs font-semibold text-[var(--status-success)] hover:bg-[var(--status-success)]/20 shadow-sm"
+                      id="qontak-convert-to-lead-btn"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Convert to Lead
+                    </Button>
+                  )}
+                  <button
+                    onClick={() => handleAnalyze(activeConv.id)}
+                    disabled={loading}
+                    className="flex items-center gap-1.5 rounded-md bg-[var(--brand)] px-2.5 py-1.5 text-xs font-semibold text-white hover:opacity-90 shadow-sm disabled:opacity-55"
+                  >
+                    {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Analyze Lead
+                  </button>
+                </div>
               </div>
 
               {/* AI Eligibility Advisory Card */}
@@ -227,6 +310,52 @@ export default function MekariQontakPage() {
           )}
         </div>
       </div>
+      <Modal
+        open={convertModalOpen}
+        onOpenChange={setConvertModalOpen}
+        title="Convert Qontak Contact to Lead"
+        description="Create a new Lead with this contact as primary."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setConvertModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConvertSubmit} disabled={converting}>
+              {converting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Convert
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-4">
+          {convertError ? <Badge variant="danger">{convertError}</Badge> : null}
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Company Name</label>
+            <Input
+              value={convertCompanyName}
+              onChange={(e) => setConvertCompanyName(e.target.value)}
+              placeholder="e.g. Acme Corp"
+              id="qontak-convert-company-name-input"
+            />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Funnel Stage</label>
+            <Select
+              value={convertStageId}
+              onChange={(e) => setConvertStageId(e.target.value)}
+              placeholder="Select initial funnel stage"
+              id="qontak-convert-funnel-stage-select"
+            >
+              {stages.map((stage) => (
+                <option key={stage.id} value={stage.id}>
+                  {stage.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

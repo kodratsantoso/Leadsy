@@ -266,6 +266,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('whatsapp/conversations', [WhatsAppController::class, 'getConversations']);
     Route::get('whatsapp/conversations/{id}/messages', [WhatsAppController::class, 'getConversationMessages']);
     Route::post('whatsapp/conversations/{id}/analyze', [WhatsAppController::class, 'analyzeConversation']);
+    Route::post('whatsapp/conversations/{id}/convert-to-lead', [WhatsAppController::class, 'convertToLead']);
+
+    // WhatsApp — Settings / Active Users Monitor
+    Route::get('settings/whatsapp/active-users', [WhatsAppController::class, 'activeUsers'])->middleware('permission:integrations.manage');
+    Route::post('settings/whatsapp/active-users/{userId}/disconnect', [WhatsAppController::class, 'disconnectUser'])->middleware('permission:integrations.manage');
 
     // WhatsApp — Broadcast Campaigns
     Route::get('whatsapp/campaigns', [WhatsAppController::class, 'listCampaigns']);

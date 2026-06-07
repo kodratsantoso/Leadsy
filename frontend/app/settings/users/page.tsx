@@ -110,6 +110,8 @@ export default function SettingsUsersPage() {
   const [deleteUser, setDeleteUser] = useState<AppUser | null>(null);
   const [userForm, setUserForm] = useState<UserFormState>(userFormDefaults);
   const [userError, setUserError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [transferUserId, setTransferUserId] = useState("");
 
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<AppRole | null>(null);
@@ -188,14 +190,26 @@ export default function SettingsUsersPage() {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiFetch(`/users/${id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Unable to deactivate user");
+    mutationFn: async ({ id, transferToUserId }: { id: number; transferToUserId?: number }) => {
+      const response = await apiFetch(`/users/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transfer_to_user_id: transferToUserId || null }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || "Unable to deactivate user");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setDeleteUser(null);
+      setTransferUserId("");
+      setDeleteError("");
       setFeedback("User deactivated successfully.");
+    },
+    onError: (err: Error) => {
+      setDeleteError(err.message);
     },
   });
 
@@ -437,7 +451,11 @@ export default function SettingsUsersPage() {
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={() => setDeleteUser(user)}
+                          onClick={() => {
+                            setDeleteUser(user);
+                            setTransferUserId("");
+                            setDeleteError("");
+                          }}
                           tooltip="Deactivate user"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -765,7 +783,11 @@ export default function SettingsUsersPage() {
       <Modal
         open={Boolean(deleteUser)}
         onOpenChange={(open) => {
-          if (!open) setDeleteUser(null);
+          if (!open) {
+            setDeleteUser(null);
+            setTransferUserId("");
+            setDeleteError("");
+          }
         }}
         title="Deactivate User"
         description="Deactivation uses the shared confirmation modal instead of custom dialog markup."
@@ -777,7 +799,7 @@ export default function SettingsUsersPage() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => deleteUser && deleteUserMutation.mutate(deleteUser.id)}
+              onClick={() => deleteUser && deleteUserMutation.mutate({ id: deleteUser.id, transferToUserId: transferUserId ? Number(transferUserId) : undefined })}
               disabled={deleteUserMutation.isPending}
             >
               {deleteUserMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -786,10 +808,38 @@ export default function SettingsUsersPage() {
           </>
         }
       >
-        <p className="text-sm text-muted-foreground">
-          Deactivate <span className="font-medium text-foreground">{deleteUser?.name}</span>? Their
-          record stays intact but access will be revoked.
-        </p>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Deactivate <span className="font-medium text-foreground">{deleteUser?.name}</span>? Their
+            record stays intact but access will be revoked.
+          </p>
+
+          {deleteError ? (
+            <Badge variant="danger" className="w-full justify-start py-2">
+              {deleteError}
+            </Badge>
+          ) : null}
+
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Transfer Owned Resources To:</label>
+            <Select
+              value={transferUserId}
+              onChange={(event) => setTransferUserId(event.target.value)}
+              placeholder="Select recipient user"
+            >
+              {(usersData?.data ?? [])
+                .filter((u: AppUser) => u.id !== deleteUser?.id)
+                .map((u: AppUser) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.email})
+                  </option>
+                ))}
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Transfer all active leads and subordinate team members to another user before deactivation.
+            </p>
+          </div>
+        </div>
       </Modal>
 
       <Modal

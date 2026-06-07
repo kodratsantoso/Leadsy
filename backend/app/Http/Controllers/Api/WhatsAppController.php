@@ -32,19 +32,28 @@ class WhatsAppController extends Controller
         $this->defaultSession = (string) env('WHATSAPP_SESSION_NAME', 'leads_platform_session');
     }
 
+    private function getSessionName(?int $userId = null): string
+    {
+        $id = $userId ?? auth()->id() ?? auth('sanctum')->id() ?? request()->user()?->id;
+        return $id ? "user_session_{$id}" : 'default_session';
+    }
+
     /* ──────────────────────────────────────────────────────────────
      *  SESSION / QR
      * ────────────────────────────────────────────────────────────── */
 
-    public function initSession(): JsonResponse
+    public function initSession(Request $request): JsonResponse
     {
+        $userId = $request->user()?->id ?? auth('sanctum')->id();
+        $sessionName = $this->getSessionName($userId);
+
         $session = WhatsappSession::firstOrCreate(
-            ['session_name' => $this->defaultSession],
+            ['session_name' => $sessionName],
             ['status' => 'disconnected']
         );
 
         try {
-            [$res, $engineUrl] = $this->requestEngine('post', 'session/start');
+            [$res, $engineUrl] = $this->requestEngine('post', 'session/start', [], 5, $sessionName);
             Log::info('[WhatsApp] Init session', [
                 'engine_url' => $engineUrl,
                 'sidecar_response' => $res->json(),
@@ -63,7 +72,7 @@ class WhatsAppController extends Controller
         // and Baileys will not emit a fresh QR until we reset the auth store.
         if (($snapshot['status'] ?? $session->status) === 'disconnected' && ($snapshot['has_auth'] ?? false)) {
             try {
-                $this->requestEngine('post', 'session/refresh-qr');
+                $this->requestEngine('post', 'session/refresh-qr', [], 5, $sessionName);
                 usleep(1250000);
                 $snapshot = $this->pullSidecarStatus($session) ?? $snapshot;
             } catch (\Throwable $e) {
@@ -81,12 +90,15 @@ class WhatsAppController extends Controller
         ]);
     }
 
-    public function status(): JsonResponse
+    public function status(Request $request): JsonResponse
     {
-        $session = WhatsappSession::where('session_name', $this->defaultSession)->first();
+        $userId = $request->user()?->id ?? auth('sanctum')->id();
+        $sessionName = $this->getSessionName($userId);
+
+        $session = WhatsappSession::where('session_name', $sessionName)->first();
         if (!$session) {
             $session = WhatsappSession::create([
-                'session_name' => $this->defaultSession,
+                'session_name' => $sessionName,
                 'status' => 'disconnected',
             ]);
         }
@@ -101,10 +113,13 @@ class WhatsAppController extends Controller
         ]);
     }
 
-    public function refreshQr(): JsonResponse
+    public function refreshQr(Request $request): JsonResponse
     {
+        $userId = $request->user()?->id ?? auth('sanctum')->id();
+        $sessionName = $this->getSessionName($userId);
+
         try {
-            $this->requestEngine('post', 'session/refresh-qr');
+            $this->requestEngine('post', 'session/refresh-qr', [], 5, $sessionName);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Engine unreachable.'], 500);
         }
@@ -112,9 +127,12 @@ class WhatsAppController extends Controller
         return response()->json(['success' => true, 'message' => 'QR refresh requested']);
     }
 
-    public function disconnect(): JsonResponse
+    public function disconnect(Request $request): JsonResponse
     {
-        $session = WhatsappSession::where('session_name', $this->defaultSession)->first();
+        $userId = $request->user()?->id ?? auth('sanctum')->id();
+        $sessionName = $this->getSessionName($userId);
+
+        $session = WhatsappSession::where('session_name', $sessionName)->first();
         if ($session) {
             $session->update([
                 'status' => 'disconnected',
@@ -124,9 +142,9 @@ class WhatsAppController extends Controller
         }
 
         try {
-            $this->requestEngine('post', 'session/disconnect');
+            $this->requestEngine('post', 'session/disconnect', [], 5, $sessionName);
         } catch (\Exception $e) {
-            // Ignore — sidecar may already be down
+            // Ignore
         }
 
         return response()->json(['success' => true]);
@@ -196,6 +214,9 @@ class WhatsAppController extends Controller
             'text' => 'required|string',
         ]);
 
+        $userId = $request->user()?->id ?? auth('sanctum')->id();
+        $sessionName = $this->getSessionName($userId);
+
         // Normalize phone → JID
         $phone = preg_replace('/[^0-9]/', '', $data['phone']);
         $jid = "{$phone}@s.whatsapp.net";
@@ -204,7 +225,7 @@ class WhatsAppController extends Controller
             [$res, $engineUrl] = $this->requestEngine('post', 'messages/send', [
                 'jid' => $jid,
                 'text' => $data['text'],
-            ], 10);
+            ], 10, $sessionName);
 
             if (!$res->successful()) {
                 return response()->json(['error' => $res->json('error', 'Send failed')], $res->status());
@@ -212,7 +233,10 @@ class WhatsAppController extends Controller
 
             // Log outbound message to DB using the correct schema
             $contact = WhatsappContact::firstOrCreate(
-                ['phone_number' => $jid],
+                [
+                    'phone_number' => $jid,
+                    'user_id' => $userId,
+                ],
                 [
                     'name' => null,
                     'normalized_phone_number' => $phone,
@@ -222,12 +246,16 @@ class WhatsAppController extends Controller
             );
 
             $conversation = WhatsappConversation::firstOrCreate(
-                ['external_chat_id' => $jid],
+                [
+                    'external_chat_id' => $jid,
+                    'user_id' => $userId,
+                ],
                 [
                     'contact_id' => $contact->id,
                     'sync_status' => 'active',
                     'relevance_status' => 'high',
                     'approved_for_sync' => true,
+                    'platform' => 'whatsapp',
                 ]
             );
 
@@ -424,13 +452,18 @@ class WhatsAppController extends Controller
         $platform = $request->query('platform', 'whatsapp');
 
         if ($platform === 'mekari_qontak') {
-            $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id;
+            $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
             resolve(\App\Services\MekariQontakService::class)->syncRooms($tenantId);
         }
+
+        $userId = $request->user()?->id ?? auth('sanctum')->id() ?? auth()->id();
 
         $convs = WhatsappConversation::with(['contact', 'aiAnalysis'])
             ->where('platform', $platform)
             ->where('approved_for_sync', true)
+            ->when($platform === 'whatsapp', function ($query) use ($userId) {
+                return $query->where('user_id', $userId);
+            })
             ->orderBy('last_message_at', 'desc')
             ->get();
 
@@ -439,13 +472,20 @@ class WhatsAppController extends Controller
 
     public function getConversationMessages(Request $request, $id): JsonResponse
     {
-        $conversation = WhatsappConversation::find($id);
+        $userId = $request->user()?->id ?? auth('sanctum')->id() ?? auth()->id();
+        $conversation = WhatsappConversation::where('id', $id)
+            ->where(function ($query) use ($userId) {
+                $query->where('platform', '!=', 'whatsapp')
+                    ->orWhere('user_id', $userId);
+            })
+            ->first();
+
         if (!$conversation) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
         if ($conversation->platform === 'mekari_qontak') {
-            $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id;
+            $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
             resolve(\App\Services\MekariQontakService::class)->syncRoomMessages($conversation->external_chat_id, $tenantId);
         }
 
@@ -526,13 +566,16 @@ class WhatsAppController extends Controller
      *
      * @return array{0:Response,1:string}
      */
-    private function requestEngine(string $method, string $path, array $payload = [], int $timeout = 5): array
+    private function requestEngine(string $method, string $path, array $payload = [], int $timeout = 5, ?string $sessionName = null): array
     {
+        $sessionName = $sessionName ?? $this->getSessionName();
         $lastError = null;
 
         foreach ($this->engineUrls() as $engineUrl) {
             try {
-                $client = Http::timeout($timeout);
+                $client = Http::timeout($timeout)->withHeaders([
+                    'X-Session-Id' => $sessionName,
+                ]);
                 $url = "{$engineUrl}/{$path}";
                 $response = strtolower($method) === 'get'
                     ? $client->get($url, $payload)
@@ -550,5 +593,126 @@ class WhatsAppController extends Controller
         }
 
         throw new \RuntimeException($lastError?->getMessage() ?? 'No reachable WhatsApp engine URL');
+    }
+
+    public function convertToLead(Request $request, $id): JsonResponse
+    {
+        $conversation = WhatsappConversation::find($id);
+        if (!$conversation) {
+            return response()->json(['error' => 'Conversation not found'], 404);
+        }
+
+        $contact = $conversation->contact;
+        if (!$contact) {
+            return response()->json(['error' => 'Contact not found for this conversation'], 404);
+        }
+
+        if ($contact->linked_lead_id) {
+            return response()->json([
+                'error' => 'This contact is already linked to a lead.',
+                'lead_id' => $contact->linked_lead_id,
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'company_name' => 'required|string|max:255',
+            'owner_id' => 'nullable|integer|exists:users,id',
+            'funnel_stage_id' => 'nullable|integer|exists:funnel_stages,id',
+        ]);
+
+        $ownerId = $validated['owner_id'] ?? $request->user()?->id ?? auth('sanctum')->id();
+        $stageId = $validated['funnel_stage_id'] ?? \App\Models\FunnelStage::orderBy('sequence')->value('id');
+
+        $lead = Lead::create([
+            'company_name' => $validated['company_name'],
+            'phone' => preg_replace('/[^0-9]/', '', $contact->phone_number),
+            'owner_id' => $ownerId,
+            'funnel_stage_id' => $stageId,
+            'tenant_id' => $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id,
+            'created_by' => $request->user()?->id ?? auth('sanctum')->id(),
+            'ai_mode' => 'manual',
+            'duplicate_status' => 'new',
+        ]);
+
+        $lead->contacts()->create([
+            'name' => $contact->name ?? 'Contact from ' . ucfirst($conversation->platform),
+            'phone' => $contact->phone_number,
+            'is_primary' => true,
+            'source' => 'whatsapp',
+        ]);
+
+        $contact->update(['linked_lead_id' => $lead->id]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Conversation contact successfully converted to Lead.',
+            'data' => [
+                'lead_id' => $lead->id,
+                'company_name' => $lead->company_name,
+            ],
+        ], 201);
+    }
+
+    public function activeUsers(Request $request): JsonResponse
+    {
+        try {
+            [$res, $engineUrl] = $this->requestEngine('get', 'sessions/active', [], 5, 'default_session');
+            $activeSessions = $res->json('data') ?? [];
+
+            $userIds = [];
+            foreach ($activeSessions as $s) {
+                if (preg_match('/^user_session_(\d+)$/', $s['session'], $matches)) {
+                    $userIds[] = (int) $matches[1];
+                }
+            }
+
+            $users = \App\Models\User::whereIn('id', $userIds)->get()->keyBy('id');
+
+            $data = [];
+            foreach ($activeSessions as $s) {
+                if (preg_match('/^user_session_(\d+)$/', $s['session'], $matches)) {
+                    $uId = (int) $matches[1];
+                    $user = $users->get($uId);
+                    if ($user) {
+                        $data[] = [
+                            'user_id' => $user->id,
+                            'user_name' => $user->name,
+                            'user_email' => $user->email,
+                            'status' => $s['status'],
+                            'number' => $s['number'],
+                            'name' => $s['name'],
+                            'has_auth' => $s['has_auth']
+                        ];
+                    }
+                }
+            }
+
+            return response()->json(['data' => $data]);
+        } catch (\Throwable $e) {
+            Log::error('[WhatsApp] Failed to fetch active sessions', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to reach WhatsApp Engine.'], 500);
+        }
+    }
+
+    public function disconnectUser(Request $request, $userId): JsonResponse
+    {
+        $sessionName = "user_session_{$userId}";
+        
+        $session = WhatsappSession::where('session_name', $sessionName)->first();
+        if ($session) {
+            $session->update([
+                'status' => 'disconnected',
+                'qr_payload' => null,
+                'disconnected_at' => now(),
+            ]);
+        }
+
+        try {
+            $this->requestEngine('post', 'session/disconnect', [], 5, $sessionName);
+        } catch (\Exception $e) {
+            // Ignore
+        }
+
+        return response()->json(['success' => true]);
     }
 }

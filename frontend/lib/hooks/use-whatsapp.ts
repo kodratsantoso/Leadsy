@@ -250,6 +250,27 @@ export function useWhatsApp() {
     }
   }, []);
 
+  const convertToLead = useCallback(async (convId: number, companyName: string, funnelStageId?: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiFetch(`/whatsapp/conversations/${convId}/convert-to-lead`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_name: companyName, funnel_stage_id: funnelStageId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Conversion failed');
+      return data;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Conversion failed';
+      setError(msg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     loading, error, clearError,
     // Session
@@ -257,7 +278,7 @@ export function useWhatsApp() {
     // Messaging
     sendMessage,
     // Conversations
-    getConversations, getMessages, analyzeConversation,
+    getConversations, getMessages, analyzeConversation, convertToLead,
     // Campaigns
     getCampaigns, createCampaign, executeCampaign,
     // Sync Rules

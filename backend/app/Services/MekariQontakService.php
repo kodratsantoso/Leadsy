@@ -40,6 +40,7 @@ class MekariQontakService
             'client_id' => $configs->get('MEKARI_QONTAK_CLIENT_ID'),
             'client_secret' => $configs->get('MEKARI_QONTAK_CLIENT_SECRET'),
             'channel_id' => $configs->get('MEKARI_QONTAK_CHANNEL_ID'),
+            'access_token' => $configs->get('MEKARI_QONTAK_ACCESS_TOKEN'),
         ];
     }
 
@@ -99,11 +100,12 @@ class MekariQontakService
         string $method,
         string $baseUrl,
         string $path,
-        string $clientId,
-        string $clientSecret,
+        ?string $clientId,
+        ?string $clientSecret,
         array $queryParams = [],
         ?array $bodyData = null,
-        int $timeout = 15
+        int $timeout = 15,
+        ?string $accessToken = null
     ): \Illuminate\Http\Client\Response {
         if (!empty($queryParams)) {
             ksort($queryParams);
@@ -114,7 +116,14 @@ class MekariQontakService
         $url = rtrim($baseUrl, '/') . $path;
         $body = $bodyData !== null ? json_encode($bodyData) : null;
 
-        $headers = $this->buildHmacHeaders($clientId, $clientSecret, $method, $path, $body);
+        if (!empty($accessToken)) {
+            $headers = [
+                'Authorization' => 'Bearer ' . $accessToken,
+                'Content-Type' => 'application/json',
+            ];
+        } else {
+            $headers = $this->buildHmacHeaders($clientId, $clientSecret, $method, $path, $body);
+        }
 
         $request = Http::timeout($timeout)->withHeaders($headers);
 
@@ -146,10 +155,13 @@ class MekariQontakService
      */
     public function testConnection(array $values): array
     {
-        if (empty($values['client_id']) || empty($values['client_secret'])) {
+        $hasHmac = !empty($values['client_id']) && !empty($values['client_secret']);
+        $hasBearer = !empty($values['access_token']);
+
+        if (!$hasHmac && !$hasBearer) {
             return [
                 'status' => 'error',
-                'message' => 'Client ID and Client Secret are required. Generate them at developers.mekari.com.',
+                'message' => 'Either (Client ID and Client Secret) or (Access Token Bearer) are required.',
             ];
         }
 
@@ -161,11 +173,12 @@ class MekariQontakService
                 'GET',
                 $baseUrl,
                 $path,
-                $values['client_id'],
-                $values['client_secret'],
+                $values['client_id'] ?? null,
+                $values['client_secret'] ?? null,
                 ['limit' => 1],
                 null,
-                10
+                10,
+                $values['access_token'] ?? null
             );
 
             if ($response->successful()) {
@@ -178,9 +191,10 @@ class MekariQontakService
                     ];
                 }
 
+                $authType = $hasBearer ? 'Bearer auth' : 'HMAC auth';
                 return [
                     'status' => 'connected',
-                    'message' => 'Mekari Qontak API verified successfully (HMAC auth).',
+                    'message' => "Mekari Qontak API verified successfully ({$authType}).",
                     'http_status' => $response->status(),
                     'sample' => $json,
                 ];
@@ -209,8 +223,11 @@ class MekariQontakService
     public function syncRooms(?int $tenantId = null): void
     {
         $creds = $this->getCredentials($tenantId);
-        if (!$creds['enabled'] || empty($creds['client_id']) || empty($creds['client_secret'])) {
-            Log::info('[Qontak] Sync skipped: Integration is disabled or missing HMAC credentials.');
+        $hasHmac = !empty($creds['client_id']) && !empty($creds['client_secret']);
+        $hasBearer = !empty($creds['access_token']);
+
+        if (!$creds['enabled'] || (!$hasHmac && !$hasBearer)) {
+            Log::info('[Qontak] Sync skipped: Integration is disabled or missing credentials.');
             return;
         }
 
@@ -233,9 +250,12 @@ class MekariQontakService
                     'GET',
                     $baseUrl,
                     $path,
-                    $creds['client_id'],
-                    $creds['client_secret'],
-                    $queryParams
+                    $creds['client_id'] ?? null,
+                    $creds['client_secret'] ?? null,
+                    $queryParams,
+                    null,
+                    15,
+                    $creds['access_token'] ?? null
                 );
 
                 if (!$response->successful()) {
@@ -344,7 +364,10 @@ class MekariQontakService
     public function syncRoomMessages(string $roomExternalId, ?int $tenantId = null): void
     {
         $creds = $this->getCredentials($tenantId);
-        if (!$creds['enabled'] || empty($creds['client_id']) || empty($creds['client_secret'])) {
+        $hasHmac = !empty($creds['client_id']) && !empty($creds['client_secret']);
+        $hasBearer = !empty($creds['access_token']);
+
+        if (!$creds['enabled'] || (!$hasHmac && !$hasBearer)) {
             return;
         }
 
@@ -372,9 +395,12 @@ class MekariQontakService
                     'GET',
                     $baseUrl,
                     $path,
-                    $creds['client_id'],
-                    $creds['client_secret'],
-                    $queryParams
+                    $creds['client_id'] ?? null,
+                    $creds['client_secret'] ?? null,
+                    $queryParams,
+                    null,
+                    15,
+                    $creds['access_token'] ?? null
                 );
 
                 if (!$response->successful()) {

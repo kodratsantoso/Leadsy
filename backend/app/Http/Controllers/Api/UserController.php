@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Lead;
+use App\Models\WhatsappSession;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class UserController extends Controller
 {
@@ -74,10 +77,56 @@ class UserController extends Controller
         return response()->json(['data' => $user->load(['role', 'directManager:id,name,email'])]);
     }
 
-    public function destroy(User $user): JsonResponse
+    public function destroy(Request $request, User $user): JsonResponse
     {
+        // Check if there are resources to transfer
+        $hasLeads = Lead::where('owner_id', $user->id)
+            ->orWhere('presales_owner_id', $user->id)
+            ->orWhere('am_owner_id', $user->id)
+            ->orWhere('csm_owner_id', $user->id)
+            ->exists();
+
+        if ($hasLeads && !$request->has('transfer_to_user_id')) {
+            return response()->json([
+                'message' => 'This user owns active leads. You must specify a recipient user to transfer these resources before deleting.',
+                'requires_transfer' => true,
+            ], 422);
+        }
+
+        $transferToUserId = $request->input('transfer_to_user_id');
+
+        if ($transferToUserId) {
+            $request->validate([
+                'transfer_to_user_id' => 'required|exists:users,id|different:'.$user->id,
+            ]);
+
+            // Transfer Leads
+            Lead::where('owner_id', $user->id)->update(['owner_id' => $transferToUserId]);
+            Lead::where('presales_owner_id', $user->id)->update(['presales_owner_id' => $transferToUserId]);
+            Lead::where('am_owner_id', $user->id)->update(['am_owner_id' => $transferToUserId]);
+            Lead::where('csm_owner_id', $user->id)->update(['csm_owner_id' => $transferToUserId]);
+            Lead::where('created_by', $user->id)->update(['created_by' => $transferToUserId]);
+
+            // Transfer direct manager association
+            User::where('direct_manager_id', $user->id)->update(['direct_manager_id' => $transferToUserId]);
+        } else {
+            // Set manager to null for users managed by deleted user
+            User::where('direct_manager_id', $user->id)->update(['direct_manager_id' => null]);
+        }
+
+        // Clean up Local WhatsApp Session
+        try {
+            $sessionName = "user_session_{$user->id}";
+            $sidecarUrl = env('WHATSAPP_SIDECAR_URL', 'http://127.0.0.1:3002');
+            Http::timeout(5)->withHeaders(['X-Session-Id' => $sessionName])->post(rtrim($sidecarUrl, '/') . '/api/session/disconnect');
+            
+            WhatsappSession::where('session_name', $sessionName)->delete();
+        } catch (\Throwable $e) {
+            // Ignore sidecar unreachable
+        }
+
         AuditService::logDeleted('users', $user);
-        $user->update(['is_active' => false]);
+        $user->delete();
 
         return response()->json(null, 204);
     }

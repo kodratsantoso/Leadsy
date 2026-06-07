@@ -4,7 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.5.4** — 2026-06-04
+Current release: **v1.6.0** — 2026-06-07
+
+## What's New in v1.6.0
+
+- **Local WhatsApp Workspace Isolation** — Isolated contacts, messages, and active sockets per logged-in user to guarantee user data privacy.
+- **Active WhatsApp Users Monitor** — Added an administration monitor dashboard under Settings -> Integrations displaying currently connected user sessions with a force disconnect action.
+- **Mekari Qontak Auth Simplification** — Added support for simple Bearer token authentication in the Mekari Qontak service, falling back to HMAC signature verification if bearer parameters are missing.
+- **Conversation-to-Lead Conversion** — Implemented a "Convert to Lead" button and stage/funnel selection modal next to "Analyze" on both Local WhatsApp and Qontak conversations.
+- **User Deletion with Resource Transfer** — Implemented safe user deletion requiring the transfer of owned active leads and direct report relationships to another selected recipient user before permanent deactivation.
 
 ## What's New in v1.5.4
 

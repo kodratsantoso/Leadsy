@@ -17,13 +17,19 @@ class WhatsAppSyncEngine
      * 4. Evaluate Inclusion Rules (keywords in sender name or message body) -> if match, PASS.
      * 5. If it reaches the end and no explicit pass/deny happened, default depends on strict_allowlist.
      */
-    public function evaluateMessage(string $senderName, string $phoneNumber, string $body): array
+    public function evaluateMessage(string $senderName, string $phoneNumber, string $body, ?int $userId = null): array
     {
         // 1. Check if it explicitly matches an existing lead number
         $cleanPhone = preg_replace('/[^0-9]/', '', $phoneNumber);
         $linkedLeadId = null;
-        if (Lead::where('phone', 'like', "%{$cleanPhone}%")->exists()) {
-            $linkedLeadId = Lead::where('phone', 'like', "%{$cleanPhone}%")->value('id');
+
+        $leadQuery = Lead::where('phone', 'like', "%{$cleanPhone}%");
+        if ($userId) {
+            $leadQuery->where('owner_id', $userId);
+        }
+
+        if ($leadQuery->exists()) {
+            $linkedLeadId = $leadQuery->value('id');
 
             // If we know this lead, we sync it.
             return ['allow' => true, 'reason' => 'matched_known_lead', 'lead_id' => $linkedLeadId];

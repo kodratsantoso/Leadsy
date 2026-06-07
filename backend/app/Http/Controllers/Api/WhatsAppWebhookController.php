@@ -25,11 +25,17 @@ class WhatsAppWebhookController extends Controller
     {
         $payload = $request->all();
         $action = $payload['action'] ?? null;
+        $sessionName = $payload['session'] ?? 'default_session';
 
         $session = WhatsappSession::firstOrCreate(
-            ['session_name' => 'leads_platform_session'],
+            ['session_name' => $sessionName],
             ['status' => 'disconnected']
         );
+
+        $userId = null;
+        if (preg_match('/^user_session_(\d+)$/', $sessionName, $matches)) {
+            $userId = (int) $matches[1];
+        }
 
         if ($action === 'qr') {
             $session->update([
@@ -49,7 +55,7 @@ class WhatsAppWebhookController extends Controller
             $senderName = $payload['sender_name'] ?? 'Unknown';
 
             // 1. Evaluate Privacy Flow FIRST
-            $eval = $this->syncEngine->evaluateMessage($senderName, $remoteJid, $body);
+            $eval = $this->syncEngine->evaluateMessage($senderName, $remoteJid, $body, $userId);
 
             // If disallowed, drop it silently (DO NOT SYNC TO DB)
             if (! $eval['allow']) {
@@ -60,7 +66,10 @@ class WhatsAppWebhookController extends Controller
 
             // Allowed to ingest
             $contact = WhatsappContact::firstOrCreate(
-                ['phone_number' => $remoteJid],
+                [
+                    'phone_number' => $remoteJid,
+                    'user_id' => $userId,
+                ],
                 [
                     'name' => $senderName,
                     'is_relevant' => true,
@@ -70,11 +79,15 @@ class WhatsAppWebhookController extends Controller
             );
 
             $conversation = WhatsappConversation::firstOrCreate(
-                ['external_chat_id' => $remoteJid],
+                [
+                    'external_chat_id' => $remoteJid,
+                    'user_id' => $userId,
+                ],
                 [
                     'contact_id' => $contact->id,
                     'relevance_status' => 'pending',
                     'approved_for_sync' => true,
+                    'platform' => 'whatsapp',
                 ]
             );
 

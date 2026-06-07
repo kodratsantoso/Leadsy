@@ -1,6 +1,6 @@
 {
-  "version": "1.5.4",
-  "released_at": "2026-06-04",
-  "type": "patch",
-  "notes": "Synchronize local user database records and structure snapshots to VPS environment"
+  "version": "1.6.0",
+  "released_at": "2026-06-07",
+  "type": "minor",
+  "notes": "Add multi-user WhatsApp workspace isolation, simplified Mekari Qontak Auth, active sessions monitor, and user deletion resource transfer"
 }

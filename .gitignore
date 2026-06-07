@@ -38,3 +38,9 @@ backend/.env
 # Test / coverage
 coverage/
 .phpunit.result.cache
+test-results/
+frontend/test-results/
+
+# WhatsApp sidecar auth
+whatsapp-service/baileys_auth_info/
+

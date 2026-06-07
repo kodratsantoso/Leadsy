@@ -14,6 +14,7 @@ class WhatsappConversation extends Model
         'approved_for_sync',
         'last_message_at',
         'platform',
+        'user_id',
     ];
 
     protected $casts = [
