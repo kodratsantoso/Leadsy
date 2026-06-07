@@ -144,13 +144,18 @@ export function useWhatsApp() {
 
   // ── Conversations ──
   const getConversations = useCallback(async (platform?: string): Promise<WaConversation[]> => {
+    setLoading(true);
+    setError(null);
     try {
       const url = platform ? `/whatsapp/conversations?platform=${encodeURIComponent(platform)}` : '/whatsapp/conversations';
       const res = await apiFetch(url);
       const data = await res.json();
       return data.data || [];
-    } catch {
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch conversations');
       return [];
+    } finally {
+      setLoading(false);
     }
   }, []);
 

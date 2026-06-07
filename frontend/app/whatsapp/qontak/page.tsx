@@ -107,6 +107,15 @@ export default function MekariQontakPage() {
     getConversations("mekari_qontak").then(setConversations);
   }, [getConversations]);
 
+  // ── Auto Refresh every 30 seconds ──
+  useEffect(() => {
+    const interval = setInterval(() => {
+      getConversations("mekari_qontak").then(setConversations);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [getConversations]);
+
   const handleViewConv = async (conv: WaConversation) => {
     setActiveConv(conv);
     const msgs = await getMessages(conv.id);
@@ -151,11 +160,12 @@ export default function MekariQontakPage() {
               <h3 className="text-sm font-semibold">Qontak Conversations</h3>
               <p className="text-[10px] text-muted-foreground">Live rooms synced from Mekari Omnichannel Hub</p>
             </div>
-            <button
+             <button
               onClick={() => getConversations("mekari_qontak").then(setConversations)}
-              className="flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent/30 p-1.5 text-xs"
+              disabled={loading}
+              className="flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent/30 p-1.5 text-xs disabled:opacity-55"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
             </button>
           </div>
           <div className="max-h-[550px] overflow-y-auto divide-y divide-border/30">
