@@ -166,8 +166,8 @@ export default function LocalWhatsAppPage() {
   }, [pollStatus]);
 
   // Tab data loaders
-  const loadConversations = useCallback(() => {
-    getConversations("whatsapp").then(res => {
+  const loadConversations = useCallback((forceSync: boolean = false) => {
+    getConversations("whatsapp", forceSync).then(res => {
       setConversations(res);
       // Auto-assign random metadata to mock rooms if not present
       setLocalRoomsMeta(prev => {
@@ -471,8 +471,8 @@ export default function LocalWhatsAppPage() {
                 <h2 className="text-base font-bold tracking-tight">Chats</h2>
                 <div className="flex gap-1">
                   <button 
-                    onClick={loadConversations} 
-                    title="Refresh List"
+                    onClick={() => loadConversations(true)} 
+                    title="Refresh List & Sync"
                     className="p-1.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
                   >
                     <RefreshCw className="h-4 w-4" />

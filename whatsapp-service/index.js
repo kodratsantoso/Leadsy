@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion, makeInMemoryStore } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const axios = require('axios');
 const cors = require('cors');
@@ -35,7 +35,8 @@ async function connectToWhatsApp(sessionName) {
             sock: null,
             currentQr: null,
             status: 'disconnected',
-            connectionAttemptInProgress: false
+            connectionAttemptInProgress: false,
+            store: makeInMemoryStore({ logger: pino({ level: 'silent' }) })
         };
     }
 
@@ -63,9 +64,12 @@ async function connectToWhatsApp(sessionName) {
             logger: pino({ level: 'silent' }),
             browser: Browsers.macOS('Desktop'),
             connectTimeoutMs: 60000,
+            syncFullHistory: true,
+            shouldSyncHistoryMessage: () => true,
         });
 
         session.sock = sock;
+        session.store.bind(sock.ev);
 
         sock.ev.on('creds.update', saveCreds);
 
@@ -160,6 +164,69 @@ async function connectToWhatsApp(sessionName) {
             });
         });
 
+        sock.ev.on('messaging-history.set', async ({ chats, contacts, messages, isLatest }) => {
+            console.log(`[${sessionName}] History sync received: ${messages?.length || 0} messages, ${chats?.length || 0} chats`);
+            
+            const contactNames = {};
+            for (const contact of contacts || []) {
+                if (contact.id && contact.name) {
+                    contactNames[contact.id] = contact.name;
+                }
+            }
+            
+            const formattedMessages = [];
+            for (const msg of messages || []) {
+                if (!msg.message) continue;
+                
+                const type = Object.keys(msg.message)[0];
+                if (!type) continue;
+                
+                let body = '';
+                if (type === 'conversation') {
+                    body = msg.message.conversation;
+                } else if (type === 'extendedTextMessage') {
+                    body = msg.message.extendedTextMessage?.text || '';
+                } else if (type === 'imageMessage') {
+                    body = '[Image] ' + (msg.message.imageMessage?.caption || '');
+                } else if (type === 'documentMessage') {
+                    body = '[Document] ' + (msg.message.documentMessage?.fileName || '');
+                } else {
+                    continue;
+                }
+                
+                const remoteJid = msg.key.remoteJid;
+                if (!remoteJid || !remoteJid.endsWith('@s.whatsapp.net')) {
+                    continue;
+                }
+                
+                const msgId = msg.key.id;
+                const fromMe = msg.key.fromMe || false;
+                const senderName = msg.pushName || contactNames[remoteJid] || (fromMe ? 'Me' : 'Unknown');
+                const timestamp = msg.messageTimestamp;
+                
+                formattedMessages.push({
+                    external_id: msgId,
+                    remote_jid: remoteJid,
+                    sender_name: senderName,
+                    body: body,
+                    direction: fromMe ? 'outbound' : 'inbound',
+                    timestamp: timestamp,
+                });
+            }
+            
+            // Send in chunks of 50
+            const chunkSize = 50;
+            for (let i = 0; i < formattedMessages.length; i += chunkSize) {
+                const chunk = formattedMessages.slice(i, i + chunkSize);
+                console.log(`[${sessionName}] Sending history chunk ${i / chunkSize + 1} with ${chunk.length} messages`);
+                await sendWebhook({
+                    action: 'history_sync',
+                    messages: chunk,
+                    session: sessionName
+                });
+            }
+        });
+
     } catch (err) {
         console.error(`[${sessionName}] Connection error:`, err.message);
         session.connectionAttemptInProgress = false;
@@ -213,7 +280,8 @@ app.post('/api/session/start', async (req, res) => {
             sock: null,
             currentQr: null,
             status: 'disconnected',
-            connectionAttemptInProgress: false
+            connectionAttemptInProgress: false,
+            store: makeInMemoryStore({ logger: pino({ level: 'silent' }) })
         };
     }
     const session = sessions[sessionName];
@@ -226,6 +294,97 @@ app.post('/api/session/start', async (req, res) => {
         connectToWhatsApp(sessionName);
     }
     res.json({ success: true, message: 'Initialization started', status: session.status });
+});
+
+app.post('/api/session/sync', async (req, res) => {
+    const sessionName = getSessionName(req);
+    const session = sessions[sessionName];
+    if (!session || !session.store) {
+        return res.status(400).json({ error: 'Session not initialized or store not ready.' });
+    }
+
+    try {
+        const chats = session.store.chats.all();
+        console.log(`[${sessionName}] Manual sync requested. Chats in store: ${chats.length}`);
+
+        const formattedMessages = [];
+        const contactNames = {};
+        if (session.store.contacts) {
+            for (const [jid, contact] of Object.entries(session.store.contacts)) {
+                if (contact && contact.name) {
+                    contactNames[jid] = contact.name;
+                }
+            }
+        }
+
+        for (const chat of chats) {
+            const jid = chat.id;
+            if (!jid || !jid.endsWith('@s.whatsapp.net')) continue;
+
+            let chatMessages = [];
+            const msgRepo = session.store.messages[jid];
+            if (msgRepo) {
+                if (typeof msgRepo.all === 'function') {
+                    chatMessages = msgRepo.all();
+                } else if (Array.isArray(msgRepo)) {
+                    chatMessages = msgRepo;
+                } else if (typeof msgRepo.toArray === 'function') {
+                    chatMessages = msgRepo.toArray();
+                }
+            }
+
+            for (const msg of chatMessages) {
+                if (!msg.message) continue;
+
+                const type = Object.keys(msg.message)[0];
+                if (!type) continue;
+
+                let body = '';
+                if (type === 'conversation') {
+                    body = msg.message.conversation;
+                } else if (type === 'extendedTextMessage') {
+                    body = msg.message.extendedTextMessage?.text || '';
+                } else if (type === 'imageMessage') {
+                    body = '[Image] ' + (msg.message.imageMessage?.caption || '');
+                } else if (type === 'documentMessage') {
+                    body = '[Document] ' + (msg.message.documentMessage?.fileName || '');
+                } else {
+                    continue;
+                }
+
+                const msgId = msg.key.id;
+                const fromMe = msg.key.fromMe || false;
+                const senderName = msg.pushName || contactNames[jid] || chat.name || (fromMe ? 'Me' : 'Unknown');
+                const timestamp = msg.messageTimestamp;
+
+                formattedMessages.push({
+                    external_id: msgId,
+                    remote_jid: jid,
+                    sender_name: senderName,
+                    body: body,
+                    direction: fromMe ? 'outbound' : 'inbound',
+                    timestamp: timestamp,
+                });
+            }
+        }
+
+        const chunkSize = 50;
+        let sentCount = 0;
+        for (let i = 0; i < formattedMessages.length; i += chunkSize) {
+            const chunk = formattedMessages.slice(i, i + chunkSize);
+            await sendWebhook({
+                action: 'history_sync',
+                messages: chunk,
+                session: sessionName
+            });
+            sentCount += chunk.length;
+        }
+
+        res.json({ success: true, message: `Dispatched ${sentCount} messages from store to Laravel` });
+    } catch (err) {
+        console.error(`[${sessionName}] Manual sync error:`, err.message);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.get('/api/session/status', (req, res) => {

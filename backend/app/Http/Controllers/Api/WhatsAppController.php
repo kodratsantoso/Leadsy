@@ -505,6 +505,27 @@ class WhatsAppController extends Controller
             }
         }
 
+        if ($platform === 'whatsapp') {
+            $userId = $request->user()?->id ?? auth('sanctum')->id() ?? auth()->id();
+            $forceSync = $request->query('force_sync') === 'true';
+            
+            $hasConversations = WhatsappConversation::where('platform', 'whatsapp')
+                ->where('user_id', $userId)
+                ->exists();
+
+            $cacheKey = 'whatsapp_sync_limit_' . ($userId ?? 'global');
+            if ($forceSync || (!$hasConversations && !\Illuminate\Support\Facades\Cache::has($cacheKey))) {
+                \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
+                try {
+                    $sessionName = $this->getSessionName($userId);
+                    $this->requestEngine('post', 'session/sync', [], 15, $sessionName);
+                    Log::info('[WhatsApp] History sync triggered successfully via sidecar.');
+                } catch (\Exception $e) {
+                    Log::warning('[WhatsApp] Failed to trigger history sync via sidecar', ['error' => $e->getMessage()]);
+                }
+            }
+        }
+
         $userId = $request->user()?->id ?? auth('sanctum')->id() ?? auth()->id();
 
         $convs = WhatsappConversation::with(['contact', 'aiAnalysis'])

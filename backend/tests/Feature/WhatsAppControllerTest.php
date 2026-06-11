@@ -368,6 +368,72 @@ class WhatsAppControllerTest extends TestCase
         ]);
     }
 
+    public function test_get_conversations_whatsapp_triggers_manual_sync(): void
+    {
+        $user = $this->makeUser();
+
+        // Mock sidecar sync endpoint
+        Http::fake([
+            '*/session/sync' => Http::response(['success' => true, 'message' => 'Dispatched messages']),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/whatsapp/conversations?platform=whatsapp&force_sync=true')
+            ->assertOk();
+
+        // Verify sidecar was called
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            return str_contains($request->url(), '/session/sync');
+        });
+    }
+
+    public function test_webhook_history_sync_ingests_messages(): void
+    {
+        $user = $this->makeUser();
+
+        $payload = [
+            'action' => 'history_sync',
+            'session' => 'user_session_' . $user->id,
+            'messages' => [
+                [
+                    'external_id' => 'msg-hist-1',
+                    'remote_jid' => '628123456789@s.whatsapp.net',
+                    'sender_name' => 'John Historical',
+                    'body' => 'Old history message',
+                    'direction' => 'inbound',
+                    'timestamp' => 1780272000, // Unix timestamp for June 1, 2026
+                ]
+            ]
+        ];
+
+        $response = $this->postJson('/api/webhooks/whatsapp', $payload)
+            ->assertOk();
+
+        $this->assertTrue($response->json('success'));
+
+        // Verify contact was created
+        $this->assertDatabaseHas('whatsapp_contacts', [
+            'phone_number' => '628123456789@s.whatsapp.net',
+            'name' => 'John Historical',
+            'user_id' => $user->id,
+        ]);
+
+        // Verify conversation was created
+        $this->assertDatabaseHas('whatsapp_conversations', [
+            'external_chat_id' => '628123456789@s.whatsapp.net',
+            'platform' => 'whatsapp',
+            'user_id' => $user->id,
+        ]);
+
+        // Verify message was created with correct timestamp
+        $this->assertDatabaseHas('whatsapp_messages', [
+            'external_message_id' => 'msg-hist-1',
+            'body' => 'Old history message',
+            'direction' => 'inbound',
+            'sent_at' => '2026-06-01 00:00:00',
+        ]);
+    }
+
     private function saveConfig(User $user, string $key, string $value, bool $secret = true): void
     {
         IntegrationConfig::create([
