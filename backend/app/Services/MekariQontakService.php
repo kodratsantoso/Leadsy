@@ -309,9 +309,9 @@ class MekariQontakService
 
                     $normalizedPhone = preg_replace('/[^0-9]/', '', $phone);
 
-                    // Upsert Contact
+                    // Upsert Contact (safely matching null user_id)
                     $contact = WhatsappContact::updateOrCreate(
-                        ['phone_number' => $phone],
+                        ['phone_number' => $phone, 'user_id' => null],
                         [
                             'name' => $room['name'] ?? null,
                             'normalized_phone_number' => $normalizedPhone,
@@ -326,6 +326,18 @@ class MekariQontakService
                             ? Carbon::parse($room['last_message']['created_at'])
                             : now());
 
+                    // OPTIMIZATION: If the conversation already exists in the database
+                    // and its last_message_at matches the API room's activity timestamp,
+                    // we can stop pagination since subsequent rooms are older.
+                    $existing = WhatsappConversation::where('external_chat_id', $roomId)
+                        ->whereNull('user_id')
+                        ->first();
+                    if ($existing && $existing->last_message_at && $lastMsgAt->timestamp === $existing->last_message_at->timestamp) {
+                        Log::info("[Qontak] Sync stopped: reached already synced conversation {$roomId} with last_message_at {$existing->last_message_at->toDateTimeString()}.");
+                        $hasMore = false;
+                        break;
+                    }
+
                     // Stop synchronization if we reach rooms older than 30 days,
                     // since the list is sorted by latest message descending.
                     if ($lastMsgAt->lt(now()->subDays(30))) {
@@ -334,9 +346,9 @@ class MekariQontakService
                         break;
                     }
 
-                    // Upsert Conversation
+                    // Upsert Conversation (safely matching null user_id)
                     $conversation = WhatsappConversation::updateOrCreate(
-                        ['external_chat_id' => $roomId],
+                        ['external_chat_id' => $roomId, 'user_id' => null],
                         [
                             'contact_id' => $contact->id,
                             'sync_status' => 'active',
@@ -347,7 +359,7 @@ class MekariQontakService
                         ]
                     );
 
-                    // Save last message if present
+                    // Save last message if present directly to ensure we have it
                     if (!empty($room['last_message']) && !empty($room['last_message']['text'])) {
                         $lastMsg = $room['last_message'];
                         $direction = 'inbound';
@@ -372,6 +384,14 @@ class MekariQontakService
                                 'sent_at' => !empty($lastMsg['created_at']) ? Carbon::parse($lastMsg['created_at']) : $lastMsgAt,
                             ]
                         );
+                    }
+
+                    // Sync messages for new/updated conversations automatically
+                    try {
+                        Log::info("[Qontak] Conversation {$roomId} is new or has updates. Syncing messages...");
+                        $this->syncRoomMessages($roomId, $tenantId);
+                    } catch (\Throwable $e) {
+                        Log::warning("[Qontak] Failed to sync intermediate messages for {$roomId}: " . $e->getMessage());
                     }
                 }
 
@@ -441,8 +461,13 @@ class MekariQontakService
                 $messages = $response->json('data') ?? [];
                 foreach ($messages as $msg) {
                     $msgId = $msg['id'] ?? null;
-                    if (!$msgId) {
-                        continue;
+                    // OPTIMIZATION: If the message already exists in our database,
+                    // we can stop pagination since subsequent messages are older.
+                    $exists = WhatsappMessage::where('external_message_id', $msgId)->exists();
+                    if ($exists) {
+                        Log::info("[Qontak] Messages sync stopped early: reached already synced message {$msgId} for room {$roomExternalId}.");
+                        $hasMore = false;
+                        break;
                     }
 
                     $direction = 'inbound';

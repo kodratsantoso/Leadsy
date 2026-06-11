@@ -453,11 +453,12 @@ class WhatsAppController extends Controller
 
         if ($platform === 'mekari_qontak') {
             $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
+            $forceSync = $request->query('force_sync') === 'true';
             
             $cacheKey = 'qontak_sync_limit_' . ($tenantId ?? 'global');
-            if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            if ($forceSync || !\Illuminate\Support\Facades\Cache::has($cacheKey)) {
                 \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
-                \App\Jobs\SyncMekariQontakRoomsJob::dispatch($tenantId);
+                resolve(\App\Services\MekariQontakService::class)->syncRooms($tenantId);
             }
         }
 

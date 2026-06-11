@@ -50,6 +50,7 @@ export default function MekariQontakPage() {
   const [replyText, setReplyText] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [isSendingLocal, setIsSendingLocal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // ── Mock states for conversation assignment & resolution ──
   const [localRoomsMeta, setLocalRoomsMeta] = useState<Record<string, { assignee: string; resolved: boolean; notes: string; tags: string[] }>>({});
@@ -110,8 +111,9 @@ export default function MekariQontakPage() {
   }, []);
 
   // ── Load rooms ──
-  const loadConversations = () => {
-    getConversations("mekari_qontak").then(res => {
+  const loadConversations = async (forceSync: boolean = false) => {
+    try {
+      const res = await getConversations("mekari_qontak", forceSync);
       setConversations(res);
       // Auto-assign random metadata to mock rooms if not present
       setLocalRoomsMeta(prev => {
@@ -130,7 +132,15 @@ export default function MekariQontakPage() {
         });
         return next;
       });
-    });
+    } catch (err) {
+      console.warn("Failed to load conversations:", err);
+    }
+  };
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    await loadConversations(true);
+    setIsSyncing(false);
   };
 
   useEffect(() => {
@@ -541,17 +551,28 @@ export default function MekariQontakPage() {
             <span className="text-[10px] font-semibold text-muted-foreground">
               {filteredConversations.length} {filteredConversations.length === 1 ? "chat" : "chats"} found
             </span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-muted-foreground">Sort:</span>
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as SortOption)}
-                className="text-[10px] font-bold bg-transparent border-none outline-hidden cursor-pointer text-foreground focus:ring-0 p-0"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                title="Sync conversations"
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors disabled:opacity-50"
               >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="relevance">Relevance score</option>
-              </select>
+                <RefreshCw className={cn("h-3 w-3", isSyncing && "animate-spin")} />
+              </button>
+              <div className="h-3 w-[1px] bg-border/60" />
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] text-muted-foreground">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as SortOption)}
+                  className="text-[10px] font-bold bg-transparent border-none outline-hidden cursor-pointer text-foreground focus:ring-0 p-0"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="relevance">Relevance score</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

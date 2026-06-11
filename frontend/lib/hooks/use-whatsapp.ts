@@ -143,11 +143,20 @@ export function useWhatsApp() {
   }, []);
 
   // ── Conversations ──
-  const getConversations = useCallback(async (platform?: string): Promise<WaConversation[]> => {
+  const getConversations = useCallback(async (platform?: string, forceSync: boolean = false): Promise<WaConversation[]> => {
     setLoading(true);
     setError(null);
     try {
-      const url = platform ? `/whatsapp/conversations?platform=${encodeURIComponent(platform)}` : '/whatsapp/conversations';
+      let url = '/whatsapp/conversations';
+      const params = new URLSearchParams();
+      if (platform) params.append('platform', platform);
+      if (forceSync) params.append('force_sync', 'true');
+      
+      const queryString = params.toString();
+      if (queryString) {
+        url += '?' + queryString;
+      }
+      
       const res = await apiFetch(url);
       const data = await res.json();
       return data.data || [];
