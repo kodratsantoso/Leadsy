@@ -116,13 +116,35 @@ class MekariQontakService
         $url = rtrim($baseUrl, '/') . $path;
         $body = $bodyData !== null ? json_encode($bodyData) : null;
 
-        if (!empty($accessToken)) {
-            $headers = [
-                'Authorization' => 'Bearer ' . $accessToken,
-                'Content-Type' => 'application/json',
-            ];
+        $isLegacy = !str_contains($baseUrl, 'mekari.com') && !str_contains($baseUrl, 'mekari.io');
+
+        if ($isLegacy) {
+            // Legacy Qontak endpoints only support Bearer Token
+            if (!empty($accessToken)) {
+                $headers = [
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Content-Type' => 'application/json',
+                ];
+                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Using Bearer auth (Legacy)', ['headers' => $headers, 'url' => $url]);
+            } else {
+                $headers = $this->buildHmacHeaders($clientId ?? '', $clientSecret ?? '', $method, $path, $body);
+                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Fallback HMAC auth (Legacy)', ['headers' => $headers, 'url' => $url]);
+            }
         } else {
-            $headers = $this->buildHmacHeaders($clientId, $clientSecret, $method, $path, $body);
+            // Modern Mekari endpoints: Prioritize HMAC if credentials are provided, otherwise use Bearer
+            if (!empty($clientId) && !empty($clientSecret)) {
+                $headers = $this->buildHmacHeaders($clientId, $clientSecret, $method, $path, $body);
+                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Using HMAC auth (Modern)', ['headers' => $headers, 'url' => $url]);
+            } elseif (!empty($accessToken)) {
+                $headers = [
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Content-Type' => 'application/json',
+                ];
+                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Using Bearer auth (Modern)', ['headers' => $headers, 'url' => $url]);
+            } else {
+                $headers = $this->buildHmacHeaders($clientId ?? '', $clientSecret ?? '', $method, $path, $body);
+                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Fallback HMAC auth (Modern)', ['headers' => $headers, 'url' => $url]);
+            }
         }
 
         $request = Http::timeout($timeout)->withHeaders($headers);
@@ -303,6 +325,14 @@ class MekariQontakService
                         : (!empty($room['last_message']['created_at'])
                             ? Carbon::parse($room['last_message']['created_at'])
                             : now());
+
+                    // Stop synchronization if we reach rooms older than 30 days,
+                    // since the list is sorted by latest message descending.
+                    if ($lastMsgAt->lt(now()->subDays(30))) {
+                        Log::info("[Qontak] Sync stopped early: reached room older than 30 days ({$lastMsgAt->toDateString()}).");
+                        $hasMore = false;
+                        break;
+                    }
 
                     // Upsert Conversation
                     $conversation = WhatsappConversation::updateOrCreate(
