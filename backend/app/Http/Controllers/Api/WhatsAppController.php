@@ -212,9 +212,52 @@ class WhatsAppController extends Controller
         $data = $request->validate([
             'phone' => 'required|string',
             'text' => 'required|string',
+            'platform' => 'nullable|string',
         ]);
 
         $userId = $request->user()?->id ?? auth('sanctum')->id();
+
+        // Check platform of conversation
+        $conversation = WhatsappConversation::where('external_chat_id', $data['phone'])
+            ->orWhereHas('contact', function ($query) use ($data) {
+                $query->where('phone_number', $data['phone']);
+            })
+            ->first();
+
+        $platform = $data['platform'] ?? ($conversation ? $conversation->platform : 'whatsapp');
+
+        if ($platform === 'mekari_qontak') {
+            $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
+            $roomId = $conversation ? $conversation->external_chat_id : $data['phone'];
+
+            $service = resolve(\App\Services\MekariQontakService::class);
+            $res = $service->sendMessage($roomId, $data['text'], $tenantId);
+
+            if ($res['status'] !== 'success') {
+                return response()->json(['error' => $res['message']], 500);
+            }
+
+            // Save outbound message to local database
+            if ($conversation) {
+                WhatsappMessage::create([
+                    'conversation_id' => $conversation->id,
+                    'external_message_id' => $res['data']['data']['id'] ?? $res['data']['id'] ?? uniqid('qmsg_out_'),
+                    'direction' => 'outbound',
+                    'message_type' => 'text',
+                    'body' => $data['text'],
+                    'sent_at' => now(),
+                ]);
+
+                $conversation->update(['last_message_at' => now()]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'external_id' => $res['data']['data']['id'] ?? $res['data']['id'] ?? null,
+            ]);
+        }
+
+        // Default Local WhatsApp (Baileys)
         $sessionName = $this->getSessionName($userId);
 
         // Normalize phone → JID

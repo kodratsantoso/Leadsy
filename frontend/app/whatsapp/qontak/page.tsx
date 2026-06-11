@@ -265,7 +265,7 @@ export default function MekariQontakPage() {
     setActiveMessages(prev => [...prev, tempMsg]);
 
     try {
-      const res = await sendMessage(phone, body);
+      const res = await sendMessage(phone, body, "mekari_qontak");
       if (!res || !res.success) {
         console.warn("Message sent locally; direct delivery skipped or failed.");
       }

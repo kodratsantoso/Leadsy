@@ -150,6 +150,61 @@ class WhatsAppControllerTest extends TestCase
         $this->assertEquals('outbound', $data[1]['direction']);
     }
 
+    public function test_send_message_mekari_qontak_routes_to_qontak_api(): void
+    {
+        $user = $this->makeUser();
+
+        // Configure Qontak integration
+        $this->saveConfig($user, 'MEKARI_QONTAK_ENABLED', '1', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_BASE_URL', 'https://api.mekari.com', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_ID', 'test-client-id', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_SECRET', 'test-client-secret', true);
+
+        // Create the conversation first
+        $contact = WhatsappContact::create([
+            'phone_number' => 'qontak-room-1',
+            'normalized_phone_number' => 'qontakroom1',
+            'is_relevant' => true,
+        ]);
+
+        $conv = WhatsappConversation::create([
+            'contact_id' => $contact->id,
+            'external_chat_id' => 'qontak-room-1',
+            'platform' => 'mekari_qontak',
+            'approved_for_sync' => true,
+            'last_message_at' => now(),
+        ]);
+
+        // Mock Qontak send bot message endpoint
+        Http::fake([
+            'api.mekari.com/qontak/chat/v1/messages/whatsapp/bot' => Http::response([
+                'status' => 'success',
+                'data' => [
+                    'id' => 'msg-qontak-out-123'
+                ]
+            ]),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/whatsapp/messages/send", [
+                'phone' => 'qontak-room-1',
+                'text' => 'Outbound reply from Leadsy',
+                'platform' => 'mekari_qontak',
+            ])
+            ->assertOk();
+
+        $this->assertTrue($response->json('success'));
+        $this->assertEquals('msg-qontak-out-123', $response->json('external_id'));
+
+        // Verify message was logged to DB
+        $this->assertDatabaseHas('whatsapp_messages', [
+            'conversation_id' => $conv->id,
+            'external_message_id' => 'msg-qontak-out-123',
+            'body' => 'Outbound reply from Leadsy',
+            'direction' => 'outbound',
+        ]);
+    }
+
     public function test_get_conversations_mekari_qontak_paginated(): void
     {
         $user = $this->makeUser();

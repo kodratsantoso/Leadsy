@@ -121,14 +121,14 @@ export function useWhatsApp() {
   }, []);
 
   // ── Direct Messaging ──
-  const sendMessage = useCallback(async (phone: string, text: string) => {
+  const sendMessage = useCallback(async (phone: string, text: string, platform?: string) => {
     setLoading(true);
     setError(null);
     try {
       const res = await apiFetch('/whatsapp/messages/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, text }),
+        body: JSON.stringify({ phone, text, platform }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Send failed');

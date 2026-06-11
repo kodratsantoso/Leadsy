@@ -515,4 +515,66 @@ class MekariQontakService
             Log::error("[Qontak] Failed to update last message timestamp for room {$roomExternalId}: " . $e->getMessage());
         }
     }
+
+    /**
+     * Send a WhatsApp message/reply to a specific Qontak room.
+     */
+    public function sendMessage(string $roomExternalId, string $text, ?int $tenantId = null): array
+    {
+        $creds = $this->getCredentials($tenantId);
+        $hasHmac = !empty($creds['client_id']) && !empty($creds['client_secret']);
+        $hasBearer = !empty($creds['access_token']);
+
+        if (!$creds['enabled'] || (!$hasHmac && !$hasBearer)) {
+            return [
+                'status' => 'error',
+                'message' => 'Integration is disabled or missing credentials.',
+            ];
+        }
+
+        $baseUrl = rtrim($creds['base_url'], '/');
+        // Legacy: /api/open/v1/messages/whatsapp/bot or modern: /qontak/chat/v1/messages/whatsapp/bot
+        $path = $this->resolveApiPath($baseUrl, 'messages/whatsapp/bot');
+
+        $bodyData = [
+            'room_id' => $roomExternalId,
+            'type' => 'text',
+            'text' => $text,
+        ];
+
+        try {
+            $response = $this->makeRequest(
+                'POST',
+                $baseUrl,
+                $path,
+                $creds['client_id'] ?? null,
+                $creds['client_secret'] ?? null,
+                [],
+                $bodyData,
+                15,
+                $creds['access_token'] ?? null
+            );
+
+            if ($response->successful()) {
+                return [
+                    'status' => 'success',
+                    'data' => $response->json(),
+                ];
+            }
+
+            $errorMsg = $response->json('error.messages.0')
+                ?? $response->json('message')
+                ?? $response->body();
+
+            return [
+                'status' => 'error',
+                'message' => "Mekari Qontak API returned HTTP {$response->status()}: {$errorMsg}",
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to send message via Qontak: ' . $e->getMessage(),
+            ];
+        }
+    }
 }
