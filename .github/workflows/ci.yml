@@ -65,5 +65,31 @@ jobs:
     steps:
       - name: Trigger Coolify Deploy
         run: |
-          curl -s -X GET "https://coolify.virtuenet.space/api/v1/deploy?uuid=aps4zkidae9b54ogoz8uc6z4&force=true" \
-               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+          RESPONSE=$(curl -s -X GET "https://coolify.virtuenet.space/api/v1/deploy?uuid=aps4zkidae9b54ogoz8uc6z4&force=true" \
+               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}")
+          
+          DEPLOYMENT_UUID=$(echo "$RESPONSE" | jq -r '.deployments[0].deployment_uuid')
+          if [ -z "$DEPLOYMENT_UUID" ] || [ "$DEPLOYMENT_UUID" = "null" ]; then
+            echo "Failed to extract deployment UUID from response: $RESPONSE"
+            exit 1
+          fi
+          
+          echo "Deployment triggered successfully! UUID: $DEPLOYMENT_UUID"
+          echo "Watching deployment status..."
+          
+          while true; do
+            STATUS_RESPONSE=$(curl -s -X GET "https://coolify.virtuenet.space/api/v1/deployments/$DEPLOYMENT_UUID" \
+                 -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}")
+            STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.status')
+            
+            if [ "$STATUS" = "finished" ]; then
+              echo "Deployment completed successfully!"
+              exit 0
+            elif [ "$STATUS" = "failed" ] || [ "$STATUS" = "cancelled" ]; then
+              echo "Deployment failed or was cancelled. Status: $STATUS"
+              exit 1
+            fi
+            
+            echo "Current status: $STATUS. Waiting 15 seconds..."
+            sleep 15
+          done
