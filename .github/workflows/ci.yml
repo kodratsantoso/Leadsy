@@ -49,7 +49,9 @@ jobs:
           cache: 'npm'
 
       - name: Install NPM Dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm ci --prefix frontend
 
       - name: Run TypeScript Type Check
         run: npm run typecheck
