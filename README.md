@@ -4,7 +4,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.6.0** — 2026-06-07
+Current release: **v1.6.1** — 2026-06-12
+
+## What's New in v1.6.1
+
+- **Database Snapshots Update** — Refreshed the PostgreSQL full structure+data and deploy snapshots (`leadsy_full_structure_and_data_2026_06_12.sql` and `leadsy_deploy_data_2026_06_12.sql`) and added a new forced re-import migration `2026_06_12_000001_force_reimport_snapshot_june12.php` to clean-apply the fresh data on the VPS during deployment.
 
 ## What's New in v1.6.0
 
@@ -207,8 +211,8 @@ Use `EXPO_PUBLIC_API_BASE_URL` to point the app at the local backend, LAN backen
 
 Schema lives in `backend/database/migrations/`. A deploy snapshot is also committed under `backend/database/snapshots/` for one-time fresh environment imports:
 
-- `leadsy_full_structure_and_data_2026_05_30.sql` — complete PostgreSQL structure + data archive.
-- `leadsy_deploy_data_2026_05_30.sql` — public-schema application data imported by the guarded Laravel migration.
+- `leadsy_full_structure_and_data_2026_06_12.sql` — complete PostgreSQL structure + data archive.
+- `leadsy_deploy_data_2026_06_12.sql` — public-schema application data imported by the guarded Laravel migration.
 
 Set `IMPORT_LEADSY_DB_SNAPSHOT=true` only on a fresh database where application tables are empty. The snapshot carries encrypted secrets; keep the same `APP_KEY` from the source environment or re-enter AI/Lark credentials after deploy.
 

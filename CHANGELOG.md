@@ -9,6 +9,11 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.6.1] — 2026-06-12 · Patch Release
+
+### Perbaikan & Penyelarasan
+- **Penyelarasan Database & Struktur Snapshot** — Memperbarui file snapshot database struktur dan data (`leadsy_full_structure_and_data_2026_06_12.sql` dan `leadsy_deploy_data_2026_06_12.sql`) dari database lokal dan menambahkan migrasi paksa baru `2026_06_12_000001_force_reimport_snapshot_june12.php` untuk memastikan data records serta struktur tabel database terbaru disinkronkan secara otomatis oleh Coolify pada server saat deploy.
+
 ## [1.6.0] — 2026-06-07 · Minor Release
 
 ### Fitur Baru
