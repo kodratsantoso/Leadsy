@@ -1,0 +1,67 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, mysql, sqlite3
+          coverage: none
+
+      - name: Install Composer Dependencies
+        run: |
+          cd backend
+          composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run PHP Syntax Check
+        run: |
+          cd backend
+          find app bootstrap config database routes tests -name '*.php' -print0 | xargs -0 -n 1 php -l
+
+      - name: Run Backend Tests
+        run: |
+          cd backend
+          cp .env.example .env
+          php artisan key:generate
+          DB_CONNECTION=sqlite DB_DATABASE=:memory: php artisan test
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Run TypeScript Type Check
+        run: npm run typecheck
+
+      - name: Run Frontend Build
+        run: npm run build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    steps:
+      - name: Trigger Coolify Deploy
+        run: |
+          curl -s -X GET "https://coolify.virtuenet.space/api/v1/deploy?uuid=aps4zkidae9b54ogoz8uc6z4&force=true" \
+               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"

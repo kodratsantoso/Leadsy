@@ -18,7 +18,13 @@ return new class extends Migration
             $table->unsignedBigInteger('file_size')->nullable()->after('file_mime');
         });
 
-        DB::statement('ALTER TABLE lead_transcripts ALTER COLUMN transcript_text DROP NOT NULL');
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE lead_transcripts ALTER COLUMN transcript_text DROP NOT NULL');
+        } else {
+            Schema::table('lead_transcripts', function (Blueprint $table) {
+                $table->text('transcript_text')->nullable()->change();
+            });
+        }
     }
 
     public function down(): void
@@ -29,6 +35,12 @@ return new class extends Migration
         });
 
         DB::table('lead_transcripts')->whereNull('transcript_text')->update(['transcript_text' => '']);
-        DB::statement('ALTER TABLE lead_transcripts ALTER COLUMN transcript_text SET NOT NULL');
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE lead_transcripts ALTER COLUMN transcript_text SET NOT NULL');
+        } else {
+            Schema::table('lead_transcripts', function (Blueprint $table) {
+                $table->text('transcript_text')->nullable(false)->change();
+            });
+        }
     }
 };
