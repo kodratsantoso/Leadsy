@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
@@ -2047,6 +2047,78 @@ function TeamPerformancePanel() {
 
   const { formatCurrency, formatNumber } = useNumberFormat();
 
+  // 1. Calculate Group Summary Statistics dynamically
+  const memberCount = filteredMembers.length;
+
+  const totalTargetRevenue = filteredMembers.reduce((sum: number, m: any) => sum + (m.target_revenue || 0), 0);
+  
+  const totalWonValue = filteredMembers.reduce((sum: number, m: any) => {
+    const cat = m.role_category;
+    const metrics = m.metrics[cat] || m.metrics["sales"];
+    if (cat === "sales") return sum + (metrics.won_value || 0);
+    if (cat === "am") return sum + (metrics.portfolio_value || 0);
+    return sum;
+  }, 0);
+
+  const totalPipelineValue = filteredMembers.reduce((sum: number, m: any) => {
+    const cat = m.role_category;
+    const metrics = m.metrics[cat] || m.metrics["sales"];
+    if (cat === "sales") return sum + (metrics.pipeline_value || 0);
+    return sum;
+  }, 0);
+
+  const salesMembers = filteredMembers.filter((m: any) => m.role_category === "sales");
+  const avgWinRate = salesMembers.length > 0
+    ? salesMembers.reduce((sum: number, m: any) => sum + (m.metrics.sales.win_rate || 0), 0) / salesMembers.length
+    : 0;
+
+  const presalesMembers = filteredMembers.filter((m: any) => m.role_category === "presales");
+  const avgPresalesScore = presalesMembers.length > 0
+    ? presalesMembers.reduce((sum: number, m: any) => sum + (m.metrics.presales.avg_score || 0), 0) / presalesMembers.length
+    : 0;
+  const avgPresalesEligibleRate = presalesMembers.length > 0
+    ? presalesMembers.reduce((sum: number, m: any) => sum + (m.metrics.presales.eligible_rate || 0), 0) / presalesMembers.length
+    : 0;
+
+  const csmMembers = filteredMembers.filter((m: any) => m.role_category === "csm");
+  const totalCsmMeetings = csmMembers.reduce((sum: number, m: any) => sum + (m.metrics.csm.meetings_count || 0), 0);
+  const totalCsmActivities = csmMembers.reduce((sum: number, m: any) => sum + (m.metrics.csm.activities_count || 0), 0);
+  const avgCsmScore = csmMembers.length > 0
+    ? csmMembers.reduce((sum: number, m: any) => sum + (m.metrics.csm.avg_score || 0), 0) / csmMembers.length
+    : 0;
+
+  const overallAchievementRate = totalTargetRevenue > 0
+    ? (totalWonValue / totalTargetRevenue) * 100
+    : 0;
+
+  // 2. Rank Top Performers
+  const sortedPerformers = [...filteredMembers].sort((a: any, b: any) => {
+    const catA = a.role_category;
+    const catB = b.role_category;
+    const metricA = a.metrics[catA] || a.metrics["sales"];
+    const metricB = b.metrics[catB] || b.metrics["sales"];
+
+    const getSortValue = (cat: string, m: any) => {
+      if (cat === "sales") return m.won_value || 0;
+      if (cat === "am") return m.portfolio_value || 0;
+      if (cat === "presales") return m.eligible_rate || 0;
+      if (cat === "csm") return m.activities_count || 0;
+      return 0;
+    };
+
+    return getSortValue(catB, metricB) - getSortValue(catA, metricA);
+  });
+
+  const topPerformers = sortedPerformers.slice(0, 3).filter((m: any) => {
+    const cat = m.role_category;
+    const metric = m.metrics[cat] || m.metrics["sales"];
+    if (cat === "sales") return metric.won_value > 0 || metric.leads_managed > 0;
+    if (cat === "am") return metric.portfolio_value > 0 || metric.leads_managed > 0;
+    if (cat === "presales") return metric.eligible_rate > 0 || metric.leads_managed > 0;
+    if (cat === "csm") return metric.activities_count > 0 || metric.leads_managed > 0;
+    return true;
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -2057,8 +2129,8 @@ function TeamPerformancePanel() {
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <Card>
+      {/* Filters Card */}
+      <Card className="border-border/50 bg-card/40 backdrop-blur-md shadow-sm">
         <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             {[
@@ -2073,10 +2145,10 @@ function TeamPerformancePanel() {
                 type="button"
                 onClick={() => setRoleFilter(grp.key)}
                 className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer",
+                  "rounded-lg px-4 py-2 text-xs font-bold transition-all duration-300 cursor-pointer shadow-sm border border-border/20",
                   roleFilter === grp.key
-                    ? "bg-[color:var(--brand)] text-white shadow-sm"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-[color:var(--brand)] text-white scale-[1.02] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+                    : "bg-muted/30 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                 )}
               >
                 {grp.label}
@@ -2091,15 +2163,262 @@ function TeamPerformancePanel() {
               placeholder="Search team members..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 bg-background/50 backdrop-blur-sm border-border/50"
             />
           </div>
         </CardContent>
       </Card>
 
+      {/* Summary Cards and Leaderboard */}
+      {filteredMembers.length > 0 && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Summary stats (2 cols) */}
+          <div className="lg:col-span-2 grid gap-4 sm:grid-cols-2">
+            {/* Card 1: Active members */}
+            <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--brand)]/20 transition-all duration-300">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Active Members</p>
+                  <p className="text-3xl font-extrabold tracking-tight">{memberCount}</p>
+                  <p className="text-[11px] text-muted-foreground">Team members in this filter</p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] text-[color:var(--brand)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                  <Users className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card 2: Revenue / Performance */}
+            {(roleFilter === "all" || roleFilter === "sales" || roleFilter === "am") && (
+              <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--status-success)]/20 transition-all duration-300">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="space-y-1 w-full mr-4">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Total Won Revenue</p>
+                    <p className="text-2xl font-extrabold tracking-tight font-mono text-[color:var(--status-success)]">
+                      {formatCurrency(totalWonValue)}
+                    </p>
+                    {totalTargetRevenue > 0 ? (
+                      <div className="space-y-1 mt-2">
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>Target: {formatCurrency(totalTargetRevenue)}</span>
+                          <span className="font-semibold text-foreground">{overallAchievementRate.toFixed(1)}%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                          <div 
+                            className="h-full bg-[color:var(--status-success)] rounded-full transition-all duration-500" 
+                            style={{ width: `${Math.min(overallAchievementRate, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground mt-1">No target revenue configured</p>
+                    )}
+                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[color:var(--status-success)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                    <DollarSign className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {roleFilter === "presales" && (
+              <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--status-info)]/20 transition-all duration-300">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="space-y-1 w-full mr-4">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Avg Eligibility Rate</p>
+                    <p className="text-2xl font-extrabold tracking-tight text-[color:var(--status-info)]">
+                      {avgPresalesEligibleRate.toFixed(1)}%
+                    </p>
+                    <div className="space-y-1 mt-2">
+                      <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                        <div 
+                          className="h-full bg-[color:var(--status-info)] rounded-full transition-all duration-500" 
+                          style={{ width: `${Math.min(avgPresalesEligibleRate, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--status-info)_10%,transparent)] text-[color:var(--status-info)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                    <Percent className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {roleFilter === "csm" && (
+              <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--status-warning)]/20 transition-all duration-300">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Customer Activities</p>
+                    <p className="text-3xl font-extrabold tracking-tight text-[color:var(--status-warning)]">
+                      {totalCsmActivities}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{totalCsmMeetings} client meetings logged</p>
+                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] text-[color:var(--status-warning)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                    <Activity className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Card 3: Secondary Metrics */}
+            {(roleFilter === "all" || roleFilter === "sales") && (
+              <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--brand)]/20 transition-all duration-300">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Pipeline Value</p>
+                    <p className="text-2xl font-extrabold tracking-tight font-mono text-foreground">
+                      {formatCurrency(totalPipelineValue)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Unweighted pipeline estimation</p>
+                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] text-[color:var(--brand)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {roleFilter === "am" && (
+              <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--status-success)]/20 transition-all duration-300">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Avg Deal Size</p>
+                    <p className="text-2xl font-extrabold tracking-tight font-mono text-foreground">
+                      {formatCurrency(filteredMembers.reduce((sum: number, m: any) => sum + (m.metrics.am.won_count || 0), 0) > 0 
+                        ? totalWonValue / filteredMembers.reduce((sum: number, m: any) => sum + (m.metrics.am.won_count || 0), 0) 
+                        : 0)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Across won opportunities</p>
+                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[color:var(--status-success)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {roleFilter === "presales" && (
+              <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--status-info)]/20 transition-all duration-300">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Avg Tech Score</p>
+                    <p className="text-3xl font-extrabold tracking-tight text-foreground">
+                      {avgPresalesScore.toFixed(1)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Average quality rating</p>
+                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--status-info)_10%,transparent)] text-[color:var(--status-info)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                    <Award className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {roleFilter === "csm" && (
+              <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--status-warning)]/20 transition-all duration-300">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Avg Client Score</p>
+                    <p className="text-3xl font-extrabold tracking-tight text-foreground">
+                      {avgCsmScore.toFixed(1)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Customer satisfaction rate</p>
+                  </div>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] text-[color:var(--status-warning)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                    <Award className="h-5 w-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Card 4: Action/Volume metric */}
+            <Card className="relative overflow-hidden border-border/40 bg-card/60 backdrop-blur-md shadow-sm group hover:border-[color:var(--brand)]/20 transition-all duration-300">
+              <CardContent className="p-5 flex items-center justify-between">
+                {roleFilter === "presales" ? (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Leads Managed</p>
+                    <p className="text-3xl font-extrabold tracking-tight text-foreground">
+                      {filteredMembers.reduce((sum: number, m: any) => sum + (m.metrics.presales.leads_managed || 0), 0)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Assigned technical scope</p>
+                  </div>
+                ) : roleFilter === "csm" ? (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Clients Managed</p>
+                    <p className="text-3xl font-extrabold tracking-tight text-foreground">
+                      {filteredMembers.reduce((sum: number, m: any) => sum + (m.metrics.csm.leads_managed || 0), 0)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Active post-sales contracts</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Average Win Rate</p>
+                    <p className="text-3xl font-extrabold tracking-tight text-[color:var(--brand)]">
+                      {avgWinRate.toFixed(1)}%
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Qualified deal close rate</p>
+                  </div>
+                )}
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] text-[color:var(--brand)] shadow-inner transition-transform group-hover:scale-110 duration-300">
+                  <Target className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Leaderboard Card (1 col) */}
+          <Card className="border-border/40 bg-card/60 backdrop-blur-md shadow-sm flex flex-col justify-between">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-[color:var(--warning)] animate-pulse" />
+                Leaderboard
+              </CardTitle>
+              <CardDescription className="text-[11px]">Ranked by active performance indicator</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col justify-center gap-2.5 pb-5">
+              {topPerformers.length === 0 ? (
+                <div className="text-center py-6 text-xs text-muted-foreground">
+                  No performer data available
+                </div>
+              ) : (
+                topPerformers.map((member: any, idx: number) => {
+                  const cat = member.role_category;
+                  const metrics = member.metrics[cat] || member.metrics["sales"];
+                  
+                  let metricDisplay = "";
+                  if (cat === "sales") metricDisplay = formatCurrency(metrics.won_value);
+                  else if (cat === "am") metricDisplay = formatCurrency(metrics.portfolio_value);
+                  else if (cat === "presales") metricDisplay = `${metrics.eligible_rate}% Qual`;
+                  else if (cat === "csm") metricDisplay = `${metrics.activities_count} Acts`;
+
+                  const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉";
+
+                  return (
+                    <div key={member.user_id} className="flex items-center justify-between rounded-lg bg-muted/20 border border-border/10 p-2.5 hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-lg shrink-0 select-none">{medal}</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold truncate text-foreground">{member.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{member.role_display}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-extrabold font-mono text-[color:var(--brand)] shrink-0 ml-2">
+                        {metricDisplay}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Grid of Team Cards */}
       {filteredMembers.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center">
+        <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed border-2">
           <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
           <h3 className="text-lg font-semibold">No team members found</h3>
           <p className="text-sm text-muted-foreground max-w-sm mt-1">
@@ -2112,8 +2431,47 @@ function TeamPerformancePanel() {
             const cat = member.role_category;
             const metrics = member.metrics[cat] || member.metrics["sales"];
 
+            const hasTarget = member.target_revenue > 0;
+            let achievementVal = 0;
+            let achievementLabel = "";
+            let targetLabel = "Target";
+
+            if (cat === "sales") {
+              achievementVal = metrics.won_value;
+              achievementLabel = formatCurrency(achievementVal);
+              targetLabel = "Won Target";
+            } else if (cat === "am") {
+              achievementVal = metrics.portfolio_value;
+              achievementLabel = formatCurrency(achievementVal);
+              targetLabel = "Portfolio Target";
+            } else if (cat === "presales") {
+              achievementVal = metrics.leads_managed;
+              achievementLabel = `${achievementVal} Leads`;
+              targetLabel = "Opps Target";
+            }
+
+            const achievementRate = hasTarget ? (achievementVal / member.target_revenue) * 100 : 0;
+
+            let progressColor = "bg-[color:var(--brand)]";
+            let progressText = "text-[color:var(--brand)]";
+            let progressBg = "bg-muted/80";
+
+            if (achievementRate >= 100) {
+              progressColor = "bg-[color:var(--status-success)]";
+              progressText = "text-[color:var(--status-success)]";
+              progressBg = "bg-[color:var(--status-success-soft)]/20";
+            } else if (achievementRate >= 50) {
+              progressColor = "bg-[color:var(--status-warning)]";
+              progressText = "text-[color:var(--status-warning)]";
+              progressBg = "bg-[color:var(--status-warning-soft)]/20";
+            } else if (hasTarget) {
+              progressColor = "bg-[color:var(--status-danger)]";
+              progressText = "text-[color:var(--status-danger)]";
+              progressBg = "bg-[color:var(--status-danger-soft)]/20";
+            }
+
             return (
-              <Card key={member.user_id} className="relative overflow-hidden group hover:shadow-md transition-all">
+              <Card key={member.user_id} className="relative overflow-hidden group hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 border-border/40 bg-card transition-all duration-300">
                 {/* Decorative border matching role */}
                 <div 
                   className={cn(
@@ -2129,7 +2487,7 @@ function TeamPerformancePanel() {
                 <CardHeader className="flex flex-row items-center gap-4 pb-4">
                   <div 
                     className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-inner",
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-inner transition-transform group-hover:scale-105 duration-300",
                       cat === "sales" && "bg-[color:var(--brand)]",
                       cat === "presales" && "bg-[color:var(--status-info)]",
                       cat === "am" && "bg-[color:var(--status-success)]",
@@ -2140,41 +2498,67 @@ function TeamPerformancePanel() {
                     {member.name.split(" ").map((n: string) => n.charAt(0)).join("").slice(0, 2).toUpperCase()}
                   </div>
 
-                  <div className="space-y-1 min-w-0">
-                    <CardTitle className="text-base truncate">{member.name}</CardTitle>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-base font-bold truncate text-foreground group-hover:text-[color:var(--brand)] transition-colors">
+                        {member.name}
+                      </CardTitle>
+                      {hasTarget && achievementRate >= 100 && (
+                        <Badge variant="outline" className="border-[color:var(--status-success)] text-[9px] py-0 px-1.5 uppercase font-bold text-[color:var(--status-success)] bg-[color:var(--status-success-soft)]">
+                          Elite
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] py-0.5">
+                      <Badge variant="outline" className="text-[10px] py-0.5 font-semibold">
                         {member.role_display}
                       </Badge>
-                      {member.target_revenue > 0 && (
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          Target: {formatCurrency(member.target_revenue)}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </CardHeader>
 
-                <CardContent className="pt-0 border-t border-border/50 bg-muted/10 p-4">
+                <CardContent className="pt-3 border-t border-border/40 bg-muted/5 p-5 space-y-4">
+                  {/* Progress widget for targets */}
+                  {hasTarget && (
+                    <div className="space-y-2 bg-background/50 border border-border/30 p-3 rounded-xl shadow-xs">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground font-medium">{targetLabel}</span>
+                        <span className="font-extrabold font-mono text-foreground">{formatCurrency(member.target_revenue)}</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden relative">
+                        <div 
+                          className={cn("h-full rounded-full transition-all duration-500", progressColor)} 
+                          style={{ width: `${Math.min(achievementRate, 100)}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-muted-foreground font-medium">Progress</span>
+                        <span className={cn("font-extrabold font-mono", progressText)}>
+                          {achievementLabel} ({achievementRate.toFixed(1)}%)
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Metrik Grid */}
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Render role-specific KPIs */}
                     {cat === "sales" && (
                       <>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Leads Managed</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.leads_managed}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Leads Managed</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.leads_managed}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Pipeline Value</p>
-                          <p className="text-lg font-bold text-foreground font-mono">{formatCurrency(metrics.pipeline_value)}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Pipeline Value</p>
+                          <p className="text-base font-extrabold text-foreground font-mono">{formatCurrency(metrics.pipeline_value)}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Closed Won</p>
-                          <p className="text-lg font-bold text-[color:var(--status-success)] font-mono">{formatCurrency(metrics.won_value)}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Closed Won</p>
+                          <p className="text-base font-extrabold text-[color:var(--status-success)] font-mono">{formatCurrency(metrics.won_value)}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Win Rate</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.win_rate}%</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Win Rate</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.win_rate}%</p>
                         </div>
                       </>
                     )}
@@ -2182,20 +2566,20 @@ function TeamPerformancePanel() {
                     {cat === "presales" && (
                       <>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Leads Managed</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.leads_managed}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Leads Managed</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.leads_managed}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Avg Lead Score</p>
-                          <p className="text-lg font-bold text-[color:var(--status-info)]">{metrics.avg_score}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Avg Tech Score</p>
+                          <p className="text-base font-extrabold text-[color:var(--status-info)]">{metrics.avg_score}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Eligible Leads</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.eligible_count}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Eligible Leads</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.eligible_count}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Eligibility Rate</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.eligible_rate}%</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Eligibility Rate</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.eligible_rate}%</p>
                         </div>
                       </>
                     )}
@@ -2203,20 +2587,20 @@ function TeamPerformancePanel() {
                     {cat === "am" && (
                       <>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Leads Managed</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.leads_managed}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Leads Managed</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.leads_managed}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Portfolio Value</p>
-                          <p className="text-lg font-bold text-[color:var(--status-success)] font-mono">{formatCurrency(metrics.portfolio_value)}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Portfolio Value</p>
+                          <p className="text-base font-extrabold text-[color:var(--status-success)] font-mono">{formatCurrency(metrics.portfolio_value)}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Avg Deal Size</p>
-                          <p className="text-lg font-bold text-foreground font-mono">{formatCurrency(metrics.avg_deal_size)}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Avg Deal Size</p>
+                          <p className="text-base font-extrabold text-foreground font-mono">{formatCurrency(metrics.avg_deal_size)}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Won Deals</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.won_count}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Won Deals</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.won_count}</p>
                         </div>
                       </>
                     )}
@@ -2224,20 +2608,20 @@ function TeamPerformancePanel() {
                     {cat === "csm" && (
                       <>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Clients Managed</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.leads_managed}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Clients Managed</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.leads_managed}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Avg Client Score</p>
-                          <p className="text-lg font-bold text-[color:var(--status-warning)]">{metrics.avg_score}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Avg Client Score</p>
+                          <p className="text-base font-extrabold text-[color:var(--status-warning)]">{metrics.avg_score}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Meetings Count</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.meetings_count}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Meetings Count</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.meetings_count}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Total Activities</p>
-                          <p className="text-lg font-bold text-foreground">{metrics.activities_count}</p>
+                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Total Activities</p>
+                          <p className="text-base font-extrabold text-foreground">{metrics.activities_count}</p>
                         </div>
                       </>
                     )}

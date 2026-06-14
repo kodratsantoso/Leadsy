@@ -14,7 +14,7 @@ services:
           - "leadsy-postgres-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U leads -d leads"]
+      test: [ "CMD-SHELL", "pg_isready -U leads -d leads" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,7 +31,7 @@ services:
           - "leadsy-redis-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -95,9 +95,9 @@ services:
         aliases:
           - "leadsy-backend-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
-    init: true  # tini as PID 1: reaps zombie child processes (e.g. curl from healthchecks)
+    init: true # tini as PID 1: reaps zombie child processes (e.g. curl from healthchecks)
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -132,7 +132,7 @@ services:
       - coolify
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3000/ || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -173,7 +173,7 @@ services:
           - "leadsy-whatsapp-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3002/api/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3002/api/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
