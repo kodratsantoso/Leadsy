@@ -4,7 +4,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.6.1** — 2026-06-12
+Current release: **v1.6.2** — 2026-06-14
+
+## What's New in v1.6.2
+
+- **Team Performance Dashboard Improvement** — Revamped the dashboard visual layout by adding dynamic group-filtered summary cards, a top performers leaderboard ranking, interactive individual target progress trackers, and modern hover interactions for roles (Sales, Presales, Account Manager, CSM).
 
 ## What's New in v1.6.1
 
