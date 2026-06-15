@@ -573,9 +573,9 @@ class WhatsAppController extends Controller
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
-        AnalyzeWhatsAppConversationJob::dispatch($conversation->id);
+        AnalyzeWhatsAppConversationJob::dispatchSync($conversation->id);
 
-        return response()->json(['success' => true, 'message' => 'AI analysis queued.']);
+        return response()->json(['success' => true, 'message' => 'AI analysis completed.']);
     }
 
     /* ──────────────────────────────────────────────────────────────

@@ -434,6 +434,51 @@ class WhatsAppControllerTest extends TestCase
         ]);
     }
 
+    public function test_analyze_conversation(): void
+    {
+        $user = $this->makeUser();
+
+        $contact = WhatsappContact::create([
+            'phone_number' => '628123456789@s.whatsapp.net',
+            'normalized_phone_number' => '628123456789',
+            'is_relevant' => true,
+            'user_id' => $user->id,
+        ]);
+
+        $conv = WhatsappConversation::create([
+            'contact_id' => $contact->id,
+            'external_chat_id' => '628123456789@s.whatsapp.net',
+            'platform' => 'whatsapp',
+            'approved_for_sync' => true,
+            'last_message_at' => now(),
+            'user_id' => $user->id,
+        ]);
+
+        // Add a message so it passes the messages.isEmpty check
+        WhatsappMessage::create([
+            'conversation_id' => $conv->id,
+            'external_message_id' => 'test-msg-id-123',
+            'direction' => 'inbound',
+            'body' => 'I would like to inquire about pricing details please.',
+            'sent_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/whatsapp/conversations/{$conv->id}/analyze")
+            ->assertOk();
+
+        $response->assertJson([
+            'success' => true,
+            'message' => 'AI analysis completed.',
+        ]);
+
+        // Verify analysis was created in the database (will use heuristic fallback if AI not configured)
+        $this->assertDatabaseHas('whatsapp_ai_analyses', [
+            'conversation_id' => $conv->id,
+            'analysis_result' => 'yes', // because "pricing" triggers "yes" in heuristic
+        ]);
+    }
+
     private function saveConfig(User $user, string $key, string $value, bool $secret = true): void
     {
         IntegrationConfig::create([
