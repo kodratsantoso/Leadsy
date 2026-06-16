@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   MessageSquare, Loader2, RefreshCw, ChevronRight, Sparkles, AlertCircle, Plus,
-  Search, SlidersHorizontal, User, Check, CheckCheck, Send, Paperclip, Smile,
-  ExternalLink, Lock, Server, Hash, Play, CheckCircle2, XCircle, X, MoreVertical,
-  Calendar, Info
+  Search, User, Check, CheckCheck, Send, Paperclip, Smile,
+  Server, Hash, CheckCircle2, X, MoreVertical,
+  Calendar, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
   type WaConversation, type WaMessage
 } from "@/lib/hooks/use-whatsapp";
 
-type Folder = "all" | "my" | "unassigned" | "assigned" | "resolved" | "checklist";
+type Folder = "all" | "my" | "unassigned" | "assigned" | "resolved";
 type SortOption = "newest" | "oldest" | "relevance";
 
 export default function MekariQontakPage() {
@@ -58,11 +58,7 @@ export default function MekariQontakPage() {
   // ── Tag Input State ──
   const [newTagText, setNewTagText] = useState("");
 
-  // ── Qontak Settings Config Checklist State ──
-  const [qontakConfigs, setQontakConfigs] = useState<Record<string, any>>({});
-  const [loadingConfig, setLoadingConfig] = useState(false);
-  const [testingConnection, setTestingConnection] = useState(false);
-  const [connectionResult, setConnectionResult] = useState<{ status: string; message: string } | null>(null);
+
 
   // ── Convert Modal State ──
   const [convertModalOpen, setConvertModalOpen] = useState(false);
@@ -86,29 +82,7 @@ export default function MekariQontakPage() {
       .catch(err => console.warn("Failed to load stages:", err));
   }, []);
 
-  // Fetch Integration configs
-  const fetchConfigs = () => {
-    setLoadingConfig(true);
-    apiFetch("/settings/integrations")
-      .then(res => res.json())
-      .then(json => {
-        if (json?.data?.lead_platforms) {
-          const qontakData: Record<string, any> = {};
-          json.data.lead_platforms.forEach((item: any) => {
-            if (item.key.startsWith("MEKARI_QONTAK_")) {
-              qontakData[item.key] = item;
-            }
-          });
-          setQontakConfigs(qontakData);
-        }
-      })
-      .catch(err => console.warn("Failed to fetch settings:", err))
-      .finally(() => setLoadingConfig(false));
-  };
 
-  useEffect(() => {
-    fetchConfigs();
-  }, []);
 
   // ── Load rooms ──
   const loadConversations = async (forceSync: boolean = false) => {
@@ -226,22 +200,7 @@ export default function MekariQontakPage() {
     }, 2000);
   };
 
-  // Run official HMAC Connection Test for Qontak
-  const handleTestConnection = async () => {
-    setTestingConnection(true);
-    setConnectionResult(null);
-    try {
-      const res = await apiFetch("/settings/integration-platforms/mekari_qontak/test", {
-        method: "POST"
-      });
-      const json = await res.json();
-      setConnectionResult(json.data || { status: "error", message: "Verification failed." });
-    } catch (err: any) {
-      setConnectionResult({ status: "error", message: err.message || "Connection test failed." });
-    } finally {
-      setTestingConnection(false);
-    }
-  };
+
 
   // Send message locally and optionally via API
   const handleSendMessage = async () => {
@@ -399,68 +358,7 @@ export default function MekariQontakPage() {
     return counts;
   }, [conversations, localRoomsMeta]);
 
-  // Integration Config Checklist Items check
-  const checklistItems = useMemo(() => {
-    const enabled = qontakConfigs["MEKARI_QONTAK_ENABLED"]?.value === "true";
-    const clientId = qontakConfigs["MEKARI_QONTAK_CLIENT_ID"]?.value;
-    const clientSecret = qontakConfigs["MEKARI_QONTAK_CLIENT_SECRET"]?.value;
-    const baseUrl = qontakConfigs["MEKARI_QONTAK_BASE_URL"]?.value || "https://api.mekari.com";
-    const channelId = qontakConfigs["MEKARI_QONTAK_CHANNEL_ID"]?.value;
 
-    const hasHmac = !!clientId && !!clientSecret;
-    const validBaseUrl = baseUrl.includes("api.mekari.com") || baseUrl.includes("api.mekari.io") || baseUrl.includes("sandbox-api");
-
-    return [
-      {
-        id: "enabled",
-        name: "Integration Status",
-        description: "Enables Mekari Qontak lead sync in your workspace.",
-        status: enabled ? "success" : "danger",
-        value: enabled ? "Enabled" : "Disabled",
-        help: "Toggle this integration to 'Enabled' inside the main settings configuration modal."
-      },
-      {
-        id: "hmac",
-        name: "HMAC Authentication",
-        description: "HMAC signatures securely authenticate Leadsy requests with Mekari API v1.0.",
-        status: hasHmac ? "success" : "danger",
-        value: hasHmac ? "Configured" : "Missing Client Key",
-        help: "Requires Client ID & Client Secret from developers.mekari.com -> Create Application."
-      },
-      {
-        id: "gateway",
-        name: "API Base URL Gateway",
-        description: "Endpoint pointing directly to the Mekari API Gateway.",
-        status: validBaseUrl ? "success" : "warning",
-        value: validBaseUrl ? "Valid URL Structure" : "Generic / Incorrect Host",
-        help: "Should point to https://api.mekari.com or https://sandbox-api.mekari.com, not the developer portal website."
-      },
-      {
-        id: "channel",
-        name: "Omnichannel Channel subscription ID",
-        description: "Allows Leadsy to ingest active rooms mapped to the specific messaging channel ID.",
-        status: !!channelId ? "success" : "warning",
-        value: channelId ? `ID: ${channelId}` : "Not Subscribed",
-        help: "Required to sync specific WhatsApp numbers or omnichannel configurations."
-      },
-      {
-        id: "sync_job",
-        name: "Background Synchronization Task",
-        description: "Scheduled job fetching active chat rooms in the background (every 30 seconds).",
-        status: enabled && hasHmac ? "success" : "neutral",
-        value: enabled && hasHmac ? "Active / Dispatching" : "Paused",
-        help: "Triggered automatically when conversations list is requested and integration is healthy."
-      },
-      {
-        id: "ai_score",
-        name: "Gemini AI Lead Eligibility Scoring",
-        description: "Evaluates synced room feeds using AI agents to determine business qualifications.",
-        status: "success",
-        value: "Active & Configured",
-        help: "Uses the default Gemini model and instructions configured in Settings -> AI Defaults."
-      }
-    ];
-  }, [qontakConfigs]);
 
   const activeMeta = activeConv ? localRoomsMeta[activeConv.id] : null;
 
@@ -511,20 +409,7 @@ export default function MekariQontakPage() {
         </div>
 
         <div className="space-y-3 px-2">
-          <div className="border-t border-border/60 my-2 pt-2">
-            <button
-              onClick={() => { setActiveFolder("checklist"); }}
-              className={cn(
-                "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all border",
-                activeFolder === "checklist"
-                  ? "bg-[var(--brand)] text-white border-transparent"
-                  : "border-border/50 text-muted-foreground hover:bg-accent/40 hover:text-foreground bg-card/40"
-              )}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span>Settings Checklist</span>
-            </button>
-          </div>
+
 
           <div className="rounded-lg border border-border bg-card/60 p-3 shadow-xs">
             <p className="text-[10px] text-muted-foreground leading-relaxed">
@@ -684,143 +569,7 @@ export default function MekariQontakPage() {
 
       {/* ── COLUMN 3: MAIN ACTIVE CONVERSATION/CHECKLIST AREA ── */}
       <main className="flex-1 flex flex-col bg-background relative overflow-hidden">
-        {activeFolder === "checklist" ? (
-          /* checklist dashboard */
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="flex items-center justify-between border-b border-border/80 pb-4">
-              <div>
-                <h1 className="text-xl font-bold tracking-tight">Mekari Qontak Setup Checklist</h1>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Interactive checklist verify permissions and activities on Mekari Qontak Integration Hub.
-                </p>
-              </div>
-              <button
-                onClick={fetchConfigs}
-                disabled={loadingConfig}
-                className="flex items-center gap-1 rounded-md border border-border bg-card hover:bg-accent/40 px-2.5 py-1.5 text-xs font-semibold shadow-xs transition-colors"
-              >
-                <RefreshCw className={cn("h-3 w-3", loadingConfig && "animate-spin")} />
-                <span>Reload configs</span>
-              </button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold mb-1">HMAC & API Authentication</h3>
-                  <p className="text-xs text-muted-foreground leading-normal mb-3">
-                    Verification state of Client credentials required to generate authentication headers for Mekari gateways.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-xs border-t border-border/20 pt-3 mt-3">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-semibold">Client ID & secret status:</span>
-                  {qontakConfigs["MEKARI_QONTAK_CLIENT_ID"]?.value ? (
-                    <span className="text-[var(--status-success)] font-extrabold bg-[var(--status-success)]/10 px-2 py-0.5 rounded-full text-[10px]">Loaded</span>
-                  ) : (
-                    <span className="text-[var(--status-danger)] font-extrabold bg-[var(--status-danger)]/10 px-2 py-0.5 rounded-full text-[10px]">Missing</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold mb-1 flex items-center gap-1">
-                    <span>Mekari API Connection Test</span>
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-normal mb-3">
-                    Submit a real live HTTP call against the Mekari API gateway (`/rooms` endpoint).
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 border-t border-border/20 pt-3 mt-3 justify-between">
-                  <button
-                    onClick={handleTestConnection}
-                    disabled={testingConnection}
-                    className="flex items-center gap-1 rounded-md bg-[var(--brand)] text-white hover:opacity-90 px-3 py-1.5 text-xs font-bold shadow-xs disabled:opacity-50"
-                  >
-                    {testingConnection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
-                    <span>Test API Connection</span>
-                  </button>
-
-                  <div className="text-right">
-                    {connectionResult ? (
-                      <span className={cn(
-                        "rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase",
-                        connectionResult.status === "connected" ? "bg-[var(--status-success)]/10 text-[var(--status-success)]" : "bg-[var(--status-danger)]/10 text-[var(--status-danger)]"
-                      )}>
-                        {connectionResult.status}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground italic font-semibold">Not Tested</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {connectionResult && (
-              <div className={cn(
-                "rounded-xl border p-4 shadow-xs text-xs font-semibold leading-relaxed flex items-start gap-2.5",
-                connectionResult.status === "connected"
-                  ? "border-[var(--status-success)]/20 bg-[var(--status-success)]/5 text-[var(--status-success)]"
-                  : "border-[var(--status-danger)]/20 bg-[var(--status-danger)]/5 text-[var(--status-danger)]"
-              )}>
-                {connectionResult.status === "connected" ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> : <XCircle className="h-4 w-4 shrink-0 mt-0.5" />}
-                <div>
-                  <p className="font-extrabold">Test connection results:</p>
-                  <p className="font-medium text-foreground/80 mt-1">{connectionResult.message}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
-              <div className="px-4 py-3 border-b border-border/80 bg-muted/10">
-                <h3 className="text-sm font-bold">Integration Checklist Table</h3>
-              </div>
-              <div className="divide-y divide-border/60">
-                {checklistItems.map(item => (
-                  <div key={item.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-muted/10 transition-colors">
-                    <div className="space-y-1 max-w-lg">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-foreground">{item.name}</h4>
-                        <span className={cn(
-                          "rounded-full px-2 py-0.2 text-[8px] font-extrabold uppercase",
-                          item.status === "success" ? "bg-[var(--status-success)]/15 text-[var(--status-success)]" :
-                          item.status === "warning" ? "bg-[var(--status-warning)]/15 text-[var(--status-warning)]" :
-                          item.status === "danger" ? "bg-[var(--status-danger)]/15 text-[var(--status-danger)]" :
-                          "bg-muted text-muted-foreground"
-                        )}>
-                          {item.value}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground leading-normal">{item.description}</p>
-                      <p className="text-[9px] text-muted-foreground/60 italic flex items-center gap-1 pt-1 font-semibold">
-                        <Info className="h-2.5 w-2.5" /> {item.help}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-[var(--status-warning)]/20 bg-[var(--status-warning)]/5 p-4 flex gap-3 text-xs leading-normal">
-              <AlertCircle className="h-4 w-4 text-[var(--status-warning)] shrink-0" />
-              <div>
-                <h4 className="font-bold text-[var(--status-warning)] mb-0.5">Checking missing details?</h4>
-                <p className="text-muted-foreground mb-2">
-                  To update your HMAC Client secrets, Base URLs, or omnichannel sub-channel IDs, proceed to the main Leadsy Integrations dashboard page.
-                </p>
-                <a
-                  href="/settings/integrations"
-                  className="inline-flex items-center gap-1 font-extrabold text-[var(--brand)] hover:underline"
-                >
-                  <span>Go to Integrations settings page</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-              </div>
-            </div>
-          </div>
-        ) : activeConv ? (
+        {activeConv ? (
           /* active chat workspace */
           <div className="flex-1 flex flex-col overflow-hidden h-full">
             {/* Header info */}
@@ -1023,7 +772,7 @@ export default function MekariQontakPage() {
             <div className="text-center max-w-sm space-y-1">
               <p className="text-sm font-bold text-foreground">No Chat Selected</p>
               <p className="text-xs text-muted-foreground/80 leading-normal">
-                Choose a customer room from the left room list view or review the integration status checklist.
+                Choose a customer room from the left room list view.
               </p>
             </div>
           </div>
@@ -1031,7 +780,7 @@ export default function MekariQontakPage() {
       </main>
 
       {/* ── COLUMN 4: RIGHT DETAIL SIDEBAR (300px) ── */}
-      {activeConv && activeFolder !== "checklist" && (
+      {activeConv && (
         <aside className="w-72 shrink-0 border-l border-border bg-muted/5 flex flex-col overflow-y-auto divide-y divide-border/60">
           {/* Main User badge info */}
           <div className="p-4 text-center space-y-2.5 select-none bg-card/10">

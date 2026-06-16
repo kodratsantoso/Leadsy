@@ -1299,7 +1299,13 @@ export default function IntegrationsSettingsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setConfiguringPlatform(platform)}
+                      onClick={() => {
+                        if (platform.id === "mekari_qontak") {
+                          setTab("mekari_qontak");
+                        } else {
+                          setConfiguringPlatform(platform);
+                        }
+                      }}
                       id={`configure-${platform.id}`}
                     >
                       Configure
