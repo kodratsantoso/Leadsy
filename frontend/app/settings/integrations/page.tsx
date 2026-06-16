@@ -8,7 +8,7 @@ import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { Select } from "@/components/ui/select";
@@ -1217,14 +1217,19 @@ export default function IntegrationsSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl">
-      <div className="space-y-1">
-        <BackToSettings />
-        <h1 className="text-3xl font-bold tracking-tight">Integration Setting</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage social media, ad platform, CRM, event, SSO, and non-AI integration credentials.
-        </p>
-      </div>
+    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between space-y-0">
+          <div className="space-y-1">
+            <BackToSettings />
+            <CardTitle>Integration Setting</CardTitle>
+            <CardDescription>
+              Manage social media, ad platform, CRM, event, SSO, and non-AI integration credentials.
+            </CardDescription>
+          </div>
+          <Share2 className="h-5 w-5 text-muted-foreground" />
+        </CardHeader>
+      </Card>
 
       <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand)]/5 p-4">
         <p className="text-sm font-medium text-foreground">AI providers and AI API keys now live in one place.</p>
