@@ -36,7 +36,7 @@ type IntegrationConfig = {
   value_type: "string" | "boolean" | "number" | "json";
 };
 
-type TabKey = "lead_platforms" | "maps" | "whatsapp" | "mekari_qontak" | "lusha" | "webhooks" | "lark" | "linkedin";
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark" | "linkedin";
 type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
 type GooglePermission = {
   id: string;
@@ -1245,7 +1245,6 @@ export default function IntegrationsSettingsPage() {
           { key: "lead_platforms", label: "Lead Platforms", icon: Share2 },
           { key: "maps", label: "Google", icon: MapPin },
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
-          { key: "mekari_qontak", label: "Mekari Qontak", icon: MessageSquare },
           { key: "lusha", label: "Lusha", icon: Key },
           { key: "linkedin", label: "LinkedIn", icon: Linkedin },
           { key: "lark", label: "Lark", icon: Key },
@@ -1305,11 +1304,7 @@ export default function IntegrationsSettingsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        if (platform.id === "mekari_qontak") {
-                          setTab("mekari_qontak");
-                        } else {
-                          setConfiguringPlatform(platform);
-                        }
+                        setConfiguringPlatform(platform);
                       }}
                       id={`configure-${platform.id}`}
                     >
@@ -1328,138 +1323,403 @@ export default function IntegrationsSettingsPage() {
             }}
             title={configuringPlatform ? `Configure ${configuringPlatform.name}` : "Configure Platform"}
             description={configuringPlatform ? `Set up your credentials and connection options for ${configuringPlatform.name}.` : ""}
-            size="lg"
+            size={configuringPlatform?.id === "mekari_qontak" ? "xl" : "lg"}
             footer={
-              <>
+              configuringPlatform?.id === "mekari_qontak" ? (
                 <Button variant="outline" onClick={() => setConfiguringPlatform(null)}>
-                  Cancel
+                  Close
                 </Button>
-                <Button
-                  onClick={async () => {
-                    if (await handleSave("lead_platforms", leadPlatformsConfig)) {
-                      setConfiguringPlatform(null);
-                    }
-                  }}
-                  disabled={saving}
-                >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Save Configuration
-                </Button>
-              </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={() => setConfiguringPlatform(null)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                        setConfiguringPlatform(null);
+                      }
+                    }}
+                    disabled={saving}
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Save Configuration
+                  </Button>
+                </>
+              )
             }
           >
             {configuringPlatform && (
-              <div className="space-y-4">
-                <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
-                  <span className="text-sm font-medium">Enable {configuringPlatform.name}</span>
-                  <input
-                    type="checkbox"
-                    checked={leadPlatformsConfig[leadPlatformKey(configuringPlatform.id, "ENABLED")]?.value === "true"}
-                    onChange={(e) => setLeadPlatformsConfig((current) => ({
-                      ...current,
-                      [leadPlatformKey(configuringPlatform.id, "ENABLED")]: {
-                        ...current[leadPlatformKey(configuringPlatform.id, "ENABLED")],
-                        value: e.target.checked ? "true" : "false",
-                      },
-                    }))}
-                    className="h-4 w-4 rounded border-border"
-                  />
-                </label>
+              configuringPlatform.id === "mekari_qontak" ? (
+                <div className="grid gap-6 md:grid-cols-2 text-left">
+                  {/* Column 1: Configuration Form */}
+                  <div className="space-y-4">
+                    <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
+                      <span className="text-sm font-medium">Enable Mekari Qontak Integration</span>
+                      <input
+                        type="checkbox"
+                        checked={leadPlatformsConfig["MEKARI_QONTAK_ENABLED"]?.value === "true"}
+                        onChange={(e) => setLeadPlatformsConfig((current) => ({
+                          ...current,
+                          MEKARI_QONTAK_ENABLED: {
+                            ...current["MEKARI_QONTAK_ENABLED"],
+                            value: e.target.checked ? "true" : "false",
+                          },
+                        }))}
+                        className="h-4 w-4 rounded border-border"
+                      />
+                    </label>
 
-                <div className="space-y-3">
-                  {configuringPlatform.fields
-                    .filter((field) => field.suffix !== "ENABLED")
-                    .filter((field) => isLeadPlatformFieldVisible(configuringPlatform.id, field, leadPlatformsConfig))
-                    .map((field) => {
-                      const key = leadPlatformKey(configuringPlatform.id, field.suffix);
-                      return (
-                        <div key={key}>
-                          <label className="text-xs font-medium">{field.label}</label>
-                          {field.options ? (
-                            <Select
-                              className="mt-1"
-                              value={leadPlatformsConfig[key]?.value ?? field.defaultValue}
-                              onChange={(e) => setLeadPlatformsConfig((current) => ({
-                                ...current,
-                                [key]: {
-                                  ...current[key],
-                                  value: e.target.value,
-                                },
-                              }))}
-                            >
-                              {field.options.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
-                              ))}
-                            </Select>
-                          ) : (
-                            <Input
-                              className="mt-1"
-                              type={field.is_secret ? "password" : "text"}
-                              value={leadPlatformsConfig[key]?.value ?? ""}
-                              placeholder={field.placeholder || (field.is_secret ? "Encrypted after save" : `${configuringPlatform.name} ${field.label}`)}
-                              autoComplete="off"
-                              spellCheck={false}
-                              onChange={(e) => setLeadPlatformsConfig((current) => ({
-                                ...current,
-                                [key]: {
-                                  ...current[key],
-                                  value: e.target.value,
-                                },
-                              }))}
-                            />
-                          )}
-                          {field.help ? <p className="mt-1 text-xs text-muted-foreground">{field.help}</p> : null}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium">Base URL</label>
+                        <Input
+                          className="mt-1"
+                          type="text"
+                          value={leadPlatformsConfig["MEKARI_QONTAK_BASE_URL"]?.value ?? ""}
+                          placeholder="https://api.mekari.com"
+                          onChange={(e) => setLeadPlatformsConfig((current) => ({
+                            ...current,
+                            MEKARI_QONTAK_BASE_URL: {
+                              ...current["MEKARI_QONTAK_BASE_URL"],
+                              value: e.target.value,
+                            },
+                          }))}
+                        />
+                        <p className="mt-1 text-[11px] text-muted-foreground leading-normal">
+                          Use https://api.mekari.com for modern production, or https://sandbox-api.mekari.com for sandbox.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium">Client ID</label>
+                        <Input
+                          className="mt-1"
+                          type="text"
+                          value={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ?? ""}
+                          placeholder="Client ID"
+                          onChange={(e) => setLeadPlatformsConfig((current) => ({
+                            ...current,
+                            MEKARI_QONTAK_CLIENT_ID: {
+                              ...current["MEKARI_QONTAK_CLIENT_ID"],
+                              value: e.target.value,
+                            },
+                          }))}
+                        />
+                        <p className="mt-1 text-[11px] text-muted-foreground leading-normal">
+                          Generate from developers.mekari.com → Applications → Create Application.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium">Client Secret</label>
+                        <Input
+                          className="mt-1"
+                          type="password"
+                          value={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_SECRET"]?.value ?? ""}
+                          placeholder={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_SECRET"]?.value ? "••••••••" : "Client Secret"}
+                          autoComplete="off"
+                          spellCheck={false}
+                          onChange={(e) => setLeadPlatformsConfig((current) => ({
+                            ...current,
+                            MEKARI_QONTAK_CLIENT_SECRET: {
+                              ...current["MEKARI_QONTAK_CLIENT_SECRET"],
+                              value: e.target.value,
+                            },
+                          }))}
+                        />
+                        <p className="mt-1 text-[11px] text-muted-foreground leading-normal">
+                          HMAC secret from your Mekari Developer application.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium">Bearer Access Token (Optional)</label>
+                        <Input
+                          className="mt-1"
+                          type="password"
+                          value={leadPlatformsConfig["MEKARI_QONTAK_ACCESS_TOKEN"]?.value ?? ""}
+                          placeholder={leadPlatformsConfig["MEKARI_QONTAK_ACCESS_TOKEN"]?.value ? "••••••••" : "Bearer Access Token"}
+                          autoComplete="off"
+                          spellCheck={false}
+                          onChange={(e) => setLeadPlatformsConfig((current) => ({
+                            ...current,
+                            MEKARI_QONTAK_ACCESS_TOKEN: {
+                              ...current["MEKARI_QONTAK_ACCESS_TOKEN"],
+                              value: e.target.value,
+                            },
+                          }))}
+                        />
+                        <p className="mt-1 text-[11px] text-muted-foreground leading-normal">
+                          Optional. Bearer access token generated from Qontak Omnichannel settings.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium">WhatsApp / Omnichannel Channel ID</label>
+                        <Input
+                          className="mt-1"
+                          type="text"
+                          value={leadPlatformsConfig["MEKARI_QONTAK_CHANNEL_ID"]?.value ?? ""}
+                          placeholder="WhatsApp Channel ID"
+                          onChange={(e) => setLeadPlatformsConfig((current) => ({
+                            ...current,
+                            MEKARI_QONTAK_CHANNEL_ID: {
+                              ...current["MEKARI_QONTAK_CHANNEL_ID"],
+                              value: e.target.value,
+                            },
+                          }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <Button
+                        onClick={async () => {
+                          if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                            reloadConfigs();
+                          }
+                        }}
+                        disabled={saving}
+                        className="w-full flex items-center justify-center gap-2"
+                      >
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save Mekari Qontak Configuration
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Column 2: Checklist & Verification */}
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-border bg-card p-5 shadow-xs">
+                      <div className="flex items-center justify-between border-b border-border/80 pb-3 mb-3">
+                        <div>
+                          <h3 className="text-sm font-bold">Setup Checklist</h3>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Verify permissions and activity status.
+                          </p>
                         </div>
-                      );
-                    })}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={reloadConfigs}
+                          disabled={loadingConfig}
+                          className="flex items-center gap-1 h-7 text-xs px-2"
+                        >
+                          <RefreshCw className={cn("h-3 w-3", loadingConfig && "animate-spin")} />
+                          <span>Reload configs</span>
+                        </Button>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2 mb-4">
+                        <div className="rounded-xl border border-border bg-muted/10 p-3 flex flex-col justify-between">
+                          <div>
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">HMAC Auth</h4>
+                            <p className="text-[9px] text-muted-foreground leading-normal mt-0.5">
+                              Client credentials authentication.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] pt-2 border-t border-border/10 mt-2">
+                            <Lock className="h-3 w-3 text-muted-foreground" />
+                            <Badge variant={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ? "success" : "danger"} className="text-[8px] font-extrabold uppercase px-1.5 py-0.2">
+                              {leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ? "Loaded" : "Missing"}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-border bg-muted/10 p-3 flex flex-col justify-between">
+                          <div>
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Connection Test</h4>
+                            <p className="text-[9px] text-muted-foreground leading-normal mt-0.5">
+                              Test HTTP request to gateway.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 pt-2 border-t border-border/10 mt-2 justify-between">
+                            <Button
+                              size="xs"
+                              onClick={handleTestConnection}
+                              disabled={testingConnection}
+                              className="h-6 px-2 text-[10px] flex items-center gap-1"
+                            >
+                              {testingConnection ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Play className="h-2.5 w-2.5" />}
+                              <span>Test API</span>
+                            </Button>
+                            <div>
+                              {connectionResult ? (
+                                <Badge variant={connectionResult.status === "connected" ? "success" : "danger"} className="text-[8px] font-extrabold uppercase px-1.5 py-0.2">
+                                  {connectionResult.status}
+                                </Badge>
+                              ) : (
+                                <span className="text-[9px] text-muted-foreground italic font-semibold">Not Tested</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {connectionResult && (
+                        <div className={cn(
+                          "rounded-xl border p-3 text-[11px] leading-relaxed flex items-start gap-2 mb-4",
+                          connectionResult.status === "connected"
+                            ? "border-[color:var(--success)]/20 bg-[color:var(--success-soft)]/20 text-[color:var(--success)]"
+                            : "border-[color:var(--danger)]/20 bg-[color:var(--danger-soft)]/20 text-[color:var(--danger)]"
+                        )}>
+                          {connectionResult.status === "connected" ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          ) : (
+                            <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          )}
+                          <div>
+                            <p className="font-bold">Test connection results:</p>
+                            <p className="font-medium text-foreground/80 mt-0.5">{connectionResult.message}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="rounded-xl border border-border bg-card overflow-hidden">
+                        <div className="px-3 py-2 border-b border-border bg-muted/10">
+                          <h4 className="text-xs font-bold">Checklist Table</h4>
+                        </div>
+                        <div className="divide-y divide-border/60 max-h-48 overflow-y-auto">
+                          {checklistItems.map((item) => (
+                            <div key={item.id} className="p-3 flex flex-col justify-between gap-1 hover:bg-muted/5 transition-colors">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <h5 className="text-[11px] font-bold text-foreground">{item.name}</h5>
+                                  <Badge variant={
+                                    item.status === "success" ? "success" :
+                                    item.status === "warning" ? "warning" :
+                                    item.status === "danger" ? "danger" :
+                                    "neutral"
+                                  } className="text-[8px] font-extrabold uppercase px-1 py-0.1">
+                                    {item.value}
+                                  </Badge>
+                                </div>
+                                <p className="text-[9px] text-muted-foreground leading-normal">{item.description}</p>
+                                <p className="text-[8px] text-muted-foreground/60 italic flex items-center gap-0.5 pt-0.5 font-semibold">
+                                  <Info className="h-2.5 w-2.5 shrink-0" /> {item.help}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
+                    <span className="text-sm font-medium">Enable {configuringPlatform.name}</span>
+                    <input
+                      type="checkbox"
+                      checked={leadPlatformsConfig[leadPlatformKey(configuringPlatform.id, "ENABLED")]?.value === "true"}
+                      onChange={(e) => setLeadPlatformsConfig((current) => ({
+                        ...current,
+                        [leadPlatformKey(configuringPlatform.id, "ENABLED")]: {
+                          ...current[leadPlatformKey(configuringPlatform.id, "ENABLED")],
+                          value: e.target.checked ? "true" : "false",
+                        },
+                      }))}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                  </label>
 
-                <div className="mt-4 flex flex-wrap gap-2 border-t pt-4">
-                  <Button
-                    variant="outline"
-                    disabled={!(configuringPlatform.sso && (configuringPlatform.id !== "google_ads" || (leadPlatformsConfig[leadPlatformKey("google_ads", "API_MODE")]?.value || "api") === "api"))}
-                    onClick={async () => {
-                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
-                        await runPlatformAction(configuringPlatform.id, "oauth-url");
-                      }
-                    }}
-                  >
-                    Login with {configuringPlatform.name}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={async () => {
-                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
-                        await runPlatformAction(configuringPlatform.id, "test");
-                      }
-                    }}
-                  >
-                    Test Connection
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
-                        await runPlatformAction(configuringPlatform.id, "preview");
-                      }
-                    }}
-                  >
-                    View Data
-                  </Button>
+                  <div className="space-y-3">
+                    {configuringPlatform.fields
+                      .filter((field) => field.suffix !== "ENABLED")
+                      .filter((field) => isLeadPlatformFieldVisible(configuringPlatform.id, field, leadPlatformsConfig))
+                      .map((field) => {
+                        const key = leadPlatformKey(configuringPlatform.id, field.suffix);
+                        return (
+                          <div key={key}>
+                            <label className="text-xs font-medium">{field.label}</label>
+                            {field.options ? (
+                              <Select
+                                className="mt-1"
+                                value={leadPlatformsConfig[key]?.value ?? field.defaultValue}
+                                onChange={(e) => setLeadPlatformsConfig((current) => ({
+                                  ...current,
+                                  [key]: {
+                                    ...current[key],
+                                    value: e.target.value,
+                                  },
+                                }))}
+                              >
+                                {field.options.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </Select>
+                            ) : (
+                              <Input
+                                className="mt-1"
+                                type={field.is_secret ? "password" : "text"}
+                                value={leadPlatformsConfig[key]?.value ?? ""}
+                                placeholder={field.placeholder || (field.is_secret ? "Encrypted after save" : `${configuringPlatform.name} ${field.label}`)}
+                                autoComplete="off"
+                                spellCheck={false}
+                                onChange={(e) => setLeadPlatformsConfig((current) => ({
+                                  ...current,
+                                  [key]: {
+                                    ...current[key],
+                                    value: e.target.value,
+                                  },
+                                }))}
+                              />
+                            )}
+                            {field.help ? <p className="mt-1 text-xs text-muted-foreground">{field.help}</p> : null}
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2 border-t pt-4">
+                    <Button
+                      variant="outline"
+                      disabled={!(configuringPlatform.sso && (configuringPlatform.id !== "google_ads" || (leadPlatformsConfig[leadPlatformKey("google_ads", "API_MODE")]?.value || "api") === "api"))}
+                      onClick={async () => {
+                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                          await runPlatformAction(configuringPlatform.id, "oauth-url");
+                        }
+                      }}
+                    >
+                      Login with {configuringPlatform.name}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={async () => {
+                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                          await runPlatformAction(configuringPlatform.id, "test");
+                        }
+                      }}
+                    >
+                      Test Connection
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                          await runPlatformAction(configuringPlatform.id, "preview");
+                        }
+                      }}
+                    >
+                      View Data
+                    </Button>
+                  </div>
+
+                  {platformStatus[configuringPlatform.id] ? (
+                    <p className="mt-3 rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2 text-xs text-muted-foreground">
+                      {platformStatus[configuringPlatform.id]}
+                    </p>
+                  ) : null}
+
+                  {platformPreview[configuringPlatform.id] && platformPreview[configuringPlatform.id].length > 0 ? (
+                    <pre className="mt-3 max-h-48 overflow-auto rounded-xl border border-border bg-[color:var(--surface-subtle)] p-3 text-xs text-muted-foreground">
+                      {JSON.stringify(platformPreview[configuringPlatform.id].slice(0, 3), null, 2)}
+                    </pre>
+                  ) : null}
                 </div>
-
-                {platformStatus[configuringPlatform.id] ? (
-                  <p className="mt-3 rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2 text-xs text-muted-foreground">
-                    {platformStatus[configuringPlatform.id]}
-                  </p>
-                ) : null}
-
-                {platformPreview[configuringPlatform.id] && platformPreview[configuringPlatform.id].length > 0 ? (
-                  <pre className="mt-3 max-h-48 overflow-auto rounded-xl border border-border bg-[color:var(--surface-subtle)] p-3 text-xs text-muted-foreground">
-                    {JSON.stringify(platformPreview[configuringPlatform.id].slice(0, 3), null, 2)}
-                  </pre>
-                ) : null}
-              </div>
+              )
             )}
           </Modal>
 
@@ -2120,290 +2380,6 @@ export default function IntegrationsSettingsPage() {
                   </TableBody>
                 </Table>
               </TableShell>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Mekari Qontak ── */}
-      {tab === "mekari_qontak" && (
-        <div className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Column 1: Configuration Form */}
-            <div className="space-y-6">
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold mb-1">Mekari Qontak Credentials</h2>
-                <p className="text-xs text-muted-foreground mb-6">
-                  Set up your credentials and connection options for Mekari Qontak Integration Hub.
-                </p>
-
-                <div className="space-y-4">
-                  <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
-                    <span className="text-sm font-medium">Enable Mekari Qontak Integration</span>
-                    <input
-                      type="checkbox"
-                      checked={leadPlatformsConfig["MEKARI_QONTAK_ENABLED"]?.value === "true"}
-                      onChange={(e) => setLeadPlatformsConfig((current) => ({
-                        ...current,
-                        MEKARI_QONTAK_ENABLED: {
-                          ...current["MEKARI_QONTAK_ENABLED"],
-                          value: e.target.checked ? "true" : "false",
-                        },
-                      }))}
-                      className="h-4 w-4 rounded border-border"
-                    />
-                  </label>
-
-                  <div>
-                    <label className="text-xs font-medium">Base URL</label>
-                    <Input
-                      className="mt-1"
-                      type="text"
-                      value={leadPlatformsConfig["MEKARI_QONTAK_BASE_URL"]?.value ?? ""}
-                      placeholder="https://api.mekari.com"
-                      onChange={(e) => setLeadPlatformsConfig((current) => ({
-                        ...current,
-                        MEKARI_QONTAK_BASE_URL: {
-                          ...current["MEKARI_QONTAK_BASE_URL"],
-                          value: e.target.value,
-                        },
-                      }))}
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Use https://api.mekari.com for modern production, or https://sandbox-api.mekari.com for sandbox.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium">Client ID</label>
-                    <Input
-                      className="mt-1"
-                      type="text"
-                      value={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ?? ""}
-                      placeholder="Client ID"
-                      onChange={(e) => setLeadPlatformsConfig((current) => ({
-                        ...current,
-                        MEKARI_QONTAK_CLIENT_ID: {
-                          ...current["MEKARI_QONTAK_CLIENT_ID"],
-                          value: e.target.value,
-                        },
-                      }))}
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Generate from developers.mekari.com → Applications → Create Application.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium">Client Secret</label>
-                    <Input
-                      className="mt-1"
-                      type="password"
-                      value={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_SECRET"]?.value ?? ""}
-                      placeholder={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_SECRET"]?.value ? "••••••••" : "Client Secret"}
-                      autoComplete="off"
-                      spellCheck={false}
-                      onChange={(e) => setLeadPlatformsConfig((current) => ({
-                        ...current,
-                        MEKARI_QONTAK_CLIENT_SECRET: {
-                          ...current["MEKARI_QONTAK_CLIENT_SECRET"],
-                          value: e.target.value,
-                        },
-                      }))}
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      HMAC secret from your Mekari Developer application.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium">Bearer Access Token (Optional)</label>
-                    <Input
-                      className="mt-1"
-                      type="password"
-                      value={leadPlatformsConfig["MEKARI_QONTAK_ACCESS_TOKEN"]?.value ?? ""}
-                      placeholder={leadPlatformsConfig["MEKARI_QONTAK_ACCESS_TOKEN"]?.value ? "••••••••" : "Bearer Access Token"}
-                      autoComplete="off"
-                      spellCheck={false}
-                      onChange={(e) => setLeadPlatformsConfig((current) => ({
-                        ...current,
-                        MEKARI_QONTAK_ACCESS_TOKEN: {
-                          ...current["MEKARI_QONTAK_ACCESS_TOKEN"],
-                          value: e.target.value,
-                        },
-                      }))}
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Optional. Bearer access token generated from Qontak Omnichannel settings.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium">WhatsApp / Omnichannel Channel ID</label>
-                    <Input
-                      className="mt-1"
-                      type="text"
-                      value={leadPlatformsConfig["MEKARI_QONTAK_CHANNEL_ID"]?.value ?? ""}
-                      placeholder="WhatsApp Channel ID"
-                      onChange={(e) => setLeadPlatformsConfig((current) => ({
-                        ...current,
-                        MEKARI_QONTAK_CHANNEL_ID: {
-                          ...current["MEKARI_QONTAK_CHANNEL_ID"],
-                          value: e.target.value,
-                        },
-                      }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <Button
-                    onClick={async () => {
-                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
-                        reloadConfigs();
-                      }
-                    }}
-                    disabled={saving}
-                    className="w-full flex items-center justify-center gap-2"
-                  >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Mekari Qontak Configuration
-                  </Button>
-                </div>
-              </Card>
-            </div>
-
-            {/* Column 2: Checklist & Verification */}
-            <div className="space-y-6">
-              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <div className="flex items-center justify-between border-b border-border/80 pb-4 mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold tracking-tight">Setup Checklist</h2>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Interactive checklist to verify permissions and activities.
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={reloadConfigs}
-                    disabled={loadingConfig}
-                    className="flex items-center gap-1.5"
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5", loadingConfig && "animate-spin")} />
-                    <span>Reload configs</span>
-                  </Button>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2 mb-6">
-                  <div className="rounded-xl border border-border bg-muted/10 p-4 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-xs font-semibold mb-1 uppercase tracking-wider text-muted-foreground text-foreground">HMAC & API Authentication</h3>
-                      <p className="text-[11px] text-muted-foreground leading-normal mt-1">
-                        Client credentials state for authentication signatures.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs pt-3 border-t border-border/10 mt-3">
-                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="font-medium">Status:</span>
-                      <Badge variant={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ? "success" : "danger"} className="text-[10px] font-extrabold uppercase px-2 py-0.5">
-                        {leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ? "Loaded" : "Missing"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-border bg-muted/10 p-4 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-xs font-semibold mb-1 uppercase tracking-wider text-muted-foreground text-foreground">API Connection Test</h3>
-                      <p className="text-[11px] text-muted-foreground leading-normal mt-1">
-                        Submit a live test HTTP request to the gateway.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 pt-3 border-t border-border/10 mt-3 justify-between">
-                      <Button
-                        size="sm"
-                        onClick={handleTestConnection}
-                        disabled={testingConnection}
-                        className="h-7 px-3 text-xs flex items-center gap-1"
-                      >
-                        {testingConnection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
-                        <span>Test API</span>
-                      </Button>
-
-                      <div>
-                        {connectionResult ? (
-                          <Badge variant={connectionResult.status === "connected" ? "success" : "danger"} className="text-[10px] font-extrabold uppercase px-2 py-0.5">
-                            {connectionResult.status}
-                          </Badge>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground italic font-semibold">Not Tested</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {connectionResult && (
-                  <div className={cn(
-                    "rounded-xl border p-4 text-xs font-semibold leading-relaxed flex items-start gap-2.5 mb-6",
-                    connectionResult.status === "connected"
-                      ? "border-[color:var(--success)]/20 bg-[color:var(--success-soft)]/20 text-[color:var(--success)]"
-                      : "border-[color:var(--danger)]/20 bg-[color:var(--danger-soft)]/20 text-[color:var(--danger)]"
-                  )}>
-                    {connectionResult.status === "connected" ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-                    ) : (
-                      <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                    )}
-                    <div>
-                      <p className="font-extrabold">Test connection results:</p>
-                      <p className="font-medium text-foreground/80 mt-1">{connectionResult.message}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="rounded-xl border border-border bg-card overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border bg-muted/10">
-                    <h3 className="text-sm font-bold">Integration Checklist Table</h3>
-                  </div>
-                  <div className="divide-y divide-border/60">
-                    {checklistItems.map((item) => (
-                      <div key={item.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-muted/5 transition-colors">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-xs font-bold text-foreground">{item.name}</h4>
-                            <Badge variant={
-                              item.status === "success" ? "success" :
-                              item.status === "warning" ? "warning" :
-                              item.status === "danger" ? "danger" :
-                              "neutral"
-                            } className="text-[9px] font-extrabold uppercase px-1.5 py-0.2">
-                              {item.value}
-                            </Badge>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground leading-normal">{item.description}</p>
-                          <p className="text-[9px] text-muted-foreground/60 italic flex items-center gap-1 pt-1 font-semibold">
-                            <Info className="h-3 w-3 shrink-0" /> {item.help}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {successMsg && (
-              <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
-                <CheckCircle2 className="h-4 w-4" /> {successMsg}
-              </span>
-            )}
-            {errorMsg && (
-              <span className="flex items-center gap-1 text-sm font-medium text-red-500">
-                <AlertCircle className="h-4 w-4" /> {errorMsg}
-              </span>
             )}
           </div>
         </div>
