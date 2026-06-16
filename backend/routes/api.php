@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AiFeatureRouteController;
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\AiProviderController;
 use App\Http\Controllers\Api\AiSettingsController;
 use App\Http\Controllers\Api\AnalyticsController;
@@ -252,6 +253,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('settings/integration-platforms/{platform}/oauth-url', [IntegrationPlatformController::class, 'oauthUrl'])->middleware('permission:integrations.manage');
     Route::post('settings/integration-platforms/{platform}/test', [IntegrationPlatformController::class, 'test'])->middleware('permission:integrations.manage');
     Route::get('settings/integration-platforms/{platform}/preview', [IntegrationPlatformController::class, 'preview'])->middleware('permission:integrations.manage');
+
+    // Database Backups
+    Route::get('settings/backups', [BackupController::class, 'index'])->middleware('permission:integrations.manage');
+    // We name the file download route segment carefully to avoid any route naming collisions
+    Route::post('settings/backups', [BackupController::class, 'backup'])->middleware('permission:integrations.manage');
+    Route::get('settings/backups/{filename}/download', [BackupController::class, 'download'])->middleware('permission:integrations.manage');
+    Route::delete('settings/backups/{filename}', [BackupController::class, 'destroy'])->middleware('permission:integrations.manage');
 
     // WhatsApp — Session
     Route::post('whatsapp/session/init', [WhatsAppController::class, 'initSession']);
