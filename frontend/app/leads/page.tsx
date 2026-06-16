@@ -623,6 +623,7 @@ export default function LeadsPage() {
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
   const [funnelStageId, setFunnelStageId] = useState(searchParams.get("funnel_stage_id") ?? "");
   const funnelMinSequence = searchParams.get("funnel_min_sequence") ?? "";
   const [qualificationFilter, setQualificationFilter] = useState(
@@ -716,9 +717,9 @@ export default function LeadsPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, search, funnelStageId, funnelMinSequence, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, ownerFilter, minScore, maxScore],
+    queryKey: ["leads", page, perPage, search, funnelStageId, funnelMinSequence, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, ownerFilter, minScore, maxScore],
     queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page) });
+      const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
       if (search) params.set("search", search);
       if (funnelStageId) params.set("funnel_stage_id", funnelStageId);
       if (funnelMinSequence) params.set("funnel_min_sequence", funnelMinSequence);
@@ -764,6 +765,27 @@ export default function LeadsPage() {
   });
   const sourceNameBySlug = new globalThis.Map(leadSources.map((source) => [source.slug, source.name]));
   const channelNameById = new globalThis.Map(activeLeadChannels.map((channel) => [channel.id, channel.name]));
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 7;
+    if (lastPage <= maxVisible) {
+      for (let i = 1; i <= lastPage; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      if (page <= 4) {
+        pages.push(2, 3, 4, 5, "...", lastPage);
+      } else if (page >= lastPage - 3) {
+        pages.push("...", lastPage - 4, lastPage - 3, lastPage - 2, lastPage - 1, lastPage);
+      } else {
+        pages.push("...", page - 1, page, page + 1, "...", lastPage);
+      }
+    }
+    return pages;
+  };
+
   const total = data?.total ?? 0;
   const lastPage = data?.last_page ?? 1;
   const locationCenter = formState.lat && formState.lng
@@ -1452,199 +1474,220 @@ export default function LeadsPage() {
       </FilterBar>
       </div>
 
-      <div data-tour="leads-table">
-      <TableShell>
-        <Table>
-          <TableHead>
-            <tr>
-              <TableHeaderCell className="min-w-[200px]">Company</TableHeaderCell>
-              <TableHeaderCell className="min-w-[120px]">Industry</TableHeaderCell>
-              <TableHeaderCell className="min-w-[140px]">Product</TableHeaderCell>
-              <TableHeaderCell className="min-w-[120px]">Source</TableHeaderCell>
-              <TableHeaderCell className="min-w-[130px]">Channel</TableHeaderCell>
-              <TableHeaderCell className="min-w-[160px]">Contact</TableHeaderCell>
-              <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
-              <TableHeaderCell className="w-[80px]">Grade</TableHeaderCell>
-              <TableHeaderCell className="w-[120px]">Qualification</TableHeaderCell>
-              <TableHeaderCell className="min-w-[150px]">Est. Closing</TableHeaderCell>
-              <TableHeaderCell className="min-w-[150px]">Realized</TableHeaderCell>
-              <TableHeaderCell className="min-w-[140px]">Owner</TableHeaderCell>
-              <TableHeaderCell className="w-[120px]">Stage</TableHeaderCell>
-              <TableHeaderCell className="w-[160px]">Actions</TableHeaderCell>
-            </tr>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableEmpty colSpan={14}>
-                <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-                Loading leads...
-              </TableEmpty>
-            ) : leads.length === 0 ? (
-              <TableEmpty colSpan={14}>No leads found.</TableEmpty>
-            ) : (
-              leads.map((lead) => (
-                <TableRow key={lead.id}>
-                  <TableCell>
-                    <Link href={`/leads/${lead.id}`} className="block space-y-1">
-                      <p className="font-medium">{lead.company_name}</p>
-                      <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="neutral">{lead.industry?.name ?? lead.business_category ?? "Unknown"}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={lead.product ? "info" : "neutral"}>
-                      {lead.product?.name ?? "Unassigned"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {primarySourceSlug(lead) ? (
-                      <Badge variant="brand">
-                        {sourceNameBySlug.get(primarySourceSlug(lead)) ?? primarySourceSlug(lead)}
+      <div data-tour="leads-table" className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHead>
+              <tr>
+                <TableHeaderCell className="min-w-[200px]">Company</TableHeaderCell>
+                <TableHeaderCell className="min-w-[120px]">Industry</TableHeaderCell>
+                <TableHeaderCell className="min-w-[140px]">Product</TableHeaderCell>
+                <TableHeaderCell className="min-w-[120px]">Source</TableHeaderCell>
+                <TableHeaderCell className="min-w-[130px]">Channel</TableHeaderCell>
+                <TableHeaderCell className="min-w-[160px]">Contact</TableHeaderCell>
+                <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
+                <TableHeaderCell className="w-[80px]">Grade</TableHeaderCell>
+                <TableHeaderCell className="w-[120px]">Qualification</TableHeaderCell>
+                <TableHeaderCell className="min-w-[150px]">Est. Closing</TableHeaderCell>
+                <TableHeaderCell className="min-w-[150px]">Realized</TableHeaderCell>
+                <TableHeaderCell className="min-w-[140px]">Owner</TableHeaderCell>
+                <TableHeaderCell className="w-[120px]">Stage</TableHeaderCell>
+                <TableHeaderCell className="w-[160px]">Actions</TableHeaderCell>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                <TableEmpty colSpan={14}>
+                  <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
+                  Loading leads...
+                </TableEmpty>
+              ) : leads.length === 0 ? (
+                <TableEmpty colSpan={14}>No leads found.</TableEmpty>
+              ) : (
+                leads.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell>
+                      <Link href={`/leads/${lead.id}`} className="block space-y-1">
+                        <p className="font-medium">{lead.company_name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="neutral">{lead.industry?.name ?? lead.business_category ?? "Unknown"}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={lead.product ? "info" : "neutral"}>
+                        {lead.product?.name ?? "Unassigned"}
                       </Badge>
-                    ) : (
-                      <Badge variant="neutral">Unclassified</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {primaryChannelId(lead) ? (
-                      <Badge variant="info">
-                        {channelNameById.get(primaryChannelId(lead) as number) ?? lead.sources?.[0]?.channel_type?.name ?? "Channel"}
-                      </Badge>
-                    ) : (
-                      <Badge variant="neutral">Unclassified</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 text-xs">
-                      <p>{lead.email || "—"}</p>
-                      <p className="text-muted-foreground">{lead.phone || "No phone"}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={scoreVariant(lead.lead_score)}>{lead.lead_score ?? "—"}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={gradeVariant(lead.lead_score)}>{scoreGrade(lead.lead_score)}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={qualificationVariant(lead.qualification_status)}>
-                      {(lead.qualification_status || "pending").replace("_", " ")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm font-medium">{formatCurrency(lead.estimated_closing_amount)}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm font-medium">{formatCurrency(lead.realized_closing_amount)}</span>
-                  </TableCell>
-                  <TableCell>
-                    {lead.owner ? (
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{lead.owner.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">{lead.owner.email ?? "Assigned"}</p>
+                    </TableCell>
+                    <TableCell>
+                      {primarySourceSlug(lead) ? (
+                        <Badge variant="brand">
+                          {sourceNameBySlug.get(primarySourceSlug(lead)) ?? primarySourceSlug(lead)}
+                        </Badge>
+                      ) : (
+                        <Badge variant="neutral">Unclassified</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {primaryChannelId(lead) ? (
+                        <Badge variant="info">
+                          {channelNameById.get(primaryChannelId(lead) as number) ?? lead.sources?.[0]?.channel_type?.name ?? "Channel"}
+                        </Badge>
+                      ) : (
+                        <Badge variant="neutral">Unclassified</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-xs">
+                        <p>{lead.email || "—"}</p>
+                        <p className="text-muted-foreground">{lead.phone || "No phone"}</p>
                       </div>
-                    ) : (
-                      <Badge variant="warning">Lead Pool</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <button
-                      onClick={() => {
-                        setFunnelStageId(String(lead.funnel_stage_id ?? ""));
-                        setPage(1);
-                      }}
-                      className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {lead.funnel_stage?.name ?? lead.current_funnel_stage?.name ?? "—"}
-                    </button>
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const warnings = pipelineWarnings(lead);
-                      const blocked = warnings.length > 0;
-                      const nextStageId = getNextFunnelStageId(lead);
-
-                      return (
-                        <div className="flex items-center gap-1 whitespace-nowrap">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => {
-                              if (lead.owner) {
-                                openAssign(lead);
-                                return;
-                              }
-                              claimLeadMutation.mutate(lead.id);
-                            }}
-                            disabled={claimLeadMutation.isPending || assignLeadMutation.isPending}
-                            tooltip={lead.owner ? "Reassign owner" : "Claim lead"}
-                          >
-                            {lead.owner ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => {
-                              if (!nextStageId) {
-                                setFeedback("No funnel stage is available for this lead.");
-                                return;
-                              }
-                              pushToFunnel.mutate({ id: lead.id, funnelStageId: nextStageId });
-                            }}
-                            disabled={blocked || pushToFunnel.isPending || !nextStageId}
-                            tooltip={blocked ? warnings.join(" · ") : "Push to funnel"}
-                          >
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => openEdit(lead)}
-                            tooltip="Edit lead"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setDeleteLead(lead)}
-                            tooltip="Delete lead"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => handleWhatsApp(lead.phone)}
-                            tooltip="Open WhatsApp"
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                          <Link
-                            href={`/leads/${lead.id}`}
-                            className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
-                            title="View details"
-                            aria-label="View details"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={scoreVariant(lead.lead_score)}>{lead.lead_score ?? "—"}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={gradeVariant(lead.lead_score)}>{scoreGrade(lead.lead_score)}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={qualificationVariant(lead.qualification_status)}>
+                        {(lead.qualification_status || "pending").replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-medium">{formatCurrency(lead.estimated_closing_amount)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm font-medium">{formatCurrency(lead.realized_closing_amount)}</span>
+                    </TableCell>
+                    <TableCell>
+                      {lead.owner ? (
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">{lead.owner.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">{lead.owner.email ?? "Assigned"}</p>
                         </div>
-                      );
-                    })()}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                      ) : (
+                        <Badge variant="warning">Lead Pool</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        onClick={() => {
+                          setFunnelStageId(String(lead.funnel_stage_id ?? ""));
+                          setPage(1);
+                        }}
+                        className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {lead.funnel_stage?.name ?? lead.current_funnel_stage?.name ?? "—"}
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const warnings = pipelineWarnings(lead);
+                        const blocked = warnings.length > 0;
+                        const nextStageId = getNextFunnelStageId(lead);
 
-        <div className="flex items-center justify-between border-t border-border px-5 py-3">
-          <p className="text-xs text-muted-foreground">
-            Showing page {page} of {lastPage} ({total} total)
-          </p>
-          <div className="flex items-center gap-1">
+                        return (
+                          <div className="flex items-center gap-1 whitespace-nowrap">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => {
+                                if (lead.owner) {
+                                  openAssign(lead);
+                                  return;
+                                }
+                                claimLeadMutation.mutate(lead.id);
+                              }}
+                              disabled={claimLeadMutation.isPending || assignLeadMutation.isPending}
+                              tooltip={lead.owner ? "Reassign owner" : "Claim lead"}
+                            >
+                              {lead.owner ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => {
+                                if (!nextStageId) {
+                                  setFeedback("No funnel stage is available for this lead.");
+                                  return;
+                                }
+                                pushToFunnel.mutate({ id: lead.id, funnelStageId: nextStageId });
+                              }}
+                              disabled={blocked || pushToFunnel.isPending || !nextStageId}
+                              tooltip={blocked ? warnings.join(" · ") : "Push to funnel"}
+                            >
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => openEdit(lead)}
+                              tooltip="Edit lead"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => setDeleteLead(lead)}
+                              tooltip="Delete lead"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => handleWhatsApp(lead.phone)}
+                              tooltip="Open WhatsApp"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                            <Link
+                              href={`/leads/${lead.id}`}
+                              className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }))}
+                              title="View details"
+                              aria-label="View details"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Link>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border px-5 py-3 gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <p className="text-xs text-muted-foreground">
+              Showing page {page} of {lastPage} ({total} total)
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Rows per page:</span>
+              <Select
+                value={String(perPage)}
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="w-20 h-8 py-0 px-2 text-xs rounded-lg animate-none"
+              >
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap justify-center">
             <Button
               variant="ghost"
               size="icon-sm"
@@ -1654,7 +1697,29 @@ export default function LeadsPage() {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-2 text-xs font-medium">{page}</span>
+
+            {/* Page Buttons */}
+            {getPageNumbers().map((p, idx) => {
+              if (p === "...") {
+                return (
+                  <span key={`dots-${idx}`} className="px-1 text-xs text-muted-foreground font-medium select-none">
+                    ...
+                  </span>
+                );
+              }
+              return (
+                <Button
+                  key={`page-${p}`}
+                  variant={p === page ? "default" : "ghost"}
+                  size="sm"
+                  className="h-8 w-8 px-0 text-xs font-semibold rounded-lg"
+                  onClick={() => setPage(Number(p))}
+                >
+                  {p}
+                </Button>
+              );
+            })}
+
             <Button
               variant="ghost"
               size="icon-sm"
@@ -1666,7 +1731,6 @@ export default function LeadsPage() {
             </Button>
           </div>
         </div>
-      </TableShell>
       </div>
 
       <Modal
