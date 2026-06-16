@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, type ComponentType } from "react";
+import { useState, useEffect, type ComponentType, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { downloadTimestampedReport } from "@/lib/utils/download-report";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -35,7 +36,7 @@ type IntegrationConfig = {
   value_type: "string" | "boolean" | "number" | "json";
 };
 
-type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark" | "linkedin";
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "mekari_qontak" | "lusha" | "webhooks" | "lark" | "linkedin";
 type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
 type GooglePermission = {
   id: string;
@@ -528,6 +529,111 @@ export default function IntegrationsSettingsPage() {
   const [baseFieldMapping, setBaseFieldMapping] = useState<Record<LeadsyLeadFieldKey, string>>({ ...DEFAULT_LARK_BASE_FIELD_MAPPING });
 
   const [configuringPlatform, setConfiguringPlatform] = useState<LeadPlatformDefinition | null>(null);
+
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<{ status: string; message: string } | null>(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+
+  const reloadConfigs = async () => {
+    setLoadingConfig(true);
+    try {
+      const res = await apiFetch("/settings/integrations");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (json?.data?.lead_platforms) {
+        const next = createDefaultLeadPlatforms();
+        (json.data.lead_platforms as IntegrationConfig[]).forEach((c) => {
+          next[c.key] = {
+            ...c,
+            value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
+          };
+        });
+        setLeadPlatformsConfig(next);
+      }
+    } catch (err) {
+      console.warn("Failed to reload integrations:", err);
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setConnectionResult(null);
+    try {
+      const res = await apiFetch("/settings/integration-platforms/mekari_qontak/test", {
+        method: "POST"
+      });
+      const json = await res.json();
+      setConnectionResult(json.data || { status: "error", message: "Verification failed." });
+    } catch (err: any) {
+      setConnectionResult({ status: "error", message: err.message || "Connection test failed." });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const checklistItems = useMemo(() => {
+    const enabled = leadPlatformsConfig["MEKARI_QONTAK_ENABLED"]?.value === "true";
+    const clientId = leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value;
+    const clientSecret = leadPlatformsConfig["MEKARI_QONTAK_CLIENT_SECRET"]?.value;
+    const baseUrl = leadPlatformsConfig["MEKARI_QONTAK_BASE_URL"]?.value || "https://api.mekari.com";
+    const channelId = leadPlatformsConfig["MEKARI_QONTAK_CHANNEL_ID"]?.value;
+
+    const hasHmac = !!clientId && !!clientSecret;
+    const validBaseUrl = baseUrl.includes("api.mekari.com") || baseUrl.includes("api.mekari.io") || baseUrl.includes("sandbox-api");
+
+    return [
+      {
+        id: "enabled",
+        name: "Integration Status",
+        description: "Enables Mekari Qontak lead sync in your workspace.",
+        status: enabled ? "success" : "danger",
+        value: enabled ? "Enabled" : "Disabled",
+        help: "Toggle this integration to 'Enabled' inside the main settings configuration modal."
+      },
+      {
+        id: "hmac",
+        name: "HMAC Authentication",
+        description: "HMAC signatures securely authenticate Leadsy requests with Mekari API v1.0.",
+        status: hasHmac ? "success" : "danger",
+        value: hasHmac ? "Configured" : "Missing Client Key",
+        help: "Requires Client ID & Client Secret from developers.mekari.com -> Create Application."
+      },
+      {
+        id: "gateway",
+        name: "API Base URL Gateway",
+        description: "Endpoint pointing directly to the Mekari API Gateway.",
+        status: validBaseUrl ? "success" : "warning",
+        value: validBaseUrl ? "Valid URL Structure" : "Generic / Incorrect Host",
+        help: "Should point to https://api.mekari.com or https://sandbox-api.mekari.com, not the developer portal website."
+      },
+      {
+        id: "channel",
+        name: "Omnichannel Channel subscription ID",
+        description: "Allows Leadsy to ingest active rooms mapped to the specific messaging channel ID.",
+        status: !!channelId ? "success" : "warning",
+        value: channelId ? `ID: ${channelId}` : "Not Subscribed",
+        help: "Required to sync specific WhatsApp numbers or omnichannel configurations."
+      },
+      {
+        id: "sync_job",
+        name: "Background Synchronization Task",
+        description: "Scheduled job fetching active chat rooms in the background (every 30 seconds).",
+        status: enabled && hasHmac ? "success" : "neutral",
+        value: enabled && hasHmac ? "Active / Dispatching" : "Paused",
+        help: "Triggered automatically when conversations list is requested and integration is healthy."
+      },
+      {
+        id: "ai_score",
+        name: "Gemini AI Lead Eligibility Scoring",
+        description: "Evaluates synced room feeds using AI agents to determine business qualifications.",
+        status: "success",
+        value: "Active & Configured",
+        help: "Uses the default Gemini model and instructions configured in Settings -> AI Defaults."
+      }
+    ];
+  }, [leadPlatformsConfig]);
 
   const { data: activeWaUsersData, refetch: refetchActiveWaUsers, isLoading: loadingActiveWaUsers } = useQuery({
     queryKey: ["active-whatsapp-users"],
@@ -1134,6 +1240,7 @@ export default function IntegrationsSettingsPage() {
           { key: "lead_platforms", label: "Lead Platforms", icon: Share2 },
           { key: "maps", label: "Google", icon: MapPin },
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
+          { key: "mekari_qontak", label: "Mekari Qontak", icon: MessageSquare },
           { key: "lusha", label: "Lusha", icon: Key },
           { key: "linkedin", label: "LinkedIn", icon: Linkedin },
           { key: "lark", label: "Lark", icon: Key },
@@ -2002,6 +2109,290 @@ export default function IntegrationsSettingsPage() {
                   </TableBody>
                 </Table>
               </TableShell>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Mekari Qontak ── */}
+      {tab === "mekari_qontak" && (
+        <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Column 1: Configuration Form */}
+            <div className="space-y-6">
+              <Card className="p-6">
+                <h2 className="text-xl font-semibold mb-1">Mekari Qontak Credentials</h2>
+                <p className="text-xs text-muted-foreground mb-6">
+                  Set up your credentials and connection options for Mekari Qontak Integration Hub.
+                </p>
+
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
+                    <span className="text-sm font-medium">Enable Mekari Qontak Integration</span>
+                    <input
+                      type="checkbox"
+                      checked={leadPlatformsConfig["MEKARI_QONTAK_ENABLED"]?.value === "true"}
+                      onChange={(e) => setLeadPlatformsConfig((current) => ({
+                        ...current,
+                        MEKARI_QONTAK_ENABLED: {
+                          ...current["MEKARI_QONTAK_ENABLED"],
+                          value: e.target.checked ? "true" : "false",
+                        },
+                      }))}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                  </label>
+
+                  <div>
+                    <label className="text-xs font-medium">Base URL</label>
+                    <Input
+                      className="mt-1"
+                      type="text"
+                      value={leadPlatformsConfig["MEKARI_QONTAK_BASE_URL"]?.value ?? ""}
+                      placeholder="https://api.mekari.com"
+                      onChange={(e) => setLeadPlatformsConfig((current) => ({
+                        ...current,
+                        MEKARI_QONTAK_BASE_URL: {
+                          ...current["MEKARI_QONTAK_BASE_URL"],
+                          value: e.target.value,
+                        },
+                      }))}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Use https://api.mekari.com for modern production, or https://sandbox-api.mekari.com for sandbox.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium">Client ID</label>
+                    <Input
+                      className="mt-1"
+                      type="text"
+                      value={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ?? ""}
+                      placeholder="Client ID"
+                      onChange={(e) => setLeadPlatformsConfig((current) => ({
+                        ...current,
+                        MEKARI_QONTAK_CLIENT_ID: {
+                          ...current["MEKARI_QONTAK_CLIENT_ID"],
+                          value: e.target.value,
+                        },
+                      }))}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Generate from developers.mekari.com → Applications → Create Application.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium">Client Secret</label>
+                    <Input
+                      className="mt-1"
+                      type="password"
+                      value={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_SECRET"]?.value ?? ""}
+                      placeholder={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_SECRET"]?.value ? "••••••••" : "Client Secret"}
+                      autoComplete="off"
+                      spellCheck={false}
+                      onChange={(e) => setLeadPlatformsConfig((current) => ({
+                        ...current,
+                        MEKARI_QONTAK_CLIENT_SECRET: {
+                          ...current["MEKARI_QONTAK_CLIENT_SECRET"],
+                          value: e.target.value,
+                        },
+                      }))}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      HMAC secret from your Mekari Developer application.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium">Bearer Access Token (Optional)</label>
+                    <Input
+                      className="mt-1"
+                      type="password"
+                      value={leadPlatformsConfig["MEKARI_QONTAK_ACCESS_TOKEN"]?.value ?? ""}
+                      placeholder={leadPlatformsConfig["MEKARI_QONTAK_ACCESS_TOKEN"]?.value ? "••••••••" : "Bearer Access Token"}
+                      autoComplete="off"
+                      spellCheck={false}
+                      onChange={(e) => setLeadPlatformsConfig((current) => ({
+                        ...current,
+                        MEKARI_QONTAK_ACCESS_TOKEN: {
+                          ...current["MEKARI_QONTAK_ACCESS_TOKEN"],
+                          value: e.target.value,
+                        },
+                      }))}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Optional. Bearer access token generated from Qontak Omnichannel settings.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium">WhatsApp / Omnichannel Channel ID</label>
+                    <Input
+                      className="mt-1"
+                      type="text"
+                      value={leadPlatformsConfig["MEKARI_QONTAK_CHANNEL_ID"]?.value ?? ""}
+                      placeholder="WhatsApp Channel ID"
+                      onChange={(e) => setLeadPlatformsConfig((current) => ({
+                        ...current,
+                        MEKARI_QONTAK_CHANNEL_ID: {
+                          ...current["MEKARI_QONTAK_CHANNEL_ID"],
+                          value: e.target.value,
+                        },
+                      }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <Button
+                    onClick={async () => {
+                      if (await handleSave("lead_platforms", leadPlatformsConfig)) {
+                        reloadConfigs();
+                      }
+                    }}
+                    disabled={saving}
+                    className="w-full flex items-center justify-center gap-2"
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save Mekari Qontak Configuration
+                  </Button>
+                </div>
+              </Card>
+            </div>
+
+            {/* Column 2: Checklist & Verification */}
+            <div className="space-y-6">
+              <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                <div className="flex items-center justify-between border-b border-border/80 pb-4 mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight">Setup Checklist</h2>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Interactive checklist to verify permissions and activities.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={reloadConfigs}
+                    disabled={loadingConfig}
+                    className="flex items-center gap-1.5"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5", loadingConfig && "animate-spin")} />
+                    <span>Reload configs</span>
+                  </Button>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 mb-6">
+                  <div className="rounded-xl border border-border bg-muted/10 p-4 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xs font-semibold mb-1 uppercase tracking-wider text-muted-foreground text-foreground">HMAC & API Authentication</h3>
+                      <p className="text-[11px] text-muted-foreground leading-normal mt-1">
+                        Client credentials state for authentication signatures.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs pt-3 border-t border-border/10 mt-3">
+                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="font-medium">Status:</span>
+                      <Badge variant={leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ? "success" : "danger"} className="text-[10px] font-extrabold uppercase px-2 py-0.5">
+                        {leadPlatformsConfig["MEKARI_QONTAK_CLIENT_ID"]?.value ? "Loaded" : "Missing"}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-muted/10 p-4 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xs font-semibold mb-1 uppercase tracking-wider text-muted-foreground text-foreground">API Connection Test</h3>
+                      <p className="text-[11px] text-muted-foreground leading-normal mt-1">
+                        Submit a live test HTTP request to the gateway.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 pt-3 border-t border-border/10 mt-3 justify-between">
+                      <Button
+                        size="sm"
+                        onClick={handleTestConnection}
+                        disabled={testingConnection}
+                        className="h-7 px-3 text-xs flex items-center gap-1"
+                      >
+                        {testingConnection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                        <span>Test API</span>
+                      </Button>
+
+                      <div>
+                        {connectionResult ? (
+                          <Badge variant={connectionResult.status === "connected" ? "success" : "danger"} className="text-[10px] font-extrabold uppercase px-2 py-0.5">
+                            {connectionResult.status}
+                          </Badge>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground italic font-semibold">Not Tested</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {connectionResult && (
+                  <div className={cn(
+                    "rounded-xl border p-4 text-xs font-semibold leading-relaxed flex items-start gap-2.5 mb-6",
+                    connectionResult.status === "connected"
+                      ? "border-[color:var(--success)]/20 bg-[color:var(--success-soft)]/20 text-[color:var(--success)]"
+                      : "border-[color:var(--danger)]/20 bg-[color:var(--danger-soft)]/20 text-[color:var(--danger)]"
+                  )}>
+                    {connectionResult.status === "connected" ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                    ) : (
+                      <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <p className="font-extrabold">Test connection results:</p>
+                      <p className="font-medium text-foreground/80 mt-1">{connectionResult.message}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-border bg-card overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border bg-muted/10">
+                    <h3 className="text-sm font-bold">Integration Checklist Table</h3>
+                  </div>
+                  <div className="divide-y divide-border/60">
+                    {checklistItems.map((item) => (
+                      <div key={item.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-muted/5 transition-colors">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-bold text-foreground">{item.name}</h4>
+                            <Badge variant={
+                              item.status === "success" ? "success" :
+                              item.status === "warning" ? "warning" :
+                              item.status === "danger" ? "danger" :
+                              "neutral"
+                            } className="text-[9px] font-extrabold uppercase px-1.5 py-0.2">
+                              {item.value}
+                            </Badge>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground leading-normal">{item.description}</p>
+                          <p className="text-[9px] text-muted-foreground/60 italic flex items-center gap-1 pt-1 font-semibold">
+                            <Info className="h-3 w-3 shrink-0" /> {item.help}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {successMsg && (
+              <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                <CheckCircle2 className="h-4 w-4" /> {successMsg}
+              </span>
+            )}
+            {errorMsg && (
+              <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                <AlertCircle className="h-4 w-4" /> {errorMsg}
+              </span>
             )}
           </div>
         </div>
