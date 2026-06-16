@@ -37,4 +37,9 @@ class Product extends Model
     {
         return $this->hasOne(ProductQuestion::class);
     }
+
+    public function tiers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductTier::class);
+    }
 }

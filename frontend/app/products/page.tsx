@@ -30,6 +30,18 @@ import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { QuestionGuide } from "@/components/products/QuestionGuide";
 
+type ProductTier = {
+  id?: number;
+  name: string;
+  price: number;
+  pricing_type: "flat_rate" | "per_user" | "usage_based";
+  billing_period: "monthly" | "yearly" | "one_time" | "custom";
+  subscription_duration_value: number;
+  subscription_duration_unit: "day" | "month" | "year" | "lifetime";
+  features?: string[] | null;
+  status?: string | null;
+};
+
 type ProductRecord = {
   id: number;
   name: string;
@@ -49,6 +61,7 @@ type ProductRecord = {
   status?: string | null;
   ai_reference_source_type?: string | null;
   created_at?: string | null;
+  tiers?: ProductTier[] | null;
 };
 
 type AiGenerateResult = {
@@ -99,6 +112,7 @@ export default function ProductsPage() {
   const [formCompetitorNotes, setFormCompetitorNotes] = useState("");
   const [formKeywords, setFormKeywords] = useState("");       // comma-sep → array
   const [formStatus, setFormStatus] = useState("active");
+  const [formTiers, setFormTiers] = useState<ProductTier[]>([]);
 
   const [aiGenerated, setAiGenerated] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -256,7 +270,7 @@ export default function ProductsPage() {
     setFormTargetIndustry(""); setFormTargetCompanySize(""); setFormTargetPainPoints("");
     setFormTargetPersona(""); setFormIdealCompanyProfile(""); setFormSupportedRegions("");
     setFormBudgetRange(""); setFormUseCases(""); setFormCompetitorNotes("");
-    setFormKeywords(""); setFormStatus("active");
+    setFormKeywords(""); setFormStatus("active"); setFormTiers([]);
     setAiGenerated(false); setAiError(null); setAiSource(null);
     setRefUrl(""); setRefPdfFile(null); setRefPdfName("");
   };
@@ -283,6 +297,7 @@ export default function ProductsPage() {
     setFormCompetitorNotes(item.competitor_notes || "");
     setFormKeywords(item.keywords?.join(", ") || "");
     setFormStatus(item.status || "active");
+    setFormTiers(item.tiers ?? []);
     setAiGenerated(false);
     setAiError(null);
     setShowModal(true);
@@ -311,6 +326,7 @@ export default function ProductsPage() {
       competitor_notes:      formCompetitorNotes,
       keywords:              strToArr(formKeywords) as any,
       status:                formStatus,
+      tiers:                 formTiers as any,
     } as any);
   };
 
@@ -441,11 +457,57 @@ export default function ProductsPage() {
                         </p>
                         <p className="mt-1 text-sm">
                           {product.created_at
-                            ? new Date(product.created_at).toLocaleDateString()
-                            : "—"}
+                             ? new Date(product.created_at).toLocaleDateString()
+                             : "—"}
                         </p>
                       </div>
                     </div>
+
+                    {/* SaaS Product Tiers Grid */}
+                    {product.tiers && product.tiers.length > 0 && (
+                      <div className="mt-6 border-t border-border pt-5 space-y-3">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Product Tiers & Pricing Structures (SaaS)
+                        </h4>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {product.tiers.map((tier) => (
+                            <div
+                              key={tier.id}
+                              className="rounded-xl border border-border bg-[color:var(--surface-subtle)] p-4 shadow-sm flex flex-col justify-between"
+                            >
+                              <div>
+                                <div className="flex items-center justify-between gap-2">
+                                  <h5 className="font-bold text-sm truncate">{tier.name}</h5>
+                                  <Badge variant={tier.status === "active" ? "success" : "neutral"} className="scale-90 transform origin-right">
+                                    {tier.status || "active"}
+                                  </Badge>
+                                </div>
+                                <div className="mt-2 text-lg font-extrabold flex items-baseline gap-1">
+                                  <span>{formatCurrency(tier.price)}</span>
+                                  <span className="text-xs font-normal text-muted-foreground">
+                                    / {tier.billing_period}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider font-semibold">
+                                  Duration: {tier.subscription_duration_value} {tier.subscription_duration_unit}(s)
+                                  {tier.pricing_type !== "flat_rate" && ` • ${tier.pricing_type.replace("_", " ")}`}
+                                </p>
+                              </div>
+                              {tier.features && tier.features.filter(Boolean).length > 0 && (
+                                <ul className="mt-3 border-t border-border/60 pt-3 space-y-1 text-xs text-muted-foreground/90">
+                                  {tier.features.filter(Boolean).map((feat, fIdx) => (
+                                    <li key={fIdx} className="flex items-start gap-1.5 min-w-0">
+                                      <span className="text-emerald-500 font-bold select-none">✓</span>
+                                      <span className="truncate">{feat}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-5 flex items-center gap-2">
                       <Button variant="outline" onClick={() => openEdit(product)}>
@@ -719,6 +781,172 @@ export default function ProductsPage() {
                 <Textarea value={formIdealCompanyProfile} onChange={(e) => setFormIdealCompanyProfile(e.target.value)} rows={2} placeholder="Mid-to-large manufacturers with 100+ employees struggling with manual processes" />
               </div>
             </div>
+          </div>
+
+          {/* SaaS Pricing Tiers */}
+          <div className="sm:col-span-2 border-t border-border pt-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Product Tiers (SaaS Pricing)</p>
+                <p className="text-xs text-muted-foreground">Define your SaaS tiering, billing structures, and subscription duration.</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFormTiers((current) => [
+                    ...current,
+                    {
+                      name: "",
+                      price: 0,
+                      pricing_type: "flat_rate",
+                      billing_period: "monthly",
+                      subscription_duration_value: 1,
+                      subscription_duration_unit: "month",
+                      features: [],
+                      status: "active",
+                    },
+                  ]);
+                }}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add Tier
+              </Button>
+            </div>
+
+            {formTiers.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                No pricing tiers defined. Click "Add Tier" to configure SaaS pricing.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {formTiers.map((tier, idx) => (
+                  <div key={idx} className="relative rounded-xl border border-border bg-[color:var(--surface-subtle)] p-4 space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormTiers((current) => current.filter((_, i) => i !== idx));
+                      }}
+                      className="absolute right-3 top-3 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Remove Tier"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+
+                    <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium uppercase text-muted-foreground">Tier Name *</label>
+                        <Input
+                          value={tier.name}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormTiers((current) => current.map((t, i) => i === idx ? { ...t, name: val } : t));
+                          }}
+                          placeholder="e.g. Starter, Pro, Enterprise"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium uppercase text-muted-foreground">Price *</label>
+                        <Input
+                          type="number"
+                          value={tier.price || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setFormTiers((current) => current.map((t, i) => i === idx ? { ...t, price: val } : t));
+                          }}
+                          placeholder="e.g. 150000"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium uppercase text-muted-foreground">Pricing Type</label>
+                        <Select
+                          value={tier.pricing_type}
+                          onChange={(e) => {
+                            const val = e.target.value as any;
+                            setFormTiers((current) => current.map((t, i) => i === idx ? { ...t, pricing_type: val } : t));
+                          }}
+                          className="h-8 text-xs"
+                        >
+                          <option value="flat_rate">Flat Rate</option>
+                          <option value="per_user">Per User</option>
+                          <option value="usage_based">Usage Based</option>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium uppercase text-muted-foreground">Billing Period</label>
+                        <Select
+                          value={tier.billing_period}
+                          onChange={(e) => {
+                            const val = e.target.value as any;
+                            setFormTiers((current) => current.map((t, i) => i === idx ? { ...t, billing_period: val } : t));
+                          }}
+                          className="h-8 text-xs"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="yearly">Yearly</option>
+                          <option value="one_time">One Time</option>
+                          <option value="custom">Custom</option>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium uppercase text-muted-foreground">Duration Value</label>
+                        <Input
+                          type="number"
+                          value={tier.subscription_duration_value || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setFormTiers((current) => current.map((t, i) => i === idx ? { ...t, subscription_duration_value: val } : t));
+                          }}
+                          placeholder="e.g. 1, 12"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium uppercase text-muted-foreground">Duration Unit</label>
+                        <Select
+                          value={tier.subscription_duration_unit}
+                          onChange={(e) => {
+                            const val = e.target.value as any;
+                            setFormTiers((current) => current.map((t, i) => i === idx ? { ...t, subscription_duration_unit: val } : t));
+                          }}
+                          className="h-8 text-xs"
+                        >
+                          <option value="day">Day(s)</option>
+                          <option value="month">Month(s)</option>
+                          <option value="year">Year(s)</option>
+                          <option value="lifetime">Lifetime</option>
+                        </Select>
+                      </div>
+
+                      <div className="sm:col-span-2 md:col-span-3 space-y-1">
+                        <label className="text-[10px] font-medium uppercase text-muted-foreground flex items-center justify-between">
+                          <span>Features</span>
+                          <span className="font-normal normal-case text-muted-foreground/60">(One feature per line)</span>
+                        </label>
+                        <Textarea
+                          value={tier.features?.join("\n") || ""}
+                          onChange={(e) => {
+                            const val = e.target.value.split("\n");
+                            setFormTiers((current) => current.map((t, i) => i === idx ? { ...t, features: val } : t));
+                          }}
+                          placeholder="e.g.&#10;5 Admin Accounts&#10;Unlimited Contacts&#10;24/7 Phone Support"
+                          rows={2}
+                          className="text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Modal>

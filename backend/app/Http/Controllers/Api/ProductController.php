@@ -16,7 +16,7 @@ class ProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Product::orderBy('name');
+        $query = Product::with('tiers')->orderBy('name');
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -27,7 +27,7 @@ class ProductController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        return response()->json(['data' => $product]);
+        return response()->json(['data' => $product->load('tiers')]);
     }
 
     public function store(Request $request): JsonResponse
@@ -48,15 +48,32 @@ class ProductController extends Controller
             'competitor_notes' => 'nullable|string',
             'keywords' => 'nullable|array',
             'status' => 'nullable|in:active,inactive',
+            'tiers' => 'nullable|array',
+            'tiers.*.name' => 'required|string|max:255',
+            'tiers.*.price' => 'required|numeric|min:0',
+            'tiers.*.pricing_type' => 'required|string|in:flat_rate,per_user,usage_based',
+            'tiers.*.billing_period' => 'required|string|in:monthly,yearly,one_time,custom',
+            'tiers.*.subscription_duration_value' => 'required|integer|min:1',
+            'tiers.*.subscription_duration_unit' => 'required|string|in:day,month,year,lifetime',
+            'tiers.*.features' => 'nullable|array',
+            'tiers.*.features.*' => 'required|string|max:500',
+            'tiers.*.status' => 'nullable|in:active,inactive',
         ]);
 
-        $data['created_by'] = $request->user()?->id;
-        $data['tenant_id'] = $request->user()?->tenant_id;
-        $product = Product::create($data);
+        $productData = collect($data)->except('tiers')->toArray();
+        $productData['created_by'] = $request->user()?->id;
+        $productData['tenant_id'] = $request->user()?->tenant_id;
+        
+        $product = Product::create($productData);
+
+        $tiersData = $data['tiers'] ?? [];
+        foreach ($tiersData as $tierData) {
+            $product->tiers()->create($tierData);
+        }
 
         AuditService::logCreated('products', $product);
 
-        return response()->json(['data' => $product], 201);
+        return response()->json(['data' => $product->load('tiers')], 201);
     }
 
     public function update(Request $request, Product $product): JsonResponse
@@ -79,13 +96,39 @@ class ProductController extends Controller
             'competitor_notes' => 'nullable|string',
             'keywords' => 'nullable|array',
             'status' => 'nullable|in:active,inactive',
+            'tiers' => 'nullable|array',
+            'tiers.*.id' => 'nullable|integer',
+            'tiers.*.name' => 'required|string|max:255',
+            'tiers.*.price' => 'required|numeric|min:0',
+            'tiers.*.pricing_type' => 'required|string|in:flat_rate,per_user,usage_based',
+            'tiers.*.billing_period' => 'required|string|in:monthly,yearly,one_time,custom',
+            'tiers.*.subscription_duration_value' => 'required|integer|min:1',
+            'tiers.*.subscription_duration_unit' => 'required|string|in:day,month,year,lifetime',
+            'tiers.*.features' => 'nullable|array',
+            'tiers.*.features.*' => 'required|string|max:500',
+            'tiers.*.status' => 'nullable|in:active,inactive',
         ]);
 
-        $product->update($data);
+        $productData = collect($data)->except('tiers')->toArray();
+        $product->update($productData);
+
+        $tiersData = $data['tiers'] ?? [];
+        $keepIds = [];
+        foreach ($tiersData as $tierData) {
+            if (isset($tierData['id'])) {
+                $tier = $product->tiers()->findOrFail($tierData['id']);
+                $tier->update($tierData);
+                $keepIds[] = $tier->id;
+            } else {
+                $newTier = $product->tiers()->create($tierData);
+                $keepIds[] = $newTier->id;
+            }
+        }
+        $product->tiers()->whereNotIn('id', $keepIds)->delete();
 
         AuditService::logUpdated('products', $product, $original);
 
-        return response()->json(['data' => $product]);
+        return response()->json(['data' => $product->load('tiers')]);
     }
 
     public function destroy(Product $product): JsonResponse
