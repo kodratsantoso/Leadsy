@@ -208,6 +208,12 @@ class AIPromptTemplateService
                 'Detect customer intent, objections, sentiment, requirements, risks, and follow-up actions. Ignore filler and avoid over-reading vague statements.',
                 'Return only valid JSON matching the transcript evaluation schema requested by the feature prompt.'
             ),
+            'activity_transcript_analysis' => $this->featureTemplate(
+                'Activity Transcript Analysis',
+                'Analyze a meeting transcript and extract comprehensive meeting notes, the outcome, and BANTC qualification variables.',
+                'Use only the transcript text. Provide a detailed summary for the description. Determine if there is a clear outcome or next step. Extract Budget, Authority, Need, Timeline, and Competitor (BANTC) signals if mentioned.',
+                'Return only valid JSON with keys: description, outcome, bantc. bantc must be an object with keys: budget, authority, needs, timeline, competitor.'
+            ),
             'next_action_recommendation' => $this->featureTemplate(
                 'Next Action Recommendation',
                 'Recommend the safest next sales action for a lead or opportunity.',

@@ -648,6 +648,10 @@ export default function LeadDetailPage() {
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [editingActivity, setEditingActivity]     = useState<any | null>(null);
   const [deletingActivityId, setDeletingActivityId] = useState<number | null>(null);
+  const [activityTranscriptFile, setActivityTranscriptFile] = useState<File | null>(null);
+  const [activityTranscriptText, setActivityTranscriptText] = useState('');
+  const [isAnalyzingTranscript, setIsAnalyzingTranscript] = useState(false);
+  const [linkedTranscriptId, setLinkedTranscriptId] = useState<number | null>(null);
   const [activityForm, setActivityForm] = useState({
     activity_type: '',
     description: '',
@@ -1385,8 +1389,61 @@ export default function LeadDetailPage() {
       setActivityForm({ activity_type: '', description: '', outcome: '', ...EMPTY_BANTC, activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
       setEditingActivity(null);
     }
+    setActivityTranscriptFile(null);
+    setActivityTranscriptText('');
+    setLinkedTranscriptId(null);
     setShowActivityModal(true);
   }
+
+  const analyzeActivityTranscript = async () => {
+    if (!activityTranscriptFile && !activityTranscriptText.trim()) {
+      alert('Please upload a file or paste transcript text first.');
+      return;
+    }
+
+    setIsAnalyzingTranscript(true);
+    try {
+      const formData = new FormData();
+      if (activityTranscriptText.trim()) formData.append('transcript_text', activityTranscriptText);
+      if (activityTranscriptFile) formData.append('transcript_file', activityTranscriptFile);
+
+      const res = await fetch(`/api/leads/${lead.id}/activities/analyze-transcript`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to analyze transcript');
+      }
+      
+      const { data } = await res.json();
+      
+      setLinkedTranscriptId(data.transcript.id);
+      
+      if (data.analysis) {
+        setActivityForm(prev => ({
+          ...prev,
+          description: data.analysis.description || prev.description,
+          outcome: data.analysis.outcome || prev.outcome,
+          budget: data.analysis.bantc?.budget || prev.budget,
+          authority: data.analysis.bantc?.authority || prev.authority,
+          needs: data.analysis.bantc?.needs || prev.needs,
+          timeline: data.analysis.bantc?.timeline || prev.timeline,
+          competitor: data.analysis.bantc?.competitor || prev.competitor,
+        }));
+      }
+
+      alert('Transcript analyzed and fields auto-filled successfully!');
+    } catch (err: any) {
+      alert(err.message || 'Analysis failed');
+    } finally {
+      setIsAnalyzingTranscript(false);
+    }
+  };
 
   function applyMeetingBantcDefaults(activityType: string) {
     setActivityForm((f) => ({
@@ -1415,6 +1472,7 @@ export default function LeadDetailPage() {
       activity_date: activityForm.activity_date || undefined,
       next_follow_up_date: activityForm.next_follow_up_date || undefined,
       funnel_stage_id: activityForm.funnel_stage_id ? Number(activityForm.funnel_stage_id) : undefined,
+      transcript_id: linkedTranscriptId || undefined,
     };
     if (editingActivity) {
       activityUpdateMutation.mutate({ id: editingActivity.id, data: payload });
@@ -3753,8 +3811,52 @@ export default function LeadDetailPage() {
           </div>
 
           {activityForm.activity_type === 'Meeting' && (
-            <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4">
-              <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <>
+              {/* Meeting Transcript AI Analysis Section */}
+              <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4">
+                <div className="mb-3">
+                  <p className="text-sm font-semibold">Transcript Analysis</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Upload or paste your meeting transcript to automatically extract Notes, Outcome, and BANTC fields.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2 flex flex-col gap-2">
+                    <input
+                      type="file"
+                      className="text-xs"
+                      accept=".txt,.vtt,.srt,.mp3,.wav,.m4a,.mp4,.mov,.webm"
+                      onChange={(e) => setActivityTranscriptFile(e.target.files?.[0] || null)}
+                    />
+                    <textarea
+                      value={activityTranscriptText}
+                      onChange={(e) => setActivityTranscriptText(e.target.value)}
+                      placeholder="Or paste transcript text here..."
+                      className="h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={analyzeActivityTranscript}
+                      disabled={isAnalyzingTranscript || (!activityTranscriptFile && !activityTranscriptText.trim())}
+                      className="self-start"
+                    >
+                      {isAnalyzingTranscript ? (
+                        <>
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          Analyzing Transcript...
+                        </>
+                      ) : (
+                        'Analyze & Auto-fill'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4">
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold">BANTC Discovery</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
@@ -3786,6 +3888,7 @@ export default function LeadDetailPage() {
                 ))}
               </div>
             </div>
+            </>
           )}
 
           {/* Next Follow-up */}

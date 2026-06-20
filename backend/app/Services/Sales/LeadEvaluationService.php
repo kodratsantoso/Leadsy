@@ -29,6 +29,56 @@ class LeadEvaluationService
     public function __construct(private AiOrchestrationService $ai) {}
 
     /**
+     * Evaluate a transcript specifically for Activity creation (BANTC + Notes)
+     */
+    public function evaluateActivityTranscript(Lead $lead, string $transcriptText): array
+    {
+        $prompt = <<<PROMPT
+        Analyze this meeting transcript and extract the meeting notes (description), the outcome, and BANTC variables.
+        
+        Company: {$lead->company_name}
+        Industry: {$lead->industry?->name}
+        
+        Transcript:
+        {$transcriptText}
+        
+        Return ONLY valid JSON with this exact schema:
+        {
+          "description": "Comprehensive summary of the meeting notes",
+          "outcome": "The outcome or next step of the meeting",
+          "bantc": {
+            "budget": "...",
+            "authority": "...",
+            "needs": "...",
+            "timeline": "...",
+            "competitor": "..."
+          }
+        }
+        PROMPT;
+
+        $result = $this->ai->call('activity_transcript_analysis', $prompt);
+
+        if ($result['success'] && $result['content']) {
+            $parsed = $this->parseJson($result['content']);
+            if ($parsed) {
+                return $parsed;
+            }
+        }
+
+        return [
+            'description' => '',
+            'outcome' => '',
+            'bantc' => [
+                'budget' => '',
+                'authority' => '',
+                'needs' => '',
+                'timeline' => '',
+                'competitor' => ''
+            ]
+        ];
+    }
+
+    /**
      * Evaluate a transcript using AI
      */
     public function evaluateTranscript(Lead $lead, LeadTranscript $transcript): LeadAiEvaluation
