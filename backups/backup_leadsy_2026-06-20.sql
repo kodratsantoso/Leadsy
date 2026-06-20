@@ -1,0 +1,4 @@
+-- LEADSY_DATA_ONLY_BACKUP
+-- Generated at: 2026-06-20T19:24:22+07:00
+-- Source: local docker compose service postgres, database leads
+-- Excludes runtime/security tables: public.cache public.cache_locks public.failed_jobs public.job_batches public.jobs public.sessions public.password_reset_tokens public.personal_access_tokens public.email_verification_otps public.ai_connection_tests public.ai_requests public.integration_configs public.migrations

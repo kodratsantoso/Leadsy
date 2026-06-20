@@ -122,3 +122,23 @@ Leadsy now has database-backed source and channel classification for leads.
 - Created an aggregation layer (`CustomerJourneyService`) that combines Leads, Activities, Meetings, Transcripts, Intelligence, Revenue, and Product matching data.
 - Added a `customer_story` column to `leads` table to cache the final generated narrative.
 - Built a responsive 3-column UI (Timeline, Story, Insights) that supports native browser PDF export (`window.print()`).
+
+### Phase 10: Customer Journey View (Completed)
+- **Objective**: Consolidate lead, meeting, AI analysis, product match, and activity data into one single Timeline view.
+- **Implementation**:
+  - `CustomerJourneyService.php`: Backend logic linking multiple relations (activities, transcripts, AI analysis, BANTC, matched products) into a timeline format.
+  - `CustomerJourneyController.php`: API endpoints connecting backend to frontend.
+  - `Lead.php` & `2026_06_20_121530_add_customer_story_to_leads_table.php`: Added `customer_story` field to Lead table to keep an evolving summary.
+  - Frontend `CustomerJourneyView` component integrating the data in a three-column layout. Added print/PDF export capabilities (`@media print`).
+- **Status**: Tested and merged into `leadsy-backup` and `origin`.
+
+### Phase 11: Progressive Flux Loader Adoption (Completed)
+- **Objective**: Standardize animated progress indicators across dashboards and details pages using `ProgressiveFluxLoader`.
+- **Implementation**:
+  - `frontend/components/ui/progressive-flux-loader.tsx`: Added Framer Motion-based animated component.
+  - Replaced static `overflow-hidden rounded-full` div bars with `<ProgressiveFluxLoader />` in:
+    - `frontend/app/page.tsx` (Dashboard Team Performance & Origin metrics)
+    - `frontend/app/leads/[id]/page.tsx` (Lead ICP & AI metrics)
+    - `frontend/app/whatsapp/qontak/page.tsx` (Omnichannel chat AI insights)
+    - `frontend/components/map/map-results-panel.tsx` (Discovery Map product fit gauge)
+- **Status**: Tested and pushed to `leadsy-backup` and `origin`.

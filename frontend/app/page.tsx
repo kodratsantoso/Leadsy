@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
 import { Tabs } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { AILoader } from "@/components/ui/ai-loader";
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import Link from "next/link";
