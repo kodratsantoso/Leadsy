@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { cn, safeJsonArray } from '@/lib/utils';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuide';
+import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -49,8 +50,13 @@ function ConfidenceDot({ score }: { score?: number | null }) {
   const color = pct >= 80 ? 'bg-[var(--status-success)]' : pct >= 50 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-danger)]';
   return (
     <div className="flex items-center gap-1.5">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      <div className="w-16">
+        <ProgressiveFluxLoader
+          value={pct}
+          showLabel={false}
+          barClassName="h-1.5"
+          gradient={`var(${color.replace('bg-[var(', '--').replace(')]', ')')})`}
+        />
       </div>
       <span className="text-[10px] font-medium tabular-nums text-muted-foreground">{pct}%</span>
     </div>
@@ -2159,12 +2165,12 @@ export default function LeadDetailPage() {
                     </p>
                     <p className="pb-1 text-sm text-muted-foreground">ICP score</p>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted/50">
-                    <div
-                      className="h-full rounded-full bg-[var(--brand)] transition-all"
-                      style={{ width: `${clampPercent(icpMatch.icp_score ?? icpMatch.match_score)}%` }}
-                    />
-                  </div>
+                  <ProgressiveFluxLoader
+                    value={clampPercent(icpMatch.icp_score ?? icpMatch.match_score)}
+                    showLabel={false}
+                    barClassName="h-2"
+                    gradient="var(--brand)"
+                  />
                   <p className="text-sm text-muted-foreground">
                     {icpReasoning || 'Run ICP Match to evaluate this lead against your configured ICP.'}
                   </p>
@@ -2209,12 +2215,12 @@ export default function LeadDetailPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted/60">
-                      <div
-                        className="h-full rounded-full bg-[var(--brand)] transition-all"
-                        style={{ width: `${clampPercent(factor.raw_score)}%` }}
-                      />
-                    </div>
+                    <ProgressiveFluxLoader
+                      value={clampPercent(factor.raw_score)}
+                      showLabel={false}
+                      barClassName="h-2 mt-3"
+                      gradient="var(--brand)"
+                    />
                   </div>
                 ))}
               </div>
@@ -2358,12 +2364,12 @@ export default function LeadDetailPage() {
                       </div>
 
                       {/* Score bar */}
-                      <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
-                        <div
-                          className={`h-full rounded-full transition-all ${match.match_level === 'strong' ? 'bg-[var(--status-success)]' : match.match_level === 'moderate' ? 'bg-[var(--status-warning)]' : 'bg-muted-foreground/40'}`}
-                          style={{ width: `${match.match_score}%` }}
-                        />
-                      </div>
+                      <ProgressiveFluxLoader
+                        value={match.match_score}
+                        showLabel={false}
+                        barClassName="h-1.5 mb-3"
+                        gradient={match.match_level === 'strong' ? 'var(--status-success)' : match.match_level === 'moderate' ? 'var(--status-warning)' : 'currentColor'}
+                      />
 
                       {/* BANT breakdown */}
                       {Object.keys(bant).length > 0 && (

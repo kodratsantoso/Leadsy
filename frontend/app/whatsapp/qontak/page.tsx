@@ -18,6 +18,7 @@ import {
   useWhatsApp,
   type WaConversation, type WaMessage
 } from "@/lib/hooks/use-whatsapp";
+import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 
 type Folder = "all" | "my" | "unassigned" | "assigned" | "resolved";
 type SortOption = "newest" | "oldest" | "relevance";
@@ -834,16 +835,12 @@ export default function MekariQontakPage() {
                       <span className="font-bold text-foreground">{Math.round(activeConv.ai_analysis.confidence_score * 100)}%</span>
                     </div>
                     {/* Visual progress bar */}
-                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full rounded-full transition-all duration-300",
-                          activeConv.ai_analysis.analysis_result === "yes" ? "bg-[var(--status-success)]" :
-                          activeConv.ai_analysis.analysis_result === "maybe" ? "bg-[var(--status-warning)]" : "bg-[var(--status-danger)]"
-                        )}
-                        style={{ width: `${activeConv.ai_analysis.confidence_score * 100}%` }}
-                      />
-                    </div>
+                    <ProgressiveFluxLoader
+                      value={activeConv.ai_analysis.confidence_score * 100}
+                      showLabel={false}
+                      barClassName="h-1.5"
+                      gradient={activeConv.ai_analysis.analysis_result === "yes" ? "var(--status-success)" : activeConv.ai_analysis.analysis_result === "maybe" ? "var(--status-warning)" : "var(--status-danger)"}
+                    />
                   </div>
                 </div>
               ) : (

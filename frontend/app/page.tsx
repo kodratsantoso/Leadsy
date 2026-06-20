@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
 import { Tabs } from "@/components/ui/tabs";
+import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import Link from "next/link";
 import { resolveStageColor } from "@/lib/stage-colors";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
@@ -621,12 +622,12 @@ export default function DashboardPage() {
               </div>
               <span className="shrink-0 text-sm font-bold tabular-nums">{formatNumber(value, { decimals: 0 })}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted/50">
-              <div
-                className="h-full rounded-full bg-[color:var(--status-info)] transition-all duration-500 group-hover:bg-[color:var(--brand)]"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
+            <ProgressiveFluxLoader
+              value={pct}
+              showLabel={false}
+              barClassName="h-2"
+              gradient="var(--status-info)"
+            />
           </button>
         );
       }) : (
@@ -1362,12 +1363,12 @@ export default function DashboardPage() {
                               : "No target"}
                           </p>
                         </div>
-                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
-                          <div
-                            className="h-full rounded-full bg-[color:var(--brand)]"
-                            style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
-                          />
-                        </div>
+                        <ProgressiveFluxLoader
+                          value={Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}
+                          showLabel={false}
+                          barClassName="h-2 mt-2"
+                          gradient="var(--brand)"
+                        />
                       </div>
 
                       <div className="rounded-lg bg-muted/40 p-3 flex justify-between items-center text-xs">
@@ -1474,12 +1475,12 @@ export default function DashboardPage() {
                               : "No target"}
                           </p>
                         </div>
-                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted/50">
-                          <div
-                            className="h-full rounded-full bg-[color:var(--brand)]"
-                            style={{ width: `${Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}%` }}
-                          />
-                        </div>
+                        <ProgressiveFluxLoader
+                          value={Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}
+                          showLabel={false}
+                          barClassName="h-2 mt-2"
+                          gradient="var(--brand)"
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="rounded-lg bg-muted/40 p-3">
@@ -1719,12 +1720,12 @@ export default function DashboardPage() {
                                         </span>
                                         <span className="text-muted-foreground group-hover:underline text-[10px]">Detail →</span>
                                       </div>
-                                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                                        <div
-                                          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-                                          style={{ width: `${Math.min(100, rep.achievement_percentage)}%` }}
-                                        />
-                                      </div>
+                                      <ProgressiveFluxLoader
+                                        value={Math.min(100, rep.achievement_percentage)}
+                                        showLabel={false}
+                                        barClassName="h-1.5"
+                                        gradient={`var(${barColor.replace('bg-[color:', '').replace(']', '')})`}
+                                      />
                                     </button>
                                   </TableCell>
                                 </TableRow>
@@ -2203,12 +2204,12 @@ function TeamPerformancePanel() {
                           <span>Target: {formatCurrency(totalTargetRevenue)}</span>
                           <span className="font-semibold text-foreground">{overallAchievementRate.toFixed(1)}%</span>
                         </div>
-                        <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
-                          <div 
-                            className="h-full bg-[color:var(--status-success)] rounded-full transition-all duration-500" 
-                            style={{ width: `${Math.min(overallAchievementRate, 100)}%` }}
-                          />
-                        </div>
+                        <ProgressiveFluxLoader 
+                          value={Math.min(overallAchievementRate, 100)} 
+                          showLabel={false} 
+                          barClassName="h-1.5"
+                          gradient="var(--status-success)"
+                        />
                       </div>
                     ) : (
                       <p className="text-[11px] text-muted-foreground mt-1">No target revenue configured</p>
@@ -2230,12 +2231,12 @@ function TeamPerformancePanel() {
                       {avgPresalesEligibleRate.toFixed(1)}%
                     </p>
                     <div className="space-y-1 mt-2">
-                      <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
-                        <div 
-                          className="h-full bg-[color:var(--status-info)] rounded-full transition-all duration-500" 
-                          style={{ width: `${Math.min(avgPresalesEligibleRate, 100)}%` }}
-                        />
-                      </div>
+                      <ProgressiveFluxLoader 
+                        value={Math.min(avgPresalesEligibleRate, 100)} 
+                        showLabel={false} 
+                        barClassName="h-1.5"
+                        gradient="var(--status-info)"
+                      />
                     </div>
                   </div>
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklch,var(--status-info)_10%,transparent)] text-[color:var(--status-info)] shadow-inner transition-transform group-hover:scale-110 duration-300">
@@ -2525,12 +2526,12 @@ function TeamPerformancePanel() {
                         <span className="text-muted-foreground font-medium">{targetLabel}</span>
                         <span className="font-extrabold font-mono text-foreground">{formatCurrency(member.target_revenue)}</span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden relative">
-                        <div 
-                          className={cn("h-full rounded-full transition-all duration-500", progressColor)} 
-                          style={{ width: `${Math.min(achievementRate, 100)}%` }}
-                        />
-                      </div>
+                      <ProgressiveFluxLoader 
+                        value={Math.min(achievementRate, 100)} 
+                        showLabel={false} 
+                        barClassName="h-2"
+                        gradient={progressColor.replace('bg-[color:', '').replace(']', '')}
+                      />
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="text-muted-foreground font-medium">Progress</span>
                         <span className={cn("font-extrabold font-mono", progressText)}>
