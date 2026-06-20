@@ -16,7 +16,7 @@ class CustomerJourneyController extends Controller
         $this->authorize('view', $lead);
         $data = $this->journeyService->compileJourney($lead);
 
-        return response()->json($data);
+        return response()->json(['data' => $data]);
     }
 
     public function generateStory(Lead $lead): JsonResponse
@@ -26,7 +26,9 @@ class CustomerJourneyController extends Controller
         $story = $this->journeyService->generateCustomerStory($lead);
 
         return response()->json([
-            'story' => $story
+            'data' => [
+                'story' => $story
+            ]
         ]);
     }
 }

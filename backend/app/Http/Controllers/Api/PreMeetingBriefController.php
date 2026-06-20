@@ -16,7 +16,7 @@ class PreMeetingBriefController extends Controller
         $this->authorize('view', $lead);
         $brief = $lead->preMeetingBrief()->with('product')->first();
 
-        return response()->json($brief);
+        return response()->json(['data' => $brief]);
     }
 
     public function generate(Lead $lead): JsonResponse
@@ -26,6 +26,6 @@ class PreMeetingBriefController extends Controller
         $brief = $this->briefService->generateBrief($lead);
         $brief->load('product');
 
-        return response()->json($brief);
+        return response()->json(['data' => $brief]);
     }
 }

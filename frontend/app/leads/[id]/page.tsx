@@ -738,7 +738,7 @@ export default function LeadDetailPage() {
   const { data: preMeetingBrief, refetch: refetchPreMeetingBrief } = useQuery({
     queryKey: ['preMeetingBrief', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief`).then((r) => r.json()),
-    enabled: activeTab === 'pre-meeting-brief',
+    enabled: activeTab === 'pre-meeting brief',
   });
 
   const { data: customerJourney, refetch: refetchCustomerJourney } = useQuery({
@@ -3204,7 +3204,7 @@ export default function LeadDetailPage() {
       )}
 
       {/* ── PRE-MEETING BRIEF TAB ── */}
-      {activeTab === 'pre-meeting-brief' && (
+      {activeTab === 'pre-meeting brief' && (
         <div className="space-y-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
