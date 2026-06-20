@@ -49,6 +49,8 @@ export interface ProgressiveFluxLoaderProps {
   barClassName?: string;
   /** Classes for the phase label. */
   textClassName?: string;
+  /** Layout mode: 'page' (large, centered) or 'feature' (compact, fits container) */
+  layout?: "page" | "feature";
 }
 
 /* ── constants ───────────────────────────────────────────────── */
@@ -180,6 +182,7 @@ export function ProgressiveFluxLoader({
   className,
   barClassName,
   textClassName,
+  layout = "page",
 }: ProgressiveFluxLoaderProps) {
   const reduced = !!useReducedMotion();
   const isControlled = typeof value === "number";
@@ -258,7 +261,8 @@ export function ProgressiveFluxLoader({
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-md flex-col items-center gap-8",
+        "flex w-full flex-col",
+        layout === "page" ? "mx-auto max-w-md items-center gap-8" : "gap-2",
         className,
       )}
     >

@@ -53,7 +53,7 @@ function ConfidenceDot({ score }: { score?: number | null }) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="w-16">
-        <ProgressiveFluxLoader
+        <ProgressiveFluxLoader layout="feature"
           value={pct}
           showLabel={false}
           barClassName="h-1.5"
@@ -1332,11 +1332,7 @@ export default function LeadDetailPage() {
 
   /* ── Render ── */
   if (leadLoading) {
-    return (
-      <div className="flex h-96 flex-col items-center justify-center py-20 text-muted-foreground select-none">
-        <AILoader text="Loading" />
-      </div>
-    );
+    return <AILoader text="Loading" fullScreen />;
   }
 
   const leadData      = lead?.data || {};
@@ -2167,7 +2163,7 @@ export default function LeadDetailPage() {
                     </p>
                     <p className="pb-1 text-sm text-muted-foreground">ICP score</p>
                   </div>
-                  <ProgressiveFluxLoader
+                  <ProgressiveFluxLoader layout="feature"
                     value={clampPercent(icpMatch.icp_score ?? icpMatch.match_score)}
                     showLabel={false}
                     barClassName="h-2"
@@ -2217,7 +2213,7 @@ export default function LeadDetailPage() {
                         </p>
                       </div>
                     </div>
-                    <ProgressiveFluxLoader
+                    <ProgressiveFluxLoader layout="feature"
                       value={clampPercent(factor.raw_score)}
                       showLabel={false}
                       barClassName="h-2 mt-3"
@@ -2366,7 +2362,7 @@ export default function LeadDetailPage() {
                       </div>
 
                       {/* Score bar */}
-                      <ProgressiveFluxLoader
+                      <ProgressiveFluxLoader layout="feature"
                         value={match.match_score}
                         showLabel={false}
                         barClassName="h-1.5 mb-3"

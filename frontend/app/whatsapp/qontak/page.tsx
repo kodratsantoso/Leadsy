@@ -837,7 +837,7 @@ export default function MekariQontakPage() {
                       <span className="font-bold text-foreground">{Math.round(activeConv.ai_analysis.confidence_score * 100)}%</span>
                     </div>
                     {/* Visual progress bar */}
-                    <ProgressiveFluxLoader
+                    <ProgressiveFluxLoader layout="feature"
                       value={activeConv.ai_analysis.confidence_score * 100}
                       showLabel={false}
                       barClassName="h-1.5"

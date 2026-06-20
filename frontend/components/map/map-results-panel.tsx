@@ -80,7 +80,7 @@ function FitScoreGauge({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1">
-        <ProgressiveFluxLoader
+        <ProgressiveFluxLoader layout="feature"
           value={score}
           showLabel={false}
           barClassName="h-2"

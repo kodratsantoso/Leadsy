@@ -624,7 +624,7 @@ export default function DashboardPage() {
               </div>
               <span className="shrink-0 text-sm font-bold tabular-nums">{formatNumber(value, { decimals: 0 })}</span>
             </div>
-            <ProgressiveFluxLoader
+            <ProgressiveFluxLoader layout="feature"
               value={pct}
               showLabel={false}
               barClassName="h-2"
@@ -1367,7 +1367,7 @@ export default function DashboardPage() {
                               : "No target"}
                           </p>
                         </div>
-                        <ProgressiveFluxLoader
+                        <ProgressiveFluxLoader layout="feature"
                           value={Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}
                           showLabel={false}
                           barClassName="h-2 mt-2"
@@ -1479,7 +1479,7 @@ export default function DashboardPage() {
                               : "No target"}
                           </p>
                         </div>
-                        <ProgressiveFluxLoader
+                        <ProgressiveFluxLoader layout="feature"
                           value={Number(salesAchievement.target_revenue ?? 0) > 0 ? Math.min(100, Number(salesAchievement.achievement_percentage ?? 0)) : 0}
                           showLabel={false}
                           barClassName="h-2 mt-2"
@@ -1724,7 +1724,7 @@ export default function DashboardPage() {
                                         </span>
                                         <span className="text-muted-foreground group-hover:underline text-[10px]">Detail →</span>
                                       </div>
-                                      <ProgressiveFluxLoader
+                                      <ProgressiveFluxLoader layout="feature"
                                         value={Math.min(100, rep.achievement_percentage)}
                                         showLabel={false}
                                         barClassName="h-1.5"
@@ -2208,7 +2208,7 @@ function TeamPerformancePanel() {
                           <span>Target: {formatCurrency(totalTargetRevenue)}</span>
                           <span className="font-semibold text-foreground">{overallAchievementRate.toFixed(1)}%</span>
                         </div>
-                        <ProgressiveFluxLoader 
+                        <ProgressiveFluxLoader layout="feature" 
                           value={Math.min(overallAchievementRate, 100)} 
                           showLabel={false} 
                           barClassName="h-1.5"
@@ -2235,7 +2235,7 @@ function TeamPerformancePanel() {
                       {avgPresalesEligibleRate.toFixed(1)}%
                     </p>
                     <div className="space-y-1 mt-2">
-                      <ProgressiveFluxLoader 
+                      <ProgressiveFluxLoader layout="feature" 
                         value={Math.min(avgPresalesEligibleRate, 100)} 
                         showLabel={false} 
                         barClassName="h-1.5"
@@ -2530,7 +2530,7 @@ function TeamPerformancePanel() {
                         <span className="text-muted-foreground font-medium">{targetLabel}</span>
                         <span className="font-extrabold font-mono text-foreground">{formatCurrency(member.target_revenue)}</span>
                       </div>
-                      <ProgressiveFluxLoader 
+                      <ProgressiveFluxLoader layout="feature" 
                         value={Math.min(achievementRate, 100)} 
                         showLabel={false} 
                         barClassName="h-2"
