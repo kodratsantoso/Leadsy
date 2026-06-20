@@ -20,7 +20,8 @@ type Currency = {
   name: string;
   symbol: string | null;
   minor_unit: number;
-  idr_exchange_rate: string | null;
+  exchange_rate: string | null;
+  base_currency: string | null;
   exchange_rate_updated_at: string | null;
 };
 
@@ -132,13 +133,24 @@ export default function CurrencySettingsPage() {
   return (
     <div className="space-y-6 p-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <BackToSettings />
-            <CardTitle>Currency</CardTitle>
+            <div className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Currency</CardTitle>
+            </div>
             <CardDescription>Database-backed currency, thousand separator, decimal separator, and decimal precision.</CardDescription>
           </div>
-          <Coins className="h-5 w-5 text-muted-foreground" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => syncRatesMutation.mutate()}
+            disabled={syncRatesMutation.isPending || !setting}
+          >
+            {syncRatesMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
+            Sync {setting?.currency_code || "Exchange"} Rates
+          </Button>
         </CardHeader>
         {feedback ? (
           <CardContent className="pt-0">
@@ -271,20 +283,11 @@ export default function CurrencySettingsPage() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader>
           <div>
             <CardTitle>Currency Master Data</CardTitle>
             <CardDescription>World currency reference loaded from the database.</CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => syncRatesMutation.mutate()}
-            disabled={syncRatesMutation.isPending}
-          >
-            {syncRatesMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
-            Sync IDR Exchange Rates
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -302,9 +305,9 @@ export default function CurrencySettingsPage() {
                   <div>
                     <p className="font-semibold">{currency.code}</p>
                     <p className="text-xs text-muted-foreground">{currency.name}</p>
-                    {currency.idr_exchange_rate && (
+                    {currency.exchange_rate && currency.base_currency && (
                       <p className="mt-2 text-[10px] text-muted-foreground">
-                        1 {currency.code} = {Number(currency.idr_exchange_rate).toLocaleString("id-ID", { maximumFractionDigits: 2 })} IDR
+                        1 {currency.code} = {Number(currency.exchange_rate).toLocaleString(undefined, { maximumFractionDigits: 6 })} {currency.base_currency}
                         <br />
                         <span className="opacity-70">
                           {new Date(currency.exchange_rate_updated_at!).toLocaleDateString("id-ID", {

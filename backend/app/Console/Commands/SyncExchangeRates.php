@@ -12,24 +12,25 @@ class SyncExchangeRates extends Command
      *
      * @var string
      */
-    protected $signature = 'app:sync-exchange-rates';
+    protected $signature = 'app:sync-exchange-rates {base_currency=IDR : The base currency code to fetch rates against}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch latest IDR exchange rates from open.er-api.com and update currencies table';
+    protected $description = 'Fetch latest exchange rates from open.er-api.com and update currencies table';
 
     /**
      * Execute the console command.
      */
     public function handle(CurrencyExchangeService $service)
     {
-        $this->info('Starting exchange rates synchronization...');
+        $base = strtoupper($this->argument('base_currency'));
+        $this->info("Starting exchange rates synchronization with base {$base}...");
         
-        $count = $service->syncRates();
+        $count = $service->syncRates($base);
 
-        $this->info("Successfully updated {$count} currencies.");
+        $this->info("Successfully updated {$count} currencies relative to {$base}.");
     }
 }

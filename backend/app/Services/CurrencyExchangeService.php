@@ -10,18 +10,15 @@ class CurrencyExchangeService
 {
     /**
      * Fetch exchange rates from an Open API and update the database.
-     * We use ExchangeRate-API (open.er-api.com) with USD as base because it's highly reliable and free.
+     * We use ExchangeRate-API (open.er-api.com).
      * 
+     * @param string $baseCurrencyCode The base currency to fetch rates against (e.g. 'IDR', 'USD')
      * @return int Number of currencies updated
      */
-    public function syncRates(): int
+    public function syncRates(string $baseCurrencyCode = 'IDR'): int
     {
-        // Fetch rates based on USD (since IDR is a secondary currency, fetching IDR base directly might have lower precision or availability depending on API)
-        // Wait, open.er-api.com supports IDR as base. Let's use IDR as base to get direct rates where 1 Unit = X IDR.
-        // If we use IDR as base, the API returns how many IDR is 1 Unit? No, it returns how many of the target currency is 1 IDR.
-        // Example: IDR base -> USD is 0.000062. So 1 USD = 1 / 0.000062 IDR.
-        
-        $response = Http::get('https://open.er-api.com/v6/latest/IDR');
+        $baseCurrencyCode = strtoupper($baseCurrencyCode);
+        $response = Http::get("https://open.er-api.com/v6/latest/{$baseCurrencyCode}");
         
         if (!$response->successful()) {
             Log::error('Failed to fetch exchange rates from API.', [
@@ -38,7 +35,7 @@ class CurrencyExchangeService
             return 0;
         }
 
-        $rates = $data['rates']; // Key is currency code, value is rate against 1 IDR. e.g., 'USD' => 0.0000615
+        $rates = $data['rates']; // Key is currency code, value is rate against 1 unit of $baseCurrencyCode
 
         $currencies = Currency::where('is_active', true)->get();
         $updatedCount = 0;
@@ -47,9 +44,10 @@ class CurrencyExchangeService
         foreach ($currencies as $currency) {
             $code = strtoupper($currency->code);
             
-            if ($code === 'IDR') {
+            if ($code === $baseCurrencyCode) {
                 $currency->update([
-                    'idr_exchange_rate' => 1.0000,
+                    'exchange_rate' => 1.0000,
+                    'base_currency' => $baseCurrencyCode,
                     'exchange_rate_updated_at' => $now,
                 ]);
                 $updatedCount++;
@@ -57,14 +55,15 @@ class CurrencyExchangeService
             }
 
             if (isset($rates[$code])) {
-                $ratePerIdr = $rates[$code];
+                $ratePerBase = $rates[$code];
                 
-                if ($ratePerIdr > 0) {
-                    // How much IDR is 1 unit of this currency?
-                    $idrValue = 1 / $ratePerIdr;
+                if ($ratePerBase > 0) {
+                    // How much of the base currency is 1 unit of this currency?
+                    $baseValue = 1 / $ratePerBase;
                     
                     $currency->update([
-                        'idr_exchange_rate' => $idrValue,
+                        'exchange_rate' => $baseValue,
+                        'base_currency' => $baseCurrencyCode,
                         'exchange_rate_updated_at' => $now,
                     ]);
                     $updatedCount++;

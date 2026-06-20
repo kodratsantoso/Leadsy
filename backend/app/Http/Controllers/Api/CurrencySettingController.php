@@ -31,14 +31,17 @@ class CurrencySettingController extends Controller
         return response()->json(['data' => $this->serializeSetting($this->currentSetting($request))]);
     }
 
-    public function syncRates(CurrencyExchangeService $service): JsonResponse
+    public function syncRates(Request $request, CurrencyExchangeService $service): JsonResponse
     {
         $this->authorize('integrations.manage'); // Reuse integrations.manage permission or just let middleware handle it
         
-        $count = $service->syncRates();
+        $setting = $this->currentSetting($request);
+        $baseCurrencyCode = $setting->currency?->code ?? 'IDR';
+        
+        $count = $service->syncRates($baseCurrencyCode);
 
         return response()->json([
-            'message' => "Successfully updated {$count} currency exchange rates."
+            'message' => "Successfully updated {$count} currency exchange rates relative to {$baseCurrencyCode}."
         ]);
     }
 
