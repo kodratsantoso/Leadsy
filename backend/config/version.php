@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.6.0',
-    'released_at' => '2026-06-07',
+    'version' => '1.7.0',
+    'released_at' => '2026-06-20',
     'type' => 'minor',   // major | minor | patch
-    'notes' => 'Add multi-user WhatsApp workspace isolation, simplified Mekari Qontak Auth, active sessions monitor, and user deletion resource transfer',
+    'notes' => 'Fix Pre-Meeting Brief and Customer Journey AI generation. Support dynamic base currency exchange rates synchronization.',
 ];

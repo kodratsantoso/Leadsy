@@ -9,6 +9,13 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.7.0] — 2026-06-20 · Minor Release
+
+### Fitur Baru & Perbaikan Utama
+- **IDR Exchange Rate Feature** — Menambahkan kapabilitas sinkronisasi *Exchange Rate* (nilai tukar) secara dinamis untuk seluruh mata uang di Currency Master Data berdasarkan konfigurasi `base_currency` (contoh USD atau IDR) menggunakan Open ExchangeRate-API. Sinkronisasi manual dapat dilakukan via Settings > Currency.
+- **AI Feature Bug Fixes** — Memperbaiki fungsi tombol "Generate Brief" (Pre-Meeting Brief) dan "Customer Journey" yang sebelumnya gagal memproses luaran dari AI.
+- **Database Snapshots Update** — Memperbarui PostgreSQL database snapshots (`backup_leadsy_2026-06-20_v1.7.0.sql`) dengan kolom baru `exchange_rate`, `base_currency`, dan `exchange_rate_updated_at` pada tabel `currencies`.
+
 ## [1.6.1] — 2026-06-12 · Patch Release
 
 ### Perbaikan & Penyelarasan
