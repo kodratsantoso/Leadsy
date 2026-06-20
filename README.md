@@ -4,7 +4,13 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.6.2** — 2026-06-14
+Current release: **v1.6.3** — 2026-06-20
+
+## What's New in v1.6.3
+
+- **UI & CI Fixes** — Restored missing `progressive-flux-loader` UI component to resolve CI/CD pipeline build errors.
+- **Lead Detail Tabs Fix** — Fixed data binding and tab conditions for "Pre-Meeting Brief" and "Customer Journey" to render correctly instead of showing empty screens.
+- **Integration Setting Layout Alignment** — Removed fixed-width constraints on the Integration Setting page so it scales dynamically to match other settings pages.
 
 ## What's New in v1.6.2
 
