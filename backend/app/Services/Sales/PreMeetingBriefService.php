@@ -56,7 +56,7 @@ class PreMeetingBriefService
         $prompt = "Context data:\n" . json_encode($context, JSON_PRETTY_PRINT);
 
         $result = $this->ai->call('pre_meeting_brief_generation', $prompt);
-        $data = json_decode($result, true);
+        $data = json_decode($result['content'] ?? '{}', true);
 
         // Save
         $brief = $lead->preMeetingBrief()->updateOrCreate(

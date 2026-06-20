@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Currency;
 use App\Models\CurrencySetting;
 use App\Services\AuditService;
+use App\Services\CurrencyExchangeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,17 @@ class CurrencySettingController extends Controller
     public function format(Request $request): JsonResponse
     {
         return response()->json(['data' => $this->serializeSetting($this->currentSetting($request))]);
+    }
+
+    public function syncRates(CurrencyExchangeService $service): JsonResponse
+    {
+        $this->authorize('integrations.manage'); // Reuse integrations.manage permission or just let middleware handle it
+        
+        $count = $service->syncRates();
+
+        return response()->json([
+            'message' => "Successfully updated {$count} currency exchange rates."
+        ]);
     }
 
     public function update(Request $request): JsonResponse

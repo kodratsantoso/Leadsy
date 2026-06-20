@@ -4,7 +4,13 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.6.3** — 2026-06-20
+Current release: **v1.6.4** — 2026-06-20
+
+## What's New in v1.6.4
+
+- **AI Feature Bug Fixes** — Fixed the "Generate Brief" and "Customer Journey" buttons that were failing due to incorrect AI response parsing logic on the backend.
+- **IDR Exchange Rate Feature** — Added a new database-backed feature to fetch and store IDR Exchange Rates for all currencies in the Currency Master Data using the Open ExchangeRate-API. Included a manual sync button in the Settings > Currency page.
+- **Database Snapshots Update** — Refreshed the PostgreSQL database snapshots (`backup_leadsy_2026-06-20_v1.6.4.sql`) to include the new `idr_exchange_rate` and `exchange_rate_updated_at` columns on the `currencies` table.
 
 ## What's New in v1.6.3
 
