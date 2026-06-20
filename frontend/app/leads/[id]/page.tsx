@@ -19,7 +19,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { cn, safeJsonArray } from '@/lib/utils';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuide';
 
@@ -223,11 +223,11 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
 
       {/* Buying signals + Objections */}
       <div className="grid grid-cols-2 gap-4">
-        {analysis.buying_signals?.length > 0 && (
+        {safeJsonArray(analysis.buying_signals).length > 0 && (
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--status-success)] mb-2">Buying Signals</p>
             <ul className="space-y-1">
-              {analysis.buying_signals.map((s: string, i: number) => (
+              {safeJsonArray(analysis.buying_signals).map((s: string, i: number) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs">
                   <CheckCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-[var(--status-success)]" />
                   {s}
@@ -236,11 +236,11 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
             </ul>
           </div>
         )}
-        {analysis.objections?.length > 0 && (
+        {safeJsonArray(analysis.objections).length > 0 && (
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger)] mb-2">Objections</p>
             <ul className="space-y-1">
-              {analysis.objections.map((o: string, i: number) => (
+              {safeJsonArray(analysis.objections).map((o: string, i: number) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs">
                   <AlertCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-[var(--status-danger)]" />
                   {o}
@@ -268,11 +268,11 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
       )}
 
       {/* Reasoning */}
-      {analysis.reasoning?.length > 0 && (
+      {safeJsonArray(analysis.reasoning).length > 0 && (
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Reasoning</p>
           <ol className="space-y-1 list-none">
-            {analysis.reasoning.map((r: string, i: number) => (
+            {safeJsonArray(analysis.reasoning).map((r: string, i: number) => (
               <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                 <span className="flex-shrink-0 w-4 h-4 rounded-full bg-muted/50 flex items-center justify-center text-[9px] font-bold">{i + 1}</span>
                 {r}
@@ -2321,7 +2321,7 @@ export default function LeadDetailPage() {
               <div className="space-y-4">
                 {topProducts.map((match: any, idx: number) => {
                   const bant = match.bant_analysis || {};
-                  const reasoning = Array.isArray(match.reasoning) ? match.reasoning : [];
+                  const reasoning = safeJsonArray(match.reasoning);
                   const levelColor = match.match_level === 'strong'
                     ? 'text-[var(--status-success)] bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] border-[var(--status-success)]/30'
                     : match.match_level === 'moderate'
@@ -3117,11 +3117,11 @@ export default function LeadDetailPage() {
                           </div>
                         )}
 
-                        {evaluation.buying_signals?.length > 0 && (
+                        {safeJsonArray(evaluation.buying_signals).length > 0 && (
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--status-success)] mb-2">Buying Signals</p>
                             <ul className="space-y-1">
-                              {evaluation.buying_signals.map((s: string, i: number) => (
+                              {safeJsonArray(evaluation.buying_signals).map((s: string, i: number) => (
                                 <li key={i} className="flex items-start gap-1.5 text-xs">
                                   <CheckCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-success)]" />{s}
                                 </li>
@@ -3130,11 +3130,11 @@ export default function LeadDetailPage() {
                           </div>
                         )}
 
-                        {evaluation.objections_detected?.length > 0 && (
+                        {safeJsonArray(evaluation.objections_detected).length > 0 && (
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--status-danger)] mb-2">Objections Detected</p>
                             <ul className="space-y-1">
-                              {evaluation.objections_detected.map((o: string, i: number) => (
+                              {safeJsonArray(evaluation.objections_detected).map((o: string, i: number) => (
                                 <li key={i} className="flex items-start gap-1.5 text-xs">
                                   <AlertCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-danger)]" />{o}
                                 </li>
