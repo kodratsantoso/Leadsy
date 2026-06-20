@@ -625,7 +625,7 @@ class LeadController extends Controller
 
         if (! empty($data['transcript_id'])) {
             $transcript = $lead->transcripts()->find($data['transcript_id']);
-            if ($transcript && !$transcript->activity_id) {
+            if ($transcript && ! $transcript->activity_id) {
                 $transcript->update(['activity_id' => $activity->id]);
             }
         }
@@ -1237,71 +1237,79 @@ class LeadController extends Controller
     /** POST /api/leads/{lead}/activities/analyze-transcript */
     public function analyzeActivityTranscript(Request $request, Lead $lead): JsonResponse
     {
-        $data = $request->validate([
-            'transcript_text' => 'nullable|string',
-            'transcript_file' => 'nullable|file|max:51200|mimes:txt,vtt,srt,mp3,wav,m4a,mp4,mov,webm',
-        ]);
+        try {
+            $data = $request->validate([
+                'transcript_text' => 'nullable|string',
+                'transcript_file' => 'nullable|file|max:51200|mimes:txt,vtt,srt,mp3,wav,m4a,mp4,mov,webm',
+            ]);
 
-        $filePath = null;
-        $fileName = null;
-        $fileMime = null;
-        $fileSize = null;
-        $transcriptText = $data['transcript_text'] ?? null;
+            $filePath = null;
+            $fileName = null;
+            $fileMime = null;
+            $fileSize = null;
+            $transcriptText = $data['transcript_text'] ?? null;
 
-        if ($request->hasFile('transcript_file')) {
-            $file = $request->file('transcript_file');
-            $filePath = $file->store('lead-transcripts', 'public');
-            $fileName = $file->getClientOriginalName();
-            $fileMime = $file->getMimeType();
-            $fileSize = $file->getSize();
+            if ($request->hasFile('transcript_file')) {
+                $file = $request->file('transcript_file');
+                $filePath = $file->store('lead-transcripts', 'public');
+                $fileName = $file->getClientOriginalName();
+                $fileMime = $file->getMimeType();
+                $fileSize = $file->getSize();
 
-            $extension = strtolower($file->getClientOriginalExtension());
-            if (in_array($extension, ['txt', 'vtt', 'srt'], true)) {
-                $fileText = file_get_contents($file->getRealPath());
-                if (is_string($fileText) && trim($fileText) !== '') {
-                    $transcriptText = trim($transcriptText ? "{$transcriptText}\n\n{$fileText}" : $fileText);
+                $extension = strtolower($file->getClientOriginalExtension());
+                if (in_array($extension, ['txt', 'vtt', 'srt'], true)) {
+                    $fileText = file_get_contents($file->getRealPath());
+                    if (is_string($fileText) && trim($fileText) !== '') {
+                        $transcriptText = trim($transcriptText ? "{$transcriptText}\n\n{$fileText}" : $fileText);
+                    }
                 }
             }
-        }
 
-        if (! $transcriptText && ! $filePath) {
-            abort(422, 'Transcript text or a transcript file is required.');
-        }
-
-        $transcript = $lead->transcripts()->create([
-            'title' => 'Meeting Transcript (' . now()->format('Y-m-d') . ')',
-            'source_type' => 'meeting',
-            'transcript_text' => $transcriptText,
-            'file_path' => $filePath,
-            'file_name' => $fileName,
-            'file_mime' => $fileMime,
-            'file_size' => $fileSize,
-            'recorded_at' => now(),
-            'evaluation_status' => 'pending',
-        ]);
-
-        AuditService::log('create_transcript_for_activity', 'lead_transcripts', $transcript, null, [
-            'source_type' => 'meeting',
-        ]);
-
-        $analysisResult = null;
-        if ($transcriptText) {
-            $service = app(LeadEvaluationService::class);
-            $analysisResult = $service->evaluateActivityTranscript($lead, $transcriptText);
-            
-            try {
-                $service->evaluateTranscript($lead, $transcript);
-            } catch (\Exception $e) {
-                // Ignore standard evaluation error
+            if (! $transcriptText && ! $filePath) {
+                abort(422, 'Transcript text or a transcript file is required.');
             }
-        }
 
-        return response()->json([
-            'data' => [
-                'transcript' => $transcript,
-                'analysis' => $analysisResult,
-            ]
-        ], 201);
+            $transcript = $lead->transcripts()->create([
+                'title' => 'Meeting Transcript ('.now()->format('Y-m-d').')',
+                'source_type' => 'meeting',
+                'transcript_text' => $transcriptText,
+                'file_path' => $filePath,
+                'file_name' => $fileName,
+                'file_mime' => $fileMime,
+                'file_size' => $fileSize,
+                'recorded_at' => now(),
+                'evaluation_status' => 'pending',
+            ]);
+
+            AuditService::log('create_transcript_for_activity', 'lead_transcripts', $transcript, null, [
+                'source_type' => 'meeting',
+            ]);
+
+            $analysisResult = null;
+            if ($transcriptText) {
+                $service = app(LeadEvaluationService::class);
+                $analysisResult = $service->evaluateActivityTranscript($lead, $transcriptText);
+
+                try {
+                    $service->evaluateTranscript($lead, $transcript);
+                } catch (\Exception $e) {
+                    // Ignore standard evaluation error
+                }
+            }
+
+            return response()->json([
+                'data' => [
+                    'transcript' => $transcript,
+                    'analysis' => $analysisResult,
+                ],
+            ], 201);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'An unexpected server error occurred.',
+                'actual_error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
+        }
     }
 
     /** POST /api/leads/{lead}/transcripts */

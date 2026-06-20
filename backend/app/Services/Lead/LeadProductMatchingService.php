@@ -427,12 +427,12 @@ class LeadProductMatchingService
             'competitor_notes' => $product->competitor_notes,
             'keywords' => $product->keywords,
             'supported_regions' => $product->supported_regions,
-            'tiers' => $product->tiers->map(fn($t) => [
+            'tiers' => $product->tiers->map(fn ($t) => [
                 'name' => $t->name,
                 'price' => $t->price,
                 'pricing_type' => $t->pricing_type,
                 'billing_period' => $t->billing_period,
-                'subscription_duration' => $t->subscription_duration_value . ' ' . $t->subscription_duration_unit,
+                'subscription_duration' => $t->subscription_duration_value.' '.$t->subscription_duration_unit,
                 'features' => $t->features,
             ]),
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

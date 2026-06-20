@@ -6,6 +6,7 @@ use App\Models\IntegrationConfig;
 use App\Models\WhatsappContact;
 use App\Models\WhatsappConversation;
 use App\Models\WhatsappMessage;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -106,44 +107,44 @@ class MekariQontakService
         ?array $bodyData = null,
         int $timeout = 15,
         ?string $accessToken = null
-    ): \Illuminate\Http\Client\Response {
-        if (!empty($queryParams)) {
+    ): Response {
+        if (! empty($queryParams)) {
             ksort($queryParams);
             $queryString = http_build_query($queryParams);
-            $path .= '?' . $queryString;
+            $path .= '?'.$queryString;
         }
 
-        $url = rtrim($baseUrl, '/') . $path;
+        $url = rtrim($baseUrl, '/').$path;
         $body = $bodyData !== null ? json_encode($bodyData) : null;
 
-        $isLegacy = !str_contains($baseUrl, 'mekari.com') && !str_contains($baseUrl, 'mekari.io');
+        $isLegacy = ! str_contains($baseUrl, 'mekari.com') && ! str_contains($baseUrl, 'mekari.io');
 
         if ($isLegacy) {
             // Legacy Qontak endpoints only support Bearer Token
-            if (!empty($accessToken)) {
+            if (! empty($accessToken)) {
                 $headers = [
-                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Authorization' => 'Bearer '.$accessToken,
                     'Content-Type' => 'application/json',
                 ];
-                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Using Bearer auth (Legacy)', ['headers' => $headers, 'url' => $url]);
+                Log::info('[Qontak Debug] Using Bearer auth (Legacy)', ['headers' => $headers, 'url' => $url]);
             } else {
                 $headers = $this->buildHmacHeaders($clientId ?? '', $clientSecret ?? '', $method, $path, $body);
-                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Fallback HMAC auth (Legacy)', ['headers' => $headers, 'url' => $url]);
+                Log::info('[Qontak Debug] Fallback HMAC auth (Legacy)', ['headers' => $headers, 'url' => $url]);
             }
         } else {
             // Modern Mekari endpoints: Prioritize HMAC if credentials are provided, otherwise use Bearer
-            if (!empty($clientId) && !empty($clientSecret)) {
+            if (! empty($clientId) && ! empty($clientSecret)) {
                 $headers = $this->buildHmacHeaders($clientId, $clientSecret, $method, $path, $body);
-                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Using HMAC auth (Modern)', ['headers' => $headers, 'url' => $url]);
-            } elseif (!empty($accessToken)) {
+                Log::info('[Qontak Debug] Using HMAC auth (Modern)', ['headers' => $headers, 'url' => $url]);
+            } elseif (! empty($accessToken)) {
                 $headers = [
-                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Authorization' => 'Bearer '.$accessToken,
                     'Content-Type' => 'application/json',
                 ];
-                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Using Bearer auth (Modern)', ['headers' => $headers, 'url' => $url]);
+                Log::info('[Qontak Debug] Using Bearer auth (Modern)', ['headers' => $headers, 'url' => $url]);
             } else {
                 $headers = $this->buildHmacHeaders($clientId ?? '', $clientSecret ?? '', $method, $path, $body);
-                \Illuminate\Support\Facades\Log::info('[Qontak Debug] Fallback HMAC auth (Modern)', ['headers' => $headers, 'url' => $url]);
+                Log::info('[Qontak Debug] Fallback HMAC auth (Modern)', ['headers' => $headers, 'url' => $url]);
             }
         }
 
@@ -166,10 +167,10 @@ class MekariQontakService
     private function resolveApiPath(string $baseUrl, string $relativePath): string
     {
         if (str_contains($baseUrl, 'mekari.com') || str_contains($baseUrl, 'mekari.io')) {
-            return '/qontak/chat/v1/' . ltrim($relativePath, '/');
+            return '/qontak/chat/v1/'.ltrim($relativePath, '/');
         }
 
-        return '/api/open/v1/' . ltrim($relativePath, '/');
+        return '/api/open/v1/'.ltrim($relativePath, '/');
     }
 
     /**
@@ -177,10 +178,10 @@ class MekariQontakService
      */
     public function testConnection(array $values): array
     {
-        $hasHmac = !empty($values['client_id']) && !empty($values['client_secret']);
-        $hasBearer = !empty($values['access_token']);
+        $hasHmac = ! empty($values['client_id']) && ! empty($values['client_secret']);
+        $hasBearer = ! empty($values['access_token']);
 
-        if (!$hasHmac && !$hasBearer) {
+        if (! $hasHmac && ! $hasBearer) {
             return [
                 'status' => 'error',
                 'message' => 'Either (Client ID and Client Secret) or (Access Token Bearer) are required.',
@@ -205,7 +206,7 @@ class MekariQontakService
 
             if ($response->successful()) {
                 $json = $response->json();
-                if (!is_array($json) || (!isset($json['data']) && !isset($json['message']))) {
+                if (! is_array($json) || (! isset($json['data']) && ! isset($json['message']))) {
                     return [
                         'status' => 'error',
                         'message' => 'Connection test returned a success status but invalid response format (HTML website content was returned). Please make sure your Base URL points to the API Gateway (e.g. https://sandbox-api.mekari.com or https://api.mekari.com) instead of the developer portal website.',
@@ -214,6 +215,7 @@ class MekariQontakService
                 }
 
                 $authType = $hasBearer ? 'Bearer auth' : 'HMAC auth';
+
                 return [
                     'status' => 'connected',
                     'message' => "Mekari Qontak API verified successfully ({$authType}).",
@@ -234,7 +236,7 @@ class MekariQontakService
         } catch (\Throwable $e) {
             return [
                 'status' => 'error',
-                'message' => 'Connection test failed: ' . $e->getMessage(),
+                'message' => 'Connection test failed: '.$e->getMessage(),
             ];
         }
     }
@@ -245,11 +247,12 @@ class MekariQontakService
     public function syncRooms(?int $tenantId = null): void
     {
         $creds = $this->getCredentials($tenantId);
-        $hasHmac = !empty($creds['client_id']) && !empty($creds['client_secret']);
-        $hasBearer = !empty($creds['access_token']);
+        $hasHmac = ! empty($creds['client_id']) && ! empty($creds['client_secret']);
+        $hasBearer = ! empty($creds['access_token']);
 
-        if (!$creds['enabled'] || (!$hasHmac && !$hasBearer)) {
+        if (! $creds['enabled'] || (! $hasHmac && ! $hasBearer)) {
             Log::info('[Qontak] Sync skipped: Integration is disabled or missing credentials.');
+
             return;
         }
 
@@ -280,7 +283,7 @@ class MekariQontakService
                     $creds['access_token'] ?? null
                 );
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     Log::error("[Qontak] Rooms sync API error: HTTP {$response->status()} - {$response->body()}");
                     break;
                 }
@@ -288,23 +291,23 @@ class MekariQontakService
                 $rooms = $response->json('data') ?? [];
                 foreach ($rooms as $room) {
                     $roomId = $room['id'] ?? null;
-                    if (!$roomId) {
+                    if (! $roomId) {
                         continue;
                     }
 
                     // Extract phone number / identifier
                     $phone = null;
-                    if (!empty($room['last_message']['raw_message']['contacts'])) {
+                    if (! empty($room['last_message']['raw_message']['contacts'])) {
                         $phone = $room['last_message']['raw_message']['contacts'][0]['wa_id'] ?? null;
                     }
-                    if (empty($phone) && !empty($room['last_message']['raw_message']['metadata'])) {
+                    if (empty($phone) && ! empty($room['last_message']['raw_message']['metadata'])) {
                         $phone = $room['last_message']['raw_message']['metadata']['display_phone_number'] ?? null;
                     }
-                    if (empty($phone) && !empty($room['name']) && preg_match('/^[+\d\s-]+$/', $room['name'])) {
+                    if (empty($phone) && ! empty($room['name']) && preg_match('/^[+\d\s-]+$/', $room['name'])) {
                         $phone = preg_replace('/[^0-9]/', '', $room['name']);
                     }
                     if (empty($phone)) {
-                        $phone = 'qontak_' . $roomId;
+                        $phone = 'qontak_'.$roomId;
                     }
 
                     $normalizedPhone = preg_replace('/[^0-9]/', '', $phone);
@@ -320,9 +323,9 @@ class MekariQontakService
                         ]
                     );
 
-                    $lastMsgAt = !empty($room['last_message_at'])
+                    $lastMsgAt = ! empty($room['last_message_at'])
                         ? Carbon::parse($room['last_message_at'])
-                        : (!empty($room['last_message']['created_at'])
+                        : (! empty($room['last_message']['created_at'])
                             ? Carbon::parse($room['last_message']['created_at'])
                             : now());
 
@@ -360,28 +363,28 @@ class MekariQontakService
                     );
 
                     // Save last message if present directly to ensure we have it
-                    if (!empty($room['last_message']) && !empty($room['last_message']['text'])) {
+                    if (! empty($room['last_message']) && ! empty($room['last_message']['text'])) {
                         $lastMsg = $room['last_message'];
                         $direction = 'inbound';
-                        
-                        if (!empty($lastMsg['sender_type']) && (
-                            str_contains($lastMsg['sender_type'], 'SystemAccount') || 
-                            str_contains($lastMsg['sender_type'], 'Agent') || 
+
+                        if (! empty($lastMsg['sender_type']) && (
+                            str_contains($lastMsg['sender_type'], 'SystemAccount') ||
+                            str_contains($lastMsg['sender_type'], 'Agent') ||
                             str_contains($lastMsg['sender_type'], 'User')
                         )) {
                             $direction = 'outbound';
-                        } elseif (!empty($lastMsg['participant_type']) && in_array($lastMsg['participant_type'], ['bot', 'agent'])) {
+                        } elseif (! empty($lastMsg['participant_type']) && in_array($lastMsg['participant_type'], ['bot', 'agent'])) {
                             $direction = 'outbound';
                         }
 
                         WhatsappMessage::updateOrCreate(
-                            ['external_message_id' => $lastMsg['id'] ?? ('qmsg_' . $roomId . '_' . $lastMsgAt->timestamp)],
+                            ['external_message_id' => $lastMsg['id'] ?? ('qmsg_'.$roomId.'_'.$lastMsgAt->timestamp)],
                             [
                                 'conversation_id' => $conversation->id,
                                 'direction' => $direction,
                                 'message_type' => $lastMsg['type'] ?? 'text',
                                 'body' => $lastMsg['text'],
-                                'sent_at' => !empty($lastMsg['created_at']) ? Carbon::parse($lastMsg['created_at']) : $lastMsgAt,
+                                'sent_at' => ! empty($lastMsg['created_at']) ? Carbon::parse($lastMsg['created_at']) : $lastMsgAt,
                             ]
                         );
                     }
@@ -391,7 +394,7 @@ class MekariQontakService
                         Log::info("[Qontak] Conversation {$roomId} is new or has updates. Syncing messages...");
                         $this->syncRoomMessages($roomId, $tenantId);
                     } catch (\Throwable $e) {
-                        Log::warning("[Qontak] Failed to sync intermediate messages for {$roomId}: " . $e->getMessage());
+                        Log::warning("[Qontak] Failed to sync intermediate messages for {$roomId}: ".$e->getMessage());
                     }
                 }
 
@@ -402,7 +405,7 @@ class MekariQontakService
                     $hasMore = false;
                 }
             } catch (\Throwable $e) {
-                Log::error('[Qontak] Failed to sync rooms: ' . $e->getMessage());
+                Log::error('[Qontak] Failed to sync rooms: '.$e->getMessage());
                 $hasMore = false;
             }
         }
@@ -414,15 +417,15 @@ class MekariQontakService
     public function syncRoomMessages(string $roomExternalId, ?int $tenantId = null): void
     {
         $creds = $this->getCredentials($tenantId);
-        $hasHmac = !empty($creds['client_id']) && !empty($creds['client_secret']);
-        $hasBearer = !empty($creds['access_token']);
+        $hasHmac = ! empty($creds['client_id']) && ! empty($creds['client_secret']);
+        $hasBearer = ! empty($creds['access_token']);
 
-        if (!$creds['enabled'] || (!$hasHmac && !$hasBearer)) {
+        if (! $creds['enabled'] || (! $hasHmac && ! $hasBearer)) {
             return;
         }
 
         $conversation = WhatsappConversation::where('external_chat_id', $roomExternalId)->first();
-        if (!$conversation) {
+        if (! $conversation) {
             return;
         }
 
@@ -453,7 +456,7 @@ class MekariQontakService
                     $creds['access_token'] ?? null
                 );
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     Log::error("[Qontak] Messages sync API error: HTTP {$response->status()} - {$response->body()}");
                     break;
                 }
@@ -471,13 +474,13 @@ class MekariQontakService
                     }
 
                     $direction = 'inbound';
-                    if (!empty($msg['sender_type']) && (
-                        str_contains($msg['sender_type'], 'SystemAccount') || 
-                        str_contains($msg['sender_type'], 'Agent') || 
+                    if (! empty($msg['sender_type']) && (
+                        str_contains($msg['sender_type'], 'SystemAccount') ||
+                        str_contains($msg['sender_type'], 'Agent') ||
                         str_contains($msg['sender_type'], 'User')
                     )) {
                         $direction = 'outbound';
-                    } elseif (!empty($msg['participant_type']) && in_array($msg['participant_type'], ['bot', 'agent'])) {
+                    } elseif (! empty($msg['participant_type']) && in_array($msg['participant_type'], ['bot', 'agent'])) {
                         $direction = 'outbound';
                     }
 
@@ -488,7 +491,7 @@ class MekariQontakService
                             'direction' => $direction,
                             'message_type' => $msg['type'] ?? 'text',
                             'body' => $msg['text'] ?? $msg['body'] ?? '',
-                            'sent_at' => !empty($msg['created_at']) ? Carbon::parse($msg['created_at']) : now(),
+                            'sent_at' => ! empty($msg['created_at']) ? Carbon::parse($msg['created_at']) : now(),
                         ]
                     );
                 }
@@ -500,7 +503,7 @@ class MekariQontakService
                     $hasMore = false;
                 }
             } catch (\Throwable $e) {
-                Log::error("[Qontak] Failed to sync messages for room {$roomExternalId}: " . $e->getMessage());
+                Log::error("[Qontak] Failed to sync messages for room {$roomExternalId}: ".$e->getMessage());
                 $hasMore = false;
             }
         }
@@ -512,7 +515,7 @@ class MekariQontakService
                 $conversation->update(['last_message_at' => $latestMsg->sent_at]);
             }
         } catch (\Throwable $e) {
-            Log::error("[Qontak] Failed to update last message timestamp for room {$roomExternalId}: " . $e->getMessage());
+            Log::error("[Qontak] Failed to update last message timestamp for room {$roomExternalId}: ".$e->getMessage());
         }
     }
 
@@ -522,10 +525,10 @@ class MekariQontakService
     public function sendMessage(string $roomExternalId, string $text, ?int $tenantId = null): array
     {
         $creds = $this->getCredentials($tenantId);
-        $hasHmac = !empty($creds['client_id']) && !empty($creds['client_secret']);
-        $hasBearer = !empty($creds['access_token']);
+        $hasHmac = ! empty($creds['client_id']) && ! empty($creds['client_secret']);
+        $hasBearer = ! empty($creds['access_token']);
 
-        if (!$creds['enabled'] || (!$hasHmac && !$hasBearer)) {
+        if (! $creds['enabled'] || (! $hasHmac && ! $hasBearer)) {
             return [
                 'status' => 'error',
                 'message' => 'Integration is disabled or missing credentials.',
@@ -573,7 +576,7 @@ class MekariQontakService
         } catch (\Throwable $e) {
             return [
                 'status' => 'error',
-                'message' => 'Failed to send message via Qontak: ' . $e->getMessage(),
+                'message' => 'Failed to send message via Qontak: '.$e->getMessage(),
             ];
         }
     }

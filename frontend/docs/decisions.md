@@ -132,3 +132,16 @@
 - **Rationale**: Prevents default page route navigation from triggering when clicking parent menus (such as Settings, WhatsApp, and Leads Generator), keeping the user's active page intact while navigating menu options.
 - **Impact**: All main menus with children (Settings, WhatsApp, Leads Generator) support toggled collapse and expand states. Parent menu pages are no longer loaded directly, and clicking a parent menu item when the sidebar is collapsed automatically expands the sidebar and opens the corresponding submenu.
 
+## ADR-019: Pre-Meeting Brief Intelligence Layer
+- **Date**: 2026-06-20
+- **Status**: Active
+- **Decision**: Implemented Pre-Meeting Brief as an intelligence layer utilizing existing data (leads, activities, transcripts, product matches). Results are stored as a single `LeadPreMeetingBrief` relationship. No new core entities created.
+- **Rationale**: User requested that no new separate tracking module be built, avoiding data duplication. The brief aggregates context and orchestrates the AI via existing prompt templates and AI services.
+- **Impact**: Provides sales teams with structured preparation directly in the Lead view without fragmented contexts.
+
+## ADR-020: Customer Journey Compilation Feature
+- **Date**: 2026-06-20
+- **Status**: Active
+- **Decision**: Implemented Customer Journey as an aggregation layer across existing data models (leads, activities, transcripts, AI insights, revenue, product matching). The generated narrative is cached in a `customer_story` column on the `leads` table. Output is rendered on a dedicated tab in a 3-column responsive layout, supporting native browser PDF exports using standard `@media print` CSS classes.
+- **Rationale**: User required a compiled chronological end-to-end view without creating duplicate core entities. Standard browser print functionality avoids heavyweight backend PDF generation dependencies while fulfilling the PDF export requirement.
+- **Impact**: Provides an integrated, exportable high-level executive summary of the entire customer lifecycle without redundant tables.

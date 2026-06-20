@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Process;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BackupController extends Controller
@@ -16,13 +16,14 @@ class BackupController extends Controller
         if (File::exists('/opt/homebrew/bin/pg_dump')) {
             return '/opt/homebrew/bin/pg_dump';
         }
+
         return 'pg_dump';
     }
 
     public function index(): JsonResponse
     {
         $backupDir = base_path('backups');
-        if (!File::exists($backupDir)) {
+        if (! File::exists($backupDir)) {
             File::makeDirectory($backupDir, 0755, true);
         }
 
@@ -47,7 +48,7 @@ class BackupController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $backups
+            'data' => $backups,
         ]);
     }
 
@@ -62,12 +63,12 @@ class BackupController extends Controller
         $timestamp = now()->format('Y-m-d_H-i-s');
         $filename = "backup_leadsy_{$timestamp}.sql";
         $backupDir = base_path('backups');
-        
-        if (!File::exists($backupDir)) {
+
+        if (! File::exists($backupDir)) {
             File::makeDirectory($backupDir, 0755, true);
         }
 
-        $filePath = $backupDir . '/' . $filename;
+        $filePath = $backupDir.'/'.$filename;
         $pgDump = $this->getPgDumpPath();
 
         $excludedTables = [
@@ -83,12 +84,12 @@ class BackupController extends Controller
             'public.ai_connection_tests',
             'public.ai_requests',
             'public.integration_configs',
-            'public.migrations'
+            'public.migrations',
         ];
 
         $excludeArgs = '';
         foreach ($excludedTables as $table) {
-            $excludeArgs .= ' --exclude-table-data=' . escapeshellarg($table);
+            $excludeArgs .= ' --exclude-table-data='.escapeshellarg($table);
         }
 
         $cmd = sprintf(
@@ -105,14 +106,15 @@ class BackupController extends Controller
         $result = Process::withEnvironment(['PGPASSWORD' => $password])
             ->run($cmd);
 
-        if (!$result->successful()) {
+        if (! $result->successful()) {
             // Cleanup incomplete file if created
             if (File::exists($filePath)) {
                 File::delete($filePath);
             }
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Backup failed: ' . $result->errorOutput()
+                'message' => 'Backup failed: '.$result->errorOutput(),
             ], 500);
         }
 
@@ -122,8 +124,8 @@ class BackupController extends Controller
             'data' => [
                 'filename' => $filename,
                 'size' => $this->formatBytes(filesize($filePath)),
-                'created_at' => date('c', filemtime($filePath))
-            ]
+                'created_at' => date('c', filemtime($filePath)),
+            ],
         ]);
     }
 
@@ -131,12 +133,12 @@ class BackupController extends Controller
     {
         $filename = basename($filename);
         $backupDir = base_path('backups');
-        $filePath = realpath($backupDir . '/' . $filename);
+        $filePath = realpath($backupDir.'/'.$filename);
 
-        if (!$filePath || !str_starts_with($filePath, realpath($backupDir)) || !File::exists($filePath)) {
+        if (! $filePath || ! str_starts_with($filePath, realpath($backupDir)) || ! File::exists($filePath)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'File not found or access denied.'
+                'message' => 'File not found or access denied.',
             ], 404);
         }
 
@@ -147,12 +149,12 @@ class BackupController extends Controller
     {
         $filename = basename($filename);
         $backupDir = base_path('backups');
-        $filePath = realpath($backupDir . '/' . $filename);
+        $filePath = realpath($backupDir.'/'.$filename);
 
-        if (!$filePath || !str_starts_with($filePath, realpath($backupDir)) || !File::exists($filePath)) {
+        if (! $filePath || ! str_starts_with($filePath, realpath($backupDir)) || ! File::exists($filePath)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'File not found or access denied.'
+                'message' => 'File not found or access denied.',
             ], 404);
         }
 
@@ -160,7 +162,7 @@ class BackupController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Backup deleted successfully'
+            'message' => 'Backup deleted successfully',
         ]);
     }
 
@@ -172,6 +174,6 @@ class BackupController extends Controller
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return round($bytes, $precision).' '.$units[$pow];
     }
 }

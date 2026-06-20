@@ -73,8 +73,8 @@ class LeadEvaluationService
                 'authority' => '',
                 'needs' => '',
                 'timeline' => '',
-                'competitor' => ''
-            ]
+                'competitor' => '',
+            ],
         ];
     }
 
@@ -102,6 +102,7 @@ class LeadEvaluationService
             'summary' => $this->stringValue($evaluation['summary'] ?? null),
             'objections_detected' => $evaluation['objections'] ?? [],
             'buying_signals' => $evaluation['buying_signals'] ?? [],
+            'bantc_extracted' => $evaluation['bantc_extracted'] ?? null,
             'next_best_action' => $evaluation['next_best_action'] ?? 'Schedule follow-up',
             'recommended_product_id' => $evaluation['recommended_product_id'] ?? null,
             'confidence_score' => (int) ($evaluation['confidence'] ?? 50),
@@ -200,8 +201,9 @@ class LeadEvaluationService
                 'intent_level' => $latestEval->intent_level,
                 'interest_level' => $latestEval->interest_level,
                 'buying_signals' => $latestEval->buying_signals,
-                'next_action' => $latestEval->next_best_action,
-                'confidence' => $latestEval->confidence_score,
+                'bantc_extracted' => $latestEval->bantc_data,
+                'next_best_action' => $latestEval->next_best_action,
+                'confidence_score' => $latestEval->confidence_score,
             ] : null,
             'sentiment_distribution' => $sentiments,
             'common_objections' => $this->getCommonObjections($lead),
@@ -242,6 +244,7 @@ class LeadEvaluationService
         - buying_signals: array of 2-3 positive buying signals (if any)
         - next_best_action: recommended next step (string, brief)
         - confidence: 0-100 confidence in this evaluation
+        - bantc_extracted: object containing budget, authority, needs, timeline, competitor based on transcript content
         
         Company: {$lead->company_name}
         Industry: {$lead->industry?->name}

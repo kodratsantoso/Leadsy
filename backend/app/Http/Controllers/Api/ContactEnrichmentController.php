@@ -457,47 +457,47 @@ class ContactEnrichmentController extends Controller
         ]);
 
         return $contact;
-     }
+    }
 
-     private function mergeLinkedinContact(Lead $lead, ContactEnrichmentCandidate $candidate): LeadContact
-     {
-         $raw = $candidate->raw_preview ?? [];
-         $linkedinUrl = $raw['linkedin_url'] ?? null;
+    private function mergeLinkedinContact(Lead $lead, ContactEnrichmentCandidate $candidate): LeadContact
+    {
+        $raw = $candidate->raw_preview ?? [];
+        $linkedinUrl = $raw['linkedin_url'] ?? null;
 
-         $query = $lead->contacts();
-         if (! empty($linkedinUrl)) {
-             $query->where('linkedin_url', $linkedinUrl);
-         } else {
-             $query->where('name', $candidate->name);
-         }
+        $query = $lead->contacts();
+        if (! empty($linkedinUrl)) {
+            $query->where('linkedin_url', $linkedinUrl);
+        } else {
+            $query->where('name', $candidate->name);
+        }
 
-         $contact = $query->first();
-         $values = [
-             'name' => $candidate->name,
-             'title' => $candidate->title,
-             'linkedin_url' => $linkedinUrl,
-             'confidence_score' => $raw['confidence_score'] ?? 70,
-             'confidence' => (($raw['confidence_score'] ?? 70) >= 80) ? 'high' : 'medium',
-             'source' => 'LINKEDIN',
-         ];
+        $contact = $query->first();
+        $values = [
+            'name' => $candidate->name,
+            'title' => $candidate->title,
+            'linkedin_url' => $linkedinUrl,
+            'confidence_score' => $raw['confidence_score'] ?? 70,
+            'confidence' => (($raw['confidence_score'] ?? 70) >= 80) ? 'high' : 'medium',
+            'source' => 'LINKEDIN',
+        ];
 
-         if ($contact) {
-             $contact->update(collect($values)
-                 ->filter(fn ($value, string $key): bool => $value !== null && empty($contact->{$key}))
-                 ->all());
-         } else {
-             $contact = $lead->contacts()->create($values + [
-                 'is_primary' => ! $lead->contacts()->where('is_primary', true)->exists(),
-             ]);
-         }
+        if ($contact) {
+            $contact->update(collect($values)
+                ->filter(fn ($value, string $key): bool => $value !== null && empty($contact->{$key}))
+                ->all());
+        } else {
+            $contact = $lead->contacts()->create($values + [
+                'is_primary' => ! $lead->contacts()->where('is_primary', true)->exists(),
+            ]);
+        }
 
-         $contact->payloads()->create([
-             'source_type' => 'LINKEDIN_SEARCH',
-             'raw_payload' => $raw,
-         ]);
+        $contact->payloads()->create([
+            'source_type' => 'LINKEDIN_SEARCH',
+            'raw_payload' => $raw,
+        ]);
 
-         return $contact;
-     }
+        return $contact;
+    }
 
     private function authorizeLushaGate(Lead $lead): void
     {

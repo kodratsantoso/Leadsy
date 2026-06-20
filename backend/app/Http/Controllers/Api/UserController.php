@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Lead;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\Lead;
 use App\Models\WhatsappSession;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
@@ -86,7 +86,7 @@ class UserController extends Controller
             ->orWhere('csm_owner_id', $user->id)
             ->exists();
 
-        if ($hasLeads && !$request->has('transfer_to_user_id')) {
+        if ($hasLeads && ! $request->has('transfer_to_user_id')) {
             return response()->json([
                 'message' => 'This user owns active leads. You must specify a recipient user to transfer these resources before deleting.',
                 'requires_transfer' => true,
@@ -118,8 +118,8 @@ class UserController extends Controller
         try {
             $sessionName = "user_session_{$user->id}";
             $sidecarUrl = env('WHATSAPP_SIDECAR_URL', 'http://127.0.0.1:3002');
-            Http::timeout(5)->withHeaders(['X-Session-Id' => $sessionName])->post(rtrim($sidecarUrl, '/') . '/api/session/disconnect');
-            
+            Http::timeout(5)->withHeaders(['X-Session-Id' => $sessionName])->post(rtrim($sidecarUrl, '/').'/api/session/disconnect');
+
             WhatsappSession::where('session_name', $sessionName)->delete();
         } catch (\Throwable $e) {
             // Ignore sidecar unreachable

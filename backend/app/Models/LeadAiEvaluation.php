@@ -11,7 +11,7 @@ class LeadAiEvaluation extends Model
     protected $fillable = [
         'lead_id', 'source_type', 'source_id', 'sentiment',
         'intent_level', 'interest_level', 'summary', 'objections_detected',
-        'buying_signals', 'next_best_action', 'recommended_product_id',
+        'buying_signals', 'bantc_extracted', 'next_best_action', 'recommended_product_id',
         'confidence_score', 'evaluated_at',
     ];
 
@@ -19,6 +19,7 @@ class LeadAiEvaluation extends Model
         'evaluated_at' => 'datetime',
         'objections_detected' => 'array',
         'buying_signals' => 'array',
+        'bantc_extracted' => 'array',
         'confidence_score' => 'integer',
     ];
 

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\IntegrationConfig;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +15,7 @@ class OpenSearchTest extends TestCase
 
         $response->assertStatus(400);
         $response->assertJson([
-            'error' => 'Search terms ("q") are required.'
+            'error' => 'Search terms ("q") are required.',
         ]);
     }
 
@@ -26,7 +25,7 @@ class OpenSearchTest extends TestCase
 
         $response->assertStatus(503);
         $response->assertJson([
-            'error' => 'Google Custom Search API Key or Search Engine ID is not configured.'
+            'error' => 'Google Custom Search API Key or Search Engine ID is not configured.',
         ]);
     }
 

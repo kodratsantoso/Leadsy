@@ -1,12 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\AiFeatureRouteController;
-use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\AiProviderController;
 use App\Http\Controllers\Api\AiSettingsController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\ContactEnrichmentController;
 use App\Http\Controllers\Api\CurrencySettingController;
 use App\Http\Controllers\Api\DashboardController;
@@ -20,6 +20,8 @@ use App\Http\Controllers\Api\LeadChannelTypeController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\LeadSourceTypeController;
 use App\Http\Controllers\Api\MapDiscoveryController;
+use App\Http\Controllers\Api\OpenSearchController;
+use App\Http\Controllers\Api\PreMeetingBriefController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\QualificationController;
 use App\Http\Controllers\Api\QualificationParameterSetController;
@@ -27,8 +29,8 @@ use App\Http\Controllers\Api\QualificationWorkflowController;
 use App\Http\Controllers\Api\QualificationWorkflowReviewController;
 use App\Http\Controllers\Api\RevenueRuleController;
 use App\Http\Controllers\Api\SalesVisitController;
-use App\Http\Controllers\Api\TerritoryController;
 use App\Http\Controllers\Api\TargetController;
+use App\Http\Controllers\Api\TerritoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
@@ -69,7 +71,7 @@ Route::prefix('auth')->group(function () {
 
 // ── Public Integrations (e.g. Browser Maps Key, APP_NAME, APP_ENV) ──
 Route::get('settings/public', [IntegrationConfigController::class, 'publicSettings']);
-Route::get('opensearch/contacts', [\App\Http\Controllers\Api\OpenSearchController::class, 'searchContacts']);
+Route::get('opensearch/contacts', [OpenSearchController::class, 'searchContacts']);
 
 // ── Webhooks (Must be outside Sanctum) ──
 Route::prefix('webhooks')->group(function () {
@@ -120,7 +122,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/assign', [LeadController::class, 'assign'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/rescore', [LeadController::class, 'rescore'])->middleware('permission:leads.edit');
-    Route::post('leads/{lead}/activities/analyze-transcript', [LeadController::class, 'analyzeActivityTranscript'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/meetings', [LeadController::class, 'logMeeting'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts', [LeadController::class, 'addContact'])->middleware('permission:leads.edit');
@@ -181,6 +182,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/evaluations', [LeadController::class, 'getEvaluations'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/follow-ups', [LeadController::class, 'getFollowUps'])->middleware('permission:leads.view');
+    Route::get('/leads/{lead}/pre-meeting-brief', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'show'])->middleware('permission:leads.view');
+    Route::post('/leads/{lead}/pre-meeting-brief', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'generate'])->middleware('permission:leads.edit');
+
+    Route::get('/leads/{lead}/customer-journey', [\App\Http\Controllers\Api\CustomerJourneyController::class, 'show'])->middleware('permission:leads.view');
+    Route::post('/leads/{lead}/customer-journey/story', [\App\Http\Controllers\Api\CustomerJourneyController::class, 'generateStory'])->middleware('permission:leads.edit');
 
     // Mobile field sales visits
     Route::get('sales-visits', [SalesVisitController::class, 'index'])->middleware('permission:leads.view');

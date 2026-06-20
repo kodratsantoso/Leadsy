@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\Development\SalesTeamSeeder;
 use Database\Seeders\Development\SampleLeadSeeder;
 use Illuminate\Database\Seeder;
 
@@ -23,7 +24,7 @@ class DevelopmentSeeder extends Seeder
         // Development-only data — never runs in production
         $this->call([
             SampleLeadSeeder::class,
-            \Database\Seeders\Development\SalesTeamSeeder::class,
+            SalesTeamSeeder::class,
         ]);
     }
 }

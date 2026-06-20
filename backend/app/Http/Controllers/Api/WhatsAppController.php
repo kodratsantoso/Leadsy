@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\AnalyzeWhatsAppConversationJob;
+use App\Models\FunnelStage;
 use App\Models\Lead;
+use App\Models\User;
 use App\Models\WhatsappCampaign;
 use App\Models\WhatsappCampaignRecipient;
 use App\Models\WhatsappContact;
@@ -12,9 +14,11 @@ use App\Models\WhatsappConversation;
 use App\Models\WhatsappMessage;
 use App\Models\WhatsappSession;
 use App\Models\WhatsappSyncRule;
+use App\Services\MekariQontakService;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -35,6 +39,7 @@ class WhatsAppController extends Controller
     private function getSessionName(?int $userId = null): string
     {
         $id = $userId ?? auth()->id() ?? auth('sanctum')->id() ?? request()->user()?->id;
+
         return $id ? "user_session_{$id}" : 'default_session';
     }
 
@@ -96,7 +101,7 @@ class WhatsAppController extends Controller
         $sessionName = $this->getSessionName($userId);
 
         $session = WhatsappSession::where('session_name', $sessionName)->first();
-        if (!$session) {
+        if (! $session) {
             $session = WhatsappSession::create([
                 'session_name' => $sessionName,
                 'status' => 'disconnected',
@@ -230,7 +235,7 @@ class WhatsAppController extends Controller
             $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
             $roomId = $conversation ? $conversation->external_chat_id : $data['phone'];
 
-            $service = resolve(\App\Services\MekariQontakService::class);
+            $service = resolve(MekariQontakService::class);
             $res = $service->sendMessage($roomId, $data['text'], $tenantId);
 
             if ($res['status'] !== 'success') {
@@ -270,7 +275,7 @@ class WhatsAppController extends Controller
                 'text' => $data['text'],
             ], 10, $sessionName);
 
-            if (!$res->successful()) {
+            if (! $res->successful()) {
                 return response()->json(['error' => $res->json('error', 'Send failed')], $res->status());
             }
 
@@ -333,7 +338,7 @@ class WhatsAppController extends Controller
         $campaigns = WhatsappCampaign::with([
             'recipients' => function ($q) {
                 $q->select('id', 'campaign_id', 'phone_number', 'send_status', 'sent_at');
-            }
+            },
         ])
             ->orderBy('created_at', 'desc')
             ->take(50)
@@ -497,25 +502,25 @@ class WhatsAppController extends Controller
         if ($platform === 'mekari_qontak') {
             $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
             $forceSync = $request->query('force_sync') === 'true';
-            
-            $cacheKey = 'qontak_sync_limit_' . ($tenantId ?? 'global');
-            if ($forceSync || !\Illuminate\Support\Facades\Cache::has($cacheKey)) {
-                \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
-                resolve(\App\Services\MekariQontakService::class)->syncRooms($tenantId);
+
+            $cacheKey = 'qontak_sync_limit_'.($tenantId ?? 'global');
+            if ($forceSync || ! Cache::has($cacheKey)) {
+                Cache::put($cacheKey, true, 30);
+                resolve(MekariQontakService::class)->syncRooms($tenantId);
             }
         }
 
         if ($platform === 'whatsapp') {
             $userId = $request->user()?->id ?? auth('sanctum')->id() ?? auth()->id();
             $forceSync = $request->query('force_sync') === 'true';
-            
+
             $hasConversations = WhatsappConversation::where('platform', 'whatsapp')
                 ->where('user_id', $userId)
                 ->exists();
 
-            $cacheKey = 'whatsapp_sync_limit_' . ($userId ?? 'global');
-            if ($forceSync || (!$hasConversations && !\Illuminate\Support\Facades\Cache::has($cacheKey))) {
-                \Illuminate\Support\Facades\Cache::put($cacheKey, true, 30);
+            $cacheKey = 'whatsapp_sync_limit_'.($userId ?? 'global');
+            if ($forceSync || (! $hasConversations && ! Cache::has($cacheKey))) {
+                Cache::put($cacheKey, true, 30);
                 try {
                     $sessionName = $this->getSessionName($userId);
                     $this->requestEngine('post', 'session/sync', [], 15, $sessionName);
@@ -550,13 +555,13 @@ class WhatsAppController extends Controller
             })
             ->first();
 
-        if (!$conversation) {
+        if (! $conversation) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
         if ($conversation->platform === 'mekari_qontak') {
             $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
-            resolve(\App\Services\MekariQontakService::class)->syncRoomMessages($conversation->external_chat_id, $tenantId);
+            resolve(MekariQontakService::class)->syncRoomMessages($conversation->external_chat_id, $tenantId);
         }
 
         $messages = WhatsappMessage::where('conversation_id', $id)
@@ -569,7 +574,7 @@ class WhatsAppController extends Controller
     public function analyzeConversation($id): JsonResponse
     {
         $conversation = WhatsappConversation::find($id);
-        if (!$conversation) {
+        if (! $conversation) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
@@ -668,12 +673,12 @@ class WhatsAppController extends Controller
     public function convertToLead(Request $request, $id): JsonResponse
     {
         $conversation = WhatsappConversation::find($id);
-        if (!$conversation) {
+        if (! $conversation) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
         $contact = $conversation->contact;
-        if (!$contact) {
+        if (! $contact) {
             return response()->json(['error' => 'Contact not found for this conversation'], 404);
         }
 
@@ -691,7 +696,7 @@ class WhatsAppController extends Controller
         ]);
 
         $ownerId = $validated['owner_id'] ?? $request->user()?->id ?? auth('sanctum')->id();
-        $stageId = $validated['funnel_stage_id'] ?? \App\Models\FunnelStage::orderBy('sequence')->value('id');
+        $stageId = $validated['funnel_stage_id'] ?? FunnelStage::orderBy('sequence')->value('id');
 
         $lead = Lead::create([
             'company_name' => $validated['company_name'],
@@ -705,7 +710,7 @@ class WhatsAppController extends Controller
         ]);
 
         $lead->contacts()->create([
-            'name' => $contact->name ?? 'Contact from ' . ucfirst($conversation->platform),
+            'name' => $contact->name ?? 'Contact from '.ucfirst($conversation->platform),
             'phone' => $contact->phone_number,
             'is_primary' => true,
             'source' => 'whatsapp',
@@ -736,7 +741,7 @@ class WhatsAppController extends Controller
                 }
             }
 
-            $users = \App\Models\User::whereIn('id', $userIds)->get()->keyBy('id');
+            $users = User::whereIn('id', $userIds)->get()->keyBy('id');
 
             $data = [];
             foreach ($activeSessions as $s) {
@@ -751,7 +756,7 @@ class WhatsAppController extends Controller
                             'status' => $s['status'],
                             'number' => $s['number'],
                             'name' => $s['name'],
-                            'has_auth' => $s['has_auth']
+                            'has_auth' => $s['has_auth'],
                         ];
                     }
                 }
@@ -760,6 +765,7 @@ class WhatsAppController extends Controller
             return response()->json(['data' => $data]);
         } catch (\Throwable $e) {
             Log::error('[WhatsApp] Failed to fetch active sessions', ['error' => $e->getMessage()]);
+
             return response()->json(['error' => 'Failed to reach WhatsApp Engine.'], 500);
         }
     }
@@ -767,7 +773,7 @@ class WhatsAppController extends Controller
     public function disconnectUser(Request $request, $userId): JsonResponse
     {
         $sessionName = "user_session_{$userId}";
-        
+
         $session = WhatsappSession::where('session_name', $sessionName)->first();
         if ($session) {
             $session->update([

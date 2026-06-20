@@ -121,7 +121,7 @@ class IntegrationConfigController extends Controller
         $permissions = [];
 
         // 1. Maps Javascript
-        $permissions[] = $apiKey 
+        $permissions[] = $apiKey
             ? $this->checkGoogleMapsJavascript($apiKey)
             : [
                 'id' => 'maps_javascript',
@@ -132,7 +132,7 @@ class IntegrationConfigController extends Controller
             ];
 
         // 2. Geocoding
-        $permissions[] = $apiKey 
+        $permissions[] = $apiKey
             ? $this->checkGoogleJsonApi(
                 'geocoding',
                 'Geocoding API',
@@ -488,21 +488,21 @@ class IntegrationConfigController extends Controller
             'description' => 'Used for high-performance approximate nearest neighbor (ANN) vector searches.',
         ];
 
-        if (!$enabled) {
+        if (! $enabled) {
             return $base + [
                 'status' => 'not_configured',
                 'message' => 'Vertex AI Vector Search is currently disabled.',
             ];
         }
 
-        if (!$saEmail || !$saPrivateKey || !$saProjectId) {
+        if (! $saEmail || ! $saPrivateKey || ! $saProjectId) {
             return $base + [
                 'status' => 'not_configured',
                 'message' => 'Google Service Account credentials (Email, Private Key, Project ID) are required to authenticate with Vertex AI Vector Search.',
             ];
         }
 
-        if (!$endpoint || !$location || !$indexEndpointId || !$deployedIndexId) {
+        if (! $endpoint || ! $location || ! $indexEndpointId || ! $deployedIndexId) {
             return $base + [
                 'status' => 'not_configured',
                 'message' => 'Endpoint, Location, Index Endpoint ID, and Deployed Index ID are required to verify Vector Search.',
@@ -511,7 +511,7 @@ class IntegrationConfigController extends Controller
 
         // Get Access Token
         $accessToken = $this->getGoogleAccessToken($saEmail, $saPrivateKey);
-        if (!$accessToken) {
+        if (! $accessToken) {
             return $base + [
                 'status' => 'invalid_key',
                 'message' => 'Failed to generate OAuth 2.0 access token using the Service Account credentials. Verify Email and Private Key.',
@@ -536,8 +536,8 @@ class IntegrationConfigController extends Controller
                                 'feature_vector' => array_fill(0, 128, 0.0),
                             ],
                             'neighbor_count' => 1,
-                        ]
-                    ]
+                        ],
+                    ],
                 ]);
 
             $status = $response->status();
@@ -555,33 +555,33 @@ class IntegrationConfigController extends Controller
             if ($status === 400 && (str_contains(strtolower($errorMsg), 'dimension') || str_contains(strtolower($errorMsg), 'mismatch'))) {
                 return $base + [
                     'status' => 'available',
-                    'message' => 'Connected successfully! API authenticated the credentials (returned dimension validation: ' . $errorMsg . ').',
+                    'message' => 'Connected successfully! API authenticated the credentials (returned dimension validation: '.$errorMsg.').',
                 ];
             }
 
             if ($status === 401 || $status === 403) {
                 return $base + [
                     'status' => 'restricted',
-                    'message' => 'Authentication rejected: ' . $errorMsg,
+                    'message' => 'Authentication rejected: '.$errorMsg,
                 ];
             }
 
             if ($status === 404) {
                 return $base + [
                     'status' => 'not_enabled',
-                    'message' => 'Resource not found. Verify Project ID, Location, Index Endpoint ID, and Deployed Index ID: ' . $errorMsg,
+                    'message' => 'Resource not found. Verify Project ID, Location, Index Endpoint ID, and Deployed Index ID: '.$errorMsg,
                 ];
             }
 
             return $base + [
                 'status' => 'not_available',
-                'message' => 'API call returned HTTP ' . $status . ': ' . $errorMsg,
+                'message' => 'API call returned HTTP '.$status.': '.$errorMsg,
             ];
 
         } catch (\Throwable $exception) {
             return $base + [
                 'status' => 'unknown',
-                'message' => 'Connection failed: ' . $exception->getMessage(),
+                'message' => 'Connection failed: '.$exception->getMessage(),
             ];
         }
     }
@@ -602,11 +602,11 @@ class IntegrationConfigController extends Controller
             $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
             $base64UrlClaimSet = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($claimSet));
 
-            $signatureInput = $base64UrlHeader . "." . $base64UrlClaimSet;
+            $signatureInput = $base64UrlHeader.'.'.$base64UrlClaimSet;
 
             // Load private key
             $pkeyId = openssl_pkey_get_private($privateKey);
-            if (!$pkeyId) {
+            if (! $pkeyId) {
                 return null;
             }
 
@@ -614,7 +614,7 @@ class IntegrationConfigController extends Controller
             openssl_free_key($pkeyId);
 
             $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
-            $jwt = $signatureInput . "." . $base64UrlSignature;
+            $jwt = $signatureInput.'.'.$base64UrlSignature;
 
             $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
                 'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',

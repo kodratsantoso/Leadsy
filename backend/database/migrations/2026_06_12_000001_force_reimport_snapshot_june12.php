@@ -38,9 +38,7 @@ return new class extends Migration
         });
     }
 
-    public function down(): void
-    {
-    }
+    public function down(): void {}
 
     private function readSnapshotSql(string $snapshotPath): string
     {

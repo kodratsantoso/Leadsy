@@ -9,6 +9,7 @@ use App\Models\WhatsappContact;
 use App\Models\WhatsappConversation;
 use App\Models\WhatsappMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -71,8 +72,8 @@ class WhatsAppControllerTest extends TestCase
                             'created_at' => '2026-05-31T09:00:00Z',
                             'sender_type' => 'Contact',
                         ],
-                    ]
-                ]
+                    ],
+                ],
             ]),
         ]);
 
@@ -133,8 +134,8 @@ class WhatsAppControllerTest extends TestCase
                         'text' => 'Reply from Agent',
                         'created_at' => '2026-05-31T09:05:00Z',
                         'sender_type' => 'AgentAccount',
-                    ]
-                ]
+                    ],
+                ],
             ]),
         ]);
 
@@ -180,13 +181,13 @@ class WhatsAppControllerTest extends TestCase
             'api.mekari.com/qontak/chat/v1/messages/whatsapp/bot' => Http::response([
                 'status' => 'success',
                 'data' => [
-                    'id' => 'msg-qontak-out-123'
-                ]
+                    'id' => 'msg-qontak-out-123',
+                ],
             ]),
         ]);
 
         $response = $this->actingAs($user)
-            ->postJson("/api/whatsapp/messages/send", [
+            ->postJson('/api/whatsapp/messages/send', [
                 'phone' => 'qontak-room-1',
                 'text' => 'Outbound reply from Leadsy',
                 'platform' => 'mekari_qontak',
@@ -228,15 +229,15 @@ class WhatsAppControllerTest extends TestCase
                             'created_at' => '2026-05-31T09:00:00Z',
                             'sender_type' => 'Contact',
                         ],
-                    ]
+                    ],
                 ],
                 'meta' => [
                     'pagination' => [
                         'cursor' => [
                             'next' => 'cursor-token-page-2',
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ]),
             'api.mekari.com/qontak/chat/v1/rooms?cursor=cursor-token-page-2&limit=50' => Http::response([
                 'data' => [
@@ -250,15 +251,15 @@ class WhatsAppControllerTest extends TestCase
                             'created_at' => '2026-05-31T09:10:00Z',
                             'sender_type' => 'Contact',
                         ],
-                    ]
+                    ],
                 ],
                 'meta' => [
                     'pagination' => [
                         'cursor' => [
                             'next' => null,
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ]),
         ]);
 
@@ -304,15 +305,15 @@ class WhatsAppControllerTest extends TestCase
                         'text' => 'Hello Page 1!',
                         'created_at' => '2026-05-31T09:00:00Z',
                         'sender_type' => 'Contact',
-                    ]
+                    ],
                 ],
                 'meta' => [
                     'pagination' => [
                         'cursor' => [
                             'next' => 'cursor-token-msg-2',
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ]),
             'api.mekari.com/qontak/chat/v1/rooms/qontak-room-1/messages?cursor=cursor-token-msg-2&limit=50' => Http::response([
                 'data' => [
@@ -321,15 +322,15 @@ class WhatsAppControllerTest extends TestCase
                         'text' => 'Hello Page 2!',
                         'created_at' => '2026-05-31T09:05:00Z',
                         'sender_type' => 'AgentAccount',
-                    ]
+                    ],
                 ],
                 'meta' => [
                     'pagination' => [
                         'cursor' => [
                             'next' => null,
-                        ]
-                    ]
-                ]
+                        ],
+                    ],
+                ],
             ]),
         ]);
 
@@ -382,7 +383,7 @@ class WhatsAppControllerTest extends TestCase
             ->assertOk();
 
         // Verify sidecar was called
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+        Http::assertSent(function (Request $request) {
             return str_contains($request->url(), '/session/sync');
         });
     }
@@ -393,7 +394,7 @@ class WhatsAppControllerTest extends TestCase
 
         $payload = [
             'action' => 'history_sync',
-            'session' => 'user_session_' . $user->id,
+            'session' => 'user_session_'.$user->id,
             'messages' => [
                 [
                     'external_id' => 'msg-hist-1',
@@ -402,8 +403,8 @@ class WhatsAppControllerTest extends TestCase
                     'body' => 'Old history message',
                     'direction' => 'inbound',
                     'timestamp' => 1780272000, // Unix timestamp for June 1, 2026
-                ]
-            ]
+                ],
+            ],
         ];
 
         $response = $this->postJson('/api/webhooks/whatsapp', $payload)

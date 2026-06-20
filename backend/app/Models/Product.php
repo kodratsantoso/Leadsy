@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
@@ -38,7 +39,7 @@ class Product extends Model
         return $this->hasOne(ProductQuestion::class);
     }
 
-    public function tiers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function tiers(): HasMany
     {
         return $this->hasMany(ProductTier::class);
     }

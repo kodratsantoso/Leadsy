@@ -182,8 +182,11 @@ Source of truth: `frontend/components/products/QuestionGuide.tsx`
 
 - Leads: manual create flow supports Add Location through map search/geocode and saves `lat`/`lng`.
 - Lead Detail Intelligence: `LeadBantcQuestionGuide` generates per-customer BANTC discovery questions from lead, contact, product, activity, AI analysis, and revenue context. Generated questions are local draft state until the user saves.
+- Pre-Meeting Brief: Orchestrates `PreMeetingBriefService` to compile Lead profile, latest activities, verified pipeline BANTC, transcripts, and Product match recommendations into a structured strategy including Objective Hypothesis, Presales Strategy, Risk Analysis, Pain Points, Pre-BANTC Estimation, Discovery Questions, and Demo Strategy. Results are stored in `lead_pre_meeting_briefs`.
 - Lead Detail Activities: `Meeting` activities capture Budget, Authority, Needs, Timeline, and Competitor fields; new Meeting logs prefill the latest saved BANTC values for iterative updates.
 - Lead Detail Transcripts: multiple transcripts can be stored per lead, linked to a related activity, and created from pasted text, TXT/VTT/SRT files, or attached audio/video files. AI transcript analysis requires text content and stores a summary plus sentiment, intent, interest, objections, buying signals, confidence, and next action.
+- Lead Detail Pre-Meeting Brief: Aggregates context before meetings to generate actionable insight without separate core entities.
+- Lead Detail Customer Journey: Provides a chronological timeline, AI-generated enterprise-level narrative story, and insights aggregated from meetings, transcripts, and product matches. Accessible via a dedicated tab and supports native browser PDF export (`@media print`).
 - User Settings: `direct_manager_id` defines hierarchy visibility; `target_period` and `target_revenue` define achievement tracking.
 
 ## Lark SSO Module

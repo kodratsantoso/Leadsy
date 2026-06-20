@@ -21,9 +21,7 @@ use App\Services\AI\AiOrchestrationService;
  */
 class LeadAIAnalysisService
 {
-    public function __construct(private AiOrchestrationService $ai)
-    {
-    }
+    public function __construct(private AiOrchestrationService $ai) {}
 
     /**
      * Analyze a lead using AI to understand opportunities
@@ -35,7 +33,7 @@ class LeadAIAnalysisService
 
         if ($result['success'] && $result['content']) {
             $analysis = json_decode($result['content'], true);
-            if (!is_array($analysis)) {
+            if (! is_array($analysis)) {
                 $analysis = $this->defaultAnalysis();
             }
         } else {

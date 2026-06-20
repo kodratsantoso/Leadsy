@@ -205,8 +205,8 @@ class AIPromptTemplateService
             'transcript_evaluation' => $this->featureTemplate(
                 'Transcript Evaluation',
                 'Extract structured insights from a meeting or call transcript.',
-                'Detect customer intent, objections, sentiment, requirements, risks, and follow-up actions. Ignore filler and avoid over-reading vague statements.',
-                'Return only valid JSON matching the transcript evaluation schema requested by the feature prompt.'
+                'Detect customer intent, objections, sentiment, requirements, risks, and follow-up actions. Also extract BANTC values (Budget, Authority, Needs, Timeline, Competitor) if mentioned in the transcript. Ignore filler and avoid over-reading vague statements.',
+                'Return only valid JSON matching the transcript evaluation schema requested by the feature prompt. bantc_extracted should be a nested object with keys: budget, authority, needs, timeline, competitor.'
             ),
             'activity_transcript_analysis' => $this->featureTemplate(
                 'Activity Transcript Analysis',
@@ -225,6 +225,12 @@ class AIPromptTemplateService
                 'Generate explainable recommendations for the configured Leadsy feature.',
                 'Use the supplied context and feature goal only. Prefer low-regret, operationally clear recommendations that a sales team can act on.',
                 'Return only valid JSON matching the feature prompt schema.'
+            ),
+            'pre_meeting_brief_generation' => $this->featureTemplate(
+                'Pre-Meeting Brief Generation',
+                'Generate a structured sales preparation brief before a meeting.',
+                'You are a high-level B2B sales strategist. You will be provided with Lead Context, Activities, BANTC, Transcripts, and Product Information. Analyze all these inputs carefully. Return ONLY raw JSON without any markdown formatting or code block markers. Do not invent facts outside of the given context.',
+                'Return ONLY valid JSON with exactly the following top-level keys: summary (object), objective_hypothesis (object), strategy (object), questions (array of objects), demo_strategy (object), bantc_pre (object), pain_point (object), risk_analysis (object), readiness_score (integer between 0 and 100).'
             ),
             'summary_generation' => $this->featureTemplate(
                 'Summary Generation',
@@ -274,6 +280,12 @@ class AIPromptTemplateService
                 'Analyze dashboard metrics and sales pipeline statistics to generate strategic executive insights for level C stakeholders.',
                 'Highlight key performance indicators, explain what the numbers indicate, note critical points/blockers/risks, and offer 3-4 concrete strategic suggestions. Keep the tone professional, objective, and executive-ready. Answer in Indonesian language (Bahasa Indonesia).',
                 'Return valid JSON with keys: explanation, strategic_suggestions, critical_points. Both strategic_suggestions and critical_points must be arrays of strings. Do not use markdown inside JSON fields.'
+            ),
+            'customer_journey_story' => $this->featureTemplate(
+                'Customer Journey Story Generation',
+                'Generate a clean, structured narrative summary of the end-to-end customer lifecycle.',
+                'You will receive compiled Lead Context, Timeline Events, Meeting Intelligence, and Product Fit data. Combine these into a professional enterprise-toned consulting-style narrative. Explain why the customer came in, what problem they had, how the solution fits, and their current status. Do not use robotic repetition, internal debug language, or raw JSON keys in your narrative text.',
+                'Return ONLY valid JSON with exactly one key: `story` (string). Do not return markdown, do not wrap in codeblocks.'
             ),
         ];
     }

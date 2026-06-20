@@ -63,7 +63,7 @@ class ProductController extends Controller
         $productData = collect($data)->except('tiers')->toArray();
         $productData['created_by'] = $request->user()?->id;
         $productData['tenant_id'] = $request->user()?->tenant_id;
-        
+
         $product = Product::create($productData);
 
         $tiersData = $data['tiers'] ?? [];

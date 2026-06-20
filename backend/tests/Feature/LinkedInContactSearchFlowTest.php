@@ -42,7 +42,7 @@ class LinkedInContactSearchFlowTest extends TestCase
                         'title' => 'John Doe - CFO - Acme Corp | LinkedIn',
                         'link' => 'https://www.linkedin.com/in/johndoe',
                         'snippet' => 'John Doe is the Chief Financial Officer at Acme Corp...',
-                    ]
+                    ],
                 ],
             ]),
         ]);

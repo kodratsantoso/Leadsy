@@ -9,6 +9,7 @@ use App\Models\WhatsappConversation;
 use App\Models\WhatsappMessage;
 use App\Models\WhatsappSession;
 use App\Services\WhatsApp\WhatsAppSyncEngine;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -110,7 +111,7 @@ class WhatsAppWebhookController extends Controller
             AnalyzeWhatsAppConversationJob::dispatch($conversation->id);
         } elseif ($action === 'history_sync') {
             $messages = $payload['messages'] ?? [];
-            \Log::info("WhatsApp History Sync webhook called with " . count($messages) . " messages");
+            \Log::info('WhatsApp History Sync webhook called with '.count($messages).' messages');
 
             foreach ($messages as $msgData) {
                 $remoteJid = $msgData['remote_jid'];
@@ -119,7 +120,7 @@ class WhatsAppWebhookController extends Controller
                 $direction = $msgData['direction'] ?? 'inbound';
                 $externalId = $msgData['external_id'];
                 $timestamp = $msgData['timestamp'] ?? null;
-                $sentAt = $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : now();
+                $sentAt = $timestamp ? Carbon::createFromTimestamp($timestamp) : now();
 
                 // Evaluate Privacy Flow FIRST for inbound messages
                 $allowed = true;
@@ -133,7 +134,7 @@ class WhatsAppWebhookController extends Controller
                     $reason = $eval['reason'];
                 }
 
-                if (!$allowed) {
+                if (! $allowed) {
                     continue; // Skip restricted messages
                 }
 
@@ -180,7 +181,7 @@ class WhatsAppWebhookController extends Controller
                 );
 
                 // Update last_message_at if this message is newer
-                if (!$conversation->last_message_at || $sentAt->gt($conversation->last_message_at)) {
+                if (! $conversation->last_message_at || $sentAt->gt($conversation->last_message_at)) {
                     $conversation->update(['last_message_at' => $sentAt]);
                 }
             }

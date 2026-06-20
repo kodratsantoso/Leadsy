@@ -3,9 +3,9 @@
 namespace App\Services\Enrichment\Providers;
 
 use App\Contracts\ContactEnrichmentProviderInterface;
+use App\Models\IntegrationConfig;
 use App\Models\Lead;
 use App\Models\LeadContact;
-use App\Models\IntegrationConfig;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;

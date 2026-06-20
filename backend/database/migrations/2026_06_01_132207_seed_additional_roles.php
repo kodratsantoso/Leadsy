@@ -1,15 +1,15 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use App\Models\Role;
 use App\Models\Permission;
+use App\Models\Role;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
     public function up(): void
     {
         // Safe check in case Permission table is not loaded yet or in fresh migration contexts
-        $execIds = Schema::hasTable('permissions') 
+        $execIds = Schema::hasTable('permissions')
             ? Permission::whereIn('name', ['leads.view', 'leads.create', 'leads.edit', 'products.view'])->pluck('id')->toArray()
             : [];
 
@@ -23,7 +23,7 @@ return new class extends Migration
                 ['name' => $r['name']],
                 ['display_name' => $r['display_name']]
             );
-            if (!empty($r['perms'])) {
+            if (! empty($r['perms'])) {
                 $role->permissions()->syncWithoutDetaching($r['perms']);
             }
         }

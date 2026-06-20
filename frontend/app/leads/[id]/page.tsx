@@ -13,7 +13,7 @@ import {
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info, Search, ExternalLink,
+  Activity, Info, Search, ExternalLink, Printer,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -648,15 +648,10 @@ export default function LeadDetailPage() {
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [editingActivity, setEditingActivity]     = useState<any | null>(null);
   const [deletingActivityId, setDeletingActivityId] = useState<number | null>(null);
-  const [activityTranscriptFile, setActivityTranscriptFile] = useState<File | null>(null);
-  const [activityTranscriptText, setActivityTranscriptText] = useState('');
-  const [isAnalyzingTranscript, setIsAnalyzingTranscript] = useState(false);
-  const [linkedTranscriptId, setLinkedTranscriptId] = useState<number | null>(null);
   const [activityForm, setActivityForm] = useState({
     activity_type: '',
     description: '',
     outcome: '',
-    ...EMPTY_BANTC,
     activity_date: '',
     next_follow_up_date: '',
     funnel_stage_id: '',
@@ -730,6 +725,19 @@ export default function LeadDetailPage() {
       setGeocodeFeedback('');
     }
   }, [lead?.data?.lat, lead?.data?.lng, lead?.data?.address]);
+
+  // Fetch pre-meeting brief
+  const { data: preMeetingBrief, refetch: refetchPreMeetingBrief } = useQuery({
+    queryKey: ['preMeetingBrief', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief`).then((r) => r.json()),
+    enabled: activeTab === 'pre-meeting-brief',
+  });
+
+  const { data: customerJourney, refetch: refetchCustomerJourney } = useQuery({
+    queryKey: ['customerJourney', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/customer-journey`).then((r) => r.json()),
+    enabled: activeTab === 'customer journey',
+  });
 
   // Fetch lead intelligence
   const { data: intelligence } = useQuery({
@@ -1115,7 +1123,7 @@ export default function LeadDetailPage() {
       qc.invalidateQueries({ queryKey: ['lead-progress', leadId] });
       invalidateLead();
       setShowActivityModal(false);
-      setActivityForm({ activity_type: '', description: '', outcome: '', ...EMPTY_BANTC, activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
+      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
     },
   });
 
@@ -1257,6 +1265,22 @@ export default function LeadDetailPage() {
     },
   });
 
+  const generatePreMeetingBriefMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief`, { method: 'POST' }).then((r) => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['preMeetingBrief', leadId] });
+    },
+    onError: () => console.error('Failed to generate Pre-Meeting Brief'),
+  });
+
+  const generateCustomerStoryMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/customer-journey/story`, { method: 'POST' }).then((r) => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['customerJourney', leadId] });
+    },
+    onError: () => console.error('Failed to generate Customer Story'),
+  });
+
   const icpMatchMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/icp-match`, { method: 'POST' }).then(r => r.json()),
     onSuccess: () => {
@@ -1375,87 +1399,23 @@ export default function LeadDetailPage() {
         activity_type: existing.activity_type ?? '',
         description: existing.description ?? '',
         outcome: existing.outcome ?? '',
-        budget: existing.budget ?? '',
-        authority: existing.authority ?? '',
-        needs: existing.needs ?? '',
-        timeline: existing.timeline ?? '',
-        competitor: existing.competitor ?? '',
         activity_date: existing.activity_date ? existing.activity_date.substring(0, 16) : '',
         next_follow_up_date: existing.next_follow_up_date ?? '',
         funnel_stage_id: '',
       });
       setEditingActivity(existing);
     } else {
-      setActivityForm({ activity_type: '', description: '', outcome: '', ...EMPTY_BANTC, activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
+      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
       setEditingActivity(null);
     }
-    setActivityTranscriptFile(null);
-    setActivityTranscriptText('');
-    setLinkedTranscriptId(null);
     setShowActivityModal(true);
   }
 
-  const analyzeActivityTranscript = async () => {
-    if (!activityTranscriptFile && !activityTranscriptText.trim()) {
-      alert('Please upload a file or paste transcript text first.');
-      return;
-    }
-
-    setIsAnalyzingTranscript(true);
-    try {
-      const formData = new FormData();
-      if (activityTranscriptText.trim()) formData.append('transcript_text', activityTranscriptText);
-      if (activityTranscriptFile) formData.append('transcript_file', activityTranscriptFile);
-
-      const res = await fetch(`/api/leads/${lead.id}/activities/analyze-transcript`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to analyze transcript');
-      }
-      
-      const { data } = await res.json();
-      
-      setLinkedTranscriptId(data.transcript.id);
-      
-      if (data.analysis) {
-        setActivityForm(prev => ({
-          ...prev,
-          description: data.analysis.description || prev.description,
-          outcome: data.analysis.outcome || prev.outcome,
-          budget: data.analysis.bantc?.budget || prev.budget,
-          authority: data.analysis.bantc?.authority || prev.authority,
-          needs: data.analysis.bantc?.needs || prev.needs,
-          timeline: data.analysis.bantc?.timeline || prev.timeline,
-          competitor: data.analysis.bantc?.competitor || prev.competitor,
-        }));
-      }
-
-      alert('Transcript analyzed and fields auto-filled successfully!');
-    } catch (err: any) {
-      alert(err.message || 'Analysis failed');
-    } finally {
-      setIsAnalyzingTranscript(false);
-    }
-  };
 
   function applyMeetingBantcDefaults(activityType: string) {
     setActivityForm((f) => ({
       ...f,
       activity_type: activityType,
-      ...(activityType === 'Meeting' && !editingActivity && latestMeetingBantc ? {
-        budget: latestMeetingBantc.budget ?? '',
-        authority: latestMeetingBantc.authority ?? '',
-        needs: latestMeetingBantc.needs ?? '',
-        timeline: latestMeetingBantc.timeline ?? '',
-        competitor: latestMeetingBantc.competitor ?? '',
-      } : {}),
     }));
   }
 
@@ -1464,15 +1424,9 @@ export default function LeadDetailPage() {
       activity_type: activityForm.activity_type,
       description: activityForm.description || undefined,
       outcome: activityForm.outcome || undefined,
-      budget: activityForm.activity_type === 'Meeting' ? activityForm.budget || undefined : undefined,
-      authority: activityForm.activity_type === 'Meeting' ? activityForm.authority || undefined : undefined,
-      needs: activityForm.activity_type === 'Meeting' ? activityForm.needs || undefined : undefined,
-      timeline: activityForm.activity_type === 'Meeting' ? activityForm.timeline || undefined : undefined,
-      competitor: activityForm.activity_type === 'Meeting' ? activityForm.competitor || undefined : undefined,
       activity_date: activityForm.activity_date || undefined,
       next_follow_up_date: activityForm.next_follow_up_date || undefined,
       funnel_stage_id: activityForm.funnel_stage_id ? Number(activityForm.funnel_stage_id) : undefined,
-      transcript_id: linkedTranscriptId || undefined,
     };
     if (editingActivity) {
       activityUpdateMutation.mutate({ id: editingActivity.id, data: payload });
@@ -1634,7 +1588,7 @@ export default function LeadDetailPage() {
       {/* Tabs */}
       <div className="border-b border-border">
         <div className="flex gap-0 overflow-x-auto">
-          {['Overview', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Transcripts'].map((tab) => (
+          {['Overview', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Transcripts', 'Pre-Meeting Brief', 'Customer Journey'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
@@ -3175,6 +3129,24 @@ export default function LeadDetailPage() {
                           </div>
                         )}
 
+                        {evaluation.bantc_extracted && Object.values(evaluation.bantc_extracted).some(v => !!v) && (
+                          <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_5%,transparent)] p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-2">BANTC Extracted Insights</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {['budget', 'authority', 'needs', 'timeline', 'competitor'].map((key) => {
+                                const val = (evaluation.bantc_extracted as any)[key];
+                                if (!val) return null;
+                                return (
+                                  <div key={key} className={key === 'needs' ? 'sm:col-span-2' : ''}>
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{key}</p>
+                                    <p className="text-sm font-medium text-foreground capitalize">{val}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         {safeJsonArray(evaluation.buying_signals).length > 0 && (
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--status-success)] mb-2">Buying Signals</p>
@@ -3218,6 +3190,177 @@ export default function LeadDetailPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── PRE-MEETING BRIEF TAB ── */}
+      {activeTab === 'pre-meeting-brief' && (
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight">Pre-Meeting Brief</h2>
+              <p className="text-sm text-muted-foreground">AI-generated structured sales preparation insights based on Lead context, activities, and product match.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+              >
+                Export PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setActivityForm({
+                    activity_type: 'Meeting',
+                    description: '',
+                    outcome: '',
+                    activity_date: new Date().toISOString().slice(0, 16),
+                    next_follow_up_date: '',
+                    funnel_stage_id: '',
+                  });
+                  setEditingActivity(null);
+                  setShowActivityModal(true);
+                }}
+              >
+                Create Meeting Task
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => generatePreMeetingBriefMutation.mutate()}
+                disabled={generatePreMeetingBriefMutation.isPending}
+              >
+                {generatePreMeetingBriefMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" /> {preMeetingBrief?.data ? 'Regenerate Brief' : 'Generate Brief'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {!preMeetingBrief?.data && !generatePreMeetingBriefMutation.isPending ? (
+            <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
+              <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-50" />
+              <h3 className="mb-1 text-sm font-semibold">No Brief Generated</h3>
+              <p className="text-xs">Click Generate Brief to analyze lead data and prepare your strategy.</p>
+            </div>
+          ) : preMeetingBrief?.data ? (
+            <div className="space-y-6 print:space-y-4">
+              {/* HEADER / SUMMARY */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="col-span-2 rounded-xl border border-border bg-card p-5">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Executive Summary</h3>
+                  <p className="text-sm">{preMeetingBrief.data.summary_json?.company_summary}</p>
+                  <div className="mt-4 flex gap-4 text-xs">
+                    <div><span className="text-muted-foreground font-medium">Stage:</span> {preMeetingBrief.data.summary_json?.stage}</div>
+                    <div><span className="text-muted-foreground font-medium">Engagement Level:</span> {preMeetingBrief.data.summary_json?.engagement_level}</div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5 flex flex-col items-center justify-center text-center">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Readiness Score</h3>
+                  <div className={`text-4xl font-black ${preMeetingBrief.data.readiness_score >= 80 ? 'text-[var(--status-success)]' : preMeetingBrief.data.readiness_score >= 50 ? 'text-[var(--warning)]' : 'text-[var(--status-danger)]'}`}>
+                    {preMeetingBrief.data.readiness_score}
+                  </div>
+                  <p className="text-xs mt-1 text-muted-foreground">
+                    {preMeetingBrief.data.readiness_score >= 80 ? 'READY' : preMeetingBrief.data.readiness_score >= 50 ? 'NEED CLARIFICATION' : 'NOT READY'}
+                  </p>
+                </div>
+              </div>
+
+              {/* STRATEGY & OBJECTIVES */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_5%,transparent)] p-5">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--brand)]">Objective Hypothesis</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li><strong>Inferred Goals:</strong> {preMeetingBrief.data.objective_hypothesis_json?.inferred_goals}</li>
+                    <li><strong>Expected Needs:</strong> {preMeetingBrief.data.objective_hypothesis_json?.expected_needs}</li>
+                    <li><strong>Urgency Signals:</strong> {preMeetingBrief.data.objective_hypothesis_json?.urgency_signals}</li>
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_5%,transparent)] p-5">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--brand)]">Presales Strategy</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li><strong>Opening Angle:</strong> {preMeetingBrief.data.strategy_json?.opening_angle}</li>
+                    <li><strong>Positioning:</strong> {preMeetingBrief.data.strategy_json?.positioning}</li>
+                    <li><strong>Messaging Direction:</strong> {preMeetingBrief.data.strategy_json?.messaging_direction}</li>
+                    <li><strong>Assumptions to Avoid:</strong> {preMeetingBrief.data.strategy_json?.assumptions_to_avoid}</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* DISCOVERY QUESTIONS */}
+              <div className="rounded-xl border border-border bg-card p-5">
+                <h3 className="mb-4 text-xs font-bold uppercase tracking-wide text-foreground">Discovery Questions</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {safeJsonArray(preMeetingBrief.data.questions_json).map((q: any, i: number) => (
+                    <div key={i} className="rounded-lg bg-muted/30 p-3 text-sm">
+                      <p className="font-medium">{q.question || q}</p>
+                      <p className="mt-1 text-xs text-[var(--brand)]">{q.category || 'Discovery'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* PRE-BANTC & RISKS */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Pre-BANTC Estimation</h3>
+                  <div className="space-y-3">
+                    {['budget', 'authority', 'need', 'timeline', 'competitor'].map(key => (
+                      <div key={key}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{key}</p>
+                        <p className="text-sm font-medium capitalize">{preMeetingBrief.data.bantc_pre_json?.[key] || '—'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-[var(--status-danger)]/20 bg-[color-mix(in_oklch,var(--status-danger)_5%,transparent)] p-5">
+                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--status-danger)]">Risk Analysis</h3>
+                    <ul className="space-y-2 text-sm">
+                      <li><strong>Deal Risk Score:</strong> {preMeetingBrief.data.risk_analysis_json?.deal_risk_score}</li>
+                      <li><strong>Persona Risk:</strong> {preMeetingBrief.data.risk_analysis_json?.persona_risk}</li>
+                      <li><strong>Competitor Lock-in:</strong> {preMeetingBrief.data.risk_analysis_json?.competitor_lock_in_risk}</li>
+                    </ul>
+                  </div>
+                  <div className="rounded-xl border border-border bg-card p-5">
+                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Pain Points (Operational/Maturity)</h3>
+                    <ul className="space-y-2 text-sm">
+                      <li><strong>Operational Pain:</strong> {preMeetingBrief.data.pain_point_json?.operational_pain}</li>
+                      <li><strong>Inefficiencies:</strong> {preMeetingBrief.data.pain_point_json?.inefficiencies}</li>
+                      <li><strong>Maturity Level:</strong> {preMeetingBrief.data.pain_point_json?.maturity_level}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* DEMO STRATEGY */}
+              <div className="rounded-xl border border-border bg-card p-5">
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Demo Strategy</h3>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="col-span-2 text-sm">
+                    <p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">Expected Flow</p>
+                    <p>{preMeetingBrief.data.demo_strategy_json?.expected_demo_flow}</p>
+                    <p className="mt-3 mb-1 text-[10px] font-semibold uppercase text-muted-foreground">Feature Mapping</p>
+                    <p>{preMeetingBrief.data.demo_strategy_json?.feature_mapping}</p>
+                  </div>
+                  <div className="rounded-lg bg-[var(--warning-soft)]/50 p-3 border border-[var(--warning)]/20 text-sm">
+                    <p className="mb-1 text-[10px] font-semibold uppercase text-[var(--warning)]">Mismatch Risks</p>
+                    <p>{preMeetingBrief.data.demo_strategy_json?.mismatch_risks}</p>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -3810,86 +3953,7 @@ export default function LeadDetailPage() {
             />
           </div>
 
-          {activityForm.activity_type === 'Meeting' && (
-            <>
-              {/* Meeting Transcript AI Analysis Section */}
-              <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4">
-                <div className="mb-3">
-                  <p className="text-sm font-semibold">Transcript Analysis</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Upload or paste your meeting transcript to automatically extract Notes, Outcome, and BANTC fields.
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2 flex flex-col gap-2">
-                    <input
-                      type="file"
-                      className="text-xs"
-                      accept=".txt,.vtt,.srt,.mp3,.wav,.m4a,.mp4,.mov,.webm"
-                      onChange={(e) => setActivityTranscriptFile(e.target.files?.[0] || null)}
-                    />
-                    <textarea
-                      value={activityTranscriptText}
-                      onChange={(e) => setActivityTranscriptText(e.target.value)}
-                      placeholder="Or paste transcript text here..."
-                      className="h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={analyzeActivityTranscript}
-                      disabled={isAnalyzingTranscript || (!activityTranscriptFile && !activityTranscriptText.trim())}
-                      className="self-start"
-                    >
-                      {isAnalyzingTranscript ? (
-                        <>
-                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                          Analyzing Transcript...
-                        </>
-                      ) : (
-                        'Analyze & Auto-fill'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
 
-              <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4">
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold">BANTC Discovery</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Meeting berikutnya akan memuat BANTC terakhir agar bisa dilanjutkan dan diperbarui.
-                  </p>
-                </div>
-                {!editingActivity && latestMeetingBantc && (
-                  <Badge variant="info" className="text-[10px]">Prefilled from last meeting</Badge>
-                )}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  ['budget', 'Budget', 'Budget range, constraint, ROI expectation'],
-                  ['authority', 'Authority', 'Decision maker, influencer, approval process'],
-                  ['needs', 'Needs', 'Pain point, impact, desired outcome'],
-                  ['timeline', 'Timeline', 'Urgency, milestone, target decision date'],
-                  ['competitor', 'Competitor', 'Incumbent, alternatives, switching risk'],
-                ].map(([key, label, placeholder]) => (
-                  <div key={key} className={key === 'needs' ? 'sm:col-span-2' : ''}>
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
-                    <textarea
-                      value={(activityForm as any)[key]}
-                      onChange={(e) => setActivityForm((f) => ({ ...f, [key]: e.target.value }))}
-                      rows={key === 'needs' ? 3 : 2}
-                      placeholder={placeholder}
-                      className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-            </>
-          )}
 
           {/* Next Follow-up */}
           <div>
@@ -4140,6 +4204,209 @@ export default function LeadDetailPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* ── CUSTOMER JOURNEY TAB ── */}
+      {activeTab === 'customer journey' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between no-print">
+            <div>
+              <h2 className="text-lg font-bold">End-to-End Customer Journey</h2>
+              <p className="text-sm text-muted-foreground">Aggregated view of the entire relationship lifecycle.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <Printer className="mr-2 h-4 w-4" /> Export to PDF
+            </Button>
+          </div>
+
+          {!customerJourney?.data ? (
+            <div className="flex h-32 items-center justify-center text-muted-foreground">
+              Loading journey data...
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-12 print:block print:space-y-8">
+              
+              {/* LEFT COLUMN: Timeline */}
+              <div className="md:col-span-3 print:col-span-12">
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="mb-4 font-semibold">Journey Timeline</h3>
+                  <div className="relative border-l border-border pl-4 space-y-6">
+                    {safeJsonArray(customerJourney.data.timeline).length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No events recorded.</p>
+                    ) : (
+                      safeJsonArray(customerJourney.data.timeline).map((event: any, i: number) => (
+                        <div key={i} className="relative">
+                          <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-[var(--brand)] outline outline-2 outline-card"></div>
+                          <div className="text-xs font-semibold text-[var(--brand)]">
+                            {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </div>
+                          <div className="mt-1 font-medium text-sm">{event.title}</div>
+                          {event.description && <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{event.description}</p>}
+                          {event.outcome && (
+                            <div className="mt-1">
+                              <Badge variant="outline" className="text-[10px]">{event.outcome}</Badge>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* CENTER COLUMN: Narrative & Intelligence */}
+              <div className="md:col-span-6 space-y-6 print:col-span-12">
+                
+                {/* Final Story block */}
+                <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between no-print">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-[var(--brand)]" />
+                      Final Customer Story
+                    </h3>
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={() => generateCustomerStoryMutation.mutate()}
+                      disabled={generateCustomerStoryMutation.isPending}
+                    >
+                      {generateCustomerStoryMutation.isPending ? 'Generating...' : customerJourney.data.final_customer_story ? 'Regenerate Story' : 'Generate Story'}
+                    </Button>
+                  </div>
+                  {/* Print Title */}
+                  <h3 className="hidden font-semibold flex items-center gap-2 mb-4 print:flex">
+                    Final Customer Story
+                  </h3>
+
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    {!customerJourney.data.final_customer_story && !generateCustomerStoryMutation.isPending ? (
+                      <p className="text-muted-foreground italic text-center py-8">
+                        No customer story generated yet. Click generate to analyze the timeline and build a narrative.
+                      </p>
+                    ) : generateCustomerStoryMutation.isPending ? (
+                      <div className="animate-pulse space-y-3 py-4">
+                        <div className="h-4 bg-muted rounded w-full"></div>
+                        <div className="h-4 bg-muted rounded w-5/6"></div>
+                        <div className="h-4 bg-muted rounded w-4/6"></div>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                        {customerJourney.data.final_customer_story}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Meeting Intelligence */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="mb-4 font-semibold">Meeting Intelligence</h3>
+                  {safeJsonArray(customerJourney.data.meeting_intelligence).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No meetings evaluated.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {safeJsonArray(customerJourney.data.meeting_intelligence).map((mtg: any, i: number) => (
+                        <div key={i} className="border border-border/50 bg-muted/20 p-4 rounded-md">
+                          <h4 className="font-medium text-sm mb-2">{mtg.title}</h4>
+                          {safeJsonArray(mtg.evaluations).map((ev: any, j: number) => (
+                            <div key={j} className="space-y-2 mt-2">
+                              <p className="text-xs text-muted-foreground">{ev.summary}</p>
+                              {ev.next_best_action && (
+                                <div className="text-xs bg-background p-2 rounded border border-border/50">
+                                  <strong>Next Action:</strong> {ev.next_best_action}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* RIGHT COLUMN: Insights */}
+              <div className="md:col-span-3 space-y-6 print:col-span-12">
+                
+                {/* Profile Snapshot */}
+                <div className="rounded-lg border border-border bg-[var(--brand-soft)]/20 p-6">
+                  <h3 className="mb-4 font-semibold">Customer Snapshot</h3>
+                  <div className="space-y-3 text-sm">
+                    <div><span className="text-muted-foreground">Company:</span> <strong className="block">{customerJourney.data.profile_snapshot?.company_name}</strong></div>
+                    <div><span className="text-muted-foreground">Industry:</span> <strong className="block">{customerJourney.data.profile_snapshot?.industry || '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Size:</span> <strong className="block">{customerJourney.data.profile_snapshot?.size || '—'}</strong></div>
+                    <div><span className="text-muted-foreground">Owner:</span> <strong className="block">{customerJourney.data.profile_snapshot?.owner || '—'}</strong></div>
+                  </div>
+                </div>
+
+                {/* Pre Meeting Insights */}
+                {customerJourney.data.pre_meeting_insights && (
+                  <div className="rounded-lg border border-border bg-card p-6">
+                    <h3 className="mb-4 font-semibold">Pre-Meeting Insights</h3>
+                    <div className="space-y-3 text-sm">
+                      {customerJourney.data.pre_meeting_insights.objective_hypothesis?.inferred_goals && (
+                        <div><strong className="block">Inferred Goals:</strong> <span className="text-muted-foreground">{customerJourney.data.pre_meeting_insights.objective_hypothesis.inferred_goals}</span></div>
+                      )}
+                      {customerJourney.data.pre_meeting_insights.pain_points?.operational_pain && (
+                        <div><strong className="block">Operational Pain:</strong> <span className="text-muted-foreground">{customerJourney.data.pre_meeting_insights.pain_points.operational_pain}</span></div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Product Fit */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="mb-4 font-semibold">Product Fit</h3>
+                  {safeJsonArray(customerJourney.data.product_fit_analysis).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No product matches calculated.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {safeJsonArray(customerJourney.data.product_fit_analysis).map((fit: any, i: number) => (
+                        <div key={i}>
+                          <div className="flex items-center justify-between mb-1">
+                            <strong className="text-sm">{fit.product}</strong>
+                            <Badge variant={fit.match_score > 70 ? 'success' : 'warning'}>{fit.match_score}%</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">ICP Match: {fit.icp_match ? 'Yes' : 'No'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Post Meeting Status */}
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="mb-4 font-semibold">Post-Meeting Status</h3>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground block mb-1">Qualification Status:</span>
+                      <Badge variant={customerJourney.data.post_meeting_analysis?.qualification_status === 'Eligible' ? 'success' : 'outline'}>
+                        {customerJourney.data.post_meeting_analysis?.qualification_status || 'Unknown'}
+                      </Badge>
+                    </div>
+                    {customerJourney.data.post_meeting_analysis?.risk_analysis && (
+                      <div className="pt-2 border-t border-border/50">
+                        <span className="text-muted-foreground block mb-1">Risk Summary:</span>
+                        <div className="text-xs space-y-1">
+                          <div><strong>Deal Risk:</strong> {customerJourney.data.post_meeting_analysis.risk_analysis.deal_risk_score}</div>
+                          <div><strong>Persona Risk:</strong> {customerJourney.data.post_meeting_analysis.risk_analysis.persona_risk}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Revenue Journey */}
+                <div className="rounded-lg border border-[var(--status-success)]/30 bg-[var(--status-success)]/5 p-6">
+                  <h3 className="mb-4 font-semibold">Revenue Journey</h3>
+                  <div className="space-y-3 text-sm">
+                    <div><span className="text-muted-foreground">Expected Value:</span> <strong className="block text-lg">${Number(customerJourney.data.revenue_journey?.estimated_value || 0).toLocaleString()}</strong></div>
+                    <div><span className="text-muted-foreground">Realized Value:</span> <strong className="block text-lg">${Number(customerJourney.data.revenue_journey?.realized_value || 0).toLocaleString()}</strong></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

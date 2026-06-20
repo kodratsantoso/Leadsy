@@ -180,6 +180,7 @@ class HumanVerificationWorkflowService
     private function activeWorkflowFor(Lead $lead, ?User $user = null): ?QualificationWorkflow
     {
         $tenantId = $lead->tenant_id ?? ($user?->tenant_id ?? (request()->user()?->tenant_id ?? null));
+
         return QualificationWorkflow::query()
             ->when(
                 $tenantId,

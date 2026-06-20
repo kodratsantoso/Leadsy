@@ -107,3 +107,18 @@ Leadsy now has database-backed source and channel classification for leads.
 - Added Dashboard Lead Sources & Channels block.
 - Aggregated visible leads by source and channel from DB using distinct lead counts.
 - Added drilldown links from each aggregate row into filtered Leads.
+
+## Phase 9: Pre-Meeting Intelligence Layer (Completed ✅)
+**Date completed**: 2026-06-20
+
+- Built a Pre-Meeting Brief system that generates structured sales preparation insights BEFORE any meeting happens.
+- Extends the existing Lead Intelligence system without duplicating core entities.
+- Aggregates Lead Context, Activity Context, Competitors, Needs, Auth/Timeline info and outputs an actionable brief.
+
+## Phase 10: Customer Journey Compilation Feature (Completed ✅)
+**Date completed**: 2026-06-20
+
+- Built a new sub-page ("Customer Journey" tab) inside each Lead detail page.
+- Created an aggregation layer (`CustomerJourneyService`) that combines Leads, Activities, Meetings, Transcripts, Intelligence, Revenue, and Product matching data.
+- Added a `customer_story` column to `leads` table to cache the final generated narrative.
+- Built a responsive 3-column UI (Timeline, Story, Insights) that supports native browser PDF export (`window.print()`).

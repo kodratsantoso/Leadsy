@@ -44,7 +44,7 @@ return new class extends Migration
             );
 
             $activeVersion = $template->activeVersion;
-            if (!$activeVersion || trim($activeVersion->content) !== trim($content)) {
+            if (! $activeVersion || trim($activeVersion->content) !== trim($content)) {
                 $version = $template->versions()->create([
                     'version' => ((int) $template->versions()->max('version')) + 1,
                     'content' => $content,
@@ -65,7 +65,7 @@ return new class extends Migration
         }
 
         // Seed feature routes for dashboard_ai_insight
-        if (!DB::table('ai_feature_routes')->where('feature_name', self::FEATURE)->exists()) {
+        if (! DB::table('ai_feature_routes')->where('feature_name', self::FEATURE)->exists()) {
             $primaryId = $this->resolveModelId(self::PREFERRED_PRIMARY);
             $fallbackId = $this->resolveModelId(self::PREFERRED_FALLBACK, exclude: $primaryId);
 
