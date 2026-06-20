@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import type { DiscoveredLead, FitLevel, GeoProductFitAnalysis } from "@/lib/hooks/use-map-discovery";
 import type { AiMode } from "@/components/ai/ai-mode-selector";
 import { useState } from "react";
@@ -70,16 +71,21 @@ function FitLevelBadge({ level }: { level: FitLevel }) {
 }
 
 function FitScoreGauge({ score }: { score: number }) {
-  const color =
-    score >= 80 ? "bg-[color:var(--status-success)]" :
-    score >= 60 ? "bg-[color:var(--status-warning)]" :
-    score >= 40 ? "bg-[color:var(--brand)]/50" :
-    "bg-muted";
+  const gradient =
+    score >= 80 ? "var(--status-success)" :
+    score >= 60 ? "var(--status-warning)" :
+    score >= 40 ? "var(--brand)" :
+    "currentColor";
 
   return (
     <div className="flex items-center gap-2">
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-[color:var(--surface-subtle)]">
-        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${score}%` }} />
+      <div className="flex-1">
+        <ProgressiveFluxLoader
+          value={score}
+          showLabel={false}
+          barClassName="h-2"
+          gradient={gradient}
+        />
       </div>
       <span className="w-7 text-right text-xs font-semibold tabular-nums">{score}</span>
     </div>
