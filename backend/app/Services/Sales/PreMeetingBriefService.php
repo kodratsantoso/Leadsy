@@ -59,7 +59,7 @@ class PreMeetingBriefService
         $data = json_decode($result['content'] ?? '{}', true);
 
         // Save
-        $brief = $lead->preMeetingBrief()->updateOrCreate(
+        $brief = LeadPreMeetingBrief::updateOrCreate(
             ['lead_id' => $lead->id],
             [
                 'product_id' => $product?->id,

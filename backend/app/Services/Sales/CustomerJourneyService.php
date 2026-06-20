@@ -21,7 +21,7 @@ class CustomerJourneyService
             'meetings' => fn($q) => $q->oldest(),
             'transcripts.evaluations' => fn($q) => $q->latest(),
             'preMeetingBrief',
-            'funnelHistory' => fn($q) => $q->oldest()->with('funnelStage'),
+            'funnelHistory' => fn($q) => $q->oldest()->with('toStage'),
             'productMatches' => fn($q) => $q->with('product')->orderBy('match_score', 'desc'),
         ]);
 
@@ -53,10 +53,10 @@ class CustomerJourneyService
         foreach ($lead->funnelHistory as $history) {
             $timeline->push([
                 'type' => 'stage_change',
-                'title' => 'Stage moved to ' . ($history->funnelStage?->name ?? 'Unknown'),
-                'description' => $history->reason ?? '',
+                'title' => 'Stage moved to ' . ($history->toStage?->name ?? 'Unknown'),
+                'description' => $history->notes ?? '',
                 'outcome' => '',
-                'date' => $history->entered_at ?? $history->created_at,
+                'date' => $history->created_at,
             ]);
         }
 
