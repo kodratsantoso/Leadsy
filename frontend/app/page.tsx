@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
 import { Tabs } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AILoader } from "@/components/ui/ai-loader";
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import Link from "next/link";
 import { resolveStageColor } from "@/lib/stage-colors";
@@ -677,7 +679,9 @@ export default function DashboardPage() {
 
       {activeTab === "pipeline" ? (
         isLoading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          <div className="flex h-96 flex-col items-center justify-center py-20 text-muted-foreground select-none">
+            <AILoader text="Loading" />
+          </div>
         ) : (
           <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
@@ -2122,8 +2126,8 @@ function TeamPerformancePanel() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex h-96 flex-col items-center justify-center py-20 text-muted-foreground select-none">
+        <AILoader text="Loading" />
       </div>
     );
   }

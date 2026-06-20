@@ -5,7 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
 import { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from "@/components/ui/badge";
+import { AILoader } from "@/components/ui/ai-loader";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   ArrowLeft, Plus, Zap, TrendingUp, MessageSquare, Calendar,
@@ -1331,8 +1333,8 @@ export default function LeadDetailPage() {
   /* ── Render ── */
   if (leadLoading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex h-96 flex-col items-center justify-center py-20 text-muted-foreground select-none">
+        <AILoader text="Loading" />
       </div>
     );
   }
@@ -2432,7 +2434,9 @@ export default function LeadDetailPage() {
       {activeTab === 'revenue' && (
         <div className="space-y-4">
           {revenueLoading ? (
-            <div className="flex h-40 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            <div className="flex h-40 flex-col items-center justify-center py-20 text-muted-foreground select-none">
+              <AILoader text="Loading" />
+            </div>
           ) : (
             <>
               {/* Action buttons */}

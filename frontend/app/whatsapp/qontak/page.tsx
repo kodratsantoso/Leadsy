@@ -14,6 +14,8 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { apiFetch } from "@/lib/apiFetch";
+import { useToast } from "@/hooks/use-toast";
+import { AILoader } from "@/components/ui/ai-loader";
 import {
   useWhatsApp,
   type WaConversation, type WaMessage
@@ -639,7 +641,7 @@ export default function MekariQontakPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/5">
               {activeMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground select-none">
-                  <Loader2 className="h-8 w-8 animate-spin mb-3 opacity-30 text-[var(--brand)]" />
+                  <AILoader text="Loading" className="mb-4" />
                   <p className="text-xs font-semibold">Loading chat records...</p>
                   <p className="text-[10px] text-muted-foreground/80 mt-1">Retrieving omnichannel logs from Qontak server.</p>
                 </div>
