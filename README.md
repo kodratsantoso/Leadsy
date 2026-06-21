@@ -4,7 +4,12 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.7.1** — 2026-06-21
+Current release: **v1.7.2** — 2026-06-21
+
+## What's New in v1.7.2
+
+- **AI Formatting & PHP Timeouts Fix** — Fixed timeout errors on heavy AI calls (Pre-Meeting Brief & Customer Journey) by increasing max execution time. Also correctly passed the tenant's base currency to AI so it does not hallucinate "USD" on Customer Journey stories.
+- **Sync Currency Permission Bug** — Fixed an implicit authorization block (`$this->authorize()`) that was throwing 403 errors when syncing the IDR exchange rate, even for users who possessed the `integrations.manage` role.
 
 ## What's New in v1.7.1
 

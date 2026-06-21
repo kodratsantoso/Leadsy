@@ -1277,8 +1277,9 @@ export default function LeadDetailPage() {
   const [journeyFeedback, setJourneyFeedback] = useState<string | null>(null);
 
   const generatePreMeetingBriefMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief`, { method: 'POST' }).then(async (r) => {
+    mutationFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief/generate`, { method: 'POST' }).then(async (r) => {
       if (!r.ok) {
+        if (r.status === 504) throw new Error("Generation timed out. The AI is taking longer than expected. Please try again.");
         const err = await r.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to generate Pre-Meeting Brief');
       }
@@ -1294,6 +1295,7 @@ export default function LeadDetailPage() {
   const generateCustomerStoryMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/customer-journey/story`, { method: 'POST' }).then(async (r) => {
       if (!r.ok) {
+        if (r.status === 504) throw new Error("Generation timed out. The AI is taking longer than expected. Please try again.");
         const err = await r.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to generate Customer Story');
       }

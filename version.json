@@ -1,6 +1,6 @@
 {
-  "version": "1.6.2",
-  "released_at": "2026-06-14",
+  "version": "1.7.2",
+  "released_at": "2026-06-21",
   "type": "patch",
-  "notes": "Improve UI/UX and visual analytics on Team Performance Dashboard with dynamic summary metrics, leaderboard, and target progress indicators."
+  "notes": "Fix 403 Unauthorized error on Pre-Meeting Brief, Customer Journey endpoints, and Currency Sync."
 }

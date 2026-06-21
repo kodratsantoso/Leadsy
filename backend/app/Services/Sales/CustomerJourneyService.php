@@ -98,6 +98,7 @@ class CustomerJourneyService
                 'feature_alignment' => $m->ai_analysis['matched_signals'] ?? [],
             ])->toArray(),
             'revenue_journey' => [
+                'currency' => \App\Models\CurrencySetting::first()?->currency?->code ?? 'IDR',
                 'estimated_value' => $lead->estimated_closing_amount,
                 'realized_value' => $lead->realized_closing_amount,
             ],
@@ -107,6 +108,8 @@ class CustomerJourneyService
 
     public function generateCustomerStory(Lead $lead): string
     {
+        set_time_limit(120);
+
         $journeyData = $this->compileJourney($lead);
 
         $prompt = "Customer Journey Data:\n" . json_encode($journeyData, JSON_PRETTY_PRINT);
@@ -114,7 +117,7 @@ class CustomerJourneyService
         $result = $this->ai->call('customer_journey_story', $prompt);
         
         if (!$result['success']) {
-            throw new \Exception('AI Generation Failed: ' . ($result['error'] ?? 'Unknown error'));
+            abort(500, 'AI Generation Failed: ' . ($result['error'] ?? 'Unknown error'));
         }
 
         $content = $result['content'] ?? '{}';

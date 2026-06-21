@@ -13,8 +13,10 @@ class PreMeetingBriefService
         private AiOrchestrationService $ai
     ) {}
 
-    public function generateBrief(Lead $lead): LeadPreMeetingBrief
+    public function generateBrief(Lead $lead, ?Product $product = null): LeadPreMeetingBrief
     {
+        set_time_limit(120);
+
         // 1. Gather Context
         $lead->loadMissing([
             'industry',
@@ -58,7 +60,7 @@ class PreMeetingBriefService
         $result = $this->ai->call('pre_meeting_brief_generation', $prompt);
         
         if (!$result['success']) {
-            throw new \Exception('AI Generation Failed: ' . ($result['error'] ?? 'Unknown error'));
+            abort(500, 'AI Generation Failed: ' . ($result['error'] ?? 'Unknown error'));
         }
 
         $content = $result['content'] ?? '{}';

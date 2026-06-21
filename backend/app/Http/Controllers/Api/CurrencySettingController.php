@@ -33,8 +33,6 @@ class CurrencySettingController extends Controller
 
     public function syncRates(Request $request, CurrencyExchangeService $service): JsonResponse
     {
-        $this->authorize('integrations.manage'); // Reuse integrations.manage permission or just let middleware handle it
-        
         $setting = $this->currentSetting($request);
         $baseCurrencyCode = $setting->currency?->code ?? 'IDR';
         
