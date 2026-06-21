@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 class AIUsageLogService
 {
-    public function usageOverview(): array
+    public function usageOverview(string $period = 'last_30_days'): array
     {
-        $perProvider = DB::table('ai_requests')
+        $perProviderQuery = DB::table('ai_requests')
             ->join('ai_models', 'ai_requests.ai_model_id', '=', 'ai_models.id')
             ->join('ai_providers', 'ai_models.ai_provider_id', '=', 'ai_providers.id')
             ->select(
@@ -24,10 +24,52 @@ class AIUsageLogService
                 DB::raw('SUM(CASE WHEN ai_requests.fallback_used IS TRUE THEN 1 ELSE 0 END) as fallback_count'),
                 DB::raw('MAX(ai_requests.created_at) as last_used_at')
             )
-            ->groupBy('ai_providers.id', 'ai_providers.name', 'ai_providers.slug')
-            ->get();
+            ->groupBy('ai_providers.id', 'ai_providers.name', 'ai_providers.slug');
 
-        $latestRequest = AiRequest::with('aiModel.provider')->latest()->first();
+        $timelineQuery = DB::table('ai_requests')
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(*) as total_calls'),
+                DB::raw('COALESCE(SUM(estimated_cost_usd), 0) as total_cost_usd')
+            )
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date', 'asc');
+
+        $now = now();
+        $startDate = null;
+
+        switch ($period) {
+            case 'today':
+                $startDate = $now->copy()->startOfDay();
+                break;
+            case 'last_7_days':
+                $startDate = $now->copy()->subDays(7)->startOfDay();
+                break;
+            case 'last_30_days':
+                $startDate = $now->copy()->subDays(30)->startOfDay();
+                break;
+            case 'last_90_days':
+                $startDate = $now->copy()->subDays(90)->startOfDay();
+                break;
+            case 'this_year':
+                $startDate = $now->copy()->startOfYear();
+                break;
+        }
+
+        if ($startDate) {
+            $perProviderQuery->where('ai_requests.created_at', '>=', $startDate);
+            $timelineQuery->where('created_at', '>=', $startDate);
+        }
+
+        $perProvider = $perProviderQuery->get();
+        $timelineData = $timelineQuery->get();
+
+        $latestRequestQuery = AiRequest::with('aiModel.provider')->latest();
+        if ($startDate) {
+            $latestRequestQuery->where('created_at', '>=', $startDate);
+        }
+        $latestRequest = $latestRequestQuery->first();
+
         $totalCalls = (int) $perProvider->sum('total_calls');
         $successCount = (int) $perProvider->sum('success_count');
         $totalCostUsd = (float) $perProvider->sum('total_cost_usd');
@@ -41,13 +83,8 @@ class AIUsageLogService
         $isConverted = false;
 
         // If USD is not the user's active currency, we need to convert it.
-        // Assuming USD.exchange_rate represents how many BaseCurrency units are in 1 USD.
-        // If userCurrency is the BaseCurrency, we multiply. If it's not, we convert.
         if ($usdCurrency && $userCurrency && $usdCurrency->code !== $userCurrency->code) {
             $isConverted = true;
-            // Since `exchange_rate` is `Base units per 1 unit of this currency`:
-            // Amount in Base = Amount_USD * USD_exchange_rate
-            // Amount in Target = Amount_Base / Target_exchange_rate
             $amountInBasePerUsd = (float) $usdCurrency->exchange_rate;
             $amountInBasePerTarget = (float) $userCurrency->exchange_rate;
             
@@ -55,19 +92,6 @@ class AIUsageLogService
                 $exchangeRateToUserCurrency = $amountInBasePerUsd / $amountInBasePerTarget;
             }
         }
-
-        // Daily timeline for the last 30 days
-        $thirtyDaysAgo = now()->subDays(30)->startOfDay();
-        $timelineData = DB::table('ai_requests')
-            ->select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('COUNT(*) as total_calls'),
-                DB::raw('COALESCE(SUM(estimated_cost_usd), 0) as total_cost_usd')
-            )
-            ->where('created_at', '>=', $thirtyDaysAgo)
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->orderBy('date', 'asc')
-            ->get();
 
         return [
             'summary' => [

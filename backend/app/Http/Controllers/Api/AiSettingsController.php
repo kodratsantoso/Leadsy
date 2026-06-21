@@ -28,6 +28,8 @@ class AiSettingsController extends Controller
     {
         $canReveal = $this->canRevealSecrets($request);
 
+        $period = $request->query('period', 'last_30_days');
+
         return response()->json([
             'data' => [
                 'providers' => $this->providers->listProviders()
@@ -36,7 +38,7 @@ class AiSettingsController extends Controller
                 'feature_catalog' => $this->routing->featureCatalog(),
                 'feature_routes' => $this->groupRoutes($this->routing->listRoutes()),
                 'prompt_templates' => $this->serialiseTemplates(),
-                'usage_overview' => $this->usage->usageOverview(),
+                'usage_overview' => $this->usage->usageOverview($period),
                 'provider_health' => $this->usage->providersHealth(),
                 'permissions' => [
                     'can_manage_ai' => true,

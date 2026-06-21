@@ -244,6 +244,7 @@ function providerBadge(status?: string | null) {
 export default function AiDefaultsPage() {
   const queryClient = useQueryClient();
   const { formatNumber, formatCurrency } = useNumberFormat();
+  const [timelineFilter, setTimelineFilter] = useState("last_30_days");
   const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("providers");
   const [expandedProviderId, setExpandedProviderId] = useState<number | null>(null);
   const [providerForm, setProviderForm] = useState<ProviderFormState>(emptyProviderForm);
@@ -261,9 +262,9 @@ export default function AiDefaultsPage() {
   const [newModelTier, setNewModelTier] = useState("medium");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["settings-ai-default"],
+    queryKey: ["settings-ai-default", timelineFilter],
     queryFn: async () => {
-      const response = await apiFetch("/settings/ai-default");
+      const response = await apiFetch(`/settings/ai-default?period=${timelineFilter}`);
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         throw new Error(body.message || "Unable to load AI settings");
@@ -1042,13 +1043,26 @@ export default function AiDefaultsPage() {
 
           <Card>
             <CardContent className="p-5">
-              <h2 className="text-xl font-semibold">Usage Timeline (30 Days)</h2>
-              <div className="mt-4 h-[300px]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h2 className="text-xl font-semibold">Usage Timeline</h2>
+                <div className="w-40">
+                  <Select value={timelineFilter} onChange={(e) => setTimelineFilter(e.target.value)}>
+                    <option value="today">Today</option>
+                    <option value="last_7_days">Last 7 Days</option>
+                    <option value="last_30_days">Last 30 Days</option>
+                    <option value="last_90_days">Last 90 Days</option>
+                    <option value="this_year">This Year</option>
+                  </Select>
+                </div>
+              </div>
+              <div className="mt-4 h-[300px] w-full min-w-0">
                 {usageOverview?.daily_timeline && usageOverview.daily_timeline.length > 0 ? (
                   <Chart
                     type="area"
                     height={300}
+                    width="100%"
                     options={{
+                      theme: { mode: 'dark' },
                       chart: {
                         toolbar: { show: false },
                         background: 'transparent',
