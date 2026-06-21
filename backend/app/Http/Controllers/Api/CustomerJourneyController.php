@@ -13,7 +13,9 @@ class CustomerJourneyController extends Controller
 
     public function show(Lead $lead): JsonResponse
     {
-        $this->authorize('view', $lead);
+        if (! Lead::visibleTo(request()->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
         $data = $this->journeyService->compileJourney($lead);
 
         return response()->json(['data' => $data]);
@@ -21,7 +23,9 @@ class CustomerJourneyController extends Controller
 
     public function generateStory(Lead $lead): JsonResponse
     {
-        $this->authorize('update', $lead);
+        if (! Lead::visibleTo(request()->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
         
         $story = $this->journeyService->generateCustomerStory($lead);
 

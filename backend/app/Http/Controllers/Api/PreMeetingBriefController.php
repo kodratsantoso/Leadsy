@@ -13,7 +13,9 @@ class PreMeetingBriefController extends Controller
 
     public function show(Lead $lead): JsonResponse
     {
-        $this->authorize('view', $lead);
+        if (! Lead::visibleTo(request()->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
         $brief = $lead->preMeetingBrief()->with('product')->first();
 
         return response()->json(['data' => $brief]);
@@ -21,7 +23,9 @@ class PreMeetingBriefController extends Controller
 
     public function generate(Lead $lead): JsonResponse
     {
-        $this->authorize('update', $lead);
+        if (! Lead::visibleTo(request()->user())->whereKey($lead->id)->exists()) {
+            abort(403);
+        }
         
         $brief = $this->briefService->generateBrief($lead);
         $brief->load('product');
