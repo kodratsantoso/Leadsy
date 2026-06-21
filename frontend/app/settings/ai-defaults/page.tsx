@@ -32,7 +32,7 @@ import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
-import { cn, fmtDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -115,6 +115,9 @@ type UsageOverview = {
   summary: {
     total_calls: number;
     total_cost_usd: number;
+    total_cost_converted?: number;
+    is_converted?: boolean;
+    currency_code?: string;
     success_rate: number | null;
     avg_latency_ms: number | null;
     fallback_count: number;
@@ -128,10 +131,17 @@ type UsageOverview = {
     provider_name: string;
     total_calls: number;
     total_cost_usd: number;
+    total_cost_converted?: number;
     avg_latency_ms: number | null;
     success_rate: number | null;
     fallback_count: number;
     last_used_at?: string | null;
+  }[];
+  daily_timeline?: {
+    date: string;
+    total_calls: number;
+    total_cost_usd: number;
+    total_cost_converted: number;
   }[];
 };
 
