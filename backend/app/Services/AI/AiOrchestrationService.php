@@ -60,7 +60,7 @@ class AiOrchestrationService
         }
 
         if ($routes->isEmpty()) {
-            return $this->fail("No active route for function: {$functionName}");
+            return $this->fail("No Global AI Routing configured. Please set it up in AI Defaults settings.");
         }
 
         $cachedResult = $this->getCachedResult($functionName, $promptContent, $context, $routes->first()?->cache_ttl_minutes);

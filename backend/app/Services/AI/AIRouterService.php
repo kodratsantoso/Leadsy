@@ -46,8 +46,8 @@ class AIRouterService
             ->get();
 
         if ($routes->isEmpty()) {
-            Log::warning("[AIRouter] No active routes for feature: {$featureName}");
-            throw new \Exception("No AI routing configured for feature: {$featureName}");
+            Log::warning("[AIRouter] No active global AI routing configured.");
+            throw new \Exception("No Global AI Routing configured. Please set it up in AI Defaults settings.");
         }
 
         // Cost sensitivity from context
