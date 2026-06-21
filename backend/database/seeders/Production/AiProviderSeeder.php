@@ -14,48 +14,72 @@ class AiProviderSeeder extends Seeder
             [
                 'name' => 'OpenAI',
                 'slug' => 'openai',
+                'provider_type' => 'openai',
                 'base_url' => 'https://api.openai.com/v1',
                 'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
                 'status' => 'inactive',
                 'models' => [
-                    ['name' => 'gpt-5.1',      'cost_tier' => 'high',   'context_window' => 400000],
-                    ['name' => 'gpt-5',        'cost_tier' => 'high',   'context_window' => 400000],
-                    ['name' => 'gpt-5-mini',   'cost_tier' => 'medium', 'context_window' => 400000],
-                    ['name' => 'gpt-5-nano',   'cost_tier' => 'low',    'context_window' => 400000],
-                    ['name' => 'gpt-4.1',      'cost_tier' => 'high',   'context_window' => 1047576],
-                    ['name' => 'gpt-4.1-mini', 'cost_tier' => 'medium', 'context_window' => 1047576],
-                    ['name' => 'gpt-4.1-nano', 'cost_tier' => 'low',    'context_window' => 1047576],
-                    ['name' => 'gpt-4o',       'cost_tier' => 'high',   'context_window' => 128000],
-                    ['name' => 'gpt-4o-mini',  'cost_tier' => 'low',    'context_window' => 128000],
+                    ['name' => 'gpt-4o',             'cost_tier' => 'high',   'context_window' => 128000],
+                    ['name' => 'gpt-4o-mini',        'cost_tier' => 'low',    'context_window' => 128000],
+                    ['name' => 'o1',                 'cost_tier' => 'high',   'context_window' => 200000],
+                    ['name' => 'o1-mini',            'cost_tier' => 'medium', 'context_window' => 128000],
+                    ['name' => 'o3-mini',            'cost_tier' => 'medium', 'context_window' => 200000],
                 ],
             ],
             [
                 'name' => 'Anthropic',
                 'slug' => 'anthropic',
+                'provider_type' => 'anthropic',
                 'base_url' => 'https://api.anthropic.com/v1',
                 'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
                 'status' => 'inactive',
                 'models' => [
-                    ['name' => 'claude-opus-4-1-20250805',   'cost_tier' => 'high',   'context_window' => 200000],
-                    ['name' => 'claude-opus-4-20250514',     'cost_tier' => 'high',   'context_window' => 200000],
-                    ['name' => 'claude-sonnet-4-20250514',   'cost_tier' => 'medium', 'context_window' => 200000],
                     ['name' => 'claude-3-7-sonnet-20250219', 'cost_tier' => 'medium', 'context_window' => 200000],
+                    ['name' => 'claude-3-5-sonnet-20241022', 'cost_tier' => 'medium', 'context_window' => 200000],
                     ['name' => 'claude-3-5-haiku-20241022',  'cost_tier' => 'low',    'context_window' => 200000],
-                    ['name' => 'claude-3-haiku-20240307',    'cost_tier' => 'low',    'context_window' => 200000],
+                    ['name' => 'claude-3-opus-20240229',     'cost_tier' => 'high',   'context_window' => 200000],
                 ],
             ],
             [
                 'name' => 'Google Gemini',
                 'slug' => 'google',
+                'provider_type' => 'gemini',
                 'base_url' => 'https://generativelanguage.googleapis.com/v1beta',
                 'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
                 'status' => 'inactive',
                 'models' => [
-                    ['name' => 'gemini-3-pro-preview',  'cost_tier' => 'high',   'context_window' => 1048576],
-                    ['name' => 'gemini-2.5-pro',        'cost_tier' => 'high',   'context_window' => 1048576],
-                    ['name' => 'gemini-2.5-flash',      'cost_tier' => 'medium', 'context_window' => 1048576],
-                    ['name' => 'gemini-2.5-flash-lite', 'cost_tier' => 'low',    'context_window' => 1048576],
-                    ['name' => 'gemini-2.0-flash',      'cost_tier' => 'low',    'context_window' => 1048576],
+                    ['name' => 'gemini-2.5-pro',        'cost_tier' => 'high',   'context_window' => 2000000],
+                    ['name' => 'gemini-2.5-flash',      'cost_tier' => 'medium', 'context_window' => 1000000],
+                    ['name' => 'gemini-2.0-flash',      'cost_tier' => 'low',    'context_window' => 1000000],
+                    ['name' => 'gemini-2.0-flash-lite', 'cost_tier' => 'low',    'context_window' => 1000000],
+                    ['name' => 'gemini-1.5-pro',        'cost_tier' => 'high',   'context_window' => 2000000],
+                    ['name' => 'gemini-1.5-flash',      'cost_tier' => 'low',    'context_window' => 1000000],
+                ],
+            ],
+            [
+                'name' => 'Groq',
+                'slug' => 'groq',
+                'provider_type' => 'openai',
+                'base_url' => 'https://api.groq.com/openai/v1',
+                'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
+                'status' => 'inactive',
+                'models' => [
+                    ['name' => 'llama-3.3-70b-versatile',  'cost_tier' => 'low', 'context_window' => 128000],
+                    ['name' => 'llama-3.1-8b-instant',     'cost_tier' => 'low', 'context_window' => 128000],
+                    ['name' => 'mixtral-8x7b-32768',       'cost_tier' => 'low', 'context_window' => 32768],
+                    ['name' => 'gemma2-9b-it',             'cost_tier' => 'low', 'context_window' => 8192],
+                ],
+            ],
+            [
+                'name' => 'DeepSeek',
+                'slug' => 'deepseek',
+                'provider_type' => 'openai',
+                'base_url' => 'https://api.deepseek.com/v1',
+                'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
+                'status' => 'inactive',
+                'models' => [
+                    ['name' => 'deepseek-chat',     'cost_tier' => 'low', 'context_window' => 64000],
+                    ['name' => 'deepseek-reasoner', 'cost_tier' => 'low', 'context_window' => 64000],
                 ],
             ],
         ];
@@ -73,6 +97,13 @@ class AiProviderSeeder extends Seeder
             } else {
                 $provider = AiProvider::create($providerData);
             }
+
+            $currentModelNames = collect($models)->pluck('name')->toArray();
+            
+            // Remove obsolete models that are no longer supported
+            AiModel::where('ai_provider_id', $provider->id)
+                ->whereNotIn('name', $currentModelNames)
+                ->delete();
 
             foreach ($models as $model) {
                 AiModel::updateOrCreate(
