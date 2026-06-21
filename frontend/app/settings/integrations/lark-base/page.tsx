@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader, Check, Database, Eye, RefreshCw, X, ArrowLeft, Plus } from "lucide-react";
+import { Save, Loader, Check, Database, Eye, RefreshCw, X, ArrowLeft, Plus, Edit } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -229,6 +229,15 @@ export default function LarkBaseSettingsPage() {
     setBaseFieldMapping(prev => ({ ...prev, [leadsyField]: larkField }));
   };
 
+  const handleEditMapping = (mapping: LarkBaseMapping) => {
+    setBaseAppToken(mapping.app_token);
+    setSelectedBaseTable({ table_id: mapping.table_id, name: mapping.table_name });
+    setBaseSyncDirection(mapping.sync_direction);
+    setBaseFieldMapping(mapping.field_mapping || DEFAULT_LARK_BASE_FIELD_MAPPING);
+    listBaseFieldsMutation.mutate({ appToken: mapping.app_token, tableId: mapping.table_id });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const larkBaseFieldNames = ((listBaseFieldsMutation.data?.items || []) as LarkBaseField[]).map(f => f.field_name);
   const savedTokens = Array.from(new Set(baseMappings.map(m => m.app_token))).filter(Boolean);
 
@@ -268,19 +277,31 @@ export default function LarkBaseSettingsPage() {
                         <Badge variant="neutral">{mapping.record_mappings_count || 0} linked records</Badge>
                       </div>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-muted-foreground hover:text-red-500"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to remove this mapping?')) {
-                          deleteBaseMappingMutation.mutate(mapping.id);
-                        }
-                      }}
-                      disabled={deleteBaseMappingMutation.isPending}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-brand"
+                        onClick={() => handleEditMapping(mapping)}
+                        title="Edit Mapping"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to remove this mapping?')) {
+                            deleteBaseMappingMutation.mutate(mapping.id);
+                          }
+                        }}
+                        disabled={deleteBaseMappingMutation.isPending}
+                        title="Remove Mapping"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="flex gap-2 mt-2">
