@@ -1005,7 +1005,7 @@ export default function IntegrationsSettingsPage() {
   const handleDownloadSyncReport = () => {
     if (!baseSyncDialog.result) return;
 
-    const rows = (baseSyncDialog.result.results || []).map((item) => ({
+    const rows = (baseSyncDialog.result?.results || []).map((item) => ({
       Status: item.status,
       Action: item.action,
       "Lead ID": item.lead_id || "",
@@ -2758,14 +2758,22 @@ export default function IntegrationsSettingsPage() {
           </Card>
 
           <Card className="p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <Database className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <h3 className="text-lg font-semibold">Lark Base Two-Way Sync</h3>
-                <p className="text-sm text-muted-foreground">Connect a specific Base table, preview its records, then sync Leads in both directions.</p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <Database className="h-6 w-6 text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">Lark Base Two-Way Sync</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Connect and sync multiple Lark Bases and Tables.</p>
+                </div>
               </div>
+              <Link href="/settings/integrations/lark-base">
+                <Button type="button">Manage Lark Base Sync</Button>
+              </Link>
             </div>
+          </Card>
 
+          {/* Legacy Lark Base UI moved to /settings/integrations/lark-base */}
+          {false && (
             <div className="grid gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Base App Token</label>
@@ -2991,7 +2999,7 @@ export default function IntegrationsSettingsPage() {
                 </div>
               )}
             </div>
-          </Card>
+          )}
         </div>
       )}
 
@@ -3005,6 +3013,7 @@ export default function IntegrationsSettingsPage() {
         </div>
       )}
 
+      {false && (
       <Modal
         open={baseSyncDialog.open}
         onOpenChange={(open) => setBaseSyncDialog((current) => ({ ...current, open }))}
@@ -3047,11 +3056,11 @@ export default function IntegrationsSettingsPage() {
             <>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 {[
-                  { label: "Attempted", value: baseSyncDialog.result.attempted_count || 0 },
-                  { label: "Added", value: baseSyncDialog.result.added_count || 0 },
-                  { label: "Updated", value: baseSyncDialog.result.updated_count || 0 },
-                  { label: "Deleted", value: baseSyncDialog.result.deleted_count || 0 },
-                  { label: "Failed", value: baseSyncDialog.result.failed_count || baseSyncDialog.result.error_count || 0 },
+                  { label: "Attempted", value: baseSyncDialog.result?.attempted_count || 0 },
+                  { label: "Added", value: baseSyncDialog.result?.added_count || 0 },
+                  { label: "Updated", value: baseSyncDialog.result?.updated_count || 0 },
+                  { label: "Deleted", value: baseSyncDialog.result?.deleted_count || 0 },
+                  { label: "Failed", value: baseSyncDialog.result?.failed_count || baseSyncDialog.result?.error_count || 0 },
                 ].map((item) => (
                   <div key={item.label} className="rounded-lg border border-border bg-[var(--background)] p-3">
                     <p className="text-xs text-muted-foreground">{item.label}</p>
@@ -3060,7 +3069,7 @@ export default function IntegrationsSettingsPage() {
                 ))}
               </div>
 
-              {baseSyncDialog.result.deleted_count === 0 ? (
+              {baseSyncDialog.result?.deleted_count === 0 ? (
                 <p className="text-xs text-muted-foreground">
                   Delete sync is not enabled for manual Lark Base sync yet, so deleted records are reported as 0.
                 </p>
@@ -3082,8 +3091,8 @@ export default function IntegrationsSettingsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(baseSyncDialog.result.results || []).length > 0 ? (
-                        baseSyncDialog.result.results?.map((item, index) => (
+                      {(baseSyncDialog.result?.results || []).length > 0 ? (
+                        baseSyncDialog.result?.results?.map((item, index) => (
                           <tr key={`${item.lead_id || item.record_id || item.lark_record_id || index}`} className="border-b border-border/60">
                             <td className="px-3 py-2">
                               <Badge variant={item.status === "success" ? "success" : item.status === "failed" ? "danger" : "neutral"}>
@@ -3120,6 +3129,7 @@ export default function IntegrationsSettingsPage() {
           ) : null}
         </div>
       </Modal>
+      )}
     </div>
   );
 }
