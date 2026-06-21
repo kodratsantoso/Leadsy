@@ -1271,6 +1271,8 @@ export default function LeadDetailPage() {
       qc.invalidateQueries({ queryKey: ['lead', leadId] });
       qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
     },
+  });
+
   const [briefFeedback, setBriefFeedback] = useState<string | null>(null);
   const [journeyFeedback, setJourneyFeedback] = useState<string | null>(null);
 
