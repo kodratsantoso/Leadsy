@@ -4444,8 +4444,8 @@ export default function LeadDetailPage() {
                 <div className="rounded-lg border border-[var(--status-success)]/30 bg-[var(--status-success)]/5 p-6">
                   <h3 className="mb-4 font-semibold">Revenue Journey</h3>
                   <div className="space-y-3 text-sm">
-                    <div><span className="text-muted-foreground">Expected Value:</span> <strong className="block text-lg">${Number(customerJourney.data.revenue_journey?.estimated_value || 0).toLocaleString()}</strong></div>
-                    <div><span className="text-muted-foreground">Realized Value:</span> <strong className="block text-lg">${Number(customerJourney.data.revenue_journey?.realized_value || 0).toLocaleString()}</strong></div>
+                    <div><span className="text-muted-foreground">Expected Value:</span> <strong className="block text-lg">{formatCurrency(Number(customerJourney.data.revenue_journey?.estimated_value || 0))}</strong></div>
+                    <div><span className="text-muted-foreground">Realized Value:</span> <strong className="block text-lg">{formatCurrency(Number(customerJourney.data.revenue_journey?.realized_value || 0))}</strong></div>
                   </div>
                 </div>
 

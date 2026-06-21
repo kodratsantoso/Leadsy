@@ -2,6 +2,8 @@
 
 import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText } from "lucide-react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/useAuthStore";
+import { canAccessPath } from "@/lib/permissions";
 
 const categories = [
   {
@@ -53,6 +55,13 @@ const categories = [
 ];
 
 export default function SettingsPage() {
+  const user = useAuthStore((state) => state.user);
+  
+  const visibleCategories = categories.map(cat => ({
+    ...cat,
+    items: cat.items.filter(item => canAccessPath(item.href, user))
+  })).filter(cat => cat.items.length > 0);
+
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto">
       <div>
@@ -63,7 +72,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-10" data-tour="settings-master-data">
-        {categories.map((category) => (
+        {visibleCategories.map((category) => (
           <section key={category.name} className="space-y-4">
             <div className="border-b border-border pb-2">
               <h2 className="text-base font-semibold tracking-tight text-foreground">{category.name}</h2>

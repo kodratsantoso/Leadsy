@@ -56,7 +56,15 @@ class PreMeetingBriefService
         $prompt = "Context data:\n" . json_encode($context, JSON_PRETTY_PRINT);
 
         $result = $this->ai->call('pre_meeting_brief_generation', $prompt);
-        $data = json_decode($result['content'] ?? '{}', true);
+        
+        if (!$result['success']) {
+            throw new \Exception('AI Generation Failed: ' . ($result['error'] ?? 'Unknown error'));
+        }
+
+        $content = $result['content'] ?? '{}';
+        $content = preg_replace('/^```json\s*/i', '', $content);
+        $content = preg_replace('/```$/', '', trim($content));
+        $data = json_decode($content, true);
 
         // Save
         $brief = LeadPreMeetingBrief::updateOrCreate(

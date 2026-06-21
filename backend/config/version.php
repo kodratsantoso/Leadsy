@@ -12,7 +12,7 @@
 */
 
 return [
-    'version' => '1.7.1',
+    'version' => '1.7.2',
     'released_at' => '2026-06-21',
     'type' => 'patch',   // major | minor | patch
     'notes' => 'Fix 403 Unauthorized error on Pre-Meeting Brief and Customer Journey endpoints.',

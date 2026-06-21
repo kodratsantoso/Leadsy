@@ -112,7 +112,15 @@ class CustomerJourneyService
         $prompt = "Customer Journey Data:\n" . json_encode($journeyData, JSON_PRETTY_PRINT);
 
         $result = $this->ai->call('customer_journey_story', $prompt);
-        $data = json_decode($result['content'] ?? '{}', true);
+        
+        if (!$result['success']) {
+            throw new \Exception('AI Generation Failed: ' . ($result['error'] ?? 'Unknown error'));
+        }
+
+        $content = $result['content'] ?? '{}';
+        $content = preg_replace('/^```json\s*/i', '', $content);
+        $content = preg_replace('/```$/', '', trim($content));
+        $data = json_decode($content, true);
 
         $story = $data['story'] ?? 'Failed to generate story.';
 
