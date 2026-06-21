@@ -4,7 +4,12 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.7.0** — 2026-06-20
+Current release: **v1.7.1** — 2026-06-21
+
+## What's New in v1.7.1
+
+- **Customer Journey & Pre-Meeting Brief Fix** — Fixed a 403 Unauthorized error that was preventing the Pre-Meeting Brief and Customer Journey data from loading and displaying in the UI. Replaced implicit policy checks with explicit direct `visibleTo` checks.
+- **Node.js Deprecation Fix** — Updated Github Actions `actions/checkout` to v4 and `shivammathur/setup-php` to v2 to resolve Node.js 20 deprecation warnings in CI/CD pipelines.
 
 ## What's New in v1.7.0
 
