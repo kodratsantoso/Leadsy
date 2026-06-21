@@ -23,6 +23,8 @@ class CustomerJourneyService
             'preMeetingBrief',
             'funnelHistory' => fn($q) => $q->oldest()->with('toStage'),
             'productMatches' => fn($q) => $q->with('product')->orderBy('match_score', 'desc'),
+            'followUps' => fn($q) => $q->oldest(),
+            'salesVisits' => fn($q) => $q->oldest(),
         ]);
 
         $timeline = collect();
@@ -57,6 +59,28 @@ class CustomerJourneyService
                 'description' => $history->notes ?? '',
                 'outcome' => '',
                 'date' => $history->created_at,
+            ]);
+        }
+
+        // 4. Follow Ups
+        foreach ($lead->followUps as $followUp) {
+            $timeline->push([
+                'type' => 'follow_up',
+                'title' => 'Follow Up: ' . $followUp->purpose,
+                'description' => '',
+                'outcome' => $followUp->status,
+                'date' => $followUp->due_date ?? $followUp->created_at,
+            ]);
+        }
+
+        // 5. Sales Visits
+        foreach ($lead->salesVisits as $visit) {
+            $timeline->push([
+                'type' => 'sales_visit',
+                'title' => 'Sales Visit',
+                'description' => $visit->notes ?? '',
+                'outcome' => $visit->visit_result ?? $visit->status,
+                'date' => $visit->clock_in_at ?? $visit->created_at,
             ]);
         }
 
