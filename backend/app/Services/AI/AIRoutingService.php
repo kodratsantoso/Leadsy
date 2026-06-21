@@ -37,7 +37,7 @@ class AIRoutingService
     public function listRoutes(): Collection
     {
         return AiFeatureRoute::with(['aiModel.provider'])
-            ->orderBy('feature_name')
+            ->where('feature_name', 'global')
             ->orderBy('priority')
             ->get();
     }

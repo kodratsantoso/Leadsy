@@ -38,8 +38,8 @@ class AIRouterService
      */
     public function selectProviderAndModel(string $featureName, array $context = []): array
     {
-        // Get all active routes for this feature, ordered by priority
-        $routes = AiFeatureRoute::where('feature_name', $featureName)
+        // Get all active global routes, ordered by priority
+        $routes = AiFeatureRoute::where('feature_name', 'global')
             ->where('is_active', true)
             ->with(['aiModel', 'aiModel.aiProvider'])
             ->orderBy('priority', 'asc')
@@ -109,7 +109,7 @@ class AIRouterService
      */
     public function getNextFallback(string $featureName, int $currentPriority): ?array
     {
-        $nextRoute = AiFeatureRoute::where('feature_name', $featureName)
+        $nextRoute = AiFeatureRoute::where('feature_name', 'global')
             ->where('is_active', true)
             ->where('priority', '>', $currentPriority)
             ->with(['aiModel', 'aiModel.aiProvider'])
@@ -305,13 +305,9 @@ class AIRouterService
     public function getFeatureRouting(?string $featureName = null)
     {
         $query = AiFeatureRoute::where('is_active', true)
+            ->where('feature_name', 'global')
             ->with(['aiModel', 'aiModel.aiProvider'])
-            ->orderBy('feature_name', 'asc')
             ->orderBy('priority', 'asc');
-
-        if ($featureName) {
-            $query->where('feature_name', $featureName);
-        }
 
         return $query->get();
     }

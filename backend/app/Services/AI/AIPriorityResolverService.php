@@ -10,7 +10,7 @@ class AIPriorityResolverService
     public function getRoutesForFeature(string $featureName): Collection
     {
         return AiFeatureRoute::with(['aiModel.provider'])
-            ->where('feature_name', $featureName)
+            ->where('feature_name', 'global')
             ->where('is_active', true)
             ->orderBy('priority')
             ->get()
