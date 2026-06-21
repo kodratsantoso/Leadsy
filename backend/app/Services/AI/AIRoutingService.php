@@ -18,6 +18,7 @@ class AIRoutingService
         'meeting_evaluation' => 'Meeting Evaluation',
         'conversation_evaluation' => 'Conversation Evaluation',
         'transcript_evaluation' => 'Transcript Evaluation',
+        'activity_transcript_analysis' => 'Activity Transcript Analysis',
         'next_action_recommendation' => 'Next Action Recommendation',
         'recommendation_engine' => 'Recommendation Engine',
         'summary_generation' => 'Summary Generation',

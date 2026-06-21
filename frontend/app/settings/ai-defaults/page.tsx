@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -31,7 +32,9 @@ import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
-import { cn } from "@/lib/utils";
+import { cn, fmtDate } from "@/lib/utils";
+
+const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 type ProviderModel = {
   id: number;
@@ -1016,8 +1019,8 @@ export default function AiDefaultsPage() {
               <p className="mt-3 text-3xl font-semibold">{formatNumber(usageOverview?.summary.total_calls ?? 0, { decimals: 0 })}</p>
             </CardContent></Card>
             <Card><CardContent className="p-5 pt-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Cost</p>
-              <p className="mt-3 text-3xl font-semibold">{formatCurrency(usageOverview?.summary.total_cost_usd ?? 0, { decimals: 4 })}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Cost ({usageOverview?.summary.is_converted ? usageOverview.summary.currency_code : 'USD'})</p>
+              <p className="mt-3 text-3xl font-semibold">{formatCurrency(usageOverview?.summary.total_cost_converted ?? usageOverview?.summary.total_cost_usd ?? 0, { decimals: 4 })}</p>
             </CardContent></Card>
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Success Rate</p>
@@ -1028,6 +1031,68 @@ export default function AiDefaultsPage() {
               <p className="mt-3 text-3xl font-semibold">{formatNumber(usageOverview?.summary.fallback_count ?? 0, { decimals: 0 })}</p>
             </CardContent></Card>
           </div>
+
+          <Card>
+            <CardContent className="p-5">
+              <h2 className="text-xl font-semibold">Usage Timeline (30 Days)</h2>
+              <div className="mt-4 h-[300px]">
+                {usageOverview?.daily_timeline && usageOverview.daily_timeline.length > 0 ? (
+                  <Chart
+                    type="area"
+                    height={300}
+                    options={{
+                      chart: {
+                        toolbar: { show: false },
+                        background: 'transparent',
+                        fontFamily: 'inherit',
+                      },
+                      colors: ['var(--brand)', '#10b981'],
+                      fill: {
+                        type: 'gradient',
+                        gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] }
+                      },
+                      dataLabels: { enabled: false },
+                      stroke: { curve: 'smooth', width: 2 },
+                      xaxis: {
+                        type: 'datetime',
+                        categories: usageOverview.daily_timeline.map((d: any) => d.date),
+                        labels: { style: { colors: 'hsl(var(--muted-foreground))' } },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                      },
+                      yaxis: [
+                        {
+                          title: { text: 'Calls', style: { color: 'hsl(var(--muted-foreground))', fontWeight: 500 } },
+                          labels: { style: { colors: 'hsl(var(--muted-foreground))' } }
+                        },
+                        {
+                          opposite: true,
+                          title: { text: `Cost (${usageOverview.summary.is_converted ? usageOverview.summary.currency_code : 'USD'})`, style: { color: 'hsl(var(--muted-foreground))', fontWeight: 500 } },
+                          labels: { style: { colors: 'hsl(var(--muted-foreground))' } }
+                        }
+                      ],
+                      grid: { borderColor: 'hsl(var(--border))', strokeDashArray: 4 },
+                      tooltip: { theme: 'dark' },
+                    }}
+                    series={[
+                      {
+                        name: 'Total Calls',
+                        data: usageOverview.daily_timeline.map((d: any) => d.total_calls)
+                      },
+                      {
+                        name: 'Cost',
+                        data: usageOverview.daily_timeline.map((d: any) => usageOverview.summary.is_converted ? d.total_cost_converted : d.total_cost_usd)
+                      }
+                    ]}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
+                    No timeline data available for the last 30 days.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <Card><CardContent className="p-5">
@@ -1043,7 +1108,7 @@ export default function AiDefaultsPage() {
                         </p>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {formatCurrency(item.total_cost_usd ?? 0, { decimals: 4 })} • {formatNumber(item.success_rate ?? 0, { decimals: 0 })}% success • {formatNumber(item.avg_latency_ms ?? 0, { decimals: 0 })}ms avg
+                        {formatCurrency(item.total_cost_converted ?? item.total_cost_usd ?? 0, { decimals: 4 })} • {formatNumber(item.success_rate ?? 0, { decimals: 0 })}% success • {formatNumber(item.avg_latency_ms ?? 0, { decimals: 0 })}ms avg
                       </div>
                     </div>
                   </div>
