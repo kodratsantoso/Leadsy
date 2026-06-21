@@ -1271,22 +1271,37 @@ export default function LeadDetailPage() {
       qc.invalidateQueries({ queryKey: ['lead', leadId] });
       qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
     },
-  });
+  const [briefFeedback, setBriefFeedback] = useState<string | null>(null);
+  const [journeyFeedback, setJourneyFeedback] = useState<string | null>(null);
 
   const generatePreMeetingBriefMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief`, { method: 'POST' }).then((r) => r.json()),
+    mutationFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief`, { method: 'POST' }).then(async (r) => {
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to generate Pre-Meeting Brief');
+      }
+      return r.json();
+    }),
+    onMutate: () => setBriefFeedback(null),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['preMeetingBrief', leadId] });
     },
-    onError: () => console.error('Failed to generate Pre-Meeting Brief'),
+    onError: (err) => setBriefFeedback(err.message),
   });
 
   const generateCustomerStoryMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/customer-journey/story`, { method: 'POST' }).then((r) => r.json()),
+    mutationFn: () => apiFetch(`/leads/${leadId}/customer-journey/story`, { method: 'POST' }).then(async (r) => {
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to generate Customer Story');
+      }
+      return r.json();
+    }),
+    onMutate: () => setJourneyFeedback(null),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['customerJourney', leadId] });
     },
-    onError: () => console.error('Failed to generate Customer Story'),
+    onError: (err) => setJourneyFeedback(err.message),
   });
 
   const icpMatchMutation = useMutation({
@@ -3252,13 +3267,27 @@ export default function LeadDetailPage() {
             </div>
           </div>
 
-          {!preMeetingBrief?.data && !generatePreMeetingBriefMutation.isPending ? (
+          {briefFeedback && (
+            <div className="rounded-lg bg-[color-mix(in_oklch,var(--status-danger)_15%,transparent)] p-4 text-sm text-[var(--status-danger)]">
+              <div className="flex items-center gap-2 font-semibold">
+                <AlertCircle className="h-4 w-4" />
+                Generation Failed
+              </div>
+              <p className="mt-1">{briefFeedback}</p>
+            </div>
+          )}
+
+          {generatePreMeetingBriefMutation.isPending ? (
+            <div className="py-12">
+              <AILoader text="Analyzing lead data and generating brief" />
+            </div>
+          ) : !preMeetingBrief?.data ? (
             <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
               <Sparkles className="mx-auto mb-3 h-8 w-8 opacity-50" />
               <h3 className="mb-1 text-sm font-semibold">No Brief Generated</h3>
               <p className="text-xs">Click Generate Brief to analyze lead data and prepare your strategy.</p>
             </div>
-          ) : preMeetingBrief?.data ? (
+          ) : (
             <div className="space-y-6 print:space-y-4">
               {/* HEADER / SUMMARY */}
               <div className="grid gap-4 md:grid-cols-3">
@@ -4225,6 +4254,16 @@ export default function LeadDetailPage() {
             </Button>
           </div>
 
+          {journeyFeedback && (
+            <div className="rounded-lg bg-[color-mix(in_oklch,var(--status-danger)_15%,transparent)] p-4 text-sm text-[var(--status-danger)]">
+              <div className="flex items-center gap-2 font-semibold">
+                <AlertCircle className="h-4 w-4" />
+                Generation Failed
+              </div>
+              <p className="mt-1">{journeyFeedback}</p>
+            </div>
+          )}
+
           {!customerJourney?.data ? (
             <div className="flex h-32 items-center justify-center text-muted-foreground">
               Loading journey data...
@@ -4290,10 +4329,8 @@ export default function LeadDetailPage() {
                         No customer story generated yet. Click generate to analyze the timeline and build a narrative.
                       </p>
                     ) : generateCustomerStoryMutation.isPending ? (
-                      <div className="animate-pulse space-y-3 py-4">
-                        <div className="h-4 bg-muted rounded w-full"></div>
-                        <div className="h-4 bg-muted rounded w-5/6"></div>
-                        <div className="h-4 bg-muted rounded w-4/6"></div>
+                      <div className="py-8">
+                        <AILoader text="Analyzing journey timeline and writing narrative" />
                       </div>
                     ) : (
                       <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
