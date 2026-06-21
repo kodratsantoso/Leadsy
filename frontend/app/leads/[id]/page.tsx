@@ -3397,7 +3397,7 @@ export default function LeadDetailPage() {
               </div>
               
             </div>
-          ) : null}
+          )}
         </div>
       )}
 
