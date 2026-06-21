@@ -83,7 +83,7 @@ class AiDefaultSettingsApiTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->putJson('/api/settings/ai-default/feature-routes/lead_scoring', [
+            ->putJson('/api/settings/ai-default/feature-routes/global', [
                 'routes' => [
                     [
                         'priority' => 1,
@@ -106,17 +106,17 @@ class AiDefaultSettingsApiTest extends TestCase
                 ],
             ])
             ->assertOk()
-            ->assertJsonPath('data.0.feature_name', 'lead_scoring');
+            ->assertJsonPath('data.0.feature_name', 'global');
 
         $this->assertDatabaseHas('ai_feature_routes', [
-            'feature_name' => 'lead_scoring',
+            'feature_name' => 'global',
             'ai_model_id' => $primary->id,
             'priority' => 1,
             'complexity_mode' => 'deep_reasoning',
         ]);
 
         $this->assertDatabaseHas('ai_feature_routes', [
-            'feature_name' => 'lead_scoring',
+            'feature_name' => 'global',
             'ai_model_id' => $fallback->id,
             'priority' => 2,
             'complexity_mode' => 'lightweight',
