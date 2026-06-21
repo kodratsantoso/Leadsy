@@ -2629,7 +2629,7 @@ export default function IntegrationsSettingsPage() {
               <p className="text-xs text-muted-foreground mt-1">
                 Daftarkan URL ini di Lark App → Redirect URLs. Leadsy akan menggunakan URL ini untuk menerima authorization code dari Lark.
               </p>
-              <code className="mt-2 block rounded bg-slate-950/5 px-2 py-1 text-xs">
+              <code className="mt-2 block rounded bg-secondary/50 px-2 py-1 text-xs">
                 {typeof window !== 'undefined' ? `${window.location.origin}/auth/lark/callback` : 'https://your-domain.com/auth/lark/callback'}
               </code>
               <p className="text-xs text-muted-foreground mt-2">
@@ -2741,7 +2741,7 @@ export default function IntegrationsSettingsPage() {
                   key={module}
                   type="button"
                   onClick={() => toggleLarkModuleMutation.mutate({ module, enabled: !enabled })}
-                  className={`text-left p-4 rounded-lg border transition ${enabled ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300' : 'bg-gray-50 border-border hover:border-gray-300'}`}
+                  className={`text-left p-4 rounded-lg border transition ${enabled ? 'bg-blue-500/10 border-blue-500/30 ring-1 ring-blue-500/30' : 'bg-secondary/20 border-border hover:border-gray-500/30'}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
