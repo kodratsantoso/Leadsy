@@ -2777,6 +2777,28 @@ export default function IntegrationsSettingsPage() {
                   }}
                   placeholder="Example: appbcbWCzen6D8dezhoCH2RpMAh"
                 />
+                {(() => {
+                  const savedTokens = Array.from(new Set(baseMappings.map(m => m.app_token))).filter(Boolean);
+                  if (savedTokens.length === 0) return null;
+                  return (
+                    <div className="mt-2 flex flex-wrap gap-2 items-center">
+                      <span className="text-xs text-muted-foreground">Saved Bases:</span>
+                      {savedTokens.map(token => (
+                        <Badge 
+                          key={token} 
+                          variant={baseAppToken === token ? "default" : "outline"} 
+                          className="cursor-pointer"
+                          onClick={() => {
+                            setBaseAppToken(token);
+                            setSelectedBaseTable(null);
+                          }}
+                        >
+                          {token.substring(0, 8)}...
+                        </Badge>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="flex flex-wrap gap-2">

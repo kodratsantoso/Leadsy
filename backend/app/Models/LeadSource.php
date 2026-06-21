@@ -9,6 +9,7 @@ class LeadSource extends Model
 {
     protected $fillable = [
         'lead_id', 'source_type', 'channel_type_id', 'source_ref', 'confidence', 'last_verified_at',
+        'lark_app_token', 'lark_table_id',
     ];
 
     protected $casts = ['last_verified_at' => 'date'];

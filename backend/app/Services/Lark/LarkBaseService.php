@@ -342,14 +342,35 @@ class LarkBaseService extends LarkService
         unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner']);
 
         if ($lead) {
+            $attributes['external_id'] = $recordId;
             Lead::withoutEvents(fn () => $lead->update($attributes));
+
+            \App\Models\LeadSource::firstOrCreate([
+                'lead_id' => $lead->id,
+                'source_type' => 'lark_base',
+                'lark_app_token' => $baseTable->app_token,
+                'lark_table_id' => $baseTable->table_id,
+            ], [
+                'confidence' => 'high',
+                'last_verified_at' => now(),
+            ]);
         } else {
             $lead = Lead::withoutEvents(fn () => Lead::create(array_merge($attributes, [
                 'tenant_id' => $baseTable->tenant_id,
                 'qualification_status' => $attributes['qualification_status'] ?? 'pending',
                 'duplicate_status' => 'new',
                 'ai_mode' => 'manual',
+                'external_id' => $recordId,
             ])));
+
+            \App\Models\LeadSource::create([
+                'lead_id' => $lead->id,
+                'source_type' => 'lark_base',
+                'lark_app_token' => $baseTable->app_token,
+                'lark_table_id' => $baseTable->table_id,
+                'confidence' => 'high',
+                'last_verified_at' => now(),
+            ]);
         }
 
         LarkBaseRecordMapping::updateOrCreate(
