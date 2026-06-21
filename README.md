@@ -4,7 +4,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.7.2** — 2026-06-21
+Current release: **v1.7.3** — 2026-06-21
+
+## What's New in v1.7.3
+
+- **Pre-Meeting Brief Endpoint Fix** — Fixed a `404 Route Not Found` error when generating Pre-Meeting Briefs by aligning the backend API route (`/generate`) with the frontend mutation call.
 
 ## What's New in v1.7.2
 

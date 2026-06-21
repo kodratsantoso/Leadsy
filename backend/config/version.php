@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.7.2',
+    'version' => '1.7.3',
     'released_at' => '2026-06-21',
     'type' => 'patch',   // major | minor | patch
-    'notes' => 'Fix 403 Unauthorized error on Pre-Meeting Brief, Customer Journey endpoints, and Currency Sync.',
+    'notes' => 'Fix 404 Route Not Found error for Pre-Meeting Brief generate endpoint.',
 ];

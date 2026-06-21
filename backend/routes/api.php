@@ -184,7 +184,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/{lead}/evaluations', [LeadController::class, 'getEvaluations'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/follow-ups', [LeadController::class, 'getFollowUps'])->middleware('permission:leads.view');
     Route::get('/leads/{lead}/pre-meeting-brief', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'show'])->middleware('permission:leads.view');
-    Route::post('/leads/{lead}/pre-meeting-brief', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'generate'])->middleware('permission:leads.edit');
+    Route::post('/leads/{lead}/pre-meeting-brief/generate', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'generate'])->middleware('permission:leads.edit');
 
     Route::get('/leads/{lead}/customer-journey', [\App\Http\Controllers\Api\CustomerJourneyController::class, 'show'])->middleware('permission:leads.view');
     Route::post('/leads/{lead}/customer-journey/story', [\App\Http\Controllers\Api\CustomerJourneyController::class, 'generateStory'])->middleware('permission:leads.edit');
