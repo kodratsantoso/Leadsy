@@ -100,7 +100,7 @@ export default function LarkBaseSettingsPage() {
         }
         throw new Error(msg);
       }
-      return json.items || json.data?.items || json;
+      return json;
     },
     onError: (err: any) => { setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000); }
   });
@@ -122,7 +122,7 @@ export default function LarkBaseSettingsPage() {
       const res = await apiFetch(`/api/lark/base/fields?app_token=${token}&table_id=${tableId}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || 'Failed to fetch base fields');
-      return json.items || json.data?.items || json;
+      return json;
     },
     onError: (err: any) => { setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000); }
   });
@@ -144,7 +144,7 @@ export default function LarkBaseSettingsPage() {
       const res = await apiFetch(`/api/lark/base/records/preview?app_token=${token}&table_id=${selectedBaseTable?.table_id}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || 'Failed to fetch base records');
-      return json.items || json.data?.items || json;
+      return json;
     },
     onError: (err: any) => { setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000); }
   });
