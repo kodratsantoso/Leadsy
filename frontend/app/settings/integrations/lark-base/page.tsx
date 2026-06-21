@@ -59,6 +59,10 @@ const formatLarkBaseValue = (val: any) => {
   return String(val);
 };
 
+function normalizeFieldName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 export default function LarkBaseSettingsPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -141,7 +145,7 @@ export default function LarkBaseSettingsPage() {
         }
       } catch (e) {}
 
-      const res = await apiFetch(`/api/lark/base/records/preview?app_token=${token}&table_id=${selectedBaseTable?.table_id}`);
+      const res = await apiFetch(`/api/lark/base/records/preview?app_token=${encodeURIComponent(token)}&table_id=${encodeURIComponent(selectedBaseTable?.table_id || '')}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || 'Failed to fetch base records');
       return json;
@@ -226,7 +230,64 @@ export default function LarkBaseSettingsPage() {
   };
 
   const updateBaseFieldMapping = (leadsyField: string, larkField: string) => {
-    setBaseFieldMapping(prev => ({ ...prev, [leadsyField]: larkField }));
+    setBaseFieldMapping((current) => ({
+      ...current,
+      [leadsyField]: larkField,
+    }));
+  };
+
+  const applyAutoMapping = (fieldNames: string[]) => {
+    let matchCount = 0;
+
+    setBaseFieldMapping((current) => {
+      const next = { ...current };
+      LEADSY_LEAD_FIELDS.forEach((field) => {
+        const preferred = DEFAULT_LARK_BASE_FIELD_MAPPING[field.key as keyof typeof DEFAULT_LARK_BASE_FIELD_MAPPING];
+        const matched = fieldNames.find((name) => normalizeFieldName(name) === normalizeFieldName(preferred))
+          || fieldNames.find((name) => normalizeFieldName(name) === normalizeFieldName(field.label))
+          || fieldNames.find((name) => normalizeFieldName(name) === normalizeFieldName(field.key))
+          || fieldNames.find((name) => normalizeFieldName(name).includes(normalizeFieldName(field.key)))
+          || fieldNames.find((name) => normalizeFieldName(field.key).includes(normalizeFieldName(name)));
+        if (matched) {
+          next[field.key] = matched;
+          matchCount++;
+        }
+      });
+      return next;
+    });
+
+    return matchCount;
+  };
+
+  const autoMapBaseFields = async () => {
+    let fieldNames = larkBaseFieldNames;
+
+    if (fieldNames.length === 0) {
+      if (!baseAppToken || !selectedBaseTable) {
+        setErrorMsg('Select a Lark Base table before running Auto Match');
+        setTimeout(() => setErrorMsg(''), 5000);
+        return;
+      }
+
+      try {
+        const data = await listBaseFieldsMutation.mutateAsync({
+          appToken: baseAppToken,
+          tableId: selectedBaseTable.table_id,
+        });
+        fieldNames = (data?.items || []).map((field: LarkBaseField) => field.field_name);
+      } catch {
+        return;
+      }
+    }
+
+    const matchCount = applyAutoMapping(fieldNames);
+    if (matchCount > 0) {
+      setSuccessMsg(`Auto matched ${matchCount} Leadsy fields`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } else {
+      setErrorMsg('No matching Lark Base field names found. Please map the fields manually.');
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
   };
 
   const handleEditMapping = (mapping: LarkBaseMapping) => {
@@ -409,6 +470,9 @@ export default function LarkBaseSettingsPage() {
                       <Button size="sm" variant="outline" onClick={() => listBaseFieldsMutation.mutate({ appToken: baseAppToken, tableId: selectedBaseTable.table_id })} disabled={listBaseFieldsMutation.isPending}>
                         {listBaseFieldsMutation.isPending ? <Loader className="mr-2 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-2 h-3 w-3" />}
                         Refresh Fields
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={autoMapBaseFields} disabled={listBaseFieldsMutation.isPending}>
+                        {listBaseFieldsMutation.isPending ? 'Matching...' : 'Auto Match Fields'}
                       </Button>
                     </div>
                   </div>
