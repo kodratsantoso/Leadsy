@@ -77,6 +77,9 @@ type LeadRecord = {
   parentLead?: { id: number; company_name: string } | null;
   subsidiaries?: { id: number; company_name: string }[] | null;
   duplicate_status?: string | null;
+  lark_base_id?: string | null;
+  lark_table_id?: string | null;
+  external_id?: string | null;
 };
 
 type FunnelStage = { id: number; name: string; sequence: number };
@@ -1484,6 +1487,7 @@ export default function LeadsPage() {
                 <TableHeaderCell className="min-w-[140px]">Product</TableHeaderCell>
                 <TableHeaderCell className="min-w-[120px]">Source</TableHeaderCell>
                 <TableHeaderCell className="min-w-[130px]">Channel</TableHeaderCell>
+                <TableHeaderCell className="min-w-[150px]">Lark Sync</TableHeaderCell>
                 <TableHeaderCell className="min-w-[160px]">Contact</TableHeaderCell>
                 <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
                 <TableHeaderCell className="w-[80px]">Grade</TableHeaderCell>
@@ -1536,6 +1540,16 @@ export default function LeadsPage() {
                         </Badge>
                       ) : (
                         <Badge variant="neutral">Unclassified</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lead.lark_base_id ? (
+                        <div className="space-y-1 text-xs">
+                          <p className="truncate w-[120px] font-mono text-muted-foreground" title={`Base: ${lead.lark_base_id}`}>B: {lead.lark_base_id.substring(0, 8)}...</p>
+                          <p className="truncate w-[120px] font-mono text-muted-foreground" title={`Table: ${lead.lark_table_id}`}>T: {lead.lark_table_id?.substring(0, 8)}...</p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell>

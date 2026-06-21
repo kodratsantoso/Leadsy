@@ -3341,8 +3341,8 @@ export default function LeadDetailPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   {safeJsonArray(preMeetingBrief.data.questions_json).map((q: any, i: number) => (
                     <div key={i} className="rounded-lg bg-muted/30 p-3 text-sm">
-                      <p className="font-medium">{q.question || q}</p>
-                      <p className="mt-1 text-xs text-[var(--brand)]">{q.category || 'Discovery'}</p>
+                      <p className="font-medium">{typeof q === 'string' ? q : q?.question || q?.text || JSON.stringify(q)}</p>
+                      <p className="mt-1 text-xs text-[var(--brand)]">{q?.category || 'Discovery'}</p>
                     </div>
                   ))}
                 </div>
@@ -3353,12 +3353,15 @@ export default function LeadDetailPage() {
                 <div className="rounded-xl border border-border bg-card p-5">
                   <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-foreground">Pre-BANTC Estimation</h3>
                   <div className="space-y-3">
-                    {['budget', 'authority', 'need', 'timeline', 'competitor'].map(key => (
-                      <div key={key}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{key}</p>
-                        <p className="text-sm font-medium capitalize">{preMeetingBrief.data.bantc_pre_json?.[key] || '—'}</p>
-                      </div>
-                    ))}
+                    {['budget', 'authority', 'need', 'timeline', 'competitor'].map(key => {
+                      const val = preMeetingBrief.data.bantc_pre_json?.[key];
+                      return (
+                        <div key={key}>
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{key}</p>
+                          <p className="text-sm font-medium capitalize">{typeof val === 'object' && val !== null ? JSON.stringify(val) : val || '—'}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="space-y-4">

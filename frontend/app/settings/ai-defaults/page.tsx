@@ -1062,13 +1062,12 @@ export default function AiDefaultsPage() {
                     height={300}
                     width="100%"
                     options={{
-                      theme: { mode: 'dark' },
                       chart: {
                         toolbar: { show: false },
                         background: 'transparent',
                         fontFamily: 'inherit',
                       },
-                      colors: ['var(--brand)', '#10b981'],
+                      colors: ['#3b82f6', '#10b981'],
                       fill: {
                         type: 'gradient',
                         gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] }
@@ -1078,22 +1077,22 @@ export default function AiDefaultsPage() {
                       xaxis: {
                         type: 'datetime',
                         categories: usageOverview.daily_timeline.map((d: any) => d.date),
-                        labels: { style: { colors: 'hsl(var(--muted-foreground))' } },
+                        labels: { style: { colors: '#9ca3af' } },
                         axisBorder: { show: false },
                         axisTicks: { show: false },
                       },
                       yaxis: [
                         {
-                          title: { text: 'Calls', style: { color: 'hsl(var(--muted-foreground))', fontWeight: 500 } },
-                          labels: { style: { colors: 'hsl(var(--muted-foreground))' } }
+                          title: { text: 'Calls', style: { color: '#9ca3af', fontWeight: 500 } },
+                          labels: { style: { colors: '#9ca3af' } }
                         },
                         {
                           opposite: true,
-                          title: { text: `Cost (${usageOverview.summary.is_converted ? usageOverview.summary.currency_code : 'USD'})`, style: { color: 'hsl(var(--muted-foreground))', fontWeight: 500 } },
-                          labels: { style: { colors: 'hsl(var(--muted-foreground))' } }
+                          title: { text: `Cost (${usageOverview.summary.is_converted ? usageOverview.summary.currency_code : 'USD'})`, style: { color: '#9ca3af', fontWeight: 500 } },
+                          labels: { style: { colors: '#9ca3af' } }
                         }
                       ],
-                      grid: { borderColor: 'hsl(var(--border))', strokeDashArray: 4 },
+                      grid: { borderColor: '#374151', strokeDashArray: 4 },
                       tooltip: { theme: 'dark' },
                     }}
                     series={[

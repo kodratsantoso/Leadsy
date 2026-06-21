@@ -79,42 +79,72 @@ export default function LarkBaseSettingsPage() {
 
   const listBaseTablesMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiFetch('/api/lark/base/tables', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_token: baseAppToken }),
-      });
+      let token = baseAppToken.trim();
+      try {
+        if (token.includes('http')) {
+          const url = new URL(token);
+          const parts = url.pathname.split('/');
+          const baseIndex = parts.indexOf('base');
+          if (baseIndex >= 0 && parts.length > baseIndex + 1) {
+            token = parts[baseIndex + 1];
+          }
+        }
+      } catch (e) {}
+
+      const res = await apiFetch(`/api/lark/base/tables?app_token=${token}`);
       const json = await res.json();
-      if (!res.ok) throw new Error(json?.message || 'Failed to fetch base tables');
-      return json.data;
+      if (!res.ok) {
+        let msg = json?.message || 'Failed to fetch base tables';
+        if (msg.includes('NOTEXIST')) {
+          msg = 'Base does not exist or App lacks permissions. Please invite the Lead Management App to your Base via "Add Apps".';
+        }
+        throw new Error(msg);
+      }
+      return json.items || json.data?.items || json;
     },
     onError: (err: any) => { setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000); }
   });
 
   const listBaseFieldsMutation = useMutation({
     mutationFn: async ({ appToken, tableId }: { appToken: string; tableId: string }) => {
-      const res = await apiFetch('/api/lark/base/fields', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_token: appToken, table_id: tableId }),
-      });
+      let token = appToken.trim();
+      try {
+        if (token.includes('http')) {
+          const url = new URL(token);
+          const parts = url.pathname.split('/');
+          const baseIndex = parts.indexOf('base');
+          if (baseIndex >= 0 && parts.length > baseIndex + 1) {
+            token = parts[baseIndex + 1];
+          }
+        }
+      } catch (e) {}
+
+      const res = await apiFetch(`/api/lark/base/fields?app_token=${token}&table_id=${tableId}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || 'Failed to fetch base fields');
-      return json.data;
+      return json.items || json.data?.items || json;
     },
     onError: (err: any) => { setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000); }
   });
 
   const previewBaseRecordsMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiFetch('/api/lark/base/records/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_token: baseAppToken, table_id: selectedBaseTable?.table_id }),
-      });
+      let token = baseAppToken.trim();
+      try {
+        if (token.includes('http')) {
+          const url = new URL(token);
+          const parts = url.pathname.split('/');
+          const baseIndex = parts.indexOf('base');
+          if (baseIndex >= 0 && parts.length > baseIndex + 1) {
+            token = parts[baseIndex + 1];
+          }
+        }
+      } catch (e) {}
+
+      const res = await apiFetch(`/api/lark/base/records/preview?app_token=${token}&table_id=${selectedBaseTable?.table_id}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || 'Failed to fetch base records');
-      return json.data;
+      return json.items || json.data?.items || json;
     },
     onError: (err: any) => { setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000); }
   });

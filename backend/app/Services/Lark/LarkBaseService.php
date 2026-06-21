@@ -343,6 +343,8 @@ class LarkBaseService extends LarkService
 
         if ($lead) {
             $attributes['external_id'] = $recordId;
+            $attributes['lark_base_id'] = $baseTable->app_token;
+            $attributes['lark_table_id'] = $baseTable->table_id;
             Lead::withoutEvents(fn () => $lead->update($attributes));
 
             \App\Models\LeadSource::firstOrCreate([
@@ -361,6 +363,8 @@ class LarkBaseService extends LarkService
                 'duplicate_status' => 'new',
                 'ai_mode' => 'manual',
                 'external_id' => $recordId,
+                'lark_base_id' => $baseTable->app_token,
+                'lark_table_id' => $baseTable->table_id,
             ])));
 
             \App\Models\LeadSource::create([

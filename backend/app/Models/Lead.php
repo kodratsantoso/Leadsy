@@ -28,6 +28,7 @@ class Lead extends Model
         'presales_owner_id', 'am_owner_id', 'csm_owner_id',
         'territory_id', 'product_id', 'created_by',
         'tenant_id', 'parent_lead_id', 'external_id',
+        'lark_base_id', 'lark_table_id',
     ];
 
     protected $casts = [

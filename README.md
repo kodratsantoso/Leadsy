@@ -4,7 +4,13 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.7.3** — 2026-06-21
+Current release: **v1.7.4** — 2026-06-21
+
+## What's New in v1.7.4
+
+- **Usage & Health Dashboard** — Improved UI rendering of ApexCharts in dark theme by overriding CSS variables with explicit hex colors. Added a new timeline Slicer (Today, Last 7 Days, Last 30 Days, Last 90 Days, This Year) mapped directly to API analytics filters.
+- **Lark Base Integrations** — Expanded Lark Base capability to support multiple Bases and Tables per tenant. Moved Lark Base setup to a dedicated page (`Settings -> Integrations -> Lark Base`). Added URL token extraction to seamlessly support pasting full Lark Base URLs instead of only the raw token. Fixed API mismatches and improved error handling for 91402 (NOTEXIST) exceptions.
+- **Database Snapshots Update** — Refreshed the PostgreSQL database snapshots (`leadsy_full_structure_and_data_2026_06_21.sql`) to include the new `lark_base_id` and `lark_table_id` schema on the `leads` table.
 
 ## What's New in v1.7.3
 
@@ -243,8 +249,8 @@ Use `EXPO_PUBLIC_API_BASE_URL` to point the app at the local backend, LAN backen
 
 Schema lives in `backend/database/migrations/`. A deploy snapshot is also committed under `backend/database/snapshots/` for one-time fresh environment imports:
 
-- `leadsy_full_structure_and_data_2026_06_12.sql` — complete PostgreSQL structure + data archive.
-- `leadsy_deploy_data_2026_06_12.sql` — public-schema application data imported by the guarded Laravel migration.
+- `leadsy_full_structure_and_data_2026_06_21.sql` — complete PostgreSQL structure + data archive.
+- `leadsy_deploy_data_2026_06_21.sql` — public-schema application data imported by the guarded Laravel migration.
 
 Set `IMPORT_LEADSY_DB_SNAPSHOT=true` only on a fresh database where application tables are empty. The snapshot carries encrypted secrets; keep the same `APP_KEY` from the source environment or re-enter AI/Lark credentials after deploy.
 
