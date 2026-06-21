@@ -157,9 +157,9 @@ class AiSettingsController extends Controller
     public function saveFeatureRoutes(Request $request, string $featureName): JsonResponse
     {
         $data = $request->validate([
-            'routes' => 'required|array|min:1|max:4',
+            'routes' => 'required|array|min:1|max:10',
             'routes.*.ai_model_id' => 'required|exists:ai_models,id',
-            'routes.*.priority' => 'required|integer|min:1|max:4',
+            'routes.*.priority' => 'required|integer|min:1|max:10',
             'routes.*.max_retries' => 'nullable|integer|min:0|max:10',
             'routes.*.timeout_seconds' => 'nullable|integer|min:1|max:300',
             'routes.*.cache_ttl_minutes' => 'nullable|integer|min:1',
