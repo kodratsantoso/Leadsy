@@ -2786,7 +2786,7 @@ export default function IntegrationsSettingsPage() {
                       {savedTokens.map(token => (
                         <Badge 
                           key={token} 
-                          variant={baseAppToken === token ? "default" : "outline"} 
+                          variant={baseAppToken === token ? "brand" : "outline"} 
                           className="cursor-pointer"
                           onClick={() => {
                             setBaseAppToken(token);
