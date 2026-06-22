@@ -13,6 +13,7 @@ class LarkBaseService extends LarkService
 {
     public const DEFAULT_LEAD_FIELD_MAPPING = [
         'leadsy_id' => 'Leadsy ID',
+        'external_id' => 'External ID',
         'company_name' => 'Company Name',
         'website' => 'Website',
         'email' => 'Email',
@@ -524,6 +525,7 @@ class LarkBaseService extends LarkService
         return collect($attributes)
             ->only([
                 'leadsy_id',
+                'external_id',
                 'company_name',
                 'website',
                 'email',

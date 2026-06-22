@@ -108,6 +108,7 @@ const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   funnel_stage: "Funnel Stage",
   owner: "Owner",
   external_place_id: "External Place ID",
+  external_id: "External ID",
 };
 
 const LEADSY_LEAD_FIELDS = [
@@ -123,6 +124,7 @@ const LEADSY_LEAD_FIELDS = [
   { key: "funnel_stage", label: "Funnel Stage", description: "Current funnel stage name" },
   { key: "owner", label: "Owner", description: "Lead owner display name" },
   { key: "external_place_id", label: "External Place ID", description: "Google Maps Place ID or external source ID" },
+  { key: "external_id", label: "External ID", description: "External integration or source ID" },
 ] as const;
 
 type LeadsyLeadFieldKey = (typeof LEADSY_LEAD_FIELDS)[number]["key"];
