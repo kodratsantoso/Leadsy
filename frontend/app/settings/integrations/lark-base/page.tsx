@@ -300,7 +300,7 @@ export default function LarkBaseSettingsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const larkBaseFieldNames = ((listBaseFieldsMutation.data?.items || []) as LarkBaseField[]).map(f => f.field_name);
+  const larkBaseFieldNames = ["Record ID", ...((listBaseFieldsMutation.data?.items || []) as LarkBaseField[]).map((f) => f.field_name)];
   const savedTokens = Array.from(new Set(baseMappings.map(m => m.app_token))).filter(Boolean);
 
   return (

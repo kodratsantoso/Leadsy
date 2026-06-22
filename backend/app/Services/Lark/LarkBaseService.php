@@ -311,6 +311,7 @@ class LarkBaseService extends LarkService
 
         $record ??= $this->getRecord($baseTable->app_token, $baseTable->table_id, $recordId);
         $fields = $record['fields'] ?? [];
+        $fields['Record ID'] = $record['record_id'] ?? $recordId;
         $attributes = self::mapBaseFieldsToLead($fields, $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
 
         if (($attributes['company_name'] ?? '') === '') {
@@ -414,6 +415,7 @@ class LarkBaseService extends LarkService
     {
         $values = [
             'leadsy_id' => (string) $lead->id,
+            'external_id' => $lead->external_id,
             'company_name' => $lead->company_name,
             'website' => $lead->website,
             'email' => $lead->email,
@@ -428,7 +430,8 @@ class LarkBaseService extends LarkService
         ];
 
         return collect($fieldMapping)
-            ->mapWithKeys(fn (string $larkField, string $leadsyField): array => [$larkField => $values[$leadsyField] ?? null])
+            ->filter(fn ($larkField) => !empty($larkField) && strcasecmp($larkField, 'Record ID') !== 0)
+            ->mapWithKeys(fn ($larkField, $leadsyField) => [$larkField => $values[$leadsyField] ?? null])
             ->map(fn ($value, string $larkField) => self::normalizeLeadValueForBaseField(
                 $value,
                 self::findBaseFieldDefinition($larkField, $fieldDefinitions)
