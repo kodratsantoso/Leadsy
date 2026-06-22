@@ -152,3 +152,10 @@
 - **Decision**: Extended the Pre-Meeting Brief AI Orchestration prompt and UI to factor in Industry, Business Category, and Product metadata. Outputs now include `industry_based_bantc_questions` and a distinct `product_industry_fit_score`. Missing industry metadata directly lowers the readiness score and presents UI warnings.
 - **Rationale**: Provides hyper-specific discovery guidance based on known vertical operational challenges, reducing generic AI BANTC questions and forcing users to classify leads before demonstrations.
 - **Impact**: `LeadPreMeetingBrief` model accepts additional JSON snapshots. The Pre-Meeting tab UI handles missing context gracefully.
+
+## ADR-022: Pre-Meeting Brief Presales-Ready Overhaul
+- **Date**: 2026-06-22
+- **Status**: Active
+- **Decision**: Completely overhauled the Pre-Meeting Brief output architecture to 11 discrete JSON blocks (e.g., `meeting_strategy_json`, `digitalization_resistance_json`, `demo_cycle_json`). The engine now merges both Product Question Guides and Customer BANTC Question Guides from the database. The UI is rewritten into a modular tabbed view using `Tabs` from `shadcn-ui`.
+- **Rationale**: Sales needed actionable, targeted outputs adapted strictly to the `meeting_type` (Discovery vs Demo) rather than generic narrative. Extracting digital resistance and mapping exact demo cycles forces preparation standardisation.
+- **Impact**: Added 11 new JSON columns to `lead_pre_meeting_briefs`, extensive refactoring of `PreMeetingBriefService.php` and `PreMeetingBriefTab.tsx`. Kept backward compatibility with old JSON payloads via UI-level mappings.

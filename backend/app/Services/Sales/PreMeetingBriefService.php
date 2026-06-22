@@ -20,15 +20,16 @@ class PreMeetingBriefService
         // 1. Gather Context
         $lead->loadMissing([
             'industry',
+            'bantcQuestionGuide',
             'activities' => fn($q) => $q->latest()->take(10),
             'transcripts' => fn($q) => $q->latest()->take(5),
             'aiEvaluations' => fn($q) => $q->latest()->take(5),
-            'productMatches' => fn($q) => $q->with('product')->orderBy('match_score', 'desc')->take(3)
+            'productMatches' => fn($q) => $q->with('product.questionGuide')->orderBy('match_score', 'desc')->take(3)
         ]);
 
         $product = null;
         if (!empty($inputs['product_id'])) {
-            $product = \App\Models\Product::find($inputs['product_id']);
+            $product = \App\Models\Product::with('questionGuide')->find($inputs['product_id']);
         }
         if (!$product) {
             $product = $lead->productMatches->first()?->product;
@@ -47,6 +48,10 @@ class PreMeetingBriefService
         $completenessScore += ($industryContextScore * 0.15); // Add up to 15 points
         if ($product) $completenessScore += 15;
         $completenessScore = min(100, (int)$completenessScore);
+
+        $productIndustryFitScore = 50; // default
+        
+        $meetingType = $inputs['meeting_type'] ?? 'First Discovery Meeting';
 
         // Build Prompt Context
         $context = [
@@ -82,8 +87,12 @@ class PreMeetingBriefService
                 'icp_rules' => $product->icp_rules_json,
                 'use_cases' => $product->use_cases_json,
             ] : null,
+            'Question Guides' => [
+                'Product Question Guide' => $product?->questionGuide?->questions ?? [],
+                'Customer BANTC Question Guide' => $lead->bantcQuestionGuide?->questions ?? [],
+            ],
             'Manual Inputs (Priority)' => [
-                'Meeting Type' => $inputs['meeting_type'] ?? 'Unknown',
+                'Meeting Type' => $meetingType,
                 'Initial Needs' => $inputs['initial_needs'] ?? null,
                 'Customer Objective' => $inputs['customer_objective'] ?? null,
                 'Demo Expectation' => $inputs['demo_expectation'] ?? null,
@@ -92,28 +101,64 @@ class PreMeetingBriefService
             ]
         ];
 
-        $prompt = "You are a Sales Readiness AI. Generate a comprehensive Pre-Meeting Brief based on the provided context. Pay specific attention to the interaction between the Initial Product and the Customer's Industry & Business Category.
+        $prompt = "You are an elite Sales Readiness Engine. Generate a comprehensive Pre-Meeting Brief based on the provided context. 
+Your goal is to prepare the Sales/Presales team for the upcoming '{$meetingType}'.
+Do NOT invent budget numbers, competitor names, or specific facts if they are missing. Use hypotheses where data is missing.
+
 Respond ONLY in valid JSON matching this exact structure:
 {
-  \"customer_snapshot\": {},
-  \"industry_snapshot\": {\"industry\": \"\", \"business_category\": \"\", \"likely_business_model\": \"\", \"expected_maturity_level\": \"\", \"likely_buyer_persona\": \"\"},
-  \"meeting_context\": {},
-  \"needs_pain_hypothesis\": {},
-  \"industry_pain_point_hypothesis\": {\"common_operational_challenges\": [], \"industry_specific_pain_points\": [], \"industry_specific_risk_signals\": [], \"key_validation_questions\": []},
-  \"product_fit_hypothesis\": {},
-  \"product_industry_fit\": {\"product_industry_fit_score\": 0, \"why_product_fits_industry\": \"\", \"relevant_use_cases\": [], \"pain_points_to_validate_first\": [], \"features_to_prioritize\": [], \"business_value_to_emphasize\": \"\", \"likely_objections\": [], \"common_legacy_alternatives\": []},
-  \"bantc_discovery_plan\": {\"budget\": [], \"authority\": [], \"needs\": [], \"timeline\": [], \"competitor\": []},
-  \"industry_based_bantc_questions\": {\"budget\": [], \"authority\": [], \"needs\": [], \"timeline\": [], \"competitor\": []},
-  \"demo_strategy\": {},
-  \"industry_based_demo_strategy\": {\"industry_specific_demo_storyline\": \"\", \"recommended_demo_scenario\": \"\", \"operational_process_to_simulate\": \"\", \"feature_sequence\": [], \"kpi_to_highlight\": [], \"objections_to_prepare\": [], \"success_criteria\": \"\"},
-  \"stakeholder_strategy\": {},
-  \"risk_flags\": [],
-  \"recommended_meeting_approach\": {},
-  \"readiness\": {\"readiness_score\": 0, \"readiness_status\": \"Ready|Needs Clarification|Not Ready\", \"reasoning\": []},
-  \"executive_brief\": \"\"
+  \"executive_summary\": {\"summary\": \"\", \"key_objective\": \"\", \"primary_challenge\": \"\"},
+  \"customer_context\": {\"company_summary\": \"\", \"industry_context\": \"\", \"business_category_context\": \"\", \"known_evidence\": [], \"missing_data\": []},
+  \"initial_product_intelligence\": {\"product_relevance\": \"\", \"product_fit_hypothesis\": \"\", \"relevant_use_cases\": [], \"buyer_persona_hypothesis\": \"\", \"demo_relevance\": \"\"},
+  \"initial_bantc_estimation\": {
+    \"budget\": {\"estimated_readiness\": \"\", \"evidence\": \"\", \"assumptions\": \"\", \"confidence\": \"Low|Medium|High\", \"validation_questions\": []},
+    \"authority\": {\"likely_decision_maker\": \"\", \"likely_influencer\": \"\", \"possible_blocker\": \"\", \"authority_gaps\": \"\", \"confidence\": \"Low|Medium|High\"},
+    \"need\": {\"likely_need_strength\": \"\", \"related_pain_points\": [], \"product_relevance\": \"\", \"confidence\": \"Low|Medium|High\"},
+    \"timeline\": {\"likely_urgency_level\": \"\", \"possible_buying_trigger\": \"\", \"implementation_timing_hypothesis\": \"\", \"confidence\": \"Low|Medium|High\"},
+    \"competitor\": {\"possible_competitor_or_legacy\": \"\", \"switching_risk\": \"\", \"validation_questions\": [], \"confidence\": \"Low|Medium|High\"},
+    \"challenge\": {\"expected_implementation_challenge\": \"\", \"operational_challenge_hypothesis\": \"\", \"confidence\": \"Low|Medium|High\"}
+  },
+  \"question_guide\": [
+    {
+      \"question\": \"\", \"category\": \"Budget|Authority|Need|Timeline|Competitor|Challenge|Legacy|Other\", \"source\": \"product_question_guide|bantc_question_guide|ai_contextual|digital_resistance_check\",
+      \"why_this_question_matters\": \"\", \"what_good_answer_indicates\": \"\", \"what_risk_answer_indicates\": \"\", \"follow_up_question\": \"\",
+      \"priority\": \"critical|high|medium|low\", \"recommended_timing\": \"opening|discovery|validation|demo|closing\",
+      \"related_product\": \"\", \"related_pain_point\": \"\", \"related_bantc_area\": \"\"
+    }
+  ],
+  \"digitalization_resistance_analysis\": {
+    \"resistance_level\": \"low|medium|high\", \"reasoning\": \"\", \"evidence_used\": [], \"assumptions\": [],
+    \"resistance_signals_to_validate\": [], \"digitalization_resistance_questions\": []
+  },
+  \"meeting_strategy\": {
+    \"focus_areas\": [], \"opening_approach\": \"\", \"discovery_sequence\": [], \"top_questions_to_prioritize\": [], \"what_not_to_pitch_yet\": \"\", \"qualification_objective\": \"\", \"expected_meeting_outcome\": \"\"
+  },
+  \"demo_cycle\": {
+    \"demo_journey_name\": \"\",
+    \"demo_flow\": [
+      {\"step_number\": 1, \"demo_stage_name\": \"\", \"objective\": \"\", \"feature_or_module_to_show\": \"\", \"talk_track\": \"\", \"customer_pain_addressed\": \"\", \"validation_question\": \"\", \"expected_customer_reaction\": \"\"}
+    ],
+    \"demo_sequence_rule\": {\"show_first\": \"\", \"show_middle\": \"\", \"show_last\": \"\", \"avoid_showing_early\": \"\"},
+    \"demo_success_criteria\": {\"understand\": [], \"confirm\": [], \"buying_signal\": \"\"},
+    \"demo_risk\": {\"possible_mismatch\": \"\", \"possible_objection\": \"\", \"feature_gap\": \"\"}
+  },
+  \"pain_point_hypothesis\": {
+    \"confirmed_pain_points\": [{\"pain_point\": \"\", \"business_impact\": \"\"}],
+    \"inferred_pain_points\": [{\"pain_point_hypothesis\": \"\", \"why_likely\": \"\", \"evidence_basis\": \"\", \"relation_to_product\": \"\", \"business_impact_if_true\": \"\", \"validation_question\": \"\", \"confidence\": \"Low|Medium|High\", \"priority\": \"High|Medium|Low\"}]
+  },
+  \"risk_analysis\": {
+    \"meeting_risks\": [], \"demo_risks\": [], \"deal_risks\": [], \"adoption_risks\": []
+  },
+  \"readiness\": {
+    \"score\": 0, \"readiness_status\": \"Ready|Needs Clarification|Not Ready\", \"reason\": \"\", \"missing_information\": []
+  }
 }
 
-Note: Make sure that `industry_based_bantc_questions` arrays each contain objects with `question`, `why_it_matters`, `ideal_answer`, `risk_answer`, `relation_to_product`, `relation_to_industry`.
+Important Rules:
+1. Merge questions from Product Question Guide and Customer BANTC Question Guide, plus generate your own ai_contextual and digital_resistance_check questions. Ensure at least 8 highly relevant questions are generated.
+2. Adapt 'meeting_strategy' based specifically on the selected meeting type ('{$meetingType}').
+3. For Readiness Score (0-100), penalize if Initial Product is missing, if Question Guides are missing, or if Industry/Business Category is missing.
+4. Separate confirmed pain points from inferred ones based strictly on evidence provided.
 
 Context data:
 " . json_encode($context, JSON_PRETTY_PRINT);
@@ -129,17 +174,19 @@ Context data:
         $content = preg_replace('/```$/', '', trim($content));
         $data = json_decode($content, true);
 
-        // Adjust Readiness
-        $aiReadiness = $data['readiness']['readiness_score'] ?? 50;
-        $productIndustryFitScore = $data['product_industry_fit']['product_industry_fit_score'] ?? 50;
-        
-        // Final score combines AI readiness, Completeness, and Industry Fit
-        $finalScore = (int) (($aiReadiness + $completenessScore + $productIndustryFitScore) / 3);
-        
-        // If industry fit is weak or context missing, penalize slightly more
-        if ($industryContextScore === 0) {
-             $finalScore -= 10;
+        if (!$data) {
+             abort(500, 'AI Generation Failed: Invalid JSON returned.');
         }
+
+        // Adjust Readiness
+        $aiReadiness = $data['readiness']['score'] ?? 50;
+        
+        // Final programmatic penalty checks just to ensure minimum standards
+        $finalScore = (int) $aiReadiness;
+        if (!$product) $finalScore -= 20;
+        if (!$lead->bantcQuestionGuide) $finalScore -= 10;
+        if ($industryContextScore === 0) $finalScore -= 15;
+        
         $finalScore = max(0, min(100, $finalScore));
         $status = $finalScore >= 80 ? 'Ready' : ($finalScore >= 60 ? 'Needs Clarification' : 'Not Ready');
 
@@ -147,28 +194,38 @@ Context data:
         $brief = LeadPreMeetingBrief::create([
             'lead_id' => $lead->id,
             'product_id' => $product?->id,
-            'meeting_type' => $inputs['meeting_type'] ?? null,
+            'meeting_type' => $meetingType,
             'input_context_json' => $inputs,
-            'customer_snapshot_json' => $data['customer_snapshot'] ?? null,
-            'industry_snapshot_json' => $data['industry_snapshot'] ?? null,
-            'meeting_context_json' => $data['meeting_context'] ?? null,
-            'needs_pain_hypothesis_json' => $data['needs_pain_hypothesis'] ?? null,
-            'industry_pain_point_hypothesis_json' => $data['industry_pain_point_hypothesis'] ?? null,
-            'product_fit_hypothesis_json' => $data['product_fit_hypothesis'] ?? null,
-            'product_industry_fit_json' => $data['product_industry_fit'] ?? null,
-            'bantc_discovery_plan_json' => $data['bantc_discovery_plan'] ?? null,
-            'industry_based_bantc_questions_json' => $data['industry_based_bantc_questions'] ?? null,
-            'demo_strategy_json' => $data['demo_strategy'] ?? null,
-            'industry_based_demo_strategy_json' => $data['industry_based_demo_strategy'] ?? null,
-            'stakeholder_strategy_json' => $data['stakeholder_strategy'] ?? null,
-            'risk_flags_json' => $data['risk_flags'] ?? null,
-            'recommended_meeting_approach_json' => $data['recommended_meeting_approach'] ?? null,
+            
+            // Map legacy columns (useful if other parts of the app expect them, though we should transition)
+            'customer_snapshot_json' => $data['customer_context'] ?? null,
+            'needs_pain_hypothesis_json' => $data['pain_point_hypothesis'] ?? null,
+            'product_fit_hypothesis_json' => $data['initial_product_intelligence'] ?? null,
+            'bantc_discovery_plan_json' => $data['initial_bantc_estimation'] ?? null,
+            'demo_strategy_json' => $data['demo_cycle'] ?? null,
+            'risk_flags_json' => $data['risk_analysis'] ?? null,
+            'recommended_meeting_approach_json' => $data['meeting_strategy'] ?? null,
+            
+            // Map new columns exactly as requested
+            'executive_summary_json' => $data['executive_summary'] ?? null,
+            'customer_context_json' => $data['customer_context'] ?? null,
+            'initial_product_intelligence_json' => $data['initial_product_intelligence'] ?? null,
+            'initial_bantc_estimation_json' => $data['initial_bantc_estimation'] ?? null,
+            'question_guide_json' => $data['question_guide'] ?? null,
+            'digitalization_resistance_json' => $data['digitalization_resistance_analysis'] ?? null,
+            'meeting_strategy_json' => $data['meeting_strategy'] ?? null,
+            'demo_cycle_json' => $data['demo_cycle'] ?? null,
+            'pain_point_hypothesis_json' => $data['pain_point_hypothesis'] ?? null,
+            'risk_analysis_json' => $data['risk_analysis'] ?? null,
+            'readiness_json' => $data['readiness'] ?? null,
+
             'readiness_score' => $finalScore,
             'readiness_status' => $status,
             'data_completeness_score' => $completenessScore,
             'industry_context_completeness_score' => $industryContextScore,
             'product_industry_fit_score' => $productIndustryFitScore,
-            'executive_brief' => $data['executive_brief'] ?? null,
+            'executive_brief' => $data['executive_summary']['summary'] ?? null,
+            
             'ai_provider' => $result['provider'] ?? 'orchestration',
             'ai_model' => $result['model'] ?? 'default',
             'prompt_version' => 'v3',
