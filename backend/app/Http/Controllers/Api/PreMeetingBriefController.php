@@ -16,8 +16,13 @@ class PreMeetingBriefController extends Controller
         if (! Lead::visibleTo(request()->user())->whereKey($lead->id)->exists()) {
             abort(403);
         }
-        $brief = $lead->preMeetingBrief()->with('product')->first();
 
+        if (request()->query('history')) {
+            $briefs = $lead->preMeetingBriefs()->with('product')->take(10)->get();
+            return response()->json(['data' => $briefs]);
+        }
+
+        $brief = $lead->preMeetingBrief()->with('product')->first();
         return response()->json(['data' => $brief]);
     }
 
@@ -27,7 +32,17 @@ class PreMeetingBriefController extends Controller
             abort(403);
         }
         
-        $brief = $this->briefService->generateBrief($lead);
+        $validated = request()->validate([
+            'meeting_type' => 'nullable|string',
+            'initial_needs' => 'nullable|string',
+            'customer_objective' => 'nullable|string',
+            'demo_expectation' => 'nullable|string',
+            'pain_point' => 'nullable|string',
+            'kpi_target' => 'nullable|string',
+            'product_id' => 'nullable|exists:products,id',
+        ]);
+        
+        $brief = $this->briefService->generateBrief($lead, $validated);
         $brief->load('product');
 
         return response()->json(['data' => $brief]);

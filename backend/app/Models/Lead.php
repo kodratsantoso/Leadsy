@@ -186,6 +186,11 @@ class Lead extends Model
         return $this->hasMany(LeadAiEvaluation::class)->orderBy('evaluated_at', 'desc');
     }
 
+    public function preMeetingBriefs(): HasMany
+    {
+        return $this->hasMany(LeadPreMeetingBrief::class)->orderBy('created_at', 'desc');
+    }
+
     public function preMeetingBrief(): HasOne
     {
         return $this->hasOne(LeadPreMeetingBrief::class)->latestOfMany();
