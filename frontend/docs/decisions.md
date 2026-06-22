@@ -145,3 +145,10 @@
 - **Decision**: Implemented Customer Journey as an aggregation layer across existing data models (leads, activities, transcripts, AI insights, revenue, product matching). The generated narrative is cached in a `customer_story` column on the `leads` table. Output is rendered on a dedicated tab in a 3-column responsive layout, supporting native browser PDF exports using standard `@media print` CSS classes.
 - **Rationale**: User required a compiled chronological end-to-end view without creating duplicate core entities. Standard browser print functionality avoids heavyweight backend PDF generation dependencies while fulfilling the PDF export requirement.
 - **Impact**: Provides an integrated, exportable high-level executive summary of the entire customer lifecycle without redundant tables.
+
+## ADR-021: Pre-Meeting Brief Industry & Business Category Extensibility
+- **Date**: 2026-06-22
+- **Status**: Active
+- **Decision**: Extended the Pre-Meeting Brief AI Orchestration prompt and UI to factor in Industry, Business Category, and Product metadata. Outputs now include `industry_based_bantc_questions` and a distinct `product_industry_fit_score`. Missing industry metadata directly lowers the readiness score and presents UI warnings.
+- **Rationale**: Provides hyper-specific discovery guidance based on known vertical operational challenges, reducing generic AI BANTC questions and forcing users to classify leads before demonstrations.
+- **Impact**: `LeadPreMeetingBrief` model accepts additional JSON snapshots. The Pre-Meeting tab UI handles missing context gracefully.
