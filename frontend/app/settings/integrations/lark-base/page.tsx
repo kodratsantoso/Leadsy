@@ -317,8 +317,8 @@ export default function LarkBaseSettingsPage() {
       {successMsg && <div className="rounded-lg bg-emerald-500/10 p-4 text-emerald-600">{successMsg}</div>}
       {errorMsg && <div className="rounded-lg bg-red-500/10 p-4 text-red-600">{errorMsg}</div>}
 
-      <div className="flex flex-col gap-8 max-w-4xl">
-        <Card className="p-6 h-fit min-w-0">
+      <div className="flex flex-col gap-8 w-full">
+        <Card className="p-6 w-full">
           <div className="mb-4 flex items-center gap-2">
             <Database className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-lg font-semibold">Saved Base Mappings</h3>
@@ -392,154 +392,172 @@ export default function LarkBaseSettingsPage() {
           )}
         </Card>
 
-        <Card className="p-6 h-fit min-w-0">
-          <div className="mb-4 flex items-center gap-2">
-            <Plus className="h-5 w-5 text-muted-foreground" />
-            <h3 className="text-lg font-semibold">Add New Mapping</h3>
-          </div>
+        <div className={`grid gap-6 ${previewBaseRecordsMutation.data?.items?.length > 0 ? 'xl:grid-cols-[1fr_2fr]' : 'grid-cols-1 max-w-2xl'}`}>
+          <Card className="p-6 h-fit min-w-0">
+            <div className="mb-4 flex items-center gap-2">
+              <Plus className="h-5 w-5 text-muted-foreground" />
+              <h3 className="text-lg font-semibold">Add New Mapping</h3>
+            </div>
 
-          <div className="grid gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Base App Token</label>
-              <Input
-                value={baseAppToken}
-                onChange={(e) => { setBaseAppToken(e.target.value); setSelectedBaseTable(null); }}
-                placeholder="Example: appbcbWCzen6D8dezhoCH2RpMAh"
-              />
-              {savedTokens.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2 items-center">
-                  <span className="text-xs text-muted-foreground">Saved Bases:</span>
-                  {savedTokens.map(token => (
-                    <Badge key={token} variant={baseAppToken === token ? "brand" : "outline"} className="cursor-pointer" onClick={() => { setBaseAppToken(token); setSelectedBaseTable(null); }}>
-                      {token.substring(0, 8)}...
-                    </Badge>
+            <div className="grid gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Base App Token</label>
+                <Input
+                  value={baseAppToken}
+                  onChange={(e) => { setBaseAppToken(e.target.value); setSelectedBaseTable(null); }}
+                  placeholder="Example: appbcbWCzen6D8dezhoCH2RpMAh"
+                />
+                {savedTokens.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2 items-center">
+                    <span className="text-xs text-muted-foreground">Saved Bases:</span>
+                    {savedTokens.map(token => (
+                      <Badge key={token} variant={baseAppToken === token ? "brand" : "outline"} className="cursor-pointer" onClick={() => { setBaseAppToken(token); setSelectedBaseTable(null); }}>
+                        {token.substring(0, 8)}...
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => listBaseTablesMutation.mutate()}
+                  disabled={!baseAppToken || listBaseTablesMutation.isPending}
+                >
+                  {listBaseTablesMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                  Load Tables
+                </Button>
+              </div>
+
+              {listBaseTablesMutation.data?.items?.length > 0 && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(listBaseTablesMutation.data.items as LarkBaseTable[]).map((table) => (
+                    <button
+                      key={table.table_id}
+                      type="button"
+                      onClick={() => handleSelectBaseTable(table)}
+                      className={`flex items-center justify-between rounded-lg border p-3 text-left text-sm transition-colors hover:bg-accent ${selectedBaseTable?.table_id === table.table_id ? 'border-brand bg-brand/5' : 'border-border'}`}
+                    >
+                      <span className="font-medium truncate">{table.name || table.table_id}</span>
+                      {selectedBaseTable?.table_id === table.table_id && <Check className="h-4 w-4 text-brand" />}
+                    </button>
                   ))}
                 </div>
               )}
-            </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => listBaseTablesMutation.mutate()}
-                disabled={!baseAppToken || listBaseTablesMutation.isPending}
-              >
-                {listBaseTablesMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                Load Tables
-              </Button>
-            </div>
-
-            {listBaseTablesMutation.data?.items?.length > 0 && (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {(listBaseTablesMutation.data.items as LarkBaseTable[]).map((table) => (
-                  <button
-                    key={table.table_id}
-                    type="button"
-                    onClick={() => handleSelectBaseTable(table)}
-                    className={`flex items-center justify-between rounded-lg border p-3 text-left text-sm transition-colors hover:bg-accent ${selectedBaseTable?.table_id === table.table_id ? 'border-brand bg-brand/5' : 'border-border'}`}
-                  >
-                    <span className="font-medium truncate">{table.name || table.table_id}</span>
-                    {selectedBaseTable?.table_id === table.table_id && <Check className="h-4 w-4 text-brand" />}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {selectedBaseTable && (
-              <div className="space-y-4 pt-4 border-t border-border mt-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Sync Direction</label>
-                  <Select
-                    value={baseSyncDirection}
-                    onChange={(e) => setBaseSyncDirection(e.target.value as any)}
-                  >
-                    <option value="two_way">Two-Way Sync</option>
-                    <option value="leadsy_to_lark">Leadsy -&gt; Lark Only (Push)</option>
-                    <option value="lark_to_leadsy">Lark -&gt; Leadsy Only (Pull)</option>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Field Mapping</label>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => previewBaseRecordsMutation.mutate()} disabled={previewBaseRecordsMutation.isPending}>
-                        {previewBaseRecordsMutation.isPending ? <Loader className="mr-2 h-3 w-3 animate-spin" /> : <Eye className="mr-2 h-3 w-3" />}
-                        Preview Data
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => listBaseFieldsMutation.mutate({ appToken: baseAppToken, tableId: selectedBaseTable.table_id })} disabled={listBaseFieldsMutation.isPending}>
-                        {listBaseFieldsMutation.isPending ? <Loader className="mr-2 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-2 h-3 w-3" />}
-                        Refresh Fields
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={autoMapBaseFields} disabled={listBaseFieldsMutation.isPending}>
-                        {listBaseFieldsMutation.isPending ? 'Matching...' : 'Auto Match Fields'}
-                      </Button>
-                    </div>
+              {selectedBaseTable && (
+                <div className="space-y-4 pt-4 border-t border-border mt-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Sync Direction</label>
+                    <Select
+                      value={baseSyncDirection}
+                      onChange={(e) => setBaseSyncDirection(e.target.value as any)}
+                    >
+                      <option value="two_way">Two-Way Sync</option>
+                      <option value="leadsy_to_lark">Leadsy -&gt; Lark Only (Push)</option>
+                      <option value="lark_to_leadsy">Lark -&gt; Leadsy Only (Pull)</option>
+                    </Select>
                   </div>
 
-                  {previewBaseRecordsMutation.data?.items?.length > 0 && (
-                    <div className="overflow-hidden rounded-lg border border-border">
-                      <div className="max-h-60 overflow-auto">
-                        <table className="w-full text-left text-xs whitespace-nowrap">
-                          <thead className="sticky top-0 bg-card">
-                            <tr>
-                              <th className="border-b border-border px-3 py-2 bg-card">Record ID</th>
-                              {Object.keys(previewBaseRecordsMutation.data.items[0]?.fields || {}).slice(0, 5).map((field) => (
-                                <th key={field} className="border-b border-border px-3 py-2 bg-card">{field}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {previewBaseRecordsMutation.data.items.slice(0, 3).map((record: any) => (
-                              <tr key={record.record_id} className="border-b border-border/60">
-                                <td className="px-3 py-2 font-mono text-muted-foreground">{record.record_id}</td>
-                                {Object.keys(previewBaseRecordsMutation.data.items[0]?.fields || {}).slice(0, 5).map((field) => (
-                                  <td key={field} className="max-w-32 truncate px-3 py-2">
-                                    {formatLarkBaseValue(record.fields?.[field])}
-                                  </td>
-                                ))}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Field Mapping</label>
+                      <div className="flex gap-2 flex-wrap justify-end">
+                        <Button size="sm" variant="outline" onClick={() => previewBaseRecordsMutation.mutate()} disabled={previewBaseRecordsMutation.isPending}>
+                          {previewBaseRecordsMutation.isPending ? <Loader className="mr-2 h-3 w-3 animate-spin" /> : <Eye className="mr-2 h-3 w-3" />}
+                          Preview Data
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => listBaseFieldsMutation.mutate({ appToken: baseAppToken, tableId: selectedBaseTable.table_id })} disabled={listBaseFieldsMutation.isPending}>
+                          {listBaseFieldsMutation.isPending ? <Loader className="mr-2 h-3 w-3 animate-spin" /> : <RefreshCw className="mr-2 h-3 w-3" />}
+                          Refresh Fields
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={autoMapBaseFields} disabled={listBaseFieldsMutation.isPending}>
+                          {listBaseFieldsMutation.isPending ? 'Matching...' : 'Auto Match Fields'}
+                        </Button>
                       </div>
                     </div>
-                  )}
 
-                  <div className="rounded-lg border border-border bg-[var(--background)] p-3 max-h-96 overflow-y-auto">
-                    <div className="space-y-3">
-                      {LEADSY_LEAD_FIELDS.map((field) => (
-                        <div key={field.key} className="grid grid-cols-2 items-center gap-2">
-                          <div className="text-sm">{field.label}</div>
-                          <select
-                            value={baseFieldMapping[field.key] || ""}
-                            onChange={(e) => updateBaseFieldMapping(field.key, e.target.value)}
-                            className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
-                          >
-                            <option value="">Do not sync</option>
-                            {larkBaseFieldNames.map((name) => (
-                              <option key={`${field.key}-${name}`} value={name}>{name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
+                    <div className="rounded-lg border border-border bg-[var(--background)] p-3 max-h-96 overflow-y-auto">
+                      <div className="space-y-3">
+                        {LEADSY_LEAD_FIELDS.map((field) => (
+                          <div key={field.key} className="grid grid-cols-[1fr_1.5fr] items-center gap-2">
+                            <div className="text-sm">{field.label}</div>
+                            <select
+                              value={baseFieldMapping[field.key] || ""}
+                              onChange={(e) => updateBaseFieldMapping(field.key, e.target.value)}
+                              className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+                            >
+                              <option value="">Do not sync</option>
+                              {larkBaseFieldNames.map((name) => (
+                                <option key={`${field.key}-${name}`} value={name}>{name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <Button
-                  className="w-full mt-4"
-                  onClick={() => saveBaseMappingMutation.mutate()}
-                  disabled={saveBaseMappingMutation.isPending}
-                >
-                  {saveBaseMappingMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  Save New Base Mapping
-                </Button>
+                  <Button
+                    className="w-full mt-4"
+                    onClick={() => saveBaseMappingMutation.mutate()}
+                    disabled={saveBaseMappingMutation.isPending}
+                  >
+                    {saveBaseMappingMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save New Base Mapping
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {previewBaseRecordsMutation.data?.items?.length > 0 && (
+            <Card className="p-6 flex flex-col min-w-0">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold">Preview Data</h3>
+                </div>
+                <Badge variant="outline">{previewBaseRecordsMutation.data.items.length} records retrieved</Badge>
               </div>
-            )}
-          </div>
-        </Card>
+              
+              {(() => {
+                const previewItems = previewBaseRecordsMutation.data.items;
+                const allKeys = Array.from(new Set(previewItems.slice(0, 10).flatMap((r: any) => Object.keys(r.fields || {}))));
+                return (
+                  <div className="overflow-x-auto rounded-lg border border-border flex-1 bg-card">
+                    <div className="max-h-[600px] overflow-y-auto relative">
+                      <table className="w-full text-left text-xs whitespace-nowrap">
+                        <thead className="sticky top-0 bg-accent z-10 shadow-sm">
+                          <tr>
+                            <th className="border-b border-border px-3 py-3 font-semibold text-muted-foreground">Record ID</th>
+                            {allKeys.map((field) => (
+                              <th key={field as string} className="border-b border-border px-3 py-3 font-semibold text-muted-foreground">{field as string}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewItems.slice(0, 15).map((record: any) => (
+                            <tr key={record.record_id} className="border-b border-border/60 hover:bg-muted/50 transition-colors">
+                              <td className="px-3 py-2 font-mono text-muted-foreground text-[10px]">{record.record_id}</td>
+                              {allKeys.map((field) => (
+                                <td key={field as string} className="max-w-[200px] truncate px-3 py-2">
+                                  {formatLarkBaseValue(record.fields?.[field as string])}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </Card>
+          )}
+        </div>
       </div>
 
       <Modal title="Base Sync Progress" open={baseSyncDialog.open} onOpenChange={(open) => !open && setBaseSyncDialog((p) => ({ ...p, open: false }))}>
