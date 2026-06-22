@@ -318,7 +318,7 @@ export default function LarkBaseSettingsPage() {
       {errorMsg && <div className="rounded-lg bg-red-500/10 p-4 text-red-600">{errorMsg}</div>}
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="p-6 h-fit">
+        <Card className="p-6 h-fit min-w-0">
           <div className="mb-4 flex items-center gap-2">
             <Database className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-lg font-semibold">Saved Base Mappings</h3>
@@ -392,7 +392,7 @@ export default function LarkBaseSettingsPage() {
           )}
         </Card>
 
-        <Card className="p-6 h-fit">
+        <Card className="p-6 h-fit min-w-0">
           <div className="mb-4 flex items-center gap-2">
             <Plus className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-lg font-semibold">Add New Mapping</h3>
