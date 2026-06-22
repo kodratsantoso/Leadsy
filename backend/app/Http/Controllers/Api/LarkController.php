@@ -398,6 +398,19 @@ class LarkController extends Controller
         ]);
     }
 
+    public function deleteBaseMapping(Request $request, LarkBaseTable $baseTable)
+    {
+        $this->authorizeTenantTable($baseTable);
+
+        $baseTable->recordMappings()->delete();
+        $baseTable->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Base mapping deleted successfully',
+        ]);
+    }
+
     public function syncBaseMapping(Request $request, LarkBaseTable $baseTable)
     {
         $this->authorizeTenantTable($baseTable);

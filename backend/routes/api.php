@@ -341,6 +341,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('base/mappings', [LarkController::class, 'getBaseMappings'])->middleware('permission:integrations.manage');
         Route::post('base/mappings', [LarkController::class, 'saveBaseMapping'])->middleware('permission:integrations.manage');
         Route::post('base/mappings/{baseTable}/sync', [LarkController::class, 'syncBaseMapping'])->middleware('permission:integrations.manage');
+        Route::delete('base/mappings/{baseTable}', [LarkController::class, 'deleteBaseMapping'])->middleware('permission:integrations.manage');
     });
 });
 
