@@ -54,9 +54,29 @@ const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   owner: "Owner", external_place_id: "External Place ID", external_id: "External ID",
 };
 
-const formatLarkBaseValue = (val: any) => {
+const formatLarkBaseValue = (val: any): string => {
   if (val == null) return "-";
-  if (typeof val === "object") return JSON.stringify(val);
+  if (Array.isArray(val)) {
+    return val.map((item: any) => {
+      if (item && typeof item === "object") {
+        if (item.text) return item.text;
+        if (item.name) return item.name;
+        if (item.full_name) return item.full_name;
+        if (item.email) return item.email;
+        if (item.link) return item.link;
+        return JSON.stringify(item);
+      }
+      return String(item);
+    }).join(", ");
+  }
+  if (typeof val === "object") {
+    if (val.text) return val.text;
+    if (val.name) return val.name;
+    if (val.full_name) return val.full_name;
+    if (val.email) return val.email;
+    if (val.link) return val.link;
+    return JSON.stringify(val);
+  }
   return String(val);
 };
 
@@ -146,7 +166,7 @@ export default function LarkBaseSettingsPage() {
         }
       } catch (e) {}
 
-      const res = await apiFetch(`/api/lark/base/records/preview?app_token=${encodeURIComponent(token)}&table_id=${encodeURIComponent(selectedBaseTable?.table_id || '')}`);
+      const res = await apiFetch(`/api/lark/base/records/preview?app_token=${encodeURIComponent(token)}&table_id=${encodeURIComponent(selectedBaseTable?.table_id || '')}&page_size=500`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || 'Failed to fetch base records');
       return json;
@@ -539,7 +559,7 @@ export default function LarkBaseSettingsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {previewItems.slice(0, 15).map((record: any) => (
+                          {previewItems.slice(0, 50).map((record: any) => (
                             <tr key={record.record_id} className="border-b border-border/60 hover:bg-muted/50 transition-colors">
                               <td className="px-3 py-2 font-mono text-muted-foreground text-[10px]">{record.record_id}</td>
                               {allKeys.map((field) => (

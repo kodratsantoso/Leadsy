@@ -337,7 +337,7 @@ class LarkController extends Controller
         $request->validate([
             'app_token' => 'required|string',
             'table_id' => 'required|string',
-            'page_size' => 'nullable|integer|min:1|max:100',
+            'page_size' => 'nullable|integer|min:1|max:500',
             'page_token' => 'nullable|string',
         ]);
 
