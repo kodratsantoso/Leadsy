@@ -317,7 +317,7 @@ export default function LarkBaseSettingsPage() {
       {successMsg && <div className="rounded-lg bg-emerald-500/10 p-4 text-emerald-600">{successMsg}</div>}
       {errorMsg && <div className="rounded-lg bg-red-500/10 p-4 text-red-600">{errorMsg}</div>}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="flex flex-col gap-8 max-w-4xl">
         <Card className="p-6 h-fit min-w-0">
           <div className="mb-4 flex items-center gap-2">
             <Database className="h-5 w-5 text-muted-foreground" />
