@@ -94,7 +94,7 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
 
   if (mode === 'form' || (!activeBrief && mode === 'view')) {
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold tracking-tight">Generate Pre-Meeting Brief</h2>
