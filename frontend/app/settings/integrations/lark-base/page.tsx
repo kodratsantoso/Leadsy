@@ -56,6 +56,11 @@ const DEFAULT_LARK_BASE_FIELD_MAPPING = {
 
 const formatLarkBaseValue = (val: any): string => {
   if (val == null) return "-";
+  
+  if (typeof val === "number" && val > 1000000000000 && val < 3000000000000) {
+    return new Date(val).toLocaleString();
+  }
+
   if (Array.isArray(val)) {
     return val.map((item: any) => {
       if (item && typeof item === "object") {
@@ -534,7 +539,7 @@ export default function LarkBaseSettingsPage() {
           </Card>
 
           {previewBaseRecordsMutation.data?.items?.length > 0 && (
-            <Card className="p-6 flex flex-col min-w-0">
+            <Card className="p-6 flex flex-col min-w-0 h-full">
               <div className="mb-4 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Eye className="h-5 w-5 text-muted-foreground" />
@@ -547,8 +552,8 @@ export default function LarkBaseSettingsPage() {
                 const previewItems = previewBaseRecordsMutation.data.items;
                 const allKeys = Array.from(new Set(previewItems.slice(0, 10).flatMap((r: any) => Object.keys(r.fields || {}))));
                 return (
-                  <div className="overflow-x-auto rounded-lg border border-border flex-1 bg-card">
-                    <div className="max-h-[600px] overflow-y-auto relative">
+                  <div className="overflow-x-auto rounded-lg border border-border flex-1 bg-card flex flex-col">
+                    <div className="flex-1 overflow-y-auto relative min-h-[400px] max-h-[800px]">
                       <table className="w-full text-left text-xs whitespace-nowrap">
                         <thead className="sticky top-0 bg-accent z-10 shadow-sm">
                           <tr>
