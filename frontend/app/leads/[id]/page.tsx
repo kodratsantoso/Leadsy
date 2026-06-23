@@ -236,10 +236,10 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--status-success)] mb-2">Buying Signals</p>
             <ul className="space-y-1">
-              {safeJsonArray(analysis.buying_signals).map((s: string, i: number) => (
+              {safeJsonArray(analysis.buying_signals).map((s: any, i: number) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs">
                   <CheckCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-[var(--status-success)]" />
-                  {s}
+                  {typeof s === 'object' ? JSON.stringify(s) : String(s)}
                 </li>
               ))}
             </ul>
@@ -249,10 +249,10 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--status-danger)] mb-2">Objections</p>
             <ul className="space-y-1">
-              {safeJsonArray(analysis.objections).map((o: string, i: number) => (
+              {safeJsonArray(analysis.objections).map((o: any, i: number) => (
                 <li key={i} className="flex items-start gap-1.5 text-xs">
                   <AlertCircle className="h-3 w-3 flex-shrink-0 mt-0.5 text-[var(--status-danger)]" />
-                  {o}
+                  {typeof o === 'object' ? JSON.stringify(o) : String(o)}
                 </li>
               ))}
             </ul>
@@ -281,10 +281,10 @@ function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Reasoning</p>
           <ol className="space-y-1 list-none">
-            {safeJsonArray(analysis.reasoning).map((r: string, i: number) => (
+            {safeJsonArray(analysis.reasoning).map((r: any, i: number) => (
               <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                 <span className="flex-shrink-0 w-4 h-4 rounded-full bg-muted/50 flex items-center justify-center text-[9px] font-bold">{i + 1}</span>
-                {r}
+                {typeof r === 'object' ? JSON.stringify(r) : String(r)}
               </li>
             ))}
           </ol>
@@ -3143,7 +3143,7 @@ export default function LeadDetailPage() {
                           ].map(({ label, value }) => (
                             <div key={label} className="rounded-lg border border-border bg-card p-3 text-center">
                               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-                              <p className="mt-1 text-sm font-bold capitalize">{value ?? '—'}</p>
+                              <p className="mt-1 text-sm font-bold capitalize">{typeof value === 'object' ? JSON.stringify(value) : String(value ?? '—')}</p>
                             </div>
                           ))}
                         </div>
@@ -3151,7 +3151,7 @@ export default function LeadDetailPage() {
                         {evaluation.summary && (
                           <div className="rounded-lg border border-border bg-card p-3">
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Meeting Summary</p>
-                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{evaluation.summary}</p>
+                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{typeof evaluation.summary === 'object' ? JSON.stringify(evaluation.summary) : String(evaluation.summary)}</p>
                           </div>
                         )}
 
@@ -3160,8 +3160,9 @@ export default function LeadDetailPage() {
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-2">BANTC Extracted Insights</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               {['budget', 'authority', 'needs', 'timeline', 'competitor'].map((key) => {
-                                const val = (evaluation.bantc_extracted as any)[key];
-                                if (!val) return null;
+                                const rawVal = (evaluation.bantc_extracted as any)[key];
+                                if (!rawVal) return null;
+                                const val = typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal);
                                 return (
                                   <div key={key} className={key === 'needs' ? 'sm:col-span-2' : ''}>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{key}</p>
@@ -3177,9 +3178,9 @@ export default function LeadDetailPage() {
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--status-success)] mb-2">Buying Signals</p>
                             <ul className="space-y-1">
-                              {safeJsonArray(evaluation.buying_signals).map((s: string, i: number) => (
+                              {safeJsonArray(evaluation.buying_signals).map((s: any, i: number) => (
                                 <li key={i} className="flex items-start gap-1.5 text-xs">
-                                  <CheckCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-success)]" />{s}
+                                  <CheckCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-success)]" />{typeof s === 'object' ? JSON.stringify(s) : String(s)}
                                 </li>
                               ))}
                             </ul>
@@ -3190,9 +3191,9 @@ export default function LeadDetailPage() {
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--status-danger)] mb-2">Objections Detected</p>
                             <ul className="space-y-1">
-                              {safeJsonArray(evaluation.objections_detected).map((o: string, i: number) => (
+                              {safeJsonArray(evaluation.objections_detected).map((o: any, i: number) => (
                                 <li key={i} className="flex items-start gap-1.5 text-xs">
-                                  <AlertCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-danger)]" />{o}
+                                  <AlertCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-danger)]" />{typeof o === 'object' ? JSON.stringify(o) : String(o)}
                                 </li>
                               ))}
                             </ul>
