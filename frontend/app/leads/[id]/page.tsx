@@ -3162,11 +3162,36 @@ export default function LeadDetailPage() {
                               {['budget', 'authority', 'needs', 'timeline', 'competitor'].map((key) => {
                                 const rawVal = (evaluation.bantc_extracted as any)[key];
                                 if (!rawVal) return null;
-                                const val = typeof rawVal === 'object' ? JSON.stringify(rawVal) : String(rawVal);
+                                
+                                let displayValue: React.ReactNode = String(rawVal);
+                                if (typeof rawVal === 'object' && rawVal !== null) {
+                                  const v = rawVal.Value || rawVal.value;
+                                  const evidence = rawVal.Evidence || rawVal.evidence;
+                                  const confidence = rawVal.Confidence || rawVal.confidence;
+                                  
+                                  displayValue = (
+                                    <div className="space-y-1 mt-1">
+                                      <p className="font-medium text-foreground capitalize">
+                                        {Array.isArray(v) ? v.join(', ') : String(v || '-').replace(/_/g, ' ')}
+                                      </p>
+                                      {evidence && (
+                                        <p className="text-xs text-muted-foreground font-normal normal-case leading-relaxed">
+                                          <span className="opacity-70 font-medium">Evidence:</span> {String(evidence)}
+                                        </p>
+                                      )}
+                                      {confidence != null && (
+                                        <p className="text-[10px] text-muted-foreground/80 font-normal">Confidence: {confidence}%</p>
+                                      )}
+                                    </div>
+                                  );
+                                } else {
+                                  displayValue = <p className="text-sm font-medium text-foreground capitalize mt-1">{String(rawVal).replace(/_/g, ' ')}</p>;
+                                }
+
                                 return (
                                   <div key={key} className={key === 'needs' ? 'sm:col-span-2' : ''}>
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{key}</p>
-                                    <p className="text-sm font-medium text-foreground capitalize">{val}</p>
+                                    <div className="text-sm">{displayValue}</div>
                                   </div>
                                 );
                               })}
