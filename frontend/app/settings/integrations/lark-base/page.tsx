@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
+import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 
 // --- Types ---
 type LarkBaseTable = { table_id: string; name?: string; revision?: number; };
@@ -633,9 +634,17 @@ export default function LarkBaseSettingsPage() {
           </h2>
           
           {baseSyncDialog.status === "running" && (
-            <div className="flex flex-col items-center justify-center py-8">
-              <Loader className="mb-4 h-8 w-8 animate-spin text-brand" />
-              <p className="text-muted-foreground">Sync in progress. This may take a moment...</p>
+            <div className="py-8">
+              <ProgressiveFluxLoader 
+                layout="feature" 
+                phases={[
+                  { at: 0, label: baseSyncDialog.direction === "pull" ? "Connecting to Lark Base" : "Preparing leads data" },
+                  { at: 20, label: baseSyncDialog.direction === "pull" ? "Fetching records" : "Sending records" },
+                  { at: 50, label: "Mapping fields" },
+                  { at: 75, label: baseSyncDialog.direction === "pull" ? "Saving to Leadsy" : "Updating Lark Base" },
+                  { at: 95, label: "Almost done" }
+                ]} 
+              />
             </div>
           )}
 
