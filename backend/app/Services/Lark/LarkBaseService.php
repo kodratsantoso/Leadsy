@@ -25,6 +25,8 @@ class LarkBaseService extends LarkService
         'funnel_stage' => 'Funnel Stage',
         'owner' => 'Owner',
         'external_place_id' => 'External Place ID',
+        'contact_name' => 'Contact Name',
+        'contact_phone' => 'Contact Phone Number',
     ];
 
     /**
@@ -341,7 +343,10 @@ class LarkBaseService extends LarkService
         }
         $action = $lead ? 'updated' : 'added';
 
-        unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner']);
+        $contactName = $attributes['contact_name'] ?? null;
+        $contactPhone = $attributes['contact_phone'] ?? null;
+
+        unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner'], $attributes['contact_name'], $attributes['contact_phone']);
 
         if ($lead) {
             $attributes['external_id'] = $recordId;
@@ -377,6 +382,24 @@ class LarkBaseService extends LarkService
                 'confidence' => 'high',
                 'last_verified_at' => now(),
             ]);
+        }
+
+        if ($contactName || $contactPhone) {
+            $contactAttributes = [];
+            if ($contactPhone) {
+                $contactAttributes['phone'] = $contactPhone;
+            }
+            if ($contactName) {
+                $lead->contacts()->updateOrCreate(
+                    ['name' => $contactName],
+                    $contactAttributes
+                );
+            } elseif ($contactPhone) {
+                $lead->contacts()->updateOrCreate(
+                    ['phone' => $contactPhone],
+                    $contactAttributes
+                );
+            }
         }
 
         LarkBaseRecordMapping::updateOrCreate(
@@ -427,6 +450,8 @@ class LarkBaseService extends LarkService
             'funnel_stage' => $lead->funnelStage?->name,
             'owner' => $lead->owner?->name,
             'external_place_id' => $lead->external_place_id,
+            'contact_name' => $lead->contacts?->first()?->name,
+            'contact_phone' => $lead->contacts?->first()?->phone,
         ];
 
         return collect($fieldMapping)
@@ -540,6 +565,8 @@ class LarkBaseService extends LarkService
                 'external_place_id',
                 'funnel_stage',
                 'owner',
+                'contact_name',
+                'contact_phone',
             ])
             ->all();
     }

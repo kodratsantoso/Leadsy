@@ -46,12 +46,15 @@ const LEADSY_LEAD_FIELDS = [
   { key: "owner", label: "Owner" },
   { key: "external_place_id", label: "External Place ID" },
   { key: "external_id", label: "External ID" },
+  { key: "contact_name", label: "Contact Name" },
+  { key: "contact_phone", label: "Contact Phone Number" },
 ] as const;
 
 const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   leadsy_id: "Leadsy ID", company_name: "Company Name", website: "Website", email: "Email", phone: "Phone", address: "Address",
   business_category: "Business Category", lead_score: "Lead Score", qualification_status: "Status", funnel_stage: "Funnel Stage",
   owner: "Owner", external_place_id: "External Place ID", external_id: "External ID",
+  contact_name: "Contact Name", contact_phone: "Contact Phone Number",
 };
 
 const formatLarkBaseValue = (val: any, fieldName?: string): string => {
