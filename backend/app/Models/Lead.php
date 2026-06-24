@@ -20,7 +20,7 @@ class Lead extends Model
         'company_size_estimate', 'branch_count', 'operating_hours',
         'social_profiles',
         'lead_score', 'estimated_closing_amount', 'realized_closing_amount',
-        'qualification_status', 'ai_explanation', 'customer_story',
+        'qualification_status', 'ai_explanation', 'customer_story', 'meeting_link',
         'duplicate_status', 'duplicate_of_id', 'external_place_id',
         'use_ai_reference', 'ai_mode', 'ai_reference_source_type',
         'ai_reference_id', 'ai_processing_status',

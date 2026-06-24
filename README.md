@@ -4,13 +4,18 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.7.4** — 2026-06-21
+Current release: **v1.8.0** — 2026-06-24
+
+## What's New in v1.8.0
+
+- **Batch Delete Leads** — Implemented bulk deletion for leads, restricted strictly to `super_admin` users, available from the Leads index page.
+- **Lark Meeting Transcripts AI Analysis** — Added the ability to fetch meeting transcripts natively from Lark Minutes via a simple URL link. The AI automatically analyzes the transcript to extract intent, objections, and buying signals, integrating seamlessly into the existing Transcripts tab in Lead details.
 
 ## What's New in v1.7.4
 
 - **Usage & Health Dashboard** — Improved UI rendering of ApexCharts in dark theme by overriding CSS variables with explicit hex colors. Added a new timeline Slicer (Today, Last 7 Days, Last 30 Days, Last 90 Days, This Year) mapped directly to API analytics filters.
 - **Lark Base Integrations** — Expanded Lark Base capability to support multiple Bases and Tables per tenant. Moved Lark Base setup to a dedicated page (`Settings -> Integrations -> Lark Base`). Added URL token extraction to seamlessly support pasting full Lark Base URLs instead of only the raw token. Fixed API mismatches and improved error handling for 91402 (NOTEXIST) exceptions.
-- **Database Snapshots Update** — Refreshed the PostgreSQL database snapshots (`leadsy_full_structure_and_data_2026_06_21.sql`) to include the new `lark_base_id` and `lark_table_id` schema on the `leads` table.
+- **Database Snapshots Update** — Refreshed the PostgreSQL database snapshots (`leadsy_full_structure_and_data_2026_06_24.sql`) to include the new `lark_base_id` and `lark_table_id` schema on the `leads` table as well as the new `meeting_link` column.
 
 ## What's New in v1.7.3
 

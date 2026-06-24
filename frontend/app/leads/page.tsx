@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAuthStore } from "@/store/useAuthStore";
+
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,6 +63,7 @@ type LeadRecord = {
   company_size_estimate?: string | null;
   estimated_closing_amount?: string | number | null;
   realized_closing_amount?: string | number | null;
+  meeting_link?: string | null;
   product_id?: number | null;
   industry_id?: number | null;
   sub_industry_id?: number | null;
@@ -124,6 +127,8 @@ type LeadFormState = {
   industry_id: string;
   sub_industry_id: string;
   company_size_estimate: string;
+  meeting_link: string;
+  lead_score: string;
   business_category: string;
   product_id: string;
   estimated_closing_amount: string;
@@ -195,6 +200,8 @@ const emptyForm: LeadFormState = {
   industry_id: "",
   sub_industry_id: "",
   company_size_estimate: "",
+  meeting_link: "",
+  lead_score: "",
   business_category: "",
   product_id: "",
   estimated_closing_amount: "",
@@ -668,6 +675,10 @@ export default function LeadsPage() {
   const [parentLeadSearch, setParentLeadSearch] = useState("");
   const [parentLeadResults, setParentLeadResults] = useState<{ id: number; company_name: string }[]>([]);
   const [parentLeadSearching, setParentLeadSearching] = useState(false);
+  const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+
+  const user = useAuthStore((s) => s.user);
 
 
 
@@ -989,6 +1000,31 @@ export default function LeadsPage() {
     },
   });
 
+  const batchDeleteMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      const response = await apiFetch("/leads/batch-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? "Failed to delete leads.");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setFeedback("Selected leads deleted successfully.");
+      setSelectedLeads([]);
+      setBatchDeleteOpen(false);
+    },
+    onError: (error: Error) => {
+      setFeedback(error.message);
+      setBatchDeleteOpen(false);
+    },
+  });
+
   const assignLeadMutation = useMutation({
     mutationFn: async ({ id, ownerId }: { id: number; ownerId: string }) => {
       const response = await apiFetch(`/leads/${id}/assign`, {
@@ -1031,6 +1067,8 @@ export default function LeadsPage() {
       industry_id:           lead.industry_id != null ? String(lead.industry_id) : "",
       sub_industry_id:       lead.sub_industry_id != null ? String(lead.sub_industry_id) : "",
       company_size_estimate: lead.company_size_estimate || "",
+      meeting_link:          lead.meeting_link || "",
+      lead_score:            lead.lead_score != null ? String(lead.lead_score) : "",
       business_category:     lead.business_category || "",
       product_id:            lead.product_id != null ? String(lead.product_id) : "",
       estimated_closing_amount: lead.estimated_closing_amount != null ? String(lead.estimated_closing_amount) : "",
@@ -1335,6 +1373,15 @@ export default function LeadsPage() {
               <Upload className="h-4 w-4" />
               Import
             </Button>
+            {user?.role?.name === "super_admin" && selectedLeads.length > 0 && (
+              <Button
+                variant="destructive"
+                onClick={() => setBatchDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Selected ({selectedLeads.length})
+              </Button>
+            )}
             <Button
               onClick={() => {
                 resetForm();
@@ -1482,6 +1529,22 @@ export default function LeadsPage() {
           <Table>
             <TableHead>
               <tr>
+                {user?.role?.name === "super_admin" && (
+                  <TableHeaderCell className="w-[40px]">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                      checked={leads.length > 0 && selectedLeads.length === leads.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLeads(leads.map((l) => l.id));
+                        } else {
+                          setSelectedLeads([]);
+                        }
+                      }}
+                    />
+                  </TableHeaderCell>
+                )}
                 <TableHeaderCell className="min-w-[200px]">Company</TableHeaderCell>
                 <TableHeaderCell className="min-w-[120px]">Industry</TableHeaderCell>
                 <TableHeaderCell className="min-w-[140px]">Product</TableHeaderCell>
@@ -1506,10 +1569,26 @@ export default function LeadsPage() {
                   Loading leads...
                 </TableEmpty>
               ) : leads.length === 0 ? (
-                <TableEmpty colSpan={14}>No leads found.</TableEmpty>
+                <TableEmpty colSpan={user?.role?.name === "super_admin" ? 15 : 14}>No leads found.</TableEmpty>
               ) : (
                 leads.map((lead) => (
                   <TableRow key={lead.id}>
+                    {user?.role?.name === "super_admin" && (
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                          checked={selectedLeads.includes(lead.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedLeads((prev) => [...prev, lead.id]);
+                            } else {
+                              setSelectedLeads((prev) => prev.filter((id) => id !== lead.id));
+                            }
+                          }}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Link href={`/leads/${lead.id}`} className="block space-y-1">
                         <p className="font-medium">{lead.company_name}</p>
@@ -2147,6 +2226,16 @@ export default function LeadsPage() {
               />
             </div>
             <div className="grid gap-2">
+              <label className="text-sm font-medium">Meeting Link (Lark)</label>
+              <Input
+                value={formState.meeting_link}
+                onChange={(e) => setFormState((s) => ({ ...s, meeting_link: e.target.value }))}
+                placeholder="https://vc.larksuite.com/minutes/..."
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
               <label className="text-sm font-medium">Company Size</label>
               <Select
                 value={formState.company_size_estimate}
@@ -2664,6 +2753,33 @@ export default function LeadsPage() {
         <p className="text-sm text-muted-foreground">
           This will permanently remove{" "}
           <span className="font-medium text-foreground">{deleteLead?.company_name}</span>.
+        </p>
+      </Modal>
+
+      <Modal
+        open={batchDeleteOpen}
+        onOpenChange={setBatchDeleteOpen}
+        title="Batch Delete Leads"
+        description="Are you sure you want to delete the selected leads?"
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setBatchDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => batchDeleteMutation.mutate(selectedLeads)}
+              disabled={batchDeleteMutation.isPending}
+            >
+              {batchDeleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Delete {selectedLeads.length} Leads
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          This will permanently remove <span className="font-medium text-foreground">{selectedLeads.length}</span> selected lead{selectedLeads.length === 1 ? "" : "s"}.
         </p>
       </Modal>
     </div>

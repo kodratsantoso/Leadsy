@@ -83,7 +83,9 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/leads/page.tsx` — now consumes lead source and channel type master data for create/edit classification, table display, and filters.
 - `frontend/app/leads/page.tsx` — displays estimated and realized closing amounts and lets admins maintain both values from lead create/edit modals.
 - `frontend/app/leads/page.tsx` — exposes Initial Product in lead create/edit and table display.
+- `frontend/app/leads/page.tsx` — implements Batch Delete functionality exclusively for the `super_admin` role.
 - `frontend/app/leads/[id]/page.tsx` — Revenue tab records product-specific deal outcomes with separate `new_sales`/`upsales` sale type and amount history per customer.
+- `frontend/app/leads/[id]/page.tsx` — Transcripts tab supports native fetching of Lark Meeting Transcripts via URL linking and triggers AI evaluation.
 - `frontend/app/settings/currency/page.tsx` — added DB-backed currency and number separator settings with live preview.
 - `frontend/lib/hooks/use-number-format.ts` — added the shared number/currency display contract used by operational pages.
 - `frontend/AGENTS.md` — strengthened the runtime UI governance lock with post-refactor enforcement rules.

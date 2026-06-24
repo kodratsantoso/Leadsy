@@ -368,6 +368,21 @@ class LeadController extends Controller
         ], 201);
     }
 
+    /** POST /api/leads/batch-delete */
+    public function batchDelete(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Hanya super_admin yang dapat melakukan batch delete.');
+
+        $data = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:leads,id',
+        ]);
+
+        Lead::whereIn('id', $data['ids'])->delete();
+
+        return response()->json(['message' => 'Leads deleted successfully']);
+    }
+
     /** PUT /api/leads/{lead} */
     public function update(Request $request, Lead $lead): JsonResponse
     {
@@ -1374,6 +1389,67 @@ class LeadController extends Controller
         ]);
 
         return response()->json(['data' => $transcript->load('activity:id,activity_type,activity_date,description')], 201);
+    }
+
+    /** POST /api/leads/{lead}/transcripts/fetch-link */
+    public function fetchTranscriptFromLink(Request $request, Lead $lead): JsonResponse
+    {
+        $data = $request->validate([
+            'meeting_link' => 'required|url',
+        ]);
+
+        $url = $data['meeting_link'];
+
+        if (!$lead->meeting_link) {
+            $lead->update(['meeting_link' => $url]);
+        }
+
+        $integration = \App\Models\LarkIntegration::where('tenant_id', $lead->tenant_id)->where('is_active', true)->first();
+        if (!$integration) {
+            abort(400, 'No active Lark integration found for this tenant.');
+        }
+
+        $larkService = new \App\Services\Lark\LarkMeetingService($integration);
+
+        $minuteToken = null;
+        if (preg_match('/minutes\/([a-zA-Z0-9]+)/', $url, $matches)) {
+            $minuteToken = $matches[1];
+        }
+
+        if (!$minuteToken) {
+            abort(400, 'Invalid Lark Minutes URL. Could not find minute token.');
+        }
+
+        $transcriptData = $larkService->getMinuteTranscript($minuteToken);
+        if (!$transcriptData) {
+            abort(400, 'Failed to fetch transcript from Lark API. Ensure integration has permissions.');
+        }
+
+        $transcriptText = $transcriptData['content'] ?? ($transcriptData['transcript'] ?? json_encode($transcriptData));
+
+        $transcript = $lead->transcripts()->create([
+            'title' => 'Lark Meeting Transcript',
+            'source_type' => 'meeting',
+            'transcript_text' => $transcriptText,
+            'recorded_at' => now(),
+            'evaluation_status' => 'pending',
+        ]);
+
+        \App\Services\AuditService::log('create_transcript', 'lead_transcripts', $transcript, null, [
+            'source_type' => 'meeting',
+            'fetch_source' => 'lark_link',
+        ]);
+
+        // Automatically run evaluation
+        $service = app(\App\Services\Sales\LeadEvaluationService::class);
+        $evaluation = $service->evaluateTranscript($lead, $transcript);
+        $transcript->update(['evaluation_status' => 'evaluated']);
+
+        return response()->json([
+            'data' => $transcript->load('activity:id,activity_type,activity_date,description'),
+            'evaluation' => $evaluation,
+            'message' => 'Transcript fetched and analyzed successfully.',
+        ], 201);
     }
 
     /** DELETE /api/leads/{lead}/transcripts/{transcript} */

@@ -27,6 +27,7 @@ class LarkBaseService extends LarkService
         'external_place_id' => 'External Place ID',
         'contact_name' => 'Contact Name',
         'contact_phone' => 'Contact Phone Number',
+        'meeting_link' => 'Meeting Link',
     ];
 
     /**
@@ -462,6 +463,7 @@ class LarkBaseService extends LarkService
             'external_place_id' => $lead->external_place_id,
             'contact_name' => $lead->contacts?->first()?->name,
             'contact_phone' => $lead->contacts?->first()?->phone,
+            'meeting_link' => $lead->meeting_link,
         ];
 
         return collect($fieldMapping)

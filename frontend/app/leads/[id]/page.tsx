@@ -1245,6 +1245,30 @@ export default function LeadDetailPage() {
     onSuccess: () => refetchTranscripts(),
   });
 
+  const fetchTranscriptLinkMutation = useMutation({
+    mutationFn: async () => {
+      if (!leadData.meeting_link) throw new Error("No meeting link saved.");
+      const r = await apiFetch(`/leads/${leadId}/transcripts/fetch-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meeting_link: leadData.meeting_link })
+      });
+      if (!r.ok) {
+        const error = await r.json();
+        throw new Error(error.message || 'Failed to fetch transcript from link');
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      refetchTranscripts();
+      refetchEvaluations();
+      setTranscriptFeedback({ type: 'success', msg: 'Transcript fetched and analyzed from link successfully.' });
+    },
+    onError: (err: any) => {
+      setTranscriptFeedback({ type: 'error', msg: err.message || 'Failed to fetch transcript from link.' });
+    }
+  });
+
   /* ── Revenue Intelligence queries & mutations ── */
   const { data: revenueIntel, isLoading: revenueLoading, refetch: refetchRevenue } = useQuery({
     queryKey: ['revenue-intelligence', leadId],
@@ -2921,10 +2945,23 @@ export default function LeadDetailPage() {
                 ? `${transcriptsList.length} transcript${transcriptsList.length !== 1 ? 's' : ''}`
                 : 'No transcripts yet'}
             </p>
-            <Button size="sm" onClick={() => setShowTranscriptForm((v) => !v)}>
-              <Plus className="h-3.5 w-3.5" />
-              {showTranscriptForm ? 'Cancel' : 'Add Transcript'}
-            </Button>
+            <div className="flex gap-2">
+              {leadData?.meeting_link && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => fetchTranscriptLinkMutation.mutate()}
+                  disabled={fetchTranscriptLinkMutation.isPending}
+                >
+                  {fetchTranscriptLinkMutation.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+                  Fetch from Lark
+                </Button>
+              )}
+              <Button size="sm" onClick={() => setShowTranscriptForm((v) => !v)}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                {showTranscriptForm ? 'Cancel' : 'Add Transcript'}
+              </Button>
+            </div>
           </div>
 
           {/* Feedback banner */}

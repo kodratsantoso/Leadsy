@@ -109,6 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/export', [LeadController::class, 'export'])->middleware('permission:leads.export');
     Route::post('leads/discover', [LeadController::class, 'discover'])->middleware('permission:leads.create');
     Route::post('leads/bulk-import', [LeadController::class, 'bulkImport'])->middleware('permission:leads.create');
+    Route::post('leads/batch-delete', [LeadController::class, 'batchDelete']);
     Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');
     Route::apiResource('leads', LeadController::class);
     Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['show'])->middleware('permission:leads.edit');
@@ -179,6 +180,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('leads/{lead}/meetings/{meeting}', [LeadController::class, 'deleteMeeting'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/transcripts', [LeadController::class, 'getTranscripts'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/transcripts', [LeadController::class, 'storeTranscript'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/transcripts/fetch-link', [LeadController::class, 'fetchTranscriptFromLink'])->middleware('permission:leads.edit');
     Route::delete('leads/{lead}/transcripts/{transcript}', [LeadController::class, 'deleteTranscript'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/evaluations', [LeadController::class, 'getEvaluations'])->middleware('permission:leads.view');

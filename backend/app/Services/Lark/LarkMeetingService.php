@@ -176,4 +176,107 @@ class LarkMeetingService extends LarkService
             return null;
         }
     }
+
+    /**
+     * Get meeting transcript from Minute Token
+     */
+    public function getMinuteTranscript(string $minuteToken): ?array
+    {
+        try {
+            // Lark Minutes API endpoint for getting the transcript/content
+            // (Note: Requires specific 'minutes' scope permissions in Lark App)
+            $response = $this->request('GET', "/minutes/v1/minutes/{$minuteToken}");
+
+            return $response;
+        } catch (Exception $e) {
+            Log::error('Failed to get Lark minute transcript', [
+                'minute_token' => $minuteToken,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Capture meeting transcript from a URL link
+     */
+    public function captureTranscriptFromLink(
+        string $url,
+        string $leadsyLeadId
+    ): LarkSync {
+        // Basic extraction of minute token from a typical Lark Minutes URL
+        // Example: https://vc.larksuite.com/minutes/obc1234567890
+        $minuteToken = null;
+        if (preg_match('/minutes\/([a-zA-Z0-9]+)/', $url, $matches)) {
+            $minuteToken = $matches[1];
+        }
+
+        if (!$minuteToken) {
+            throw new Exception('Invalid Lark Minutes URL or token not found');
+        }
+
+        $sync = LarkSync::create([
+            'tenant_id' => $this->integration->tenant_id,
+            'lark_integration_id' => $this->integration->id,
+            'module' => 'meeting',
+            'action' => 'capture_transcript_link',
+            'lark_entity_type' => 'minute',
+            'lark_entity_id' => $minuteToken,
+            'leadsy_entity_type' => 'lead',
+            'leadsy_entity_id' => $leadsyLeadId,
+            'status' => 'pending',
+            'request_data' => ['url' => $url],
+        ]);
+
+        try {
+            // Get transcript
+            $transcript = $this->getMinuteTranscript($minuteToken);
+
+            if (! $transcript) {
+                throw new Exception('Transcript not available or API permission denied.');
+            }
+
+            $lead = Lead::findOrFail($leadsyLeadId);
+
+            // The content might be in different structures depending on the exact Minutes API response
+            $transcriptText = $transcript['content'] ?? ($transcript['transcript'] ?? json_encode($transcript));
+
+            $lead->activities()->create([
+                'activity_type' => 'meeting',
+                'title' => 'Lark Meeting Transcript (Imported)',
+                'description' => $transcriptText,
+                'metadata' => [
+                    'minute_token' => $minuteToken,
+                    'source_url' => $url,
+                    'transcript_full' => $transcript,
+                ],
+            ]);
+
+            $sync->update([
+                'response_data' => [
+                    'transcript_captured' => true,
+                    'transcript_length' => strlen($transcriptText),
+                ],
+            ]);
+
+            $sync->markSuccessful();
+
+            Log::info('Lark minute transcript captured from link', [
+                'minute_token' => $minuteToken,
+                'lead_id' => $leadsyLeadId,
+                'sync_id' => $sync->id,
+            ]);
+
+            return $sync;
+        } catch (Exception $e) {
+            $sync->markFailed($e->getMessage());
+            Log::error('Failed to capture Lark minute transcript from link', [
+                'minute_token' => $minuteToken,
+                'lead_id' => $leadsyLeadId,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
 }

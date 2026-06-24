@@ -159,3 +159,10 @@
 - **Decision**: Completely overhauled the Pre-Meeting Brief output architecture to 11 discrete JSON blocks (e.g., `meeting_strategy_json`, `digitalization_resistance_json`, `demo_cycle_json`). The engine now merges both Product Question Guides and Customer BANTC Question Guides from the database. The UI is rewritten into a modular tabbed view using `Tabs` from `shadcn-ui`.
 - **Rationale**: Sales needed actionable, targeted outputs adapted strictly to the `meeting_type` (Discovery vs Demo) rather than generic narrative. Extracting digital resistance and mapping exact demo cycles forces preparation standardisation.
 - **Impact**: Added 11 new JSON columns to `lead_pre_meeting_briefs`, extensive refactoring of `PreMeetingBriefService.php` and `PreMeetingBriefTab.tsx`. Kept backward compatibility with old JSON payloads via UI-level mappings.
+
+## ADR-023: Lark Transcript Fetch and Batch Actions
+- **Date**: 2026-06-24
+- **Status**: Active
+- **Decision**: Enabled native fetching of Lark Meeting Transcripts via URL linking, integrated with the existing AI transcript evaluation workflow. Implemented a Batch Delete functionality for Leads, exclusively restricted to the `super_admin` role.
+- **Rationale**: User needed a seamless way to pull transcripts directly from Lark Minutes without manual text extraction, allowing AI analysis on meeting outcomes automatically. Additionally, managing test/unqualified leads at scale required bulk deletion capabilities with strict governance.
+- **Impact**: New route for fetching transcripts using the Lark Integration OAuth connection. UI enhancements in the Lead Form and Transcripts tab. Batch actions introduced to the Lead index page, gated by explicit role checks.
