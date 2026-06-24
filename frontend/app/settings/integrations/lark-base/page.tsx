@@ -54,9 +54,43 @@ const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   owner: "Owner", external_place_id: "External Place ID", external_id: "External ID",
 };
 
-const formatLarkBaseValue = (val: any): string => {
+const formatLarkBaseValue = (val: any, fieldName?: string): string => {
   if (val == null) return "-";
   
+  const dateFields = ["Submitted Date", "Reminder Assesment", "Meeting Date", "Estimated Closing", "Created Date"];
+  const nameFields = ["Presales/Aftersales Team", "Requester", "Update By"];
+
+  if (fieldName && dateFields.includes(fieldName)) {
+    let dateObj: Date | null = null;
+    if (typeof val === "number") {
+      dateObj = new Date(val);
+    } else if (typeof val === "string") {
+      dateObj = new Date(val);
+    }
+    if (dateObj && !isNaN(dateObj.getTime())) {
+      const dd = String(dateObj.getDate()).padStart(2, '0');
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const yyyy = dateObj.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+  }
+
+  if (fieldName && nameFields.includes(fieldName)) {
+    const extractName = (item: any) => {
+      if (item && typeof item === "object") {
+        if (item.name) return item.name;
+        if (item.full_name) return item.full_name;
+        if (item.en_name) return item.en_name;
+        if (item.text) return item.text;
+      }
+      return String(item);
+    };
+    if (Array.isArray(val)) {
+      return val.map(extractName).join(", ");
+    }
+    return extractName(val);
+  }
+
   if (typeof val === "number" && val > 1000000000000 && val < 3000000000000) {
     return new Date(val).toLocaleString();
   }
@@ -569,7 +603,7 @@ export default function LarkBaseSettingsPage() {
                               <td className="px-3 py-2 font-mono text-muted-foreground text-[10px]">{record.record_id}</td>
                               {allKeys.map((field) => (
                                 <td key={field as string} className="max-w-[200px] truncate px-3 py-2">
-                                  {formatLarkBaseValue(record.fields?.[field as string])}
+                                  {formatLarkBaseValue(record.fields?.[field as string], field as string)}
                                 </td>
                               ))}
                             </tr>
