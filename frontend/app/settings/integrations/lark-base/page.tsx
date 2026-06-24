@@ -65,7 +65,11 @@ const formatLarkBaseValue = (val: any, fieldName?: string): string => {
     if (typeof val === "number") {
       dateObj = new Date(val);
     } else if (typeof val === "string") {
-      dateObj = new Date(val);
+      if (/^\d+$/.test(val)) {
+        dateObj = new Date(parseInt(val, 10));
+      } else {
+        dateObj = new Date(val);
+      }
     }
     if (dateObj && !isNaN(dateObj.getTime())) {
       const dd = String(dateObj.getDate()).padStart(2, '0');
