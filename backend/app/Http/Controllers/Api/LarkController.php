@@ -417,7 +417,7 @@ class LarkController extends Controller
 
         $request->validate([
             'direction' => 'required|in:push,pull',
-            'limit' => 'nullable|integer|min:1|max:500',
+            'limit' => 'nullable|integer|min:1|max:3000',
         ]);
 
         $service = new LarkBaseService($this->tenantIntegration());
@@ -438,7 +438,7 @@ class LarkController extends Controller
                     ->orWhereNull('tenant_id');
             })
                 ->with(['industry', 'funnelStage', 'owner'])
-                ->limit($request->integer('limit', 100))
+                ->limit($request->integer('limit', 3000))
                 ->get()
                 ->each(function (Lead $lead) use ($service, $baseTable, $fieldDefinitions, &$count, &$attempted, &$skipped, &$added, &$updated, &$results, &$errors): void {
                     $attempted++;
@@ -485,11 +485,23 @@ class LarkController extends Controller
                     }
                 });
         } else {
-            $records = $service->getRecords($baseTable->app_token, $baseTable->table_id, [
-                'page_size' => $request->integer('limit', 100),
-            ]);
+            $limit = $request->integer('limit', 3000);
+            $pageToken = null;
+            $items = [];
 
-            foreach (($records['items'] ?? []) as $record) {
+            do {
+                $records = $service->getRecords($baseTable->app_token, $baseTable->table_id, [
+                    'page_size' => min(500, $limit - count($items)),
+                    'page_token' => $pageToken,
+                ]);
+
+                $fetchedItems = $records['items'] ?? [];
+                $items = array_merge($items, $fetchedItems);
+                $pageToken = $records['page_token'] ?? null;
+                $hasMore = $records['has_more'] ?? false;
+            } while ($pageToken && $hasMore && count($items) < $limit);
+
+            foreach ($items as $record) {
                 $recordId = $record['record_id'] ?? null;
                 if (! $recordId) {
                     $skipped++;
