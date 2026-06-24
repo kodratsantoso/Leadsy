@@ -387,9 +387,11 @@ class LarkBaseService extends LarkService
         if ($contactName || $contactPhone) {
             $contactAttributes = [];
             if ($contactPhone) {
+                $contactPhone = substr(trim($contactPhone), 0, 30);
                 $contactAttributes['phone'] = $contactPhone;
             }
             if ($contactName) {
+                $contactName = substr(trim($contactName), 0, 255);
                 $lead->contacts()->updateOrCreate(
                     ['name' => $contactName],
                     $contactAttributes
