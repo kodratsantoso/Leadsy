@@ -3169,6 +3169,27 @@ export default function LeadDetailPage() {
                           </div>
                         )}
 
+                        {evaluation.eligibility_reason && (
+                          <div className="rounded-lg border border-border bg-card p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Eligibility Reason</p>
+                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{typeof evaluation.eligibility_reason === 'object' ? JSON.stringify(evaluation.eligibility_reason) : String(evaluation.eligibility_reason)}</p>
+                          </div>
+                        )}
+
+                        {evaluation.presales_analysis && (
+                          <div className="rounded-lg border border-border bg-card p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Presales Analysis</p>
+                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{typeof evaluation.presales_analysis === 'object' ? JSON.stringify(evaluation.presales_analysis) : String(evaluation.presales_analysis)}</p>
+                          </div>
+                        )}
+
+                        {evaluation.presales_recommendation && (
+                          <div className="rounded-lg border border-border bg-card p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Presales Recommendation</p>
+                            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{typeof evaluation.presales_recommendation === 'object' ? JSON.stringify(evaluation.presales_recommendation) : String(evaluation.presales_recommendation)}</p>
+                          </div>
+                        )}
+
                         {evaluation.bantc_extracted && Object.values(evaluation.bantc_extracted).some(v => !!v) && (
                           <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_5%,transparent)] p-3">
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-2">BANTC Extracted Insights</p>
@@ -3239,12 +3260,21 @@ export default function LeadDetailPage() {
                           </div>
                         )}
 
-                        {evaluation.next_best_action && (
-                          <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] p-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-1">Recommended Next Action</p>
-                            <p className="text-sm font-medium">{evaluation.next_best_action}</p>
-                          </div>
-                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {evaluation.next_best_action && (
+                            <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] p-3">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-1">Recommended Next Action</p>
+                              <p className="text-sm font-medium">{typeof evaluation.next_best_action === 'object' ? JSON.stringify(evaluation.next_best_action) : String(evaluation.next_best_action)}</p>
+                            </div>
+                          )}
+
+                          {evaluation.estimated_closing_date && (
+                            <div className="rounded-lg border border-[var(--status-success)]/20 bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] p-3">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--status-success)] mb-1">Estimated Closing Date</p>
+                              <p className="text-sm font-medium">{typeof evaluation.estimated_closing_date === 'object' ? JSON.stringify(evaluation.estimated_closing_date) : String(evaluation.estimated_closing_date)}</p>
+                            </div>
+                          )}
+                        </div>
 
                         <p className="text-[10px] text-muted-foreground">
                           Analysed {new Date(evaluation.evaluated_at ?? evaluation.created_at).toLocaleString()}

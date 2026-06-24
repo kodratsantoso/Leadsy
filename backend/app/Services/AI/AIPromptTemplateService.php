@@ -206,7 +206,7 @@ class AIPromptTemplateService
                 'Transcript Evaluation',
                 'Extract structured insights from a meeting or call transcript.',
                 'Detect customer intent, objections, sentiment, requirements, risks, and follow-up actions. Also extract BANTC values (Budget, Authority, Needs, Timeline, Competitor) if mentioned in the transcript. Ignore filler and avoid over-reading vague statements.',
-                'Return only valid JSON matching the transcript evaluation schema requested by the feature prompt. bantc_extracted should be a nested object with keys: budget, authority, needs, timeline, competitor.'
+                'Return only valid JSON matching the transcript evaluation schema requested by the feature prompt. bantc_extracted should be a nested object with keys: budget, authority, needs, timeline, competitor. Make sure to include eligibility_reason, presales_analysis, presales_recommendation, next_best_action, and estimated_closing_date (YYYY-MM-DD).'
             ),
             'activity_transcript_analysis' => $this->featureTemplate(
                 'Activity Transcript Analysis',

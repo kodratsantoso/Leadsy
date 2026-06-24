@@ -10,9 +10,10 @@ class LeadAiEvaluation extends Model
 {
     protected $fillable = [
         'lead_id', 'source_type', 'source_id', 'sentiment',
-        'intent_level', 'interest_level', 'summary', 'objections_detected',
+        'intent_level', 'interest_level', 'summary', 'eligibility_reason', 'presales_analysis', 
+        'presales_recommendation', 'objections_detected',
         'buying_signals', 'bantc_extracted', 'next_best_action', 'recommended_product_id',
-        'confidence_score', 'evaluated_at',
+        'estimated_closing_date', 'confidence_score', 'evaluated_at',
     ];
 
     protected $casts = [
@@ -21,6 +22,7 @@ class LeadAiEvaluation extends Model
         'buying_signals' => 'array',
         'bantc_extracted' => 'array',
         'confidence_score' => 'integer',
+        'estimated_closing_date' => 'date',
     ];
 
     public function lead(): BelongsTo

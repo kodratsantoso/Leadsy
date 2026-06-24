@@ -103,6 +103,10 @@ class LeadEvaluationService
             'objections_detected' => $evaluation['objections'] ?? [],
             'buying_signals' => $evaluation['buying_signals'] ?? [],
             'bantc_extracted' => $evaluation['bantc_extracted'] ?? null,
+            'eligibility_reason' => $this->stringValue($evaluation['eligibility_reason'] ?? null),
+            'presales_analysis' => $this->stringValue($evaluation['presales_analysis'] ?? null),
+            'presales_recommendation' => $this->stringValue($evaluation['presales_recommendation'] ?? null),
+            'estimated_closing_date' => $this->stringValue($evaluation['estimated_closing_date'] ?? null),
             'next_best_action' => $evaluation['next_best_action'] ?? 'Schedule follow-up',
             'recommended_product_id' => $evaluation['recommended_product_id'] ?? null,
             'confidence_score' => (int) ($evaluation['confidence'] ?? 50),
@@ -242,7 +246,11 @@ class LeadEvaluationService
         - interest_level: "high", "medium", or "low" (expressed interest in product/service)
         - objections: array of 2-3 objections mentioned (if any)
         - buying_signals: array of 2-3 positive buying signals (if any)
-        - next_best_action: recommended next step (string, brief)
+        - eligibility_reason: automatic assessment of why the lead is eligible or not
+        - presales_analysis: automatic assessment of technical/presales analysis
+        - presales_recommendation: automatic assessment of presales recommendation
+        - next_best_action: recommended next step for the sales rep (string, brief)
+        - estimated_closing_date: automatic assessment of estimated closing date in YYYY-MM-DD format (if determinable, else null)
         - confidence: 0-100 confidence in this evaluation
         - bantc_extracted: object containing budget, authority, needs, timeline, competitor based on transcript content
         
