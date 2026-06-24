@@ -338,9 +338,17 @@ class LarkBaseService extends LarkService
             ? Lead::where('tenant_id', $baseTable->tenant_id)->find($mapping->leadsy_entity_id)
             : null;
 
-        if (! $lead && isset($attributes['leadsy_id'])) {
+        if (! $lead && !empty($attributes['leadsy_id'])) {
             $lead = Lead::where('tenant_id', $baseTable->tenant_id)->find($attributes['leadsy_id']);
         }
+        
+        if (! $lead && !empty($attributes['company_name'])) {
+            $nameLower = mb_strtolower(trim($attributes['company_name']));
+            $lead = Lead::where('tenant_id', $baseTable->tenant_id)
+                ->whereRaw('LOWER(TRIM(company_name)) = ?', [$nameLower])
+                ->first();
+        }
+        
         $action = $lead ? 'updated' : 'added';
 
         $contactName = $attributes['contact_name'] ?? null;

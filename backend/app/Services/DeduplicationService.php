@@ -52,6 +52,15 @@ class DeduplicationService
             }
         }
 
+        // Rule 1.5 — Exact Name match
+        if (! empty($payload['company_name'])) {
+            $nameLower = mb_strtolower(trim($payload['company_name']));
+            $match = Lead::whereRaw('LOWER(TRIM(company_name)) = ?', [$nameLower])->first();
+            if ($match) {
+                return DedupResult::probableDuplicate($match->id, 'company_name');
+            }
+        }
+
         // Rule 2 — Name + location (probable duplicate, within ~500m)
         if (! empty($payload['company_name']) && ! empty($payload['lat']) && ! empty($payload['lng'])) {
             $nameLower = mb_strtolower(trim($payload['company_name']));
