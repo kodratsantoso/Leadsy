@@ -254,46 +254,59 @@ class LarkBaseService extends LarkService
             ];
         }
 
-        $lead->loadMissing(['industry', 'funnelStage', 'owner']);
+        try {
+            $lead->loadMissing(['industry', 'funnelStage', 'owner']);
 
-        $fields = self::mapLeadToBaseFields(
-            $lead,
-            $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING,
-            $fieldDefinitions
-        );
-        $mapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
-            ->where('leadsy_entity_type', 'lead')
-            ->where('leadsy_entity_id', (string) $lead->id)
-            ->first();
-        $action = $mapping ? 'updated' : 'added';
+            $fields = self::mapLeadToBaseFields(
+                $lead,
+                $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING,
+                $fieldDefinitions
+            );
+            $mapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
+                ->where('leadsy_entity_type', 'lead')
+                ->where('leadsy_entity_id', (string) $lead->id)
+                ->first();
+            $action = $mapping ? 'updated' : 'added';
 
-        if ($mapping) {
-            $this->updateRecord($baseTable->app_token, $baseTable->table_id, $mapping->lark_record_id, $fields);
-        } else {
-            $sync = $this->createRecord($baseTable->app_token, $baseTable->table_id, $fields, 'lead', (string) $lead->id);
+            if ($mapping) {
+                $this->updateRecord($baseTable->app_token, $baseTable->table_id, $mapping->lark_record_id, $fields);
+            } else {
+                $sync = $this->createRecord($baseTable->app_token, $baseTable->table_id, $fields, 'lead', (string) $lead->id);
 
-            $mapping = LarkBaseRecordMapping::create([
-                'tenant_id' => $baseTable->tenant_id,
-                'lark_base_table_id' => $baseTable->id,
-                'leadsy_entity_type' => 'lead',
-                'leadsy_entity_id' => (string) $lead->id,
-                'lark_record_id' => $sync->lark_entity_id,
+                $mapping = LarkBaseRecordMapping::create([
+                    'tenant_id' => $baseTable->tenant_id,
+                    'lark_base_table_id' => $baseTable->id,
+                    'leadsy_entity_type' => 'lead',
+                    'leadsy_entity_id' => (string) $lead->id,
+                    'lark_record_id' => $sync->lark_entity_id,
+                ]);
+            }
+
+            $mapping->update([
+                'last_leadsy_updated_at' => now(),
+                'last_sync_source' => 'leadsy',
             ]);
+
+            $baseTable->update(['last_push_at' => now()]);
+
+            return [
+                'action' => $action,
+                'mapping' => $mapping,
+                'record_id' => $mapping->lark_record_id,
+                'reason' => null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to push lead to Lark', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage()
+            ]);
+            return [
+                'action' => 'failed',
+                'mapping' => null,
+                'record_id' => null,
+                'reason' => 'Push failed: ' . $e->getMessage(),
+            ];
         }
-
-        $mapping->update([
-            'last_leadsy_updated_at' => now(),
-            'last_sync_source' => 'leadsy',
-        ]);
-
-        $baseTable->update(['last_push_at' => now()]);
-
-        return [
-            'action' => $action,
-            'mapping' => $mapping,
-            'record_id' => $mapping->lark_record_id,
-            'reason' => null,
-        ];
     }
 
     public function syncRecordToLead(LarkBaseTable $baseTable, string $recordId, ?array $record = null): ?Lead
@@ -312,129 +325,164 @@ class LarkBaseService extends LarkService
             ];
         }
 
-        $record ??= $this->getRecord($baseTable->app_token, $baseTable->table_id, $recordId);
-        $fields = $record['fields'] ?? [];
-        $fields['Record ID'] = $record['record_id'] ?? $recordId;
-        $attributes = self::mapBaseFieldsToLead($fields, $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
+        try {
+            $record ??= $this->getRecord($baseTable->app_token, $baseTable->table_id, $recordId);
+            $fields = $record['fields'] ?? [];
+            $fields['Record ID'] = $record['record_id'] ?? $recordId;
+            $attributes = self::mapBaseFieldsToLead($fields, $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
 
-        if (($attributes['company_name'] ?? '') === '') {
-            Log::warning('Skipping Lark Base record without company name', [
-                'base_table_id' => $baseTable->id,
-                'record_id' => $recordId,
-            ]);
+            if (($attributes['company_name'] ?? '') === '') {
+                Log::warning('Skipping Lark Base record without company name', [
+                    'base_table_id' => $baseTable->id,
+                    'record_id' => $recordId,
+                ]);
+
+                return [
+                    'action' => 'skipped',
+                    'lead' => null,
+                    'lead_id' => null,
+                    'reason' => 'Lark Base record does not contain a mapped company name.',
+                ];
+            }
+
+            $mapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
+                ->where('lark_record_id', $recordId)
+                ->first();
+
+            $lead = $mapping
+                ? Lead::where('tenant_id', $baseTable->tenant_id)->find($mapping->leadsy_entity_id)
+                : null;
+
+            if (! $lead && !empty($attributes['leadsy_id'])) {
+                $lead = Lead::where('tenant_id', $baseTable->tenant_id)->find($attributes['leadsy_id']);
+            }
+            
+            if (! $lead && !empty($attributes['company_name'])) {
+                $nameLower = mb_strtolower(trim($attributes['company_name']));
+                $lead = Lead::where('tenant_id', $baseTable->tenant_id)
+                    ->whereRaw('LOWER(TRIM(company_name)) = ?', [$nameLower])
+                    ->first();
+            }
+            
+            $action = $lead ? 'updated' : 'added';
+
+            $contactName = $attributes['contact_name'] ?? null;
+            $contactPhone = $attributes['contact_phone'] ?? null;
+
+            unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner'], $attributes['contact_name'], $attributes['contact_phone']);
+
+            if ($lead) {
+                // Check if this lead is already mapped to a DIFFERENT Lark record in this table.
+                $existingMapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
+                    ->where('leadsy_entity_type', 'lead')
+                    ->where('leadsy_entity_id', (string) $lead->id)
+                    ->first();
+
+                if ($existingMapping && $existingMapping->lark_record_id !== $recordId) {
+                    return [
+                        'action' => 'failed',
+                        'lead' => $lead,
+                        'lead_id' => $lead->id,
+                        'reason' => "Duplicate mapping: Duplicate Lead detected. This Leadsy Lead (ID: {$lead->id}) is already linked to another Lark Record ({$existingMapping->lark_record_id}). Resolve the duplicate in Lark Base.",
+                    ];
+                }
+
+                $attributes['external_id'] = $recordId;
+                $attributes['lark_base_id'] = $baseTable->app_token;
+                $attributes['lark_table_id'] = $baseTable->table_id;
+                Lead::withoutEvents(fn () => $lead->update($attributes));
+
+                \App\Models\LeadSource::firstOrCreate([
+                    'lead_id' => $lead->id,
+                    'source_type' => 'lark_base',
+                    'lark_app_token' => $baseTable->app_token,
+                    'lark_table_id' => $baseTable->table_id,
+                ], [
+                    'confidence' => 'high',
+                    'last_verified_at' => now(),
+                ]);
+            } else {
+                $lead = Lead::withoutEvents(fn () => Lead::create(array_merge($attributes, [
+                    'tenant_id' => $baseTable->tenant_id,
+                    'qualification_status' => $attributes['qualification_status'] ?? 'pending',
+                    'duplicate_status' => 'new',
+                    'ai_mode' => 'manual',
+                    'external_id' => $recordId,
+                    'lark_base_id' => $baseTable->app_token,
+                    'lark_table_id' => $baseTable->table_id,
+                ])));
+
+                \App\Models\LeadSource::create([
+                    'lead_id' => $lead->id,
+                    'source_type' => 'lark_base',
+                    'lark_app_token' => $baseTable->app_token,
+                    'lark_table_id' => $baseTable->table_id,
+                    'confidence' => 'high',
+                    'last_verified_at' => now(),
+                ]);
+            }
+
+            if ($contactName || $contactPhone) {
+                $contactAttributes = [];
+                if ($contactPhone) {
+                    $contactPhone = substr(trim($contactPhone), 0, 30);
+                    $contactAttributes['phone'] = $contactPhone;
+                }
+                if ($contactName) {
+                    $contactName = substr(trim($contactName), 0, 255);
+                    $lead->contacts()->updateOrCreate(
+                        ['name' => $contactName],
+                        $contactAttributes
+                    );
+                } elseif ($contactPhone) {
+                    $lead->contacts()->updateOrCreate(
+                        ['phone' => $contactPhone],
+                        $contactAttributes
+                    );
+                }
+            }
+
+            LarkBaseRecordMapping::updateOrCreate(
+                [
+                    'lark_base_table_id' => $baseTable->id,
+                    'lark_record_id' => $recordId,
+                ],
+                [
+                    'tenant_id' => $baseTable->tenant_id,
+                    'leadsy_entity_type' => 'lead',
+                    'leadsy_entity_id' => (string) $lead->id,
+                    'last_lark_updated_at' => now(),
+                    'last_sync_source' => 'lark',
+                ]
+            );
+
+            $baseTable->update(['last_pull_at' => now()]);
 
             return [
-                'action' => 'skipped',
+                'action' => $action,
+                'lead' => $lead,
+                'lead_id' => $lead->id,
+                'reason' => null,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to pull Lark record to lead', [
+                'record_id' => $recordId,
+                'error' => $e->getMessage()
+            ]);
+
+            // Attempt to provide a cleaner message for common database constraints
+            $reason = $e->getMessage();
+            if (str_contains($reason, 'duplicate key value violates unique constraint')) {
+                $reason = "Database duplicate constraint violated: " . preg_replace('/.*DETAIL:\s*/', '', $reason);
+            }
+
+            return [
+                'action' => 'failed',
                 'lead' => null,
                 'lead_id' => null,
-                'reason' => 'Lark Base record does not contain a mapped company name.',
+                'reason' => 'Pull failed: ' . $reason,
             ];
         }
-
-        $mapping = LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
-            ->where('lark_record_id', $recordId)
-            ->first();
-
-        $lead = $mapping
-            ? Lead::where('tenant_id', $baseTable->tenant_id)->find($mapping->leadsy_entity_id)
-            : null;
-
-        if (! $lead && !empty($attributes['leadsy_id'])) {
-            $lead = Lead::where('tenant_id', $baseTable->tenant_id)->find($attributes['leadsy_id']);
-        }
-        
-        if (! $lead && !empty($attributes['company_name'])) {
-            $nameLower = mb_strtolower(trim($attributes['company_name']));
-            $lead = Lead::where('tenant_id', $baseTable->tenant_id)
-                ->whereRaw('LOWER(TRIM(company_name)) = ?', [$nameLower])
-                ->first();
-        }
-        
-        $action = $lead ? 'updated' : 'added';
-
-        $contactName = $attributes['contact_name'] ?? null;
-        $contactPhone = $attributes['contact_phone'] ?? null;
-
-        unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner'], $attributes['contact_name'], $attributes['contact_phone']);
-
-        if ($lead) {
-            $attributes['external_id'] = $recordId;
-            $attributes['lark_base_id'] = $baseTable->app_token;
-            $attributes['lark_table_id'] = $baseTable->table_id;
-            Lead::withoutEvents(fn () => $lead->update($attributes));
-
-            \App\Models\LeadSource::firstOrCreate([
-                'lead_id' => $lead->id,
-                'source_type' => 'lark_base',
-                'lark_app_token' => $baseTable->app_token,
-                'lark_table_id' => $baseTable->table_id,
-            ], [
-                'confidence' => 'high',
-                'last_verified_at' => now(),
-            ]);
-        } else {
-            $lead = Lead::withoutEvents(fn () => Lead::create(array_merge($attributes, [
-                'tenant_id' => $baseTable->tenant_id,
-                'qualification_status' => $attributes['qualification_status'] ?? 'pending',
-                'duplicate_status' => 'new',
-                'ai_mode' => 'manual',
-                'external_id' => $recordId,
-                'lark_base_id' => $baseTable->app_token,
-                'lark_table_id' => $baseTable->table_id,
-            ])));
-
-            \App\Models\LeadSource::create([
-                'lead_id' => $lead->id,
-                'source_type' => 'lark_base',
-                'lark_app_token' => $baseTable->app_token,
-                'lark_table_id' => $baseTable->table_id,
-                'confidence' => 'high',
-                'last_verified_at' => now(),
-            ]);
-        }
-
-        if ($contactName || $contactPhone) {
-            $contactAttributes = [];
-            if ($contactPhone) {
-                $contactPhone = substr(trim($contactPhone), 0, 30);
-                $contactAttributes['phone'] = $contactPhone;
-            }
-            if ($contactName) {
-                $contactName = substr(trim($contactName), 0, 255);
-                $lead->contacts()->updateOrCreate(
-                    ['name' => $contactName],
-                    $contactAttributes
-                );
-            } elseif ($contactPhone) {
-                $lead->contacts()->updateOrCreate(
-                    ['phone' => $contactPhone],
-                    $contactAttributes
-                );
-            }
-        }
-
-        LarkBaseRecordMapping::updateOrCreate(
-            [
-                'lark_base_table_id' => $baseTable->id,
-                'lark_record_id' => $recordId,
-            ],
-            [
-                'tenant_id' => $baseTable->tenant_id,
-                'leadsy_entity_type' => 'lead',
-                'leadsy_entity_id' => (string) $lead->id,
-                'last_lark_updated_at' => now(),
-                'last_sync_source' => 'lark',
-            ]
-        );
-
-        $baseTable->update(['last_pull_at' => now()]);
-
-        return [
-            'action' => $action,
-            'lead' => $lead,
-            'lead_id' => $lead->id,
-            'reason' => null,
-        ];
     }
 
     public function getRecord(string $baseId, string $tableId, string $recordId): array

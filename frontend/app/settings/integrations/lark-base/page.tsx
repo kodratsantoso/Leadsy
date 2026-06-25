@@ -270,7 +270,7 @@ export default function LarkBaseSettingsPage() {
       const res = await apiFetch(`/api/lark/base/mappings/${mappingId}/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ direction, limit: 100 }),
+        body: JSON.stringify({ direction, limit: 3000 }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || 'Failed to sync mapping');
