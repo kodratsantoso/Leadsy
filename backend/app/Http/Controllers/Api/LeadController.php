@@ -45,7 +45,7 @@ class LeadController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Lead::visibleTo($request->user())
-            ->with(['industry', 'subIndustry', 'funnelStage', 'owner', 'presalesOwner', 'amOwner', 'csmOwner', 'territory', 'product', 'sources.channelType', 'parentLead:id,company_name']);
+            ->with(['industry', 'subIndustry', 'businessCategory', 'funnelStage', 'owner', 'presalesOwner', 'amOwner', 'csmOwner', 'territory', 'product', 'sources.channelType', 'parentLead:id,company_name']);
 
         // Filters
         if ($request->filled('industry_id')) {
@@ -176,7 +176,7 @@ class LeadController extends Controller
         }
 
         $lead->load([
-            'industry', 'subIndustry', 'funnelStage', 'owner', 'presalesOwner', 'amOwner', 'csmOwner',
+            'industry', 'subIndustry', 'businessCategory', 'funnelStage', 'owner', 'presalesOwner', 'amOwner', 'csmOwner',
             'territory', 'product', 'contacts.contactSource',
             'sources.channelType', 'funnelHistory.fromStage', 'funnelHistory.toStage',
             'funnelHistory.movedBy', 'creator',

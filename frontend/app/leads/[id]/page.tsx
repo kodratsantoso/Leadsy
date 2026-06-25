@@ -624,7 +624,7 @@ export default function LeadDetailPage() {
     industry_id: '',
     sub_industry_id: '',
     company_size_estimate: '',
-    business_category: '',
+    business_category_id: '',
     product_id: '',
     estimated_closing_amount: '',
     realized_closing_amount: '',
@@ -790,6 +790,11 @@ export default function LeadDetailPage() {
     enabled: activeTab === 'transcripts',
   });
 
+  const { data: businessCategoriesData } = useQuery({
+    queryKey: ['business-categories'],
+    queryFn: () => apiFetch('/business-categories').then(res => res.json())
+  });
+
   // Fetch funnel stages for the activity stage-move dropdown
   const { data: funnelStagesData } = useQuery({
     queryKey: ['funnel-stages'],
@@ -845,6 +850,19 @@ export default function LeadDetailPage() {
   const invalidateLead = () => qc.invalidateQueries({ queryKey: ['lead', leadId] });
 
   // Update lead company info mutation
+  const enrichMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiFetch(`/leads/${params.id}/enrich`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to enrich lead");
+      return response.json();
+    },
+    onSuccess: () => {
+      invalidateLead();
+    },
+  });
+
   const updateLeadMutation = useMutation({
     mutationFn: (data: Record<string, any>) =>
       apiFetch(`/leads/${leadId}`, {
@@ -870,7 +888,7 @@ export default function LeadDetailPage() {
       industry_id:              leadData.industry_id != null ? String(leadData.industry_id) : '',
       sub_industry_id:          leadData.sub_industry_id != null ? String(leadData.sub_industry_id) : '',
       company_size_estimate:    leadData.company_size_estimate  ?? '',
-      business_category:        leadData.business_category      ?? '',
+      business_category_id:     leadData.business_category_id?.toString() ?? '',
       product_id:               leadData.product_id != null ? String(leadData.product_id) : '',
       estimated_closing_amount: leadData.estimated_closing_amount != null ? String(leadData.estimated_closing_amount) : '',
       realized_closing_amount:  leadData.realized_closing_amount != null ? String(leadData.realized_closing_amount) : '',
@@ -920,7 +938,7 @@ export default function LeadDetailPage() {
       industry_id:              companyForm.industry_id ? Number(companyForm.industry_id) : null,
       sub_industry_id:          companyForm.sub_industry_id ? Number(companyForm.sub_industry_id) : null,
       company_size_estimate:    companyForm.company_size_estimate  || null,
-      business_category:        companyForm.business_category      || null,
+      business_category_id:     companyForm.business_category_id || null,
       product_id:               companyForm.product_id ? Number(companyForm.product_id) : null,
       estimated_closing_amount: companyForm.estimated_closing_amount ? Number(companyForm.estimated_closing_amount) : null,
       realized_closing_amount:  companyForm.realized_closing_amount ? Number(companyForm.realized_closing_amount) : null,
@@ -1664,7 +1682,19 @@ export default function LeadDetailPage() {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold">Company Information</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">Company Information</h3>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-[color:var(--brand)] hover:text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
+                    onClick={() => enrichMutation.mutate()}
+                    disabled={enrichMutation.isPending}
+                    tooltip="Enrich with AI (Web Search)"
+                  >
+                    {enrichMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bot className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
                 <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit lead information">
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
@@ -1674,8 +1704,8 @@ export default function LeadDetailPage() {
                 {leadData.subIndustry?.name && (
                   <div><span className="text-muted-foreground">Sub-Industry:</span> {leadData.subIndustry.name}</div>
                 )}
-                {leadData.business_category && (
-                  <div><span className="text-muted-foreground">Business Category:</span> {leadData.business_category}</div>
+                {leadData.businessCategory && (
+                  <div><span className="text-muted-foreground">Business Category:</span> {leadData.businessCategory.name}</div>
                 )}
                 <div><span className="text-muted-foreground">Company Size:</span> {leadData.company_size_estimate || '—'}</div>
                 <div><span className="text-muted-foreground">Email:</span> {leadData.email || '—'}</div>
@@ -3623,11 +3653,17 @@ export default function LeadDetailPage() {
 
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category</label>
-                <Input
-                  value={companyForm.business_category}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, business_category: e.target.value }))}
-                  placeholder="e.g. Manufacturing, Retail, Services"
-                />
+                <Select
+                  value={companyForm.business_category_id}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, business_category_id: e.target.value }))}
+                  placeholder="— Select category —"
+                >
+                  {(businessCategoriesData?.data || []).filter((c: any) => c.is_active).map((cat: any) => (
+                    <option key={cat.id} value={cat.id.toString()}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
               <div className="sm:col-span-2">

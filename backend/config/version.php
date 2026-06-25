@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.7.3',
-    'released_at' => '2026-06-21',
-    'type' => 'patch',   // major | minor | patch
-    'notes' => 'Fix 404 Route Not Found error for Pre-Meeting Brief generate endpoint.',
+    'version' => '1.9.0',
+    'released_at' => '2026-06-25',
+    'type' => 'minor',
+    'notes' => 'Added Batch Delete functionality and AI Lead Enrichment features.',
 ];

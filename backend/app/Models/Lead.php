@@ -16,7 +16,7 @@ class Lead extends Model
     protected $fillable = [
         'company_name', 'address', 'lat', 'lng',
         'website', 'website_domain', 'phone', 'email',
-        'industry_id', 'sub_industry_id', 'business_category',
+        'industry_id', 'sub_industry_id', 'business_category', 'business_category_id',
         'company_size_estimate', 'branch_count', 'operating_hours',
         'social_profiles',
         'lead_score', 'estimated_closing_amount', 'realized_closing_amount',
@@ -52,6 +52,11 @@ class Lead extends Model
     public function subIndustry(): BelongsTo
     {
         return $this->belongsTo(SubIndustry::class);
+    }
+
+    public function businessCategory(): BelongsTo
+    {
+        return $this->belongsTo(BusinessCategory::class);
     }
 
     public function funnelStage(): BelongsTo

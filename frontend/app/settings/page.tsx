@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText } from "lucide-react";
+import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { canAccessPath } from "@/lib/permissions";
@@ -19,6 +19,7 @@ const categories = [
     desc: "Define master data, stages, pipelines, and currencies used for lead operations.",
     items: [
       { icon: Layers,    title: "Industries",            desc: "Industry and sub-industry master data for lead classification",      href: "/settings/industries",    color: "bg-[color:var(--status-info)]" },
+      { icon: Briefcase, title: "Business Categories",   desc: "Business category master data used by AI and lead firmographics",    href: "/settings/business-categories", color: "bg-[color:var(--status-info)]" },
       { icon: Tags,      title: "Lead Sources",          desc: "Source master data used to classify where leads come from",          href: "/settings/lead-sources",  color: "bg-[color:var(--status-info)]" },
       { icon: GitBranch, title: "Lead Channels",         desc: "Channel types nested under lead sources for deeper classification",  href: "/settings/lead-channels", color: "bg-[color:var(--status-info)]" },
       { icon: GitBranch, title: "Lead Stages",           desc: "Pipeline stage master data used by lead movement and funnels",       href: "/settings/lead-stages",   color: "bg-[color:var(--status-info)]" },
