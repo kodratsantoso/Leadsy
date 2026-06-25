@@ -15,7 +15,7 @@ import {
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info, Search, ExternalLink, Printer, RefreshCw,
+  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
