@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, ArrowRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
@@ -1783,7 +1783,7 @@ export default function DashboardPage() {
           </>
         )
       ) : activeTab === "team" ? (
-        <TeamPerformancePanel period={period} />
+        <TeamPerformancePanel period={period} onDrilldown={openDrilldown} />
       ) : (
         <ConfidentialityMatrixPanel />
       )}
@@ -2032,9 +2032,14 @@ export default function DashboardPage() {
   );
 }
 
-function TeamPerformancePanel({ period }: { period: string }) {
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+function TeamPerformancePanel({ 
+  period,
+  onDrilldown
+}: { 
+  period: string;
+  onDrilldown: (d: { href: string; title: string; description?: string }) => void;
+}) {
+  const [roleFilter, setRoleFilter] = useState<string>("sales");
 
   const { data: teamDataResponse, isLoading } = useQuery({
     queryKey: ["team-performance", period],
@@ -2044,47 +2049,39 @@ function TeamPerformancePanel({ period }: { period: string }) {
     },
   });
 
-  const teamMembers = teamDataResponse?.data?.leaderboard ?? [];
-
-  const filteredMembers = teamMembers.filter((m: any) => {
-    const matchesRole = roleFilter === "all" || m.role_category === roleFilter;
-    const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          m.role_display.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesRole && matchesSearch;
-  });
+  const teams = teamDataResponse?.data?.teams ?? [];
+  const activeTeam = teams.find((t: any) => t.role_category === roleFilter) || teams[0];
 
   const { formatCurrency, formatNumber } = useNumberFormat();
-
-  const memberCount = filteredMembers.length;
 
   if (isLoading) {
     return (
       <div className="flex h-96 flex-col items-center justify-center py-20 text-muted-foreground select-none">
-        <AILoader text="Loading" />
+        <AILoader text="Loading Team Performance" />
       </div>
     );
   }
 
+  const availableRoles = teams.map((t: any) => t.role_category);
+
   return (
     <div className="space-y-6">
-      {/* Filters Card */}
       <Card className="border-border/50 bg-card/40 backdrop-blur-md shadow-sm">
         <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             {[
-              { key: "all", label: "All Groups" },
               { key: "sales", label: "Sales" },
               { key: "presales", label: "Presales" },
               { key: "am", label: "Account Manager" },
               { key: "csm", label: "CSM" },
-            ].map((grp) => (
+            ].filter(grp => availableRoles.includes(grp.key) || grp.key === roleFilter).map((grp) => (
               <button
                 key={grp.key}
                 type="button"
                 onClick={() => setRoleFilter(grp.key)}
                 className={cn(
                   "rounded-lg px-4 py-2 text-xs font-bold transition-all duration-300 cursor-pointer shadow-sm border border-border/20",
-                  roleFilter === grp.key
+                  roleFilter === grp.key || (!availableRoles.includes(roleFilter) && grp.key === activeTeam?.role_category)
                     ? "bg-[color:var(--brand)] text-white scale-[1.02] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
                     : "bg-muted/30 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                 )}
@@ -2093,158 +2090,112 @@ function TeamPerformancePanel({ period }: { period: string }) {
               </button>
             ))}
           </div>
-
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search team members..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-background/50 backdrop-blur-sm border-border/50"
-            />
-          </div>
         </CardContent>
       </Card>
 
-      {/* Grid of Team Cards */}
-      {filteredMembers.length === 0 ? (
+      {!activeTeam ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed border-2">
           <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-semibold">No team members found</h3>
+          <h3 className="text-lg font-semibold">No team data found</h3>
           <p className="text-sm text-muted-foreground max-w-sm mt-1">
-            Try adjusting your search query or role filter.
+            There are no users or KPIs configured for this role.
           </p>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {filteredMembers.map((member: any) => {
-            const cat = member.role_category;
-            const overallAchievement = member.overall_achievement;
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <div>
+              <h3 className="text-xl font-extrabold capitalize">{activeTeam.role_category} Team Performance</h3>
+              <p className="text-sm text-muted-foreground">Aggregated KPIs across {activeTeam.user_count} team members</p>
+            </div>
+            {activeTeam.overall_achievement !== null && (
+               <div className="text-right">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Overall Achievement</p>
+                  <p className={cn(
+                    "text-2xl font-black font-mono",
+                    activeTeam.overall_achievement >= 100 ? "text-[color:var(--status-success)]" :
+                    activeTeam.overall_achievement >= 50 ? "text-[color:var(--status-warning)]" :
+                    "text-[color:var(--status-danger)]"
+                  )}>
+                    {activeTeam.overall_achievement.toFixed(1)}%
+                  </p>
+               </div>
+            )}
+          </div>
 
-            let progressColor = "bg-[color:var(--brand)]";
-            let progressText = "text-[color:var(--brand)]";
-            let progressBg = "bg-muted/80";
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {activeTeam.metrics.map((metric: any) => {
+               const isPct = metric.format === 'percentage';
+               const isCur = metric.format === 'currency';
+               
+               const actualStr = isCur ? formatCurrency(metric.actual) : isPct ? `${metric.actual}%` : formatNumber(metric.actual, { decimals: 0 });
+               const targetStr = metric.target !== null ? (isCur ? formatCurrency(metric.target) : isPct ? `${metric.target}%` : formatNumber(metric.target, { decimals: 0 })) : null;
 
-            if (overallAchievement !== null) {
-              if (overallAchievement >= 100) {
-                progressColor = "bg-[color:var(--status-success)]";
-                progressText = "text-[color:var(--status-success)]";
-                progressBg = "bg-[color:var(--status-success-soft)]/20";
-              } else if (overallAchievement >= 50) {
-                progressColor = "bg-[color:var(--status-warning)]";
-                progressText = "text-[color:var(--status-warning)]";
-                progressBg = "bg-[color:var(--status-warning-soft)]/20";
-              } else {
-                progressColor = "bg-[color:var(--status-danger)]";
-                progressText = "text-[color:var(--status-danger)]";
-                progressBg = "bg-[color:var(--status-danger-soft)]/20";
-              }
-            }
+               const achievement = metric.achievement_percentage;
 
-            return (
-              <Card key={member.user_id} className="relative overflow-hidden group hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 border-border/40 bg-card transition-all duration-300">
-                <div 
-                  className={cn(
-                    "absolute left-0 top-0 bottom-0 w-1.5",
-                    cat === "sales" && "bg-[color:var(--brand)]",
-                    cat === "presales" && "bg-[color:var(--status-info)]",
-                    cat === "am" && "bg-[color:var(--status-success)]",
-                    cat === "csm" && "bg-[color:var(--status-warning)]",
-                    cat === "other" && "bg-muted"
-                  )} 
-                />
+               return (
+                 <Card 
+                   key={metric.kpi_key} 
+                   className="relative overflow-hidden group hover:shadow-md hover:-translate-y-1 border-border/40 bg-card transition-all duration-300 cursor-pointer"
+                   onClick={() => {
+                     if (metric.drilldown_href) {
+                       onDrilldown({
+                         href: metric.drilldown_href,
+                         title: `Drilldown: ${metric.kpi_name}`,
+                         description: `Filtered by ${activeTeam.role_category} team's condition for this metric.`
+                       });
+                     }
+                   }}
+                 >
+                   <CardHeader className="p-4 pb-2">
+                     <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground truncate" title={metric.kpi_name}>
+                       {metric.kpi_name}
+                     </CardTitle>
+                   </CardHeader>
+                   <CardContent className="p-4 pt-0 space-y-3">
+                     <div className="flex items-baseline gap-2">
+                       <span className="text-2xl font-black">{actualStr}</span>
+                       {targetStr && (
+                         <span className="text-sm font-semibold text-muted-foreground line-clamp-1">
+                           / {targetStr}
+                         </span>
+                       )}
+                     </div>
 
-                <CardHeader className="flex flex-row items-center gap-4 pb-4">
-                  <div 
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-inner transition-transform group-hover:scale-105 duration-300",
-                      cat === "sales" && "bg-[color:var(--brand)]",
-                      cat === "presales" && "bg-[color:var(--status-info)]",
-                      cat === "am" && "bg-[color:var(--status-success)]",
-                      cat === "csm" && "bg-[color:var(--status-warning)]",
-                      cat === "other" && "bg-muted"
-                    )}
-                  >
-                    {member.name.split(" ").map((n: string) => n.charAt(0)).join("").slice(0, 2).toUpperCase()}
-                  </div>
-
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-base font-bold truncate text-foreground group-hover:text-[color:var(--brand)] transition-colors">
-                        {member.name}
-                      </CardTitle>
-                      {overallAchievement !== null && overallAchievement >= 100 && (
-                        <Badge variant="outline" className="border-[color:var(--status-success)] text-[9px] py-0 px-1.5 uppercase font-bold text-[color:var(--status-success)] bg-[color:var(--status-success-soft)]">
-                          Target Met
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] py-0.5 font-semibold">
-                        {member.role_display}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-3 border-t border-border/40 bg-muted/5 p-5 space-y-4">
-                  {overallAchievement !== null && (
-                    <div className="space-y-2 bg-background/50 border border-border/30 p-3 rounded-xl shadow-xs">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground font-medium">Overall Achievement</span>
-                        <span className={cn("font-extrabold font-mono", progressText)}>{overallAchievement.toFixed(1)}%</span>
-                      </div>
-                      <ProgressiveFluxLoader layout="feature" 
-                        value={Math.min(overallAchievement, 100)} 
-                        showLabel={false} 
-                        barClassName="h-2"
-                        gradient={progressColor.replace('bg-[color:', '').replace(']', '')}
-                      />
-                    </div>
-                  )}
-
-                  {/* Metrik Grid - Dynamic */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {member.metrics.length === 0 ? (
-                      <div className="col-span-2 py-4 text-center text-xs text-muted-foreground">
-                        No custom KPIs configured for this role.
-                      </div>
-                    ) : (
-                      member.metrics.map((metric: any) => (
-                        <div key={metric.kpi_key} className="space-y-1">
-                          <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest line-clamp-1" title={metric.kpi_name}>
-                            {metric.kpi_name}
-                          </p>
-                          <div className="flex items-end gap-2">
-                            <p className="text-base font-extrabold text-foreground">
-                              {metric.format === 'currency' ? formatCurrency(metric.actual) 
-                                : metric.format === 'percentage' ? `${metric.actual}%` 
-                                : formatNumber(metric.actual, { decimals: 1 })}
-                            </p>
-                            {metric.target !== null && (
-                              <span className="text-[10px] text-muted-foreground mb-1 font-semibold">
-                                / {metric.format === 'currency' ? formatCurrency(metric.target) : metric.target}
-                              </span>
-                            )}
-                          </div>
-                          {metric.achievement_percentage !== null && (
-                            <p className={cn("text-[9px] font-bold", 
-                              metric.achievement_percentage >= 100 ? "text-[color:var(--status-success)]" : 
-                              metric.achievement_percentage >= 50 ? "text-[color:var(--status-warning)]" : 
-                              "text-[color:var(--status-danger)]"
-                            )}>
-                              {metric.achievement_percentage}% of target
-                            </p>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                     {achievement !== null && (
+                       <div className="space-y-1.5">
+                         <div className="flex justify-between items-center text-[10px] font-bold">
+                           <span className={cn(
+                             achievement >= 100 ? "text-[color:var(--status-success)]" :
+                             achievement >= 50 ? "text-[color:var(--status-warning)]" :
+                             "text-[color:var(--status-danger)]"
+                           )}>
+                             {achievement}% Achieved
+                           </span>
+                         </div>
+                         <ProgressiveFluxLoader 
+                           layout="feature" 
+                           value={Math.min(achievement, 100)} 
+                           showLabel={false}
+                           barClassName="h-1.5 rounded-full"
+                           gradient={
+                             achievement >= 100 ? "var(--status-success)" :
+                             achievement >= 50 ? "var(--status-warning)" :
+                             "var(--status-danger)"
+                           }
+                         />
+                       </div>
+                     )}
+                   </CardContent>
+                   <div className="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100">
+                     <div className="rounded-full bg-[color:var(--brand)]/10 text-[color:var(--brand)] p-1.5">
+                        <ArrowRight className="w-4 h-4" />
+                     </div>
+                   </div>
+                 </Card>
+               );
+            })}
+          </div>
         </div>
       )}
     </div>

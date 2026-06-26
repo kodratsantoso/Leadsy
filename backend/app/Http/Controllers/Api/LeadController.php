@@ -85,11 +85,15 @@ class LeadController extends Controller
         } elseif ($request->filled('duplicate_status')) {
             $query->where('duplicate_status', $request->duplicate_status);
         }
-        if ($request->filled('owner_id')) {
-            if ($request->owner_id === 'unassigned') {
-                $query->whereNull('owner_id');
-            } else {
-                $query->where('owner_id', $request->owner_id);
+        foreach (['owner_id', 'presales_owner_id', 'am_owner_id', 'csm_owner_id'] as $ownerField) {
+            if ($request->filled($ownerField)) {
+                $val = $request->$ownerField;
+                if ($val === 'unassigned') {
+                    $query->whereNull($ownerField);
+                } else {
+                    $ids = is_array($val) ? $val : array_map('trim', explode(',', $val));
+                    $query->whereIn($ownerField, $ids);
+                }
             }
         }
         if ($request->filled('source_type')) {

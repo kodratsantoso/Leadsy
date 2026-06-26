@@ -4,7 +4,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.9.0** — 2026-06-26
+Current release: **v1.9.1** — 2026-06-26
+
+## What's New in v1.9.1
+
+- **Team Performance Dashboard UI Revamp & Drilldown** — Replaced individual user cards on the Team Performance tab with aggregated team-level KPI blocks (Sales, Presales, Account Manager, CSM) including dynamic widgets like progress donuts and key metrics. Clicking on any block now drills down directly into a filtered lead modal.
 
 ## What's New in v1.9.0
 
