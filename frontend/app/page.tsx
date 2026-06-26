@@ -343,7 +343,7 @@ export default function DashboardPage() {
   }, []);
 
   const [period, setPeriod] = useState("month");
-  const [activeTab, setActiveTab] = useState<"pipeline" | "team">("pipeline");
+  const [activeTab, setActiveTab] = useState<"pipeline" | "team" | "confidentiality">("pipeline");
 
   const { data, isLoading } = useQuery({
     queryKey: ["dashboard", period],
@@ -652,6 +652,7 @@ export default function DashboardPage() {
             items={[
               { key: "pipeline", label: "My Pipeline", icon: Activity },
               { key: "team", label: "Team Performance", icon: Users },
+              { key: "confidentiality", label: "Confidentiality Matrix", icon: ShieldCheck },
             ]}
           />
         </div>
@@ -1781,8 +1782,10 @@ export default function DashboardPage() {
           </div>
           </>
         )
-      ) : (
+      ) : activeTab === "team" ? (
         <TeamPerformancePanel period={period} />
+      ) : (
+        <ConfidentialityMatrixPanel />
       )}
       <Modal
         open={Boolean(drilldown)}
@@ -2244,6 +2247,93 @@ function TeamPerformancePanel({ period }: { period: string }) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function ConfidentialityMatrixPanel() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard-confidentiality-matrix"],
+    queryFn: () => apiFetch("/api/dashboard/confidentiality-matrix").then((res) => res.json()),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center py-20 text-muted-foreground select-none">
+        <AILoader text="Analyzing Matrix" />
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const levelColor =
+    data.level === "restricted" ? "text-rose-500" :
+    data.level === "high" ? "text-amber-500" :
+    data.level === "medium" ? "text-blue-500" :
+    "text-emerald-500";
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Global Confidentiality Assessment</CardTitle>
+            <CardDescription>Based on aggregate pipeline exposure.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-4">
+              <div className={cn("p-4 rounded-xl bg-muted/30 border border-border flex items-center justify-center flex-col min-w-32", levelColor)}>
+                <ShieldCheck className="h-8 w-8 mb-2" />
+                <span className="font-bold text-lg capitalize">{data.level}</span>
+                <span className="text-xs font-semibold text-muted-foreground mt-1">Score: {data.score}</span>
+              </div>
+              <div className="flex-1 space-y-2">
+                <p className="text-sm font-semibold text-foreground">Recommendation</p>
+                <p className="text-sm text-muted-foreground">{data.recommended_access_handling}</p>
+                <p className="text-sm text-muted-foreground mt-2">{data.classification_reason}</p>
+              </div>
+            </div>
+
+            {data.special_attention && data.special_attention.length > 0 && (
+              <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-4 space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-rose-500 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Special Attention Required
+                </h4>
+                <ul className="list-disc list-inside text-sm text-rose-500/80 space-y-1">
+                  {data.special_attention.map((att: string, i: number) => (
+                    <li key={i}>{att}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Assessment Basis</CardTitle>
+            <CardDescription>Factors contributing to the confidentiality score.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {data.basis?.map((b: any, i: number) => (
+                <div key={i} className="flex justify-between items-start border-b border-border/50 pb-4 last:border-0 last:pb-0">
+                  <div className="space-y-1 pr-4">
+                    <p className="text-sm font-bold text-foreground">{b.parameter}</p>
+                    <p className="text-xs text-muted-foreground">{b.reason}</p>
+                  </div>
+                  <div className="text-right whitespace-nowrap space-y-1">
+                    <p className="text-sm font-semibold">{b.value}</p>
+                    <Badge variant="neutral" className="text-[10px]">+{b.score_impact} pts</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

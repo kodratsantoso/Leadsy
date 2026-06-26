@@ -29,6 +29,7 @@ import { Select } from "@/components/ui/select";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { QuestionGuide } from "@/components/products/QuestionGuide";
+import { ProductScrapeAndCompare } from "@/components/products/ProductScrapeAndCompare";
 
 type ProductTier = {
   id?: number;
@@ -509,18 +510,21 @@ export default function ProductsPage() {
                       </div>
                     )}
 
-                    <div className="mt-5 flex items-center gap-2">
-                      <Button variant="outline" onClick={() => openEdit(product)}>
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => setDeleteProduct(product)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
+                    <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => openEdit(product)}>
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => setDeleteProduct(product)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
+                      <ProductScrapeAndCompare product={product} />
                     </div>
 
                     {/* Question Guide — AI-generated requirement questions per product */}

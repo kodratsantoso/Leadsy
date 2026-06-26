@@ -104,8 +104,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/team-performance', [TeamPerformanceDashboardController::class, 'index']);
+    Route::get('/dashboard/confidentiality-matrix', [DashboardController::class, 'confidentialityMatrix']);
     Route::post('/dashboard/ai-insight', [DashboardController::class, 'aiInsight']);
     
+    // AI Governance (Outputs & Highlights)
+    Route::get('/ai-outputs/{id}/history', [\App\Http\Controllers\Api\AiOutputController::class, 'history']);
+    Route::put('/ai-outputs/{id}', [\App\Http\Controllers\Api\AiOutputController::class, 'update']);
+    Route::post('/ai-outputs/{id}/approve', [\App\Http\Controllers\Api\AiOutputController::class, 'approve']);
+    
+    Route::get('/ai-highlights', [\App\Http\Controllers\Api\AiHighlightController::class, 'index']);
+    Route::post('/ai-highlights/{id}/resolve', [\App\Http\Controllers\Api\AiHighlightController::class, 'resolve']);
+
+    // Product Specifications & Scrape
+    Route::post('/products/{product}/scrape-and-compare', [\App\Http\Controllers\Api\ProductSpecificationController::class, 'scrapeAndCompare']);
+    Route::get('/products/{product}/latest-comparison', [\App\Http\Controllers\Api\ProductSpecificationController::class, 'latestComparison']);
+    Route::post('/products/{product}/comparisons/{comparison}/approve', [\App\Http\Controllers\Api\ProductSpecificationController::class, 'approve']);
+    Route::post('/products/{product}/comparisons/{comparison}/reject', [\App\Http\Controllers\Api\ProductSpecificationController::class, 'reject']);
+
     // KPI Settings
     Route::get('/kpi-settings/definitions', [KpiSettingsController::class, 'getDefinitions']);
     Route::get('/kpi-settings/targets/{userId}', [KpiSettingsController::class, 'getTargets']);

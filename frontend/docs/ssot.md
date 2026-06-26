@@ -87,6 +87,10 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/leads/[id]/page.tsx` — Revenue tab records product-specific deal outcomes with separate `new_sales`/`upsales` sale type and amount history per customer.
 - `frontend/app/leads/[id]/page.tsx` — Transcripts tab supports native fetching of Lark Meeting Transcripts via URL linking and triggers AI evaluation.
 - `frontend/app/settings/currency/page.tsx` — added DB-backed currency and number separator settings with live preview.
+- `frontend/app/page.tsx` — added Confidentiality Matrix global assessment panel with RBAC visibility recommendations.
+- `frontend/app/products/page.tsx` — integrated Scrape & Compare UI using `ProductScrapeAndCompare` for governed website scraping updates.
+- `frontend/components/ui/ai-output-container.tsx` — unified AI output JSON viewer/editor with version history and manual approval controls.
+- `frontend/components/ui/ai-highlights-widget.tsx` — global widget for rendering AI risk/opportunity/gap highlights requiring human resolution.
 - `frontend/lib/hooks/use-number-format.ts` — added the shared number/currency display contract used by operational pages.
 - `frontend/AGENTS.md` — strengthened the runtime UI governance lock with post-refactor enforcement rules.
 - `AGENTS.md` — added repository-root guidance pointing contributors to the active frontend governance files.

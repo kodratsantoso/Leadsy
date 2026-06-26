@@ -166,3 +166,10 @@
 - **Decision**: Enabled native fetching of Lark Meeting Transcripts via URL linking, integrated with the existing AI transcript evaluation workflow. Implemented a Batch Delete functionality for Leads, exclusively restricted to the `super_admin` role.
 - **Rationale**: User needed a seamless way to pull transcripts directly from Lark Minutes without manual text extraction, allowing AI analysis on meeting outcomes automatically. Additionally, managing test/unqualified leads at scale required bulk deletion capabilities with strict governance.
 - **Impact**: New route for fetching transcripts using the Lark Integration OAuth connection. UI enhancements in the Lead Form and Transcripts tab. Batch actions introduced to the Lead index page, gated by explicit role checks.
+
+## ADR-024: AI Output Governance and Editability
+- **Date**: 2026-06-26
+- **Status**: Active
+- **Decision**: Introduced a unified governance layer for all AI-generated outputs, allowing versioning, auditing, and manual user editing. Product specification comparisons were also implemented to scrape and compare competitor/product data, requiring user approval before updating the CRM database. Confidentiality Matrix was added to the Dashboard.
+- **Rationale**: AI outputs cannot be 'final by default'. They require human-in-the-loop review, especially for product metadata and sensitive intelligence.
+- **Impact**: All AI outputs now use the morph-mapped `ai_generated_outputs` and `ai_output_versions` structure. Product data is not updated automatically but generates `update_suggestions`.

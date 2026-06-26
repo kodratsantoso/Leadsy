@@ -4,7 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.8.0** — 2026-06-24
+Current release: **v1.9.0** — 2026-06-26
+
+## What's New in v1.9.0
+
+- **AI Output Governance Layer** — Introduced a strict governance system for all AI-generated outputs (morph-mapped). Outputs can now be versioned, manually edited (with JSON validation), and explicitly approved to freeze their state.
+- **Dashboard Confidentiality Matrix** — Replaced the generic KPI layout with an exposure-based confidentiality matrix panel displaying aggregate AI findings and active RBAC visibility limits.
+- **Product Specification Scraping & Comparison** — Added an integrated UI to scrape product website updates, detect discrepancies between live specs and CRM data using AI, and submit `update_suggestions` for human approval instead of overwriting records silently.
+- **AI Attention Highlights** — Added global tracking and widgets for entity-specific risk, data gap, and opportunity highlights extracted automatically from JSON payloads.
+- **Database Snapshots Update** — Refreshed the PostgreSQL database snapshots to include new AI governance tables (`ai_generated_outputs`, `ai_output_versions`, `ai_attention_highlights`, `product_scrape_runs`, `product_specification_comparisons`, `product_update_suggestions`).
 
 ## What's New in v1.8.0
 
