@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\ContactEnrichmentController;
 use App\Http\Controllers\Api\CurrencySettingController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\TeamPerformanceDashboardController;
+use App\Http\Controllers\Api\KpiSettingsController;
 use App\Http\Controllers\Api\FunnelController;
 use App\Http\Controllers\Api\IcpProfileController;
 use App\Http\Controllers\Api\IndustryController;
@@ -100,10 +102,14 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Dashboard
-    Route::get('dashboard', [DashboardController::class, 'index']);
-    Route::post('dashboard/ai-insight', [DashboardController::class, 'aiInsight']);
-    Route::get('dashboard/heatmap', [DashboardController::class, 'heatmap']);
-    Route::get('dashboard/team-kpis', [DashboardController::class, 'teamKpis']);
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/team-performance', [TeamPerformanceDashboardController::class, 'index']);
+    Route::post('/dashboard/ai-insight', [DashboardController::class, 'aiInsight']);
+    
+    // KPI Settings
+    Route::get('/kpi-settings/definitions', [KpiSettingsController::class, 'getDefinitions']);
+    Route::get('/kpi-settings/targets/{userId}', [KpiSettingsController::class, 'getTargets']);
+    Route::post('/kpi-settings/targets/{userId}', [KpiSettingsController::class, 'saveTargets']);
 
     // Leads — CRUD + Discovery + Export
     Route::get('leads/export', [LeadController::class, 'export'])->middleware('permission:leads.export');

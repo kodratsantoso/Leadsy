@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase } from "lucide-react";
+import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { canAccessPath } from "@/lib/permissions";
@@ -12,6 +12,7 @@ const categories = [
     items: [
       { icon: Users,     title: "Users & Roles",         desc: "User accounts, role management, permissions",                        href: "/settings/users",         color: "bg-[color:var(--brand)]" },
       { icon: Target,    title: "Target Cascades",       desc: "Configure company revenue targets and cascade to user hierarchy",     href: "/settings/targets",       color: "bg-[color:var(--brand)]" },
+      { icon: Activity,  title: "Role KPI Targets",      desc: "Configure role-specific metrics targets per user",                    href: "/settings/kpi-targets",   color: "bg-[color:var(--brand)]" },
     ]
   },
   {
