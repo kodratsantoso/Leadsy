@@ -38,6 +38,7 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:30',
             'target_period' => 'nullable|in:weekly,monthly,quarterly,yearly',
             'target_revenue' => 'nullable|numeric|min:0',
+            'tier_level' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
         ]);
 
@@ -60,6 +61,7 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:30',
             'target_period' => 'nullable|in:weekly,monthly,quarterly,yearly',
             'target_revenue' => 'nullable|numeric|min:0',
+            'tier_level' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
         ]);
 

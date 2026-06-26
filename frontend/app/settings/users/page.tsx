@@ -55,6 +55,7 @@ type AppUser = {
   is_active: boolean;
   role?: AppRole | null;
   role_id?: number | null;
+  tier_level?: string | null;
 };
 
 type UserFormState = {
@@ -66,6 +67,7 @@ type UserFormState = {
   direct_manager_id: string;
   target_period: string;
   target_revenue: string;
+  tier_level: string;
 };
 
 type RoleFormState = {
@@ -84,6 +86,7 @@ const userFormDefaults: UserFormState = {
   direct_manager_id: "",
   target_period: "monthly",
   target_revenue: "",
+  tier_level: "",
 };
 
 const roleFormDefaults: RoleFormState = {
@@ -275,6 +278,7 @@ export default function SettingsUsersPage() {
       direct_manager_id: user.direct_manager_id ? String(user.direct_manager_id) : "",
       target_period: user.target_period || "monthly",
       target_revenue: user.target_revenue != null ? String(user.target_revenue) : "",
+      tier_level: user.tier_level || "",
     });
     setUserError("");
     setUserModalOpen(true);
@@ -309,6 +313,7 @@ export default function SettingsUsersPage() {
       target_revenue: userForm.target_revenue ? Number(userForm.target_revenue) : null,
     };
     if (userForm.role_id) payload.role_id = Number(userForm.role_id);
+    if (userForm.tier_level) payload.tier_level = userForm.tier_level;
     if (userForm.password) {
       payload.password = userForm.password;
       payload.password_confirmation = userForm.password;
@@ -381,6 +386,7 @@ export default function SettingsUsersPage() {
               <tr>
                 <TableHeaderCell>User</TableHeaderCell>
                 <TableHeaderCell>Role</TableHeaderCell>
+                <TableHeaderCell>Level</TableHeaderCell>
                 <TableHeaderCell>Manager</TableHeaderCell>
                 <TableHeaderCell>Target</TableHeaderCell>
                 <TableHeaderCell>Status</TableHeaderCell>
@@ -408,6 +414,13 @@ export default function SettingsUsersPage() {
                       <Badge variant="neutral">
                         {user.role?.display_name || user.role?.name || "Unassigned"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {user.tier_level ? (
+                        <Badge variant="outline">{user.tier_level.replace(/_/g, ' ')}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1 text-sm">
@@ -621,21 +634,45 @@ export default function SettingsUsersPage() {
               }
             />
           </div>
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Role</label>
-            <Select
-              value={userForm.role_id}
-              onChange={(event) =>
-                setUserForm((current) => ({ ...current, role_id: event.target.value }))
-              }
-              placeholder="Select role"
-            >
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.display_name || role.name}
-                </option>
-              ))}
-            </Select>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Role</label>
+              <Select
+                value={userForm.role_id}
+                onChange={(event) =>
+                  setUserForm((current) => ({ ...current, role_id: event.target.value }))
+                }
+                placeholder="Select role"
+              >
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.display_name || role.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Level</label>
+              <Select
+                value={userForm.tier_level}
+                onChange={(event) =>
+                  setUserForm((current) => ({ ...current, tier_level: event.target.value }))
+                }
+                placeholder="Select level"
+              >
+                <option value="Staff">Staff</option>
+                <option value="Senior Staff">Senior Staff</option>
+                <option value="Assistant Supervisor">Assistant Supervisor</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Senior Supervisor">Senior Supervisor</option>
+                <option value="Manager">Manager</option>
+                <option value="Senior Manager">Senior Manager</option>
+                <option value="General Manager">General Manager</option>
+                <option value="Director">Director</option>
+                <option value="VP">VP</option>
+                <option value="C-Level">C-Level</option>
+              </Select>
+            </div>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Direct Manager</label>
