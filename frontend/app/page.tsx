@@ -2037,7 +2037,7 @@ function TeamPerformancePanel({
   onDrilldown
 }: { 
   period: string;
-  onDrilldown: (d: { href: string; title: string; description?: string }) => void;
+  onDrilldown: (d: { href: string; title: string; description: string }) => void;
 }) {
   const [roleFilter, setRoleFilter] = useState<string>("sales");
 
