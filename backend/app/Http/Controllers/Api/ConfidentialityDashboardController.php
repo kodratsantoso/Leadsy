@@ -73,7 +73,7 @@ class ConfidentialityDashboardController extends Controller
             'has_transcript' => \DB::table('lead_meetings')->whereNotNull('summary')->count(),
             'has_bantc' => \DB::table('lead_bantc_question_guides')->count(),
             'has_pricing' => Lead::where('estimated_closing_amount', '>', 0)->count(),
-            'has_notes' => \DB::table('lead_notes')->count(),
+            'has_notes' => \DB::table('lead_activities')->where('activity_type', 'note')->count(),
             'has_sales_orders' => \DB::table('lead_sales_orders')->count(),
         ];
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from "@/lib/apiFetch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,12 +25,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
     // Fetch data from the real API endpoint
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/dashboard/confidentiality', {
-          headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('token'),
-            'Accept': 'application/json'
-          }
-        });
+        const response = await apiFetch('/dashboard/confidentiality');
         const result = await response.json();
         setData(result);
       } catch (err) {
