@@ -2197,90 +2197,98 @@ function TeamPerformancePanel({
             })}
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="border-border/40 bg-card lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Overall Achievement</CardTitle>
-                <CardDescription>Average KPI fulfillment</CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center pb-6">
-                <HighchartsReact
-                  highcharts={Highcharts}
-                  options={{
-                    chart: { type: 'pie', backgroundColor: 'transparent', height: 250, margin: [0, 0, 0, 0] },
-                    title: { text: null },
-                    tooltip: { enabled: false },
-                    plotOptions: {
-                      pie: {
-                        innerSize: '80%',
-                        borderWidth: 0,
-                        dataLabels: { enabled: false },
-                        enableMouseTracking: false
-                      }
-                    },
-                    series: [{
-                      data: [
-                        { name: 'Achieved', y: activeTeam.overall_achievement || 0, color: 'var(--brand)' },
-                        { name: 'Remaining', y: Math.max(0, 100 - (activeTeam.overall_achievement || 0)), color: 'rgba(255,255,255,0.05)' }
-                      ]
-                    }],
-                    credits: { enabled: false }
-                  }}
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center mt-6 pointer-events-none">
-                  <span className="text-3xl font-black">{activeTeam.overall_achievement ? activeTeam.overall_achievement.toFixed(1) : 0}%</span>
-                  <span className="text-xs text-muted-foreground font-semibold">ACHIEVED</span>
-                </div>
-              </CardContent>
-            </Card>
+          {activeTeam.metrics.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="border-border/40 bg-card lg:col-span-1">
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Overall Achievement</CardTitle>
+                  <CardDescription>Average KPI fulfillment</CardDescription>
+                </CardHeader>
+                <CardContent className="relative flex justify-center pb-6">
+                  <HighchartsReact
+                    highcharts={Highcharts}
+                    options={{
+                      chart: { type: 'pie', backgroundColor: 'transparent', height: 250, margin: [0, 0, 0, 0] },
+                      title: { text: null },
+                      tooltip: { enabled: false },
+                      plotOptions: {
+                        pie: {
+                          innerSize: '80%',
+                          borderWidth: 0,
+                          dataLabels: { enabled: false },
+                          enableMouseTracking: false
+                        }
+                      },
+                      series: [{
+                        data: [
+                          { name: 'Achieved', y: activeTeam.overall_achievement || 0, color: 'var(--brand)' },
+                          { name: 'Remaining', y: Math.max(0, 100 - (activeTeam.overall_achievement || 0)), color: 'rgba(255,255,255,0.05)' }
+                        ]
+                      }],
+                      credits: { enabled: false }
+                    }}
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-3xl font-black mt-2">{activeTeam.overall_achievement ? activeTeam.overall_achievement.toFixed(1) : 0}%</span>
+                    <span className="text-[10px] text-muted-foreground font-semibold tracking-wider">ACHIEVED</span>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card className="border-border/40 bg-card lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">KPI Performance Breakdown</CardTitle>
-                <CardDescription>Individual metric achievements</CardDescription>
-              </CardHeader>
-              <CardContent className="pb-6">
-                <Chart
-                  type="bar"
-                  height={250}
-                  options={{
-                    chart: { toolbar: { show: false }, background: 'transparent' },
-                    plotOptions: {
-                      bar: {
-                        horizontal: true,
-                        borderRadius: 4,
-                        dataLabels: { position: 'top' },
-                      }
-                    },
-                    colors: ['var(--brand)'],
-                    dataLabels: {
-                      enabled: true,
-                      formatter: (val) => `${val}%`,
-                      style: { colors: ['#fff'], fontSize: '10px' },
-                      offsetX: 20
-                    },
-                    xaxis: {
-                      categories: activeTeam.metrics.map((m: any) => m.kpi_name),
-                      labels: { style: { colors: 'var(--muted-foreground)' } },
-                      max: Math.max(100, Math.max(...activeTeam.metrics.map((m: any) => m.achievement_percentage || 0)) + 10),
-                    },
-                    yaxis: {
-                      labels: {
-                        style: { colors: 'var(--muted-foreground)', fontSize: '11px', fontWeight: 600 }
-                      }
-                    },
-                    grid: { borderColor: 'rgba(255,255,255,0.05)' },
-                    theme: { mode: 'dark' },
-                    tooltip: { theme: 'dark' }
-                  }}
-                  series={[{
-                    name: 'Achievement',
-                    data: activeTeam.metrics.map((m: any) => m.achievement_percentage || 0)
-                  }]}
-                />
-              </CardContent>
-            </Card>
-          </div>
+              <Card className="border-border/40 bg-card lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">KPI Performance Breakdown</CardTitle>
+                  <CardDescription>Individual metric achievements</CardDescription>
+                </CardHeader>
+                <CardContent className="pb-6">
+                  <Chart
+                    type="bar"
+                    height={250}
+                    options={{
+                      chart: { toolbar: { show: false }, background: 'transparent' },
+                      plotOptions: {
+                        bar: {
+                          horizontal: false,
+                          borderRadius: 4,
+                          columnWidth: '40%',
+                          dataLabels: { position: 'top' },
+                        }
+                      },
+                      colors: ['var(--brand)'],
+                      dataLabels: {
+                        enabled: true,
+                        formatter: (val) => `${val}%`,
+                        style: { colors: ['#fff'], fontSize: '10px' },
+                        offsetY: -20
+                      },
+                      xaxis: {
+                        categories: activeTeam.metrics.map((m: any) => m.kpi_name),
+                        labels: { 
+                          style: { colors: 'var(--muted-foreground)', fontSize: '11px', fontWeight: 600 } 
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                      },
+                      yaxis: {
+                        max: Math.max(100, Math.max(...activeTeam.metrics.map((m: any) => m.achievement_percentage || 0)) + 10),
+                        labels: {
+                          style: { colors: 'var(--muted-foreground)' },
+                          formatter: (val) => `${val.toFixed(0)}%`
+                        }
+                      },
+                      grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 },
+                      theme: { mode: 'dark' },
+                      tooltip: { theme: 'dark' }
+                    }}
+                    series={[{
+                      name: 'Achievement',
+                      data: activeTeam.metrics.map((m: any) => m.achievement_percentage || 0)
+                    }]}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       )}
     </div>
