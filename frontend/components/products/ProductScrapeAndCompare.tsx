@@ -11,6 +11,28 @@ type Props = {
   product: any;
 };
 
+function formatValue(val: any) {
+  if (!val) return "—";
+  try {
+    const parsed = JSON.parse(val);
+    if (Array.isArray(parsed)) {
+      return (
+        <ul className="list-disc list-inside space-y-1">
+          {parsed.map((item: any, i: number) => (
+            <li key={i}>{String(item)}</li>
+          ))}
+        </ul>
+      );
+    }
+    if (typeof parsed === "object") {
+      return <pre className="whitespace-pre-wrap text-[10px]">{JSON.stringify(parsed, null, 2)}</pre>;
+    }
+    return String(parsed);
+  } catch {
+    return String(val);
+  }
+}
+
 export function ProductScrapeAndCompare({ product }: Props) {
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
@@ -124,11 +146,15 @@ export function ProductScrapeAndCompare({ product }: Props) {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Current</p>
-                          <p className="text-rose-500 line-through opacity-80">{sug.current_value || "—"}</p>
+                          <div className="text-rose-500 line-through opacity-80">
+                            {formatValue(sug.current_value)}
+                          </div>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Suggested</p>
-                          <p className="text-emerald-500">{sug.suggested_value || "—"}</p>
+                          <div className="text-emerald-500">
+                            {formatValue(sug.suggested_value)}
+                          </div>
                         </div>
                       </div>
                       {sug.reason && (
