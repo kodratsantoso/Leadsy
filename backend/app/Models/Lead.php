@@ -254,6 +254,21 @@ class Lead extends Model
             ->where('leadsy_entity_type', 'lead');
     }
 
+    public function roleAssignments(): HasMany
+    {
+        return $this->hasMany(LeadRoleAssignment::class);
+    }
+
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
+    public function salesOrders(): HasMany
+    {
+        return $this->hasMany(SalesOrder::class);
+    }
+
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
         if (! $user || $user->isSuperAdmin() || $user->isExecutive()) {

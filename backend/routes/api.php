@@ -104,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/team-performance', [TeamPerformanceDashboardController::class, 'index']);
+    Route::get('/dashboard/team-performance/drilldown', [TeamPerformanceDashboardController::class, 'drilldown']);
     Route::get('/dashboard/confidentiality-matrix', [DashboardController::class, 'confidentialityMatrix']);
     Route::post('/dashboard/ai-insight', [DashboardController::class, 'aiInsight']);
     

@@ -51,9 +51,13 @@ type TrackingFunnelStep = {
 };
 
 type DrilldownState = {
-  title: string;
-  description: string;
-  href: string;
+  title?: string;
+  description?: string;
+  href?: string;
+  block_key?: string;
+  role?: string;
+  user_id?: number | string;
+  stage?: string;
 } | null;
 
 type DrilldownLead = {
@@ -355,7 +359,7 @@ export default function DashboardPage() {
     queryFn: async () => { const r = await apiFetch("/analytics/pipeline-quality"); return r.json(); },
   });
 
-  const drilldownApiPath = drilldown ? leadsApiPathFromHref(drilldown.href, drilldownPage, drilldownSearch) : null;
+  const drilldownApiPath = drilldown && drilldown.href ? leadsApiPathFromHref(drilldown.href, drilldownPage, drilldownSearch) : drilldown && drilldown.block_key ? `/dashboard/team-performance/drilldown?block_key=${drilldown.block_key}${drilldown.role ? `&role=${drilldown.role}` : ''}${drilldown.user_id ? `&user_id=${drilldown.user_id}` : ''}${drilldown.stage ? `&stage=${drilldown.stage}` : ''}&page=${drilldownPage}${drilldownSearch ? `&search=${drilldownSearch}` : ''}` : null;
   const { data: drilldownData, isFetching: isDrilldownLoading } = useQuery({
     queryKey: ["dashboard-lead-drilldown", drilldownApiPath],
     enabled: Boolean(drilldownApiPath),
@@ -2032,266 +2036,17 @@ export default function DashboardPage() {
   );
 }
 
+import { TeamPerformanceDashboard } from "@/components/dashboard/team/TeamPerformanceDashboard";
+
 function TeamPerformancePanel({ 
   period,
   onDrilldown
 }: { 
   period: string;
-  onDrilldown: (d: { href: string; title: string; description: string }) => void;
+  onDrilldown: (d: { href?: string; block_key?: string; title?: string; description?: string }) => void;
 }) {
-  const [roleFilter, setRoleFilter] = useState<string>("sales");
-
-  const { data: teamDataResponse, isLoading } = useQuery({
-    queryKey: ["team-performance", period],
-    queryFn: async () => {
-      const res = await apiFetch(`/dashboard/team-performance?period=${period}`);
-      return res.json();
-    },
-  });
-
-  const teams = teamDataResponse?.data?.teams ?? [];
-  const activeTeam = teams.find((t: any) => t.role_category === roleFilter) || teams[0];
-
-  const { formatCurrency, formatNumber } = useNumberFormat();
-
-  if (isLoading) {
-    return (
-      <div className="flex h-96 flex-col items-center justify-center py-20 text-muted-foreground select-none">
-        <AILoader text="Loading Team Performance" />
-      </div>
-    );
-  }
-
-  const availableRoles = teams.map((t: any) => t.role_category);
-
   return (
-    <div className="space-y-6">
-      <Card className="border-border/50 bg-card/40 backdrop-blur-md shadow-sm">
-        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { key: "sales", label: "Sales" },
-              { key: "presales", label: "Presales" },
-              { key: "am", label: "Account Manager" },
-              { key: "csm", label: "CSM" },
-            ].filter(grp => availableRoles.includes(grp.key) || grp.key === roleFilter).map((grp) => (
-              <button
-                key={grp.key}
-                type="button"
-                onClick={() => setRoleFilter(grp.key)}
-                className={cn(
-                  "rounded-lg px-4 py-2 text-xs font-bold transition-all duration-300 cursor-pointer shadow-sm border border-border/20",
-                  roleFilter === grp.key || (!availableRoles.includes(roleFilter) && grp.key === activeTeam?.role_category)
-                    ? "bg-[color:var(--brand)] text-white scale-[1.02] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
-                    : "bg-muted/30 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                )}
-              >
-                {grp.label}
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {!activeTeam ? (
-        <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed border-2">
-          <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-semibold">No team data found</h3>
-          <p className="text-sm text-muted-foreground max-w-sm mt-1">
-            There are no users or KPIs configured for this role.
-          </p>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <div>
-              <h3 className="text-xl font-extrabold capitalize">{activeTeam.role_category} Team Performance</h3>
-              <p className="text-sm text-muted-foreground">Aggregated KPIs across {activeTeam.user_count} team members</p>
-            </div>
-            {activeTeam.overall_achievement !== null && (
-               <div className="text-right">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Overall Achievement</p>
-                  <p className={cn(
-                    "text-2xl font-black font-mono",
-                    activeTeam.overall_achievement >= 100 ? "text-[color:var(--status-success)]" :
-                    activeTeam.overall_achievement >= 50 ? "text-[color:var(--status-warning)]" :
-                    "text-[color:var(--status-danger)]"
-                  )}>
-                    {activeTeam.overall_achievement.toFixed(1)}%
-                  </p>
-               </div>
-            )}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {activeTeam.metrics.map((metric: any) => {
-               const isPct = metric.format === 'percentage';
-               const isCur = metric.format === 'currency';
-               
-               const actualStr = isCur ? formatCurrency(metric.actual) : isPct ? `${metric.actual}%` : formatNumber(metric.actual, { decimals: 0 });
-               const targetStr = metric.target !== null ? (isCur ? formatCurrency(metric.target) : isPct ? `${metric.target}%` : formatNumber(metric.target, { decimals: 0 })) : null;
-
-               const achievement = metric.achievement_percentage;
-
-               return (
-                 <Card 
-                   key={metric.kpi_key} 
-                   className="relative overflow-hidden group hover:shadow-md hover:-translate-y-1 border-border/40 bg-card transition-all duration-300 cursor-pointer"
-                   onClick={() => {
-                     if (metric.drilldown_href) {
-                       onDrilldown({
-                         href: metric.drilldown_href,
-                         title: `Drilldown: ${metric.kpi_name}`,
-                         description: `Filtered by ${activeTeam.role_category} team's condition for this metric.`
-                       });
-                     }
-                   }}
-                 >
-                   <CardHeader className="p-4 pb-2">
-                     <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground truncate" title={metric.kpi_name}>
-                       {metric.kpi_name}
-                     </CardTitle>
-                   </CardHeader>
-                   <CardContent className="p-4 pt-0 space-y-3">
-                     <div className="flex items-baseline gap-2">
-                       <span className="text-2xl font-black">{actualStr}</span>
-                       {targetStr && (
-                         <span className="text-sm font-semibold text-muted-foreground line-clamp-1">
-                           / {targetStr}
-                         </span>
-                       )}
-                     </div>
-
-                     {achievement !== null && (
-                       <div className="space-y-1.5">
-                         <div className="flex justify-between items-center text-[10px] font-bold">
-                           <span className={cn(
-                             achievement >= 100 ? "text-[color:var(--status-success)]" :
-                             achievement >= 50 ? "text-[color:var(--status-warning)]" :
-                             "text-[color:var(--status-danger)]"
-                           )}>
-                             {achievement}% Achieved
-                           </span>
-                         </div>
-                         <ProgressiveFluxLoader 
-                           layout="feature" 
-                           value={Math.min(achievement, 100)} 
-                           showLabel={false}
-                           barClassName="h-1.5 rounded-full"
-                           gradient={
-                             achievement >= 100 ? "var(--status-success)" :
-                             achievement >= 50 ? "var(--status-warning)" :
-                             "var(--status-danger)"
-                           }
-                         />
-                       </div>
-                     )}
-                   </CardContent>
-                   <div className="absolute top-3 right-3 opacity-0 transition-opacity group-hover:opacity-100">
-                     <div className="rounded-full bg-[color:var(--brand)]/10 text-[color:var(--brand)] p-1.5">
-                        <ArrowRight className="w-4 h-4" />
-                     </div>
-                   </div>
-                 </Card>
-               );
-            })}
-          </div>
-
-          {activeTeam.metrics.length > 0 && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="border-border/40 bg-card lg:col-span-1">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Overall Achievement</CardTitle>
-                  <CardDescription>Average KPI fulfillment</CardDescription>
-                </CardHeader>
-                <CardContent className="relative flex justify-center pb-6">
-                  <HighchartsReact
-                    highcharts={Highcharts}
-                    options={{
-                      chart: { type: 'pie', backgroundColor: 'transparent', height: 250, margin: [0, 0, 0, 0] },
-                      title: { text: null },
-                      tooltip: { enabled: false },
-                      plotOptions: {
-                        pie: {
-                          innerSize: '80%',
-                          borderWidth: 0,
-                          dataLabels: { enabled: false },
-                          enableMouseTracking: false
-                        }
-                      },
-                      series: [{
-                        data: [
-                          { name: 'Achieved', y: activeTeam.overall_achievement || 0, color: 'var(--brand)' },
-                          { name: 'Remaining', y: Math.max(0, 100 - (activeTeam.overall_achievement || 0)), color: 'rgba(255,255,255,0.05)' }
-                        ]
-                      }],
-                      credits: { enabled: false }
-                    }}
-                  />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-3xl font-black mt-2">{activeTeam.overall_achievement ? activeTeam.overall_achievement.toFixed(1) : 0}%</span>
-                    <span className="text-[10px] text-muted-foreground font-semibold tracking-wider">ACHIEVED</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/40 bg-card lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">KPI Performance Breakdown</CardTitle>
-                  <CardDescription>Individual metric achievements</CardDescription>
-                </CardHeader>
-                <CardContent className="pb-6">
-                  <Chart
-                    type="bar"
-                    height={250}
-                    options={{
-                      chart: { toolbar: { show: false }, background: 'transparent' },
-                      plotOptions: {
-                        bar: {
-                          horizontal: false,
-                          borderRadius: 4,
-                          columnWidth: '40%',
-                          dataLabels: { position: 'top' },
-                        }
-                      },
-                      colors: ['var(--brand)'],
-                      dataLabels: {
-                        enabled: true,
-                        formatter: (val) => `${val}%`,
-                        style: { colors: ['#fff'], fontSize: '10px' },
-                        offsetY: -20
-                      },
-                      xaxis: {
-                        categories: activeTeam.metrics.map((m: any) => m.kpi_name),
-                        labels: { 
-                          style: { colors: 'var(--muted-foreground)', fontSize: '11px', fontWeight: 600 } 
-                        },
-                        axisBorder: { show: false },
-                        axisTicks: { show: false }
-                      },
-                      yaxis: {
-                        max: Math.max(100, Math.max(...activeTeam.metrics.map((m: any) => m.achievement_percentage || 0)) + 10),
-                        labels: {
-                          style: { colors: 'var(--muted-foreground)' },
-                          formatter: (val) => `${val.toFixed(0)}%`
-                        }
-                      },
-                      grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 },
-                      theme: { mode: 'dark' },
-                      tooltip: { theme: 'dark' }
-                    }}
-                    series={[{
-                      name: 'Achievement',
-                      data: activeTeam.metrics.map((m: any) => m.achievement_percentage || 0)
-                    }]}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <TeamPerformanceDashboard period={period} onDrilldown={onDrilldown} />
   );
 }
 
