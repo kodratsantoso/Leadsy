@@ -503,7 +503,6 @@ export default function ProductDetailPage() {
                             placeholder="Feature 1, Feature 2" 
                           />
                         </div>
-                      </div>
                     </div>
                   ))}
                 </div>
