@@ -93,11 +93,15 @@ export default function TargetCascadesPage() {
         setOriginalTree(data.tree || []);
         setInputStates({});
         
-        // Expand root nodes by default
+        // Expand all nodes by default
         const initialExpanded: Record<number, boolean> = {};
-        data.tree.forEach((node: TreeNode) => {
+        const expandNode = (node: TreeNode) => {
           initialExpanded[node.id] = true;
-        });
+          if (node.reports) {
+            node.reports.forEach(expandNode);
+          }
+        };
+        data.tree.forEach(expandNode);
         setExpandedNodes(initialExpanded);
       } else {
         setErrorMessage("Failed to load target configurations.");

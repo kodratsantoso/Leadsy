@@ -177,7 +177,7 @@ class TargetController extends Controller
     {
         $branch = [];
         $children = array_filter($users, function ($u) use ($managerId) {
-            return $u['direct_manager_id'] === $managerId;
+            return $u['direct_manager_id'] == $managerId;
         });
 
         foreach ($children as $u) {

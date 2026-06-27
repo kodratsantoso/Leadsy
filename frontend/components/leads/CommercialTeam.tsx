@@ -19,8 +19,7 @@ type RoleAssignment = {
   assigned_at: string;
   user: {
     id: number;
-    first_name: string;
-    last_name: string;
+    name: string;
     email: string;
     avatar_url?: string;
   };
@@ -28,18 +27,15 @@ type RoleAssignment = {
 
 type AssignableUser = {
   id: number;
-  first_name: string;
-  last_name: string;
+  name: string;
   email: string;
 };
 
 const ROLE_TYPES = [
-  { value: 'sales', label: 'Sales Rep' },
-  { value: 'presales', label: 'Presales Engineer' },
+  { value: 'sales', label: 'Sales / BD Executive' },
+  { value: 'presales', label: 'Presales / Research Analyst' },
   { value: 'account_manager', label: 'Account Manager' },
-  { value: 'csm', label: 'Customer Success Manager' },
-  { value: 'sdr', label: 'Sales Development Rep' },
-  { value: 'partner', label: 'Partner/Channel' },
+  { value: 'csm', label: 'Customer Success Management' },
 ];
 
 export function CommercialTeam({ leadId }: { leadId: string | number }) {
@@ -56,12 +52,18 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
 
   // Fetch assignable users
   const { data: usersData, isLoading: loadingUsers } = useQuery({
-    queryKey: ['assignable-users'],
+    queryKey: ['lead-assignable-users'],
     queryFn: () => apiFetch('/leads/assignable-users').then(r => r.json()),
   });
 
   const assignments: RoleAssignment[] = data?.data || [];
-  const users: AssignableUser[] = usersData?.data || [];
+  
+  let users: AssignableUser[] = [];
+  if (Array.isArray(usersData)) {
+    users = usersData;
+  } else if (usersData && Array.isArray(usersData.data)) {
+    users = usersData.data;
+  }
 
   const addAssignment = async () => {
     if (!form.user_id) {
@@ -130,10 +132,10 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
                     <div key={a.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card shadow-sm hover:border-[var(--brand)]/30 transition-colors">
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-full bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] text-[var(--brand)] flex items-center justify-center font-bold text-sm">
-                          {a.user.first_name[0]}{a.user.last_name ? a.user.last_name[0] : ''}
+                          {a.user.name ? a.user.name.charAt(0).toUpperCase() : '?'}
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{a.user.first_name} {a.user.last_name}</p>
+                          <p className="font-medium text-sm">{a.user.name}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Badge variant="outline" className="text-[10px] bg-background">
                               {ROLE_TYPES.find(r => r.value === a.role_type)?.label || a.role_type}
@@ -184,7 +186,7 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
                   >
                     <option value="">Select User...</option>
                     {users.map(u => (
-                      <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
+                      <option key={u.id} value={String(u.id)}>{u.name}</option>
                     ))}
                   </Select>
                 </div>

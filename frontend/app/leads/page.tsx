@@ -10,6 +10,9 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Filter,
   Download,
   ExternalLink,
   FileSpreadsheet,
@@ -644,6 +647,8 @@ export default function LeadsPage() {
   const [channelFilter, setChannelFilter] = useState(searchParams.get("channel_type_id") ?? "");
   const [productFilter] = useState(searchParams.get("product_id") ?? "");
   const [ownerFilter, setOwnerFilter] = useState(searchParams.get("owner_id") ?? "");
+  const [ownerRoleFilter, setOwnerRoleFilter] = useState("owner_id");
+  const [showFilters, setShowFilters] = useState(false);
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
   const [feedback, setFeedback] = useState("");
@@ -731,7 +736,7 @@ export default function LeadsPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, perPage, search, funnelStageId, funnelMinSequence, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, ownerFilter, minScore, maxScore],
+    queryKey: ["leads", page, perPage, search, funnelStageId, funnelMinSequence, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, ownerFilter, ownerRoleFilter, minScore, maxScore],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
       if (search) params.set("search", search);
@@ -742,7 +747,7 @@ export default function LeadsPage() {
       if (sourceFilter) params.set("source_type", sourceFilter);
       if (channelFilter) params.set("channel_type_id", channelFilter);
       if (productFilter) params.set("product_id", productFilter);
-      if (ownerFilter) params.set("owner_id", ownerFilter);
+      if (ownerFilter) params.set(ownerRoleFilter || "owner_id", ownerFilter);
       if (minScore) params.set("min_score", minScore);
       if (maxScore) params.set("max_score", maxScore);
       const response = await apiFetch(`/leads?${params.toString()}`);
@@ -1401,127 +1406,161 @@ export default function LeadsPage() {
         ) : null}
       </Card>
 
-      <div data-tour="leads-filters">
-      <FilterBar>
-        <FilterBarSearch
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          placeholder="Search company, industry, or email"
-        />
-        <Select
-          value={funnelStageId}
-          onChange={(event) => {
-            setFunnelStageId(event.target.value);
-            setPage(1);
-          }}
-          placeholder="All stages"
-        >
-          {funnelStages.map((stage) => (
-            <option key={stage.id} value={String(stage.id)}>
-              {stage.name}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={qualificationFilter}
-          onChange={(event) => {
-            setQualificationFilter(event.target.value);
-            setPage(1);
-          }}
-          placeholder="All qualifications"
-        >
-          <option value="pending">Pending</option>
-          <option value="eligible">Eligible</option>
-          <option value="potential">Potential</option>
-          <option value="not_eligible">Not eligible</option>
-        </Select>
-        <Select
-          value={duplicateFilter}
-          onChange={(event) => {
-            setDuplicateFilter(event.target.value);
-            setPage(1);
-          }}
-          placeholder="All duplicate states"
-        >
-          <option value="new">New</option>
-          <option value="probable_duplicate">Probable duplicate</option>
-          <option value="exact_duplicate">Exact duplicate</option>
-        </Select>
-        <Select
-          value={ownerFilter}
-          onChange={(event) => {
-            setOwnerFilter(event.target.value);
-            setPage(1);
-          }}
-          placeholder="All owners"
-        >
-          <option value="unassigned">Lead Pool</option>
-          {assignableUsers.map((user) => (
-            <option key={user.id} value={String(user.id)}>
-              {user.name}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={sourceFilter}
-          onChange={(event) => {
-            const nextSource = event.target.value;
-            setSourceFilter(nextSource);
-            setChannelFilter("");
-            setPage(1);
-          }}
-          placeholder="All sources"
-        >
-          {leadSources.map((source) => (
-            <option key={source.id} value={source.slug}>
-              {source.name}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={channelFilter}
-          onChange={(event) => {
-            setChannelFilter(event.target.value);
-            setPage(1);
-          }}
-          placeholder="All channels"
-          disabled={filteredLeadChannels.length === 0}
-        >
-          {filteredLeadChannels.map((channel) => (
-            <option key={channel.id} value={String(channel.id)}>
-              {channel.name}
-            </option>
-          ))}
-        </Select>
-        <Input
-          className="w-24"
-          inputMode="numeric"
-          value={minScore}
-          onChange={(event) => {
-            setMinScore(event.target.value);
-            setPage(1);
-          }}
-          placeholder="Min score"
-        />
-        <Input
-          className="w-24"
-          inputMode="numeric"
-          value={maxScore}
-          onChange={(event) => {
-            setMaxScore(event.target.value);
-            setPage(1);
-          }}
-          placeholder="Max score"
-        />
-        {hasActiveFilter ? (
-          <Button variant="ghost" onClick={resetFilters}>
-            Clear Filters
+      <div data-tour="leads-filters" className="space-y-3">
+        <FilterBar>
+          <FilterBarSearch
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Search company, industry, or email"
+          />
+          <Button 
+            variant="outline" 
+            onClick={() => setShowFilters(!showFilters)}
+            className="shrink-0"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            {showFilters ? "Hide Filters" : "Show Filters"}
+            {hasActiveFilter && !showFilters && (
+               <Badge variant="brand" className="ml-2">Active</Badge>
+            )}
+            {showFilters ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
           </Button>
-        ) : null}
-      </FilterBar>
+          {hasActiveFilter ? (
+            <Button variant="ghost" onClick={resetFilters}>
+              Clear
+            </Button>
+          ) : null}
+        </FilterBar>
+
+        {showFilters && (
+          <FilterBar className="bg-card/50 border-dashed">
+            <Select
+              value={funnelStageId}
+              onChange={(event) => {
+                setFunnelStageId(event.target.value);
+                setPage(1);
+              }}
+              placeholder="All stages"
+            >
+              {funnelStages.map((stage) => (
+                <option key={stage.id} value={String(stage.id)}>
+                  {stage.name}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={qualificationFilter}
+              onChange={(event) => {
+                setQualificationFilter(event.target.value);
+                setPage(1);
+              }}
+              placeholder="All qualifications"
+            >
+              <option value="pending">Pending</option>
+              <option value="eligible">Eligible</option>
+              <option value="potential">Potential</option>
+              <option value="not_eligible">Not eligible</option>
+            </Select>
+            <Select
+              value={duplicateFilter}
+              onChange={(event) => {
+                setDuplicateFilter(event.target.value);
+                setPage(1);
+              }}
+              placeholder="All duplicate states"
+            >
+              <option value="new">New</option>
+              <option value="probable_duplicate">Probable duplicate</option>
+              <option value="exact_duplicate">Exact duplicate</option>
+            </Select>
+            <div className="flex items-center gap-2 border border-input rounded-xl bg-background pr-1 focus-within:border-[var(--brand)] focus-within:ring-3 focus-within:ring-[color:var(--brand)]/15">
+              <Select
+                value={ownerRoleFilter}
+                onChange={(event) => {
+                  setOwnerRoleFilter(event.target.value);
+                  setPage(1);
+                }}
+                className="w-32 border-0 focus-visible:ring-0 shadow-none bg-transparent"
+              >
+                <option value="owner_id">Sales</option>
+                <option value="presales_owner_id">Presales</option>
+                <option value="am_owner_id">Account Mgr</option>
+                <option value="csm_owner_id">CSM</option>
+              </Select>
+              <div className="w-px h-5 bg-border"></div>
+              <Select
+                value={ownerFilter}
+                onChange={(event) => {
+                  setOwnerFilter(event.target.value);
+                  setPage(1);
+                }}
+                className="border-0 focus-visible:ring-0 shadow-none bg-transparent min-w-[140px]"
+                placeholder="All members"
+              >
+                <option value="unassigned">Lead Pool</option>
+                {assignableUsers.map((user) => (
+                  <option key={user.id} value={String(user.id)}>
+                    {user.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Select
+              value={sourceFilter}
+              onChange={(event) => {
+                const nextSource = event.target.value;
+                setSourceFilter(nextSource);
+                setChannelFilter("");
+                setPage(1);
+              }}
+              placeholder="All sources"
+            >
+              {leadSources.map((source) => (
+                <option key={source.id} value={source.slug}>
+                  {source.name}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={channelFilter}
+              onChange={(event) => {
+                setChannelFilter(event.target.value);
+                setPage(1);
+              }}
+              placeholder="All channels"
+              disabled={filteredLeadChannels.length === 0}
+            >
+              {filteredLeadChannels.map((channel) => (
+                <option key={channel.id} value={String(channel.id)}>
+                  {channel.name}
+                </option>
+              ))}
+            </Select>
+            <Input
+              className="w-24"
+              inputMode="numeric"
+              value={minScore}
+              onChange={(event) => {
+                setMinScore(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Min score"
+            />
+            <Input
+              className="w-24"
+              inputMode="numeric"
+              value={maxScore}
+              onChange={(event) => {
+                setMaxScore(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Max score"
+            />
+          </FilterBar>
+        )}
       </div>
 
       <div data-tour="leads-table" className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
