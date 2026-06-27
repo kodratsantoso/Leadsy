@@ -1824,24 +1824,54 @@ export default function DashboardPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableHeaderCell>Lead</TableHeaderCell>
-                  <TableHeaderCell>Stage</TableHeaderCell>
-                  <TableHeaderCell>Qualification</TableHeaderCell>
-                  <TableHeaderCell>Score</TableHeaderCell>
-                  <TableHeaderCell>Estimated</TableHeaderCell>
-                  <TableHeaderCell>Owner</TableHeaderCell>
+                  {drilldownData?.data?.columns ? (
+                    drilldownData.data.columns.map((col: any) => (
+                      <TableHeaderCell key={col.key}>{col.label}</TableHeaderCell>
+                    ))
+                  ) : (
+                    <>
+                      <TableHeaderCell>Lead</TableHeaderCell>
+                      <TableHeaderCell>Stage</TableHeaderCell>
+                      <TableHeaderCell>Qualification</TableHeaderCell>
+                      <TableHeaderCell>Score</TableHeaderCell>
+                      <TableHeaderCell>Estimated</TableHeaderCell>
+                      <TableHeaderCell>Owner</TableHeaderCell>
+                    </>
+                  )}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {isDrilldownLoading ? (
-                  <TableEmpty colSpan={6}>
+                  <TableEmpty colSpan={drilldownData?.data?.columns ? drilldownData.data.columns.length : 6}>
                     <span className="inline-flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Loading filtered leads...
                     </span>
                   </TableEmpty>
-                ) : drilldownLeads.data.length > 0 ? (
-                  drilldownLeads.data.map((lead) => {
+                ) : drilldownData?.data?.columns && drilldownData?.data?.records ? (
+                  drilldownData.data.records.length > 0 ? (
+                    drilldownData.data.records.map((row: any, i: number) => (
+                      <TableRow key={i}>
+                        {drilldownData.data.columns.map((col: any) => (
+                          <TableCell key={col.key}>
+                            {col.key === 'company_name' || col.key === 'lead_name' ? (
+                              <Link href={`/leads/${row.id || row.lead_id || row.entity_id || '#'}`} className="font-medium text-[color:var(--brand)] hover:underline">
+                                {row[col.key]}
+                              </Link>
+                            ) : typeof row[col.key] === 'number' && (col.key.includes('amount') || col.key.includes('contribution') || col.key.includes('deal_size')) ? (
+                              formatCurrency(row[col.key])
+                            ) : (
+                              row[col.key] ?? "—"
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableEmpty colSpan={drilldownData.data.columns.length}>No data matches this dashboard condition.</TableEmpty>
+                  )
+                ) : drilldownLeads?.data?.length > 0 ? (
+                  drilldownLeads.data.map((lead: any) => {
                     const stage = lead.funnel_stage ?? lead.funnelStage;
                     return (
                       <TableRow key={lead.id}>
@@ -1879,11 +1909,13 @@ export default function DashboardPage() {
               Previous
             </Button>
             <span className="text-sm text-muted-foreground">
-              Page {formatNumber(drilldownLeads.current_page ?? 1, { decimals: 0 })} of {formatNumber(drilldownLeads.last_page ?? 1, { decimals: 0 })}
+              {drilldownData?.data?.columns && !drilldownLeads?.last_page 
+                ? 'Showing top records' 
+                : `Page ${formatNumber(drilldownLeads?.current_page ?? 1, { decimals: 0 })} of ${formatNumber(drilldownLeads?.last_page ?? 1, { decimals: 0 })}`}
             </span>
             <Button
               variant="outline"
-              disabled={drilldownPage >= (drilldownLeads.last_page ?? 1) || isDrilldownLoading}
+              disabled={isDrilldownLoading || (drilldownData?.data?.columns && !drilldownLeads?.last_page) || drilldownPage >= (drilldownLeads?.last_page ?? 1)}
               onClick={() => setDrilldownPage((page) => page + 1)}
             >
               Next

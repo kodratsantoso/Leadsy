@@ -70,7 +70,7 @@ class ConfidentialityDashboardController extends Controller
         // Block 6: Sensitive Indicators
         $indicators = [
             'has_contact_data' => Lead::whereNotNull('email')->orWhereNotNull('phone')->count(),
-            'has_transcript' => \DB::table('lead_meetings')->whereNotNull('transcript')->count(),
+            'has_transcript' => \DB::table('lead_meetings')->whereNotNull('summary')->count(),
             'has_bantc' => \DB::table('lead_bantc_question_guides')->count(),
             'has_pricing' => Lead::where('estimated_closing_amount', '>', 0)->count(),
             'has_notes' => \DB::table('lead_notes')->count(),
