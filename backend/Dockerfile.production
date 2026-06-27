@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    openssh-client \
     && docker-php-ext-install pdo pdo_pgsql zip pcntl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,7 +22,10 @@ COPY . .
 # .dockerignore omits framework cache/views/sessions from build context; Laravel still needs these paths.
 RUN mkdir -p storage/framework/views storage/framework/cache/data storage/framework/sessions storage/logs
 
-RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader \
+RUN composer config --global process-timeout 2000 \
+    && composer config --global github-protocols https \
+    && composer clear-cache \
+    && (composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader || composer install --no-dev --prefer-source --no-interaction --optimize-autoloader) \
     && chmod +x docker-entrypoint.production.sh
 
 EXPOSE 8000
