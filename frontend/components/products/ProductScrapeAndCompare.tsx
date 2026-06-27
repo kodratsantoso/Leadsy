@@ -14,6 +14,7 @@ type Props = {
 export function ProductScrapeAndCompare({ product }: Props) {
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const { data: latestComparison, isLoading: loadingComparison } = useQuery({
     queryKey: ["product-comparison", product.id],
@@ -21,13 +22,21 @@ export function ProductScrapeAndCompare({ product }: Props) {
   });
 
   const scrapeMutation = useMutation({
-    mutationFn: () => apiFetch(`/api/products/${product.id}/scrape-and-compare`, { method: "POST" }).then(res => res.json()),
+    mutationFn: async () => {
+      const res = await apiFetch(`/api/products/${product.id}/scrape-and-compare`, { method: "POST" });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Unknown server error" }));
+        throw new Error(errorData.message || "Failed to scrape product");
+      }
+      return res.json();
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["product-comparison", product.id] });
       setShowModal(true);
     },
     onError: (err: any) => {
       console.error("Failed to scrape product", err);
+      setErrorMsg(err.message || "An error occurred while scraping the product.");
     }
   });
 
@@ -50,25 +59,31 @@ export function ProductScrapeAndCompare({ product }: Props) {
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (latestComparison && latestComparison.status === 'draft') {
-              setShowModal(true);
-            } else {
-              scrapeMutation.mutate();
-            }
-          }}
-          disabled={scrapeMutation.isPending || !product.website_url}
-          className="border-[color:var(--brand)] text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
-        >
-          {scrapeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Globe className="h-4 w-4 mr-2" />}
-          {latestComparison?.status === 'draft' ? "Review Pending Changes" : "Scrape & Compare"}
-        </Button>
-        {!product.website_url && (
-          <span className="text-xs text-muted-foreground">Add a website URL to the product to enable scraping.</span>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setErrorMsg("");
+              if (latestComparison && latestComparison.status === 'draft') {
+                setShowModal(true);
+              } else {
+                scrapeMutation.mutate();
+              }
+            }}
+            disabled={scrapeMutation.isPending || !product.website_url}
+            className="border-[color:var(--brand)] text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
+          >
+            {scrapeMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Globe className="h-4 w-4 mr-2" />}
+            {latestComparison?.status === 'draft' ? "Review Pending Changes" : "Scrape & Compare"}
+          </Button>
+          {!product.website_url && (
+            <span className="text-xs text-muted-foreground">Add a website URL to the product to enable scraping.</span>
+          )}
+        </div>
+        {errorMsg && (
+          <span className="text-xs text-destructive font-medium">{errorMsg}</span>
         )}
       </div>
 
