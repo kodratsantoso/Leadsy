@@ -76,8 +76,11 @@ class TargetController extends Controller
         $tree = [];
         $usersArr = $users->toArray();
 
+        $visited = [];
+
         foreach ($rootUsers as $root) {
-            $branch = $this->buildBranch($usersArr, $root->id, $userMetrics, (float) $root->target_revenue);
+            $visited[] = $root->id;
+            $branch = $this->buildBranch($usersArr, $root->id, $userMetrics, (float) $root->target_revenue, $visited);
 
             $ownTarget = (float) $root->target_revenue;
             $ownEst = $userMetrics[$root->id]['own_estimated_revenue'];
@@ -108,6 +111,44 @@ class TargetController extends Controller
                 ],
                 'reports' => $branch,
             ];
+        }
+
+        // Catch any remaining users (e.g. in a loop) and add them as root nodes
+        foreach ($usersArr as $u) {
+            if (!in_array($u['id'], $visited)) {
+                $visited[] = $u['id'];
+                $branch = $this->buildBranch($usersArr, $u['id'], $userMetrics, (float) $u['target_revenue'], $visited);
+
+                $ownTarget = (float) $u['target_revenue'];
+                $ownEst = $userMetrics[$u['id']]['own_estimated_revenue'] ?? 0.0;
+                $ownReal = $userMetrics[$u['id']]['own_realized_revenue'] ?? 0.0;
+
+                $rollupTarget = $ownTarget + array_sum(array_column(array_column($branch, 'metrics'), 'rollup_target_revenue'));
+                $rollupEst = $ownEst + array_sum(array_column(array_column($branch, 'metrics'), 'rollup_estimated_revenue'));
+                $rollupReal = $ownReal + array_sum(array_column(array_column($branch, 'metrics'), 'rollup_realized_revenue'));
+
+                $tree[] = [
+                    'id' => $u['id'],
+                    'name' => $u['name'],
+                    'email' => $u['email'],
+                    'role' => $u['role'] ? [
+                        'name' => $u['role']['name'],
+                        'display_name' => $u['role']['display_name'],
+                    ] : null,
+                    'tier_level' => $u['tier_level'],
+                    'target_percentage' => (float) $u['target_percentage'],
+                    'target_calculation_type' => $u['target_calculation_type'],
+                    'metrics' => [
+                        'own_target_revenue' => $ownTarget,
+                        'own_estimated_revenue' => $ownEst,
+                        'own_realized_revenue' => $ownReal,
+                        'rollup_target_revenue' => $rollupTarget,
+                        'rollup_estimated_revenue' => $rollupEst,
+                        'rollup_realized_revenue' => $rollupReal,
+                    ],
+                    'reports' => $branch,
+                ];
+            }
         }
 
         return response()->json([
@@ -197,20 +238,21 @@ class TargetController extends Controller
     /**
      * Recursively build reports tree.
      */
-    private function buildBranch(array &$users, int $managerId, array &$userMetrics, float $parentTarget): array
+    private function buildBranch(array &$users, int $managerId, array &$userMetrics, float $parentTarget, array &$visited = []): array
     {
         $branch = [];
-        $children = array_filter($users, function ($u) use ($managerId) {
-            return $u['direct_manager_id'] == $managerId;
+        $children = array_filter($users, function ($u) use ($managerId, $visited) {
+            return $u['direct_manager_id'] == $managerId && !in_array($u['id'], $visited) && $u['id'] != $managerId;
         });
 
         foreach ($children as $u) {
             $userId = $u['id'];
+            $visited[] = $userId;
             $ownTarget = (float) $u['target_revenue'];
             $ownEst = $userMetrics[$userId]['own_estimated_revenue'] ?? 0.0;
             $ownReal = $userMetrics[$userId]['own_realized_revenue'] ?? 0.0;
 
-            $subBranch = $this->buildBranch($users, $userId, $userMetrics, $ownTarget);
+            $subBranch = $this->buildBranch($users, $userId, $userMetrics, $ownTarget, $visited);
 
             $rollupTarget = $ownTarget + array_sum(array_column(array_column($subBranch, 'metrics'), 'rollup_target_revenue'));
             $rollupEst = $ownEst + array_sum(array_column(array_column($subBranch, 'metrics'), 'rollup_estimated_revenue'));
