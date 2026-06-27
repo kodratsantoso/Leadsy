@@ -168,14 +168,31 @@ Source of truth: `frontend/components/products/QuestionGuide.tsx`
 - "Add question manually" button appends a blank question row
 - AI generation notice is dismissible and clears on save
 
-## Dashboard Module
+## Dashboard Modules
 
+**Primary Pipeline Dashboard (`/dashboard`)**
 - Lead Geography: renders DB-backed lead coordinates with POI marker colors sourced from each lead's funnel stage color.
 - Funnel Tracking: renders horizontal conversion bars starting from `Belum Di Klasifikasi`, including lead-count and estimated amount conversion, plus product-level Sales Volume and Total Market bars. Stage conversion is cumulative/aggregate: each stage counts leads whose current stage sequence is at that stage or beyond. Stage drilldown uses `funnel_min_sequence`; terminal rows use `outcome=won|lost`.
 - Dashboard drilldowns open a filtered lead-list modal in place. KPI cards, funnel rows, product bars, and source/channel rows must not redirect users to `/leads` for primary drilldown.
 - Lead Sources & Channels: renders DB-backed lead origin aggregates with source and channel bars; all rows route to filtered Leads and respect hierarchy visibility.
 - Achievement Sales: compares the signed-in user's target revenue against Closed Won realization for the configured target period.
 - Sales metric contract: Achievement Sales uses realized `lead_outcomes.deal_size` inside the configured target period. Funnel Won uses pipeline/terminal membership and `leads.estimated_closing_amount`, so the two dashboard blocks can show different values by design.
+
+**Team Performance Dashboard (`/dashboard/team-performance`)**
+- Strict Data-First Architecture: Only calculates KPIs using existing Leadsy schemas (no mock data). If a KPI cannot be calculated, it degrades gracefully to "Data Not Available".
+- Role-Based Dynamic KPI Engine: The backend `RoleKpiCalculationService` parses users into 4 categories (`sales`, `presales`, `am`, `csm`) and applies 20+ specific KPI queries dynamically.
+- 10-Block Layout: 
+  1. Overview KPIs
+  2. Role Performance Matrix (with dynamic data sources)
+  3. Attention & Risk Center (AI highlights + stuck leads)
+  4. Lifecycle Funnel Contribution (All 11 stages)
+  5. Target vs Achievement (grouped by role)
+  6. Revenue Contribution (split by assignment percentage)
+  7. Team Leaderboard
+  8. Historical KPI Trends (actual timestamps, no mock data)
+  9. Lost Reasons & Bottleneck Analysis
+  10. Manager Hierarchy Rollup
+- Drilldown Support: All blocks return structured JSON with a fallback standard table schema to surface the raw database rows that constructed the metric.
 
 ## Mobile Field Sales Companion
 

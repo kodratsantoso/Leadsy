@@ -1,5 +1,12 @@
 # Architecture Decision Records (ADR)
 
+## ADR-027: Data-Driven Role KPIs
+- **Date**: 2026-06-27
+- **Status**: Active
+- **Decision**: Team Performance dashboard metrics are strictly calculated from active tables (`leads`, `lead_outcomes`, `lead_sales_orders`, etc.) grouping users by 4 macro roles (Sales, Presales, AM, CSM). If targets are missing or no data exists, the metric degrades gracefully instead of mocking data.
+- **Rationale**: Prior approaches mocked data, destroying trust. A robust analytics engine must reflect true DB state.
+- **Impact**: `RoleKpiCalculationService` rewritten to aggregate live data; `kpi_definitions` seeded; dashboard UI modernized for 10 blocks.
+
 ## ADR-001: Interim Next.js API Layer
 - **Date**: 2026-04-11
 - **Status**: Active

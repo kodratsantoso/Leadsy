@@ -4,7 +4,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.9.2** — 2026-06-27
+Current release: **v1.9.3** — 2026-06-27
+
+## What's New in v1.9.3
+
+- **Database-Driven Team Performance Dashboard** — Rebuilt the Team Performance dashboard to completely drop all mocked data. The dashboard now strictly calculates real-time metrics across 10 structured blocks (Overview KPIs, Role Matrix, Risk Center, Lifecycle Funnel, Target vs Achievement, Revenue Contribution, Leaderboard, Historical Trends, Bottlenecks, and Manager Hierarchy) using native database queries via the unified `RoleKpiCalculationService`.
 
 ## What's New in v1.9.2
 
