@@ -180,3 +180,10 @@
 - **Decision**: Completely refactored the Product Management module. Replaced the single-page accordion design with dedicated product detail pages (`/products/[id]`) separated into 5 modular tabs (Overview, Targeting & Match AI, Product Tiers, Question Guide, and Comparison & Scraping). Introduced `website_url` field to explicitly power the Feature Scraping engine.
 - **Rationale**: Grouping all fields and configuration into an accordion list was too dense and not scalable as the Product entity grew in features. Splitting them into distinct tabs allows for easier navigation and clear separation of concerns (Core details vs AI Targeting vs Pricing).
 - **Impact**: Product management is now a robust multi-page application module. The Comparison & Scraping AI relies on the `website_url` explicit input for crawling.
+
+## ADR-026: Role-Based Commission & Order-to-Cash Module
+- **Date**: 2026-06-27
+- **Status**: Active
+- **Decision**: Evolved from a single `owner_id` to a `lead_role_assignments` model, allowing multiple users (Sales, Presales, CSM) to be assigned to one lead with distinct roles and `contribution_percentage`. Implemented a full Order-to-Cash module with `lead_quotations` and `lead_sales_orders` to track revenue realization.
+- **Rationale**: Real-world sales cycles involve multiple contributors. Accurately attributing revenue for commission requires distributing the Closed Won amount across the assigned roles.
+- **Impact**: Analytics queries (like the Team Performance Dashboard) now calculate revenue by joining `lead_sales_orders` and `lead_role_assignments`. Primary ownership remains for hierarchy access, but revenue distribution is decentralized.

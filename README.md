@@ -4,7 +4,13 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.9.1** — 2026-06-26
+Current release: **v1.9.2** — 2026-06-27
+
+## What's New in v1.9.2
+
+- **Lead Role Assignment & Order-to-Cash Module** — Upgraded the lead system to support assigning multiple commercial roles (Sales, Presales, CSM) per lead with defined contribution percentages. Added full Order-to-Cash lifecycle tracking, including Quotations and Sales Orders for revenue realization.
+- **Team Performance Dashboard Update** — Adjusted the Team Performance Dashboard to accurately reflect role-based contribution percentages for revenue metrics, mapping to the new `lead_sales_orders` and `lead_role_assignments` tables.
+- **Product Details UI Revamp & Bug Fixes** — Revamped the UI layout for Product SaaS Pricing tiers into a clean grid system. Fixed an async state bug that caused the Product Specification Comparison modal to render as blank, and improved UI component robustness.
 
 ## What's New in v1.9.1
 
