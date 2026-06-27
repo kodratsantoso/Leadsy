@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Lead extends Model
@@ -102,6 +103,11 @@ class Lead extends Model
     public function roleAssignments(): HasMany
     {
         return $this->hasMany(LeadRoleAssignment::class);
+    }
+
+    public function confidentialityAssessment(): MorphOne
+    {
+        return $this->morphOne(ConfidentialityAssessment::class, 'entity');
     }
 
     public function quotations(): HasMany

@@ -4,7 +4,13 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.9.3** — 2026-06-27
+Current release: **v1.9.4** — 2026-07-02
+
+## What's New in v1.9.4 (Confidentiality Engine)
+
+- **10-Block Confidentiality Dashboard** — A robust, matrix-based dashboard identifying, explaining, and tracking data sensitivity and access exposure.
+- **Rule-Based Scoring Engine** — Backend engine deriving sensitivity dynamically from deal stage, BANTC, transcripts, and financial value (ADR-028).
+- **Explainable UI Drawers** — The dashboard provides transparent "Why This Score?" JSON-based drilldowns without polluting core data tables.
 
 ## What's New in v1.9.3
 

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ContactEnrichmentController;
 use App\Http\Controllers\Api\CurrencySettingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\TeamPerformanceDashboardController;
+use App\Http\Controllers\Api\ConfidentialityDashboardController;
 use App\Http\Controllers\Api\KpiSettingsController;
 use App\Http\Controllers\Api\FunnelController;
 use App\Http\Controllers\Api\IcpProfileController;
@@ -105,6 +106,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/team-performance', [TeamPerformanceDashboardController::class, 'index']);
     Route::get('/dashboard/team-performance/drilldown', [TeamPerformanceDashboardController::class, 'drilldown']);
+    
+    // Confidentiality Dashboard
+    Route::get('/dashboard/confidentiality', [ConfidentialityDashboardController::class, 'index']);
+    Route::get('/confidentiality/assessments/{entityType}/{entityId}', [ConfidentialityDashboardController::class, 'show']);
+    Route::post('/confidentiality/assessments/{entityType}/{entityId}/recalculate', [ConfidentialityDashboardController::class, 'recalculate']);
+    Route::post('/confidentiality/assessments/{id}/approve', [ConfidentialityDashboardController::class, 'approve']);
     Route::get('/dashboard/confidentiality-matrix', [DashboardController::class, 'confidentialityMatrix']);
     Route::post('/dashboard/ai-insight', [DashboardController::class, 'aiInsight']);
     

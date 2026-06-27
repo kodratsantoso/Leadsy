@@ -1,5 +1,12 @@
 # Architecture Decision Records (ADR)
 
+## ADR-028: Isolated Confidentiality Engine
+- **Date**: 2026-06-27
+- **Status**: Active
+- **Decision**: All sensitivity scoring is stored in `confidentiality_assessments` and `confidentiality_assessment_versions` derived via `ConfidentialityScoringService`.
+- **Rationale**: Prevent polluting the core `leads` table and ensure an audit trail with explainable data-driven reasoning (Data Sensitivity, Revenue, Deal Stage, Access Exposure).
+- **Impact**: Backend creates dedicated tables and API endpoints `/api/dashboard/confidentiality`. Frontend dashboard built to display explainable matrix without mock data.
+
 ## ADR-027: Data-Driven Role KPIs
 - **Date**: 2026-06-27
 - **Status**: Active

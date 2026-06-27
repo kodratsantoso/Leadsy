@@ -54,6 +54,9 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/settings/page.tsx`
 - `frontend/app/settings/lead-sources/page.tsx`
 - `frontend/app/settings/lead-channels/page.tsx`
+- `frontend/components/dashboard/team/TeamPerformanceDashboard.tsx`
+- `frontend/components/dashboard/confidentiality/ConfidentialityDashboard.tsx`
+- `frontend/components/dashboard/AIInsightModal.tsx`
 - `frontend/app/settings/currency/page.tsx`
 - `frontend/app/settings/users/page.tsx`
 - `frontend/app/settings/ai-defaults/page.tsx`
@@ -264,6 +267,16 @@ Source of truth: `frontend/app/qualification/reviews/page.tsx`
 - Filters leads by queue status (`open`, `pending`, `in_review`, `approved`, `rejected`, `overridden`).
 - Utilizes governed `Modal` and `Badge` primitives to manage decisions and input reasons for the immutable audit trail.
 - Action logs are stored via the backend `AuditService`.
+
+#### `/api/dashboard/team-performance`
+- Provides calculated analytics grouped by macro roles.
+- Returns JSON structure: `overview`, `pipeline_distribution`, `target_achievement`, `revenue_contribution`, `top_performers`, `trend_volume`, `lost_bottlenecks`.
+- Serves the frontend `TeamPerformanceDashboard` UI.
+
+#### `/api/dashboard/confidentiality`
+- Provides derived confidentiality scoring, access exposure, and sensitivity metrics.
+- Backed by `confidentiality_assessments` table and `ConfidentialityScoringService`.
+- Serves the frontend `ConfidentialityDashboard` UI.
 
 ## Social & Platform Generator Module
 
