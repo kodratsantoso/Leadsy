@@ -133,8 +133,8 @@ export default function ProductsPage() {
                   </p>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between gap-2">
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => router.push(`/products/${product.id}`)}>
+                <div className="mt-4 pt-4 border-t border-border flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => router.push(`/products/${product.id}`)}>
                     <Pencil className="h-4 w-4 mr-2" />
                     Manage Details
                   </Button>
