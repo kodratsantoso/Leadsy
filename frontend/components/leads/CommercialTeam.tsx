@@ -75,7 +75,12 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
     try {
       const res = await apiFetch(`/leads/${leadId}/role-assignments`, {
         method: 'POST',
-        body: JSON.stringify(form)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: form.user_id,
+          role_type: form.role_type,
+          contribution_percentage: form.commission_split_percent
+        })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || 'Failed to assign role.');
