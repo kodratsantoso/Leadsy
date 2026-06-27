@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { ChevronDown, ChevronRight, Save, Target, TrendingUp, AlertTriangle, CheckCircle, Info, RefreshCw } from "lucide-react";
+import { Target, AlertTriangle, RefreshCw, Save, CheckCircle, ChevronDown, ChevronRight, Info, Percent, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { Tabs } from "@/components/ui/tabs";
@@ -41,6 +42,7 @@ export default function TargetCascadesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [companyTarget, setCompanyTarget] = useState<number>(0);
+  const [commissionSplits, setCommissionSplits] = useState({ sales: 100, presales: 100, am: 100, csm: 100 });
   const [originalTree, setOriginalTree] = useState<TreeNode[]>([]);
   
   // Track client-side changes before saving
@@ -90,6 +92,7 @@ export default function TargetCascadesPage() {
       if (response.ok) {
         const data = await response.json();
         setCompanyTarget(data.company_target_revenue || 0);
+        setCommissionSplits(data.commission_splits || { sales: 100, presales: 100, am: 100, csm: 100 });
         setOriginalTree(data.tree || []);
         setInputStates({});
         
@@ -260,6 +263,7 @@ export default function TargetCascadesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           company_target_revenue: companyTarget,
+          commission_splits: commissionSplits,
           users: usersPayload,
         }),
       });
@@ -587,29 +591,66 @@ export default function TargetCascadesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-sm text-muted-foreground font-semibold">
-                    Company Target ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}) IDR:
-                  </span>
-                  <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-3 py-1.5 shadow-sm">
-                    <input
-                      type="text"
-                      className="w-48 text-right font-bold text-sm bg-transparent border-none outline-none focus:ring-0 font-mono text-[color:var(--brand)]"
-                      value={inputStates["company-target"] !== undefined ? inputStates["company-target"] : formatAmountInput(String(getDisplayTarget(companyTarget)))}
-                      onChange={(e) => {
-                        const rawValue = e.target.value;
-                        const normalized = normalizeAmountInput(rawValue);
-                        const formatted = formatAmountInput(normalized);
-                        setInputStates(prev => ({ ...prev, "company-target": formatted }));
-                        const numeric = Number(normalized) || 0;
-                        setCompanyTarget(getBaseTargetFromDisplay(numeric));
-                      }}
-                    />
+                <div className="flex flex-col gap-2 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground font-semibold">
+                      Company Target ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}) IDR:
+                    </span>
+                    <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-3 py-1.5 shadow-sm">
+                      <input
+                        type="text"
+                        className="w-48 text-right font-bold text-sm bg-transparent border-none outline-none focus:ring-0 font-mono text-[color:var(--brand)]"
+                        value={inputStates["company-target"] !== undefined ? inputStates["company-target"] : formatAmountInput(String(getDisplayTarget(companyTarget)))}
+                        onChange={(e) => {
+                          const rawValue = e.target.value;
+                          setInputStates(prev => ({ ...prev, "company-target": rawValue }));
+                          const numericValue = normalizeAmountInput(rawValue);
+                          setCompanyTarget(getBaseTargetFromDisplay(Number(numericValue) || 0));
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </CardHeader>
+          </Card>
 
+          <Card className="overflow-hidden border-border bg-card">
+            <CardHeader className="bg-muted/20 border-b border-border">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color:var(--info)] text-white shadow-md">
+                    <Percent className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle>Role-Based Commission Splits</CardTitle>
+                    <CardDescription>Set the percentage of target realization credited to each role when a lead is Closed Won.</CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { key: 'sales', label: 'Sales / BD Exec' },
+                { key: 'presales', label: 'Presales' },
+                { key: 'am', label: 'Account Manager' },
+                { key: 'csm', label: 'CSM' }
+              ].map(role => (
+                <div key={role.key} className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">{role.label} (%)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={commissionSplits[role.key as keyof typeof commissionSplits]}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCommissionSplits(prev => ({ ...prev, [role.key]: Number(e.target.value) }))}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-border bg-card mt-6">
             <CardContent className="p-5">
               <div className="grid md:grid-cols-3 gap-6 pt-2">
                 {/* Column 1: Distributed to GMs */}

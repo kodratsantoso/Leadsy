@@ -27,14 +27,12 @@ class LeadRoleAssignmentController extends Controller
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'role_type' => 'required|string|in:sales,presales,csm,account_manager',
-            'contribution_percentage' => 'nullable|numeric|min:0|max:100',
             'notes' => 'nullable|string'
         ]);
 
         $assignment = $lead->roleAssignments()->create([
             'user_id' => $validated['user_id'],
             'role_type' => $validated['role_type'],
-            'contribution_percentage' => $validated['contribution_percentage'] ?? 100,
             'assignment_status' => 'active',
             'assigned_by' => auth()->id(),
             'notes' => $validated['notes'] ?? null,
@@ -48,7 +46,6 @@ class LeadRoleAssignmentController extends Controller
         $assignment = LeadRoleAssignment::where('lead_id', $id)->findOrFail($assignmentId);
 
         $validated = $request->validate([
-            'contribution_percentage' => 'nullable|numeric|min:0|max:100',
             'assignment_status' => 'nullable|string|in:active,replaced,removed',
             'notes' => 'nullable|string'
         ]);

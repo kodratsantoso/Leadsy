@@ -26,6 +26,12 @@ class TargetController extends Controller
         }
 
         $companyTarget = (float) ($tenant->metadata['company_target_revenue'] ?? 0.0);
+        $commissionSplits = $tenant->metadata['commission_splits'] ?? [
+            'sales' => 100,
+            'presales' => 100,
+            'am' => 100,
+            'csm' => 100,
+        ];
 
         // Fetch all active users for the tenant
         $users = User::with('role')
@@ -35,11 +41,16 @@ class TargetController extends Controller
 
         // Prefetch metrics (Estimated & Realized Revenue) per user
         $userMetrics = [];
+        $salesSplit = (float)($commissionSplits['sales'] ?? 100) / 100;
+        $presalesSplit = (float)($commissionSplits['presales'] ?? 100) / 100;
+        $amSplit = (float)($commissionSplits['am'] ?? 100) / 100;
+        $csmSplit = (float)($commissionSplits['csm'] ?? 100) / 100;
+
         foreach ($users as $u) {
             $metrics = DB::table('leads')
                 ->select(
-                    DB::raw('SUM(estimated_closing_amount) as estimated'),
-                    DB::raw('SUM(realized_closing_amount) as realized')
+                    DB::raw("SUM(estimated_closing_amount * (CASE WHEN owner_id = {$u->id} THEN {$salesSplit} ELSE 0 END + CASE WHEN presales_owner_id = {$u->id} THEN {$presalesSplit} ELSE 0 END + CASE WHEN am_owner_id = {$u->id} THEN {$amSplit} ELSE 0 END + CASE WHEN csm_owner_id = {$u->id} THEN {$csmSplit} ELSE 0 END)) as estimated"),
+                    DB::raw("SUM(realized_closing_amount * (CASE WHEN owner_id = {$u->id} THEN {$salesSplit} ELSE 0 END + CASE WHEN presales_owner_id = {$u->id} THEN {$presalesSplit} ELSE 0 END + CASE WHEN am_owner_id = {$u->id} THEN {$amSplit} ELSE 0 END + CASE WHEN csm_owner_id = {$u->id} THEN {$csmSplit} ELSE 0 END)) as realized")
                 )
                 ->whereNull('deleted_at')
                 ->where(function ($q) use ($u) {
@@ -101,6 +112,7 @@ class TargetController extends Controller
 
         return response()->json([
             'company_target_revenue' => $companyTarget,
+            'commission_splits' => $commissionSplits,
             'tree' => $tree,
         ]);
     }
@@ -117,6 +129,11 @@ class TargetController extends Controller
             'users.*.target_calculation_type' => 'required|string|in:amount,percentage',
             'users.*.target_percentage' => 'required|numeric|min:0',
             'users.*.target_revenue' => 'nullable|numeric|min:0',
+            'commission_splits' => 'nullable|array',
+            'commission_splits.sales' => 'nullable|numeric|min:0',
+            'commission_splits.presales' => 'nullable|numeric|min:0',
+            'commission_splits.am' => 'nullable|numeric|min:0',
+            'commission_splits.csm' => 'nullable|numeric|min:0',
         ]);
 
         $user = $request->user();
@@ -137,6 +154,13 @@ class TargetController extends Controller
 
             // Cascade company-wide target change down the hierarchy
             User::cascadeCompanyTarget($companyTarget, $tenant->id);
+        }
+        
+        if ($request->has('commission_splits')) {
+            $metadata = $tenant->metadata ?? [];
+            $metadata['commission_splits'] = $request->input('commission_splits');
+            $tenant->metadata = $metadata;
+            $tenant->save();
         }
 
         // 2. Update specific users in bulk (if provided)

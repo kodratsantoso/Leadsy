@@ -40,7 +40,7 @@ const ROLE_TYPES = [
 
 export function CommercialTeam({ leadId }: { leadId: string | number }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ user_id: '', role_type: 'sales', commission_split_percent: 100 });
+  const [form, setForm] = useState({ user_id: '', role_type: 'sales' });
   const [assigning, setAssigning] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -78,15 +78,14 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: form.user_id,
-          role_type: form.role_type,
-          contribution_percentage: form.commission_split_percent
+          role_type: form.role_type
         })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || 'Failed to assign role.');
       
       qc.invalidateQueries({ queryKey: ['lead-role-assignments', leadId] });
-      setForm({ user_id: '', role_type: 'sales', commission_split_percent: 100 });
+      setForm({ user_id: '', role_type: 'sales' });
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
@@ -153,10 +152,6 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
                       </div>
                       
                       <div className="flex items-center gap-6">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">Split</p>
-                          <p className="text-sm font-bold">{a.commission_split_percent}%</p>
-                        </div>
                         <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10" onClick={() => removeAssignment(a.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -207,17 +202,6 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
                       <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
                   </Select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Commission Split (%)</label>
-                  <Input 
-                    type="number" 
-                    min="0" max="100" 
-                    value={form.commission_split_percent}
-                    onChange={e => setForm({...form, commission_split_percent: Number(e.target.value)})}
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">Total split across all reps usually adds up to 100%.</p>
                 </div>
 
                 <Button 
