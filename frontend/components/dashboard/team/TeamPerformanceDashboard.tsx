@@ -318,7 +318,7 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
                         <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${item.achievement_percentage >= 100 ? 'bg-[color:var(--status-success)]' : item.achievement_percentage >= 75 ? 'bg-[color:var(--brand)]' : 'bg-[color:var(--status-warning)]'}`} 
-                            style={{ width: \`\${Math.min(100, item.achievement_percentage)}%\` }} 
+                            style={{ width: `${Math.min(100, item.achievement_percentage)}%` }} 
                           />
                         </div>
                         <span className="text-[10px] font-mono w-10 text-right">{item.achievement_percentage}%</span>
@@ -469,7 +469,7 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
             <CardTitle className="flex items-center gap-2 text-base">
               <FileQuestion className="h-4 w-4" /> Lost & Bottleneck Analysis
             </CardTitle>
-            <CardDescription className="text-xs">Loss reasons and leads stuck > 14 days</CardDescription>
+            <CardDescription className="text-xs">Loss reasons and leads stuck &gt; 14 days</CardDescription>
           </div>
           <Button variant="ghost" size="sm" onClick={() => onDrilldown({ block_key: 'lost_bottlenecks', title: 'Lost Leads Analysis' })}>
             View Details <ChevronRight className="h-3 w-3 ml-1" />
@@ -512,7 +512,7 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
       <div key={node.id} className="w-full">
         <div 
           className="flex items-center gap-3 p-2 hover:bg-muted/10 transition-colors border-b border-border/50 border-dashed"
-          style={{ paddingLeft: \`\${depth * 1.5 + 0.5}rem\` }}
+          style={{ paddingLeft: `${depth * 1.5 + 0.5}rem` }}
         >
           {depth > 0 && <div className="w-4 h-4 border-l-2 border-b-2 border-muted-foreground/30 rounded-bl" />}
           <div className="flex-1">
