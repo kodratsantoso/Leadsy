@@ -20,7 +20,7 @@ class ProductSpecificationComparisonService
      */
     public function compare(Product $product, ProductScrapeRun $run, ?int $userId = null): ProductSpecificationComparison
     {
-        $route = AiFeatureRoute::where('feature_key', 'product_specification_comparison')->first();
+        $route = AiFeatureRoute::where('feature_name', 'product_specification_comparison')->first();
         if (!$route) {
             throw new Exception("AI Feature Route for product_specification_comparison not found");
         }
