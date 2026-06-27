@@ -1409,10 +1409,6 @@ export default function LeadDetailPage() {
     mutationFn: () => apiFetch(`/confidentiality/assessments/lead/${leadId}/recalculate`, { method: 'POST' }).then(r => r.json()),
     onSuccess: () => {
       refetchConfidentiality();
-      toast.success('Confidentiality assessed successfully');
-    },
-    onError: (err: any) => {
-      toast.error('Failed to run confidentiality assessment', { description: err.message });
     }
   });
 
@@ -2230,6 +2226,16 @@ export default function LeadDetailPage() {
             {matchProductsMutation.isError && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
                 <AlertCircle className="h-3.5 w-3.5" /> Product Match failed. Check AI settings and ensure products exist.
+              </p>
+            )}
+            {confidentialityMutation.isSuccess && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
+                <CheckCircle className="h-3.5 w-3.5" /> Confidentiality assessed successfully.
+              </p>
+            )}
+            {confidentialityMutation.isError && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
+                <AlertCircle className="h-3.5 w-3.5" /> Confidentiality assessment failed.
               </p>
             )}
             <p className="mt-3 text-xs text-muted-foreground">
