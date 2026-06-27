@@ -141,68 +141,68 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
 
   // Block 2: Role Performance Matrix
   const renderRoleMatrix = () => (
-    <Card className="col-span-12 lg:col-span-8 overflow-hidden">
-      <CardHeader className="p-4 bg-muted/20 border-b">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <TargetIcon className="h-4 w-4" /> Role Performance Matrix
-        </CardTitle>
-        <CardDescription className="text-xs">KPI targets and achievements by role category based on source data</CardDescription>
-      </CardHeader>
-      <div className="overflow-x-auto">
-        {role_matrix.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground text-sm">No role KPI definitions configured or no users active.</div>
-        ) : (
-          <Table>
-            <TableHeaderCell>
-              <TableRow>
-                <TableHead>Role</TableHead>
-                <TableHead>Users</TableHead>
-                <TableHead>Key Metrics</TableHead>
-                <TableHead>Avg Achievement</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeaderCell>
-            <TableBody>
-              {role_matrix.map((team: any) => {
-                const achievements = team.metrics.map((m: any) => m.achievement_percentage).filter((v: any) => v !== null);
-                const avg = achievements.length > 0 ? achievements.reduce((a: any, b: any) => a + b, 0) / achievements.length : 0;
+    <div className="col-span-12 lg:col-span-8 flex flex-col gap-4">
+      {role_matrix.length === 0 ? (
+        <Card className="h-full flex items-center justify-center">
+          <CardContent className="p-8 text-center text-muted-foreground text-sm">
+            No role KPI definitions configured or no users active.
+          </CardContent>
+        </Card>
+      ) : (
+        role_matrix.map((team: any) => {
+          const achievements = team.metrics.map((m: any) => m.achievement_percentage).filter((v: any) => v !== null);
+          const avg = achievements.length > 0 ? achievements.reduce((a: any, b: any) => a + b, 0) / achievements.length : 0;
+          
+          return (
+            <Card key={team.role_category} className="overflow-hidden hover:shadow-md transition-shadow">
+              <CardHeader className="p-4 bg-muted/10 border-b flex flex-row items-center justify-between pb-3">
+                <div className="flex items-center gap-2">
+                  <TargetIcon className="h-4 w-4 text-[color:var(--brand)]" />
+                  <CardTitle className="text-base font-bold capitalize">{team.role_category}</CardTitle>
+                  <Badge variant="outline" className="ml-2 text-[10px]">{team.user_count} Users</Badge>
+                </div>
+                {renderStatus(achievements.length > 0 ? (avg >= 100 ? 'exceeded' : avg >= 75 ? 'on_track' : avg >= 50 ? 'at_risk' : 'behind') : 'data_not_available')}
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-muted-foreground font-medium">Average Achievement</span>
+                    <span className="text-sm font-bold font-mono">{avg.toFixed(1)}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-[color:var(--brand)] transition-all" style={{ width: `${Math.min(100, avg)}%` }} />
+                  </div>
+                </div>
                 
-                return (
-                  <TableRow key={team.role_category}>
-                    <TableCell className="font-bold capitalize">{team.role_category}</TableCell>
-                    <TableCell>{team.user_count}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        {team.metrics.slice(0, 3).map((m: any) => (
-                           <div key={m.kpi_key} className="flex items-center justify-between gap-4" title={m.calculation_basis}>
-                             <span className="text-[10px] text-muted-foreground truncate w-24">{m.kpi_name}</span>
-                             <span className="text-xs font-mono font-medium">
-                               {m.format === 'currency' ? formatCurrency(m.actual) : m.format === 'percentage' ? `${m.actual}%` : formatNumber(m.actual, { decimals: 0 })}
-                               {m.target > 0 && <span className="text-muted-foreground ml-1">/ {m.format === 'currency' ? formatCurrency(m.target) : m.target}</span>}
-                             </span>
-                           </div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-[color:var(--brand)] transition-all" style={{ width: `${Math.min(100, avg)}%` }} />
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Key Metrics</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {team.metrics.map((m: any) => (
+                      <div key={m.kpi_key} className="bg-muted/30 p-2.5 rounded-md border border-border/50 flex flex-col justify-between gap-2">
+                        <div className="text-[10px] text-muted-foreground line-clamp-1 leading-tight" title={m.calculation_basis}>
+                          {m.kpi_name}
                         </div>
-                        <span className="text-xs font-mono">{avg.toFixed(1)}%</span>
+                        <div className="flex items-end justify-between gap-2">
+                          <span className="text-xs font-bold font-mono truncate">
+                            {m.format === 'currency' ? formatCurrency(m.actual) : m.format === 'percentage' ? `${m.actual}%` : formatNumber(m.actual, { decimals: 0 })}
+                            {m.target > 0 && <span className="text-[10px] text-muted-foreground ml-1">/ {m.format === 'currency' ? formatCurrency(m.target) : m.target}</span>}
+                          </span>
+                          {m.achievement_percentage !== null && (
+                            <span className={`text-[10px] font-mono font-semibold ${m.achievement_percentage >= 100 ? 'text-[color:var(--status-success)]' : m.achievement_percentage >= 75 ? 'text-[color:var(--brand)]' : 'text-[color:var(--status-warning)]'}`}>
+                              {m.achievement_percentage}%
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {renderStatus(achievements.length > 0 ? (avg >= 100 ? 'exceeded' : avg >= 75 ? 'on_track' : avg >= 50 ? 'at_risk' : 'behind') : 'data_not_available')}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </div>
-    </Card>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })
+      )}
+    </div>
   );
 
   // Block 7: Attention Risks
