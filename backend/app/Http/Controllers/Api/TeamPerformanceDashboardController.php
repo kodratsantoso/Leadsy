@@ -204,8 +204,8 @@ class TeamPerformanceDashboardController extends Controller
             ->join('users', 'lead_role_assignments.user_id', '=', 'users.id')
             ->whereIn('lead_role_assignments.user_id', $userIds)
             ->whereBetween('lead_sales_orders.order_date', $dateRange)
-            ->where('lead_sales_orders.status', 'confirmed')
-            ->selectRaw('lead_role_assignments.role_type, sum(lead_sales_orders.total_amount * (lead_role_assignments.commission_split_percent / 100.0)) as total_contribution')
+            ->where('lead_sales_orders.order_status', 'confirmed')
+            ->selectRaw('lead_role_assignments.role_type, sum(lead_sales_orders.total_amount * (lead_role_assignments.contribution_percentage / 100.0)) as total_contribution')
             ->groupBy('lead_role_assignments.role_type')
             ->pluck('total_contribution', 'role_type')
             ->toArray();
