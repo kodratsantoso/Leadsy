@@ -757,6 +757,17 @@ export default function LeadDetailPage() {
     enabled: !!lead,
   });
 
+  const { data: confidentiality, refetch: refetchConfidentiality } = useQuery({
+    queryKey: ['lead-confidentiality', leadId],
+    queryFn: () => apiFetch(`/confidentiality/assessments/lead/${leadId}`)
+      .then((r) => {
+        if (!r.ok && r.status === 404) return null;
+        if (!r.ok) throw new Error('Failed to fetch confidentiality');
+        return r.json().then(json => json.data || json);
+      }),
+    enabled: !!lead && activeTab === 'intelligence',
+  });
+
   // Fetch lead progress
   const { data: progress } = useQuery({
     queryKey: ['lead-progress', leadId],
@@ -1392,6 +1403,17 @@ export default function LeadDetailPage() {
   const matchProductsMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/match-products`, { method: 'POST' }).then(r => r.json()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] }),
+  });
+
+  const confidentialityMutation = useMutation({
+    mutationFn: () => apiFetch(`/confidentiality/assessments/lead/${leadId}/recalculate`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => {
+      refetchConfidentiality();
+      toast.success('Confidentiality assessed successfully');
+    },
+    onError: (err: any) => {
+      toast.error('Failed to run confidentiality assessment', { description: err.message });
+    }
   });
 
   /* ── Render ── */
@@ -2175,6 +2197,15 @@ export default function LeadDetailPage() {
                 {matchProductsMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5 text-[var(--status-info)]" />}
                 {matchProductsMutation.isPending ? 'Matching…' : 'Run Product Match'}
               </Button>
+              <Button
+                onClick={() => confidentialityMutation.mutate()}
+                disabled={confidentialityMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {confidentialityMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5 text-purple-500" />}
+                {confidentialityMutation.isPending ? 'Assessing…' : 'Run Confidentiality'}
+              </Button>
             </div>
             {scoreMutation.isSuccess && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
@@ -2395,6 +2426,91 @@ export default function LeadDetailPage() {
               </p>
             </div>
           )}
+
+          {/* ── Confidentiality Assessment ── */}
+          <div className="rounded-lg border border-border bg-card p-6">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold">Confidentiality Assessment</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  AI-powered risk scoring to determine data confidentiality level.
+                </p>
+              </div>
+              <Badge variant={confidentiality?.confidentiality_level === 'high' || confidentiality?.confidentiality_level === 'restricted' ? 'brand' : confidentiality?.confidentiality_level === 'medium' ? 'outline' : 'neutral'}>
+                {confidentiality?.confidentiality_level ? String(confidentiality.confidentiality_level).toUpperCase() : 'UNASSESSED'}
+              </Badge>
+            </div>
+            
+            {!confidentiality ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/10 py-10 text-center">
+                <Shield className="mb-2 h-8 w-8 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground">No confidentiality assessment yet.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Click <strong>Run Confidentiality</strong> above to score this lead.</p>
+              </div>
+            ) : (
+              <div className="space-y-4 text-sm">
+                <div className="flex items-end gap-3">
+                  <p className="text-4xl font-bold">{confidentiality.score}</p>
+                  <p className="pb-1 text-sm text-muted-foreground">Risk Score (out of 100)</p>
+                </div>
+                
+                <ProgressiveFluxLoader layout="feature"
+                  value={confidentiality.score}
+                  showLabel={false}
+                  barClassName="h-2"
+                  gradient={confidentiality.score > 60 ? 'var(--status-danger)' : confidentiality.score > 30 ? 'var(--status-warning)' : 'var(--status-success)'}
+                />
+                
+                <div className="mt-4 space-y-3">
+                  {safeJsonArray(confidentiality.score_breakdown_json).length > 0 && (
+                    <div>
+                      <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">Score Breakdown</h4>
+                      <ul className="space-y-2">
+                        {safeJsonArray(confidentiality.score_breakdown_json).map((item: any, i: number) => (
+                          <li key={i} className="flex flex-wrap justify-between items-center gap-2 rounded bg-muted/20 p-2">
+                            <div>
+                              <span className="font-medium text-xs block">{item.parameter}</span>
+                              <span className="text-xs text-muted-foreground">Found: {item.detected_value}</span>
+                            </div>
+                            <Badge variant="outline">+{item.score_impact}</Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {safeJsonArray(confidentiality.recommendation_json).length > 0 && (
+                    <div>
+                      <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">Recommendations</h4>
+                      <ul className="space-y-1">
+                        {safeJsonArray(confidentiality.recommendation_json).map((rec: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-muted-foreground">
+                            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand)]" />
+                            <span>{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {safeJsonArray(confidentiality.missing_data_json).length > 0 && (
+                    <div className="rounded-lg border border-[var(--status-warning)]/20 bg-[var(--status-warning)]/10 p-3">
+                      <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-[var(--status-warning)]">Missing Data For Assessment</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {safeJsonArray(confidentiality.missing_data_json).map((item: string, i: number) => (
+                          <Badge key={i} variant="outline" className="border-[var(--status-warning)]/30 text-[var(--status-warning)] bg-transparent">{item}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border">
+                  Last assessed: {new Date(confidentiality.assessed_at || confidentiality.updated_at).toLocaleString()}
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* ── Product Match Results ── */}
           <div className="rounded-lg border border-border bg-card p-6">
