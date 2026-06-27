@@ -11,7 +11,7 @@ class Product extends Model
 {
     protected $fillable = [
         'tenant_id',
-        'name', 'category', 'description', 'target_industry',
+        'name', 'website_url', 'category', 'description', 'target_industry',
         'target_pain_points', 'target_buyer_persona',
         'ideal_company_profile', 'ai_reference_material',
         'supported_regions', 'budget_range', 'target_company_size',

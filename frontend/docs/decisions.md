@@ -173,3 +173,10 @@
 - **Decision**: Introduced a unified governance layer for all AI-generated outputs, allowing versioning, auditing, and manual user editing. Product specification comparisons were also implemented to scrape and compare competitor/product data, requiring user approval before updating the CRM database. Confidentiality Matrix was added to the Dashboard.
 - **Rationale**: AI outputs cannot be 'final by default'. They require human-in-the-loop review, especially for product metadata and sensitive intelligence.
 - **Impact**: All AI outputs now use the morph-mapped `ai_generated_outputs` and `ai_output_versions` structure. Product data is not updated automatically but generates `update_suggestions`.
+
+## ADR-025: Product Details UI Revamp
+- **Date**: 2026-06-27
+- **Status**: Active
+- **Decision**: Completely refactored the Product Management module. Replaced the single-page accordion design with dedicated product detail pages (`/products/[id]`) separated into 5 modular tabs (Overview, Targeting & Match AI, Product Tiers, Question Guide, and Comparison & Scraping). Introduced `website_url` field to explicitly power the Feature Scraping engine.
+- **Rationale**: Grouping all fields and configuration into an accordion list was too dense and not scalable as the Product entity grew in features. Splitting them into distinct tabs allows for easier navigation and clear separation of concerns (Core details vs AI Targeting vs Pricing).
+- **Impact**: Product management is now a robust multi-page application module. The Comparison & Scraping AI relies on the `website_url` explicit input for crawling.

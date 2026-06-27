@@ -9,6 +9,7 @@ Current release: **v1.9.1** — 2026-06-26
 ## What's New in v1.9.1
 
 - **Team Performance Dashboard UI Revamp & Drilldown** — Replaced individual user cards on the Team Performance tab with aggregated team-level KPI blocks (Sales, Presales, Account Manager, CSM) including dynamic widgets like progress donuts and key metrics. Clicking on any block now drills down directly into a filtered lead modal.
+- **Product Details UI Revamp** — Completely overhauled the Product Management interface. Migrated from a single accordion layout to dedicated product detail pages (`/products/[id]`) with a structured 5-tab design: Overview, Targeting & Match AI, Product Tiers, Question Guide, and Comparison & Scraping. Added a dedicated `website_url` field to directly power automated feature scraping and specifications comparison over time.
 
 ## What's New in v1.9.0
 

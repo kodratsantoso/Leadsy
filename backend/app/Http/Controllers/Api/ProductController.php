@@ -34,6 +34,7 @@ class ProductController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
+            'website_url' => 'nullable|url|max:2048',
             'category' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'target_industry' => 'nullable|string|max:255',
@@ -78,20 +79,21 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product): JsonResponse
     {
-        $original = $product->getAttributes();
+        $original = clone $product;
 
         $data = $request->validate([
-            'name' => 'sometimes|string|max:255',
+            'name' => 'required|string|max:255',
+            'website_url' => 'nullable|url|max:2048',
             'category' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'target_industry' => 'nullable|string|max:255',
-            'target_company_size' => 'nullable|string|max:255',
             'target_pain_points' => 'nullable|string',
             'target_buyer_persona' => 'nullable|string',
             'ideal_company_profile' => 'nullable|string',
             'ai_reference_material' => 'nullable|string',
-            'supported_regions' => 'nullable|string|max:500',
+            'supported_regions' => 'nullable|string|max:255',
             'budget_range' => 'nullable|string|max:255',
+            'target_company_size' => 'nullable|string|max:255',
             'use_cases' => 'nullable|array',
             'competitor_notes' => 'nullable|string',
             'keywords' => 'nullable|array',
