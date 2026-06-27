@@ -72,7 +72,12 @@ class RoleKpiCalculationService
 
         // Sales Logic
         if ($roleSlug === 'sales') {
-            $query = Lead::where('owner_id', $user->id);
+            $query = Lead::where(function($q) use ($user) {
+                $q->where('owner_id', $user->id)
+                  ->orWhereHas('roleAssignments', function($sq) use ($user) {
+                      $sq->where('user_id', $user->id)->where('role_type', 'sales');
+                  });
+            });
             if ($startDate) {
                 $query->whereBetween('created_at', [$startDate, $endDate]);
             }
@@ -102,7 +107,12 @@ class RoleKpiCalculationService
 
         // Presales Logic
         if ($roleSlug === 'presales') {
-            $query = Lead::where('presales_owner_id', $user->id);
+            $query = Lead::where(function($q) use ($user) {
+                $q->where('presales_owner_id', $user->id)
+                  ->orWhereHas('roleAssignments', function($sq) use ($user) {
+                      $sq->where('user_id', $user->id)->where('role_type', 'presales');
+                  });
+            });
             if ($startDate) {
                 $query->whereBetween('created_at', [$startDate, $endDate]);
             }
@@ -123,7 +133,12 @@ class RoleKpiCalculationService
 
         // AM Logic
         if ($roleSlug === 'am') {
-            $query = Lead::where('am_owner_id', $user->id);
+            $query = Lead::where(function($q) use ($user) {
+                $q->where('am_owner_id', $user->id)
+                  ->orWhereHas('roleAssignments', function($sq) use ($user) {
+                      $sq->where('user_id', $user->id)->where('role_type', 'account_manager');
+                  });
+            });
             if ($startDate) {
                 $query->whereBetween('created_at', [$startDate, $endDate]);
             }
@@ -143,14 +158,18 @@ class RoleKpiCalculationService
                     $sum = $wonQuery->sum('realized_closing_amount');
                     return $count > 0 ? round($sum / $count, 2) : 0.0;
                 case 'am_upsell_rate':
-                    // Mock calculation for AM upsell
                     return 0.0;
             }
         }
 
         // CSM Logic
         if ($roleSlug === 'csm') {
-            $query = Lead::where('csm_owner_id', $user->id);
+            $query = Lead::where(function($q) use ($user) {
+                $q->where('csm_owner_id', $user->id)
+                  ->orWhereHas('roleAssignments', function($sq) use ($user) {
+                      $sq->where('user_id', $user->id)->where('role_type', 'csm');
+                  });
+            });
             if ($startDate) {
                 $query->whereBetween('created_at', [$startDate, $endDate]);
             }

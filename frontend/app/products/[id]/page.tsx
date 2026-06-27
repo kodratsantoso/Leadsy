@@ -462,16 +462,17 @@ export default function ProductDetailPage() {
               ) : (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {formTiers.map((tier, idx) => (
-                    <div key={idx} className="rounded-xl border border-border p-4 bg-muted/20 flex flex-col gap-3">
-                      <div className="flex items-center gap-2">
-                        <Input className="flex-1" value={tier.name} onChange={(e) => {
+                    <div key={idx} className="rounded-xl border border-border bg-background shadow-sm flex flex-col overflow-hidden relative group transition-all hover:border-[var(--brand)]/40 hover:shadow-md">
+                      <div className="flex items-center justify-between gap-3 p-4 bg-muted/10 border-b border-border">
+                        <Input className="flex-1 h-9 bg-background font-semibold" value={tier.name} onChange={(e) => {
                           const nt = [...formTiers]; nt[idx].name = e.target.value; setFormTiers(nt);
                         }} placeholder="Tier Name (e.g. Pro)" />
-                        <Button variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => setFormTiers(formTiers.filter((_, i) => i !== idx))}>
+                        <Button variant="outline" size="icon" className="text-destructive h-9 w-9 shrink-0 bg-background" onClick={() => setFormTiers(formTiers.filter((_, i) => i !== idx))}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                      <div className="space-y-3">
+                      <div className="p-4 space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
                           <Input type="number" value={tier.price} onChange={(e) => {
                             const nt = [...formTiers]; nt[idx].price = Number(e.target.value); setFormTiers(nt);
                           }} placeholder="Price" />
@@ -484,16 +485,20 @@ export default function ProductDetailPage() {
                           </Select>
                         </div>
                         
-                        <Select value={tier.pricing_type} onChange={(e) => {
-                          const nt = [...formTiers]; nt[idx].pricing_type = e.target.value as any; setFormTiers(nt);
-                        }}>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-muted-foreground">Pricing Model</label>
+                          <Select value={tier.pricing_type} onChange={(e) => {
+                            const nt = [...formTiers]; nt[idx].pricing_type = e.target.value as any; setFormTiers(nt);
+                          }}>
                           <option value="flat_rate">Flat Rate</option>
                           <option value="per_user">Per User</option>
                           <option value="usage_based">Usage Based</option>
                         </Select>
 
+                        </div>
+
                         <div className="pt-2 border-t border-border">
-                          <label className="text-xs font-semibold text-muted-foreground mb-2 block">Features (Comma Separated)</label>
+                          <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Features (Comma Separated)</label>
                           <Textarea 
                             rows={3}
                             value={tier.features?.join(", ") || ""} 
@@ -503,6 +508,7 @@ export default function ProductDetailPage() {
                             placeholder="Feature 1, Feature 2" 
                           />
                         </div>
+                      </div>
                     </div>
                   ))}
                 </div>

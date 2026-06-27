@@ -165,6 +165,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/contact-enrichment/linkedin/search', [ContactEnrichmentController::class, 'searchLinkedin'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contact-enrichment/linkedin/candidates/{candidate}/add-contact', [ContactEnrichmentController::class, 'addLinkedinCandidateToContact'])->middleware('permission:leads.edit');
 
+    // Lead Role Assignments
+    Route::get('leads/{lead}/role-assignments', [\App\Http\Controllers\Api\LeadRoleAssignmentController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/role-assignments', [\App\Http\Controllers\Api\LeadRoleAssignmentController::class, 'store'])->middleware('permission:leads.edit');
+    Route::put('leads/{lead}/role-assignments/{assignmentId}', [\App\Http\Controllers\Api\LeadRoleAssignmentController::class, 'update'])->middleware('permission:leads.edit');
+    Route::delete('leads/{lead}/role-assignments/{assignmentId}', [\App\Http\Controllers\Api\LeadRoleAssignmentController::class, 'destroy'])->middleware('permission:leads.edit');
+
+    // Lead Order-to-Cash (Quotations)
+    Route::get('leads/{lead}/quotations', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'getQuotations'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/quotations', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'storeQuotation'])->middleware('permission:leads.edit');
+    Route::get('quotations/{quotation}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'showQuotation'])->middleware('permission:leads.view');
+    Route::post('quotations/{quotation}/accept', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'acceptQuotation'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/reject', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'rejectQuotation'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/convert', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
+
+    // Lead Order-to-Cash (Sales Orders)
+    Route::get('leads/{lead}/sales-orders', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'getSalesOrders'])->middleware('permission:leads.view');
+    Route::get('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'showSalesOrder'])->middleware('permission:leads.view');
+    Route::post('sales-orders/{order}/confirm', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'confirmSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/renew', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'createRenewalQuotation'])->middleware('permission:leads.edit');
+
+    // Lead Commissions
+    Route::get('leads/{lead}/commissions', [\App\Http\Controllers\Api\LeadCommissionController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/commissions/generate', [\App\Http\Controllers\Api\LeadCommissionController::class, 'generateDraft'])->middleware('permission:leads.edit');
     // Lead Intelligence Routes (Module A — Lead Scoring, Qualification, Product Matching, AI Analysis)
     Route::post('qualification/evaluate', [QualificationController::class, 'evaluate'])->middleware('permission:leads.view');
     Route::apiResource('qualification/parameter-sets', QualificationParameterSetController::class)->middleware('permission:leads.edit');

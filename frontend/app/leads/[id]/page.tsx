@@ -26,6 +26,8 @@ import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuide';
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import { PreMeetingBriefTab } from '@/components/leads/PreMeetingBriefTab';
+import { CommercialTeam } from '@/components/leads/CommercialTeam';
+import { OrderToCash } from '@/components/leads/OrderToCash';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -1654,7 +1656,7 @@ export default function LeadDetailPage() {
       {/* Tabs */}
       <div className="border-b border-border">
         <div className="flex gap-0 overflow-x-auto">
-          {['Overview', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Transcripts', 'Pre-Meeting Brief', 'Customer Journey'].map((tab) => (
+          {['Overview', 'Team', 'Orders', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Transcripts', 'Pre-Meeting Brief', 'Customer Journey'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
@@ -1956,6 +1958,20 @@ export default function LeadDetailPage() {
               )}
             </div>
           ) : null}
+        </div>
+      )}
+
+      {/* ── TEAM TAB ── */}
+      {activeTab === 'team' && (
+        <div className="space-y-6">
+          <CommercialTeam leadId={leadId} />
+        </div>
+      )}
+
+      {/* ── ORDERS TAB ── */}
+      {activeTab === 'orders' && (
+        <div className="space-y-6">
+          <OrderToCash leadId={leadId} />
         </div>
       )}
 

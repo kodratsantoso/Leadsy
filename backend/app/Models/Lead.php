@@ -99,6 +99,26 @@ class Lead extends Model
         return $this->hasMany(LeadContact::class);
     }
 
+    public function roleAssignments(): HasMany
+    {
+        return $this->hasMany(LeadRoleAssignment::class);
+    }
+
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(LeadQuotation::class);
+    }
+
+    public function salesOrders(): HasMany
+    {
+        return $this->hasMany(LeadSalesOrder::class);
+    }
+
+    public function commissionAllocations(): HasMany
+    {
+        return $this->hasMany(LeadCommissionAllocation::class);
+    }
+
     public function contactEnrichmentCandidates(): HasMany
     {
         return $this->hasMany(ContactEnrichmentCandidate::class);
@@ -252,21 +272,6 @@ class Lead extends Model
     {
         return $this->hasMany(LarkBaseRecordMapping::class, 'leadsy_entity_id')
             ->where('leadsy_entity_type', 'lead');
-    }
-
-    public function roleAssignments(): HasMany
-    {
-        return $this->hasMany(LeadRoleAssignment::class);
-    }
-
-    public function quotations(): HasMany
-    {
-        return $this->hasMany(Quotation::class);
-    }
-
-    public function salesOrders(): HasMany
-    {
-        return $this->hasMany(SalesOrder::class);
     }
 
     public function scopeVisibleTo(Builder $query, ?User $user): Builder

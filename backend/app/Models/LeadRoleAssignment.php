@@ -13,12 +13,19 @@ class LeadRoleAssignment extends Model
     protected $fillable = [
         'lead_id',
         'user_id',
-        'role_slug',
-        'contribution_percentage'
+        'role_type',
+        'contribution_percentage',
+        'assignment_status',
+        'assigned_by',
+        'assigned_at',
+        'removed_at',
+        'notes',
     ];
 
     protected $casts = [
         'contribution_percentage' => 'decimal:2',
+        'assigned_at' => 'datetime',
+        'removed_at' => 'datetime',
     ];
 
     public function lead(): BelongsTo
@@ -29,5 +36,10 @@ class LeadRoleAssignment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+    
+    public function assignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
     }
 }

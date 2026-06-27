@@ -48,7 +48,10 @@ class TeamPerformanceDashboardController extends Controller
         $leadsQuery = Lead::whereIn('owner_id', $userIds)
             ->orWhereIn('presales_owner_id', $userIds)
             ->orWhereIn('am_owner_id', $userIds)
-            ->orWhereIn('csm_owner_id', $userIds);
+            ->orWhereIn('csm_owner_id', $userIds)
+            ->orWhereHas('roleAssignments', function($q) use ($userIds) {
+                $q->whereIn('user_id', $userIds);
+            });
 
         return response()->json([
             'data' => [
@@ -196,15 +199,15 @@ class TeamPerformanceDashboardController extends Controller
     private function buildRevenueContribution($userIds, $dateRange)
     {
         // E.g. Sum of sales_orders joined with lead_role_assignments
-        $contributions = \DB::table('sales_orders')
-            ->join('lead_role_assignments', 'sales_orders.lead_id', '=', 'lead_role_assignments.lead_id')
+        $contributions = \DB::table('lead_sales_orders')
+            ->join('lead_role_assignments', 'lead_sales_orders.lead_id', '=', 'lead_role_assignments.lead_id')
             ->join('users', 'lead_role_assignments.user_id', '=', 'users.id')
             ->whereIn('lead_role_assignments.user_id', $userIds)
-            ->whereBetween('sales_orders.confirmed_at', $dateRange)
-            ->where('sales_orders.status', 'confirmed')
-            ->selectRaw('lead_role_assignments.role_slug, sum(sales_orders.amount * (lead_role_assignments.contribution_percentage / 100.0)) as total_contribution')
-            ->groupBy('lead_role_assignments.role_slug')
-            ->pluck('total_contribution', 'role_slug')
+            ->whereBetween('lead_sales_orders.order_date', $dateRange)
+            ->where('lead_sales_orders.status', 'confirmed')
+            ->selectRaw('lead_role_assignments.role_type, sum(lead_sales_orders.total_amount * (lead_role_assignments.commission_split_percent / 100.0)) as total_contribution')
+            ->groupBy('lead_role_assignments.role_type')
+            ->pluck('total_contribution', 'role_type')
             ->toArray();
             
         return $contributions;

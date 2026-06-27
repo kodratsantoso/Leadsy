@@ -52,8 +52,8 @@ export function ProductScrapeAndCompare({ product }: Props) {
       }
       return res.json();
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["product-comparison", product.id] });
+    onSuccess: (data) => {
+      qc.setQueryData(["product-comparison", product.id], data);
       setShowModal(true);
     },
     onError: (err: any) => {
@@ -116,7 +116,7 @@ export function ProductScrapeAndCompare({ product }: Props) {
         description="Review the AI-detected changes between the current CRM data and the scraped website."
         size="xl"
       >
-        {latestComparison && (
+        {latestComparison ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -170,7 +170,7 @@ export function ProductScrapeAndCompare({ product }: Props) {
               )}
             </div>
 
-            {latestComparison.status === 'draft' && (
+            {latestComparison?.status === 'draft' && (
               <div className="flex justify-end gap-3 pt-4 border-t border-border">
                 <Button variant="outline" onClick={() => rejectMutation.mutate(latestComparison.id)} disabled={rejectMutation.isPending}>
                   {rejectMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <X className="h-4 w-4 mr-2" />}
@@ -182,6 +182,10 @@ export function ProductScrapeAndCompare({ product }: Props) {
                 </Button>
               </div>
             )}
+          </div>
+        ) : (
+          <div className="py-12 flex items-center justify-center text-muted-foreground">
+             <Loader2 className="h-6 w-6 animate-spin mr-2" /> Loading comparison...
           </div>
         )}
       </Modal>
