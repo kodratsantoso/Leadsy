@@ -69,7 +69,7 @@ class TeamPerformanceDashboardController extends Controller
 
     private function buildOverviewKpis($leadsQuery, $dateRange, $userIds)
     {
-        $totalLeads = (clone $leadsQuery)->whereBetween('created_at', $dateRange)->count();
+        $totalLeads = (clone $leadsQuery)->whereBetween('leads.created_at', $dateRange)->count();
         $activeOpps = (clone $leadsQuery)->whereHas('funnelStage', fn($q) => $q->whereNotIn('name', ['Won', 'Lost']))->count();
         $pipelineValue = (clone $leadsQuery)->whereHas('funnelStage', fn($q) => $q->whereNotIn('name', ['Won', 'Lost']))->sum('estimated_closing_amount');
         
@@ -161,7 +161,7 @@ class TeamPerformanceDashboardController extends Controller
     {
         // Simply group by funnel stage for the users
         return (clone $leadsQuery)
-            ->whereBetween('created_at', $dateRange)
+            ->whereBetween('leads.created_at', $dateRange)
             ->join('funnel_stages', 'leads.funnel_stage_id', '=', 'funnel_stages.id')
             ->selectRaw('funnel_stages.name as stage, count(*) as count')
             ->groupBy('funnel_stages.name')
@@ -212,9 +212,8 @@ class TeamPerformanceDashboardController extends Controller
 
     private function buildAttentionRisks($userIds)
     {
-        $risks = AiAttentionHighlight::whereIn('user_id', $userIds)
-            ->where('is_resolved', false)
-            ->with(['lead:id,company_name', 'user:id,name'])
+        $risks = AiAttentionHighlight::whereIn('assigned_to', $userIds)
+            ->where('status', 'open')
             ->orderBy('severity', 'desc')
             ->take(10)
             ->get()
@@ -223,9 +222,9 @@ class TeamPerformanceDashboardController extends Controller
                     'id' => $r->id,
                     'severity' => $r->severity,
                     'title' => $r->title,
-                    'description' => $r->description,
-                    'lead_name' => $r->lead ? $r->lead->company_name : null,
-                    'user_name' => $r->user ? $r->user->name : null,
+                    'description' => $r->reason,
+                    'lead_name' => $r->entity_type === 'App\\Models\\Lead' ? \App\Models\Lead::find($r->entity_id)?->company_name : null,
+                    'user_name' => $r->assigned_to ? \App\Models\User::find($r->assigned_to)?->name : null,
                 ];
             });
         return $risks;
