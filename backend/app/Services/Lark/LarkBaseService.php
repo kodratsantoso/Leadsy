@@ -277,12 +277,25 @@ class LarkBaseService extends LarkService
                 ->where('leadsy_entity_type', 'lead')
                 ->where('leadsy_entity_id', (string) $lead->id)
                 ->first();
-            $action = $mapping ? 'updated' : 'added';
+                
+            $recordId = $mapping ? $mapping->lark_record_id : $lead->external_id;
 
-            if ($mapping) {
-                $this->updateRecord($baseTable->app_token, $baseTable->table_id, $mapping->lark_record_id, $fields);
+            if ($recordId) {
+                $this->updateRecord($baseTable->app_token, $baseTable->table_id, $recordId, $fields);
+                $action = 'updated';
+
+                if (!$mapping) {
+                    $mapping = LarkBaseRecordMapping::create([
+                        'tenant_id' => $baseTable->tenant_id,
+                        'lark_base_table_id' => $baseTable->id,
+                        'leadsy_entity_type' => 'lead',
+                        'leadsy_entity_id' => (string) $lead->id,
+                        'lark_record_id' => $recordId,
+                    ]);
+                }
             } else {
                 $sync = $this->createRecord($baseTable->app_token, $baseTable->table_id, $fields, 'lead', (string) $lead->id);
+                $action = 'added';
 
                 $mapping = LarkBaseRecordMapping::create([
                     'tenant_id' => $baseTable->tenant_id,
@@ -291,6 +304,10 @@ class LarkBaseService extends LarkService
                     'leadsy_entity_id' => (string) $lead->id,
                     'lark_record_id' => $sync->lark_entity_id,
                 ]);
+                
+                Lead::withoutEvents(function() use ($lead, $sync) {
+                    $lead->update(['external_id' => $sync->lark_entity_id]);
+                });
             }
 
             $mapping->update([
@@ -481,11 +498,11 @@ class LarkBaseService extends LarkService
 
             $baseTable->update(['last_pull_at' => now()]);
 
-            $reverseMapping = array_flip($baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
-            if (!empty($reverseMapping['leadsy_id'])) {
+            $mapping = $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING;
+            if (!empty($mapping['leadsy_id'])) {
                 try {
                     $this->updateRecord($baseTable->app_token, $baseTable->table_id, $recordId, [
-                        $reverseMapping['leadsy_id'] => (string) $lead->id,
+                        $mapping['leadsy_id'] => (string) $lead->id,
                     ]);
                 } catch (\Exception $e) {
                     Log::warning('Failed to push leadsy_id feedback to Lark Base', [
