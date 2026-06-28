@@ -433,12 +433,23 @@ class LarkController extends Controller
         if ($request->direction === 'push') {
             $fieldDefinitions = $service->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
 
+            $limit = min($request->integer('limit', 50), 50);
+
             Lead::where(function ($query) use ($baseTable) {
                 $query->where('tenant_id', $baseTable->tenant_id)
                     ->orWhereNull('tenant_id');
             })
+                ->where(function ($query) use ($baseTable) {
+                    $query->whereDoesntHave('larkBaseRecordMappings', function ($q) use ($baseTable) {
+                        $q->where('lark_base_table_id', $baseTable->id);
+                    })
+                    ->orWhereHas('larkBaseRecordMappings', function ($q) use ($baseTable) {
+                        $q->where('lark_base_table_id', $baseTable->id)
+                          ->whereColumn('leads.updated_at', '>', 'lark_base_record_mappings.last_leadsy_updated_at');
+                    });
+                })
                 ->with(['industry', 'funnelStage', 'owner'])
-                ->limit($request->integer('limit', 3000))
+                ->limit($limit)
                 ->get()
                 ->each(function (Lead $lead) use ($service, $baseTable, $fieldDefinitions, &$count, &$attempted, &$skipped, &$added, &$updated, &$results, &$errors): void {
                     $attempted++;
@@ -467,13 +478,12 @@ class LarkController extends Controller
                             'lark_record_id' => $result['record_id'],
                             'reason' => $result['reason'],
                         ];
-                    } catch (Exception $exception) {
-                        $error = [
+                    } catch (\Exception $exception) {
+                        $errors[] = [
                             'lead_id' => $lead->id,
                             'company_name' => $lead->company_name,
                             'message' => $exception->getMessage(),
                         ];
-                        $errors[] = $error;
                         $results[] = [
                             'status' => 'failed',
                             'action' => 'failed',
