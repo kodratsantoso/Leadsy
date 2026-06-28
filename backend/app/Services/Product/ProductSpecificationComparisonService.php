@@ -25,7 +25,8 @@ class ProductSpecificationComparisonService
             throw new Exception("AI Feature Route for product_specification_comparison not found");
         }
 
-        $template = $route->activeTemplate;
+        $promptTemplate = \App\Models\AiPromptTemplate::where('feature_name', 'product_specification_comparison')->first();
+        $template = $promptTemplate ? $promptTemplate->activeVersion : null;
         if (!$template) {
             throw new Exception("Active Prompt Template not found for feature product_specification_comparison");
         }
@@ -44,35 +45,58 @@ class ProductSpecificationComparisonService
         $prompt = str_replace(
             ['{{current_product_json}}', '{{scraped_text}}'],
             [json_encode($currentData, JSON_PRETTY_PRINT), substr($run->cleaned_text, 0, 15000)], // Limit scraped text
-            $template->system_prompt . "\n" . $template->user_prompt_template
+            $template->content
         );
 
-        $apiKey = config('services.gemini.key');
+        $apiKey = $route->aiModel->aiProvider->decrypted_api_key ?? config('services.gemini.key');
         if (!$apiKey) {
-            throw new Exception("Gemini API key is not configured");
+            throw new Exception("AI Provider API key is not configured");
         }
 
-        // Make AI Call
-        $response = Http::withHeaders(['Content-Type' => 'application/json'])
-            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$route->model_name}:generateContent?key={$apiKey}", [
-                'contents' => [
-                    ['parts' => [['text' => $prompt]]]
+        if (str_contains(strtoupper($apiKey), 'PLACEHOLDER') || empty($apiKey)) {
+            $aiResult = [
+                'latest_snapshot' => $currentData,
+                'changes' => [
+                    [
+                        'field' => 'description',
+                        'old_value' => $currentData['description'] ?? '',
+                        'new_value' => 'Updated description from mocked AI scraping (Placeholder API Key).',
+                        'type' => 'updated',
+                        'reason' => 'Mock AI response due to placeholder API key.',
+                    ]
                 ],
-                'generationConfig' => [
-                    'responseMimeType' => 'application/json',
-                    'temperature' => $template->temperature ?? 0.2,
-                ]
-            ]);
+                'confidence_score' => 95,
+                'highlights' => []
+            ];
+        } else {
+            // Make AI Call
+            $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$route->aiModel->name}:generateContent?key={$apiKey}", [
+                    'contents' => [
+                        ['parts' => [['text' => $prompt]]]
+                    ],
+                    'generationConfig' => [
+                        'responseMimeType' => 'application/json',
+                        'temperature' => $template->temperature ?? 0.2,
+                    ]
+                ]);
 
-        if (!$response->successful()) {
-            throw new Exception("AI Call failed: " . $response->body());
-        }
+            if (!$response->successful()) {
+                throw new Exception("AI Call failed: " . $response->body());
+            }
 
-        $aiResultStr = $response->json('candidates.0.content.parts.0.text');
-        $aiResult = json_decode($aiResultStr, true);
+            $aiResultStr = $response->json('candidates.0.content.parts.0.text');
+            
+            // Clean markdown if AI included it
+            if (preg_match('/```(?:json)?\s*(.*?)\s*```/s', $aiResultStr, $matches)) {
+                $aiResultStr = $matches[1];
+            }
 
-        if (!$aiResult) {
-            throw new Exception("Failed to parse JSON from AI response");
+            $aiResult = json_decode($aiResultStr, true);
+
+            if (!$aiResult) {
+                throw new Exception("Failed to parse JSON from AI response");
+            }
         }
 
         // Create Comparison Record
@@ -95,8 +119,8 @@ class ProductSpecificationComparisonService
             'original_output_json' => $aiResult,
             'current_output_json' => $aiResult,
             'status' => 'draft',
-            'ai_provider' => $route->provider,
-            'ai_model' => $route->model_name,
+            'ai_provider' => $route->aiModel->aiProvider->name ?? 'Google',
+            'ai_model' => $route->aiModel->name,
             'prompt_version' => $template->version,
             'generated_by' => $userId,
             'generated_at' => now(),
