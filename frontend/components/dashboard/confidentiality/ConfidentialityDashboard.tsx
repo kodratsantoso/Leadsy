@@ -26,6 +26,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
   const [assessmentDetails, setAssessmentDetails] = useState<any>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [hintModal, setHintModal] = useState<{ title: string; description: string; attention: string; action: string } | null>(null);
 
   const safeJsonArray = (val: any) => Array.isArray(val) ? val : [];
 
@@ -99,7 +100,14 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
 
   // Block 1: Overview KPIs
   const renderOverviewKPIs = () => (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+    <div className="mb-6 relative">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Overview KPIs</h3>
+        <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Overview KPIs', description: 'Ringkasan distribusi level konfidensialitas seluruh leads yang ada di database.', attention: 'Perhatikan jumlah Restricted dan High exposure.', action: 'Segera lakukan asesmen untuk Unassessed dan review untuk Risk Exposure.'})}>
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       <Card className="hover:border-primary/50 transition-colors cursor-pointer shadow-sm" onClick={() => onDrilldown({ title: 'Total Assessed Leads', description: 'All leads that have been assessed by the confidentiality engine.', confidentiality_filter: 'all' })}>
         <CardContent className="p-4 flex flex-col gap-1">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Assessed</div>
@@ -150,6 +158,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         </CardContent>
       </Card>
     </div>
+    </div>
   );
 
   // Block 2: Distribution Chart
@@ -158,7 +167,19 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
     const labels = distribution.map((d: any) => d.name);
     
     const options: any = {
-      chart: { type: 'donut' },
+      chart: { 
+        type: 'donut',
+        events: {
+          dataPointSelection: (event: any, chartContext: any, config: any) => {
+            const label = config.w.config.labels[config.dataPointIndex];
+            onDrilldown({
+              title: `${label} Exposure Leads`,
+              description: `Leads with ${label} confidentiality level.`,
+              confidentiality_level: label.toLowerCase()
+            });
+          }
+        }
+      },
       labels: labels,
       colors: ['var(--muted)', 'var(--status-info)', 'var(--status-warning)', 'var(--status-danger)', 'var(--border)'],
       plotOptions: {
@@ -172,24 +193,17 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
       legend: { position: 'bottom', fontSize: '11px' },
       dataLabels: { enabled: false },
       tooltip: { theme: 'dark' },
-      events: {
-        dataPointSelection: (event: any, chartContext: any, config: any) => {
-          const label = config.w.config.labels[config.dataPointIndex];
-          onDrilldown({
-            title: `${label} Exposure Leads`,
-            description: `Leads with ${label} confidentiality level.`,
-            confidentiality_level: label.toLowerCase()
-          });
-        }
-      }
     };
 
     return (
       <Card className="col-span-12 lg:col-span-4 shadow-sm">
-        <CardHeader className="p-4 border-b bg-muted/10">
+        <CardHeader className="p-4 border-b bg-muted/10 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Shield className="h-4 w-4" /> Level Distribution
           </CardTitle>
+          <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Level Distribution', description: 'Persentase sebaran tingkat konfidensialitas leads yang sudah diasesmen.', attention: 'Perhatikan jika porsi warna merah (Restricted) dan kuning (High) mendominasi.', action: 'Gunakan filter drilldown dengan mengklik potongan pie chart untuk melihat rincian leads.'})}>
+            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          </Button>
         </CardHeader>
         <CardContent className="p-4 flex items-center justify-center h-[300px]">
           {series.reduce((a: number, b: number) => a + b, 0) > 0 ? (
@@ -237,6 +251,9 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
             </CardTitle>
             <CardDescription className="text-xs mt-1">High & Restricted assignments over last 6 months</CardDescription>
           </div>
+          <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Sensitive Leads Trend', description: 'Grafik penambahan leads dengan tingkat konfidensialitas High dan Restricted selama 6 bulan terakhir.', attention: 'Perhatikan lonjakan mendadak pada bulan tertentu.', action: 'Klik titik pada grafik untuk menelusuri leads mana saja yang menjadi pemicu lonjakan tersebut.'})}>
+            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          </Button>
         </CardHeader>
         <CardContent className="p-4 h-[300px]">
           {trend.length > 0 ? (
@@ -253,9 +270,14 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
   const renderMatrixTable = () => (
     <Card className="col-span-12 shadow-sm">
       <CardHeader className="p-4 border-b bg-muted/10 flex flex-row justify-between items-center">
-        <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          <FileText className="h-4 w-4" /> Latest Assessments Matrix
-        </CardTitle>
+        <div className="flex items-center gap-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <FileText className="h-4 w-4" /> Latest Assessments Matrix
+          </CardTitle>
+          <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Assessments Matrix', description: 'Tabel daftar asesmen konfidensialitas terbaru yang sudah diproses oleh AI.', attention: 'Perhatikan kolom Score dan Main Driver untuk mengetahui alasan penentuan level.', action: 'Klik tombol \"Why this score?\" untuk melihat rincian detail evaluasi AI.'})}>
+            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </div>
         <Button variant="outline" size="sm" onClick={() => onDrilldown({ title: 'Assessments Matrix', description: 'Full view of all assessed leads.', confidentiality_filter: 'all' })}>View Full Matrix</Button>
       </CardHeader>
       <CardContent className="p-0">
@@ -315,11 +337,16 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
   const renderBottomRow = () => (
     <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card className="shadow-sm">
-        <CardHeader className="p-4 border-b bg-muted/10">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <UserCheck className="h-4 w-4" /> Sensitive Data Triggers
-          </CardTitle>
-          <CardDescription className="text-xs">Database dimensions holding sensitive information</CardDescription>
+        <CardHeader className="p-4 border-b bg-muted/10 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <UserCheck className="h-4 w-4" /> Sensitive Data Triggers
+            </CardTitle>
+            <CardDescription className="text-xs">Database dimensions holding sensitive information</CardDescription>
+          </div>
+          <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Sensitive Data Triggers', description: 'Menghitung seberapa banyak data sensitif (BANTC, Transkrip Rapat, Harga, Order) yang terekam pada leads yang diasesmen.', attention: 'Angka yang tinggi menandakan banyak data yang harus dijaga kerahasiaannya.', action: 'Klik setiap baris untuk melihat leads yang mengandung data spesifik tersebut.'})}>
+            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          </Button>
         </CardHeader>
         <CardContent className="p-4 flex flex-col gap-3">
           <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50 hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onDrilldown({ title: 'BANTC Qualified Leads', description: 'Leads with BANTC qualification assessments.', confidentiality_filter: 'has_bantc' })}>
@@ -349,6 +376,9 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
             </CardTitle>
             <CardDescription className="text-xs">Actionable alerts for exposed sensitive data</CardDescription>
           </div>
+          <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Risk Center', description: 'Pusat peringatan untuk leads berisiko (status draft dengan level High/Restricted).', attention: 'Leads di sini belum diverifikasi secara final dan mungkin memiliki akses yang terlalu luas.', action: 'Klik tombol Action pada tiap peringatan untuk langsung melakukan review.'})}>
+            <HelpCircle className="h-4 w-4 text-[color:var(--status-danger)]" />
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-[250px] overflow-y-auto">
@@ -473,6 +503,35 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
     </Modal>
   );
 
+  const renderHintModal = () => (
+    <Modal
+      open={Boolean(hintModal)}
+      onOpenChange={(val) => { if (!val) setHintModal(null); }}
+      title={hintModal?.title || "Hint"}
+    >
+      <div className="p-6 space-y-5">
+        <div>
+          <h4 className="text-sm font-semibold flex items-center gap-2 mb-1.5 text-[var(--brand)]">
+            <HelpCircle className="h-4 w-4" /> Maksud Data
+          </h4>
+          <p className="text-sm text-muted-foreground leading-relaxed">{hintModal?.description}</p>
+        </div>
+        <div className="p-4 rounded-xl border border-[var(--status-warning)]/20 bg-[var(--status-warning)]/5">
+          <h4 className="text-sm font-semibold flex items-center gap-2 mb-1.5 text-[var(--status-warning)]">
+            <AlertTriangle className="h-4 w-4" /> Perhatian
+          </h4>
+          <p className="text-sm text-muted-foreground leading-relaxed">{hintModal?.attention}</p>
+        </div>
+        <div className="p-4 rounded-xl border border-[var(--status-success)]/20 bg-[var(--status-success)]/5">
+          <h4 className="text-sm font-semibold flex items-center gap-2 mb-1.5 text-[var(--status-success)]">
+            <CheckCircle2 className="h-4 w-4" /> Action
+          </h4>
+          <p className="text-sm text-muted-foreground leading-relaxed">{hintModal?.action}</p>
+        </div>
+      </div>
+    </Modal>
+  );
+
   return (
     <div className="w-full space-y-6">
       {renderOverviewKPIs()}
@@ -483,6 +542,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         {renderBottomRow()}
       </div>
       {renderDetailsModal()}
+      {renderHintModal()}
     </div>
   );
 };

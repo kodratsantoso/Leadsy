@@ -67,14 +67,18 @@ class ConfidentialityDashboardController extends Controller
                 ];
             });
 
+        $assessedLeadsQuery = function() {
+            return ConfidentialityAssessment::where('entity_type', Lead::class);
+        };
+
         // Block 6: Sensitive Indicators
         $indicators = [
-            'has_contact_data' => Lead::whereNotNull('email')->orWhereNotNull('phone')->count(),
-            'has_transcript' => \DB::table('lead_meetings')->whereNotNull('summary')->count(),
-            'has_bantc' => \DB::table('lead_bantc_question_guides')->count(),
-            'has_pricing' => Lead::where('estimated_closing_amount', '>', 0)->count(),
-            'has_notes' => \DB::table('lead_activities')->where('activity_type', 'note')->count(),
-            'has_sales_orders' => \DB::table('lead_sales_orders')->count(),
+            'has_contact_data' => $assessedLeadsQuery()->whereHas('entity', function($q) { $q->whereNotNull('email')->orWhereNotNull('phone'); })->count(),
+            'has_transcript' => $assessedLeadsQuery()->whereHas('entity', function($q) { $q->whereHas('meetings', function($mq) { $mq->whereNotNull('summary'); }); })->count(),
+            'has_bantc' => $assessedLeadsQuery()->whereHas('entity', function($q) { $q->whereHas('bantcQuestionGuide'); })->count(),
+            'has_pricing' => $assessedLeadsQuery()->whereHas('entity', function($q) { $q->where('estimated_closing_amount', '>', 0); })->count(),
+            'has_notes' => $assessedLeadsQuery()->whereHas('entity', function($q) { $q->whereHas('activities', function($aq) { $aq->where('activity_type', 'note'); }); })->count(),
+            'has_sales_orders' => $assessedLeadsQuery()->whereHas('entity', function($q) { $q->whereHas('salesOrders'); })->count(),
         ];
 
         // Block 7: Trend (Last 6 months)
@@ -165,18 +169,20 @@ class ConfidentialityDashboardController extends Controller
                 });
                 
                 return response()->json([
-                    'columns' => [
-                        ['key' => 'company_name', 'label' => 'Lead'],
-                        ['key' => 'stage', 'label' => 'Stage'],
-                        ['key' => 'owner', 'label' => 'Owner'],
-                        ['key' => 'level', 'label' => 'Level'],
-                        ['key' => 'score', 'label' => 'Score'],
-                        ['key' => 'status', 'label' => 'Status'],
-                    ],
-                    'records' => $records,
-                    'current_page' => $leads->currentPage(),
-                    'last_page' => $leads->lastPage(),
-                    'total' => $leads->total(),
+                    'data' => [
+                        'columns' => [
+                            ['key' => 'company_name', 'label' => 'Lead'],
+                            ['key' => 'stage', 'label' => 'Stage'],
+                            ['key' => 'owner', 'label' => 'Owner'],
+                            ['key' => 'level', 'label' => 'Level'],
+                            ['key' => 'score', 'label' => 'Score'],
+                            ['key' => 'status', 'label' => 'Status'],
+                        ],
+                        'records' => $records,
+                        'current_page' => $leads->currentPage(),
+                        'last_page' => $leads->lastPage(),
+                        'total' => $leads->total(),
+                    ]
                 ]);
             } else {
                 $query->where('confidentiality_level', $level);
@@ -188,7 +194,7 @@ class ConfidentialityDashboardController extends Controller
                   ->where('status', 'draft');
         } elseif ($filter === 'has_bantc') {
             $query->whereHas('entity', function ($q) {
-                $q->whereHas('bantcAnswers');
+                $q->whereHas('bantcQuestionGuide');
             });
         } elseif ($filter === 'has_transcript') {
             $query->whereHas('entity', function ($q) {
