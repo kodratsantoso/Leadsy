@@ -1,11 +1,53 @@
 require('dotenv').config();
 const express = require('express');
-const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion, makeInMemoryStore } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const axios = require('axios');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+
+function makeInMemoryStore() {
+    const store = {
+        chats: {
+            all: () => Object.values(store.chatsRepo)
+        },
+        chatsRepo: {},
+        contacts: {},
+        messages: {},
+        bind: (ev) => {
+            ev.on('messaging-history.set', ({ chats, contacts, messages, isLatest }) => {
+                for (const chat of (chats || [])) store.chatsRepo[chat.id] = chat;
+                for (const contact of (contacts || [])) store.contacts[contact.id] = contact;
+                for (const msg of (messages || [])) {
+                    const jid = msg.key.remoteJid;
+                    if (!store.messages[jid]) store.messages[jid] = [];
+                    store.messages[jid].push(msg);
+                }
+            });
+            ev.on('messages.upsert', ({ messages }) => {
+                for (const msg of (messages || [])) {
+                    const jid = msg.key.remoteJid;
+                    if (!store.messages[jid]) store.messages[jid] = [];
+                    store.messages[jid].push(msg);
+                }
+            });
+            ev.on('contacts.upsert', (contacts) => {
+                for (const contact of (contacts || [])) store.contacts[contact.id] = Object.assign(store.contacts[contact.id] || {}, contact);
+            });
+            ev.on('contacts.update', (contacts) => {
+                for (const contact of (contacts || [])) store.contacts[contact.id] = Object.assign(store.contacts[contact.id] || {}, contact);
+            });
+            ev.on('chats.upsert', (chats) => {
+                for (const chat of (chats || [])) store.chatsRepo[chat.id] = chat;
+            });
+            ev.on('chats.update', (chats) => {
+                for (const chat of (chats || [])) store.chatsRepo[chat.id] = Object.assign(store.chatsRepo[chat.id] || {}, chat);
+            });
+        }
+    };
+    return store;
+}
 
 const app = express();
 app.use(express.json());
