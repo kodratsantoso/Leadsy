@@ -85,14 +85,34 @@ class LeadController extends Controller
         } elseif ($request->filled('duplicate_status')) {
             $query->where('duplicate_status', $request->duplicate_status);
         }
-        foreach (['owner_id', 'presales_owner_id', 'am_owner_id', 'csm_owner_id'] as $ownerField) {
+        $roleFieldMap = [
+            'owner_id' => 'sales',
+            'presales_owner_id' => 'presales',
+            'am_owner_id' => 'account_manager',
+            'csm_owner_id' => 'csm',
+        ];
+
+        foreach ($roleFieldMap as $ownerField => $roleType) {
             if ($request->filled($ownerField)) {
                 $val = $request->$ownerField;
                 if ($val === 'unassigned') {
-                    $query->whereNull($ownerField);
+                    $query->where(function ($q) use ($ownerField, $roleType) {
+                        $q->whereNull($ownerField)
+                            ->whereDoesntHave('roleAssignments', function ($rq) use ($roleType) {
+                                $rq->where('role_type', $roleType)
+                                   ->where('assignment_status', 'active');
+                            });
+                    });
                 } else {
                     $ids = is_array($val) ? $val : array_map('trim', explode(',', $val));
-                    $query->whereIn($ownerField, $ids);
+                    $query->where(function ($q) use ($ownerField, $ids, $roleType) {
+                        $q->whereIn($ownerField, $ids)
+                            ->orWhereHas('roleAssignments', function ($rq) use ($ids, $roleType) {
+                                $rq->where('role_type', $roleType)
+                                   ->whereIn('user_id', $ids)
+                                   ->where('assignment_status', 'active');
+                            });
+                    });
                 }
             }
         }

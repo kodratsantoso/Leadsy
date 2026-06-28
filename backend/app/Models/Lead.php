@@ -294,7 +294,11 @@ class Lead extends Model
                 ->orWhereIn('presales_owner_id', $visibleUserIds)
                 ->orWhereIn('am_owner_id', $visibleUserIds)
                 ->orWhereIn('csm_owner_id', $visibleUserIds)
-                ->orWhereIn('created_by', $visibleUserIds);
+                ->orWhereIn('created_by', $visibleUserIds)
+                ->orWhereHas('roleAssignments', function (Builder $rq) use ($visibleUserIds) {
+                    $rq->whereIn('user_id', $visibleUserIds)
+                       ->where('assignment_status', 'active');
+                });
         });
     }
 }
