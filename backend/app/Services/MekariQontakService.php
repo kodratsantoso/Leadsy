@@ -244,7 +244,7 @@ class MekariQontakService
     /**
      * Sync chat rooms from Qontak API.
      */
-    public function syncRooms(?int $tenantId = null): void
+    public function syncRooms(?int $tenantId = null, bool $forceSync = false): void
     {
         $creds = $this->getCredentials($tenantId);
         $hasHmac = ! empty($creds['client_id']) && ! empty($creds['client_secret']);
@@ -335,15 +335,15 @@ class MekariQontakService
                     $existing = WhatsappConversation::where('external_chat_id', $roomId)
                         ->whereNull('user_id')
                         ->first();
-                    if ($existing && $existing->last_message_at && $lastMsgAt->timestamp === $existing->last_message_at->timestamp) {
+                    
+                    if (!$forceSync && $existing && $existing->last_message_at && $lastMsgAt->timestamp === $existing->last_message_at->timestamp) {
                         Log::info("[Qontak] Sync stopped: reached already synced conversation {$roomId} with last_message_at {$existing->last_message_at->toDateTimeString()}.");
                         $hasMore = false;
                         break;
                     }
 
-                    // Stop synchronization if we reach rooms older than 30 days,
-                    // since the list is sorted by latest message descending.
-                    if ($lastMsgAt->lt(now()->subDays(30))) {
+                    // Stop synchronization if we reach rooms older than 30 days (unless force syncing)
+                    if (!$forceSync && $lastMsgAt->lt(now()->subDays(30))) {
                         Log::info("[Qontak] Sync stopped early: reached room older than 30 days ({$lastMsgAt->toDateString()}).");
                         $hasMore = false;
                         break;
@@ -392,7 +392,8 @@ class MekariQontakService
                     // Sync messages for new/updated conversations automatically
                     try {
                         Log::info("[Qontak] Conversation {$roomId} is new or has updates. Syncing messages...");
-                        $this->syncRoomMessages($roomId, $tenantId);
+                        // If it's a new conversation, or we are force syncing, sync all messages.
+                        $this->syncRoomMessages($roomId, $tenantId, !$existing || $forceSync);
                     } catch (\Throwable $e) {
                         Log::warning("[Qontak] Failed to sync intermediate messages for {$roomId}: ".$e->getMessage());
                     }
@@ -414,7 +415,7 @@ class MekariQontakService
     /**
      * Sync chat history messages for a specific room.
      */
-    public function syncRoomMessages(string $roomExternalId, ?int $tenantId = null): void
+    public function syncRoomMessages(string $roomExternalId, ?int $tenantId = null, bool $forceSync = false): void
     {
         $creds = $this->getCredentials($tenantId);
         $hasHmac = ! empty($creds['client_id']) && ! empty($creds['client_secret']);
@@ -434,6 +435,8 @@ class MekariQontakService
 
         $cursor = null;
         $hasMore = true;
+        $pagesFetched = 0;
+        $consecutiveExisting = 0;
 
         while ($hasMore) {
             try {
@@ -468,9 +471,14 @@ class MekariQontakService
                     // we can stop pagination since subsequent messages are older.
                     $exists = WhatsappMessage::where('external_message_id', $msgId)->exists();
                     if ($exists) {
-                        Log::info("[Qontak] Messages sync stopped early: reached already synced message {$msgId} for room {$roomExternalId}.");
-                        $hasMore = false;
-                        break;
+                        $consecutiveExisting++;
+                        if (!$forceSync && $consecutiveExisting >= 3) {
+                            Log::info("[Qontak] Messages sync stopped early: reached multiple already synced messages for room {$roomExternalId}.");
+                            $hasMore = false;
+                            break;
+                        }
+                    } else {
+                        $consecutiveExisting = 0;
                     }
 
                     $direction = 'inbound';
@@ -500,6 +508,12 @@ class MekariQontakService
                 if ($nextCursor && $nextCursor !== $cursor) {
                     $cursor = $nextCursor;
                 } else {
+                    $hasMore = false;
+                }
+                
+                $pagesFetched++;
+                // Hard limit to avoid infinite loops during force sync (e.g. 100 pages = 5000 messages max)
+                if ($pagesFetched >= 100) {
                     $hasMore = false;
                 }
             } catch (\Throwable $e) {

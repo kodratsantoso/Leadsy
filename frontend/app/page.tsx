@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, ArrowRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, ArrowRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent, HelpCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
@@ -275,6 +275,7 @@ export default function DashboardPage() {
   const [drilldown, setDrilldown] = useState<DrilldownState>(null);
   const [drilldownSearch, setDrilldownSearch] = useState("");
   const [drilldownPage, setDrilldownPage] = useState(1);
+  const [hintModal, setHintModal] = useState<{ title: string; description: string; attention: string; action: string } | null>(null);
 
   const [colors, setColors] = useState({
     brand: "#8b5cf6",
@@ -466,9 +467,9 @@ export default function DashboardPage() {
   const recentLeads = dashboard.recent_leads || [];
   const scoreDistribution = pq?.score_distribution ?? [];
   const qualityInsights: string[] = pq?.insights ?? [];
-  const drilldownLeads: PaginatedLeads = drilldownData?.data?.data
+  const drilldownLeads: any = drilldownData?.data?.data || drilldownData?.data?.records
     ? drilldownData.data
-    : (drilldownData?.data ? drilldownData : { data: [], current_page: 1, last_page: 1, total: 0 });
+    : { data: [], records: [], current_page: 1, last_page: 1, total: 0 };
 
   function openDrilldown(next: NonNullable<DrilldownState>) {
     setDrilldown(next);
@@ -703,9 +704,14 @@ export default function DashboardPage() {
             <div className="md:col-span-8" data-tour="dashboard-kpis">
               <Card className="h-full flex flex-col justify-between">
                 <CardHeader>
-                  <div>
-                    <CardTitle>Key Metrics</CardTitle>
-                    <CardDescription>Core lead indicators with historical trends.</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Key Metrics</CardTitle>
+                      <CardDescription>Core lead indicators with historical trends.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Key Metrics', description: 'Indikator utama jumlah dan kualitas leads.', attention: 'Perhatikan jika nilai In Pipeline tidak sebanding dengan Total Leads.', action: 'Klik metrik untuk melihat detail leads yang termasuk.'})}>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col justify-center">
@@ -781,9 +787,14 @@ export default function DashboardPage() {
             <div className="md:col-span-4" data-tour="dashboard-qualification">
               <Card className="h-full">
                 <CardHeader>
-                  <div>
-                    <CardTitle>Qualification Status</CardTitle>
-                    <CardDescription>Pipeline distribution by validation status.</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Qualification Status</CardTitle>
+                      <CardDescription>Pipeline distribution by validation status.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Qualification Status', description: 'Status kualifikasi BANTC pada leads.', attention: 'Perhatikan jumlah Pending yang belum diproses.', action: 'Klik pada status untuk mem-filter leads terkait.'})}>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -821,15 +832,35 @@ export default function DashboardPage() {
             </div>
 
             <div className="md:col-span-6">
-              {renderFunnelCard("lost", "Leads → Closed Lost", lostTrackingFunnel)}
+              <Card className="h-full">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Win Rate vs Lost Rate</CardTitle>
+                      <CardDescription>Outcome distribution by percentage.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Win Rate vs Lost Rate', description: 'Perbandingan rasio jumlah leads yang berstatus Won versus Lost.', attention: 'Peningkatan drastis pada Lost Rate menandakan ada yang salah di proses sales atau lead quality.', action: 'Evaluasi sumber leads jika Lost Rate terus meningkat.'})}>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {renderFunnelCard("lost", "Leads → Closed Lost", lostTrackingFunnel)}
+                </CardContent>
+              </Card>
             </div>
 
             <div className="md:col-span-6">
               <Card className="h-full">
                 <CardHeader>
-                  <div>
-                    <CardTitle>Sales Volume</CardTitle>
-                    <CardDescription>Closed Won value grouped by product. Click columns to drill down.</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Sales Volume</CardTitle>
+                      <CardDescription>Closed Won value grouped by product. Click columns to drill down.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Sales Volume', description: 'Total nilai penjualan (Closed Won) dikategorikan berdasarkan produk.', attention: 'Perhatikan produk dengan nilai terendah, mungkin perlu insentif marketing.', action: 'Klik pada bar chart untuk melihat daftar leads Closed Won per produk.'})}>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                   <Badge variant="info">Won value</Badge>
                 </CardHeader>
@@ -915,9 +946,14 @@ export default function DashboardPage() {
             <div className="md:col-span-6">
               <Card className="h-full">
                 <CardHeader>
-                  <div>
-                    <CardTitle>Total Market</CardTitle>
-                    <CardDescription>Lead count grouped by product. Click columns to drill down.</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Total Market</CardTitle>
+                      <CardDescription>Lead count grouped by product. Click columns to drill down.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Total Market', description: 'Persebaran jumlah leads berdasarkan produk (Total Market).', attention: 'Perhatikan ketimpangan jumlah leads antar produk.', action: 'Klik pada bar chart untuk melihat leads per produk.'})}>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                   <Badge variant="neutral">Lead count</Badge>
                 </CardHeader>
@@ -1002,9 +1038,14 @@ export default function DashboardPage() {
             <div className="md:col-span-12" data-tour="dashboard-source-channel">
               <Card className="h-full">
                 <CardHeader>
-                  <div>
-                    <CardTitle>Lead Sources & Channels</CardTitle>
-                    <CardDescription>Total leads grouped by source and channel, with drilldown. Click pie slices to filter.</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Lead Sources & Channels</CardTitle>
+                      <CardDescription>Total leads grouped by source and channel, with drilldown. Click pie slices to filter.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Lead Sources & Channels', description: 'Analisis dari mana leads berasal.', attention: 'Perhatikan channel dengan conversion rate tertinggi.', action: 'Klik pie slices untuk melihat leads spesifik dari channel tersebut.'})}>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                   <Badge variant="info">Lead origin</Badge>
                 </CardHeader>
@@ -1154,9 +1195,14 @@ export default function DashboardPage() {
             <div className="md:col-span-12">
               <Card className="h-full">
                 <CardHeader>
-                  <div>
-                    <CardTitle>Pipeline Quality</CardTitle>
-                    <CardDescription>Score health, distribution, and actionable quality notes.</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Pipeline Health</CardTitle>
+                      <CardDescription>Health indicators based on recent interactions.</CardDescription>
+                    </div>
+                    <Button variant="ghost" size="icon-sm" className="h-6 w-6" onClick={() => setHintModal({title: 'Pipeline Health', description: 'Indikator kesehatan leads (Healthy, Warning, Critical) berdasarkan status dan interaksi.', attention: 'Leads berstatus Critical berisiko hilang, perhatikan dan segera lakukan intervensi.', action: 'Pilih kategori kesehatan untuk melihat daftar leads.'})}>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
                   </div>
                   {pq ? <PipelineHealthBadge health={pq.pipeline_health} /> : null}
                 </CardHeader>
@@ -1800,6 +1846,36 @@ export default function DashboardPage() {
       ) : (
         <ConfidentialityDashboard onDrilldown={openDrilldown} />
       )}
+
+      {/* ── HINT MODAL ── */}
+      <Modal
+        open={Boolean(hintModal)}
+        onOpenChange={(val) => { if (!val) setHintModal(null); }}
+        title={hintModal?.title || "Hint"}
+      >
+        <div className="p-6 space-y-5">
+          <div>
+            <h4 className="text-sm font-semibold flex items-center gap-2 mb-1.5 text-[var(--brand)]">
+              <HelpCircle className="h-4 w-4" /> Maksud Data
+            </h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">{hintModal?.description}</p>
+          </div>
+          <div className="p-4 rounded-xl border border-[var(--status-warning)]/20 bg-[var(--status-warning)]/5">
+            <h4 className="text-sm font-semibold flex items-center gap-2 mb-1.5 text-[var(--status-warning)]">
+              <AlertTriangle className="h-4 w-4" /> Perhatian
+            </h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">{hintModal?.attention}</p>
+          </div>
+          <div className="p-4 rounded-xl border border-[var(--status-success)]/20 bg-[var(--status-success)]/5">
+            <h4 className="text-sm font-semibold flex items-center gap-2 mb-1.5 text-[var(--status-success)]">
+              <CheckCircle2 className="h-4 w-4" /> Action
+            </h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">{hintModal?.action}</p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── DRILLDOWN MODAL ── */}
       <Modal
         open={Boolean(drilldown)}
         onOpenChange={(open) => {

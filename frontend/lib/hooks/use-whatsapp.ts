@@ -26,6 +26,10 @@ export interface WaConversation {
     provider: string;
     analyzed_at: string;
   } | null;
+  assignee_id: number | null;
+  is_resolved: boolean;
+  notes: string | null;
+  tags: string[] | null;
 }
 
 export interface WaMessage {
@@ -187,6 +191,21 @@ export function useWhatsApp() {
     }
   }, []);
 
+  const updateConversationMeta = useCallback(async (convId: number, meta: { assignee_id?: number | null; is_resolved?: boolean; notes?: string; tags?: string[] }) => {
+    try {
+      const res = await apiFetch(`/whatsapp/conversations/${convId}/meta`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(meta),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Update meta failed');
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
+
   // ── Campaigns ──
   const getCampaigns = useCallback(async (): Promise<WaCampaign[]> => {
     try {
@@ -293,6 +312,7 @@ export function useWhatsApp() {
     sendMessage,
     // Conversations
     getConversations, getMessages, analyzeConversation, convertToLead,
+    updateConversationMeta,
     // Campaigns
     getCampaigns, createCampaign, executeCampaign,
     // Sync Rules

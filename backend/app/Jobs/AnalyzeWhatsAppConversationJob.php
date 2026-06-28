@@ -103,7 +103,11 @@ PROMPT;
             $result = $ai->call('whatsapp_analysis', $prompt, ['conversation_id' => $this->conversationId]);
 
             if ($result['success'] && $result['content']) {
-                $parsed = json_decode($result['content'], true);
+                $content = trim($result['content']);
+                if (str_starts_with($content, '```')) {
+                    $content = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', $content);
+                }
+                $parsed = json_decode($content, true);
                 if ($parsed && isset($parsed['lead_potential_label'])) {
                     return [
                         'provider' => $result['model'] ?? 'ai',

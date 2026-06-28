@@ -15,11 +15,17 @@ class WhatsappConversation extends Model
         'last_message_at',
         'platform',
         'user_id',
+        'assignee_id',
+        'is_resolved',
+        'notes',
+        'tags',
     ];
 
     protected $casts = [
         'last_message_at' => 'datetime',
         'approved_for_sync' => 'boolean',
+        'is_resolved' => 'boolean',
+        'tags' => 'array',
     ];
 
     public function contact()
@@ -35,5 +41,10 @@ class WhatsappConversation extends Model
     public function aiAnalysis()
     {
         return $this->hasOne(WhatsappAiAnalysis::class, 'conversation_id');
+    }
+
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assignee_id');
     }
 }

@@ -348,6 +348,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('whatsapp/conversations/{id}/messages', [WhatsAppController::class, 'getConversationMessages']);
     Route::post('whatsapp/conversations/{id}/analyze', [WhatsAppController::class, 'analyzeConversation']);
     Route::post('whatsapp/conversations/{id}/convert-to-lead', [WhatsAppController::class, 'convertToLead']);
+    Route::put('whatsapp/conversations/{id}/meta', [WhatsAppController::class, 'updateMeta']);
 
     // WhatsApp — Settings / Active Users Monitor
     Route::get('settings/whatsapp/active-users', [WhatsAppController::class, 'activeUsers'])->middleware('permission:integrations.manage');

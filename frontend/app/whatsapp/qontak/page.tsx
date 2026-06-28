@@ -32,6 +32,7 @@ export default function MekariQontakPage() {
     analyzeConversation,
     convertToLead,
     sendMessage,
+    updateConversationMeta,
     error,
     clearError,
     loading
@@ -55,8 +56,7 @@ export default function MekariQontakPage() {
   const [isSendingLocal, setIsSendingLocal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // ── Mock states for conversation assignment & resolution ──
-  const [localRoomsMeta, setLocalRoomsMeta] = useState<Record<string, { assignee: string; resolved: boolean; notes: string; tags: string[] }>>({});
+
 
   // ── Tag Input State ──
   const [newTagText, setNewTagText] = useState("");
@@ -92,23 +92,6 @@ export default function MekariQontakPage() {
     try {
       const res = await getConversations("mekari_qontak", forceSync);
       setConversations(res);
-      // Auto-assign random metadata to mock rooms if not present
-      setLocalRoomsMeta(prev => {
-        const next = { ...prev };
-        res.forEach((c, index) => {
-          if (!next[c.id]) {
-            // Mock assignment logic: some are unassigned, some assigned to sales agent
-            const mockAssignee = index % 3 === 0 ? "" : (index % 3 === 1 ? "Prasetia Sales" : "Sales Team B");
-            next[c.id] = {
-              assignee: mockAssignee,
-              resolved: index % 5 === 0, // Mock resolve status
-              notes: "",
-              tags: index % 2 === 0 ? ["Hot Lead", "Q2 Outreach"] : ["Follow up"]
-            };
-          }
-        });
-        return next;
-      });
     } catch (err) {
       console.warn("Failed to load conversations:", err);
     }
@@ -238,54 +221,37 @@ export default function MekariQontakPage() {
     }
   };
 
+  const handleUpdateMeta = async (meta: { assignee_id?: number | null; is_resolved?: boolean; notes?: string; tags?: string[] }) => {
+    if (!activeConv) return;
+    const res = await updateConversationMeta(activeConv.id, meta);
+    if (res?.success) {
+      const updated = { ...activeConv, ...res.data };
+      setActiveConv(updated);
+      setConversations(prev => prev.map(c => c.id === updated.id ? updated : c));
+    }
+  };
+
   // Assign chat room to active user
   const handleAssignToMe = () => {
-    if (!activeConv) return;
-    setLocalRoomsMeta(prev => ({
-      ...prev,
-      [activeConv.id]: {
-        ...prev[activeConv.id],
-        assignee: "Prasetia Sales"
-      }
-    }));
+    handleUpdateMeta({ assignee_id: 1 }); // Using 1 as current user for demo
   };
 
   // Toggle Resolution of room
   const handleToggleResolve = () => {
-    if (!activeConv) return;
-    setLocalRoomsMeta(prev => ({
-      ...prev,
-      [activeConv.id]: {
-        ...prev[activeConv.id],
-        resolved: !prev[activeConv.id]?.resolved
-      }
-    }));
+    handleUpdateMeta({ is_resolved: !activeConv?.is_resolved });
   };
 
   // Add notes locally
   const handleSaveNotes = (notesText: string) => {
-    if (!activeConv) return;
-    setLocalRoomsMeta(prev => ({
-      ...prev,
-      [activeConv.id]: {
-        ...prev[activeConv.id],
-        notes: notesText
-      }
-    }));
+    handleUpdateMeta({ notes: notesText });
   };
 
   // Add a custom tag
   const handleAddTag = () => {
     if (!activeConv || !newTagText.trim()) return;
-    const currentTags = localRoomsMeta[activeConv.id]?.tags || [];
+    const currentTags = activeConv.tags || [];
     if (!currentTags.includes(newTagText.trim())) {
-      setLocalRoomsMeta(prev => ({
-        ...prev,
-        [activeConv.id]: {
-          ...prev[activeConv.id],
-          tags: [...currentTags, newTagText.trim()]
-        }
-      }));
+      handleUpdateMeta({ tags: [...currentTags, newTagText.trim()] });
     }
     setNewTagText("");
   };
@@ -293,14 +259,8 @@ export default function MekariQontakPage() {
   // Remove a custom tag
   const handleRemoveTag = (tagToRemove: string) => {
     if (!activeConv) return;
-    const currentTags = localRoomsMeta[activeConv.id]?.tags || [];
-    setLocalRoomsMeta(prev => ({
-      ...prev,
-      [activeConv.id]: {
-        ...prev[activeConv.id],
-        tags: currentTags.filter(t => t !== tagToRemove)
-      }
-    }));
+    const currentTags = activeConv.tags || [];
+    handleUpdateMeta({ tags: currentTags.filter(t => t !== tagToRemove) });
   };
 
   // Select Quickreply template
@@ -313,11 +273,10 @@ export default function MekariQontakPage() {
     return conversations
       .filter(c => {
         // Folder selection
-        const meta = localRoomsMeta[c.id];
-        if (activeFolder === "my") return meta?.assignee === "Prasetia Sales";
-        if (activeFolder === "unassigned") return !meta?.assignee;
-        if (activeFolder === "assigned") return !!meta?.assignee;
-        if (activeFolder === "resolved") return meta?.resolved;
+        if (activeFolder === "my") return c.assignee_id === 1;
+        if (activeFolder === "unassigned") return !c.assignee_id;
+        if (activeFolder === "assigned") return !!c.assignee_id;
+        if (activeFolder === "resolved") return c.is_resolved;
         return true;
       })
       .filter(c => {
@@ -345,25 +304,24 @@ export default function MekariQontakPage() {
         const tB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
         return tB - tA;
       });
-  }, [conversations, activeFolder, searchQuery, sortBy, localRoomsMeta]);
+  }, [conversations, activeFolder, searchQuery, sortBy]);
 
   // Dynamic calculations for Inbox Navigation Sidebar folder badges
   const folderCounts = useMemo(() => {
     const counts = { all: 0, my: 0, unassigned: 0, assigned: 0, resolved: 0 };
     conversations.forEach(c => {
       counts.all++;
-      const meta = localRoomsMeta[c.id];
-      if (meta?.assignee === "Prasetia Sales") counts.my++;
-      if (!meta?.assignee) counts.unassigned++;
-      if (meta?.assignee) counts.assigned++;
-      if (meta?.resolved) counts.resolved++;
+      if (c.assignee_id === 1) counts.my++;
+      if (!c.assignee_id) counts.unassigned++;
+      if (c.assignee_id) counts.assigned++;
+      if (c.is_resolved) counts.resolved++;
     });
     return counts;
-  }, [conversations, localRoomsMeta]);
+  }, [conversations]);
 
 
 
-  const activeMeta = activeConv ? localRoomsMeta[activeConv.id] : null;
+
 
   return (
     <div className="flex h-[calc(100vh-56px)] w-full overflow-hidden bg-background text-foreground">
@@ -477,7 +435,6 @@ export default function MekariQontakPage() {
             </div>
           ) : (
             filteredConversations.map(conv => {
-              const meta = localRoomsMeta[conv.id];
               const isSelected = activeConv?.id === conv.id;
               const hasLinkedLead = !!conv.contact?.linked_lead_id;
 
@@ -543,17 +500,17 @@ export default function MekariQontakPage() {
                   {/* Room status and assignee indicators */}
                   <div className="flex items-center justify-between text-[10px] border-t border-border/15 pt-2 mt-1">
                     <div className="flex items-center gap-1">
-                      {meta?.assignee ? (
+                      {conv.assignee_id === 1 ? (
                         <div className="flex items-center gap-1 text-[var(--brand)] font-bold">
                           <User className="h-2.5 w-2.5" />
-                          <span>{meta.assignee === "Prasetia Sales" ? "Me" : meta.assignee}</span>
+                          <span>Me</span>
                         </div>
                       ) : (
                         <span className="text-muted-foreground/60 italic font-semibold">Unassigned</span>
                       )}
                     </div>
 
-                    {meta?.resolved ? (
+                    {conv.is_resolved ? (
                       <span className="text-[var(--status-success)] font-extrabold flex items-center gap-0.5 uppercase text-[8px]">
                         <Check className="h-2.5 w-2.5" /> Resolved
                       </span>
@@ -603,7 +560,7 @@ export default function MekariQontakPage() {
                   </Button>
                 )}
 
-                {activeMeta?.assignee !== "Prasetia Sales" && (
+                {activeConv?.assignee_id !== 1 && (
                   <Button
                     onClick={handleAssignToMe}
                     variant="outline"
@@ -616,14 +573,14 @@ export default function MekariQontakPage() {
 
                 <Button
                   onClick={handleToggleResolve}
-                  variant={activeMeta?.resolved ? "default" : "outline"}
+                  variant={activeConv?.is_resolved ? "default" : "outline"}
                   size="sm"
                   className={cn(
                     "h-7 text-[10px] font-bold",
-                    activeMeta?.resolved ? "bg-[var(--status-success)] hover:bg-[var(--status-success)]/90 text-white" : ""
+                    activeConv?.is_resolved ? "bg-[var(--status-success)] hover:bg-[var(--status-success)]/90 text-white" : ""
                   )}
                 >
-                  <Check className="h-3 w-3" /> {activeMeta?.resolved ? "Resolved" : "Resolve Chat"}
+                  <Check className="h-3 w-3" /> {activeConv?.is_resolved ? "Resolved" : "Resolve Chat"}
                 </Button>
               </div>
             </div>
@@ -927,7 +884,7 @@ export default function MekariQontakPage() {
           <div className="p-4 space-y-2 flex flex-col">
             <h4 className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider select-none">Quick Notes</h4>
             <textarea
-              defaultValue={activeMeta?.notes || ""}
+              defaultValue={activeConv?.notes || ""}
               onBlur={e => handleSaveNotes(e.target.value)}
               placeholder="Write inline notes (persists when typing)..."
               rows={2}
@@ -942,18 +899,22 @@ export default function MekariQontakPage() {
           <div className="p-4 space-y-2">
             <h4 className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider select-none">Tags</h4>
             <div className="flex flex-wrap gap-1 mb-2">
-              {(activeMeta?.tags || []).map(tag => (
-                <span
+              {(activeConv?.tags || []).map(tag => (
+                <Badge
                   key={tag}
-                  className="inline-flex items-center gap-0.5 rounded-full bg-[var(--brand)]/10 text-[var(--brand)] text-[8px] font-extrabold px-2 py-0.5"
+                  variant="neutral"
+                  className="bg-card hover:bg-accent/40 border border-border/80 text-[9px] font-bold py-0 h-5"
                 >
-                  <span>{tag}</span>
-                  <button onClick={() => handleRemoveTag(tag)} className="hover:text-red-500 font-bold ml-0.5" title="Remove tag">
-                    <X className="h-2 w-2" />
+                  {tag}
+                  <button
+                    onClick={() => handleRemoveTag(tag)}
+                    className="ml-1 text-muted-foreground hover:text-[var(--status-danger)] transition-colors"
+                  >
+                    <X className="h-2.5 w-2.5" />
                   </button>
-                </span>
+                </Badge>
               ))}
-              {(activeMeta?.tags || []).length === 0 && (
+              {(activeConv?.tags || []).length === 0 && (
                 <span className="text-[9px] text-muted-foreground/60 italic">No tags applied yet.</span>
               )}
             </div>
@@ -979,15 +940,9 @@ export default function MekariQontakPage() {
           <div className="p-4 space-y-2">
             <h4 className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider select-none">Assignee</h4>
             <select
-              value={activeMeta?.assignee || ""}
+              value={activeConv?.assignee_id === 1 ? "Prasetia Sales" : ""}
               onChange={e => {
-                setLocalRoomsMeta(prev => ({
-                  ...prev,
-                  [activeConv.id]: {
-                    ...prev[activeConv.id],
-                    assignee: e.target.value
-                  }
-                }));
+                handleUpdateMeta({ assignee_id: e.target.value === "Prasetia Sales" ? 1 : null });
               }}
               className="w-full text-[10px] h-8 rounded-lg border border-input bg-background px-2 font-bold text-foreground focus:ring-1 focus:ring-ring select-none"
             >

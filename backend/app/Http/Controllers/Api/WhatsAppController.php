@@ -621,6 +621,7 @@ class WhatsAppController extends Controller
             $configured,
             'http://whatsapp-service:3002',
             'http://127.0.0.1:3002',
+            'http://localhost:3002',
         ];
 
         $urls = [];
@@ -726,6 +727,30 @@ class WhatsAppController extends Controller
                 'company_name' => $lead->company_name,
             ],
         ], 201);
+    }
+
+    public function updateMeta(Request $request, $id): JsonResponse
+    {
+        $conversation = WhatsappConversation::find($id);
+        if (! $conversation) {
+            return response()->json(['error' => 'Conversation not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'assignee_id' => 'nullable|integer|exists:users,id',
+            'is_resolved' => 'nullable|boolean',
+            'notes' => 'nullable|string',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string',
+        ]);
+
+        $conversation->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Conversation metadata updated successfully.',
+            'data' => $conversation->only(['id', 'assignee_id', 'is_resolved', 'notes', 'tags']),
+        ]);
     }
 
     public function activeUsers(Request $request): JsonResponse
