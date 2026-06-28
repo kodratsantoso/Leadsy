@@ -4,11 +4,10 @@ import React, { useState, useEffect } from "react";
 import { Plus, Filter, RefreshCw, BarChart2, Edit, Trash, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell } from "@/components/ui/table";
+import { Modal } from "@/components/ui/modal";
+import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
@@ -73,11 +72,13 @@ export default function TargetsPage() {
     fetchInitData();
   }, []);
 
-  const handleRoleChange = (role: string) => {
+  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const role = e.target.value;
     setFormData({ ...formData, role_type: role, target_type: "", target_value_type: "" });
   };
 
-  const handleTargetTypeChange = (type: string) => {
+  const handleTargetTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const type = e.target.value;
     const valType = config[formData.role_type][type].value_type;
     setFormData({ ...formData, target_type: type, target_value_type: valType });
   };
@@ -102,15 +103,15 @@ export default function TargetsPage() {
   const renderValueInput = () => {
     switch (formData.target_value_type) {
       case "amount":
-        return <div className="space-y-2"><Label>Revenue Target Amount</Label><Input type="number" value={formData.target_amount} onChange={e => setFormData({...formData, target_amount: e.target.value})} /></div>;
+        return <div className="space-y-2"><label className="text-sm font-medium">Revenue Target Amount</label><Input type="number" value={formData.target_amount} onChange={e => setFormData({...formData, target_amount: e.target.value})} /></div>;
       case "quantity":
-        return <div className="space-y-2"><Label>Quantity Target</Label><Input type="number" value={formData.target_quantity} onChange={e => setFormData({...formData, target_quantity: e.target.value})} /></div>;
+        return <div className="space-y-2"><label className="text-sm font-medium">Quantity Target</label><Input type="number" value={formData.target_quantity} onChange={e => setFormData({...formData, target_quantity: e.target.value})} /></div>;
       case "percentage":
-        return <div className="space-y-2"><Label>Percentage Target (%)</Label><Input type="number" value={formData.target_percentage} onChange={e => setFormData({...formData, target_percentage: e.target.value})} /></div>;
+        return <div className="space-y-2"><label className="text-sm font-medium">Percentage Target (%)</label><Input type="number" value={formData.target_percentage} onChange={e => setFormData({...formData, target_percentage: e.target.value})} /></div>;
       case "score":
-        return <div className="space-y-2"><Label>Score Target</Label><Input type="number" value={formData.target_score} onChange={e => setFormData({...formData, target_score: e.target.value})} /></div>;
+        return <div className="space-y-2"><label className="text-sm font-medium">Score Target</label><Input type="number" value={formData.target_score} onChange={e => setFormData({...formData, target_score: e.target.value})} /></div>;
       case "days":
-        return <div className="space-y-2"><Label>Days Target</Label><Input type="number" value={formData.target_days} onChange={e => setFormData({...formData, target_days: e.target.value})} /></div>;
+        return <div className="space-y-2"><label className="text-sm font-medium">Days Target</label><Input type="number" value={formData.target_days} onChange={e => setFormData({...formData, target_days: e.target.value})} /></div>;
       default:
         return null;
     }
@@ -134,70 +135,54 @@ export default function TargetsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Role-Based Targets & Cascade</h1>
           <p className="text-muted-foreground mt-1">Manage KPIs and cascading goals across all roles.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="w-4 h-4 mr-2" /> New Target</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Create New Target</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label>Target Name</Label>
-                <Input value={formData.target_name} onChange={e => setFormData({...formData, target_name: e.target.value})} placeholder="e.g. Q3 BANTC Completion" />
-              </div>
-              <div className="space-y-2">
-                <Label>Assigned User</Label>
-                <Select value={formData.assigned_user_id} onValueChange={v => setFormData({...formData, assigned_user_id: v})}>
-                  <SelectTrigger><SelectValue placeholder="Select User" /></SelectTrigger>
-                  <SelectContent>
-                    {users.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={formData.role_type} onValueChange={handleRoleChange}>
-                  <SelectTrigger><SelectValue placeholder="Select Role" /></SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(config).map(r => <SelectItem key={r} value={r}>{r.toUpperCase()}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {formData.role_type && config[formData.role_type] && (
-                <div className="space-y-2">
-                  <Label>Target Type</Label>
-                  <Select value={formData.target_type} onValueChange={handleTargetTypeChange}>
-                    <SelectTrigger><SelectValue placeholder="Select Target Type" /></SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(config[formData.role_type]).map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {formData.target_type && renderValueInput()}
-              
-              <Button onClick={handleSave} className="w-full">Save Target</Button>
+        <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> New Target</Button>
+        <Modal open={open} onOpenChange={setOpen} title="Create New Target" size="sm">
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Target Name</label>
+              <Input value={formData.target_name} onChange={e => setFormData({...formData, target_name: e.target.value})} placeholder="e.g. Q3 BANTC Completion" />
             </div>
-          </DialogContent>
-        </Dialog>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Assigned User</label>
+              <Select value={formData.assigned_user_id} onChange={e => setFormData({...formData, assigned_user_id: e.target.value})} placeholder="Select User">
+                {users.map(u => <option key={u.id} value={u.id.toString()}>{u.name}</option>)}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Role</label>
+              <Select value={formData.role_type} onChange={handleRoleChange} placeholder="Select Role">
+                {Object.keys(config).map(r => <option key={r} value={r}>{r.toUpperCase()}</option>)}
+              </Select>
+            </div>
+            {formData.role_type && config[formData.role_type] && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Target Type</label>
+                <Select value={formData.target_type} onChange={handleTargetTypeChange} placeholder="Select Target Type">
+                  {Object.keys(config[formData.role_type]).map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+                </Select>
+              </div>
+            )}
+            {formData.target_type && renderValueInput()}
+            
+            <Button onClick={handleSave} className="w-full">Save Target</Button>
+          </div>
+        </Modal>
       </div>
 
       <Card>
         <Table>
-          <TableHeader>
+          <TableHead>
             <TableRow>
-              <TableHead>Target Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Assigned To</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Period</TableHead>
-              <TableHead>Target Value</TableHead>
-              <TableHead>Cascade Enabled</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHeaderCell>Target Name</TableHeaderCell>
+              <TableHeaderCell>Role</TableHeaderCell>
+              <TableHeaderCell>Assigned To</TableHeaderCell>
+              <TableHeaderCell>Type</TableHeaderCell>
+              <TableHeaderCell>Period</TableHeaderCell>
+              <TableHeaderCell>Target Value</TableHeaderCell>
+              <TableHeaderCell>Cascade Enabled</TableHeaderCell>
+              <TableHeaderCell>Actions</TableHeaderCell>
             </TableRow>
-          </TableHeader>
+          </TableHead>
           <TableBody>
             {targets.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">No targets found.</TableCell></TableRow>
@@ -213,7 +198,7 @@ export default function TargetsPage() {
                   <TableCell>
                     {config[t.role_type]?.[t.target_type]?.cascade_enabled ? 
                       <Badge className="bg-blue-100 text-blue-800">Yes</Badge> : 
-                      <Badge variant="secondary">No</Badge>
+                      <Badge variant="neutral">No</Badge>
                     }
                   </TableCell>
                   <TableCell>
