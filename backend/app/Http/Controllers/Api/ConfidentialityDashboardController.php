@@ -58,7 +58,7 @@ class ConfidentialityDashboardController extends Controller
                     'company_name' => $assessment->entity->company_name ?? 'Unknown',
                     'stage' => $assessment->entity->funnelStage->name ?? 'Unknown',
                     'owner' => $assessment->entity->owner->name ?? 'Unassigned',
-                    'role_users' => $assessment->entity->roleAssignments->count(),
+                    'role_users' => $assessment->entity->roleAssignments->where('assignment_status', 'active')->count(),
                     'level' => $assessment->confidentiality_level,
                     'score' => $assessment->score,
                     'main_reason' => $assessment->recommendation_json[0] ?? 'Calculated from data dimensions',
