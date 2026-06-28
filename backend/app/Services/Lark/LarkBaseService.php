@@ -28,6 +28,17 @@ class LarkBaseService extends LarkService
         'contact_name' => 'Contact Name',
         'contact_phone' => 'Contact Phone Number',
         'meeting_link' => 'Meeting Link',
+        'budget' => 'Budget',
+        'authority' => 'Authority',
+        'needs' => 'Needs',
+        'timeline' => 'Timeline',
+        'competitor' => 'Competitor',
+        'meeting_summary_attachment' => 'Meeting Summary Attachment',
+        'eligibility_status' => 'Eligibility Status',
+        'confidentiality_score' => 'Confidentiality Score',
+        'eligibility_reason' => 'Eligibility Reason',
+        'presales_analysis' => 'Presales Analysis',
+        'presales_recommendation' => 'Presales Recommendation',
     ];
 
     /**
@@ -255,7 +266,7 @@ class LarkBaseService extends LarkService
         }
 
         try {
-            $lead->loadMissing(['industry', 'funnelStage', 'owner']);
+            $lead->loadMissing(['industry', 'funnelStage', 'owner', 'contacts', 'activities', 'aiEvaluations', 'confidentialityAssessment']);
 
             $fields = self::mapLeadToBaseFields(
                 $lead,
@@ -357,6 +368,18 @@ class LarkBaseService extends LarkService
                 $lead = Lead::where('tenant_id', $baseTable->tenant_id)->find($attributes['leadsy_id']);
             }
             
+            if (! $lead && !empty($attributes['external_id'])) {
+                $lead = Lead::where('tenant_id', $baseTable->tenant_id)
+                    ->where('external_id', $attributes['external_id'])
+                    ->first();
+            }
+
+            if (! $lead) {
+                $lead = Lead::where('tenant_id', $baseTable->tenant_id)
+                    ->where('external_id', $recordId)
+                    ->first();
+            }
+
             if (! $lead && !empty($attributes['company_name'])) {
                 $nameLower = mb_strtolower(trim($attributes['company_name']));
                 $lead = Lead::where('tenant_id', $baseTable->tenant_id)
@@ -458,6 +481,21 @@ class LarkBaseService extends LarkService
 
             $baseTable->update(['last_pull_at' => now()]);
 
+            $reverseMapping = array_flip($baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
+            if (!empty($reverseMapping['leadsy_id'])) {
+                try {
+                    $this->updateRecord($baseTable->app_token, $baseTable->table_id, $recordId, [
+                        $reverseMapping['leadsy_id'] => (string) $lead->id,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning('Failed to push leadsy_id feedback to Lark Base', [
+                        'record_id' => $recordId,
+                        'lead_id' => $lead->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             return [
                 'action' => $action,
                 'lead' => $lead,
@@ -495,6 +533,8 @@ class LarkBaseService extends LarkService
      */
     public static function mapLeadToBaseFields(Lead $lead, array $fieldMapping = self::DEFAULT_LEAD_FIELD_MAPPING, array $fieldDefinitions = []): array
     {
+        $latestAiEvaluation = $lead->aiEvaluations->first();
+
         $values = [
             'leadsy_id' => (string) $lead->id,
             'external_id' => $lead->external_id,
@@ -512,6 +552,17 @@ class LarkBaseService extends LarkService
             'contact_name' => $lead->contacts?->first()?->name,
             'contact_phone' => $lead->contacts?->first()?->phone,
             'meeting_link' => $lead->meeting_link,
+            'budget' => $lead->activities->whereNotNull('budget')->sortByDesc('created_at')->first()?->budget,
+            'authority' => $lead->activities->whereNotNull('authority')->sortByDesc('created_at')->first()?->authority,
+            'needs' => $lead->activities->whereNotNull('needs')->sortByDesc('created_at')->first()?->needs,
+            'timeline' => $lead->activities->whereNotNull('timeline')->sortByDesc('created_at')->first()?->timeline,
+            'competitor' => $lead->activities->whereNotNull('competitor')->sortByDesc('created_at')->first()?->competitor,
+            'meeting_summary_attachment' => config('app.url') . "/api/leads/{$lead->id}/meeting-summary/pdf",
+            'eligibility_status' => $lead->qualification_status,
+            'confidentiality_score' => $lead->confidentialityAssessment?->score,
+            'eligibility_reason' => $latestAiEvaluation?->eligibility_reason,
+            'presales_analysis' => $latestAiEvaluation?->presales_analysis,
+            'presales_recommendation' => $latestAiEvaluation?->presales_recommendation,
         ];
 
         return collect($fieldMapping)

@@ -49,6 +49,17 @@ const LEADSY_LEAD_FIELDS = [
   { key: "external_id", label: "External ID" },
   { key: "contact_name", label: "Contact Name" },
   { key: "contact_phone", label: "Contact Phone Number" },
+  { key: "budget", label: "Budget" },
+  { key: "authority", label: "Authority" },
+  { key: "needs", label: "Needs" },
+  { key: "timeline", label: "Timeline" },
+  { key: "competitor", label: "Competitor" },
+  { key: "meeting_summary_attachment", label: "Meeting Summary Attachment" },
+  { key: "eligibility_status", label: "Eligibility Status" },
+  { key: "confidentiality_score", label: "Confidentiality Score" },
+  { key: "eligibility_reason", label: "Eligibility Reason" },
+  { key: "presales_analysis", label: "Presales Analysis" },
+  { key: "presales_recommendation", label: "Presales Recommendation" },
 ] as const;
 
 const DEFAULT_LARK_BASE_FIELD_MAPPING = {
@@ -56,6 +67,9 @@ const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   business_category: "Business Category", lead_score: "Lead Score", qualification_status: "Status", funnel_stage: "Funnel Stage",
   owner: "Owner", external_place_id: "External Place ID", external_id: "External ID",
   contact_name: "Contact Name", contact_phone: "Contact Phone Number",
+  budget: "Budget", authority: "Authority", needs: "Needs", timeline: "Timeline", competitor: "Competitor",
+  meeting_summary_attachment: "Meeting Summary Attachment", eligibility_status: "Eligibility Status", confidentiality_score: "Confidentiality Score",
+  eligibility_reason: "Eligibility Reason", presales_analysis: "Presales Analysis", presales_recommendation: "Presales Recommendation",
 };
 
 const formatLarkBaseValue = (val: any, fieldName?: string): string => {
