@@ -11,8 +11,8 @@ const categories = [
     desc: "Manage team accounts, target revenue allocation, and hierarchy configurations.",
     items: [
       { icon: Users,     title: "Users & Roles",         desc: "User accounts, role management, permissions",                        href: "/settings/users",         color: "bg-[color:var(--brand)]" },
-      { icon: Target,    title: "Target Cascades",       desc: "Configure company revenue targets and cascade to user hierarchy",     href: "/settings/targets",       color: "bg-[color:var(--brand)]" },
-      { icon: Activity,  title: "Role KPI Targets",      desc: "Configure role-specific metrics targets per user",                    href: "/settings/kpi-targets",   color: "bg-[color:var(--brand)]" },
+      { icon: Target,    title: "Target Revenue",        desc: "Configure company revenue targets and cascade to Sales and AMs",      href: "/settings/targets/revenue", color: "bg-[color:var(--brand)]" },
+      { icon: Activity,  title: "Target KPI",            desc: "Configure role-specific metrics and KPIs for all user levels",        href: "/settings/targets/kpi",   color: "bg-[color:var(--brand)]" },
     ]
   },
   {

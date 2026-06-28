@@ -18,6 +18,7 @@ class BusinessCategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'code' => 'nullable|string|max:100',
             'name' => 'required|string|max:255|unique:business_categories',
             'synonyms' => 'nullable|array',
             'scoring_hints' => 'nullable|string',
@@ -42,6 +43,7 @@ class BusinessCategoryController extends Controller
     public function update(Request $request, BusinessCategory $businessCategory)
     {
         $validated = $request->validate([
+            'code' => 'nullable|string|max:100',
             'name' => 'required|string|max:255|unique:business_categories,name,' . $businessCategory->id,
             'synonyms' => 'nullable|array',
             'scoring_hints' => 'nullable|string',

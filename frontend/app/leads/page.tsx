@@ -62,7 +62,7 @@ type LeadRecord = {
   phone?: string | null;
   email?: string | null;
   website?: string | null;
-  business_category?: string | null;
+  business_category_id?: number | null;
   company_size_estimate?: string | null;
   estimated_closing_amount?: string | number | null;
   realized_closing_amount?: string | number | null;
@@ -132,7 +132,7 @@ type LeadFormState = {
   company_size_estimate: string;
   meeting_link: string;
   lead_score: string;
-  business_category: string;
+  business_category_id: string;
   product_id: string;
   estimated_closing_amount: string;
   realized_closing_amount: string;
@@ -164,7 +164,7 @@ type ImportLead = {
   email?: string;
   industry_id?: number;
   sub_industry_id?: number;
-  business_category?: string;
+  business_category_id?: string;
   company_size_estimate?: string;
   branch_count?: number;
   operating_hours?: string;
@@ -205,7 +205,7 @@ const emptyForm: LeadFormState = {
   company_size_estimate: "",
   meeting_link: "",
   lead_score: "",
-  business_category: "",
+  business_category_id: "",
   product_id: "",
   estimated_closing_amount: "",
   realized_closing_amount: "",
@@ -226,7 +226,7 @@ const importHeaderAliases: Record<keyof Omit<ImportLead, "contacts">, string[]> 
   email: ["email", "company email", "email perusahaan"],
   industry_id: ["industry_id", "industry id"],
   sub_industry_id: ["sub_industry_id", "sub industry id", "subindustry_id"],
-  business_category: ["business_category", "business category", "kategori bisnis", "category", "kategori"],
+  business_category_id: ["business_category", "business category", "kategori bisnis", "category", "kategori"],
   company_size_estimate: ["company_size_estimate", "company size", "jumlah karyawan", "size"],
   branch_count: ["branch_count", "branch count", "jumlah cabang", "cabang"],
   operating_hours: ["operating_hours", "operating hours", "jam operasional"],
@@ -261,7 +261,7 @@ const leadImportTargets: ImportMappingTarget[] = [
   { key: "email", label: "email", group: "Lead", aliases: importHeaderAliases.email, example: "info@artha.example" },
   { key: "industry_id", label: "industry_id", group: "Lead", aliases: importHeaderAliases.industry_id, example: 1, note: "Use database ID when available" },
   { key: "sub_industry_id", label: "sub_industry_id", group: "Lead", aliases: importHeaderAliases.sub_industry_id, example: 3, note: "Use database ID when available" },
-  { key: "business_category", label: "business_category", group: "Lead", aliases: importHeaderAliases.business_category, example: "Property Management" },
+  { key: "business_category_id", label: "Business Category", group: "Lead", aliases: importHeaderAliases.business_category_id, example: "Property Management" },
   { key: "company_size_estimate", label: "company_size_estimate", group: "Lead", aliases: importHeaderAliases.company_size_estimate, example: "51-200" },
   { key: "branch_count", label: "branch_count", group: "Lead", aliases: importHeaderAliases.branch_count, example: 4 },
   { key: "operating_hours", label: "operating_hours", group: "Lead", aliases: importHeaderAliases.operating_hours, example: "Mon-Fri 09:00-17:00" },
@@ -347,12 +347,12 @@ function rowToMappedImportLead(row: Record<string, unknown>, mapping: Record<str
   const lead: ImportLead = { company_name: companyName };
   const textFields: (keyof Pick<
     ImportLead,
-    "address" | "phone" | "email" | "business_category" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
+    "address" | "phone" | "email" | "business_category_id" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
   >)[] = [
     "address",
     "phone",
     "email",
-    "business_category",
+    "business_category_id",
     "company_size_estimate",
     "operating_hours",
     "external_place_id",
@@ -466,12 +466,12 @@ function rowToImportLead(row: Record<string, unknown>): ImportLead | null {
   const lead: ImportLead = { company_name: companyName };
   const textFields: (keyof Pick<
     ImportLead,
-    "address" | "phone" | "email" | "business_category" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
+    "address" | "phone" | "email" | "business_category_id" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
   >)[] = [
     "address",
     "phone",
     "email",
-    "business_category",
+    "business_category_id",
     "company_size_estimate",
     "operating_hours",
     "external_place_id",
@@ -731,6 +731,14 @@ export default function LeadsPage() {
     queryKey: ["lead-assignable-users"],
     queryFn: async () => {
       const response = await apiFetch("/leads/assignable-users");
+      return response.ok ? response.json() : [];
+    }
+  });
+
+  const { data: businessCategories = [] } = useQuery({
+    queryKey: ["business-categories"],
+    queryFn: async () => {
+      const response = await apiFetch("/business-categories");
       return response.json();
     },
   });
@@ -1074,7 +1082,7 @@ export default function LeadsPage() {
       company_size_estimate: lead.company_size_estimate || "",
       meeting_link:          lead.meeting_link || "",
       lead_score:            lead.lead_score != null ? String(lead.lead_score) : "",
-      business_category:     lead.business_category || "",
+      business_category_id:  lead.business_category_id?.toString() || "",
       product_id:            lead.product_id != null ? String(lead.product_id) : "",
       estimated_closing_amount: lead.estimated_closing_amount != null ? String(lead.estimated_closing_amount) : "",
       realized_closing_amount:  lead.realized_closing_amount != null ? String(lead.realized_closing_amount) : "",
@@ -1115,7 +1123,7 @@ export default function LeadsPage() {
       industry_id:           formState.industry_id ? Number(formState.industry_id) : undefined,
       sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : undefined,
       company_size_estimate: formState.company_size_estimate.trim() || undefined,
-      business_category:     formState.business_category.trim() || undefined,
+      business_category_id:  formState.business_category_id || undefined,
       product_id:            formState.product_id ? Number(formState.product_id) : undefined,
       estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : undefined,
       realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : undefined,
@@ -1143,7 +1151,7 @@ export default function LeadsPage() {
         industry_id:           formState.industry_id ? Number(formState.industry_id) : null,
         sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : null,
         company_size_estimate: formState.company_size_estimate.trim() || null,
-        business_category:     formState.business_category.trim() || null,
+        business_category_id:  formState.business_category_id || null,
         product_id:            formState.product_id ? Number(formState.product_id) : null,
         estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : null,
         realized_closing_amount:  formState.realized_closing_amount ? Number(formState.realized_closing_amount) : null,
@@ -1635,7 +1643,7 @@ export default function LeadsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="neutral">{lead.industry?.name ?? lead.business_category ?? "Unknown"}</Badge>
+                      <Badge variant="neutral">{lead.industry?.name ?? (businessCategories.find((bc: any) => bc.id === lead.business_category_id)?.name) ?? "Unknown"}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={lead.product ? "info" : "neutral"}>
@@ -2292,11 +2300,15 @@ export default function LeadsPage() {
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Business Category</label>
-            <Input
-              value={formState.business_category}
-              onChange={(e) => setFormState((s) => ({ ...s, business_category: e.target.value }))}
-              placeholder="e.g. Property Management"
-            />
+            <Select
+              value={formState.business_category_id}
+              onChange={(e) => setFormState((s) => ({ ...s, business_category_id: e.target.value }))}
+            >
+              <option value="">Select Business Category</option>
+              {businessCategories.map((bc: any) => (
+                <option key={bc.id} value={bc.id.toString()}>{bc.code ? `[${bc.code}] ` : ''}{bc.name}</option>
+              ))}
+            </Select>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Initial Product</label>
@@ -2546,11 +2558,15 @@ export default function LeadsPage() {
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Business Category</label>
-            <Input
-              value={formState.business_category}
-              onChange={(e) => setFormState((s) => ({ ...s, business_category: e.target.value }))}
-              placeholder="e.g. Property Management"
-            />
+            <Select
+              value={formState.business_category_id}
+              onChange={(e) => setFormState((s) => ({ ...s, business_category_id: e.target.value }))}
+            >
+              <option value="">Select Business Category</option>
+              {businessCategories.map((bc: any) => (
+                <option key={bc.id} value={bc.id.toString()}>{bc.code ? `[${bc.code}] ` : ''}{bc.name}</option>
+              ))}
+            </Select>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Initial Product</label>

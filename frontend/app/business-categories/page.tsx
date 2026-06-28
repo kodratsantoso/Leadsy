@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 
 type BusinessCategoryRecord = {
   id: number;
+  code?: string;
   name: string;
   is_active?: boolean;
 };
@@ -24,6 +25,7 @@ export default function BusinessCategoriesPage() {
   const qc = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<BusinessCategoryRecord | null>(null);
+  const [formCode, setFormCode] = useState("");
   const [formName, setFormName] = useState("");
   const [deleteCategory, setDeleteCategory] = useState<BusinessCategoryRecord | null>(null);
 
@@ -36,7 +38,7 @@ export default function BusinessCategoriesPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (payload: { name: string }) => {
+    mutationFn: async (payload: { code: string, name: string }) => {
       if (editItem) {
         return apiFetch(`/business-categories/${editItem.id}`, {
           method: "PUT",
@@ -66,12 +68,14 @@ export default function BusinessCategoriesPage() {
 
   const openCreate = () => {
     setEditItem(null);
+    setFormCode("");
     setFormName("");
     setShowModal(true);
   };
 
   const openEdit = (item: BusinessCategoryRecord) => {
     setEditItem(item);
+    setFormCode(item.code || "");
     setFormName(item.name);
     setShowModal(true);
   };
@@ -79,6 +83,7 @@ export default function BusinessCategoriesPage() {
   const closeModal = () => {
     setShowModal(false);
     setEditItem(null);
+    setFormCode("");
     setFormName("");
   };
 
@@ -119,6 +124,7 @@ export default function BusinessCategoriesPage() {
                 <div className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-accent/30">
                   <div className="flex flex-1 items-center gap-3 text-left">
                     <Briefcase className="h-4 w-4 text-[color:var(--brand)]" />
+                    {category.code && <Badge variant="neutral" className="font-mono">{category.code}</Badge>}
                     <span className="text-sm font-medium">{category.name}</span>
                     {category.is_active === false ? (
                       <Badge variant="danger">Inactive</Badge>
@@ -161,7 +167,7 @@ export default function BusinessCategoriesPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => saveMutation.mutate({ name: formName })}
+              onClick={() => saveMutation.mutate({ code: formCode, name: formName })}
               disabled={saveMutation.isPending || !formName.trim()}
             >
               {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -170,13 +176,23 @@ export default function BusinessCategoriesPage() {
           </>
         }
       >
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Name</label>
-          <Input
-            value={formName}
-            onChange={(event) => setFormName(event.target.value)}
-            placeholder="e.g. B2B Software"
-          />
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Code (Optional)</label>
+            <Input
+              value={formCode}
+              onChange={(event) => setFormCode(event.target.value)}
+              placeholder="e.g. B2B"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Name</label>
+            <Input
+              value={formName}
+              onChange={(event) => setFormName(event.target.value)}
+              placeholder="e.g. Business to Business"
+            />
+          </div>
         </div>
       </Modal>
 
