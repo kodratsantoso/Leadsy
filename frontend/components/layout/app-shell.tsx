@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Map, Building2, Package,
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
-  Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase
+  Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -86,7 +86,8 @@ const navItems: NavItem[] = [
     label: "Settings",
     children: [
       { href: "/settings/users",          icon: Users,        label: "Users & Roles", group: "User & Targets" },
-      { href: "/settings/targets",        icon: Target,       label: "Target Cascades", group: "User & Targets" },
+      { href: "/settings/targets/revenue", icon: Target,       label: "Target Revenue", group: "User & Targets" },
+      { href: "/settings/targets/kpi",     icon: Activity,     label: "Target KPI", group: "User & Targets" },
       { href: "/settings/ai-defaults",    icon: Bot,          label: "AI Defaults", group: "AI Intelligence" },
       { href: "/settings/icp-profiles",   icon: Target,       label: "ICP Profiles", group: "AI Intelligence" },
       { href: "/settings/industries",     icon: Layers,       label: "Industries", group: "CRM Taxonomy" },
