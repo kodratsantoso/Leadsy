@@ -4,7 +4,14 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.10.0** — 2026-06-28
+Current release: **v1.12.0** — 2026-06-28
+
+## What's New in v1.12.0 (Split Target & KPI)
+
+- **Revenue and KPI Target Separation** — Refactored the unified Targets module into two distinct systems: `Revenue Targets` for monetary goals and cascading, and `KPI Targets` for non-monetary operational goals (e.g., meeting quantity, conversion rates).
+- **Backend Schema Refactor** — Replaced `targets` and `target_cascade_allocations` tables with `revenue_targets` and `kpi_targets`. Reimplemented `RevenueTargetController` and `KpiTargetController` APIs.
+- **Frontend Settings Split** — Updated the Settings navigation and created dedicated pages for `Target Revenue` and `Target KPI`. 
+- **Dashboard Synchronization** — Updated the `DashboardController` so actual achievement percentages map to the correct new target schemas based on user roles.
 
 ## What's New in v1.11.0 (Advanced Lark Base Sync & Meeting Summary)
 

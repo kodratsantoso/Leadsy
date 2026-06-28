@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.9.0',
-    'released_at' => '2026-06-25',
+    'version' => '1.12.0',
+    'released_at' => '2026-06-28',
     'type' => 'minor',
-    'notes' => 'Added Batch Delete functionality and AI Lead Enrichment features.',
+    'notes' => 'Split target functionality into Revenue Target and KPI Target modules.',
 ];

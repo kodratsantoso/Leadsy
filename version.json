@@ -1,6 +1,6 @@
 {
-  "version": "1.7.3",
-  "released_at": "2026-06-21",
-  "type": "patch",
-  "notes": "Fix 404 Route Not Found error for Pre-Meeting Brief generate endpoint."
+  "version": "1.12.0",
+  "released_at": "2026-06-28",
+  "type": "minor",
+  "notes": "Split target functionality into Revenue Target and KPI Target modules."
 }
