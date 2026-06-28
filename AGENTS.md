@@ -21,11 +21,13 @@ This repository contains deprecated root-level UI mirrors and one active runtime
 - Do not use `alert()` or `window.confirm()` for runtime admin flows.
 - Do not add hardcoded colors or inline styling except approved dynamic-safe progress/position values.
 - Any new UI pattern must update the shared design system before page adoption.
+- **MANDATORY**: Always run a TypeScript check (`cd frontend && npx tsc --noEmit`) and ensure there are no errors before ANY push to GitHub.
 
 ## Release Checklist for Improvements
 
 For every **major improvement**, always complete the release hygiene tasks before closing the work:
 
+- Run a TypeScript check (`cd frontend && npx tsc --noEmit`) and ensure it passes cleanly.
 - Update all relevant documentation for specification, task tracking, implementation notes, README files, and affected modules.
 - Refresh the deploy database migration/snapshot files so a fresh deploy carries the current database structure and records.
 - Push to both GitHub repositories already configured for this project: Production and Backup.
@@ -33,3 +35,4 @@ For every **major improvement**, always complete the release hygiene tasks befor
 - Update application version metadata according to the improvement scope.
 
 For every **small improvement**, always push the completed change to both GitHub repositories already configured for this project: Production and Backup.
+**Note:** Even for small improvements, you MUST run a TypeScript check (`cd frontend && npx tsc --noEmit`) before pushing.

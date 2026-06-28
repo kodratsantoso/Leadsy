@@ -93,8 +93,8 @@ Before merging any UI change:
 2. If not, update the shared design system first.
 3. Refactor the consuming page to use the shared primitive.
 4. Verify both light and dark themes.
-5. Run:
-- `cd frontend && ./node_modules/.bin/tsc --noEmit`
+5. **MANDATORY**: Run a TypeScript check and fix ANY errors before pushing:
+- `cd frontend && npx tsc --noEmit`
 
 ## Enforcement Standard
 
