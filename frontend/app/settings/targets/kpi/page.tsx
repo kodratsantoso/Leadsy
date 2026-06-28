@@ -132,8 +132,8 @@ export default function TargetsPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Role-Based Targets & Cascade</h1>
-          <p className="text-muted-foreground mt-1">Manage KPIs and cascading goals across all roles.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Target KPI</h1>
+          <p className="text-muted-foreground mt-1">Configure role-specific metrics and KPIs for all user levels.</p>
         </div>
         <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> New Target</Button>
         <Modal open={open} onOpenChange={setOpen} title="Create New Target" size="sm">

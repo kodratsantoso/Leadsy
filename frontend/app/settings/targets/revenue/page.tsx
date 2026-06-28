@@ -514,9 +514,9 @@ export default function TargetCascadesPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Target Cascades</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Target Revenue</h1>
           <p className="text-sm text-muted-foreground">
-            Manage company target and cascade revenue goals hierarchically from managers to sales reps.
+            Configure company revenue targets and cascade to Sales and AMs.
           </p>
         </div>
         <div className="flex items-center gap-3">
