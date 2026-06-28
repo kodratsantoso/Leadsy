@@ -432,12 +432,38 @@ class LarkBaseService extends LarkService
                 $attributes['lark_table_id'] = $baseTable->table_id;
                 Lead::withoutEvents(fn () => $lead->update($attributes));
 
-                \App\Models\LeadSource::firstOrCreate([
+                $sourceType = \App\Models\LeadSourceType::firstOrCreate(
+                    ['slug' => 'lark'],
+                    [
+                        'name' => 'Lark',
+                        'description' => 'Lark Base sync',
+                        'sort_order' => 50,
+                        'is_active' => true,
+                    ]
+                );
+
+                $channelSlug = \Illuminate\Support\Str::slug($baseTable->table_name);
+                if (empty($channelSlug)) {
+                    $channelSlug = 'lark-table-' . strtolower($baseTable->table_id);
+                }
+                
+                $channelType = \App\Models\LeadChannelType::firstOrCreate(
+                    ['slug' => $channelSlug, 'lead_source_type_id' => $sourceType->id],
+                    [
+                        'name' => $baseTable->table_name,
+                        'description' => 'Synced from Lark Base',
+                        'sort_order' => 10,
+                        'is_active' => true,
+                    ]
+                );
+
+                \App\Models\LeadSource::updateOrCreate([
                     'lead_id' => $lead->id,
                     'source_type' => 'lark_base',
                     'lark_app_token' => $baseTable->app_token,
                     'lark_table_id' => $baseTable->table_id,
                 ], [
+                    'channel_type_id' => $channelType->id,
                     'confidence' => 'high',
                     'last_verified_at' => now(),
                 ]);
@@ -452,11 +478,37 @@ class LarkBaseService extends LarkService
                     'lark_table_id' => $baseTable->table_id,
                 ])));
 
+                $sourceType = \App\Models\LeadSourceType::firstOrCreate(
+                    ['slug' => 'lark'],
+                    [
+                        'name' => 'Lark',
+                        'description' => 'Lark Base sync',
+                        'sort_order' => 50,
+                        'is_active' => true,
+                    ]
+                );
+
+                $channelSlug = \Illuminate\Support\Str::slug($baseTable->table_name);
+                if (empty($channelSlug)) {
+                    $channelSlug = 'lark-table-' . strtolower($baseTable->table_id);
+                }
+                
+                $channelType = \App\Models\LeadChannelType::firstOrCreate(
+                    ['slug' => $channelSlug, 'lead_source_type_id' => $sourceType->id],
+                    [
+                        'name' => $baseTable->table_name,
+                        'description' => 'Synced from Lark Base',
+                        'sort_order' => 10,
+                        'is_active' => true,
+                    ]
+                );
+
                 \App\Models\LeadSource::create([
                     'lead_id' => $lead->id,
                     'source_type' => 'lark_base',
                     'lark_app_token' => $baseTable->app_token,
                     'lark_table_id' => $baseTable->table_id,
+                    'channel_type_id' => $channelType->id,
                     'confidence' => 'high',
                     'last_verified_at' => now(),
                 ]);
