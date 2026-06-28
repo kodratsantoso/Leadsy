@@ -359,6 +359,10 @@ class TargetController extends Controller
     public function index(Request $request): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        
         $targets = Target::with(['assignedUser', 'directManager', 'parentTarget'])
             ->where('tenant_id', $tenant->id)
             ->get();
@@ -369,6 +373,10 @@ class TargetController extends Controller
     public function store(Request $request): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         $validated = $request->validate([
             'target_name' => 'nullable|string|max:255',
             'role_type' => 'required|string',
@@ -402,6 +410,10 @@ class TargetController extends Controller
     public function show(Request $request, $id): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         $target = Target::with(['assignedUser', 'directManager', 'parentTarget'])
             ->where('tenant_id', $tenant->id)
             ->findOrFail($id);
@@ -412,6 +424,10 @@ class TargetController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         $target = Target::where('tenant_id', $tenant->id)->findOrFail($id);
 
         $validated = $request->validate([
@@ -445,6 +461,10 @@ class TargetController extends Controller
     public function destroy(Request $request, $id): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         $target = Target::where('tenant_id', $tenant->id)->findOrFail($id);
         $target->delete();
         
@@ -454,6 +474,10 @@ class TargetController extends Controller
     public function cascade(Request $request, $id): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         $parentTarget = Target::where('tenant_id', $tenant->id)->findOrFail($id);
 
         if ($parentTarget->role_type !== 'sales' || !in_array($parentTarget->target_type, ['closed_won_revenue', 'new_business_revenue']) || $parentTarget->target_value_type !== 'amount') {
@@ -488,6 +512,10 @@ class TargetController extends Controller
     public function achievement(Request $request, $id): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         $target = Target::where('tenant_id', $tenant->id)->findOrFail($id);
         
         // Use TargetCalculationService to get actuals (implemented later)
