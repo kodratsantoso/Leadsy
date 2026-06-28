@@ -440,11 +440,19 @@ class LarkController extends Controller
                     ->orWhereNull('tenant_id');
             })
                 ->where(function ($query) use ($baseTable) {
-                    $query->whereDoesntHave('larkBaseRecordMappings', function ($q) use ($baseTable) {
-                        $q->where('lark_base_table_id', $baseTable->id);
+                    $query->whereNotExists(function ($q) use ($baseTable) {
+                        $q->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('lark_base_record_mappings')
+                          ->whereRaw('lark_base_record_mappings.leadsy_entity_id = CAST(leads.id AS VARCHAR)')
+                          ->where('lark_base_record_mappings.leadsy_entity_type', 'lead')
+                          ->where('lark_base_table_id', $baseTable->id);
                     })
-                    ->orWhereHas('larkBaseRecordMappings', function ($q) use ($baseTable) {
-                        $q->where('lark_base_table_id', $baseTable->id)
+                    ->orWhereExists(function ($q) use ($baseTable) {
+                        $q->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('lark_base_record_mappings')
+                          ->whereRaw('lark_base_record_mappings.leadsy_entity_id = CAST(leads.id AS VARCHAR)')
+                          ->where('lark_base_record_mappings.leadsy_entity_type', 'lead')
+                          ->where('lark_base_table_id', $baseTable->id)
                           ->where(function ($sq) {
                               $sq->whereColumn('leads.updated_at', '>', 'lark_base_record_mappings.last_leadsy_updated_at')
                                  ->orWhereNull('lark_base_record_mappings.last_leadsy_updated_at');
