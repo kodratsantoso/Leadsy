@@ -48,7 +48,7 @@ class ConfidentialityAssessmentService
             'classification_reason' => implode(' ', $reasons),
             'basis' => $basis,
             'data_sources' => ['CRM Records', 'AI Interaction Logs', 'Sales Activities'],
-            'recommended_access_handling' => this->getHandlingRecommendation($level),
+            'recommended_access_handling' => $this->getHandlingRecommendation($level),
             'special_attention' => $specialAttention,
         ];
     }
