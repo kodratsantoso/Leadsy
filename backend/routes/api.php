@@ -35,7 +35,6 @@ use App\Http\Controllers\Api\QualificationWorkflowReviewController;
 use App\Http\Controllers\Api\RevenueRuleController;
 use App\Http\Controllers\Api\SalesVisitController;
 use App\Http\Controllers\Api\TargetConfigController;
-use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\TerritoryController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -153,15 +152,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
     Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');
     Route::post('settings/currency/sync-rates', [CurrencySettingController::class, 'syncRates'])->middleware('permission:integrations.manage');
-    // V1 Targets (Legacy)
-    Route::get('settings/targets', [TargetController::class, 'legacyIndex'])->middleware('permission:users.manage');
-    Route::post('settings/targets', [TargetController::class, 'legacyUpdate'])->middleware('permission:users.manage');
-
-    // V2 Targets
+    // Targets
     Route::get('targets/config', [TargetConfigController::class, 'config']);
-    Route::apiResource('targets', TargetController::class);
-    Route::post('targets/{id}/cascade', [TargetController::class, 'cascade']);
-    Route::get('targets/{id}/achievement', [TargetController::class, 'achievement']);
+    
+    // Revenue Targets
+    Route::apiResource('revenue-targets', \App\Http\Controllers\Api\RevenueTargetController::class);
+    Route::post('revenue-targets/{id}/cascade', [\App\Http\Controllers\Api\RevenueTargetController::class, 'cascade']);
+
+    // KPI Targets
+    Route::apiResource('kpi-targets', \App\Http\Controllers\Api\KpiTargetController::class);
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/assign', [LeadController::class, 'assign'])->middleware('permission:leads.edit');

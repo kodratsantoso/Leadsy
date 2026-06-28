@@ -9,6 +9,8 @@ use App\Models\LeadActivity;
 use App\Models\LeadOutcome;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\RevenueTarget;
+use App\Models\KpiTarget;
 use App\Services\AI\AiOrchestrationService;
 use App\Services\ConfidentialityAssessmentService;
 use Illuminate\Http\JsonResponse;
@@ -478,7 +480,29 @@ class DashboardController extends Controller
         $tier = $user?->tier_level ?? 'VP';
         $bufferRate = (float) ($user?->buffer_rate ?? 20.00);
 
-        $target = (float) ($user?->target_revenue ?? 0);
+        // Fetch active revenue target based on period
+        $targetPeriodMap = [
+            'weekly' => 'weekly', // if not supported by db, maybe fallback
+            'quarterly' => 'quarterly',
+            'yearly' => 'yearly',
+            'monthly' => 'monthly',
+        ];
+        
+        $targetPeriodType = $targetPeriodMap[$period] ?? 'monthly';
+        
+        $revTargetQuery = RevenueTarget::where('assigned_user_id', $user->id)
+            ->where('period_type', $targetPeriodType)
+            ->where('year', now()->year);
+            
+        if ($targetPeriodType === 'monthly') {
+            $revTargetQuery->where('month', now()->month);
+        } elseif ($targetPeriodType === 'quarterly') {
+            $revTargetQuery->where('quarter', now()->quarter);
+        }
+        
+        $activeTarget = $revTargetQuery->first();
+        $target = (float) ($activeTarget?->target_amount ?? 0);
+
         $realized = 0.0;
         $targetType = 'closed_won';
         $grossTarget = 0.0;
@@ -539,8 +563,17 @@ class DashboardController extends Controller
 
             $integrationFitScore = $totalAssigned > 0 ? round(($eligibleLeads / $totalAssigned) * 100, 1) : 0;
             $slaResponseTime = 2.4; // hours
+            
+            // For Presales, target comes from KpiTarget
+            $kpiTargetQuery = KpiTarget::where('assigned_user_id', $user->id)
+                ->where('period_type', $targetPeriodType)
+                ->where('kpi_type', 'opportunities')
+                ->where('start_date', '<=', now()->toDateString())
+                ->where('end_date', '>=', now()->toDateString());
+            
+            $activeKpiTarget = $kpiTargetQuery->first();
+            $target = (float) ($activeKpiTarget?->target_quantity ?? 50.0);
 
-            $target = (float) ($user->target_revenue ?? 50.0);
             $realized = $totalAssigned;
             $closedWonCount = $techWins;
 
@@ -557,12 +590,22 @@ class DashboardController extends Controller
             $targetType = 'closed_won';
 
             if ($tier === 'VP' || $tier === 'MANAGER') {
-                $subordinateQuery = User::whereIn('id', $visibleUserIds ?? [])
-                    ->where('id', '!=', $user->id);
-
-                $grossTarget = (float) (clone $subordinateQuery)
+                $subordinateIds = User::whereIn('id', $visibleUserIds ?? [])
+                    ->where('id', '!=', $user->id)
                     ->whereIn('tier_level', ['SR_AE', 'JR_AE'])
-                    ->sum('target_revenue');
+                    ->pluck('id');
+
+                $grossTargetQuery = RevenueTarget::whereIn('assigned_user_id', $subordinateIds)
+                    ->where('period_type', $targetPeriodType)
+                    ->where('year', now()->year);
+                    
+                if ($targetPeriodType === 'monthly') {
+                    $grossTargetQuery->where('month', now()->month);
+                } elseif ($targetPeriodType === 'quarterly') {
+                    $grossTargetQuery->where('quarter', now()->quarter);
+                }
+                
+                $grossTarget = (float) $grossTargetQuery->sum('target_amount');
 
                 if ($grossTarget > 0) {
                     $target = $grossTarget;
@@ -596,7 +639,19 @@ class DashboardController extends Controller
                             ->sum('deal_size');
                         $repTargetType = 'closed_won';
                     }
-                    $repTarget = (float) ($rep->target_revenue ?? 0);
+                    
+                    $repRevTargetQuery = RevenueTarget::where('assigned_user_id', $rep->id)
+                        ->where('period_type', $targetPeriodType)
+                        ->where('year', now()->year);
+                        
+                    if ($targetPeriodType === 'monthly') {
+                        $repRevTargetQuery->where('month', now()->month);
+                    } elseif ($targetPeriodType === 'quarterly') {
+                        $repRevTargetQuery->where('quarter', now()->quarter);
+                    }
+                    
+                    $repActiveTarget = $repRevTargetQuery->first();
+                    $repTarget = (float) ($repActiveTarget?->target_amount ?? 0);
 
                     return [
                         'id' => $rep->id,
