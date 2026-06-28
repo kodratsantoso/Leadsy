@@ -39,6 +39,38 @@ class TargetController extends Controller
             ->where('is_active', true)
             ->get();
 
+        // Infer direct_manager_id based on Role/Tier if not set
+        $tierRanks = [
+            'C-LEVEL' => 10,
+            'VP' => 9,
+            'DIRECTOR' => 8,
+            'HEAD' => 7,
+            'MANAGER' => 6,
+            'SENIOR STAFF' => 5,
+            'STAFF' => 4,
+            'JR STAFF' => 3,
+            'JR_AE' => 2,
+        ];
+        
+        foreach ($users as $user) {
+            if (is_null($user->direct_manager_id)) {
+                $myRank = $tierRanks[$user->tier_level] ?? 1;
+                // Only find a manager if they are not already a top-level leader (C-LEVEL)
+                if ($myRank < 10) {
+                    $potentialManager = $users->filter(function($u) use ($myRank, $tierRanks, $user) {
+                        $theirRank = $tierRanks[$u->tier_level] ?? 1;
+                        return $theirRank > $myRank && $u->id !== $user->id;
+                    })->sortBy(function($u) use ($tierRanks) {
+                        return $tierRanks[$u->tier_level] ?? 1; // Sort ascending to get the closest rank
+                    })->first();
+                    
+                    if ($potentialManager) {
+                        $user->direct_manager_id = $potentialManager->id;
+                    }
+                }
+            }
+        }
+
         // Prefetch metrics (Estimated & Realized Revenue) per user
         $userMetrics = [];
         $salesSplit = (float)($commissionSplits['sales'] ?? 100) / 100;
@@ -206,8 +238,34 @@ class TargetController extends Controller
 
         // 2. Update specific users in bulk (if provided)
         if ($request->has('users')) {
+            $users = User::where('tenant_id', $tenant->id)->where('is_active', true)->get();
+            $tierRanks = [
+                'C-LEVEL' => 10, 'VP' => 9, 'DIRECTOR' => 8, 'HEAD' => 7,
+                'MANAGER' => 6, 'SENIOR STAFF' => 5, 'STAFF' => 4, 'JR STAFF' => 3, 'JR_AE' => 2,
+            ];
+            
+            foreach ($users as $user) {
+                if (is_null($user->direct_manager_id)) {
+                    $myRank = $tierRanks[$user->tier_level] ?? 1;
+                    if ($myRank < 10) {
+                        $potentialManager = $users->filter(function($u) use ($myRank, $tierRanks, $user) {
+                            $theirRank = $tierRanks[$u->tier_level] ?? 1;
+                            return $theirRank > $myRank && $u->id !== $user->id;
+                        })->sortBy(function($u) use ($tierRanks) {
+                            return $tierRanks[$u->tier_level] ?? 1;
+                        })->first();
+                        
+                        if ($potentialManager) {
+                            $user->direct_manager_id = $potentialManager->id;
+                        }
+                    }
+                }
+            }
+
             foreach ($request->input('users') as $uData) {
-                $targetUser = User::where('tenant_id', $tenant->id)->find($uData['id']);
+                // Find in the pre-fetched users collection to preserve the inferred direct_manager_id
+                $targetUser = $users->firstWhere('id', $uData['id']);
+                
                 if ($targetUser) {
                     $targetUser->target_calculation_type = $uData['target_calculation_type'];
                     $targetUser->target_percentage = (float) $uData['target_percentage'];
@@ -217,7 +275,8 @@ class TargetController extends Controller
                     } else {
                         // Calculate percentage of manager's target or company target
                         if ($targetUser->direct_manager_id) {
-                            $parent = User::find($targetUser->direct_manager_id);
+                            // Find parent in the pre-fetched collection
+                            $parent = $users->firstWhere('id', $targetUser->direct_manager_id);
                             $parentTarget = $parent ? (float) $parent->target_revenue : 0.0;
                             $targetUser->target_revenue = round(($parentTarget * $targetUser->target_percentage) / 100.0, 2);
                         } else {
@@ -225,14 +284,26 @@ class TargetController extends Controller
                         }
                     }
                     $targetUser->save();
-
-                    // Cascade targets down to direct reportees
-                    User::cascadeTargets($targetUser);
+                    
+                    // Cascade targets down to direct reportees using inferred hierarchy
+                    $this->cascadeInferredTargets($targetUser, $users);
                 }
             }
         }
 
         return $this->index($request);
+    }
+
+    private function cascadeInferredTargets(User $parent, $allUsers): void
+    {
+        $reports = $allUsers->where('direct_manager_id', $parent->id);
+        foreach ($reports as $report) {
+            if ($report->target_calculation_type === 'percentage') {
+                $report->target_revenue = round(($parent->target_revenue * $report->target_percentage) / 100.0, 2);
+                $report->save();
+            }
+            $this->cascadeInferredTargets($report, $allUsers);
+        }
     }
 
     /**
