@@ -17,7 +17,7 @@ class TargetController extends Controller
      */
     public function legacyIndex(Request $request): JsonResponse
     {
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->user()?->tenant;
 
         if (! $tenant) {
             return response()->json([
@@ -358,7 +358,7 @@ class TargetController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->user()?->tenant;
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -372,7 +372,7 @@ class TargetController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->user()?->tenant;
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -409,7 +409,7 @@ class TargetController extends Controller
 
     public function show(Request $request, $id): JsonResponse
     {
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->user()?->tenant;
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -423,7 +423,7 @@ class TargetController extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->user()?->tenant;
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -460,7 +460,7 @@ class TargetController extends Controller
 
     public function destroy(Request $request, $id): JsonResponse
     {
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->user()?->tenant;
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -473,7 +473,7 @@ class TargetController extends Controller
 
     public function cascade(Request $request, $id): JsonResponse
     {
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->user()?->tenant;
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -511,7 +511,7 @@ class TargetController extends Controller
 
     public function achievement(Request $request, $id): JsonResponse
     {
-        $tenant = $request->attributes->get('tenant');
+        $tenant = $request->user()?->tenant;
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
