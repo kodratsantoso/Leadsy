@@ -269,7 +269,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.location.href = `/leads/${row.lead_id}`}>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.location.href = `/leads/${row.lead_id}?tab=intelligence`}>
                       Why this score? <ChevronRight className="h-3 w-3 ml-1" />
                     </Button>
                   </td>
@@ -333,7 +333,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
                 </div>
                 <div className="text-sm font-semibold mb-1">{risk.lead}</div>
                 <div className="text-xs text-muted-foreground mb-3">{risk.reason}</div>
-                <Button variant="secondary" size="sm" className="h-7 text-xs w-full" onClick={() => window.location.href = `/leads/${risk.lead_id}`}>
+                <Button variant="secondary" size="sm" className="h-7 text-xs w-full" onClick={() => window.location.href = `/leads/${risk.lead_id}?tab=intelligence`}>
                   {risk.action}
                 </Button>
               </div>

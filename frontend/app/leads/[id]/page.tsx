@@ -613,6 +613,16 @@ export default function LeadDetailPage() {
   const { formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
+
   // Company info edit state (unified with Edit Lead form)
   const [showEditCompanyInfo, setShowEditCompanyInfo] = useState(false);
   const [companyForm, setCompanyForm] = useState({
