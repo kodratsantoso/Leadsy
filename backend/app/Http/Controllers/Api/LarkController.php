@@ -576,6 +576,16 @@ class LarkController extends Controller
         ]);
     }
 
+    public function syncSingleLead(Request $request, Lead $lead)
+    {
+        $this->authorize('view', $lead);
+        \App\Jobs\SyncLeadToLarkBaseJob::dispatch($lead->id);
+        
+        return response()->json([
+            'message' => 'Lark Base sync job dispatched for the lead.'
+        ]);
+    }
+
     private function tenantIntegration(): LarkIntegration
     {
         $user = Auth::user();

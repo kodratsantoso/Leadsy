@@ -250,7 +250,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/evaluations', [LeadController::class, 'getEvaluations'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/follow-ups', [LeadController::class, 'getFollowUps'])->middleware('permission:leads.view');
-    Route::post('leads/{lead}/sync-lark', [\App\Http\Controllers\LarkBaseMappingController::class, 'syncSingleLead'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/sync-lark', [\App\Http\Controllers\Api\LarkController::class, 'syncSingleLead'])->middleware('permission:leads.edit');
     
     // Meeting Summary PDFs
     Route::post('transcripts/meeting-summary/generate', [MeetingSummaryPdfController::class, 'generate'])->middleware('permission:leads.edit');
@@ -414,10 +414,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('base/records/preview', [LarkController::class, 'previewBaseRecords'])->middleware('permission:integrations.manage');
         
         // Advanced Mapping Routes
-        Route::get('base/mappings', [LarkBaseMappingController::class, 'index'])->middleware('permission:integrations.manage');
-        Route::post('base/mappings', [LarkBaseMappingController::class, 'store'])->middleware('permission:integrations.manage');
-        Route::post('base/mappings/{mappingId}/sync', [LarkBaseMappingController::class, 'retriggerSync'])->middleware('permission:integrations.manage');
-        Route::delete('base/mappings/{mappingId}', [LarkBaseMappingController::class, 'destroy'])->middleware('permission:integrations.manage');
+        Route::get('base/mappings', [LarkController::class, 'getBaseMappings'])->middleware('permission:integrations.manage');
+        Route::post('base/mappings', [LarkController::class, 'saveBaseMapping'])->middleware('permission:integrations.manage');
+        Route::post('base/mappings/{baseTable}/sync', [LarkController::class, 'syncBaseMapping'])->middleware('permission:integrations.manage');
+        Route::delete('base/mappings/{baseTable}', [LarkController::class, 'deleteBaseMapping'])->middleware('permission:integrations.manage');
     });
 });
 
