@@ -6,6 +6,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 Current release: **v1.10.0** — 2026-06-28
 
+## What's New in v1.11.0 (Advanced Lark Base Sync & Meeting Summary)
+
+- **Advanced Lark Base Sync** — Upgraded the existing Lark Base integration to support robust record-level two-way synchronization. Users can now explicitly map Leadsy fields to Lark Base fields. The system automatically triggers syncing via queued jobs whenever a lead is updated. Added a manual "Sync to Lark Base" action on the Lead Detail page.
+- **Meeting Summary PDF Automation** — AI transcript evaluations can now be converted to enterprise-grade Meeting Summary PDFs. Generating the PDF automatically uploads/attaches it to the mapped Lark Base attachment field using backend queues. Added manual generation and download buttons within the Transcripts tab.
+
 ## What's New in v1.10.0 (Target & Cascade V2)
 
 - **Role-Based Target System** — Decoupled the target system from the rigid sales-revenue-only model. Users can now be assigned different target types (amount, percentage, quantity, score, days) based on their role (Sales, Presales, CSM, Account Manager).

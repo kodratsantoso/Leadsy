@@ -44,6 +44,14 @@ class LeadObserver
         ])) {
             $this->triggerLarkBaseSync($lead);
         }
+
+        if ($lead->wasChanged([
+            'eligibility_status',
+            'score',
+            'confidentiality_score',
+        ])) {
+            \App\Jobs\SyncLeadToLarkBaseJob::dispatch($lead->id);
+        }
     }
 
     /**

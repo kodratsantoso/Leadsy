@@ -15,7 +15,7 @@ import {
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot
+  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -680,6 +680,8 @@ export default function LeadDetailPage() {
 
   // Transcript state
   const [showTranscriptForm, setShowTranscriptForm] = useState(false);
+  const [transcriptFeedback, setTranscriptFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [larkBaseFeedback, setLarkBaseFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [transcriptForm, setTranscriptForm] = useState({
     title: '',
     source_type: 'manual',
@@ -691,7 +693,6 @@ export default function LeadDetailPage() {
   });
   const [evaluatingTranscriptId, setEvaluatingTranscriptId] = useState<number | null>(null);
   const [expandedEvalId, setExpandedEvalId]       = useState<number | null>(null);
-  const [transcriptFeedback, setTranscriptFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   // Fetch lead details (includes contacts)
   const { data: lead, isLoading: leadLoading } = useQuery({
@@ -1310,6 +1311,42 @@ export default function LeadDetailPage() {
     }
   });
 
+  const generateMeetingSummaryPdfMutation = useMutation({
+    mutationFn: async ({ transcriptId, evaluationId }: { transcriptId: number; evaluationId?: number }) => {
+      const res = await apiFetch(`/transcripts/meeting-summary/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript_id: transcriptId, evaluation_id: evaluationId })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || 'Failed to trigger PDF generation.');
+      return json;
+    },
+    onSuccess: () => {
+      setTranscriptFeedback({ type: 'success', msg: 'Meeting summary PDF generation started. It will be available shortly.' });
+    },
+    onError: (err: any) => {
+      setTranscriptFeedback({ type: 'error', msg: err.message || 'Failed to generate Meeting Summary PDF.' });
+    }
+  });
+
+  const syncToLarkBaseMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/sync-lark`, { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || 'Failed to trigger Lark Base sync.');
+      return json;
+    },
+    onSuccess: () => {
+      setLarkBaseFeedback({ type: 'success', msg: 'Sync started.' });
+      setTimeout(() => setLarkBaseFeedback(null), 4000);
+    },
+    onError: (err: any) => {
+      setLarkBaseFeedback({ type: 'error', msg: err.message || 'Failed to sync to Lark.' });
+      setTimeout(() => setLarkBaseFeedback(null), 4000);
+    }
+  });
+
   /* ── Revenue Intelligence queries & mutations ── */
   const { data: revenueIntel, isLoading: revenueLoading, refetch: refetchRevenue } = useQuery({
     queryKey: ['revenue-intelligence', leadId],
@@ -1542,15 +1579,33 @@ export default function LeadDetailPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/leads">
-          <span className={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }))}>
-            <ArrowLeft className="h-4 w-4" />
-          </span>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">{leadData.company_name}</h1>
-          <p className="text-sm text-muted-foreground">{leadData.address}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/leads">
+            <span className={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }))}>
+              <ArrowLeft className="h-4 w-4" />
+            </span>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold">{leadData.company_name}</h1>
+            <p className="text-sm text-muted-foreground">{leadData.address}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {larkBaseFeedback && (
+             <span className={`text-xs ${larkBaseFeedback.type === 'error' ? 'text-[var(--status-danger)]' : 'text-[var(--status-success)]'}`}>
+               {larkBaseFeedback.msg}
+             </span>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => syncToLarkBaseMutation.mutate()}
+            disabled={syncToLarkBaseMutation.isPending}
+          >
+            {syncToLarkBaseMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Sync to Lark Base
+          </Button>
         </div>
       </div>
 
@@ -3499,9 +3554,31 @@ export default function LeadDetailPage() {
                           )}
                         </div>
 
-                        <p className="text-[10px] text-muted-foreground">
-                          Analysed {new Date(evaluation.evaluated_at ?? evaluation.created_at).toLocaleString()}
-                        </p>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border">
+                          <p className="text-[10px] text-muted-foreground">
+                            Analysed {new Date(evaluation.evaluated_at ?? evaluation.created_at).toLocaleString()}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={generateMeetingSummaryPdfMutation.isPending}
+                              onClick={() => generateMeetingSummaryPdfMutation.mutate({ transcriptId: tr.id, evaluationId: evaluation.id })}
+                            >
+                              {generateMeetingSummaryPdfMutation.isPending && evaluatingTranscriptId === tr.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                              Generate Summary PDF
+                            </Button>
+                            <a
+                              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/transcripts/${tr.id}/meeting-summary/download`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={buttonVariants({ variant: 'default', size: 'sm' })}
+                            >
+                              <FileDown className="mr-2 h-4 w-4" />
+                              Download PDF
+                            </a>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

@@ -13,6 +13,12 @@ class LarkBaseRecordMapping extends Model
         'leadsy_entity_type',
         'leadsy_entity_id',
         'lark_record_id',
+        'lark_app_token',
+        'lark_table_id',
+        'leadsy_record_id_value',
+        'sync_status',
+        'last_synced_at',
+        'last_sync_error',
         'last_lark_updated_at',
         'last_leadsy_updated_at',
         'last_sync_source',
@@ -21,6 +27,7 @@ class LarkBaseRecordMapping extends Model
     protected $casts = [
         'last_lark_updated_at' => 'datetime',
         'last_leadsy_updated_at' => 'datetime',
+        'last_synced_at' => 'datetime',
     ];
 
     public function tenant(): BelongsTo
