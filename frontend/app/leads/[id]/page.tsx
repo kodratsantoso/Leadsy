@@ -1406,9 +1406,13 @@ export default function LeadDetailPage() {
   });
 
   const confidentialityMutation = useMutation({
-    mutationFn: () => apiFetch(`/confidentiality/assessments/lead/${leadId}/recalculate`, { method: 'POST' }).then(r => r.json()),
+    mutationFn: async () => {
+      const r = await apiFetch(`/confidentiality/assessments/lead/${leadId}/recalculate`, { method: 'POST' });
+      if (!r.ok) throw new Error('Recalculate failed');
+      return r.json();
+    },
     onSuccess: () => {
-      refetchConfidentiality();
+      qc.invalidateQueries({ queryKey: ['lead-confidentiality', leadId] });
     }
   });
 
@@ -2468,11 +2472,11 @@ export default function LeadDetailPage() {
                 />
                 
                 <div className="mt-4 space-y-3">
-                  {safeJsonArray(confidentiality.score_breakdown_json).length > 0 && (
+                  {safeJsonArray(confidentiality.score_breakdown).length > 0 && (
                     <div>
                       <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">Score Breakdown</h4>
                       <ul className="space-y-2">
-                        {safeJsonArray(confidentiality.score_breakdown_json).map((item: any, i: number) => (
+                        {safeJsonArray(confidentiality.score_breakdown).map((item: any, i: number) => (
                           <li key={i} className="flex flex-wrap justify-between items-center gap-2 rounded bg-muted/20 p-2">
                             <div>
                               <span className="font-medium text-xs block">{item.parameter}</span>
@@ -2485,11 +2489,11 @@ export default function LeadDetailPage() {
                     </div>
                   )}
 
-                  {safeJsonArray(confidentiality.recommendation_json).length > 0 && (
+                  {safeJsonArray(confidentiality.recommended_handling).length > 0 && (
                     <div>
                       <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">Recommendations</h4>
                       <ul className="space-y-1">
-                        {safeJsonArray(confidentiality.recommendation_json).map((rec: string, i: number) => (
+                        {safeJsonArray(confidentiality.recommended_handling).map((rec: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 text-muted-foreground">
                             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand)]" />
                             <span>{rec}</span>
@@ -2499,11 +2503,11 @@ export default function LeadDetailPage() {
                     </div>
                   )}
 
-                  {safeJsonArray(confidentiality.missing_data_json).length > 0 && (
+                  {safeJsonArray(confidentiality.missing_data).length > 0 && (
                     <div className="rounded-lg border border-[var(--status-warning)]/20 bg-[var(--status-warning)]/10 p-3">
                       <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-[var(--status-warning)]">Missing Data For Assessment</h4>
                       <div className="flex flex-wrap gap-2">
-                        {safeJsonArray(confidentiality.missing_data_json).map((item: string, i: number) => (
+                        {safeJsonArray(confidentiality.missing_data).map((item: string, i: number) => (
                           <Badge key={i} variant="outline" className="border-[var(--status-warning)]/30 text-[var(--status-warning)] bg-transparent">{item}</Badge>
                         ))}
                       </div>
@@ -2512,7 +2516,7 @@ export default function LeadDetailPage() {
                 </div>
                 
                 <p className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border">
-                  Last assessed: {new Date(confidentiality.assessed_at || confidentiality.updated_at).toLocaleString()}
+                  Last assessed: {new Date(confidentiality.last_assessed || confidentiality.updated_at).toLocaleString()}
                 </p>
               </div>
             )}
