@@ -354,6 +354,8 @@ class TargetController extends Controller
         }
 
         return $branch;
+    }
+
     public function index(Request $request): JsonResponse
     {
         $tenant = $request->attributes->get('tenant');
