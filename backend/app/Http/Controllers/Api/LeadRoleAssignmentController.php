@@ -16,7 +16,10 @@ class LeadRoleAssignmentController extends Controller
         // Ensure user has access to this lead
         // $this->authorize('view', $lead);
 
-        $assignments = $lead->roleAssignments()->with(['user:id,name,email', 'assignedBy:id,name'])->get();
+        $assignments = $lead->roleAssignments()
+            ->where('assignment_status', 'active')
+            ->with(['user:id,name,email', 'assignedBy:id,name'])
+            ->get();
         return response()->json(['data' => $assignments]);
     }
 

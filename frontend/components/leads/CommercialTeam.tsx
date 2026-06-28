@@ -94,12 +94,11 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
   };
 
   const removeAssignment = async (id: number) => {
-    if (!confirm('Remove this role assignment?')) return;
     try {
       await apiFetch(`/leads/${leadId}/role-assignments/${id}`, { method: 'DELETE' });
       qc.invalidateQueries({ queryKey: ['lead-role-assignments', leadId] });
-    } catch (err) {
-      alert('Failed to remove assignment.');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to remove assignment.');
     }
   };
 

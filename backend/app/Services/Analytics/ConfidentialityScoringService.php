@@ -21,7 +21,7 @@ class ConfidentialityScoringService
         $dataSensitivityScore = 0;
         
         // Transcripts
-        $hasTranscripts = $lead->meetings()->whereNotNull('transcript')->exists();
+        $hasTranscripts = $lead->transcripts()->exists();
         if ($hasTranscripts) {
             $dataSensitivityScore += 15;
             $scoreBreakdown[] = $this->makeBreakdown('Transcripts', 'Present', 15, 'High', ['lead_meetings']);
