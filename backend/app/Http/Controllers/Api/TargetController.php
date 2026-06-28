@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Target;
+use App\Models\TargetCascadeAllocation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,10 +15,9 @@ class TargetController extends Controller
     /**
      * Get target cascades tree and metrics.
      */
-    public function index(Request $request): JsonResponse
+    public function legacyIndex(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $tenant = $user->tenant;
+        $tenant = $request->attributes->get('tenant');
 
         if (! $tenant) {
             return response()->json([
@@ -193,7 +194,7 @@ class TargetController extends Controller
     /**
      * Update target configs.
      */
-    public function update(Request $request): JsonResponse
+    public function legacyUpdate(Request $request): JsonResponse
     {
         $request->validate([
             'company_target_revenue' => 'nullable|numeric|min:0',
@@ -291,7 +292,7 @@ class TargetController extends Controller
             }
         }
 
-        return $this->index($request);
+        return $this->legacyIndex($request);
     }
 
     private function cascadeInferredTargets(User $parent, $allUsers): void
@@ -353,5 +354,148 @@ class TargetController extends Controller
         }
 
         return $branch;
+    public function index(Request $request): JsonResponse
+    {
+        $tenant = $request->attributes->get('tenant');
+        $targets = Target::with(['assignedUser', 'directManager', 'parentTarget'])
+            ->where('tenant_id', $tenant->id)
+            ->get();
+
+        return response()->json($targets);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $tenant = $request->attributes->get('tenant');
+        $validated = $request->validate([
+            'target_name' => 'nullable|string|max:255',
+            'role_type' => 'required|string',
+            'target_type' => 'required|string',
+            'assigned_user_id' => 'required|exists:users,id',
+            'direct_manager_id' => 'nullable|exists:users,id',
+            'period_type' => 'required|string',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'target_value_type' => 'required|string',
+            'target_amount' => 'nullable|numeric|min:0',
+            'target_quantity' => 'nullable|integer|min:0',
+            'target_percentage' => 'nullable|numeric|min:0|max:100',
+            'target_score' => 'nullable|numeric|min:0|max:100',
+            'target_days' => 'nullable|integer|min:0',
+            'product_id' => 'nullable|exists:products,id',
+            'industry_id' => 'nullable|exists:industries,id',
+            'business_category_id' => 'nullable|exists:business_categories,id',
+            'revenue_type' => 'nullable|string',
+            'weight' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string',
+        ]);
+
+        $validated['tenant_id'] = $tenant->id;
+        $validated['created_by'] = $request->user()->id;
+
+        $target = Target::create($validated);
+        return response()->json($target, 201);
+    }
+
+    public function show(Request $request, $id): JsonResponse
+    {
+        $tenant = $request->attributes->get('tenant');
+        $target = Target::with(['assignedUser', 'directManager', 'parentTarget'])
+            ->where('tenant_id', $tenant->id)
+            ->findOrFail($id);
+
+        return response()->json($target);
+    }
+
+    public function update(Request $request, $id): JsonResponse
+    {
+        $tenant = $request->attributes->get('tenant');
+        $target = Target::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'target_name' => 'nullable|string|max:255',
+            'role_type' => 'required|string',
+            'target_type' => 'required|string',
+            'assigned_user_id' => 'required|exists:users,id',
+            'direct_manager_id' => 'nullable|exists:users,id',
+            'period_type' => 'required|string',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'target_value_type' => 'required|string',
+            'target_amount' => 'nullable|numeric|min:0',
+            'target_quantity' => 'nullable|integer|min:0',
+            'target_percentage' => 'nullable|numeric|min:0|max:100',
+            'target_score' => 'nullable|numeric|min:0|max:100',
+            'target_days' => 'nullable|integer|min:0',
+            'product_id' => 'nullable|exists:products,id',
+            'industry_id' => 'nullable|exists:industries,id',
+            'business_category_id' => 'nullable|exists:business_categories,id',
+            'revenue_type' => 'nullable|string',
+            'weight' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string',
+            'status' => 'nullable|string',
+        ]);
+
+        $target->update($validated);
+        return response()->json($target);
+    }
+
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        $tenant = $request->attributes->get('tenant');
+        $target = Target::where('tenant_id', $tenant->id)->findOrFail($id);
+        $target->delete();
+        
+        return response()->json(['message' => 'Target deleted successfully']);
+    }
+
+    public function cascade(Request $request, $id): JsonResponse
+    {
+        $tenant = $request->attributes->get('tenant');
+        $parentTarget = Target::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        if ($parentTarget->role_type !== 'sales' || !in_array($parentTarget->target_type, ['closed_won_revenue', 'new_business_revenue']) || $parentTarget->target_value_type !== 'amount') {
+            return response()->json(['error' => 'Cascade is only allowed for Sales revenue targets.'], 403);
+        }
+
+        $validated = $request->validate([
+            'child_target_id' => 'required|exists:targets,id',
+            'allocated_amount' => 'required|numeric|min:0',
+        ]);
+
+        $childTarget = Target::where('tenant_id', $tenant->id)->findOrFail($validated['child_target_id']);
+        
+        // Basic validation: sum of child allocations shouldn't exceed parent target_amount
+        $currentAllocations = TargetCascadeAllocation::where('parent_target_id', $parentTarget->id)->sum('allocated_amount');
+        if (($currentAllocations + $validated['allocated_amount']) > $parentTarget->target_amount) {
+            return response()->json(['error' => 'Allocated amount exceeds parent remaining amount.'], 422);
+        }
+
+        $allocation = TargetCascadeAllocation::create([
+            'parent_target_id' => $parentTarget->id,
+            'child_target_id' => $childTarget->id,
+            'allocated_amount' => $validated['allocated_amount'],
+            'allocation_percentage' => $parentTarget->target_amount > 0 ? ($validated['allocated_amount'] / $parentTarget->target_amount) * 100 : 0,
+            'remaining_amount_snapshot' => $parentTarget->target_amount - ($currentAllocations + $validated['allocated_amount']),
+            'created_by' => $request->user()->id,
+        ]);
+
+        return response()->json($allocation, 201);
+    }
+
+    public function achievement(Request $request, $id): JsonResponse
+    {
+        $tenant = $request->attributes->get('tenant');
+        $target = Target::where('tenant_id', $tenant->id)->findOrFail($id);
+        
+        // Use TargetCalculationService to get actuals (implemented later)
+        $actual = app(\App\Services\TargetCalculationService::class)->calculateActual($target);
+
+        return response()->json([
+            'target' => $target,
+            'actual' => $actual['value'],
+            'data_source' => $actual['source'],
+            'is_available' => $actual['is_available'],
+        ]);
     }
 }

@@ -201,3 +201,8 @@
 - **Decision**: Evolved from a single `owner_id` to a `lead_role_assignments` model, allowing multiple users (Sales, Presales, CSM) to be assigned to one lead with distinct roles and `contribution_percentage`. Implemented a full Order-to-Cash module with `lead_quotations` and `lead_sales_orders` to track revenue realization.
 - **Rationale**: Real-world sales cycles involve multiple contributors. Accurately attributing revenue for commission requires distributing the Closed Won amount across the assigned roles.
 - **Impact**: Analytics queries (like the Team Performance Dashboard) now calculate revenue by joining `lead_sales_orders` and `lead_role_assignments`. Primary ownership remains for hierarchy access, but revenue distribution is decentralized.
+
+## [2026-06-28] Role-Based Target & Cascade Module
+- **Decision:** Shifted the Target and Cascade logic from relying on `users` table metadata (`target_revenue`) to a dedicated `targets` table and `target_cascade_allocations` table.
+- **Rationale:** The system needs to support multiple target types (amount, percentage, quantity, score, days) across different roles (Sales, Presales, CSM, AM), breaking away from the rigid sales-revenue-only model.
+- **Impact:** Target configurations are now flexible and can be created via `GET /api/targets/config`. Sales is the only role that supports revenue target cascade.

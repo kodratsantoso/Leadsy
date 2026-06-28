@@ -142,3 +142,10 @@ Leadsy now has database-backed source and channel classification for leads.
     - `frontend/app/whatsapp/qontak/page.tsx` (Omnichannel chat AI insights)
     - `frontend/components/map/map-results-panel.tsx` (Discovery Map product fit gauge)
 - **Status**: Tested and pushed to `leadsy-backup` and `origin`.
+
+### [2026-06-28] Role-Based Targets implementation
+- Created `targets` and `target_cascade_allocations` tables with migrations.
+- Implemented `TargetController` and `TargetConfigController` REST APIs.
+- Built `TargetCalculationService` to compute dynamic actuals from DB metrics (lead sales orders, meetings, activities).
+- Updated Team Performance Dashboard to pull data from new `targets` implementation.
+- Refactored `settings/targets/page.tsx` from tree to list view with role-based dynamic forms.

@@ -17,6 +17,7 @@ use App\Services\Analytics\RoleKpiCalculationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class TeamPerformanceDashboardController extends Controller
@@ -250,32 +251,60 @@ class TeamPerformanceDashboardController extends Controller
     }
 
     // ──────────────────────────────────────────────
-    // Block 5: Target vs Achievement
+    // Block 5: Target vs Achievement (V2)
     // ──────────────────────────────────────────────
     private function buildTargetAchievement(object $users, string $period): array
     {
-        $results = [];
-        foreach ($users as $u) {
-            $kpiData = $this->kpiService->calculateForUser($u, $period);
-            if ($kpiData['role_category'] === 'other') continue;
+        $userIds = collect($users)->pluck('id')->toArray();
+        $dateRange = $this->getDateRange($period);
 
-            foreach ($kpiData['metrics'] as $m) {
-                if ($m['target'] !== null && $m['target'] > 0) {
-                    $results[] = [
-                        'user_id'               => $u->id,
-                        'name'                   => $u->name,
-                        'role_category'          => $kpiData['role_category'],
-                        'kpi_key'                => $m['kpi_key'],
-                        'kpi_name'               => $m['kpi_name'],
-                        'format'                 => $m['format'],
-                        'actual'                 => $m['actual'],
-                        'target'                 => $m['target'],
-                        'achievement_percentage' => $m['achievement_percentage'],
-                        'status'                 => $m['status'],
-                    ];
+        $targets = \App\Models\Target::whereIn('assigned_user_id', $userIds)
+            ->where(function($q) use ($dateRange) {
+                if ($dateRange[0] !== null) {
+                    $q->where('start_date', '<=', $dateRange[1])
+                      ->where('end_date', '>=', $dateRange[0]);
                 }
+            })
+            ->with('assignedUser')
+            ->get();
+
+        $calcService = app(\App\Services\TargetCalculationService::class);
+        $results = [];
+
+        foreach ($targets as $t) {
+            $actualData = $calcService->calculateActual($t);
+            $actual = $actualData['value'];
+            $targetVal = 0;
+            $format = 'number';
+
+            switch ($t->target_value_type) {
+                case 'amount': $targetVal = $t->target_amount; $format = 'currency'; break;
+                case 'quantity': $targetVal = $t->target_quantity; $format = 'number'; break;
+                case 'percentage': $targetVal = $t->target_percentage; $format = 'percentage'; break;
+                case 'score': $targetVal = $t->target_score; $format = 'number'; break;
+                case 'days': $targetVal = $t->target_days; $format = 'number'; break;
+            }
+
+            if ($targetVal > 0) {
+                $achievement = min(200, round(($actual / $targetVal) * 100, 1));
+                $status = $this->resolveStatusFromAchievement($achievement);
+                $roleCategory = $t->role_type;
+
+                $results[] = [
+                    'user_id'               => $t->assigned_user_id,
+                    'name'                  => $t->assignedUser->name,
+                    'role_category'         => $roleCategory,
+                    'kpi_key'               => $t->target_type,
+                    'kpi_name'              => str_replace('_', ' ', Str::title($t->target_type)),
+                    'format'                => $format,
+                    'actual'                => $actual,
+                    'target'                => $targetVal,
+                    'achievement_percentage'=> $achievement,
+                    'status'                => $status,
+                ];
             }
         }
+        
         return collect($results)->groupBy('role_category')->toArray();
     }
 

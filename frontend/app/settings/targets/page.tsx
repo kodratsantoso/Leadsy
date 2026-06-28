@@ -1,760 +1,230 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { Target, AlertTriangle, RefreshCw, Save, CheckCircle, ChevronDown, ChevronRight, Info, Percent, TrendingUp } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Plus, Filter, RefreshCw, BarChart2, Edit, Trash, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
-import { Tabs } from "@/components/ui/tabs";
 
-interface UserRole {
-  name: string;
-  display_name: string;
+interface TargetConfig {
+  [role: string]: {
+    [targetType: string]: {
+      value_type: "amount" | "quantity" | "percentage" | "score" | "days";
+      cascade_enabled: boolean;
+    };
+  };
 }
 
-interface UserMetrics {
-  own_target_revenue: number;
-  own_estimated_revenue: number;
-  own_realized_revenue: number;
-  rollup_target_revenue: number;
-  rollup_estimated_revenue: number;
-  rollup_realized_revenue: number;
-}
-
-interface TreeNode {
-  id: number;
-  name: string;
-  email: string;
-  role: UserRole | null;
-  tier_level: string;
-  target_percentage: number;
-  target_calculation_type: "amount" | "percentage";
-  metrics: UserMetrics;
-  reports: TreeNode[];
-}
-
-export default function TargetCascadesPage() {
-  const { formatCurrency, formatAmountInput, normalizeAmountInput } = useNumberFormat();
-
+export default function TargetsPage() {
+  const { formatCurrency } = useNumberFormat();
+  
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [companyTarget, setCompanyTarget] = useState<number>(0);
-  const [commissionSplits, setCommissionSplits] = useState({ sales: 100, presales: 100, am: 100, csm: 100 });
-  const [originalTree, setOriginalTree] = useState<TreeNode[]>([]);
+  const [targets, setTargets] = useState<any[]>([]);
+  const [config, setConfig] = useState<TargetConfig>({});
+  const [users, setUsers] = useState<any[]>([]);
   
-  // Track client-side changes before saving
-  const [changes, setChanges] = useState<Record<number, {
-    target_calculation_type: "amount" | "percentage";
-    target_percentage: number;
-    target_revenue: number;
-  }>>({});
+  // Form state
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState<any>({
+    target_name: "",
+    role_type: "",
+    target_type: "",
+    assigned_user_id: "",
+    period_type: "monthly",
+    start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
+    target_value_type: "",
+    target_amount: "",
+    target_quantity: "",
+    target_percentage: "",
+    target_score: "",
+    target_days: ""
+  });
 
-  // Track expanded/collapsed nodes
-  const [expandedNodes, setExpandedNodes] = useState<Record<number, boolean>>({});
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // activePeriod state: "month", "quarter", "year"
-  const [activePeriod, setActivePeriod] = useState<"month" | "quarter" | "year">("month");
-  
-  // inputStates tracks raw input strings to prevent cursor jumps and trailing dots/zeros loss
-  const [inputStates, setInputStates] = useState<Record<string, string>>({});
-
-  const periodItems: { key: "month" | "quarter" | "year"; label: string }[] = [
-    { key: "month", label: "Monthly Basis" },
-    { key: "quarter", label: "Quarterly Basis" },
-    { key: "year", label: "Yearly Basis" }
-  ];
-
-  const getDisplayTarget = (baseValue: number) => {
-    let val = baseValue;
-    if (activePeriod === "quarter") val = baseValue * 3;
-    else if (activePeriod === "year") val = baseValue * 12;
-    return Math.round(val * 100) / 100;
-  };
-
-  const getBaseTargetFromDisplay = (displayValue: number) => {
-    let val = displayValue;
-    if (activePeriod === "quarter") val = displayValue / 3;
-    else if (activePeriod === "year") val = displayValue / 12;
-    return Math.round(val * 100) / 100;
-  };
-
-  // Fetch initial targets config
-  const fetchTargets = async () => {
+  const fetchInitData = async () => {
     setLoading(true);
-    setErrorMessage(null);
     try {
-      const response = await apiFetch("/api/settings/targets");
-      if (response.ok) {
-        const data = await response.json();
-        setCompanyTarget(data.company_target_revenue || 0);
-        setCommissionSplits(data.commission_splits || { sales: 100, presales: 100, am: 100, csm: 100 });
-        setOriginalTree(data.tree || []);
-        setInputStates({});
-        
-        // Expand all nodes by default
-        const initialExpanded: Record<number, boolean> = {};
-        const expandNode = (node: TreeNode) => {
-          initialExpanded[node.id] = true;
-          if (node.reports) {
-            node.reports.forEach(expandNode);
-          }
-        };
-        data.tree.forEach(expandNode);
-        setExpandedNodes(initialExpanded);
-      } else {
-        setErrorMessage("Failed to load target configurations.");
+      const [confRes, tgtRes, usersRes] = await Promise.all([
+        apiFetch("/api/targets/config"),
+        apiFetch("/api/targets"),
+        apiFetch("/api/users")
+      ]);
+      if (confRes.ok) setConfig(await confRes.json());
+      if (tgtRes.ok) setTargets(await tgtRes.json());
+      if (usersRes.ok) {
+        const d = await usersRes.json();
+        setUsers(d.data || d);
       }
     } catch (err) {
-      setErrorMessage("Network error occurred while fetching targets.");
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTargets();
+    fetchInitData();
   }, []);
 
-  // Recursively compute resolved targets and rollups in memory for the tree
-  const computedTree = useMemo(() => {
-    const computeResolvedNode = (
-      node: TreeNode,
-      parentTarget: number
-    ): TreeNode => {
-      const nodeChanges = changes[node.id];
-      const type = nodeChanges ? nodeChanges.target_calculation_type : node.target_calculation_type;
-      const percentage = nodeChanges ? nodeChanges.target_percentage : node.target_percentage;
-      const revenue = nodeChanges ? nodeChanges.target_revenue : node.metrics.own_target_revenue;
-
-      const ownTarget = type === "percentage" ? (parentTarget * percentage) / 100 : revenue;
-      const ownEst = node.metrics.own_estimated_revenue;
-      const ownReal = node.metrics.own_realized_revenue;
-
-      const resolvedReports = (node.reports || []).map((child) =>
-        computeResolvedNode(child, ownTarget)
-      );
-
-      const rollupTarget = ownTarget + resolvedReports.reduce((sum, r) => sum + r.metrics.rollup_target_revenue, 0);
-      const rollupEst = ownEst + resolvedReports.reduce((sum, r) => sum + r.metrics.rollup_estimated_revenue, 0);
-      const rollupReal = ownReal + resolvedReports.reduce((sum, r) => sum + r.metrics.rollup_realized_revenue, 0);
-
-      return {
-        ...node,
-        target_calculation_type: type,
-        target_percentage: percentage,
-        metrics: {
-          own_target_revenue: ownTarget,
-          own_estimated_revenue: ownEst,
-          own_realized_revenue: ownReal,
-          rollup_target_revenue: rollupTarget,
-          rollup_estimated_revenue: rollupEst,
-          rollup_realized_revenue: rollupReal,
-        },
-        reports: resolvedReports,
-      };
-    };
-
-    return originalTree.map((node) => computeResolvedNode(node, companyTarget));
-  }, [originalTree, companyTarget, changes]);
-
-  // Sum of GM targets
-  const totalGMsTarget = useMemo(() => {
-    return computedTree.reduce((sum, node) => sum + node.metrics.own_target_revenue, 0);
-  }, [computedTree]);
-
-  // Allocation status of root (GMs)
-  const allocationRemaining = companyTarget - totalGMsTarget;
-  const allocationStatus = useMemo(() => {
-    if (Math.abs(allocationRemaining) < 1) return "fully_allocated";
-    return allocationRemaining > 0 ? "under_allocated" : "over_allocated";
-  }, [allocationRemaining]);
-
-  const handleToggleExpand = (id: number) => {
-    setExpandedNodes((prev) => ({ ...prev, [id]: !prev[id] }));
+  const handleRoleChange = (role: string) => {
+    setFormData({ ...formData, role_type: role, target_type: "", target_value_type: "" });
   };
 
-  const handleUpdateNodeChange = (
-    id: number,
-    field: "target_calculation_type" | "target_percentage" | "target_revenue",
-    value: any,
-    currentNode: TreeNode
-  ) => {
-    setChanges((prev) => {
-      const current = prev[id] || {
-        target_calculation_type: currentNode.target_calculation_type,
-        target_percentage: currentNode.target_percentage,
-        target_revenue: currentNode.metrics.own_target_revenue,
-      };
-
-      const updated = { ...current, [field]: value };
-      
-      // Keep value locked or recalculate base percentage if switching mode
-      if (field === "target_calculation_type") {
-        if (value === "percentage") {
-          // Calculate percentage based on current revenue vs parent target
-          const parentTarget = getParentTarget(originalTree, id, companyTarget);
-          updated.target_percentage = parentTarget > 0 ? Number(((updated.target_revenue / parentTarget) * 100).toFixed(2)) : 100;
-        } else {
-          // amount mode
-          const parentTarget = getParentTarget(originalTree, id, companyTarget);
-          updated.target_revenue = Number(((parentTarget * updated.target_percentage) / 100).toFixed(2));
-        }
-      }
-
-      return { ...prev, [id]: updated };
-    });
-  };
-
-  const handleToggleCalculationType = (nodeId: number, type: "amount" | "percentage", node: TreeNode) => {
-    setInputStates((prev) => {
-      const updated = { ...prev };
-      delete updated[`node-pct-${nodeId}`];
-      delete updated[`node-amt-${nodeId}`];
-      return updated;
-    });
-    handleUpdateNodeChange(nodeId, "target_calculation_type", type, node);
-  };
-
-  // Helper to find a user's parent target in the original tree
-  const getParentTarget = (nodes: TreeNode[], childId: number, companyTarget: number): number => {
-    for (const node of nodes) {
-      if (node.reports && node.reports.some((r) => r.id === childId)) {
-        // Resolve parent target dynamically considering client changes
-        const parentChanges = changes[node.id];
-        const pType = parentChanges ? parentChanges.target_calculation_type : node.target_calculation_type;
-        const pPct = parentChanges ? parentChanges.target_percentage : node.target_percentage;
-        const pRev = parentChanges ? parentChanges.target_revenue : node.metrics.own_target_revenue;
-        
-        if (pType === "percentage") {
-          const grandParentTarget = getParentTarget(originalTree, node.id, companyTarget);
-          return (grandParentTarget * pPct) / 100;
-        }
-        return pRev;
-      }
-      if (node.reports) {
-        const found = getParentTarget(node.reports, childId, companyTarget);
-        if (found > 0) return found;
-      }
-    }
-    return companyTarget; // Root GMs have companyTarget as parent
+  const handleTargetTypeChange = (type: string) => {
+    const valType = config[formData.role_type][type].value_type;
+    setFormData({ ...formData, target_type: type, target_value_type: valType });
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    // Prepare users payload array from changes record
-    const usersPayload = Object.entries(changes).map(([id, change]) => ({
-      id: Number(id),
-      target_calculation_type: change.target_calculation_type,
-      target_percentage: change.target_percentage,
-      target_revenue: change.target_revenue,
-    }));
-
     try {
-      const response = await apiFetch("/api/settings/targets", {
+      const res = await apiFetch("/api/targets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          company_target_revenue: companyTarget,
-          commission_splits: commissionSplits,
-          users: usersPayload,
-        }),
+        body: JSON.stringify(formData)
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCompanyTarget(data.company_target_revenue || 0);
-        setOriginalTree(data.tree || []);
-        setChanges({});
-        setInputStates({});
-        setSuccessMessage("Target configurations saved and cascaded successfully.");
+      if (res.ok) {
+        setOpen(false);
+        fetchInitData();
       } else {
-        const errData = await response.json();
-        setErrorMessage(errData.error || "Failed to save target settings.");
+        alert("Failed to save target");
       }
     } catch (err) {
-      setErrorMessage("Network error occurred while saving targets.");
-    } finally {
-      setSaving(false);
+      console.error(err);
     }
   };
 
-  // Recursively renders a user tree node
-  const renderNode = (node: TreeNode) => {
-    const isExpanded = !!expandedNodes[node.id];
-    const hasReports = node.reports && node.reports.length > 0;
-    
-    // Performance metrics
-    const target = node.metrics.own_target_revenue;
-    const realized = node.metrics.own_realized_revenue;
-    const estimated = node.metrics.own_estimated_revenue;
+  const renderValueInput = () => {
+    switch (formData.target_value_type) {
+      case "amount":
+        return <div className="space-y-2"><Label>Revenue Target Amount</Label><Input type="number" value={formData.target_amount} onChange={e => setFormData({...formData, target_amount: e.target.value})} /></div>;
+      case "quantity":
+        return <div className="space-y-2"><Label>Quantity Target</Label><Input type="number" value={formData.target_quantity} onChange={e => setFormData({...formData, target_quantity: e.target.value})} /></div>;
+      case "percentage":
+        return <div className="space-y-2"><Label>Percentage Target (%)</Label><Input type="number" value={formData.target_percentage} onChange={e => setFormData({...formData, target_percentage: e.target.value})} /></div>;
+      case "score":
+        return <div className="space-y-2"><Label>Score Target</Label><Input type="number" value={formData.target_score} onChange={e => setFormData({...formData, target_score: e.target.value})} /></div>;
+      case "days":
+        return <div className="space-y-2"><Label>Days Target</Label><Input type="number" value={formData.target_days} onChange={e => setFormData({...formData, target_days: e.target.value})} /></div>;
+      default:
+        return null;
+    }
+  };
 
-    // Reportees allocation breakdown
-    const childTargetsSum = (node.reports || []).reduce((sum, r) => sum + r.metrics.own_target_revenue, 0);
-    const subRemaining = target - childTargetsSum;
-    const isSubFullyAllocated = Math.abs(subRemaining) < 1;
-
-    const pctKey = `node-pct-${node.id}`;
-    const initialPctVal = formatAmountInput(String(node.target_percentage));
-    const displayPctVal = inputStates[pctKey] !== undefined ? inputStates[pctKey] : initialPctVal;
-
-    const amtKey = `node-amt-${node.id}`;
-    const initialAmtVal = formatAmountInput(String(getDisplayTarget(target)));
-    const displayAmtVal = inputStates[amtKey] !== undefined ? inputStates[amtKey] : initialAmtVal;
-
-    return (
-      <div key={node.id} className="relative mt-3 pl-4 border-l border-border/80">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card/40 hover:bg-card/70 transition-all shadow-xs">
-          <div className="flex items-start gap-2">
-            {hasReports ? (
-              <button 
-                onClick={() => handleToggleExpand(node.id)}
-                className="mt-1 p-0.5 rounded hover:bg-muted text-muted-foreground"
-              >
-                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </button>
-            ) : (
-              <div className="w-5" />
-            )}
-            
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-sm">{node.name}</span>
-                <Badge variant="brand">{node.role?.display_name || "Sales Owner"}</Badge>
-                <Badge variant="outline" className="text-[10px] tracking-wider uppercase font-mono px-1 py-0">{node.tier_level}</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">{node.email}</p>
-              
-              {/* Target & Pipeline Micro Achievements */}
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground tabular-nums">
-                <span>Own Target ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): <b className="text-foreground">{formatCurrency(getDisplayTarget(target))}</b></span>
-                <span className="text-[color:var(--success)] font-medium">Total Won (Realized): <b>{formatCurrency(realized)}</b></span>
-                <span className="text-[color:var(--info)] font-medium">Total Pipeline (Est): <b>{formatCurrency(estimated)}</b></span>
-              </div>
-
-              {/* Period Target Grid Breakdown */}
-              <div className="mt-2.5 grid grid-cols-3 gap-3 border-t border-border/40 pt-2 text-[10px] text-muted-foreground font-mono max-w-md">
-                <div className={`p-1.5 rounded-lg border transition-all ${
-                  activePeriod === 'month' 
-                    ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
-                    : 'border-transparent'
-                }`}>
-                  <span className="block text-[8px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-0.5">Per Month</span>
-                  <span className={`font-semibold text-xs tabular-nums ${activePeriod === 'month' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(target)}</span>
-                </div>
-                <div className={`p-1.5 rounded-lg border transition-all ${
-                  activePeriod === 'quarter' 
-                    ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
-                    : 'border-transparent'
-                }`}>
-                  <span className="block text-[8px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-0.5">Per Quarter</span>
-                  <span className={`font-semibold text-xs tabular-nums ${activePeriod === 'quarter' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(target * 3)}</span>
-                </div>
-                <div className={`p-1.5 rounded-lg border transition-all ${
-                  activePeriod === 'year' 
-                    ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
-                    : 'border-transparent'
-                }`}>
-                  <span className="block text-[8px] uppercase tracking-wider text-muted-foreground/70 font-semibold mb-0.5">Per Year</span>
-                  <span className={`font-semibold text-xs tabular-nums ${activePeriod === 'year' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(target * 12)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Target configuration controls */}
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto shrink-0 md:justify-end">
-            {/* Amount / Percentage toggle */}
-            <div className="inline-flex rounded-lg border border-input p-0.5 bg-muted/40">
-              <button
-                type="button"
-                onClick={() => handleToggleCalculationType(node.id, "amount", node)}
-                className={`px-2 py-1 text-xs rounded-md font-medium transition-all ${
-                  node.target_calculation_type === "amount"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Amount
-              </button>
-              <button
-                type="button"
-                onClick={() => handleToggleCalculationType(node.id, "percentage", node)}
-                className={`px-2 py-1 text-xs rounded-md font-medium transition-all ${
-                  node.target_calculation_type === "percentage"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Percentage
-              </button>
-            </div>
-
-            {/* Config value Input */}
-            {node.target_calculation_type === "percentage" ? (
-              <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-2.5 py-1">
-                <input
-                  type="text"
-                  className="w-16 text-right text-xs bg-transparent border-none outline-none focus:ring-0 font-mono"
-                  value={displayPctVal}
-                  onChange={(e) => {
-                    const rawValue = e.target.value;
-                    const normalized = normalizeAmountInput(rawValue);
-                    const formatted = formatAmountInput(normalized);
-                    setInputStates(prev => ({ ...prev, [pctKey]: formatted }));
-                    const numeric = Number(normalized) || 0;
-                    handleUpdateNodeChange(node.id, "target_percentage", numeric, node);
-                  }}
-                />
-                <span className="text-xs text-muted-foreground">%</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-2.5 py-1">
-                <span className="text-xs text-muted-foreground">IDR</span>
-                <input
-                  type="text"
-                  className="w-32 text-right text-xs bg-transparent border-none outline-none focus:ring-0 font-mono"
-                  value={displayAmtVal}
-                  onChange={(e) => {
-                    const rawValue = e.target.value;
-                    const normalized = normalizeAmountInput(rawValue);
-                    const formatted = formatAmountInput(normalized);
-                    setInputStates(prev => ({ ...prev, [amtKey]: formatted }));
-                    const numeric = Number(normalized) || 0;
-                    const baseVal = getBaseTargetFromDisplay(numeric);
-                    handleUpdateNodeChange(node.id, "target_revenue", baseVal, node);
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Resolved display value (read-only context visualizer) */}
-            {node.target_calculation_type === "percentage" && (
-              <Badge variant="neutral" className="font-mono text-[11px] h-7 px-2">
-                = {formatCurrency(getDisplayTarget(target))}
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Micro allocation / rollup summary when has sub-reports */}
-        {hasReports && (
-          <div className="mt-1 px-4 py-2.5 flex flex-col gap-2 bg-muted/20 border-x border-b border-border/60 rounded-b-lg text-xs">
-            <div className="flex flex-wrap justify-between items-center gap-2">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <TrendingUp className="h-3.5 w-3.5" />
-                <span>
-                  Rollup Target ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): <b>{formatCurrency(getDisplayTarget(node.metrics.rollup_target_revenue))}</b>
-                </span>
-                <span className="mx-1">•</span>
-                <span>
-                  Sub-Pipeline ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): <b>{formatCurrency(getDisplayTarget(node.metrics.rollup_estimated_revenue))}</b>
-                </span>
-              </div>
-              
-              <div>
-                {isSubFullyAllocated ? (
-                  <span className="text-[color:var(--success)] flex items-center gap-1 font-medium">
-                    <CheckCircle className="h-3 w-3" /> Cascaded 100%
-                  </span>
-                ) : subRemaining > 0 ? (
-                  <span className="text-[color:var(--warning)] font-medium">
-                    Remaining to cascade ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): {formatCurrency(getDisplayTarget(subRemaining))}
-                  </span>
-                ) : (
-                  <span className="text-[color:var(--danger)] font-medium flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" /> Over-allocated ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}): {formatCurrency(Math.abs(getDisplayTarget(subRemaining)))}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            {/* Rollup Period Details */}
-            <div className="grid grid-cols-3 gap-3 border-t border-border/40 pt-2 text-[10px] text-muted-foreground font-mono">
-              <div className={`p-1.5 rounded-lg border transition-all ${
-                activePeriod === 'month' 
-                  ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
-                  : 'border-transparent'
-              }`}>
-                <span>Rollup Month:</span> <b className={`ml-1 ${activePeriod === 'month' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(node.metrics.rollup_target_revenue)}</b>
-              </div>
-              <div className={`p-1.5 rounded-lg border transition-all ${
-                activePeriod === 'quarter' 
-                  ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
-                  : 'border-transparent'
-              }`}>
-                <span>Rollup Quarter:</span> <b className={`ml-1 ${activePeriod === 'quarter' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(node.metrics.rollup_target_revenue * 3)}</b>
-              </div>
-              <div className={`p-1.5 rounded-lg border transition-all ${
-                activePeriod === 'year' 
-                  ? 'bg-[color:var(--brand)]/[0.06] border-[color:var(--brand)]/30 font-bold shadow-xs' 
-                  : 'border-transparent'
-              }`}>
-                <span>Rollup Year:</span> <b className={`ml-1 ${activePeriod === 'year' ? 'text-[color:var(--brand)]' : 'text-foreground'}`}>{formatCurrency(node.metrics.rollup_target_revenue * 12)}</b>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Child reportees recursion */}
-        {hasReports && isExpanded && (
-          <div className="mt-2 space-y-2 ml-4 md:ml-6">
-            {node.reports.map((child) => renderNode(child))}
-          </div>
-        )}
-      </div>
-    );
+  const formatTargetValue = (target: any) => {
+    switch (target.target_value_type) {
+      case "amount": return formatCurrency(target.target_amount);
+      case "quantity": return target.target_quantity;
+      case "percentage": return `${target.target_percentage}%`;
+      case "score": return target.target_score;
+      case "days": return `${target.target_days} days`;
+      default: return "-";
+    }
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Target Cascades</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage company target and cascade revenue goals hierarchically from managers to sales reps.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Role-Based Targets & Cascade</h1>
+          <p className="text-muted-foreground mt-1">Manage KPIs and cascading goals across all roles.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={fetchTargets} disabled={loading || saving}>
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={loading || saving}>
-            <Save className="h-4 w-4" />
-            {saving ? "Saving..." : "Save Settings"}
-          </Button>
-        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="w-4 h-4 mr-2" /> New Target</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Create New Target</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Target Name</Label>
+                <Input value={formData.target_name} onChange={e => setFormData({...formData, target_name: e.target.value})} placeholder="e.g. Q3 BANTC Completion" />
+              </div>
+              <div className="space-y-2">
+                <Label>Assigned User</Label>
+                <Select value={formData.assigned_user_id} onValueChange={v => setFormData({...formData, assigned_user_id: v})}>
+                  <SelectTrigger><SelectValue placeholder="Select User" /></SelectTrigger>
+                  <SelectContent>
+                    {users.map(u => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select value={formData.role_type} onValueChange={handleRoleChange}>
+                  <SelectTrigger><SelectValue placeholder="Select Role" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(config).map(r => <SelectItem key={r} value={r}>{r.toUpperCase()}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.role_type && config[formData.role_type] && (
+                <div className="space-y-2">
+                  <Label>Target Type</Label>
+                  <Select value={formData.target_type} onValueChange={handleTargetTypeChange}>
+                    <SelectTrigger><SelectValue placeholder="Select Target Type" /></SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(config[formData.role_type]).map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {formData.target_type && renderValueInput()}
+              
+              <Button onClick={handleSave} className="w-full">Save Target</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Messages */}
-      {errorMessage && (
-        <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/10 text-destructive text-sm flex items-start gap-2.5">
-          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>{errorMessage}</div>
-        </div>
-      )}
-      {successMessage && (
-        <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm flex items-start gap-2.5">
-          <CheckCircle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>{successMessage}</div>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="flex h-64 items-center justify-center rounded-2xl border border-border bg-card">
-          <div className="flex flex-col items-center gap-2">
-            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Loading target configurations...</p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-6">
-          
-          {/* Period Selector Tabs */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-card/60 p-2 border border-border rounded-xl gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground font-semibold px-2.5">Cascade Period Mode:</span>
-              <Tabs
-                value={activePeriod}
-                onValueChange={(val) => {
-                  setActivePeriod(val);
-                  setInputStates({});
-                }}
-                items={periodItems}
-              />
-            </div>
-            <div className="text-xs text-muted-foreground/80 font-medium px-2.5">
-              * Editing values in any view automatically recalculates the other periods.
-            </div>
-          </div>
-
-          {/* Top company target configurator */}
-          <Card className="overflow-hidden border-[color:var(--brand)] bg-[color:var(--brand)]/[0.02]">
-            <CardHeader className="bg-[color:var(--brand)]/[0.03] border-b border-border">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color:var(--brand)] text-white shadow-md">
-                    <Target className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle>Company Revenue Target</CardTitle>
-                    <CardDescription>Setup the global sales target to distribute across all departments.</CardDescription>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2 shrink-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground font-semibold">
-                      Company Target ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"}) IDR:
-                    </span>
-                    <div className="flex items-center gap-1.5 bg-card border border-input rounded-lg px-3 py-1.5 shadow-sm">
-                      <input
-                        type="text"
-                        className="w-48 text-right font-bold text-sm bg-transparent border-none outline-none focus:ring-0 font-mono text-[color:var(--brand)]"
-                        value={inputStates["company-target"] !== undefined ? inputStates["company-target"] : formatAmountInput(String(getDisplayTarget(companyTarget)))}
-                        onChange={(e) => {
-                          const rawValue = e.target.value;
-                          setInputStates(prev => ({ ...prev, "company-target": rawValue }));
-                          const numericValue = normalizeAmountInput(rawValue);
-                          setCompanyTarget(getBaseTargetFromDisplay(Number(numericValue) || 0));
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-
-          <Card className="overflow-hidden border-border bg-card">
-            <CardHeader className="bg-muted/20 border-b border-border">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[color:var(--info)] text-white shadow-md">
-                    <Percent className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle>Role-Based Commission Splits</CardTitle>
-                    <CardDescription>Set the percentage of target realization credited to each role when a lead is Closed Won.</CardDescription>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { key: 'sales', label: 'Sales / BD Exec' },
-                { key: 'presales', label: 'Presales' },
-                { key: 'am', label: 'Account Manager' },
-                { key: 'csm', label: 'CSM' }
-              ].map(role => (
-                <div key={role.key} className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">{role.label} (%)</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={commissionSplits[role.key as keyof typeof commissionSplits]}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCommissionSplits(prev => ({ ...prev, [role.key]: Number(e.target.value) }))}
-                    className="font-mono text-sm"
-                  />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="overflow-hidden border-border bg-card mt-6">
-            <CardContent className="p-5">
-              <div className="grid md:grid-cols-3 gap-6 pt-2">
-                {/* Column 1: Distributed to GMs */}
-                <div className="p-4 rounded-xl border border-border bg-card/50">
-                  <span className="text-xs text-muted-foreground block font-medium">
-                    Distributed to GMs ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"})
-                  </span>
-                  <span className="text-lg font-bold block mt-1 tabular-nums">
-                    {formatCurrency(getDisplayTarget(totalGMsTarget))}
-                  </span>
-                  <div className="mt-2.5 space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-2.5 font-mono">
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'month' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
-                      <span>Per Month:</span> <span>{formatCurrency(totalGMsTarget)}</span>
-                    </div>
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'quarter' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
-                      <span>Per Quarter:</span> <span>{formatCurrency(totalGMsTarget * 3)}</span>
-                    </div>
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'year' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
-                      <span>Per Year:</span> <span>{formatCurrency(totalGMsTarget * 12)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Column 2: Target Allocation Status */}
-                <div className="p-4 rounded-xl border border-border bg-card/50 flex flex-col justify-between">
-                  <div>
-                    <span className="text-xs text-muted-foreground block font-medium">Target Allocation Status</span>
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      {allocationStatus === "fully_allocated" && (
-                        <span className="text-[color:var(--success)] flex items-center gap-1 font-semibold text-sm">
-                          <CheckCircle className="h-4 w-4" /> 100% Allocated
-                        </span>
-                      )}
-                      {allocationStatus === "under_allocated" && (
-                        <span className="text-[color:var(--warning)] flex items-center gap-1 font-semibold text-sm">
-                          <Info className="h-4 w-4" /> Under-allocated
-                        </span>
-                      )}
-                      {allocationStatus === "over_allocated" && (
-                        <span className="text-[color:var(--danger)] flex items-center gap-1 font-semibold text-sm">
-                          <AlertTriangle className="h-4 w-4" /> Over-allocated
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-4 space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-2.5 font-mono">
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'month' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
-                      <span>Target Month:</span> <span>{formatCurrency(companyTarget)}</span>
-                    </div>
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'quarter' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
-                      <span>Target Quarter:</span> <span>{formatCurrency(companyTarget * 3)}</span>
-                    </div>
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'year' ? 'bg-[color:var(--brand)]/[0.06] font-bold text-foreground' : ''}`}>
-                      <span>Target Year:</span> <span>{formatCurrency(companyTarget * 12)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Column 3: Remaining to Distribute */}
-                <div className="p-4 rounded-xl border border-border bg-card/50">
-                  <span className="text-xs text-muted-foreground block font-medium">
-                    {allocationStatus === "over_allocated" ? "Exceeded Allocation" : "Remaining to Distribute"} ({activePeriod === "month" ? "Month" : activePeriod === "quarter" ? "Quarter" : "Year"})
-                  </span>
-                  <span className={`text-lg font-bold block mt-1 tabular-nums ${
-                    allocationStatus === "over_allocated" ? "text-[color:var(--danger)]" : allocationStatus === "under_allocated" ? "text-[color:var(--warning)]" : "text-[color:var(--success)]"
-                  }`}>
-                    {formatCurrency(Math.abs(getDisplayTarget(allocationRemaining)))}
-                  </span>
-                  <div className="mt-2.5 space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-2.5 font-mono">
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'month' ? 'bg-[color:var(--brand)]/[0.06] font-bold' : ''}`}>
-                      <span>Monthly Diff:</span> <span className={allocationRemaining < 0 ? "text-[color:var(--danger)]" : "text-foreground"}>{formatCurrency(allocationRemaining)}</span>
-                    </div>
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'quarter' ? 'bg-[color:var(--brand)]/[0.06] font-bold' : ''}`}>
-                      <span>Quarterly Diff:</span> <span className={allocationRemaining < 0 ? "text-[color:var(--danger)]" : "text-foreground"}>{formatCurrency(allocationRemaining * 3)}</span>
-                    </div>
-                    <div className={`flex justify-between px-1 rounded ${activePeriod === 'year' ? 'bg-[color:var(--brand)]/[0.06] font-bold' : ''}`}>
-                      <span>Yearly Diff:</span> <span className={allocationRemaining < 0 ? "text-[color:var(--danger)]" : "text-foreground"}>{formatCurrency(allocationRemaining * 12)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Target Cascade Hierarchy Tree */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold tracking-tight">Organization Cascade tree</h2>
-              <span className="text-xs text-muted-foreground">Adjust percentages or amounts dynamically</span>
-            </div>
-
-            {computedTree.length === 0 ? (
-              <div className="p-12 text-center border border-border bg-card rounded-2xl">
-                <Target className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">No reporting relationships found. Make sure users have assigned managers.</p>
-              </div>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Target Name</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Assigned To</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Period</TableHead>
+              <TableHead>Target Value</TableHead>
+              <TableHead>Cascade Enabled</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {targets.length === 0 ? (
+              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">No targets found.</TableCell></TableRow>
             ) : (
-              <div className="p-6 rounded-2xl border border-border bg-card shadow-xs space-y-4">
-                {computedTree.map((node) => renderNode(node))}
-              </div>
+              targets.map(t => (
+                <TableRow key={t.id}>
+                  <TableCell className="font-medium">{t.target_name || '-'}</TableCell>
+                  <TableCell><Badge variant="outline">{t.role_type}</Badge></TableCell>
+                  <TableCell>{t.assigned_user?.name}</TableCell>
+                  <TableCell className="capitalize">{t.target_type.replace(/_/g, ' ')}</TableCell>
+                  <TableCell className="capitalize">{t.period_type}</TableCell>
+                  <TableCell>{formatTargetValue(t)}</TableCell>
+                  <TableCell>
+                    {config[t.role_type]?.[t.target_type]?.cascade_enabled ? 
+                      <Badge className="bg-blue-100 text-blue-800">Yes</Badge> : 
+                      <Badge variant="secondary">No</Badge>
+                    }
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm"><Activity className="w-4 h-4 mr-1"/> Achievement</Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
-          </div>
-        </div>
-      )}
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

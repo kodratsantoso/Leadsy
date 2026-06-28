@@ -4,7 +4,13 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.9.4** — 2026-07-02
+Current release: **v1.10.0** — 2026-06-28
+
+## What's New in v1.10.0 (Target & Cascade V2)
+
+- **Role-Based Target System** — Decoupled the target system from the rigid sales-revenue-only model. Users can now be assigned different target types (amount, percentage, quantity, score, days) based on their role (Sales, Presales, CSM, Account Manager).
+- **Cascade Allocation Refinement** — Cascade allocation is now strictly reserved for Sales revenue targets. Other roles define independent goals without forced cascading down the hierarchy.
+- **Team Performance Dashboard Update** — Integrated the new `targets` architecture into the Team Performance Dashboard, evaluating real-time actual achievements directly against the role-specific targets configured in the system.
 
 ## What's New in v1.9.4 (Confidentiality Engine)
 

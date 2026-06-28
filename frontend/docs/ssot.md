@@ -213,7 +213,14 @@ Source of truth: `frontend/components/products/QuestionGuide.tsx`
 - Lead Detail Transcripts: multiple transcripts can be stored per lead, linked to a related activity, and created from pasted text, TXT/VTT/SRT files, or attached audio/video files. AI transcript analysis requires text content and stores a summary plus sentiment, intent, interest, objections, buying signals, confidence, and next action.
 - Lead Detail Pre-Meeting Brief: Aggregates context before meetings to generate actionable insight without separate core entities. Upgraded to a 11-block Presales-Ready JSON architecture containing Product Intelligence, Industry BANTC Estimation, Question Guides, Demo Strategies, Pain Point Hypothesis, and Risk Analysis. UI uses a dedicated modular `Tabs` component. Missing industry context dynamically lowers the readiness score and displays warnings.
 - Lead Detail Customer Journey: Provides a chronological timeline, AI-generated enterprise-level narrative story, and insights aggregated from meetings, transcripts, and product matches. Accessible via a dedicated tab and supports native browser PDF export (`@media print`).
-- User Settings: `direct_manager_id` defines hierarchy visibility; `target_period` and `target_revenue` define achievement tracking.
+- User Settings: `direct_manager_id` defines hierarchy visibility. Target revenue settings have been deprecated from the user model in favor of the Targets Module.
+
+## Targets & Cascade Module (V2)
+
+- Target storage is strictly decoupled from the `users` table and utilizes the `targets` and `target_cascade_allocations` tables.
+- Role-based Target Types: Target models are period-aware, manager-aware, and support unique KPI structures per role (Amount/Currency, Percentage, Quantity, Score, Days).
+- Cascade Logic: Cascade distribution down the hierarchy is strictly reserved for **Sales revenue** targets. Other roles define independent quantitative/qualitative goals.
+- Single Source of Truth for Achievement: Actual realization queries are standardized through `TargetCalculationService`, tracking `lead_sales_orders`, `lead_outcomes`, and `lead_meetings` across reporting periods.
 
 ## Lark SSO Module
 
