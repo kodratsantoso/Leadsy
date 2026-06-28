@@ -445,7 +445,10 @@ class LarkController extends Controller
                     })
                     ->orWhereHas('larkBaseRecordMappings', function ($q) use ($baseTable) {
                         $q->where('lark_base_table_id', $baseTable->id)
-                          ->whereColumn('leads.updated_at', '>', 'lark_base_record_mappings.last_leadsy_updated_at');
+                          ->where(function ($sq) {
+                              $sq->whereColumn('leads.updated_at', '>', 'lark_base_record_mappings.last_leadsy_updated_at')
+                                 ->orWhereNull('lark_base_record_mappings.last_leadsy_updated_at');
+                          });
                     });
                 })
                 ->with(['industry', 'funnelStage', 'owner'])
