@@ -467,9 +467,13 @@ export default function DashboardPage() {
   const recentLeads = dashboard.recent_leads || [];
   const scoreDistribution = pq?.score_distribution ?? [];
   const qualityInsights: string[] = pq?.insights ?? [];
-  const drilldownLeads: any = drilldownData?.data?.data || drilldownData?.data?.records
+  const drilldownLeads: any = drilldownData?.data?.columns || drilldownData?.data?.records
     ? drilldownData.data
-    : { data: [], records: [], current_page: 1, last_page: 1, total: 0 };
+    : Array.isArray(drilldownData?.data)
+      ? drilldownData
+      : drilldownData?.data?.data
+        ? drilldownData.data
+        : { data: [], records: [], current_page: 1, last_page: 1, total: 0 };
 
   function openDrilldown(next: NonNullable<DrilldownState>) {
     setDrilldown(next);
@@ -1888,7 +1892,7 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold">{formatNumber(drilldownLeads.total ?? 0, { decimals: 0 })} filtered leads</p>
+              <p className="text-sm font-semibold">{formatNumber(drilldownLeads.total ?? drilldownLeads.records?.length ?? 0, { decimals: 0 })} filtered records</p>
               <p className="text-xs text-muted-foreground">Data is filtered directly from the dashboard condition you selected.</p>
             </div>
             <div className="relative w-full sm:max-w-xs">
