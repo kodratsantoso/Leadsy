@@ -109,6 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Confidentiality Dashboard
     Route::get('/dashboard/confidentiality', [ConfidentialityDashboardController::class, 'index']);
+    Route::get('/dashboard/confidentiality/drilldown', [ConfidentialityDashboardController::class, 'drilldown']);
     Route::get('/confidentiality/assessments/{entityType}/{entityId}', [ConfidentialityDashboardController::class, 'show']);
     Route::post('/confidentiality/assessments/{entityType}/{entityId}/recalculate', [ConfidentialityDashboardController::class, 'recalculate']);
     Route::post('/confidentiality/assessments/{id}/approve', [ConfidentialityDashboardController::class, 'approve']);

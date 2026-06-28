@@ -51,13 +51,15 @@ type TrackingFunnelStep = {
 };
 
 type DrilldownState = {
-  title?: string;
-  description?: string;
+  title: string;
+  description: string;
   href?: string;
   block_key?: string;
   role?: string;
   user_id?: number | string;
   stage?: string;
+  confidentiality_filter?: string;
+  confidentiality_level?: string;
 } | null;
 
 type DrilldownLead = {
@@ -359,7 +361,13 @@ export default function DashboardPage() {
     queryFn: async () => { const r = await apiFetch("/analytics/pipeline-quality"); return r.json(); },
   });
 
-  const drilldownApiPath = drilldown && drilldown.href ? leadsApiPathFromHref(drilldown.href, drilldownPage, drilldownSearch) : drilldown && drilldown.block_key ? `/dashboard/team-performance/drilldown?block_key=${drilldown.block_key}${drilldown.role ? `&role=${drilldown.role}` : ''}${drilldown.user_id ? `&user_id=${drilldown.user_id}` : ''}${drilldown.stage ? `&stage=${drilldown.stage}` : ''}&page=${drilldownPage}${drilldownSearch ? `&search=${drilldownSearch}` : ''}` : null;
+  const drilldownApiPath = drilldown && drilldown.href 
+    ? leadsApiPathFromHref(drilldown.href, drilldownPage, drilldownSearch) 
+    : drilldown && (drilldown.confidentiality_filter || drilldown.confidentiality_level) 
+      ? `/dashboard/confidentiality/drilldown?page=${drilldownPage}${drilldownSearch ? `&search=${drilldownSearch}` : ''}${drilldown.confidentiality_filter ? `&confidentiality_filter=${drilldown.confidentiality_filter}` : ''}${drilldown.confidentiality_level ? `&confidentiality_level=${drilldown.confidentiality_level}` : ''}`
+    : drilldown && drilldown.block_key 
+      ? `/dashboard/team-performance/drilldown?block_key=${drilldown.block_key}${drilldown.role ? `&role=${drilldown.role}` : ''}${drilldown.user_id ? `&user_id=${drilldown.user_id}` : ''}${drilldown.stage ? `&stage=${drilldown.stage}` : ''}&page=${drilldownPage}${drilldownSearch ? `&search=${drilldownSearch}` : ''}` 
+    : null;
   const { data: drilldownData, isFetching: isDrilldownLoading } = useQuery({
     queryKey: ["dashboard-lead-drilldown", drilldownApiPath],
     enabled: Boolean(drilldownApiPath),

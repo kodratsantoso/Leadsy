@@ -73,14 +73,14 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
   // Block 1: Overview KPIs
   const renderOverviewKPIs = () => (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-      <Card className="hover:border-primary/50 transition-colors cursor-pointer shadow-sm" onClick={() => onDrilldown({ filter: 'all' })}>
+      <Card className="hover:border-primary/50 transition-colors cursor-pointer shadow-sm" onClick={() => onDrilldown({ title: 'Total Assessed Leads', description: 'All leads that have been assessed by the confidentiality engine.', confidentiality_filter: 'all' })}>
         <CardContent className="p-4 flex flex-col gap-1">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Assessed</div>
           <div className="text-2xl font-bold font-mono">{overview.total_assessed}</div>
         </CardContent>
       </Card>
       
-      <Card className="hover:border-[color:var(--status-danger)]/50 transition-colors cursor-pointer shadow-sm border-l-2 border-l-[color:var(--status-danger)]" onClick={() => onDrilldown({ level: 'restricted' })}>
+      <Card className="hover:border-[color:var(--status-danger)]/50 transition-colors cursor-pointer shadow-sm border-l-2 border-l-[color:var(--status-danger)]" onClick={() => onDrilldown({ title: 'Restricted Leads', description: 'Leads with highly sensitive restricted data.', confidentiality_level: 'restricted' })}>
         <CardContent className="p-4 flex flex-col gap-1">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <Lock className="h-3 w-3 text-[color:var(--status-danger)]" /> Restricted
@@ -89,7 +89,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         </CardContent>
       </Card>
       
-      <Card className="hover:border-[color:var(--status-warning)]/50 transition-colors cursor-pointer shadow-sm border-l-2 border-l-[color:var(--status-warning)]" onClick={() => onDrilldown({ level: 'high' })}>
+      <Card className="hover:border-[color:var(--status-warning)]/50 transition-colors cursor-pointer shadow-sm border-l-2 border-l-[color:var(--status-warning)]" onClick={() => onDrilldown({ title: 'High Exposure Leads', description: 'Leads with high confidentiality level.', confidentiality_level: 'high' })}>
         <CardContent className="p-4 flex flex-col gap-1">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <AlertTriangle className="h-3 w-3 text-[color:var(--status-warning)]" /> High
@@ -98,14 +98,14 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         </CardContent>
       </Card>
       
-      <Card className="hover:border-[color:var(--status-info)]/50 transition-colors cursor-pointer shadow-sm" onClick={() => onDrilldown({ level: 'medium' })}>
+      <Card className="hover:border-[color:var(--status-info)]/50 transition-colors cursor-pointer shadow-sm" onClick={() => onDrilldown({ title: 'Medium Exposure Leads', description: 'Leads with medium confidentiality level.', confidentiality_level: 'medium' })}>
         <CardContent className="p-4 flex flex-col gap-1">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Medium</div>
           <div className="text-2xl font-bold font-mono">{overview.medium}</div>
         </CardContent>
       </Card>
 
-      <Card className="hover:border-primary/50 transition-colors cursor-pointer shadow-sm" onClick={() => onDrilldown({ level: 'unassessed' })}>
+      <Card className="hover:border-primary/50 transition-colors cursor-pointer shadow-sm" onClick={() => onDrilldown({ title: 'Unassessed Leads', description: 'Leads that have not been scored by the engine yet.', confidentiality_level: 'unassessed' })}>
         <CardContent className="p-4 flex flex-col gap-1">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
             <HelpCircle className="h-3 w-3" /> Unassessed
@@ -114,7 +114,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         </CardContent>
       </Card>
       
-      <Card className="hover:border-[color:var(--status-danger)]/50 transition-colors cursor-pointer shadow-sm bg-[color:var(--status-danger)]/5" onClick={() => onDrilldown({ filter: 'needs_review' })}>
+      <Card className="hover:border-[color:var(--status-danger)]/50 transition-colors cursor-pointer shadow-sm bg-[color:var(--status-danger)]/5" onClick={() => onDrilldown({ title: 'Needs Review', description: 'Leads with high or restricted levels that are pending review.', confidentiality_filter: 'needs_review' })}>
         <CardContent className="p-4 flex flex-col gap-1">
           <div className="text-xs font-medium text-[color:var(--status-danger)] uppercase tracking-wider flex items-center gap-1">
             <AlertCircle className="h-3 w-3" /> Risk Exposure
@@ -208,7 +208,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <FileText className="h-4 w-4" /> Latest Assessments Matrix
         </CardTitle>
-        <Button variant="outline" size="sm" onClick={() => onDrilldown({ filter: 'all_matrix' })}>View Full Matrix</Button>
+        <Button variant="outline" size="sm" onClick={() => onDrilldown({ title: 'Assessments Matrix', description: 'Full view of all assessed leads.', confidentiality_filter: 'all' })}>View Full Matrix</Button>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
@@ -248,7 +248,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onDrilldown({ entityId: row.lead_id, type: 'why_score' })}>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.location.href = `/leads/${row.lead_id}`}>
                       Why this score? <ChevronRight className="h-3 w-3 ml-1" />
                     </Button>
                   </td>
@@ -312,7 +312,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
                 </div>
                 <div className="text-sm font-semibold mb-1">{risk.lead}</div>
                 <div className="text-xs text-muted-foreground mb-3">{risk.reason}</div>
-                <Button variant="secondary" size="sm" className="h-7 text-xs w-full" onClick={() => onDrilldown({ entityId: risk.id, type: 'review' })}>
+                <Button variant="secondary" size="sm" className="h-7 text-xs w-full" onClick={() => window.location.href = `/leads/${risk.lead_id}`}>
                   {risk.action}
                 </Button>
               </div>

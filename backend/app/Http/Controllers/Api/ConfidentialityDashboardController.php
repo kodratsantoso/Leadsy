@@ -98,6 +98,7 @@ class ConfidentialityDashboardController extends Controller
             ->map(function ($a) {
                 return [
                     'id' => $a->id,
+                    'lead_id' => $a->entity_id,
                     'title' => 'Unreviewed Sensitive Lead',
                     'severity' => 'high',
                     'lead' => $a->entity->company_name ?? 'Unknown',
@@ -123,6 +124,105 @@ class ConfidentialityDashboardController extends Controller
             'indicators' => $indicators,
             'trend' => $trend,
             'risks' => $risks
+        ]);
+    }
+
+    public function drilldown(Request $request): JsonResponse
+    {
+        $level = $request->query('confidentiality_level');
+        $filter = $request->query('confidentiality_filter');
+        $search = $request->query('search');
+        
+        $query = ConfidentialityAssessment::with(['entity.owner', 'entity.funnelStage'])
+            ->where('entity_type', Lead::class);
+            
+        if ($level) {
+            if ($level === 'unassessed') {
+                // For unassessed, we actually need leads that do NOT have an assessment
+                $assessedLeadIds = ConfidentialityAssessment::where('entity_type', Lead::class)->pluck('entity_id');
+                $leadsQuery = Lead::whereNotIn('id', $assessedLeadIds)->with(['owner', 'funnelStage']);
+                
+                if ($search) {
+                    $leadsQuery->where(function ($q) use ($search) {
+                        $q->where('company_name', 'like', "%{$search}%")
+                          ->orWhere('lead_name', 'like', "%{$search}%");
+                    });
+                }
+                
+                $leads = $leadsQuery->orderByDesc('created_at')->paginate($request->query('per_page', 10));
+                
+                $records = collect($leads->items())->map(function ($lead) {
+                    return [
+                        'id' => $lead->id,
+                        'lead_id' => $lead->id,
+                        'company_name' => $lead->company_name ?? 'Unknown',
+                        'stage' => $lead->funnelStage->name ?? 'Unknown',
+                        'owner' => $lead->owner->name ?? 'Unassigned',
+                        'level' => 'unassessed',
+                        'score' => '-',
+                        'status' => '-'
+                    ];
+                });
+                
+                return response()->json([
+                    'columns' => [
+                        ['key' => 'company_name', 'label' => 'Lead'],
+                        ['key' => 'stage', 'label' => 'Stage'],
+                        ['key' => 'owner', 'label' => 'Owner'],
+                        ['key' => 'level', 'label' => 'Level'],
+                        ['key' => 'score', 'label' => 'Score'],
+                        ['key' => 'status', 'label' => 'Status'],
+                    ],
+                    'records' => $records,
+                    'current_page' => $leads->currentPage(),
+                    'last_page' => $leads->lastPage(),
+                    'total' => $leads->total(),
+                ]);
+            } else {
+                $query->where('confidentiality_level', $level);
+            }
+        }
+        
+        if ($filter === 'needs_review') {
+            $query->whereIn('confidentiality_level', ['high', 'restricted'])
+                  ->where('status', 'draft');
+        }
+        
+        if ($search) {
+            $query->whereHas('entity', function ($q) use ($search) {
+                $q->where('company_name', 'like', "%{$search}%")
+                  ->orWhere('lead_name', 'like', "%{$search}%");
+            });
+        }
+        
+        $assessments = $query->orderByDesc('score')->paginate($request->query('per_page', 10));
+        
+        $records = collect($assessments->items())->map(function ($assessment) {
+            return [
+                'id' => $assessment->id,
+                'lead_id' => $assessment->entity_id,
+                'company_name' => $assessment->entity->company_name ?? 'Unknown',
+                'stage' => $assessment->entity->funnelStage->name ?? 'Unknown',
+                'owner' => $assessment->entity->owner->name ?? 'Unassigned',
+                'level' => $assessment->confidentiality_level,
+                'score' => $assessment->score,
+                'status' => $assessment->status
+            ];
+        });
+        
+        return response()->json([
+            'columns' => [
+                ['key' => 'company_name', 'label' => 'Lead'],
+                ['key' => 'stage', 'label' => 'Stage'],
+                ['key' => 'owner', 'label' => 'Owner'],
+                ['key' => 'level', 'label' => 'Level'],
+                ['key' => 'score', 'label' => 'Score'],
+                ['key' => 'status', 'label' => 'Status'],
+            ],
+            'records' => $records,
+            'current_page' => $assessments->currentPage(),
+            'last_page' => $assessments->lastPage(),
+            'total' => $assessments->total(),
         ]);
     }
 
