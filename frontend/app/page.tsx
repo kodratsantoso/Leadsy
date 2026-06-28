@@ -51,8 +51,8 @@ type TrackingFunnelStep = {
 };
 
 type DrilldownState = {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   href?: string;
   block_key?: string;
   role?: string;
