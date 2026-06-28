@@ -144,7 +144,17 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
       },
       legend: { position: 'bottom', fontSize: '11px' },
       dataLabels: { enabled: false },
-      tooltip: { theme: 'dark' }
+      tooltip: { theme: 'dark' },
+      events: {
+        dataPointSelection: (event: any, chartContext: any, config: any) => {
+          const label = config.w.config.labels[config.dataPointIndex];
+          onDrilldown({
+            title: `${label} Exposure Leads`,
+            description: `Leads with ${label} confidentiality level.`,
+            confidentiality_level: label.toLowerCase()
+          });
+        }
+      }
     };
 
     return (
@@ -176,6 +186,17 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
       yaxis: { labels: { style: { fontSize: '10px' } } },
       dataLabels: { enabled: false },
       tooltip: { theme: 'dark' },
+      events: {
+        dataPointSelection: (event: any, chartContext: any, config: any) => {
+          const month = config.w.globals.categoryLabels[config.dataPointIndex];
+          onDrilldown({
+            title: `High/Restricted Leads in ${month}`,
+            description: `Leads assigned high or restricted levels during ${month}.`,
+            confidentiality_filter: 'needs_review',
+            month: month
+          });
+        }
+      }
     };
 
     const series = [{ name: 'High/Restricted Leads', data: trend.map((t: any) => t.high_restricted) }];
@@ -274,19 +295,19 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
           <CardDescription className="text-xs">Database dimensions holding sensitive information</CardDescription>
         </CardHeader>
         <CardContent className="p-4 flex flex-col gap-3">
-          <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50">
+          <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50 hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onDrilldown({ title: 'BANTC Qualified Leads', description: 'Leads with BANTC qualification assessments.', confidentiality_filter: 'has_bantc' })}>
             <span className="text-sm font-medium">BANTC Qualification Exists</span>
             <span className="font-mono text-sm font-bold">{indicators.has_bantc}</span>
           </div>
-          <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50">
+          <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50 hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onDrilldown({ title: 'Leads with Transcripts', description: 'Leads containing meeting transcripts.', confidentiality_filter: 'has_transcript' })}>
             <span className="text-sm font-medium">Meeting Transcripts Stored</span>
             <span className="font-mono text-sm font-bold">{indicators.has_transcript}</span>
           </div>
-          <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50">
+          <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50 hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onDrilldown({ title: 'Leads with Financials', description: 'Leads with pricing and financial data.', confidentiality_filter: 'has_pricing' })}>
             <span className="text-sm font-medium">Revenue/Pricing Available</span>
             <span className="font-mono text-sm font-bold">{indicators.has_pricing}</span>
           </div>
-          <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50">
+          <div className="flex justify-between items-center p-2 rounded bg-muted/20 border border-border/50 hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => onDrilldown({ title: 'Leads with Sales Orders', description: 'Leads that have generated sales orders.', confidentiality_filter: 'has_sales_orders' })}>
             <span className="text-sm font-medium">Sales Orders Confirmed</span>
             <span className="font-mono text-sm font-bold">{indicators.has_sales_orders}</span>
           </div>

@@ -186,6 +186,32 @@ class ConfidentialityDashboardController extends Controller
         if ($filter === 'needs_review') {
             $query->whereIn('confidentiality_level', ['high', 'restricted'])
                   ->where('status', 'draft');
+        } elseif ($filter === 'has_bantc') {
+            $query->whereHas('entity', function ($q) {
+                $q->whereHas('bantcAnswers');
+            });
+        } elseif ($filter === 'has_transcript') {
+            $query->whereHas('entity', function ($q) {
+                $q->whereHas('meetings', function ($mq) {
+                    $mq->whereNotNull('summary');
+                });
+            });
+        } elseif ($filter === 'has_pricing') {
+            $query->whereHas('entity', function ($q) {
+                $q->where('estimated_closing_amount', '>', 0);
+            });
+        } elseif ($filter === 'has_sales_orders') {
+            $query->whereHas('entity', function ($q) {
+                $q->whereHas('salesOrders');
+            });
+        }
+        
+        $month = $request->query('month');
+        if ($month) {
+            // month is format 'M Y' e.g. 'Jun 2026'
+            $date = \Carbon\Carbon::createFromFormat('M Y', $month);
+            $query->whereYear('assessed_at', $date->year)
+                  ->whereMonth('assessed_at', $date->month);
         }
         
         if ($search) {
@@ -211,18 +237,20 @@ class ConfidentialityDashboardController extends Controller
         });
         
         return response()->json([
-            'columns' => [
-                ['key' => 'company_name', 'label' => 'Lead'],
-                ['key' => 'stage', 'label' => 'Stage'],
-                ['key' => 'owner', 'label' => 'Owner'],
-                ['key' => 'level', 'label' => 'Level'],
-                ['key' => 'score', 'label' => 'Score'],
-                ['key' => 'status', 'label' => 'Status'],
-            ],
-            'records' => $records,
-            'current_page' => $assessments->currentPage(),
-            'last_page' => $assessments->lastPage(),
-            'total' => $assessments->total(),
+            'data' => [
+                'columns' => [
+                    ['key' => 'company_name', 'label' => 'Lead'],
+                    ['key' => 'stage', 'label' => 'Stage'],
+                    ['key' => 'owner', 'label' => 'Owner'],
+                    ['key' => 'level', 'label' => 'Level'],
+                    ['key' => 'score', 'label' => 'Score'],
+                    ['key' => 'status', 'label' => 'Status'],
+                ],
+                'records' => $records,
+                'current_page' => $assessments->currentPage(),
+                'last_page' => $assessments->lastPage(),
+                'total' => $assessments->total()
+            ]
         ]);
     }
 

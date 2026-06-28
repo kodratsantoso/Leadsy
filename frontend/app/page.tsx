@@ -60,6 +60,7 @@ type DrilldownState = {
   stage?: string;
   confidentiality_filter?: string;
   confidentiality_level?: string;
+  month?: string;
 } | null;
 
 type DrilldownLead = {
@@ -363,8 +364,8 @@ export default function DashboardPage() {
 
   const drilldownApiPath = drilldown && drilldown.href 
     ? leadsApiPathFromHref(drilldown.href, drilldownPage, drilldownSearch) 
-    : drilldown && (drilldown.confidentiality_filter || drilldown.confidentiality_level) 
-      ? `/dashboard/confidentiality/drilldown?page=${drilldownPage}${drilldownSearch ? `&search=${drilldownSearch}` : ''}${drilldown.confidentiality_filter ? `&confidentiality_filter=${drilldown.confidentiality_filter}` : ''}${drilldown.confidentiality_level ? `&confidentiality_level=${drilldown.confidentiality_level}` : ''}`
+    : drilldown && (drilldown.confidentiality_filter || drilldown.confidentiality_level || drilldown.month) 
+      ? `/dashboard/confidentiality/drilldown?page=${drilldownPage}${drilldownSearch ? `&search=${drilldownSearch}` : ''}${drilldown.confidentiality_filter ? `&confidentiality_filter=${drilldown.confidentiality_filter}` : ''}${drilldown.confidentiality_level ? `&confidentiality_level=${drilldown.confidentiality_level}` : ''}${drilldown.month ? `&month=${drilldown.month}` : ''}`
     : drilldown && drilldown.block_key 
       ? `/dashboard/team-performance/drilldown?block_key=${drilldown.block_key}${drilldown.role ? `&role=${drilldown.role}` : ''}${drilldown.user_id ? `&user_id=${drilldown.user_id}` : ''}${drilldown.stage ? `&stage=${drilldown.stage}` : ''}&page=${drilldownPage}${drilldownSearch ? `&search=${drilldownSearch}` : ''}` 
     : null;
@@ -2083,7 +2084,7 @@ function TeamPerformancePanel({
   onDrilldown
 }: { 
   period: string;
-  onDrilldown: (d: { href?: string; block_key?: string; title?: string; description?: string }) => void;
+  onDrilldown: (d: NonNullable<DrilldownState>) => void;
 }) {
   return (
     <TeamPerformanceDashboard period={period} onDrilldown={onDrilldown} />

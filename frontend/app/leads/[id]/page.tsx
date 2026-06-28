@@ -1413,6 +1413,10 @@ export default function LeadDetailPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lead-confidentiality', leadId] });
+      setTimeout(() => confidentialityMutation.reset(), 3000);
+    },
+    onError: () => {
+      setTimeout(() => confidentialityMutation.reset(), 3000);
     }
   });
 

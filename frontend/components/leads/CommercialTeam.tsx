@@ -94,8 +94,13 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
   };
 
   const removeAssignment = async (id: number) => {
+    setErrorMsg('');
     try {
-      await apiFetch(`/leads/${leadId}/role-assignments/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/leads/${leadId}/role-assignments/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
+        throw new Error(result.message || 'Failed to remove assignment.');
+      }
       qc.invalidateQueries({ queryKey: ['lead-role-assignments', leadId] });
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to remove assignment.');
