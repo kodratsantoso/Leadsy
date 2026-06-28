@@ -39,12 +39,12 @@ class ConfidentialityScoringService
             $missingData[] = 'BANTC qualification data';
         }
 
-        // Notes
-        $hasNotes = $lead->notes()->exists();
+        // Notes / Activities
+        $hasNotes = $lead->activities()->exists();
         if ($hasNotes) {
             $dataSensitivityScore += 5;
-            $scoreBreakdown[] = $this->makeBreakdown('Internal Notes', 'Present', 5, 'Medium', ['lead_notes']);
-            $dataSources[] = 'lead_notes';
+            $scoreBreakdown[] = $this->makeBreakdown('Internal Activities/Notes', 'Present', 5, 'Medium', ['lead_activities']);
+            $dataSources[] = 'lead_activities';
         }
 
         $totalScore += $dataSensitivityScore;
