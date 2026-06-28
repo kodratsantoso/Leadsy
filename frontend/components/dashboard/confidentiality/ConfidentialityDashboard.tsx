@@ -10,6 +10,8 @@ import {
   ChevronRight, AlertCircle, HelpCircle, FileText, Activity, Users,
   CheckCircle2, XCircle
 } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import dynamic from 'next/dynamic';
 const ApexCharts = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -20,6 +22,31 @@ interface ConfidentialityDashboardProps {
 export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> = ({ onDrilldown }) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [assessmentDetails, setAssessmentDetails] = useState<any>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const safeJsonArray = (val: any) => Array.isArray(val) ? val : [];
+
+  const handleOpenWhyScore = async (leadId: number) => {
+    setSelectedLeadId(leadId);
+    setAssessmentDetails(null);
+    setShowDetailsModal(true);
+    setDetailsLoading(true);
+    try {
+      const response = await apiFetch(`/confidentiality/assessments/lead/${leadId}`);
+      if (response.ok) {
+        setAssessmentDetails(await response.json());
+      } else {
+        console.error("Failed to fetch assessment details");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch data from the real API endpoint
@@ -269,7 +296,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => window.location.href = `/leads/${row.lead_id}?tab=intelligence`}>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleOpenWhyScore(row.lead_id)}>
                       Why this score? <ChevronRight className="h-3 w-3 ml-1" />
                     </Button>
                   </td>
@@ -349,6 +376,103 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
     </div>
   );
 
+  const renderDetailsModal = () => (
+    <Modal
+      open={showDetailsModal}
+      onOpenChange={(val) => setShowDetailsModal(val)}
+      title="Confidentiality Assessment"
+      size="xl"
+    >
+      <div className="p-6">
+        <p className="mb-4 text-sm text-muted-foreground">
+          AI-powered risk scoring to determine data confidentiality level.
+        </p>
+
+        {detailsLoading ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+            <p className="text-sm text-muted-foreground animate-pulse">Loading assessment details...</p>
+          </div>
+        ) : !assessmentDetails ? (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Shield className="mb-2 h-8 w-8 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">No confidentiality assessment found.</p>
+          </div>
+        ) : (
+          <div className="space-y-4 text-sm">
+            <div className="flex items-start justify-between">
+              <div className="flex items-end gap-3">
+                <p className="text-4xl font-bold">{assessmentDetails.score}</p>
+                <p className="pb-1 text-sm text-muted-foreground">Risk Score (out of 100)</p>
+              </div>
+              {renderLevelBadge(assessmentDetails.confidentiality_level)}
+            </div>
+            
+            <ProgressiveFluxLoader layout="feature"
+              value={assessmentDetails.score}
+              showLabel={false}
+              barClassName="h-2"
+              gradient={assessmentDetails.score > 60 ? 'var(--status-danger)' : assessmentDetails.score > 30 ? 'var(--status-warning)' : 'var(--status-success)'}
+            />
+            
+            <div className="mt-4 space-y-3">
+              {safeJsonArray(assessmentDetails.score_breakdown).length > 0 && (
+                <div>
+                  <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">Score Breakdown</h4>
+                  <ul className="space-y-2">
+                    {safeJsonArray(assessmentDetails.score_breakdown).map((item: any, i: number) => (
+                      <li key={i} className="flex flex-wrap justify-between items-center gap-2 rounded bg-muted/20 p-2">
+                        <div>
+                          <span className="font-medium text-xs block">{item.parameter}</span>
+                          <span className="text-xs text-muted-foreground">Found: {item.detected_value}</span>
+                        </div>
+                        <Badge variant="outline">+{item.score_impact}</Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {safeJsonArray(assessmentDetails.recommended_handling).length > 0 && (
+                <div>
+                  <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-muted-foreground">Recommendations</h4>
+                  <ul className="space-y-1">
+                    {safeJsonArray(assessmentDetails.recommended_handling).map((rec: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-muted-foreground">
+                        <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand)]" />
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {safeJsonArray(assessmentDetails.missing_data).length > 0 && (
+                <div className="rounded-lg border border-[var(--status-warning)]/20 bg-[var(--status-warning)]/10 p-3">
+                  <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-[var(--status-warning)]">Missing Data For Assessment</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {safeJsonArray(assessmentDetails.missing_data).map((item: string, i: number) => (
+                      <Badge key={i} variant="outline" className="border-[var(--status-warning)]/30 text-[var(--status-warning)] bg-transparent">{item}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground">
+                Last assessed: {new Date(assessmentDetails.last_assessed || assessmentDetails.updated_at || Date.now()).toLocaleString()}
+              </p>
+              <Button size="sm" onClick={() => window.location.href = `/leads/${selectedLeadId}?tab=intelligence`}>
+                Go to Leads <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+
   return (
     <div className="w-full space-y-6">
       {renderOverviewKPIs()}
@@ -358,6 +482,7 @@ export const ConfidentialityDashboard: React.FC<ConfidentialityDashboardProps> =
         {renderMatrixTable()}
         {renderBottomRow()}
       </div>
+      {renderDetailsModal()}
     </div>
   );
 };
