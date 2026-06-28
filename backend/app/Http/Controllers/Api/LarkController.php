@@ -479,10 +479,11 @@ class LarkController extends Controller
                             'reason' => $result['reason'],
                         ];
                     } catch (\Exception $exception) {
+                        $enhancedMessage = $this->enhanceErrorMessage($exception->getMessage());
                         $errors[] = [
                             'lead_id' => $lead->id,
                             'company_name' => $lead->company_name,
-                            'message' => $exception->getMessage(),
+                            'message' => $enhancedMessage,
                         ];
                         $results[] = [
                             'status' => 'failed',
@@ -490,7 +491,7 @@ class LarkController extends Controller
                             'lead_id' => $lead->id,
                             'company_name' => $lead->company_name,
                             'lark_record_id' => null,
-                            'reason' => $exception->getMessage(),
+                            'reason' => $enhancedMessage,
                         ];
                     }
                 });
@@ -553,10 +554,11 @@ class LarkController extends Controller
                         'company_name' => $lead?->company_name,
                         'reason' => $result['reason'],
                     ];
-                } catch (Exception $exception) {
+                } catch (\Exception $exception) {
+                    $enhancedMessage = $this->enhanceErrorMessage($exception->getMessage());
                     $error = [
                         'record_id' => $recordId,
-                        'message' => $exception->getMessage(),
+                        'message' => $enhancedMessage,
                     ];
                     $errors[] = $error;
                     $results[] = [
@@ -565,7 +567,7 @@ class LarkController extends Controller
                         'record_id' => $recordId,
                         'lead_id' => null,
                         'company_name' => null,
-                        'reason' => $exception->getMessage(),
+                        'reason' => $enhancedMessage,
                     ];
                 }
             }
@@ -608,5 +610,23 @@ class LarkController extends Controller
     private function authorizeTenantTable(LarkBaseTable $baseTable): void
     {
         abort_unless($baseTable->tenant_id === Auth::user()->tenant_id, 404);
+    }
+
+    private function enhanceErrorMessage(string $message): string
+    {
+        $msg = strtolower($message);
+        $suggestion = '';
+
+        if (str_contains($msg, 'field') || str_contains($msg, 'invalid') || str_contains($msg, 'type') || str_contains($msg, 'format')) {
+            $suggestion = ' Saran: Periksa kembali Field Mapping Anda. Pastikan tipe data kolom di Lark Base (misalnya Text, Number, Single Select) sesuai dengan tipe data dari Leadsy.';
+        } elseif (str_contains($msg, 'permission') || str_contains($msg, 'unauthorized') || str_contains($msg, 'forbidden')) {
+            $suggestion = ' Saran: Pastikan aplikasi Leadsy memiliki akses (permission) penuh ke Lark Base Table tersebut melalui pengaturan "Add Apps" di Base.';
+        } elseif (str_contains($msg, 'not found') || str_contains($msg, 'notexist')) {
+            $suggestion = ' Saran: Record atau tabel mungkin telah dihapus di Lark Base, atau pastikan Base App Token / Table ID valid.';
+        } elseif (str_contains($msg, 'timeout') || str_contains($msg, 'time out')) {
+            $suggestion = ' Saran: Terjadi gangguan jaringan ke server Lark. Silakan coba kembali beberapa saat lagi.';
+        }
+
+        return $message . $suggestion;
     }
 }
