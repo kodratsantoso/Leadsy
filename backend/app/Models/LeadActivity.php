@@ -20,6 +20,8 @@ class LeadActivity extends Model
         'next_follow_up_date' => 'date',
     ];
 
+    protected $touches = ['lead'];
+
     public function lead(): BelongsTo
     {
         return $this->belongsTo(Lead::class);
