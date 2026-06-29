@@ -116,6 +116,20 @@ class LeadEvaluationService
         // Mark transcript as evaluated
         $transcript->update(['evaluation_status' => 'evaluated']);
 
+        // Save BANTC to Lead Activity to ensure it is visible in CRM timeline and synced to Lark Base
+        if (!empty($evaluation['bantc_extracted']) && is_array($evaluation['bantc_extracted'])) {
+            $lead->activities()->create([
+                'activity_type' => 'Meeting Analysis',
+                'description' => 'AI extracted BANTC from meeting transcript. Summary: ' . $this->stringValue($evaluation['summary'] ?? 'Meeting evaluated.'),
+                'budget' => $evaluation['bantc_extracted']['budget'] ?? null,
+                'authority' => $evaluation['bantc_extracted']['authority'] ?? null,
+                'needs' => $evaluation['bantc_extracted']['needs'] ?? null,
+                'timeline' => $evaluation['bantc_extracted']['timeline'] ?? null,
+                'competitor' => $evaluation['bantc_extracted']['competitor'] ?? null,
+                'activity_date' => now(),
+            ]);
+        }
+
         return $aiEvaluation;
     }
 
