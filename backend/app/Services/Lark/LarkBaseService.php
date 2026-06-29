@@ -249,6 +249,81 @@ class LarkBaseService extends LarkService
         }
     }
 
+    /**
+     * Search records from Lark Base table
+     */
+    public function searchRecords(
+        string $baseId,
+        string $tableId,
+        array $payload = [],
+        array $query = []
+    ): ?array {
+        try {
+            $params = array_merge([
+                'page_size' => 100,
+                'page_token' => null,
+            ], $query);
+
+            $response = $this->request('POST', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records/search", $payload, $params);
+
+            return $response;
+        } catch (Exception $e) {
+            Log::error('Failed to search Lark Base records', [
+                'base_id' => $baseId,
+                'table_id' => $tableId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Batch create records in Lark Base table
+     * $records array format: [['fields' => [...]], ['fields' => [...]]]
+     */
+    public function batchCreateRecords(
+        string $baseId,
+        string $tableId,
+        array $records
+    ): array {
+        try {
+            $payload = ['records' => $records];
+            $response = $this->request('POST', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records/batch_create", $payload);
+            return $response;
+        } catch (Exception $e) {
+            Log::error('Failed to batch create Lark Base records', [
+                'base_id' => $baseId,
+                'table_id' => $tableId,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Batch update records in Lark Base table
+     * $records array format: [['record_id' => '...', 'fields' => [...]], ...]
+     */
+    public function batchUpdateRecords(
+        string $baseId,
+        string $tableId,
+        array $records
+    ): array {
+        try {
+            $payload = ['records' => $records];
+            $response = $this->request('POST', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records/batch_update", $payload);
+            return $response;
+        } catch (Exception $e) {
+            Log::error('Failed to batch update Lark Base records', [
+                'base_id' => $baseId,
+                'table_id' => $tableId,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
     public function upsertLead(Lead $lead, LarkBaseTable $baseTable): ?LarkBaseRecordMapping
     {
         return $this->upsertLeadWithResult($lead, $baseTable)['mapping'];

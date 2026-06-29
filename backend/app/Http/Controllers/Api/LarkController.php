@@ -431,11 +431,19 @@ class LarkController extends Controller
         $results = [];
 
         if ($request->direction === 'push') {
-            $fieldDefinitions = $service->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
+            if (!$baseTable->allowsPush()) {
+                return response()->json(['success' => false, 'message' => 'Push is not allowed for this mapping direction.'], 400);
+            }
 
-            $limit = min($request->integer('limit', 50), 50);
+            try {
+                $fieldDefinitions = $service->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => 'Failed to fetch base fields: ' . $this->enhanceErrorMessage($e->getMessage())], 500);
+            }
 
-            Lead::where(function ($query) use ($baseTable) {
+            $limit = min($request->integer('limit', 500), 500); // Increased limit due to batch processing
+
+            $leads = Lead::where(function ($query) use ($baseTable) {
                 $query->where('tenant_id', $baseTable->tenant_id)
                     ->orWhereNull('tenant_id');
             })
@@ -459,69 +467,162 @@ class LarkController extends Controller
                           });
                     });
                 })
-                ->with(['industry', 'funnelStage', 'owner'])
+                ->with(['industry', 'funnelStage', 'owner', 'contacts', 'activities', 'aiEvaluations', 'confidentialityAssessment'])
                 ->limit($limit)
-                ->get()
-                ->each(function (Lead $lead) use ($service, $baseTable, $fieldDefinitions, &$count, &$attempted, &$skipped, &$added, &$updated, &$results, &$errors): void {
-                    $attempted++;
+                ->get();
 
-                    try {
-                        $result = $service->upsertLeadWithResult($lead, $baseTable, $fieldDefinitions);
-                        $action = $result['action'];
-                        $mapping = $result['mapping'];
+            $creates = [];
+            $updates = [];
+            $leadsByLarkRecordId = [];
+            $leadsForCreate = [];
 
-                        if ($mapping) {
-                            $count++;
-                            if ($action === 'added') {
-                                $added++;
-                            } elseif ($action === 'updated') {
-                                $updated++;
-                            }
-                        } else {
-                            $skipped++;
-                        }
+            foreach ($leads as $lead) {
+                $attempted++;
+                try {
+                    $fields = LarkBaseService::mapLeadToBaseFields($lead, $baseTable->field_mapping ?: LarkBaseService::DEFAULT_LEAD_FIELD_MAPPING, $fieldDefinitions);
 
-                        $results[] = [
-                            'status' => $mapping ? 'success' : 'skipped',
-                            'action' => $action,
-                            'lead_id' => $lead->id,
-                            'company_name' => $lead->company_name,
-                            'lark_record_id' => $result['record_id'],
-                            'reason' => $result['reason'],
+                    $mapping = \App\Models\LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
+                        ->where('leadsy_entity_type', 'lead')
+                        ->where('leadsy_entity_id', (string) $lead->id)
+                        ->first();
+
+                    $recordId = $mapping ? $mapping->lark_record_id : $lead->external_id;
+
+                    if ($recordId) {
+                        $updates[] = [
+                            'record_id' => $recordId,
+                            'fields' => $fields
                         ];
-                    } catch (\Exception $exception) {
-                        $enhancedMessage = $this->enhanceErrorMessage($exception->getMessage());
-                        $errors[] = [
-                            'lead_id' => $lead->id,
-                            'company_name' => $lead->company_name,
-                            'message' => $enhancedMessage,
+                        $leadsByLarkRecordId[$recordId] = ['lead' => $lead, 'mapping' => $mapping];
+                    } else {
+                        $creates[] = [
+                            'fields' => $fields
                         ];
+                        $leadsForCreate[] = $lead;
+                    }
+                } catch (\Exception $exception) {
+                    $enhancedMessage = $this->enhanceErrorMessage($exception->getMessage());
+                    $errors[] = [
+                        'lead_id' => $lead->id,
+                        'company_name' => $lead->company_name,
+                        'message' => $enhancedMessage,
+                    ];
+                }
+            }
+
+            // Batch Create in chunks of 500
+            foreach (array_chunk($creates, 500, true) as $chunkIndex => $chunk) {
+                try {
+                    $response = $service->batchCreateRecords($baseTable->app_token, $baseTable->table_id, array_values($chunk));
+                    $createdRecords = $response['records'] ?? [];
+
+                    foreach ($createdRecords as $index => $record) {
+                        $recordId = $record['record_id'] ?? null;
+                        if (!$recordId) continue;
+                        
+                        $lead = $leadsForCreate[$chunkIndex * 500 + $index];
+
+                        $mapping = \App\Models\LarkBaseRecordMapping::create([
+                            'tenant_id' => $baseTable->tenant_id,
+                            'lark_base_table_id' => $baseTable->id,
+                            'leadsy_entity_type' => 'lead',
+                            'leadsy_entity_id' => (string) $lead->id,
+                            'lark_record_id' => $recordId,
+                            'last_leadsy_updated_at' => now(),
+                            'last_sync_source' => 'leadsy',
+                        ]);
+
+                        Lead::withoutEvents(function() use ($lead, $recordId) {
+                            $lead->update(['external_id' => $recordId]);
+                        });
+
+                        $added++;
+                        $count++;
                         $results[] = [
-                            'status' => 'failed',
-                            'action' => 'failed',
+                            'status' => 'success',
+                            'action' => 'added',
                             'lead_id' => $lead->id,
                             'company_name' => $lead->company_name,
-                            'lark_record_id' => null,
-                            'reason' => $enhancedMessage,
+                            'lark_record_id' => $recordId,
+                            'reason' => null,
                         ];
                     }
-                });
+                } catch (\Exception $e) {
+                    $enhancedMessage = $this->enhanceErrorMessage($e->getMessage());
+                    $errors[] = ['message' => 'Batch Create Failed: ' . $enhancedMessage];
+                    $skipped += count($chunk);
+                }
+            }
+
+            // Batch Update in chunks of 500
+            foreach (array_chunk($updates, 500) as $chunk) {
+                try {
+                    $response = $service->batchUpdateRecords($baseTable->app_token, $baseTable->table_id, $chunk);
+                    $updatedRecords = $response['records'] ?? [];
+
+                    foreach ($updatedRecords as $record) {
+                        $recordId = $record['record_id'] ?? null;
+                        if (!$recordId || !isset($leadsByLarkRecordId[$recordId])) continue;
+                        
+                        $data = $leadsByLarkRecordId[$recordId];
+                        $lead = $data['lead'];
+                        $mapping = $data['mapping'];
+
+                        if (!$mapping) {
+                            $mapping = \App\Models\LarkBaseRecordMapping::create([
+                                'tenant_id' => $baseTable->tenant_id,
+                                'lark_base_table_id' => $baseTable->id,
+                                'leadsy_entity_type' => 'lead',
+                                'leadsy_entity_id' => (string) $lead->id,
+                                'lark_record_id' => $recordId,
+                            ]);
+                        }
+
+                        $mapping->update([
+                            'last_leadsy_updated_at' => now(),
+                            'last_sync_source' => 'leadsy',
+                        ]);
+
+                        $updated++;
+                        $count++;
+                        $results[] = [
+                            'status' => 'success',
+                            'action' => 'updated',
+                            'lead_id' => $lead->id,
+                            'company_name' => $lead->company_name,
+                            'lark_record_id' => $recordId,
+                            'reason' => null,
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    $enhancedMessage = $this->enhanceErrorMessage($e->getMessage());
+                    $errors[] = ['message' => 'Batch Update Failed: ' . $enhancedMessage];
+                    $skipped += count($chunk);
+                }
+            }
+            
+            $baseTable->update(['last_push_at' => now()]);
+
         } else {
             $limit = $request->integer('limit', 3000);
             $pageToken = null;
             $items = [];
 
-            do {
-                $records = $service->getRecords($baseTable->app_token, $baseTable->table_id, [
-                    'page_size' => min(500, $limit - count($items)),
-                    'page_token' => $pageToken,
-                ]);
+            try {
+                do {
+                    $records = $service->searchRecords($baseTable->app_token, $baseTable->table_id, [], [
+                        'page_size' => min(500, $limit - count($items)),
+                        'page_token' => $pageToken,
+                    ]);
 
-                $fetchedItems = $records['items'] ?? [];
-                $items = array_merge($items, $fetchedItems);
-                $pageToken = $records['page_token'] ?? null;
-                $hasMore = $records['has_more'] ?? false;
-            } while ($pageToken && $hasMore && count($items) < $limit);
+                    $fetchedItems = $records['items'] ?? [];
+                    $items = array_merge($items, $fetchedItems);
+                    $pageToken = $records['page_token'] ?? null;
+                    $hasMore = $records['has_more'] ?? false;
+                } while ($pageToken && $hasMore && count($items) < $limit);
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => 'Failed to search records: ' . $this->enhanceErrorMessage($e->getMessage())], 500);
+            }
 
             foreach ($items as $record) {
                 $recordId = $record['record_id'] ?? null;
@@ -561,9 +662,9 @@ class LarkController extends Controller
                         'status' => $lead ? 'success' : 'skipped',
                         'action' => $action,
                         'record_id' => $recordId,
-                        'lead_id' => $result['lead_id'],
+                        'lead_id' => $result['lead_id'] ?? null,
                         'company_name' => $lead?->company_name,
-                        'reason' => $result['reason'],
+                        'reason' => $result['reason'] ?? null,
                     ];
                 } catch (\Exception $exception) {
                     $enhancedMessage = $this->enhanceErrorMessage($exception->getMessage());
