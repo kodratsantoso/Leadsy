@@ -160,6 +160,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('revenue-targets/{id}/cascade', [\App\Http\Controllers\Api\RevenueTargetController::class, 'cascade']);
 
     // KPI Targets
+    Route::post('kpi-targets/bulk', [\App\Http\Controllers\Api\KpiTargetController::class, 'bulkStore']);
     Route::apiResource('kpi-targets', \App\Http\Controllers\Api\KpiTargetController::class);
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');

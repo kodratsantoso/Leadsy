@@ -124,4 +124,52 @@ class KpiTargetController extends Controller
         
         return response()->json(['message' => 'KPI Target deleted successfully']);
     }
+
+    public function bulkStore(Request $request): JsonResponse
+    {
+        $tenant = $request->user()?->tenant;
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $validated = $request->validate([
+            'targets' => 'required|array',
+            'targets.*.role_type' => 'required|string',
+            'targets.*.assigned_user_id' => 'required|exists:users,id',
+            'targets.*.kpi_type' => 'required|string',
+            'targets.*.period_type' => 'required|string',
+            'targets.*.start_date' => 'required|date',
+            'targets.*.end_date' => 'required|date',
+            'targets.*.target_value_type' => 'required|string',
+            'targets.*.target_quantity' => 'nullable|integer',
+            'targets.*.target_percentage' => 'nullable|numeric',
+        ]);
+
+        $savedTargets = [];
+        foreach ($validated['targets'] as $targetData) {
+            // Check if exists for same user, kpi type and period date
+            $target = KpiTarget::updateOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'assigned_user_id' => $targetData['assigned_user_id'],
+                    'kpi_type' => $targetData['kpi_type'],
+                    'start_date' => $targetData['start_date'],
+                    'end_date' => $targetData['end_date'],
+                ],
+                [
+                    'role_type' => $targetData['role_type'],
+                    'target_name' => 'KPI Target - ' . $targetData['kpi_type'],
+                    'period_type' => $targetData['period_type'],
+                    'target_value_type' => $targetData['target_value_type'],
+                    'target_quantity' => $targetData['target_quantity'] ?? null,
+                    'target_percentage' => $targetData['target_percentage'] ?? null,
+                    'created_by' => $request->user()->id,
+                    'status' => 'active'
+                ]
+            );
+            $savedTargets[] = $target;
+        }
+
+        return response()->json(['message' => 'KPI Targets saved successfully', 'data' => $savedTargets], 201);
+    }
 }

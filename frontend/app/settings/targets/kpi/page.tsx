@@ -1,42 +1,30 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Activity, Edit, Trash } from "lucide-react";
+import { Save, Activity, Trash, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell } from "@/components/ui/table";
-import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
-import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
 export default function KpiTargetsPage() {
-  const { formatNumber } = useNumberFormat();
-  
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [targets, setTargets] = useState<any[]>([]);
   const [config, setConfig] = useState<any>({});
   const [users, setUsers] = useState<any[]>([]);
   
-  // Form state
-  const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState<any>({
-    target_name: "",
-    role_type: "",
-    kpi_type: "",
-    assigned_user_id: "",
-    period_type: "monthly",
-    start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    end_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
-    target_value_type: "",
-    target_quantity: "",
-    target_percentage: "",
-    target_score: "",
-    target_days: "",
-    target_hours: ""
-  });
+  // Period filter state
+  const [periodType, setPeriodType] = useState("monthly");
+  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]);
+  const [roleFilter, setRoleFilter] = useState("all");
+
+  // Grid state: {[userId_kpiType]: value}
+  const [gridValues, setGridValues] = useState<Record<string, string>>({});
 
   const fetchInitData = async () => {
     setLoading(true);
@@ -50,7 +38,19 @@ export default function KpiTargetsPage() {
         const c = await confRes.json();
         setConfig(c.kpi_target || {});
       }
-      if (tgtRes.ok) setTargets(await tgtRes.json());
+      if (tgtRes.ok) {
+        const d = await tgtRes.json();
+        setTargets(d);
+        // Pre-fill grid with existing values
+        const initialGrid: Record<string, string> = {};
+        d.forEach((t: any) => {
+          const key = `${t.assigned_user_id}_${t.kpi_type}`;
+          initialGrid[key] = t.target_quantity !== null ? t.target_quantity.toString() : 
+                             (t.target_percentage !== null ? t.target_percentage.toString() : 
+                             (t.target_score !== null ? t.target_score.toString() : ""));
+        });
+        setGridValues(initialGrid);
+      }
       if (usersRes.ok) {
         const d = await usersRes.json();
         setUsers(d.data || d);
@@ -66,160 +66,197 @@ export default function KpiTargetsPage() {
     fetchInitData();
   }, []);
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const role = e.target.value;
-    setFormData({ ...formData, role_type: role, kpi_type: "", target_value_type: "" });
+  const handleGridChange = (userId: number, kpiType: string, value: string) => {
+    setGridValues(prev => ({
+      ...prev,
+      [`${userId}_${kpiType}`]: value
+    }));
   };
 
-  const handleKpiTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const type = e.target.value;
-    const valType = config?.kpi_types_by_role?.[formData.role_type]?.[type]?.value_type || "";
-    setFormData({ ...formData, kpi_type: type, target_value_type: valType });
-  };
-
-  const handleSave = async () => {
+  const handleSaveAll = async () => {
+    setSaving(true);
     try {
-      const res = await apiFetch("/api/kpi-targets", {
-        method: "POST",
-        body: JSON.stringify(formData)
+      const bulkPayload: any[] = [];
+
+      users.forEach(u => {
+        const role = u.role?.name?.toLowerCase() || "";
+        const roleKpis = config?.kpi_types_by_role?.[role];
+        if (!roleKpis) return;
+
+        Object.keys(roleKpis).forEach(kpiType => {
+          const val = gridValues[`${u.id}_${kpiType}`];
+          if (val && val !== "") {
+            const valueType = roleKpis[kpiType].value_type;
+            const numericVal = Number(val);
+            
+            bulkPayload.push({
+              role_type: role,
+              assigned_user_id: u.id,
+              kpi_type: kpiType,
+              period_type: periodType,
+              start_date: startDate,
+              end_date: endDate,
+              target_value_type: valueType,
+              target_quantity: valueType === "quantity" ? numericVal : null,
+              target_percentage: valueType === "percentage" ? numericVal : null,
+              target_score: valueType === "score" ? numericVal : null,
+            });
+          }
+        });
       });
+
+      if (bulkPayload.length === 0) {
+        alert("No values to save.");
+        setSaving(false);
+        return;
+      }
+
+      const res = await apiFetch("/api/kpi-targets/bulk", {
+        method: "POST",
+        body: JSON.stringify({ targets: bulkPayload })
+      });
+
       if (res.ok) {
-        setOpen(false);
+        alert("KPI Targets saved successfully!");
         fetchInitData();
       } else {
         const e = await res.json();
-        alert(e.message || "Failed to save target");
+        alert(e.message || "Failed to save targets");
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure?")) return;
-    try {
-      const res = await apiFetch(`/api/kpi-targets/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        fetchInitData();
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const roles = config?.roles || [];
+  
+  // Get all unique KPI types across selected roles to build dynamic columns
+  let dynamicKpiColumns: { key: string, label: string, valueType: string }[] = [];
+  
+  if (roleFilter === "all") {
+    roles.forEach((r: string) => {
+      const roleKpis = config?.kpi_types_by_role?.[r] || {};
+      Object.keys(roleKpis).forEach(k => {
+        if (!dynamicKpiColumns.find(c => c.key === k)) {
+          dynamicKpiColumns.push({ key: k, label: k.replace(/_/g, ' '), valueType: roleKpis[k].value_type });
+        }
+      });
+    });
+  } else {
+    const roleKpis = config?.kpi_types_by_role?.[roleFilter] || {};
+    Object.keys(roleKpis).forEach(k => {
+      dynamicKpiColumns.push({ key: k, label: k.replace(/_/g, ' '), valueType: roleKpis[k].value_type });
+    });
   }
 
-  const renderValueInput = () => {
-    switch (formData.target_value_type) {
-      case "quantity":
-        return <div className="space-y-2"><label className="text-sm font-medium">Quantity Target</label><Input type="number" value={formData.target_quantity} onChange={e => setFormData({...formData, target_quantity: e.target.value})} /></div>;
-      case "percentage":
-        return <div className="space-y-2"><label className="text-sm font-medium">Percentage Target (%)</label><Input type="number" value={formData.target_percentage} onChange={e => setFormData({...formData, target_percentage: e.target.value})} /></div>;
-      case "score":
-        return <div className="space-y-2"><label className="text-sm font-medium">Score Target</label><Input type="number" step="0.1" value={formData.target_score} onChange={e => setFormData({...formData, target_score: e.target.value})} /></div>;
-      case "days":
-        return <div className="space-y-2"><label className="text-sm font-medium">Days Target</label><Input type="number" value={formData.target_days} onChange={e => setFormData({...formData, target_days: e.target.value})} /></div>;
-      case "hours":
-        return <div className="space-y-2"><label className="text-sm font-medium">Hours Target</label><Input type="number" step="0.1" value={formData.target_hours} onChange={e => setFormData({...formData, target_hours: e.target.value})} /></div>;
-      default:
-        return null;
-    }
-  };
-
-  const formatTargetValue = (target: any) => {
-    switch (target.target_value_type) {
-      case "quantity": return formatNumber(target.target_quantity);
-      case "percentage": return `${target.target_percentage}%`;
-      case "score": return target.target_score;
-      case "days": return `${target.target_days} days`;
-      case "hours": return `${target.target_hours} hours`;
-      default: return "-";
-    }
-  };
+  // Filter users by role
+  const filteredUsers = users.filter(u => {
+    if (roleFilter === "all") return true;
+    return u.role?.name?.toLowerCase() === roleFilter;
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">KPI Targets</h1>
-          <p className="text-muted-foreground mt-1">Configure role-specific metrics and KPIs for all user levels.</p>
+          <p className="text-muted-foreground mt-1">Bulk entry grid to configure KPI targets for all users.</p>
         </div>
-        <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> New Target</Button>
-        <Modal open={open} onOpenChange={setOpen} title="Create New KPI Target" size="sm">
-          <div className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Target Name</label>
-              <Input value={formData.target_name} onChange={e => setFormData({...formData, target_name: e.target.value})} placeholder="e.g. Q3 BANTC Completion" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Assigned User</label>
-              <Select value={formData.assigned_user_id} onChange={e => setFormData({...formData, assigned_user_id: e.target.value})} placeholder="Select User">
-                {users.map(u => <option key={u.id} value={u.id.toString()}>{u.name}</option>)}
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Role</label>
-              <Select value={formData.role_type} onChange={handleRoleChange} placeholder="Select Role">
-                {config?.roles?.map((r: string) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
-              </Select>
-            </div>
-            {formData.role_type && config?.kpi_types_by_role?.[formData.role_type] && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">KPI Type</label>
-                <Select value={formData.kpi_type} onChange={handleKpiTypeChange} placeholder="Select KPI Type">
-                  {Object.keys(config.kpi_types_by_role[formData.role_type]).map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
-                </Select>
-              </div>
-            )}
-            {formData.kpi_type && renderValueInput()}
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Start Date</label>
-                <Input type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">End Date</label>
-                <Input type="date" value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} />
-              </div>
-            </div>
-
-            <Button onClick={handleSave} className="w-full">Save Target</Button>
-          </div>
-        </Modal>
+        <Button onClick={handleSaveAll} disabled={saving}>
+          <Save className="w-4 h-4 mr-2" /> 
+          {saving ? "Saving..." : "Save All Targets"}
+        </Button>
       </div>
 
       <Card>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableHeaderCell>Target Name</TableHeaderCell>
-              <TableHeaderCell>Role</TableHeaderCell>
-              <TableHeaderCell>Assigned To</TableHeaderCell>
-              <TableHeaderCell>KPI Type</TableHeaderCell>
-              <TableHeaderCell>Period</TableHeaderCell>
-              <TableHeaderCell>Target Value</TableHeaderCell>
-              <TableHeaderCell className="text-right">Actions</TableHeaderCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {targets.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">No targets found.</TableCell></TableRow>
-            ) : (
-              targets.map(t => (
-                <TableRow key={t.id}>
-                  <TableCell className="font-medium">{t.target_name || '-'}</TableCell>
-                  <TableCell><Badge variant="outline">{t.role_type}</Badge></TableCell>
-                  <TableCell>{t.assigned_user?.name}</TableCell>
-                  <TableCell className="capitalize">{t.kpi_type.replace(/_/g, ' ')}</TableCell>
-                  <TableCell className="capitalize">{t.period_type}</TableCell>
-                  <TableCell>{formatTargetValue(t)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(t.id)}><Trash className="w-4 h-4 text-red-500"/></Button>
-                  </TableCell>
+        <CardHeader className="pb-4 bg-muted/20 border-b">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Filter Role</label>
+              <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="w-40 bg-white">
+                <option value="all">All Roles</option>
+                {roles.map((r: string) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Period</label>
+              <Select value={periodType} onChange={e => setPeriodType(e.target.value)} className="w-32 bg-white">
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+              <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 bg-white" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">End Date</label>
+              <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 bg-white" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableHeaderCell className="w-64 min-w-[250px] sticky left-0 bg-white z-10 border-r shadow-[1px_0_0_0_#e2e8f0]">User</TableHeaderCell>
+                  <TableHeaderCell className="w-32">Role</TableHeaderCell>
+                  {dynamicKpiColumns.map(col => (
+                    <TableHeaderCell key={col.key} className="min-w-[180px] capitalize">
+                      {col.label} 
+                      <span className="text-[10px] block text-muted-foreground font-normal">({col.valueType})</span>
+                    </TableHeaderCell>
+                  ))}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              </TableHead>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow><TableCell colSpan={dynamicKpiColumns.length + 2} className="text-center py-10">No users found for this role.</TableCell></TableRow>
+                ) : (
+                  filteredUsers.map(u => {
+                    const uRole = u.role?.name?.toLowerCase() || "";
+                    const validKpisForRole = config?.kpi_types_by_role?.[uRole] || {};
+
+                    return (
+                      <TableRow key={u.id}>
+                        <TableCell className="font-medium sticky left-0 bg-white z-10 border-r shadow-[1px_0_0_0_#e2e8f0]">{u.name}</TableCell>
+                        <TableCell><Badge variant="outline" className="capitalize">{uRole || 'No Role'}</Badge></TableCell>
+                        
+                        {dynamicKpiColumns.map(col => {
+                          const isApplicable = !!validKpisForRole[col.key];
+                          const cellKey = `${u.id}_${col.key}`;
+                          
+                          return (
+                            <TableCell key={col.key} className={!isApplicable ? "bg-muted/30" : ""}>
+                              {isApplicable ? (
+                                <div className="relative flex items-center">
+                                  <Input 
+                                    type="number" 
+                                    className="h-8 text-sm" 
+                                    placeholder={`Target ${col.valueType}`}
+                                    value={gridValues[cellKey] || ""}
+                                    onChange={(e) => handleGridChange(u.id, col.key, e.target.value)}
+                                  />
+                                  {col.valueType === "percentage" && <span className="absolute right-3 text-xs text-muted-foreground">%</span>}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic pl-2">N/A</span>
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

@@ -15,13 +15,25 @@ import { useNumberFormat } from "@/lib/hooks/use-number-format";
 export default function RevenueTargetsPage() {
   const { formatNumber, formatCurrency } = useNumberFormat();
   
+  const NumberInput = ({ value, onChange, className, placeholder }: any) => {
+    const displayValue = value ? new Intl.NumberFormat('en-US').format(Number(value)) : "";
+    const handleChange = (e: any) => {
+      const val = e.target.value.replace(/,/g, '');
+      if (!isNaN(Number(val)) || val === '') {
+        onChange(val);
+      }
+    };
+    return <Input type="text" className={className} placeholder={placeholder} value={displayValue} onChange={handleChange} />;
+  };
+  
   const [loading, setLoading] = useState(true);
   const [targets, setTargets] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   
   // Form state
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState<any>({
+  const [editId, setEditId] = useState<number | null>(null);
+  const defaultForm = {
     target_name: "",
     owner_type: "company",
     role_type: "",
@@ -34,7 +46,33 @@ export default function RevenueTargetsPage() {
     currency_code: "IDR",
     currency_symbol: "Rp",
     target_amount: "",
-  });
+  };
+  const [formData, setFormData] = useState<any>(defaultForm);
+
+  const handleOpenCreate = () => {
+    setEditId(null);
+    setFormData(defaultForm);
+    setOpen(true);
+  };
+
+  const handleOpenEdit = (t: any) => {
+    setEditId(t.id);
+    setFormData({
+      target_name: t.target_name || "",
+      owner_type: t.owner_type || "company",
+      role_type: t.role_type || "",
+      assigned_user_id: t.assigned_user_id || "",
+      revenue_target_type: t.revenue_target_type || "new_business_revenue",
+      period_type: t.period_type || "yearly",
+      year: t.year || new Date().getFullYear(),
+      quarter: t.quarter || "",
+      month: t.month || "",
+      currency_code: t.currency_code || "IDR",
+      currency_symbol: t.currency_symbol || "Rp",
+      target_amount: t.target_amount || "",
+    });
+    setOpen(true);
+  };
 
   const fetchInitData = async () => {
     setLoading(true);
@@ -70,8 +108,11 @@ export default function RevenueTargetsPage() {
         month: formData.month ? Number(formData.month) : null,
       };
 
-      const res = await apiFetch("/api/revenue-targets", {
-        method: "POST",
+      const method = editId ? "PUT" : "POST";
+      const url = editId ? `/api/revenue-targets/${editId}` : "/api/revenue-targets";
+
+      const res = await apiFetch(url, {
+        method,
         body: JSON.stringify(payload)
       });
       if (res.ok) {
@@ -159,10 +200,10 @@ export default function RevenueTargetsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Revenue Targets</h1>
           <p className="text-muted-foreground mt-1">Configure company revenue targets and cascade to Sales and AMs.</p>
         </div>
-        <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" /> New Target</Button>
+        <Button onClick={handleOpenCreate}><Plus className="w-4 h-4 mr-2" /> New Target</Button>
         
         {/* Create/Edit Modal */}
-        <Modal open={open} onOpenChange={setOpen} title="Create Revenue Target" size="sm">
+        <Modal open={open} onOpenChange={setOpen} title={editId ? "Edit Revenue Target" : "Create Revenue Target"} size="sm">
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Target Name</label>
@@ -183,7 +224,7 @@ export default function RevenueTargetsPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Assigned User</label>
                 <Select value={formData.assigned_user_id} onChange={e => setFormData({...formData, assigned_user_id: e.target.value})} placeholder="Select User">
-                  {users.map(u => <option key={u.id} value={u.id.toString()}>{u.name}</option>)}
+                  {users.map(u => <option key={u.id} value={u.id.toString()}>{u.name} {u.role ? `(${u.role.name})` : ''}</option>)}
                 </Select>
               </div>
             )}
@@ -220,7 +261,7 @@ export default function RevenueTargetsPage() {
               <label className="text-sm font-medium">Target Amount</label>
               <div className="flex gap-2">
                 <Input type="text" className="w-20" value={formData.currency_code} onChange={e => setFormData({...formData, currency_code: e.target.value})} placeholder="IDR" />
-                <Input type="number" className="flex-1" value={formData.target_amount} onChange={e => setFormData({...formData, target_amount: e.target.value})} />
+                <NumberInput className="flex-1" value={formData.target_amount} onChange={(v: string) => setFormData({...formData, target_amount: v})} />
               </div>
             </div>
 
@@ -242,7 +283,7 @@ export default function RevenueTargetsPage() {
                   <div className="flex-1 space-y-2">
                     <label className="text-xs font-medium">Assign To User</label>
                     <Select value={item.assigned_user_id} onChange={e => handleCascadeChange(index, 'assigned_user_id', e.target.value)} placeholder="Select User">
-                      {users.map(u => <option key={u.id} value={u.id.toString()}>{u.name}</option>)}
+                      {users.map(u => <option key={u.id} value={u.id.toString()}>{u.name} {u.role ? `(${u.role.name})` : ''}</option>)}
                     </Select>
                   </div>
                   <div className="w-32 space-y-2">
@@ -260,7 +301,7 @@ export default function RevenueTargetsPage() {
                   ) : (
                     <div className="flex-1 space-y-2">
                       <label className="text-xs font-medium">Amount</label>
-                      <Input type="number" value={item.allocated_amount} onChange={e => handleCascadeChange(index, 'allocated_amount', e.target.value)} />
+                      <NumberInput value={item.allocated_amount} onChange={(v: string) => handleCascadeChange(index, 'allocated_amount', v)} />
                     </div>
                   )}
                   <Button variant="ghost" className="mb-0.5 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleRemoveCascadeItem(index)}>
@@ -331,6 +372,9 @@ export default function RevenueTargetsPage() {
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => openCascadeModal(t)}>
                       <Layers className="w-4 h-4 mr-1"/> Cascade
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(t)}>
+                      <Edit className="w-4 h-4 text-blue-500"/>
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDelete(t.id)}>
                       <Trash className="w-4 h-4 text-red-500"/>
