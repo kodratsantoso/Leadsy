@@ -491,12 +491,12 @@ class LarkController extends Controller
                     if ($recordId) {
                         $updates[] = [
                             'record_id' => $recordId,
-                            'fields' => $fields
+                            'fields' => (object) $fields
                         ];
                         $leadsByLarkRecordId[$recordId] = ['lead' => $lead, 'mapping' => $mapping];
                     } else {
                         $creates[] = [
-                            'fields' => $fields
+                            'fields' => (object) $fields
                         ];
                         $leadsForCreate[] = $lead;
                     }

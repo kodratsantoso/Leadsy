@@ -52,8 +52,9 @@ class LarkBaseSyncApiTest extends TestCase
                 
                 $responses = [];
                 foreach ($records as $record) {
+                    $fields = (array) $record['fields'];
                     if ($record['record_id'] === 'rec-tenant') {
-                        $this->assertSame('72', $record['fields']['Lead Score'] ?? null);
+                        $this->assertSame('72', $fields['Lead Score'] ?? null);
                     }
                     $responses[] = [
                         'record_id' => $record['record_id'],
@@ -72,9 +73,10 @@ class LarkBaseSyncApiTest extends TestCase
                 $records = $request->data()['records'] ?? [];
                 $responses = [];
                 foreach ($records as $record) {
-                    $companyName = (string) ($record['fields']['Company Name'] ?? '');
+                    $fields = (array) $record['fields'];
+                    $companyName = (string) ($fields['Company Name'] ?? '');
                     if ($companyName === 'Legacy Global Lead') {
-                        $this->assertSame('61', $record['fields']['Lead Score'] ?? null);
+                        $this->assertSame('61', $fields['Lead Score'] ?? null);
                         $responses[] = ['record_id' => 'rec-global'];
                     } else {
                         $responses[] = ['record_id' => 'rec-tenant'];
