@@ -47,31 +47,44 @@ class LarkBaseSyncApiTest extends TestCase
                 ]);
             }
 
-            if ($request->method() === 'PUT' && str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records/rec-tenant')) {
-                $this->assertSame('72', $request->data()['fields']['Lead Score'] ?? null);
+            if ($request->method() === 'POST' && str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records/batch_update')) {
+                $records = $request->data()['records'] ?? [];
+                
+                $responses = [];
+                foreach ($records as $record) {
+                    if ($record['record_id'] === 'rec-tenant') {
+                        $this->assertSame('72', $record['fields']['Lead Score'] ?? null);
+                    }
+                    $responses[] = [
+                        'record_id' => $record['record_id'],
+                    ];
+                }
 
                 return Http::response([
                     'code' => 0,
                     'data' => [
-                        'record' => [
-                            'record_id' => 'rec-tenant',
-                        ],
+                        'records' => $responses,
                     ],
                 ]);
             }
 
-            if ($request->method() === 'POST' && str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records')) {
-                $this->assertSame('61', $request->data()['fields']['Lead Score'] ?? null);
-
-                $companyName = (string) ($request->data()['fields']['Company Name'] ?? '');
-                $recordId = $companyName === 'Legacy Global Lead' ? 'rec-global' : 'rec-tenant';
+            if ($request->method() === 'POST' && str_contains($url, '/bitable/v1/apps/app-token/tables/table-id/records/batch_create')) {
+                $records = $request->data()['records'] ?? [];
+                $responses = [];
+                foreach ($records as $record) {
+                    $companyName = (string) ($record['fields']['Company Name'] ?? '');
+                    if ($companyName === 'Legacy Global Lead') {
+                        $this->assertSame('61', $record['fields']['Lead Score'] ?? null);
+                        $responses[] = ['record_id' => 'rec-global'];
+                    } else {
+                        $responses[] = ['record_id' => 'rec-tenant'];
+                    }
+                }
 
                 return Http::response([
                     'code' => 0,
                     'data' => [
-                        'record' => [
-                            'record_id' => $recordId,
-                        ],
+                        'records' => $responses,
                     ],
                 ]);
             }
