@@ -3568,15 +3568,43 @@ export default function LeadDetailPage() {
                               {generateMeetingSummaryPdfMutation.isPending && evaluatingTranscriptId === tr.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                               Generate Summary PDF
                             </Button>
-                            <a
-                              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/transcripts/${tr.id}/meeting-summary/download`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={buttonVariants({ variant: 'default', size: 'sm' })}
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  const res = await apiFetch(`/transcripts/${tr.id}/meeting-summary/download`);
+                                  if (!res.ok) {
+                                    const err = await res.json().catch(() => ({}));
+                                    alert(err.message || 'Failed to download PDF. Please ensure it has been generated.');
+                                    return;
+                                  }
+                                  const blob = await res.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  let filename = 'meeting-summary.pdf';
+                                  const disposition = res.headers.get('Content-Disposition');
+                                  if (disposition && disposition.indexOf('attachment') !== -1) {
+                                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                                    if (matches != null && matches[1]) {
+                                      filename = matches[1].replace(/['"]/g, '');
+                                    }
+                                  }
+                                  a.download = filename;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  a.remove();
+                                  window.URL.revokeObjectURL(url);
+                                } catch (error) {
+                                  alert('Error downloading PDF');
+                                }
+                              }}
                             >
                               <FileDown className="mr-2 h-4 w-4" />
                               Download PDF
-                            </a>
+                            </Button>
                           </div>
                         </div>
                       </div>

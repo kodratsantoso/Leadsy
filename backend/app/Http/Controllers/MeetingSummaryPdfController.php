@@ -22,10 +22,10 @@ class MeetingSummaryPdfController extends Controller
             'evaluation_id' => 'nullable|exists:lead_ai_evaluations,id'
         ]);
 
-        GenerateMeetingSummaryPdfJob::dispatch($request->transcript_id, $request->evaluation_id);
+        GenerateMeetingSummaryPdfJob::dispatchSync($request->transcript_id, $request->evaluation_id);
 
         return response()->json([
-            'message' => 'Meeting summary generation has been queued.'
+            'message' => 'Meeting summary generated successfully.'
         ]);
     }
 
