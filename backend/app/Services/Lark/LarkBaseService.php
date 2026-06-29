@@ -250,6 +250,48 @@ class LarkBaseService extends LarkService
     }
 
     /**
+     * Upload an attachment for Bitable
+     */
+    public function uploadAttachment(string $appToken, string $filePath, string $fileName): string
+    {
+        if (! $this->accessToken) {
+            throw new Exception('Access token not available');
+        }
+
+        $url = $this->baseUrl . '/drive/v1/medias/upload_all';
+        
+        if (!file_exists($filePath)) {
+            throw new Exception("File not found: {$filePath}");
+        }
+        
+        $fileContents = file_get_contents($filePath);
+        $fileSize = filesize($filePath);
+
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->accessToken,
+        ])->attach(
+            'file', $fileContents, $fileName
+        )->post($url, [
+            'file_name' => $fileName,
+            'parent_type' => 'bitable_file',
+            'parent_node' => $appToken,
+            'size' => $fileSize,
+        ]);
+
+        if (! $response->successful()) {
+            throw new Exception('Lark Media Upload error: ' . $response->body());
+        }
+
+        $result = $response->json();
+
+        if (($result['code'] ?? 1) !== 0) {
+            throw new Exception('Lark Media Upload API returned error: ' . ($result['msg'] ?? 'Unknown error'));
+        }
+
+        return $result['data']['file_token'] ?? '';
+    }
+
+    /**
      * Search records from Lark Base table
      */
     public function searchRecords(

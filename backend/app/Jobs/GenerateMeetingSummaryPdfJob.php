@@ -72,7 +72,15 @@ class GenerateMeetingSummaryPdfJob implements ShouldQueue
             $pdf = Pdf::loadView('pdf.meeting-summary', $data);
 
             // Store PDF
-            $filename = 'meeting-summary-' . $transcript->id . '-' . time() . '.pdf';
+            $leadName = $lead->company_name ?? $lead->name ?? 'Unknown Lead';
+            $meetingDate = $transcript->recorded_at ? $transcript->recorded_at->format('Y-m-d') : now()->format('Y-m-d');
+            $meetingTitle = $transcript->title ?? 'Meeting';
+            
+            $rawFilename = "{$leadName} - {$meetingDate} - {$meetingTitle}";
+            // Sanitize filename to avoid invalid path characters
+            $safeFilename = preg_replace('/[^A-Za-z0-9\- \_]/', '', $rawFilename);
+            $filename = trim($safeFilename) . '.pdf';
+            
             $path = 'meeting-summaries/' . $filename;
             
             Storage::disk('public')->put($path, $pdf->output());
