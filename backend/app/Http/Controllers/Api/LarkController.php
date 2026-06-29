@@ -392,6 +392,12 @@ class LarkController extends Controller
             ]
         );
 
+        // When mapping is updated, force resync of all records on next push
+        if ($table->wasChanged('field_mapping')) {
+            \App\Models\LarkBaseRecordMapping::where('lark_base_table_id', $table->id)
+                ->update(['last_leadsy_updated_at' => null]);
+        }
+
         return response()->json([
             'success' => true,
             'data' => $table->fresh()->loadCount('recordMappings'),
@@ -467,7 +473,7 @@ class LarkController extends Controller
                           });
                     });
                 })
-                ->with(['industry', 'funnelStage', 'owner', 'contacts', 'activities', 'aiEvaluations', 'confidentialityAssessment'])
+                ->with(['industry', 'funnelStage', 'owner', 'presalesOwner', 'csmOwner', 'amOwner', 'contacts', 'activities', 'aiEvaluations', 'confidentialityAssessment'])
                 ->limit($limit)
                 ->get();
 
@@ -703,10 +709,10 @@ class LarkController extends Controller
     public function syncSingleLead(Request $request, Lead $lead)
     {
         $this->authorize('view', $lead);
-        \App\Jobs\SyncLeadToLarkBaseJob::dispatch($lead->id);
+        \App\Jobs\SyncLeadToLarkBaseJob::dispatchSync($lead->id);
         
         return response()->json([
-            'message' => 'Lark Base sync job dispatched for the lead.'
+            'message' => 'Lark Base sync completed for the lead.'
         ]);
     }
 

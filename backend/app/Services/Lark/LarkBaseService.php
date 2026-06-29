@@ -386,7 +386,7 @@ class LarkBaseService extends LarkService
         }
 
         try {
-            $lead->loadMissing(['industry', 'funnelStage', 'owner', 'contacts', 'activities', 'aiEvaluations', 'confidentialityAssessment']);
+            $lead->loadMissing(['industry', 'funnelStage', 'owner', 'presalesOwner', 'csmOwner', 'amOwner', 'contacts', 'activities', 'aiEvaluations', 'confidentialityAssessment']);
 
             $fields = self::mapLeadToBaseFields(
                 $lead,
