@@ -45,6 +45,9 @@ const LEADSY_LEAD_FIELDS = [
   { key: "qualification_status", label: "Qualification Status" },
   { key: "funnel_stage", label: "Funnel Stage" },
   { key: "owner", label: "Owner" },
+  { key: "presales_owner", label: "Presales" },
+  { key: "csm_owner", label: "CSM" },
+  { key: "am_owner", label: "Account Manager" },
   { key: "external_place_id", label: "External Place ID" },
   { key: "external_id", label: "External ID" },
   { key: "contact_name", label: "Contact Name" },
@@ -65,7 +68,7 @@ const LEADSY_LEAD_FIELDS = [
 const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   leadsy_id: "Leadsy ID", company_name: "Company Name", website: "Website", email: "Email", phone: "Phone", address: "Address",
   business_category: "Business Category", lead_score: "Lead Score", qualification_status: "Status", funnel_stage: "Funnel Stage",
-  owner: "Owner", external_place_id: "External Place ID", external_id: "External ID",
+  owner: "Owner", presales_owner: "Presales", csm_owner: "CSM", am_owner: "Account Manager", external_place_id: "External Place ID", external_id: "External ID",
   contact_name: "Contact Name", contact_phone: "Contact Phone Number",
   budget: "Budget", authority: "Authority", needs: "Needs", timeline: "Timeline", competitor: "Competitor",
   meeting_summary_attachment: "Meeting Summary Attachment", eligibility_status: "Eligibility Status", confidentiality_score: "Confidentiality Score",

@@ -107,6 +107,9 @@ const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   qualification_status: "Status",
   funnel_stage: "Funnel Stage",
   owner: "Owner",
+  presales_owner: "Presales",
+  csm_owner: "CSM",
+  am_owner: "Account Manager",
   external_place_id: "External Place ID",
   external_id: "External ID",
 };
@@ -123,6 +126,9 @@ const LEADSY_LEAD_FIELDS = [
   { key: "qualification_status", label: "Qualification Status", description: "pending, eligible, potential, or not eligible" },
   { key: "funnel_stage", label: "Funnel Stage", description: "Current funnel stage name" },
   { key: "owner", label: "Owner", description: "Lead owner display name" },
+  { key: "presales_owner", label: "Presales", description: "Presales team owner" },
+  { key: "csm_owner", label: "CSM", description: "Customer Success Manager" },
+  { key: "am_owner", label: "Account Manager", description: "Account Manager" },
   { key: "external_place_id", label: "External Place ID", description: "Google Maps Place ID or external source ID" },
   { key: "external_id", label: "External ID", description: "External integration or source ID" },
 ] as const;
