@@ -104,7 +104,7 @@ async function connectToWhatsApp(sessionName) {
             version: version,
             auth: state,
             logger: pino({ level: 'silent' }),
-            browser: Browsers.macOS('Desktop'),
+            browser: ['Ubuntu', 'Chrome', '121.0.0.0'],
             connectTimeoutMs: 60000,
             syncFullHistory: true,
             shouldSyncHistoryMessage: () => true,

@@ -947,6 +947,17 @@ export default function LocalWhatsAppPage() {
                     </div>
                   )}
 
+                  {session.status === "connecting" && (
+                    <div className="flex flex-col items-center gap-4 py-6">
+                      <div className="flex h-44 w-44 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/30">
+                        <Loader2 className="h-14 w-14 text-[color:var(--brand)] animate-spin" />
+                      </div>
+                      <p className="text-xs text-muted-foreground text-center max-w-xs leading-normal">
+                        Bootstrapping Baileys session... Please wait for QR generation.
+                      </p>
+                    </div>
+                  )}
+
                   {session.status === "qr_ready" && session.qr_payload && (
                     <div className="flex flex-col items-center gap-4">
                       <div className="flex h-48 w-48 items-center justify-center overflow-hidden rounded-2xl border border-border bg-background p-2">
