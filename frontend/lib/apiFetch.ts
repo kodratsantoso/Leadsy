@@ -13,6 +13,11 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     headers.set("Accept", "application/json");
   }
 
+  // Automatically set Content-Type to application/json for stringified JSON bodies
+  if (options.body && typeof options.body === "string" && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
   // Always use the Next.js proxy (/api/...) so that:
   //  - In Docker: the server-side rewrite forwards to the backend via the internal network (backend:8000)
   //  - In local dev: the rewrite forwards to localhost:3001

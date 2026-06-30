@@ -15,7 +15,7 @@ import { useNumberFormat } from "@/lib/hooks/use-number-format";
 const NumberInput = ({ value, onChange, className, placeholder }: any) => {
   const displayValue = value ? new Intl.NumberFormat('en-US').format(Number(value)) : "";
   const handleChange = (e: any) => {
-    const val = e.target.value.replace(/,/g, '');
+    const val = e.target.value.replace(/[,.]/g, ''); // Strip both commas and dots to support IDR pasting
     if (!isNaN(Number(val)) || val === '') {
       onChange(val);
     }
@@ -120,7 +120,9 @@ export default function RevenueTargetsPage() {
         fetchInitData();
       } else {
         const e = await res.json();
-        alert(e.message || "Failed to save target");
+        const details = e.error?.details || e.errors;
+        const errorDetails = details ? JSON.stringify(details, null, 2) : "";
+        alert((e.message || "Failed to save target") + (errorDetails ? "\n" + errorDetails : ""));
       }
     } catch (err) {
       console.error(err);
