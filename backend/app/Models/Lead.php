@@ -30,6 +30,7 @@ class Lead extends Model
         'territory_id', 'product_id', 'created_by',
         'tenant_id', 'parent_lead_id', 'external_id',
         'lark_base_id', 'lark_table_id',
+        'budget', 'authority', 'needs', 'timeline', 'competitor',
     ];
 
     protected $casts = [

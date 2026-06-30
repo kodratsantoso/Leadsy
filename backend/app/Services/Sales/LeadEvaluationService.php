@@ -118,15 +118,30 @@ class LeadEvaluationService
 
         // Save BANTC to Lead Activity to ensure it is visible in CRM timeline and synced to Lark Base
         if (!empty($evaluation['bantc_extracted']) && is_array($evaluation['bantc_extracted'])) {
+            $budget = $evaluation['bantc_extracted']['budget'] ?? null;
+            $authority = $evaluation['bantc_extracted']['authority'] ?? null;
+            $needs = $evaluation['bantc_extracted']['needs'] ?? null;
+            $timeline = $evaluation['bantc_extracted']['timeline'] ?? null;
+            $competitor = $evaluation['bantc_extracted']['competitor'] ?? null;
+
             $lead->activities()->create([
                 'activity_type' => 'Meeting Analysis',
                 'description' => 'AI extracted BANTC from meeting transcript. Summary: ' . $this->stringValue($evaluation['summary'] ?? 'Meeting evaluated.'),
-                'budget' => $evaluation['bantc_extracted']['budget'] ?? null,
-                'authority' => $evaluation['bantc_extracted']['authority'] ?? null,
-                'needs' => $evaluation['bantc_extracted']['needs'] ?? null,
-                'timeline' => $evaluation['bantc_extracted']['timeline'] ?? null,
-                'competitor' => $evaluation['bantc_extracted']['competitor'] ?? null,
+                'budget' => $budget,
+                'authority' => $authority,
+                'needs' => $needs,
+                'timeline' => $timeline,
+                'competitor' => $competitor,
                 'activity_date' => now(),
+            ]);
+
+            // Update the lead's current BANT-C state
+            $lead->update([
+                'budget' => $budget ?? $lead->budget,
+                'authority' => $authority ?? $lead->authority,
+                'needs' => $needs ?? $lead->needs,
+                'timeline' => $timeline ?? $lead->timeline,
+                'competitor' => $competitor ?? $lead->competitor,
             ]);
         }
 

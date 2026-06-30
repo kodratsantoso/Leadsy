@@ -1,0 +1,41 @@
+<?php
+namespace Tests\Feature;
+use Tests\TestCase;
+use App\Models\User;
+use App\Models\Lead;
+use App\Models\LeadTranscript;
+use App\Models\LeadAiEvaluation;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+class ManualPdfTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_manual_pdf()
+    {
+        $user = User::first();
+        if (!$user) {
+            $user = User::factory()->create();
+        }
+        // Give permission
+        $user->givePermissionTo('leads.edit');
+
+        $lead = Lead::first();
+        if (!$lead) {
+            $lead = Lead::create(['name' => 'test']);
+        }
+        $transcript = $lead->transcripts()->create(['title' => 'test', 'transcript_text' => 'test']);
+        $eval = $lead->aiEvaluations()->create(['source_type' => LeadTranscript::class, 'source_id' => $transcript->id]);
+        
+        $response = $this->actingAs($user)->postJson('/api/transcripts/meeting-summary/generate', [
+            'transcript_id' => $transcript->id,
+            'evaluation_id' => $eval->id
+        ]);
+        
+        $response->assertStatus(200);
+        
+        $this->assertDatabaseHas('meeting_summary_documents', [
+            'transcript_id' => $transcript->id
+        ]);
+    }
+}
