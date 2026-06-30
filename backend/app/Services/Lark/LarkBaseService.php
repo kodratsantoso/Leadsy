@@ -736,10 +736,10 @@ class LarkBaseService extends LarkService
             'lead_score' => $lead->lead_score,
             'qualification_status' => $lead->qualification_status,
             'funnel_stage' => $lead->funnelStage?->name,
-            'owner' => $lead->owner?->name,
-            'presales_owner' => $lead->presalesOwner?->name,
-            'csm_owner' => $lead->csmOwner?->name,
-            'am_owner' => $lead->amOwner?->name,
+            'owner' => $lead->owner,
+            'presales_owner' => $lead->presalesOwner,
+            'csm_owner' => $lead->csmOwner,
+            'am_owner' => $lead->amOwner,
             'external_place_id' => $lead->external_place_id,
             'contact_name' => $lead->contacts?->first()?->name,
             'contact_phone' => $lead->contacts?->first()?->phone,
@@ -791,6 +791,16 @@ class LarkBaseService extends LarkService
 
         $type = (int) ($fieldDefinition['type'] ?? 1);
         $uiType = (string) ($fieldDefinition['ui_type'] ?? '');
+
+        if ($type === 11 || $uiType === 'User') {
+            if ($value instanceof \App\Models\User) {
+                return [['email' => $value->email]];
+            }
+        }
+
+        if ($value instanceof \App\Models\User) {
+            $value = $value->name;
+        }
 
         if ($type === 2) {
             return is_numeric($value) ? (float) $value : null;

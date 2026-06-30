@@ -255,53 +255,29 @@ class TeamPerformanceDashboardController extends Controller
     // ──────────────────────────────────────────────
     private function buildTargetAchievement(object $users, string $period): array
     {
-        $userIds = collect($users)->pluck('id')->toArray();
-        $dateRange = $this->getDateRange($period);
-
-        $targets = \App\Models\Target::whereIn('assigned_user_id', $userIds)
-            ->where(function($q) use ($dateRange) {
-                if ($dateRange[0] !== null) {
-                    $q->where('start_date', '<=', $dateRange[1])
-                      ->where('end_date', '>=', $dateRange[0]);
-                }
-            })
-            ->with('assignedUser')
-            ->get();
-
-        $calcService = app(\App\Services\TargetCalculationService::class);
         $results = [];
 
-        foreach ($targets as $t) {
-            $actualData = $calcService->calculateActual($t);
-            $actual = $actualData['value'];
-            $targetVal = 0;
-            $format = 'number';
+        foreach ($users as $u) {
+            $kpiData = $this->kpiService->calculateForUser($u, $period);
+            $roleCategory = $kpiData['role_category'];
 
-            switch ($t->target_value_type) {
-                case 'amount': $targetVal = $t->target_amount; $format = 'currency'; break;
-                case 'quantity': $targetVal = $t->target_quantity; $format = 'number'; break;
-                case 'percentage': $targetVal = $t->target_percentage; $format = 'percentage'; break;
-                case 'score': $targetVal = $t->target_score; $format = 'number'; break;
-                case 'days': $targetVal = $t->target_days; $format = 'number'; break;
-            }
+            if ($roleCategory === 'other') continue;
 
-            if ($targetVal > 0) {
-                $achievement = min(200, round(($actual / $targetVal) * 100, 1));
-                $status = $this->resolveStatusFromAchievement($achievement);
-                $roleCategory = $t->role_type;
-
-                $results[] = [
-                    'user_id'               => $t->assigned_user_id,
-                    'name'                  => $t->assignedUser->name,
-                    'role_category'         => $roleCategory,
-                    'kpi_key'               => $t->target_type,
-                    'kpi_name'              => str_replace('_', ' ', Str::title($t->target_type)),
-                    'format'                => $format,
-                    'actual'                => $actual,
-                    'target'                => $targetVal,
-                    'achievement_percentage'=> $achievement,
-                    'status'                => $status,
-                ];
+            foreach ($kpiData['metrics'] as $m) {
+                if ($m['target'] !== null && $m['target'] > 0) {
+                    $results[] = [
+                        'user_id'               => $u->id,
+                        'name'                  => $u->name,
+                        'role_category'         => $roleCategory,
+                        'kpi_key'               => $m['kpi_key'],
+                        'kpi_name'              => $m['kpi_name'],
+                        'format'                => $m['format'],
+                        'actual'                => $m['actual'],
+                        'target'                => $m['target'],
+                        'achievement_percentage'=> $m['achievement_percentage'],
+                        'status'                => $m['status'],
+                    ];
+                }
             }
         }
         

@@ -676,6 +676,11 @@ export default function LeadDetailPage() {
     activity_date: '',
     next_follow_up_date: '',
     funnel_stage_id: '',
+    budget: '',
+    authority: '',
+    needs: '',
+    timeline: '',
+    competitor: '',
   });
 
   // Transcript state
@@ -1174,7 +1179,7 @@ export default function LeadDetailPage() {
       qc.invalidateQueries({ queryKey: ['lead-progress', leadId] });
       invalidateLead();
       setShowActivityModal(false);
-      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
+      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '', budget: '', authority: '', needs: '', timeline: '', competitor: '' });
     },
   });
 
@@ -1543,10 +1548,15 @@ export default function LeadDetailPage() {
         activity_date: existing.activity_date ? existing.activity_date.substring(0, 16) : '',
         next_follow_up_date: existing.next_follow_up_date ?? '',
         funnel_stage_id: '',
+        budget: existing.budget ?? '',
+        authority: existing.authority ?? '',
+        needs: existing.needs ?? '',
+        timeline: existing.timeline ?? '',
+        competitor: existing.competitor ?? '',
       });
       setEditingActivity(existing);
     } else {
-      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '' });
+      setActivityForm({ activity_type: '', description: '', outcome: '', activity_date: '', next_follow_up_date: '', funnel_stage_id: '', budget: '', authority: '', needs: '', timeline: '', competitor: '' });
       setEditingActivity(null);
     }
     setShowActivityModal(true);
@@ -1568,6 +1578,11 @@ export default function LeadDetailPage() {
       activity_date: activityForm.activity_date || undefined,
       next_follow_up_date: activityForm.next_follow_up_date || undefined,
       funnel_stage_id: activityForm.funnel_stage_id ? Number(activityForm.funnel_stage_id) : undefined,
+      budget: activityForm.budget || undefined,
+      authority: activityForm.authority || undefined,
+      needs: activityForm.needs || undefined,
+      timeline: activityForm.timeline || undefined,
+      competitor: activityForm.competitor || undefined,
     };
     if (editingActivity) {
       activityUpdateMutation.mutate({ id: editingActivity.id, data: payload });
