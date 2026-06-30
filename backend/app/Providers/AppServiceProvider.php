@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Http\Middleware\CheckPermission;
 use App\Models\Lead;
+use App\Models\LeadAiEvaluation;
 use App\Models\LeadFollowUp;
+use App\Observers\LeadAiEvaluationObserver;
 use App\Observers\LeadFollowUpObserver;
 use App\Observers\LeadObserver;
 use App\Services\Enrichment\ContactEnrichmentOrchestrator;
@@ -34,5 +36,6 @@ class AppServiceProvider extends ServiceProvider
         // Register model observers for Lark integration
         Lead::observe(LeadObserver::class);
         LeadFollowUp::observe(LeadFollowUpObserver::class);
+        LeadAiEvaluation::observe(LeadAiEvaluationObserver::class);
     }
 }
