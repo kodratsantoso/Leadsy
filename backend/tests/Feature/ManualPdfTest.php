@@ -6,6 +6,7 @@ use App\Models\Lead;
 use App\Models\LeadTranscript;
 use App\Models\LeadAiEvaluation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Http\Middleware\CheckPermission;
 
 class ManualPdfTest extends TestCase
 {
@@ -13,18 +14,15 @@ class ManualPdfTest extends TestCase
 
     public function test_manual_pdf()
     {
-        $user = User::first();
-        if (!$user) {
-            $user = User::factory()->create();
-        }
-        // Give permission
-        $user->givePermissionTo('leads.edit');
+        $this->withoutMiddleware(CheckPermission::class);
+
+        $user = User::factory()->create();
 
         $lead = Lead::first();
         if (!$lead) {
-            $lead = Lead::create(['name' => 'test']);
+            $lead = Lead::create(['company_name' => 'test company']);
         }
-        $transcript = $lead->transcripts()->create(['title' => 'test', 'transcript_text' => 'test']);
+        $transcript = $lead->transcripts()->create(['title' => 'test', 'transcript_text' => 'test', 'source_type' => 'manual']);
         $eval = $lead->aiEvaluations()->create(['source_type' => LeadTranscript::class, 'source_id' => $transcript->id]);
         
         $response = $this->actingAs($user)->postJson('/api/transcripts/meeting-summary/generate', [
