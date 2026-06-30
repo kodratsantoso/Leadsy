@@ -12,10 +12,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
+use Carbon\Carbon;
 
 class WhatsAppControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Mock time so that the hardcoded '2026-05-31' in mocked Qontak responses 
+        // does not get filtered out by the 30-day sync cutoff rule.
+        Carbon::setTestNow('2026-06-01T10:00:00Z');
+    }
 
     public function test_get_conversations_default_whatsapp(): void
     {
