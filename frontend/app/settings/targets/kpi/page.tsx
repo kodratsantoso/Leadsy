@@ -170,45 +170,45 @@ export default function KpiTargetsPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4 bg-muted/20 border-b">
+      <Card className="overflow-hidden border-border/50 shadow-sm">
+        <CardHeader className="pb-4 bg-muted/30 border-b border-border/50">
           <div className="flex flex-wrap gap-4 items-end">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Filter Role</label>
-              <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="w-40 bg-white">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Filter Role</label>
+              <Select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="w-40">
                 <option value="all">All Roles</option>
                 {roles.map((r: string) => <option key={r} value={r}>{r.toUpperCase()}</option>)}
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Period</label>
-              <Select value={periodType} onChange={e => setPeriodType(e.target.value)} className="w-32 bg-white">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Period</label>
+              <Select value={periodType} onChange={e => setPeriodType(e.target.value)} className="w-32">
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="yearly">Yearly</option>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-              <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40 bg-white" />
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Start Date</label>
+              <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">End Date</label>
-              <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40 bg-white" />
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">End Date</label>
+              <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-40" />
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto relative">
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableHeaderCell className="w-64 min-w-[250px] sticky left-0 bg-white z-10 border-r shadow-[1px_0_0_0_#e2e8f0]">User</TableHeaderCell>
+                <TableRow className="hover:bg-transparent">
+                  <TableHeaderCell className="w-64 min-w-[250px] sticky left-0 bg-background z-10 shadow-[1px_0_0_0_hsl(var(--border))]">User</TableHeaderCell>
                   <TableHeaderCell className="w-32">Role</TableHeaderCell>
                   {dynamicKpiColumns.map(col => (
                     <TableHeaderCell key={col.key} className="min-w-[180px] capitalize">
-                      {col.label} 
-                      <span className="text-[10px] block text-muted-foreground font-normal">({col.valueType})</span>
+                      <span className="font-semibold text-foreground/90">{col.label}</span>
+                      <span className="text-[10px] block text-muted-foreground font-medium uppercase tracking-wider mt-1">{col.valueType}</span>
                     </TableHeaderCell>
                   ))}
                 </TableRow>
@@ -222,29 +222,36 @@ export default function KpiTargetsPage() {
                     const validKpisForRole = config?.kpi_types_by_role?.[uRole] || {};
 
                     return (
-                      <TableRow key={u.id}>
-                        <TableCell className="font-medium sticky left-0 bg-white z-10 border-r shadow-[1px_0_0_0_#e2e8f0]">{u.name}</TableCell>
-                        <TableCell><Badge variant="outline" className="capitalize">{uRole || 'No Role'}</Badge></TableCell>
+                      <TableRow key={u.id} className="hover:bg-muted/30 transition-colors group">
+                        <TableCell className="font-medium sticky left-0 bg-background group-hover:bg-muted/30 z-10 shadow-[1px_0_0_0_hsl(var(--border))] transition-colors">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                              {u.name.charAt(0)}
+                            </div>
+                            <span className="truncate">{u.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell><Badge variant="outline" className="capitalize text-xs font-medium tracking-wide">{uRole || 'No Role'}</Badge></TableCell>
                         
                         {dynamicKpiColumns.map(col => {
                           const isApplicable = !!validKpisForRole[col.key];
                           const cellKey = `${u.id}_${col.key}`;
                           
                           return (
-                            <TableCell key={col.key} className={!isApplicable ? "bg-muted/30" : ""}>
+                            <TableCell key={col.key} className={!isApplicable ? "bg-muted/10 opacity-50" : ""}>
                               {isApplicable ? (
-                                <div className="relative flex items-center">
+                                <div className="relative flex items-center group-focus-within:ring-1 group-focus-within:ring-primary rounded-md transition-all">
                                   <Input 
                                     type="number" 
-                                    className="h-8 text-sm" 
-                                    placeholder={`Target ${col.valueType}`}
+                                    className="h-9 text-sm bg-transparent border-border/50 hover:border-primary/50 focus-visible:ring-0 focus-visible:border-primary transition-all" 
+                                    placeholder={`0`}
                                     value={gridValues[cellKey] || ""}
                                     onChange={(e) => handleGridChange(u.id, col.key, e.target.value)}
                                   />
-                                  {col.valueType === "percentage" && <span className="absolute right-3 text-xs text-muted-foreground">%</span>}
+                                  {col.valueType === "percentage" && <span className="absolute right-3 text-xs text-muted-foreground font-medium pointer-events-none">%</span>}
                                 </div>
                               ) : (
-                                <span className="text-xs text-muted-foreground italic pl-2">N/A</span>
+                                <span className="text-[11px] text-muted-foreground/70 uppercase tracking-widest pl-2">N/A</span>
                               )}
                             </TableCell>
                           );
