@@ -1328,9 +1328,11 @@ export default function LeadDetailPage() {
       return json;
     },
     onSuccess: () => {
+      setEvaluatingTranscriptId(null);
       setTranscriptFeedback({ type: 'success', msg: 'Meeting summary PDF generation started. It will be available shortly.' });
     },
     onError: (err: any) => {
+      setEvaluatingTranscriptId(null);
       setTranscriptFeedback({ type: 'error', msg: err.message || 'Failed to generate Meeting Summary PDF.' });
     }
   });
@@ -3578,7 +3580,10 @@ export default function LeadDetailPage() {
                               variant="outline"
                               size="sm"
                               disabled={generateMeetingSummaryPdfMutation.isPending}
-                              onClick={() => generateMeetingSummaryPdfMutation.mutate({ transcriptId: tr.id, evaluationId: evaluation.id })}
+                              onClick={() => {
+                                setEvaluatingTranscriptId(tr.id);
+                                generateMeetingSummaryPdfMutation.mutate({ transcriptId: tr.id, evaluationId: evaluation.id });
+                              }}
                             >
                               {generateMeetingSummaryPdfMutation.isPending && evaluatingTranscriptId === tr.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                               Generate Summary PDF
