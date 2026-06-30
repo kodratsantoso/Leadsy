@@ -12,19 +12,19 @@ import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
+const NumberInput = ({ value, onChange, className, placeholder }: any) => {
+  const displayValue = value ? new Intl.NumberFormat('en-US').format(Number(value)) : "";
+  const handleChange = (e: any) => {
+    const val = e.target.value.replace(/,/g, '');
+    if (!isNaN(Number(val)) || val === '') {
+      onChange(val);
+    }
+  };
+  return <Input type="text" className={className} placeholder={placeholder} value={displayValue} onChange={handleChange} />;
+};
+
 export default function RevenueTargetsPage() {
   const { formatNumber, formatCurrency } = useNumberFormat();
-  
-  const NumberInput = ({ value, onChange, className, placeholder }: any) => {
-    const displayValue = value ? new Intl.NumberFormat('en-US').format(Number(value)) : "";
-    const handleChange = (e: any) => {
-      const val = e.target.value.replace(/,/g, '');
-      if (!isNaN(Number(val)) || val === '') {
-        onChange(val);
-      }
-    };
-    return <Input type="text" className={className} placeholder={placeholder} value={displayValue} onChange={handleChange} />;
-  };
   
   const [loading, setLoading] = useState(true);
   const [targets, setTargets] = useState<any[]>([]);
