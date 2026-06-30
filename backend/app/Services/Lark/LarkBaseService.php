@@ -802,12 +802,21 @@ class LarkBaseService extends LarkService
             $value = $value->name;
         }
 
+        if (is_bool($value)) {
+            return $value ? 'Yes' : 'No';
+        }
+
         if ($type === 2) {
             return is_numeric($value) ? (float) $value : null;
         }
 
-        if ($type === 4) {
-            return is_array($value) ? array_values($value) : [self::stringifyBaseScalar($value)];
+        if ($type === 3) { // Single Select
+            return ['name' => self::stringifyBaseScalar($value)];
+        }
+
+        if ($type === 4) { // Multi Select
+            $arr = is_array($value) ? array_values($value) : [self::stringifyBaseScalar($value)];
+            return array_map(fn($v) => ['name' => self::stringifyBaseScalar($v)], $arr);
         }
 
         if ($type === 5) {
