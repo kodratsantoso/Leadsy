@@ -100,6 +100,8 @@ export default function KpiTargetsPage() {
               target_quantity: valueType === "quantity" ? numericVal : null,
               target_percentage: valueType === "percentage" ? numericVal : null,
               target_score: valueType === "score" ? numericVal : null,
+              target_days: valueType === "days" ? numericVal : null,
+              target_hours: valueType === "hours" ? numericVal : null,
             });
           }
         });
@@ -121,7 +123,8 @@ export default function KpiTargetsPage() {
         fetchInitData();
       } else {
         const e = await res.json();
-        alert(e.message || "Failed to save targets");
+        const details = e.errors ? JSON.stringify(e.errors) : (e.error?.details || "");
+        alert(`${e.message || "Failed to save targets"} \n${details}`);
       }
     } catch (err) {
       console.error(err);

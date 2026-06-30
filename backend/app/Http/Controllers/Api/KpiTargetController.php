@@ -143,6 +143,9 @@ class KpiTargetController extends Controller
             'targets.*.target_value_type' => 'required|string',
             'targets.*.target_quantity' => 'nullable|integer',
             'targets.*.target_percentage' => 'nullable|numeric',
+            'targets.*.target_score' => 'nullable|numeric',
+            'targets.*.target_days' => 'nullable|integer',
+            'targets.*.target_hours' => 'nullable|numeric',
         ]);
 
         $savedTargets = [];
@@ -163,6 +166,9 @@ class KpiTargetController extends Controller
                     'target_value_type' => $targetData['target_value_type'],
                     'target_quantity' => $targetData['target_quantity'] ?? null,
                     'target_percentage' => $targetData['target_percentage'] ?? null,
+                    'target_score' => $targetData['target_score'] ?? null,
+                    'target_days' => $targetData['target_days'] ?? null,
+                    'target_hours' => $targetData['target_hours'] ?? null,
                     'created_by' => $request->user()->id,
                     'status' => 'active'
                 ]
