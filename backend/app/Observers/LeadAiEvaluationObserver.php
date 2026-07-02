@@ -24,14 +24,16 @@ class LeadAiEvaluationObserver
 
     private function handleEvaluationChange(LeadAiEvaluation $leadAiEvaluation): void
     {
-        // 1. Trigger Lark Base Sync for BANTC and Evaluation fields
+        // 1. Trigger Lark Base Sync for Evaluation fields
         if ($leadAiEvaluation->lead_id) {
             \App\Jobs\SyncLeadToLarkBaseJob::dispatch($leadAiEvaluation->lead_id);
         }
 
-        // 2. Trigger PDF Generation if this evaluation is from a Transcript
+        // 2. Trigger PDF Generation if this evaluation is from a Transcript AND BANTC is present
         if ($leadAiEvaluation->source_type === \App\Models\LeadTranscript::class && $leadAiEvaluation->source_id) {
-            \App\Jobs\GenerateMeetingSummaryPdfJob::dispatch($leadAiEvaluation->source_id, $leadAiEvaluation->id);
+            if (!empty($leadAiEvaluation->bantc_extracted)) {
+                \App\Jobs\GenerateMeetingSummaryPdfJob::dispatch($leadAiEvaluation->source_id, $leadAiEvaluation->id);
+            }
         }
     }
 

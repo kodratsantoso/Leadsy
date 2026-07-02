@@ -41,6 +41,11 @@ class LeadObserver
             'qualification_status',
             'owner_id',
             'external_place_id',
+            'budget',
+            'authority',
+            'needs',
+            'timeline',
+            'competitor',
         ])) {
             $this->triggerLarkBaseSync($lead);
         }
