@@ -842,6 +842,10 @@ class LarkBaseService extends LarkService
             ];
         }
 
+        if ($type === 17 || $uiType === 'Attachment') {
+            return null; // Attachments are handled separately (e.g. UploadMeetingSummaryPdfToLarkBaseJob)
+        }
+
         return self::stringifyBaseScalar($value);
     }
 

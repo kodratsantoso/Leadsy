@@ -71,7 +71,8 @@ class UploadMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
             // Find which field is mapped for "Meeting Summary Attachment"
             $fieldDefinitions = $larkBaseService->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
             
-            $mappedFieldName = LarkBaseService::DEFAULT_LEAD_FIELD_MAPPING['meeting_summary_attachment'] ?? 'Meeting Summary Attachment';
+            $fieldMapping = $baseTable->field_mapping ?: LarkBaseService::DEFAULT_LEAD_FIELD_MAPPING;
+            $mappedFieldName = $fieldMapping['meeting_summary_attachment'] ?? 'Meeting Summary Attachment';
             $fieldId = null;
             
             foreach ($fieldDefinitions as $fieldDef) {
@@ -91,7 +92,7 @@ class UploadMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
 
             // Update the record with the attachment token
             $payloadFields = [
-                $fieldId => [
+                $mappedFieldName => [
                     [
                         'file_token' => $fileToken
                     ]
