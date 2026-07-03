@@ -22,11 +22,23 @@ class MeetingSummaryPdfController extends Controller
             'evaluation_id' => 'nullable|exists:lead_ai_evaluations,id'
         ]);
 
-        GenerateMeetingSummaryPdfJob::dispatchSync($request->transcript_id, $request->evaluation_id);
+        try {
+            GenerateMeetingSummaryPdfJob::dispatchSync($request->transcript_id, $request->evaluation_id);
 
-        return response()->json([
-            'message' => 'Meeting summary generated successfully.'
-        ]);
+            return response()->json([
+                'message' => 'Meeting summary generated successfully.'
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to generate meeting summary PDF', [
+                'transcript_id' => $request->transcript_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to generate Meeting Summary PDF. ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

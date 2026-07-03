@@ -14,6 +14,7 @@ class LeadAiEvaluation extends Model
         'presales_recommendation', 'objections_detected',
         'buying_signals', 'bantc_extracted', 'next_best_action', 'recommended_product_id',
         'estimated_closing_date', 'confidence_score', 'evaluated_at',
+        'challenge', 'legacy_tools', 'risks', 'action_items', 'missing_information',
     ];
 
     protected $casts = [
@@ -23,6 +24,9 @@ class LeadAiEvaluation extends Model
         'bantc_extracted' => 'array',
         'confidence_score' => 'integer',
         'estimated_closing_date' => 'date',
+        'risks' => 'array',
+        'action_items' => 'array',
+        'missing_information' => 'array',
     ];
 
     public function lead(): BelongsTo

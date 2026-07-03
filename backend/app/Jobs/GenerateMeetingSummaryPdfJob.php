@@ -103,6 +103,12 @@ class GenerateMeetingSummaryPdfJob implements ShouldQueue
             // via SyncMeetingSummaryPdfToLarkBaseJob
 
         } catch (Exception $e) {
+            \Illuminate\Support\Facades\Log::error('pdf_generation_failed', [
+                'transcript_id' => $this->transcriptId,
+                'evaluation_id' => $this->evaluationId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             $document->update([
                 'generation_status' => 'failed',
             ]);

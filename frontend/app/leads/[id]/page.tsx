@@ -3636,6 +3636,57 @@ export default function LeadDetailPage() {
                           )}
                         </div>
 
+                        {tr.syncJobs?.length > 0 && (
+                          <div className="border-t border-border pt-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Lark Base Sync Status</p>
+                            <div className="space-y-3">
+                              {tr.syncJobs.map((job: any) => {
+                                const isSuccess = job.status === 'success';
+                                const isFailed = job.status === 'failed';
+                                const responseStr = job.response_json || "{}";
+                                let response: any = {};
+                                try { response = JSON.parse(responseStr); } catch (e) { response = {}; }
+                                
+                                return (
+                                  <div key={job.id} className="text-sm p-3 border rounded-lg bg-card shadow-sm">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Badge variant={isSuccess ? 'success' : (isFailed ? 'danger' : 'warning')}>
+                                        {job.sync_type} - {job.status}
+                                      </Badge>
+                                      <span className="text-xs text-muted-foreground">{new Date(job.created_at).toLocaleString()}</span>
+                                    </div>
+                                    
+                                    {!isSuccess && job.error_message && (
+                                      <p className="text-xs text-[var(--status-danger)] mt-2 font-medium">{job.error_message}</p>
+                                    )}
+                                    {response.action === 'skipped' && (
+                                      <p className="text-xs text-muted-foreground mt-2 italic">Skipped: {response.reason}</p>
+                                    )}
+                                    
+                                    {!isSuccess && !job.lark_record_id && (
+                                      <p className="text-xs text-[var(--status-warning)] mt-2 italic">Warning: Missing Lark Record ID or Field Mappings. Ensure lead is synced first.</p>
+                                    )}
+                                    
+                                    {response.payload && Object.keys(response.payload).length > 0 && (
+                                      <div className="mt-3 bg-muted/30 p-2 rounded">
+                                        <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Synced Fields Payload</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                                          {Object.entries(response.payload).map(([k, v]) => (
+                                            <div key={k} className="flex flex-col">
+                                              <span className="font-semibold text-foreground/80">{k}</span>
+                                              <span className="text-muted-foreground line-clamp-2" title={typeof v === 'object' ? JSON.stringify(v) : String(v)}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="mt-4 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border">
                           <p className="text-[10px] text-muted-foreground">
                             Analysed {new Date(evaluation.evaluated_at ?? evaluation.created_at).toLocaleString()}

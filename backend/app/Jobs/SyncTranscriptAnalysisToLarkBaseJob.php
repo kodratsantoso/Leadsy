@@ -63,27 +63,59 @@ class SyncTranscriptAnalysisToLarkBaseJob implements ShouldQueue
                 'updated_at' => now(),
             ]);
 
+            Log::info('lark_sync_job_dispatched', [
+                'lead_id' => $lead->id,
+                'transcript_id' => $transcript->id,
+                'base_table_id' => $baseTable->id
+            ]);
+
             try {
                 $fieldDefinitions = [];
                 try {
                     $fieldDefinitions = $larkBaseService->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
                 } catch (\Exception $e) {
-                    // Proceed without exact definitions
+                    Log::warning('lark_sync_list_fields_failed', [
+                        'error' => $e->getMessage()
+                    ]);
                 }
                 
                 $result = $larkBaseService->upsertLeadWithResult($lead, $baseTable, $fieldDefinitions);
                 
-                $status = ($result['action'] === 'skipped') ? 'skipped' : 'success';
+                if (isset($result['payload'])) {
+                    Log::info('lark_payload_generated', [
+                        'lead_id' => $lead->id,
+                        'payload' => $result['payload']
+                    ]);
+                }
+                
+                $status = ($result['action'] === 'skipped') ? 'skipped' : (($result['action'] === 'failed') ? 'failed' : 'success');
+                
+                if ($status === 'failed') {
+                    Log::error('lark_api_response_received', [
+                        'action' => 'failed',
+                        'reason' => $result['reason']
+                    ]);
+                } else {
+                    Log::info('lark_api_response_received', [
+                        'action' => $result['action'],
+                        'record_id' => $result['record_id']
+                    ]);
+                }
                 
                 DB::table('lark_base_sync_jobs')->where('id', $syncJobId)->update([
                     'status' => $status,
                     'lark_record_id' => $result['record_id'] ?? null,
                     'response_json' => json_encode($result),
+                    'error_message' => $status === 'failed' ? $result['reason'] : null,
                     'updated_at' => now(),
                 ]);
                 
             } catch (\Exception $e) {
-                Log::error("Failed to sync transcript analysis to Lark Base: " . $e->getMessage());
+                Log::error("lark_api_response_received", [
+                    'action' => 'failed',
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
                 
                 DB::table('lark_base_sync_jobs')->where('id', $syncJobId)->update([
                     'status' => 'failed',

@@ -442,6 +442,7 @@ class LarkBaseService extends LarkService
                 'mapping' => $mapping,
                 'record_id' => $mapping->lark_record_id,
                 'reason' => null,
+                'payload' => $fields,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to push lead to Lark', [
@@ -453,6 +454,7 @@ class LarkBaseService extends LarkService
                 'mapping' => null,
                 'record_id' => null,
                 'reason' => 'Push failed: ' . $e->getMessage(),
+                'payload' => $fields ?? [],
             ];
         }
     }
@@ -857,6 +859,20 @@ class LarkBaseService extends LarkService
 
         if (is_scalar($value)) {
             return (string) $value;
+        }
+
+        if (is_array($value)) {
+            // Check if it's a flat array of scalars
+            $isFlat = true;
+            foreach ($value as $item) {
+                if (!is_scalar($item)) {
+                    $isFlat = false;
+                    break;
+                }
+            }
+            if ($isFlat) {
+                return implode(', ', $value);
+            }
         }
 
         return json_encode($value);
