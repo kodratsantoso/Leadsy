@@ -4,7 +4,12 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.12.0** — 2026-06-28
+Current release: **v1.13.0** — 2026-07-04
+
+## What's New in v1.13.0 (IDX Public Companies Integration)
+
+- **IDX Leads Generator** — Added a new sub-module under Leads Generator to search and import companies from Bursa Efek Indonesia (IDX).
+- **Auto Data Mapping** — Automatically maps IDX Sektor and Industri into Leadsy Industry, SubIndustry, and Business Category structures. Leads imported from this module are tagged with Lead Source "IDX".
 
 ## What's New in v1.12.0 (Split Target & KPI)
 

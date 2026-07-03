@@ -104,6 +104,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('geo-product-fit/results', [MapDiscoveryController::class, 'productFitResults']);
     });
 
+    // Lead Generator - IDX
+    Route::prefix('lead-generator/idx-companies')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'index']);
+        Route::post('import', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'import']);
+    });
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/team-performance', [TeamPerformanceDashboardController::class, 'index']);

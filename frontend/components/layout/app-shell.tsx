@@ -66,6 +66,7 @@ const navItems: NavItem[] = [
     children: [
       { href: "/map", icon: Map, label: "Map & Territory" },
       { href: "/lead-generator/platforms", icon: Share2, label: "Social & Platform Generator" },
+      { href: "/lead-generator/idx", icon: Building2, label: "IDX Public Companies" },
     ],
   },
   { href: "/leads",                  icon: Building2,       label: "Leads" },
