@@ -49,13 +49,14 @@ class RetryFailedLarkBaseSyncJob implements ShouldQueue
         } elseif ($syncJob->sync_type === 'attachment_update') {
             // We need the document ID for the PDF job.
             // Let's find it via transcript_id
-            $document = \App\Models\MeetingSummaryDocument::where('lead_transcript_id', $syncJob->transcript_id)
+            $document = \App\Models\MeetingSummaryDocument::where('transcript_id', $syncJob->transcript_id)
                 ->where('generation_status', 'success')
                 ->latest()
                 ->first();
                 
             if ($document) {
-                SyncMeetingSummaryPdfToLarkBaseJob::dispatch($document->id);
+                \Illuminate\Support\Facades\Log::info("Retrying failed PDF sync for document {$document->id}");
+                SyncMeetingSummaryPdfToLarkBaseJob::dispatch($document->transcript_id);
             } else {
                 Log::error("RetryFailedLarkBaseSyncJob failed: No successful PDF document found for transcript ID {$syncJob->transcript_id}");
             }

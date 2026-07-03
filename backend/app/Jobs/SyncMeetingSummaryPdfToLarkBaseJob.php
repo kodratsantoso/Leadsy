@@ -20,14 +20,14 @@ class SyncMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    protected $documentId;
+    protected $transcriptId;
 
     /**
      * Create a new job instance.
      */
-    public function __construct($documentId)
+    public function __construct($transcriptId)
     {
-        $this->documentId = $documentId;
+        $this->transcriptId = $transcriptId;
     }
 
     /**
@@ -35,9 +35,13 @@ class SyncMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $document = MeetingSummaryDocument::with(['lead'])->find($this->documentId);
+        $document = MeetingSummaryDocument::with(['lead'])
+            ->where('transcript_id', $this->transcriptId)
+            ->where('generation_status', 'success')
+            ->latest()
+            ->first();
 
-        if (!$document || !$document->lead_id || $document->generation_status !== 'success') {
+        if (!$document || !$document->lead_id) {
             return;
         }
 

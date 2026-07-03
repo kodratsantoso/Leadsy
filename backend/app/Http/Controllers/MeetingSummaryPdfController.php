@@ -24,9 +24,10 @@ class MeetingSummaryPdfController extends Controller
 
         try {
             GenerateMeetingSummaryPdfJob::dispatchSync($request->transcript_id, $request->evaluation_id);
+            \App\Jobs\SyncMeetingSummaryPdfToLarkBaseJob::dispatchSync($request->transcript_id);
 
             return response()->json([
-                'message' => 'Meeting summary generated successfully.'
+                'message' => 'Meeting summary generated and synced to Lark Base.'
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to generate meeting summary PDF', [
