@@ -3369,6 +3369,16 @@ export default function LeadDetailPage() {
                           <Badge variant={tr.evaluation_status === 'evaluated' ? 'success' : 'warning'}>
                             {tr.evaluation_status}
                           </Badge>
+                          {tr.documents?.length > 0 && (
+                            <Badge variant={tr.documents[0].generation_status === 'success' ? 'success' : 'neutral'}>
+                              PDF: {tr.documents[0].generation_status}
+                            </Badge>
+                          )}
+                          {tr.syncJobs?.length > 0 && (
+                            <Badge variant={tr.syncJobs[0].status === 'success' ? 'success' : (tr.syncJobs[0].status === 'failed' ? 'danger' : 'neutral')}>
+                              Lark Sync: {tr.syncJobs[0].status}
+                            </Badge>
+                          )}
                           {tr.activity && (
                             <Badge variant="info" className="text-[10px]">
                               Linked: {tr.activity.activity_type}
@@ -3549,6 +3559,61 @@ export default function LeadDetailPage() {
                               {safeJsonArray(evaluation.objections_detected).map((o: any, i: number) => (
                                 <li key={i} className="flex items-start gap-1.5 text-xs">
                                   <AlertCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-danger)]" />{typeof o === 'object' ? JSON.stringify(o) : String(o)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border pt-4">
+                          {evaluation.challenge && (
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Challenge & Current Environment</p>
+                              <p className="text-sm font-medium">{typeof evaluation.challenge === 'object' ? JSON.stringify(evaluation.challenge) : String(evaluation.challenge)}</p>
+                            </div>
+                          )}
+                          
+                          {evaluation.legacy_tools && (
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Legacy Tools/System</p>
+                              <p className="text-sm font-medium">{typeof evaluation.legacy_tools === 'object' ? JSON.stringify(evaluation.legacy_tools) : String(evaluation.legacy_tools)}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {safeJsonArray(evaluation.risks).length > 0 && (
+                          <div className="border-t border-border pt-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--status-warning)] mb-2">Risks & Attention Highlights</p>
+                            <ul className="space-y-1">
+                              {safeJsonArray(evaluation.risks).map((r: any, i: number) => (
+                                <li key={i} className="flex items-start gap-1.5 text-xs">
+                                  <AlertCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-warning)]" />{typeof r === 'object' ? JSON.stringify(r) : String(r)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {safeJsonArray(evaluation.action_items).length > 0 && (
+                          <div className="border-t border-border pt-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Action Items</p>
+                            <ul className="space-y-1">
+                              {safeJsonArray(evaluation.action_items).map((a: any, i: number) => (
+                                <li key={i} className="flex items-start gap-1.5 text-xs">
+                                  <CheckCircle className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground" />{typeof a === 'object' ? JSON.stringify(a) : String(a)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {safeJsonArray(evaluation.missing_information).length > 0 && (
+                          <div className="border-t border-border pt-4">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Missing Information</p>
+                            <ul className="space-y-1">
+                              {safeJsonArray(evaluation.missing_information).map((m: any, i: number) => (
+                                <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                                  <Info className="h-3 w-3 mt-0.5 shrink-0" />{typeof m === 'object' ? JSON.stringify(m) : String(m)}
                                 </li>
                               ))}
                             </ul>

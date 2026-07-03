@@ -13,9 +13,13 @@ use Illuminate\Support\Facades\Storage;
 use Exception;
 use Illuminate\Support\Str;
 
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+
 class GenerateMeetingSummaryPdfJob implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $transcriptId;
     protected $evaluationId;
@@ -95,8 +99,8 @@ class GenerateMeetingSummaryPdfJob implements ShouldQueue
                 'generation_status' => 'success',
             ]);
 
-            // Dispatch job to upload to Lark Base if integration is active and mapped
-            UploadMeetingSummaryPdfToLarkBaseJob::dispatchSync($document->id);
+            // Note: Dispatching to Lark Base is now handled by the Job Chain
+            // via SyncMeetingSummaryPdfToLarkBaseJob
 
         } catch (Exception $e) {
             $document->update([

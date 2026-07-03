@@ -4,17 +4,22 @@ namespace App\Jobs;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use App\Models\MeetingSummaryDocument;
 use App\Models\LarkIntegration;
 use App\Models\LarkBaseTable;
 use App\Services\Lark\LarkBaseService;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
-class UploadMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
+class SyncMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
 {
-    use Queueable;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $tries = 3;
     protected $documentId;
 
     /**
@@ -57,6 +62,19 @@ class UploadMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
         if (!$baseTable || !$baseTable->app_token || !$baseTable->table_id) {
             return;
         }
+        
+        // Track job in DB
+        $syncJobId = DB::table('lark_base_sync_jobs')->insertGetId([
+            'lead_id' => $lead->id,
+            'transcript_id' => $document->transcript_id,
+            'connection_id' => $integration->id,
+            'sync_type' => 'attachment_update',
+            'lark_record_id' => $larkRecordId,
+            'status' => 'processing',
+            'last_attempt_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         try {
             $larkBaseService = new LarkBaseService($integration);
@@ -69,7 +87,12 @@ class UploadMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
             );
 
             // Find which field is mapped for "Meeting Summary Attachment"
-            $fieldDefinitions = $larkBaseService->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
+            $fieldDefinitions = [];
+            try {
+                $fieldDefinitions = $larkBaseService->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
+            } catch (Exception $e) {
+                // proceed
+            }
             
             $fieldMapping = $baseTable->field_mapping ?: LarkBaseService::DEFAULT_LEAD_FIELD_MAPPING;
             $mappedFieldName = $fieldMapping['meeting_summary_attachment'] ?? 'Meeting Summary Attachment';
@@ -86,6 +109,12 @@ class UploadMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
                 Log::warning('Lark Base Upload skipped: PDF attachment field not found in table', [
                     'expected_field_name' => $mappedFieldName,
                     'table_id' => $baseTable->table_id
+                ]);
+                
+                DB::table('lark_base_sync_jobs')->where('id', $syncJobId)->update([
+                    'status' => 'skipped',
+                    'error_message' => 'PDF attachment field not found in table: ' . $mappedFieldName,
+                    'updated_at' => now(),
                 ]);
                 return;
             }
@@ -106,7 +135,14 @@ class UploadMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
                 $payloadFields
             );
 
-            // Log success
+            DB::table('lark_base_sync_jobs')->where('id', $syncJobId)->update([
+                'status' => 'success',
+                'payload_json' => json_encode(['file_name' => $document->file_name]),
+                'response_json' => json_encode(['file_token' => $fileToken]),
+                'updated_at' => now(),
+            ]);
+
+            // Log legacy success for compatibility
             \App\Models\LarkSync::create([
                 'tenant_id' => $tenantId,
                 'lark_integration_id' => $integration->id,
@@ -122,7 +158,13 @@ class UploadMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
             ]);
 
         } catch (Exception $e) {
-            // Log error
+            DB::table('lark_base_sync_jobs')->where('id', $syncJobId)->update([
+                'status' => 'failed',
+                'error_message' => $e->getMessage(),
+                'updated_at' => now(),
+            ]);
+            
+            // Log legacy error
             \App\Models\LarkSync::create([
                 'tenant_id' => $tenantId,
                 'lark_integration_id' => $integration->id,

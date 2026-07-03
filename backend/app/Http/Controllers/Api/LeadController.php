@@ -1268,7 +1268,7 @@ class LeadController extends Controller
     public function getTranscripts(Lead $lead): JsonResponse
     {
         $transcripts = $lead->transcripts()
-            ->with(['activity:id,activity_type,activity_date,description'])
+            ->with(['activity:id,activity_type,activity_date,description', 'documents', 'syncJobs'])
             ->orderByDesc('recorded_at')
             ->paginate(50);
 
@@ -1413,6 +1413,16 @@ class LeadController extends Controller
         AuditService::log('create_transcript', 'lead_transcripts', $transcript, null, [
             'source_type' => $data['source_type'],
         ]);
+
+        if (!empty($transcriptText)) {
+            \Illuminate\Support\Facades\Bus::chain([
+                new \App\Jobs\AnalyzeTranscriptJob($transcript->id),
+                new \App\Jobs\SaveTranscriptAnalysisJob($transcript->id),
+                new \App\Jobs\SyncTranscriptAnalysisToLarkBaseJob($transcript->id),
+                new \App\Jobs\GenerateMeetingSummaryPdfJob($transcript->id),
+                new \App\Jobs\SyncMeetingSummaryPdfToLarkBaseJob($transcript->id),
+            ])->dispatch();
+        }
 
         return response()->json(['data' => $transcript->load('activity:id,activity_type,activity_date,description')], 201);
     }

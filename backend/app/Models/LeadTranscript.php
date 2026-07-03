@@ -37,4 +37,14 @@ class LeadTranscript extends Model
     {
         return $this->morphMany(LeadActivity::class, 'related_entity');
     }
+
+    public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MeetingSummaryDocument::class, 'transcript_id');
+    }
+
+    public function syncJobs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\LarkBaseSyncJob::class, 'transcript_id');
+    }
 }

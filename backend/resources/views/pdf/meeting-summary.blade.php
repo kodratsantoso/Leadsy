@@ -198,6 +198,68 @@
         </div>
 
         <div class="section">
+            <h2 class="section-title">Challenge & Current Environment</h2>
+            <div class="grid">
+                <div class="grid-row">
+                    <div class="grid-cell grid-header">Main Challenge</div>
+                    <div class="grid-cell grid-value">{{ $evaluation->challenge ?? 'Not specified' }}</div>
+                </div>
+                <div class="grid-row">
+                    <div class="grid-cell grid-header">Legacy Tools/System</div>
+                    <div class="grid-cell grid-value">{{ $evaluation->legacy_tools ?? 'Not specified' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Risks & Attention Highlights</h2>
+            @php $risks = $evaluation->risks ?? []; @endphp
+            <div class="card">
+                @if(count($risks) > 0)
+                    <ul>
+                        @foreach($risks as $risk)
+                            <li>{{ is_string($risk) ? $risk : json_encode($risk) }}</li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="text-content">No specific risks highlighted.</p>
+                @endif
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Action Items</h2>
+            @php $actionItems = $evaluation->action_items ?? []; @endphp
+            <div class="card">
+                @if(count($actionItems) > 0)
+                    <ul>
+                        @foreach($actionItems as $item)
+                            <li>{{ is_string($item) ? $item : json_encode($item) }}</li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="text-content">No specific action items recorded.</p>
+                @endif
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Missing Information</h2>
+            @php $missingInfo = $evaluation->missing_information ?? []; @endphp
+            <div class="card">
+                @if(count($missingInfo) > 0)
+                    <ul>
+                        @foreach($missingInfo as $info)
+                            <li>{{ is_string($info) ? $info : json_encode($info) }}</li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="text-content">No critical missing information detected.</p>
+                @endif
+            </div>
+        </div>
+
+        <div class="section">
             <h2 class="section-title">Next Action</h2>
             <p class="text-content"><strong>Next Best Action:</strong> {{ $evaluation->next_best_action ?? 'Follow up as standard procedure.' }}</p>
         </div>
