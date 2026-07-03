@@ -96,7 +96,7 @@ class GenerateMeetingSummaryPdfJob implements ShouldQueue
             ]);
 
             // Dispatch job to upload to Lark Base if integration is active and mapped
-            UploadMeetingSummaryPdfToLarkBaseJob::dispatch($document->id);
+            UploadMeetingSummaryPdfToLarkBaseJob::dispatchSync($document->id);
 
         } catch (Exception $e) {
             $document->update([

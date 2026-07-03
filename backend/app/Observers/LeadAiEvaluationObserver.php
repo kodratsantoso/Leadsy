@@ -32,7 +32,7 @@ class LeadAiEvaluationObserver
         // 2. Trigger PDF Generation if this evaluation is from a Transcript AND BANTC is present
         if ($leadAiEvaluation->source_type === \App\Models\LeadTranscript::class && $leadAiEvaluation->source_id) {
             if (!empty($leadAiEvaluation->bantc_extracted)) {
-                \App\Jobs\GenerateMeetingSummaryPdfJob::dispatch($leadAiEvaluation->source_id, $leadAiEvaluation->id);
+                \App\Jobs\GenerateMeetingSummaryPdfJob::dispatchSync($leadAiEvaluation->source_id, $leadAiEvaluation->id);
             }
         }
     }
