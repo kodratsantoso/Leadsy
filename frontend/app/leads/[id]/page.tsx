@@ -4817,6 +4817,21 @@ export default function LeadDetailPage() {
           )}
         </div>
       )}
+
+      {/* ── Global Process Overlay ── */}
+      {(evaluateTranscriptMutation.isPending || generateMeetingSummaryPdfMutation.isPending) && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="w-full max-w-md p-6">
+            <h3 className="text-xl font-bold mb-8 text-center tracking-tight">
+              {evaluateTranscriptMutation.isPending ? "Analyzing Transcript..." : "Generating Summary PDF..."}
+            </h3>
+            <ProgressiveFluxLoader layout="page" />
+            <p className="mt-6 text-sm text-center text-muted-foreground">
+              Please wait, AI is processing your request. This may take a few seconds.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
