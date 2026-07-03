@@ -95,6 +95,16 @@
     </style>
 </head>
 <body>
+    @php
+        $formatString = function($val) {
+            if (is_array($val)) {
+                if (isset($val['Value'])) return is_array($val['Value']) ? implode(', ', $val['Value']) : (string)$val['Value'];
+                if (isset($val['value'])) return is_array($val['value']) ? implode(', ', $val['value']) : (string)$val['value'];
+                return implode(', ', \Illuminate\Support\Arr::flatten($val));
+            }
+            return is_scalar($val) ? (string) $val : json_encode($val);
+        };
+    @endphp
     <div class="container">
         <div class="header">
             <h1>Meeting Summary & Analysis</h1>
@@ -114,7 +124,7 @@
         <div class="section">
             <h2 class="section-title">Executive Summary</h2>
             <div class="card">
-                <p class="text-content">{{ $evaluation->summary ?? 'No executive summary available.' }}</p>
+                <p class="text-content">{{ $formatString($evaluation->summary ?? 'No executive summary available.') }}</p>
             </div>
         </div>
 
@@ -124,23 +134,23 @@
             <div class="grid">
                 <div class="grid-row">
                     <div class="grid-cell grid-header">Budget</div>
-                    <div class="grid-cell grid-value">{{ $bantc['budget'] ?? 'Not specified' }}</div>
+                    <div class="grid-cell grid-value">{{ $formatString($bantc['budget'] ?? 'Not specified') }}</div>
                 </div>
                 <div class="grid-row">
                     <div class="grid-cell grid-header">Authority</div>
-                    <div class="grid-cell grid-value">{{ $bantc['authority'] ?? 'Not specified' }}</div>
+                    <div class="grid-cell grid-value">{{ $formatString($bantc['authority'] ?? 'Not specified') }}</div>
                 </div>
                 <div class="grid-row">
                     <div class="grid-cell grid-header">Needs</div>
-                    <div class="grid-cell grid-value">{{ $bantc['needs'] ?? 'Not specified' }}</div>
+                    <div class="grid-cell grid-value">{{ $formatString($bantc['needs'] ?? 'Not specified') }}</div>
                 </div>
                 <div class="grid-row">
                     <div class="grid-cell grid-header">Timeline</div>
-                    <div class="grid-cell grid-value">{{ $bantc['timeline'] ?? 'Not specified' }}</div>
+                    <div class="grid-cell grid-value">{{ $formatString($bantc['timeline'] ?? 'Not specified') }}</div>
                 </div>
                 <div class="grid-row">
                     <div class="grid-cell grid-header">Competitor</div>
-                    <div class="grid-cell grid-value">{{ $bantc['competitor'] ?? 'Not specified' }}</div>
+                    <div class="grid-cell grid-value">{{ $formatString($bantc['competitor'] ?? 'Not specified') }}</div>
                 </div>
             </div>
         </div>
@@ -178,7 +188,7 @@
                 </div>
                 <div class="grid-row">
                     <div class="grid-cell grid-header">Reasoning</div>
-                    <div class="grid-cell grid-value">{{ $evaluation->eligibility_reason ?? 'N/A' }}</div>
+                    <div class="grid-cell grid-value">{{ $formatString($evaluation->eligibility_reason ?? 'N/A') }}</div>
                 </div>
             </div>
         </div>
@@ -188,11 +198,11 @@
             <div class="card">
                 <p class="text-content" style="margin-bottom: 15px;">
                     <strong>Observation:</strong><br>
-                    {{ $evaluation->presales_analysis ?? 'No detailed presales observation available.' }}
+                    {{ $formatString($evaluation->presales_analysis ?? 'No detailed presales observation available.') }}
                 </p>
                 <p class="text-content">
                     <strong>Recommendation:</strong><br>
-                    {{ $evaluation->presales_recommendation ?? 'No specific recommendation provided.' }}
+                    {{ $formatString($evaluation->presales_recommendation ?? 'No specific recommendation provided.') }}
                 </p>
             </div>
         </div>
@@ -202,11 +212,11 @@
             <div class="grid">
                 <div class="grid-row">
                     <div class="grid-cell grid-header">Main Challenge</div>
-                    <div class="grid-cell grid-value">{{ $evaluation->challenge ?? 'Not specified' }}</div>
+                    <div class="grid-cell grid-value">{{ $formatString($evaluation->challenge ?? 'Not specified') }}</div>
                 </div>
                 <div class="grid-row">
                     <div class="grid-cell grid-header">Legacy Tools/System</div>
-                    <div class="grid-cell grid-value">{{ $evaluation->legacy_tools ?? 'Not specified' }}</div>
+                    <div class="grid-cell grid-value">{{ $formatString($evaluation->legacy_tools ?? 'Not specified') }}</div>
                 </div>
             </div>
         </div>
@@ -261,7 +271,8 @@
 
         <div class="section">
             <h2 class="section-title">Next Action</h2>
-            <p class="text-content"><strong>Next Best Action:</strong> {{ $evaluation->next_best_action ?? 'Follow up as standard procedure.' }}</p>
+            <p class="text-content"><strong>Next Best Action:</strong> {{ $formatString($evaluation->next_best_action ?? 'Follow up as standard procedure.') }}</p>
+            <p class="text-content"><strong>Estimated Closing Date:</strong> {{ $formatString($evaluation->estimated_closing_date ?? 'Not provided') }}</p>
         </div>
         
         <div class="footer">
