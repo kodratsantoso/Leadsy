@@ -4,183 +4,165 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use App\Models\Lead;
-use App\Models\Industry;
-use App\Models\SubIndustry;
-use App\Models\BusinessCategory;
-use App\Models\LeadSourceType;
-use App\Models\LeadChannelType;
-use App\Models\LeadSource;
+use App\Models\IdxCompanyCache;
+use App\Services\Idx\IdxCompanyCacheService;
+use App\Services\Idx\IdxCompanyDiscoveryService;
+use App\Services\Idx\IdxCompanyNormalizer;
+use App\Services\Idx\IdxToLeadMappingService;
+use App\Services\LeadDuplicateDetectionService;
+use App\Services\AuditService;
+use Illuminate\Support\Facades\DB;
 
 class LeadGeneratorIdxController extends Controller
 {
+    public function __construct(
+        private IdxCompanyCacheService $cacheService,
+        private IdxCompanyDiscoveryService $discoveryService,
+        private IdxCompanyNormalizer $normalizer,
+        private IdxToLeadMappingService $mappingService,
+        private LeadDuplicateDetectionService $duplicateService
+    ) {}
+
     public function index(Request $request)
     {
-        $search = strtolower($request->query('search', ''));
-        $page = (int) $request->query('page', 1);
+        $refresh = $request->query('refresh', 'false') === 'true';
+        if ($refresh) {
+            $count = $this->cacheService->refreshCacheFromLocal();
+            AuditService::log(
+                'refresh',
+                'lead_generator_idx',
+                null, null, null, 'success',
+                ['count' => $count],
+                $request->user()->id
+            );
+        }
+
+        // If cache is empty, try to populate it once
+        if (IdxCompanyCache::count() === 0) {
+            $this->cacheService->refreshCacheFromLocal();
+        }
+
+        $filters = [
+            'keyword' => $request->query('keyword', ''),
+            'industry' => $request->query('industry', ''),
+            'sub_industry' => $request->query('sub_industry', ''),
+        ];
+        
         $perPage = (int) $request->query('per_page', 50);
 
-        $path = 'data/idx/allCompanies.json';
-        if (!Storage::exists($path)) {
-            return response()->json(['data' => [], 'meta' => ['total' => 0], 'message' => 'Data file not found.']);
-        }
+        $paginator = $this->discoveryService->search($filters, $perPage);
 
-        $json = json_decode(Storage::get($path), true);
-        $companies = $json['data'] ?? [];
+        // Normalize data and check duplicates
+        $tenantId = $request->user()->tenant_id;
+        $items = collect($paginator->items())->map(function ($cache) use ($tenantId) {
+            $normalized = $this->normalizer->normalize($cache);
+            
+            $isDuplicate = $this->duplicateService->findDuplicate(
+                $normalized['idx_code'], 
+                $normalized['company_name'], 
+                $normalized['website'], 
+                $tenantId
+            ) !== null;
+            
+            $normalized['is_duplicate'] = $isDuplicate;
+            return $normalized;
+        });
 
-        if ($search) {
-            $companies = array_filter($companies, function ($c) use ($search) {
-                return str_contains(strtolower($c['KodeEmiten'] ?? ''), $search)
-                    || str_contains(strtolower($c['NamaEmiten'] ?? ''), $search);
-            });
-        }
-
-        // Re-index array
-        $companies = array_values($companies);
-        $total = count($companies);
-        $paginated = array_slice($companies, ($page - 1) * $perPage, $perPage);
-
-        // Check which ones are already imported by exact name matching
-        $companyNames = array_map(function ($c) {
-            return strtolower(trim($c['NamaEmiten'] ?? ''));
-        }, $paginated);
-
-        $existingLeads = [];
-        if (!empty($companyNames)) {
-            $existingLeads = Lead::whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(company_name))'), $companyNames)
-                ->pluck('company_name')
-                ->map(fn ($name) => strtolower(trim($name)))
-                ->toArray();
-        }
-
-        foreach ($paginated as &$c) {
-            $c['is_imported'] = in_array(strtolower(trim($c['NamaEmiten'] ?? '')), $existingLeads);
+        // Log search if there's a keyword or filter
+        if ($filters['keyword'] || $filters['industry'] || $filters['sub_industry']) {
+            AuditService::log(
+                'search',
+                'lead_generator_idx',
+                null, null, null, 'success',
+                ['filters' => $filters],
+                $request->user()->id
+            );
         }
 
         return response()->json([
-            'data' => $paginated,
+            'data' => $items,
             'meta' => [
-                'current_page' => $page,
-                'last_page' => ceil($total / $perPage),
-                'per_page' => $perPage,
-                'total' => $total,
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
             ]
         ]);
+    }
+
+    public function filters()
+    {
+        return response()->json($this->discoveryService->getFilters());
     }
 
     public function import(Request $request)
     {
         $data = $request->validate([
-            'KodeEmiten' => 'required|string',
-            'NamaEmiten' => 'required|string',
-            'Alamat' => 'nullable|string',
-            'Telepon' => 'nullable|string',
-            'Email' => 'nullable|string',
-            'Website' => 'nullable|string',
-            'Sektor' => 'nullable|string',
-            'SubSektor' => 'nullable|string',
-            'Industri' => 'nullable|string',
-            'SubIndustri' => 'nullable|string',
-            'KegiatanUsahaUtama' => 'nullable|string',
+            'companies' => 'required|array',
+            'companies.*.idx_code' => 'required|string',
+            'companies.*.company_name' => 'required|string',
+            // other fields are optional
         ]);
 
         $tenantId = $request->user()->tenant_id;
+        $userId = $request->user()->id;
 
-        // Check if lead already exists
-        $nameLower = mb_strtolower(trim($data['NamaEmiten']));
-        $lead = Lead::where('tenant_id', $tenantId)
-            ->whereRaw('LOWER(TRIM(company_name)) = ?', [$nameLower])
-            ->first();
+        $results = [
+            'imported' => 0,
+            'skipped' => 0,
+            'errors' => []
+        ];
 
-        if ($lead) {
-            return response()->json(['message' => 'Lead already exists.', 'lead' => $lead], 400);
-        }
+        DB::beginTransaction();
+        try {
+            foreach ($data['companies'] as $company) {
+                // Check duplicate
+                $isDuplicate = $this->duplicateService->findDuplicate(
+                    $company['idx_code'],
+                    $company['company_name'],
+                    $company['website'] ?? null,
+                    $tenantId
+                );
 
-        // Create or get Industry, SubIndustry, BusinessCategory
-        $industryId = null;
-        if (!empty($data['Sektor'])) {
-            $industry = Industry::firstOrCreate(
-                ['tenant_id' => $tenantId, 'name' => $data['Sektor']],
-                ['is_active' => true]
+                if ($isDuplicate) {
+                    $results['skipped']++;
+                    AuditService::log(
+                        'import_skipped_duplicate',
+                        'lead_generator_idx',
+                        null, null, null, 'success',
+                        ['idx_code' => $company['idx_code'], 'company_name' => $company['company_name']],
+                        $userId
+                    );
+                    continue;
+                }
+
+                $lead = $this->mappingService->mapAndCreate($company, $tenantId, $userId);
+                $results['imported']++;
+                
+                AuditService::log(
+                    'import_success',
+                    'lead_generator_idx',
+                    $lead, null, null, 'success',
+                    ['idx_code' => $company['idx_code'], 'company_name' => $company['company_name']],
+                    $userId
+                );
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            AuditService::log(
+                'import_failed',
+                'lead_generator_idx',
+                null, null, null, 'error',
+                ['error' => $e->getMessage()],
+                $userId
             );
-            $industryId = $industry->id;
+            return response()->json(['message' => 'Import failed', 'error' => $e->getMessage()], 500);
         }
 
-        $subIndustryId = null;
-        if (!empty($data['SubSektor']) && $industryId) {
-            $subIndustry = SubIndustry::firstOrCreate(
-                ['tenant_id' => $tenantId, 'industry_id' => $industryId, 'name' => $data['SubSektor']],
-                ['is_active' => true]
-            );
-            $subIndustryId = $subIndustry->id;
-        }
-
-        $businessCategoryId = null;
-        if (!empty($data['Industri'])) {
-            $businessCategory = BusinessCategory::firstOrCreate(
-                ['tenant_id' => $tenantId, 'name' => $data['Industri']],
-                ['is_active' => true]
-            );
-            $businessCategoryId = $businessCategory->id;
-        }
-
-        // Clean up website string
-        $website = $data['Website'] ?? null;
-        if ($website && !str_starts_with($website, 'http')) {
-            $website = 'https://' . ltrim($website, '/');
-        }
-
-        // Create Lead
-        $lead = Lead::create([
-            'tenant_id' => $tenantId,
-            'company_name' => $data['NamaEmiten'],
-            'address' => $data['Alamat'],
-            'phone' => $data['Telepon'],
-            'email' => $data['Email'],
-            'website' => $website,
-            'industry_id' => $industryId,
-            'sub_industry_id' => $subIndustryId,
-            'business_category_id' => $businessCategoryId,
-            'created_by' => $request->user()->id,
-            'duplicate_status' => 'new',
-            'qualification_status' => 'pending',
-            'ai_mode' => 'manual',
-            'ai_explanation' => $data['KegiatanUsahaUtama'] ?? null,
-            'use_ai_reference' => false,
+        return response()->json([
+            'message' => 'Import completed successfully.',
+            'results' => $results
         ]);
-
-        // Add Lead Source and Channel
-        $sourceType = LeadSourceType::firstOrCreate(
-            ['slug' => 'idx'],
-            [
-                'name' => 'IDX',
-                'description' => 'Indonesian Stock Exchange',
-                'sort_order' => 50,
-                'is_active' => true,
-            ]
-        );
-
-        $channelType = LeadChannelType::firstOrCreate(
-            ['slug' => 'idx-public-company', 'lead_source_type_id' => $sourceType->id],
-            [
-                'name' => 'Bursa Efek Indonesia',
-                'description' => 'Public companies from IDX',
-                'sort_order' => 10,
-                'is_active' => true,
-            ]
-        );
-
-        LeadSource::create([
-            'lead_id' => $lead->id,
-            'source_type' => 'idx',
-            'channel_type_id' => $channelType->id,
-            'confidence' => 'high',
-            'last_verified_at' => now(),
-            'notes' => 'Kode Emiten: ' . $data['KodeEmiten']
-        ]);
-
-        return response()->json(['message' => 'Lead created successfully.', 'lead' => $lead], 201);
     }
 }

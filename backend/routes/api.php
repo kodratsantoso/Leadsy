@@ -107,6 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Lead Generator - IDX
     Route::prefix('lead-generator/idx-companies')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'index']);
+        Route::get('/filters', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'filters']);
         Route::post('import', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'import']);
     });
 
