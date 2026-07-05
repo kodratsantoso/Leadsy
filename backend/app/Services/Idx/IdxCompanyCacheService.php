@@ -9,12 +9,12 @@ class IdxCompanyCacheService
 {
     public function refreshCacheFromLocal(): int
     {
-        $path = 'data/idx/allCompanies.json';
-        if (!Storage::exists($path)) {
+        $path = storage_path('app/data/idx/allCompanies.json');
+        if (!file_exists($path)) {
             return 0;
         }
 
-        $json = json_decode(Storage::get($path), true);
+        $json = json_decode(file_get_contents($path), true);
         $companies = $json['data'] ?? [];
         $count = 0;
 
