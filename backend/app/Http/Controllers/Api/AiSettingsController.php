@@ -187,7 +187,11 @@ class AiSettingsController extends Controller
             'feature_name' => 'required|string|max:255',
             'template_name' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:500',
-            'content' => 'required|string',
+            'content' => 'nullable|string',
+            'system_prompt' => 'nullable|string',
+            'user_prompt' => 'nullable|string',
+            'output_contract_json' => 'nullable|array',
+            'variables_schema_json' => 'nullable|array',
         ]);
 
         $version = $this->prompts->createVersion($data, $request->user()?->id);
@@ -208,15 +212,25 @@ class AiSettingsController extends Controller
             'feature_name' => 'required|string|max:255',
             'sample_input' => 'required|string',
             'content' => 'nullable|string',
+            'system_prompt' => 'nullable|string',
+            'user_prompt' => 'nullable|string',
         ]);
+
+        $compiled = $this->prompts->previewPrompt(
+            $data['feature_name'],
+            $data['sample_input'],
+            $data['content'] ?? null,
+            $data['system_prompt'] ?? null,
+            $data['user_prompt'] ?? null
+        );
+
+        if (is_array($compiled)) {
+            $compiled = "SYSTEM PROMPT:\n" . ($compiled['system'] ?? '') . "\n\nUSER PROMPT:\n" . ($compiled['user'] ?? '');
+        }
 
         return response()->json([
             'data' => [
-                'compiled_prompt' => $this->prompts->previewPrompt(
-                    $data['feature_name'],
-                    $data['sample_input'],
-                    $data['content'] ?? null
-                ),
+                'compiled_prompt' => trim($compiled),
             ],
         ]);
     }
@@ -247,6 +261,10 @@ class AiSettingsController extends Controller
             'template_name' => $version->template?->template_name,
             'version' => $version->version,
             'content' => $version->content,
+            'system_prompt' => $version->system_prompt,
+            'user_prompt' => $version->user_prompt,
+            'output_contract_json' => $version->output_contract_json,
+            'variables_schema_json' => $version->variables_schema_json,
             'is_active' => $version->is_active,
             'is_enabled' => $version->is_enabled,
             'created_at' => optional($version->created_at)->toIso8601String(),

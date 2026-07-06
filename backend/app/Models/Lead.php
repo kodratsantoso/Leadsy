@@ -31,6 +31,7 @@ class Lead extends Model
         'tenant_id', 'parent_lead_id', 'external_id',
         'lark_base_id', 'lark_table_id',
         'budget', 'authority', 'needs', 'timeline', 'competitor',
+        'enrichment_status', 'last_enriched_at', 'enrichment_metadata',
     ];
 
     protected $casts = [
@@ -42,6 +43,8 @@ class Lead extends Model
         'realized_closing_amount' => 'decimal:2',
         'use_ai_reference' => 'boolean',
         'branch_count' => 'integer',
+        'last_enriched_at' => 'datetime',
+        'enrichment_metadata' => 'array',
     ];
 
     /* ── Relationships ── */

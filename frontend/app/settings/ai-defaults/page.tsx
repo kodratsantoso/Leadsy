@@ -96,7 +96,11 @@ type PromptVersion = {
   id: number;
   feature_name?: string | null;
   version: number;
-  content: string;
+  content: string | null;
+  system_prompt?: string | null;
+  user_prompt?: string | null;
+  output_contract_json?: any | null;
+  variables_schema_json?: any | null;
   is_active: boolean;
   created_at?: string | null;
   activated_at?: string | null;
@@ -254,6 +258,10 @@ export default function AiDefaultsPage() {
   const [routeDrafts, setRouteDrafts] = useState<RouteDraftState>({});
   const [activePromptFeature, setActivePromptFeature] = useState("");
   const [promptEditor, setPromptEditor] = useState("");
+  const [systemPromptEditor, setSystemPromptEditor] = useState("");
+  const [userPromptEditor, setUserPromptEditor] = useState("");
+  const [outputContractEditor, setOutputContractEditor] = useState("");
+  const [variablesSchemaEditor, setVariablesSchemaEditor] = useState("");
   const [promptDescription, setPromptDescription] = useState("");
   const [sampleInput, setSampleInput] = useState("Sample lead data:\n- Company: PT Nusantara Digital\n- Industry: Manufacturing\n- Need: CRM modernization");
   const [compiledPrompt, setCompiledPrompt] = useState("");
@@ -330,10 +338,19 @@ export default function AiDefaultsPage() {
   const selectedPromptTemplate = promptTemplates.find((item) => item.feature_name === activePromptFeature);
 
   useEffect(() => {
-    if (!selectedPromptTemplate) return;
-    setPromptEditor(selectedPromptTemplate.active_version?.content ?? "");
-    setPromptDescription(selectedPromptTemplate.description ?? "");
-  }, [selectedPromptTemplate?.id]);
+    if (activePromptFeature && promptTemplates.length) {
+      const template = promptTemplates.find((t) => t.feature_name === activePromptFeature);
+      if (template) {
+        setPromptDescription(template.description || "");
+        setPromptEditor(template.active_version?.content || "");
+        setSystemPromptEditor(template.active_version?.system_prompt || "");
+        setUserPromptEditor(template.active_version?.user_prompt || "");
+        setOutputContractEditor(template.active_version?.output_contract_json ? JSON.stringify(template.active_version.output_contract_json, null, 2) : "");
+        setVariablesSchemaEditor(template.active_version?.variables_schema_json ? JSON.stringify(template.active_version.variables_schema_json, null, 2) : "");
+        setCompiledPrompt("");
+      }
+    }
+  }, [activePromptFeature, promptTemplates]);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["settings-ai-default"] });
 
@@ -465,14 +482,26 @@ export default function AiDefaultsPage() {
 
   const savePromptVersionMutation = useMutation({
     mutationFn: async () => {
+      let outputContractJson = null;
+      let variablesSchemaJson = null;
+      try {
+        if (outputContractEditor.trim()) outputContractJson = JSON.parse(outputContractEditor);
+        if (variablesSchemaEditor.trim()) variablesSchemaJson = JSON.parse(variablesSchemaEditor);
+      } catch (e) {
+        throw new Error("Output Contract or Variables Schema must be valid JSON.");
+      }
       const response = await apiFetch("/settings/ai-default/prompt-templates/versions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           feature_name: activePromptFeature,
-          template_name: selectedPromptTemplate?.template_name ?? "Default",
+          template_name: promptTemplates.find((t) => t.feature_name === activePromptFeature)?.template_name ?? "Default",
           description: promptDescription,
           content: promptEditor,
+          system_prompt: systemPromptEditor,
+          user_prompt: userPromptEditor,
+          output_contract_json: outputContractJson,
+          variables_schema_json: variablesSchemaJson,
         }),
       });
       if (!response.ok) throw new Error("Unable to save prompt version");
@@ -501,6 +530,8 @@ export default function AiDefaultsPage() {
           feature_name: activePromptFeature,
           sample_input: sampleInput,
           content: promptEditor,
+          system_prompt: systemPromptEditor,
+          user_prompt: userPromptEditor,
         }),
       });
       if (!response.ok) throw new Error("Unable to preview prompt");
@@ -957,7 +988,28 @@ export default function AiDefaultsPage() {
 
               <div className="mt-4 grid gap-4">
                 <Input value={promptDescription} onChange={(e) => setPromptDescription(e.target.value)} placeholder="Template description" />
-                <Textarea rows={18} value={promptEditor} onChange={(e) => setPromptEditor(e.target.value)} />
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">System Prompt</label>
+                  <Textarea rows={4} value={systemPromptEditor} onChange={(e) => setSystemPromptEditor(e.target.value)} placeholder="System instructions" />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">User Prompt</label>
+                  <Textarea rows={6} value={userPromptEditor} onChange={(e) => setUserPromptEditor(e.target.value)} placeholder="User instructions and variables" />
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium">Output Contract (JSON schema/format)</label>
+                    <Textarea className="font-mono text-xs" rows={8} value={outputContractEditor} onChange={(e) => setOutputContractEditor(e.target.value)} placeholder="{}" />
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium">Variables Schema (JSON array of keys)</label>
+                    <Textarea className="font-mono text-xs" rows={8} value={variablesSchemaEditor} onChange={(e) => setVariablesSchemaEditor(e.target.value)} placeholder="[]" />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Legacy Content (Fallback if System/User empty)</label>
+                  <Textarea rows={8} value={promptEditor} onChange={(e) => setPromptEditor(e.target.value)} />
+                </div>
                 <div className="flex flex-wrap gap-3">
                   <Button
                     onClick={() => savePromptVersionMutation.mutate()}

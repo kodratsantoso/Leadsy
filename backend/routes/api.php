@@ -153,6 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('leads', LeadController::class);
     Route::apiResource('business-categories', \App\Http\Controllers\Api\BusinessCategoryController::class);
     Route::post('leads/{lead}/enrich', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'enrich'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/enrich/retry', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'retry'])->middleware('permission:leads.edit');
     Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['show'])->middleware('permission:leads.edit');
     Route::apiResource('settings/lead-channels', LeadChannelTypeController::class)->except(['show'])->middleware('permission:leads.edit');
     Route::get('settings/currency-format', [CurrencySettingController::class, 'format']);

@@ -687,6 +687,8 @@ class LarkBaseService extends LarkService
                 }
             }
 
+            app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'lark_sync');
+
             return [
                 'action' => $action,
                 'lead' => $lead,

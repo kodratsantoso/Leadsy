@@ -11,6 +11,10 @@ class AiPromptTemplateVersion extends Model
         'ai_prompt_template_id',
         'version',
         'content',
+        'system_prompt',
+        'user_prompt',
+        'output_contract_json',
+        'variables_schema_json',
         'is_active',
         'is_enabled',
         'created_by',
@@ -22,6 +26,8 @@ class AiPromptTemplateVersion extends Model
         'is_active' => 'boolean',
         'is_enabled' => 'boolean',
         'activated_at' => 'datetime',
+        'output_contract_json' => 'array',
+        'variables_schema_json' => 'array',
     ];
 
     public function template(): BelongsTo

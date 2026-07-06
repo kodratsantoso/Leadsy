@@ -370,22 +370,10 @@ class LeadController extends Controller
 
         AuditService::logCreated('leads', $lead);
 
-        // Dispatch async jobs based on AI mode
-        $aiMode = $data['ai_mode'] ?? 'manual';
+        // Trigger the new Enrichment Service
+        app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'manual_creation');
 
-        if ($lead->external_place_id) {
-            // Maps lead: EnrichLeadJob chains to EnrichLeadContactsJob automatically
-            EnrichLeadJob::dispatch($lead->id)->onQueue('enrichment');
-        } elseif ($lead->website_domain) {
-            // Non-maps lead with known domain: go straight to contact enrichment
-            EnrichLeadContactsJob::dispatch($lead->id)
-                ->delay(now()->addSeconds(3))
-                ->onQueue('enrichment');
-        }
-
-        if (in_array($aiMode, ['full_ai', 'hybrid'])) {
-            ScoreLeadJob::dispatch($lead->id)->onQueue('scoring');
-        }
+        // Note: Post-enrichment AI (Scoring, ICP) is now triggered inside EnrichLeadJob via LeadPostEnrichmentAIService
 
         return response()->json([
             'data' => $lead->load(['industry', 'funnelStage', 'sources.channelType']),
@@ -949,17 +937,7 @@ class LeadController extends Controller
                 $createdContacts++;
             }
 
-            if ($lead->external_place_id) {
-                EnrichLeadJob::dispatch($lead->id)->onQueue('enrichment');
-            } elseif ($lead->website_domain) {
-                EnrichLeadContactsJob::dispatch($lead->id)
-                    ->delay(now()->addSeconds(3))
-                    ->onQueue('enrichment');
-            }
-
-            if (in_array($aiMode, ['full_ai', 'hybrid'])) {
-                ScoreLeadJob::dispatch($lead->id)->onQueue('scoring');
-            }
+            app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'import');
 
             $created[] = $lead;
         }

@@ -206,3 +206,10 @@
 - **Decision:** Shifted the Target and Cascade logic from relying on `users` table metadata (`target_revenue`) to a dedicated `targets` table and `target_cascade_allocations` table.
 - **Rationale:** The system needs to support multiple target types (amount, percentage, quantity, score, days) across different roles (Sales, Presales, CSM, AM), breaking away from the rigid sales-revenue-only model.
 - **Impact:** Target configurations are now flexible and can be created via `GET /api/targets/config`. Sales is the only role that supports revenue target cascade.
+
+## ADR-029: Automated Lead Enrichment Pipeline
+- **Date**: 2026-07-06
+- **Status**: Active
+- **Decision**: Implemented `LeadEnrichmentTriggerService` to safely orchestrate automated enrichments on lead creation and Lark Base sync. Migrated from hardcoded master data mapping to `LeadEnrichmentAiOrchestrator` driven by strict JSON output contracts and runtime AI prompt settings.
+- **Rationale**: Manual data entry and raw Lark imports often lack standardized fields required for accurate AI ICP matching and scoring. The new unified pipeline leverages system/user prompts with JSON schema validation to dynamically enrich leads, discover location details, and map fields to the system's Taxonomy before firing the AI Rescore and Re-qualify pipeline. AI settings are fully configurable via the UI.
+- **Impact**: All newly created leads (manual or via Lark) automatically enter the `EnrichLeadJob` pipeline which utilizes `LeadEnrichmentAiOrchestrator` and subsequently the `ScoreLeadJob` pipeline, ensuring fully populated and scored records without user intervention and without hardcoded AI prompts.

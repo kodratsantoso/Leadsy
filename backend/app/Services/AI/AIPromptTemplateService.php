@@ -58,7 +58,11 @@ class AIPromptTemplateService
 
         $version = $template->versions()->create([
             'version' => $nextVersion,
-            'content' => $data['content'],
+            'content' => $data['content'] ?? null,
+            'system_prompt' => $data['system_prompt'] ?? null,
+            'user_prompt' => $data['user_prompt'] ?? null,
+            'output_contract_json' => $data['output_contract_json'] ?? null,
+            'variables_schema_json' => $data['variables_schema_json'] ?? null,
             'is_active' => false,
             'is_enabled' => true,
             'created_by' => $userId,
@@ -119,29 +123,56 @@ class AIPromptTemplateService
         return $template?->activeVersion;
     }
 
-    public function compilePrompt(string $featureName, string $input, array $variables = []): string
+    public function compilePrompt(string $featureName, string $input, array $variables = []): array|string
     {
         $version = $this->getActiveVersionForFeature($featureName);
         if (! $version) {
             return $input;
         }
 
-        $template = $version->content;
         $replacements = ['{{input}}' => $input];
-
         foreach ($variables as $key => $value) {
             $replacements['{{'.$key.'}}'] = is_scalar($value) ? (string) $value : json_encode($value, JSON_PRETTY_PRINT);
         }
 
-        $compiled = strtr($template, $replacements);
+        if ($version->system_prompt || $version->user_prompt) {
+            $system = strtr((string) $version->system_prompt, $replacements);
+            $user = strtr((string) $version->user_prompt, $replacements);
+            
+            return [
+                'system' => str_contains($system, '{{input}}') ? str_replace('{{input}}', $input, $system) : $system,
+                'user' => str_contains($user, '{{input}}') ? str_replace('{{input}}', $input, $user) : $user,
+                'output_contract' => $version->output_contract_json,
+            ];
+        }
+
+        $template = $version->content;
+        $compiled = strtr((string) $template, $replacements);
 
         return str_contains($compiled, '{{input}}')
             ? str_replace('{{input}}', $input, $compiled)
             : $compiled;
     }
 
-    public function previewPrompt(string $featureName, string $sampleInput, ?string $content = null): string
-    {
+    public function previewPrompt(
+        string $featureName,
+        string $sampleInput,
+        ?string $content = null,
+        ?string $systemPrompt = null,
+        ?string $userPrompt = null
+    ): string|array {
+        if (!empty($systemPrompt) || !empty($userPrompt)) {
+            $sys = !empty($systemPrompt) ? (str_contains($systemPrompt, '{{input}}') ? str_replace('{{input}}', $sampleInput, $systemPrompt) : $systemPrompt) : '';
+            $usr = !empty($userPrompt) ? (str_contains($userPrompt, '{{input}}') ? str_replace('{{input}}', $sampleInput, $userPrompt) : $userPrompt) : '';
+            if (!empty($sys) && !str_contains($sys, '{{input}}') && !str_contains($usr, '{{input}}') && !empty($sampleInput)) {
+                $usr = trim($usr . "\n\nInput:\n" . $sampleInput);
+            }
+            return [
+                'system' => $sys,
+                'user' => $usr,
+            ];
+        }
+
         if ($content !== null) {
             return str_contains($content, '{{input}}')
                 ? str_replace('{{input}}', $sampleInput, $content)

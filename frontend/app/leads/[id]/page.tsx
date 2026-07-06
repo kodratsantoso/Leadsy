@@ -881,7 +881,7 @@ export default function LeadDetailPage() {
   // Update lead company info mutation
   const enrichMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiFetch(`/leads/${params.id}/enrich`, {
+      const response = await apiFetch(`/leads/${params.id}/enrich/retry`, {
         method: "POST",
       });
       if (!response.ok) throw new Error("Failed to enrich lead");
@@ -1829,6 +1829,43 @@ export default function LeadDetailPage() {
                   ) : '—'}
                 </div>
                 <div><span className="text-muted-foreground">Initial Product:</span> {leadData.product?.name || '—'}</div>
+              </div>
+            </div>
+
+            {/* Enrichment Status Card */}
+            <div className="rounded-lg border border-border bg-card p-6 md:col-span-2">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-semibold">Automated Enrichment Status</h3>
+                <Badge variant={
+                  leadData.enrichment_status === 'completed' ? 'success' : 
+                  leadData.enrichment_status === 'running' ? 'warning' :
+                  leadData.enrichment_status === 'failed' ? 'danger' : 'outline'
+                }>
+                  {leadData.enrichment_status ? leadData.enrichment_status.toUpperCase() : 'PENDING'}
+                </Badge>
+              </div>
+              <div className="flex flex-col gap-2 text-sm">
+                <div className="flex justify-between border-b border-border/40 pb-2">
+                  <span className="text-muted-foreground">Last Run</span>
+                  <span className="font-medium">{leadData.last_enriched_at ? new Date(leadData.last_enriched_at).toLocaleString() : 'Never'}</span>
+                </div>
+                {leadData.enrichment_metadata && typeof leadData.enrichment_metadata === 'object' && (
+                  <div className="mt-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                    <span className="font-semibold block mb-1">Metadata</span>
+                    {JSON.stringify(leadData.enrichment_metadata, null, 2)}
+                  </div>
+                )}
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => enrichMutation.mutate()}
+                    disabled={enrichMutation.isPending || leadData.enrichment_status === 'running'}
+                  >
+                    {enrichMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Retry Enrichment
+                  </Button>
+                </div>
               </div>
             </div>
 

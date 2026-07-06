@@ -209,3 +209,25 @@ The backend API surface is substantially ahead of the live frontend runtime. The
   - Accepts `owner_id` as a nullable user id.
   - Assigns/reassigns the lead to an allowed user or returns it to the Lead Pool when `owner_id` is null.
   - Writes an audit log entry with before/after owner ids.
+
+### POST /api/leads/{id}/enrich/retry
+- **Description:** Manually triggers the `LeadEnrichmentTriggerService` for a given lead. Enqueues `EnrichLeadJob`.
+- **Authorization:** `permission:leads.edit`
+- **Response:**
+```json
+{
+  "success": true,
+  "message": "Enrichment job has been queued.",
+  "data": { ...Lead Object with status = 'running' }
+}
+```
+
+## 2026-07-06 Contract Additions
+
+### AI Prompts
+- `POST /api/settings/ai-default/prompt-templates/versions`
+  - Accepts `feature_name`, `content`, `description`, `system_prompt`, `user_prompt`, `output_contract_json`, and `variables_schema_json`.
+  - Used for strict AI orchestration contracts instead of legacy single-string `content`.
+- `POST /api/settings/ai-default/prompt-templates/preview`
+  - Accepts the same prompt properties to simulate a compiled preview.
+  - Returns formatted preview string separating system and user prompts if provided.

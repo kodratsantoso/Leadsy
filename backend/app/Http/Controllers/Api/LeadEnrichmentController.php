@@ -12,8 +12,20 @@ use Illuminate\Http\Request;
 
 class LeadEnrichmentController extends Controller
 {
-    public function __construct(private AiOrchestrationService $ai)
+    public function __construct(
+        private AiOrchestrationService $ai,
+        private \App\Services\Enrichment\LeadEnrichmentTriggerService $triggerService
+    ) {}
+
+    public function retry(Lead $lead)
     {
+        $this->triggerService->trigger($lead, 'manual_retry');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Enrichment job has been queued.',
+            'data' => $lead->fresh(),
+        ]);
     }
 
     public function enrich(Request $request, Lead $lead)

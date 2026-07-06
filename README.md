@@ -4,7 +4,13 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.13.0** — 2026-07-04
+Current release: **v1.14.0** — 2026-07-06
+
+## What's New in v1.14.0 (AI Enrichment Automation)
+
+- **Automated Lead Enrichment Pipeline** — Migrated from hardcoded data mapping to a strict JSON AI Orchestration pipeline (`LeadEnrichmentAiOrchestrator`). Leads are now automatically standardized, categorized, and scored via AI on creation.
+- **AI Defaults Configuration** — Upgraded the Settings > AI Defaults panel to support complex AI configurations, including `System Prompt`, `User Prompt`, `Output Contract` (JSON Schema), and `Variables Schema` for strict orchestration.
+- **Unified Location Discovery** — Fully integrated Google Maps text-search fallback during enrichment to maximize valid coordinates even when location data is minimal.
 
 ## What's New in v1.13.0 (IDX Public Companies Integration)
 
