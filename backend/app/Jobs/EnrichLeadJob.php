@@ -50,20 +50,9 @@ class EnrichLeadJob implements ShouldQueue
             $updates = [];
             $mappedFields = [];
             
-            // 1. Resolve Location via Google Maps if not explicitly set but we have a name
+            // 1. Resolve Location via Google Maps if we have an explicit place ID
             if ($lead->external_place_id) {
                 $details = $discovery->getPlaceDetails($lead->external_place_id);
-            } elseif ($lead->company_name) {
-                // Try to find place by text search using company name and location
-                $query = $lead->company_name;
-                if ($lead->address) {
-                    $query .= ' ' . $lead->address;
-                }
-                
-                $searchResult = $discovery->geocodeArea($query);
-                if ($searchResult && !empty($searchResult['place_id'])) {
-                    $details = $discovery->getPlaceDetails($searchResult['place_id']);
-                }
             }
 
             // 2. Extract Data from Maps details

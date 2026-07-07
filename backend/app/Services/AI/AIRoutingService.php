@@ -32,6 +32,14 @@ class AIRoutingService
         'dashboard_ai_insight' => 'Dashboard AI Insight',
         'pre_meeting_brief_generation' => 'Pre-Meeting Brief Generation',
         'customer_journey_story' => 'Customer Journey Story Generation',
+        'lead_company_enrichment' => 'Lead Company Enrichment',
+        'lead_industry_classification' => 'Lead Industry Classification',
+        'lead_business_category_classification' => 'Lead Business Category Classification',
+        'lead_company_size_classification' => 'Lead Company Size Classification',
+        'lead_initial_rescore' => 'Lead Initial Re-score',
+        'lead_initial_requalification' => 'Lead Initial Re-qualification',
+        'lead_initial_icp_match' => 'Lead Initial ICP Match',
+        'lead_enrichment_summary' => 'Lead Enrichment Summary',
     ];
 
     public function listRoutes(): Collection
