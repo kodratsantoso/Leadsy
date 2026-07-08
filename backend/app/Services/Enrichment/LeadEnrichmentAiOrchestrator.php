@@ -38,6 +38,22 @@ class LeadEnrichmentAiOrchestrator
             if (empty($lead->description) && !empty($companyRes['description'])) {
                 $updates['description'] = $companyRes['description'];
             }
+            if (empty($lead->address) && !empty($companyRes['address'])) {
+                $updates['address'] = $companyRes['address'];
+                $mappedFields[] = 'address';
+            }
+            if (empty($lead->phone) && !empty($companyRes['phone'])) {
+                $updates['phone'] = $companyRes['phone'];
+                $mappedFields[] = 'phone';
+            }
+            if (empty($lead->email) && !empty($companyRes['email'])) {
+                $updates['email'] = $companyRes['email'];
+                $mappedFields[] = 'email';
+            }
+            if (empty($lead->website) && !empty($companyRes['website'])) {
+                $updates['website'] = $companyRes['website'];
+                $mappedFields[] = 'website';
+            }
         }
 
         // We prepare master data context

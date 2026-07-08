@@ -345,6 +345,9 @@ class LeadController extends Controller
         $data['created_by'] = $request->user()?->id;
         $data['tenant_id'] = $request->user()?->tenant_id;
 
+        // Auto-assign owner to the user who creates it
+        $data['owner_id'] = $request->user()?->id;
+
         // Auto-assign to first funnel stage ("New Lead") when none is provided
         if (empty($data['funnel_stage_id'])) {
             $firstStage = FunnelStage::orderBy('sequence')->first();
@@ -369,6 +372,42 @@ class LeadController extends Controller
         $this->syncLeadSource($lead, $sourceType, $channelTypeId);
 
         AuditService::logCreated('leads', $lead);
+
+        // Commercial Team assignment based on creator's role
+        $creator = $request->user();
+        if ($creator && $creator->role) {
+            $roleMap = [
+                'sales_manager' => 'sales',
+                'sales_exec' => 'sales',
+                'presales' => 'presales',
+                'admin' => 'presales',
+                'super_admin' => 'presales',
+            ];
+
+            $roleType = $roleMap[$creator->role->name] ?? null;
+            if ($roleType) {
+                \App\Models\LeadRoleAssignment::create([
+                    'lead_id' => $lead->id,
+                    'user_id' => $creator->id,
+                    'role_type' => $roleType,
+                    'assigned_by' => $creator->id,
+                    'assigned_at' => now(),
+                    'assignment_status' => 'active',
+                ]);
+
+                // Also update the corresponding owner column on the lead if not already set
+                $colMap = [
+                    'sales' => 'owner_id',
+                    'presales' => 'presales_owner_id',
+                    'account_manager' => 'am_owner_id',
+                    'csm' => 'csm_owner_id'
+                ];
+                $col = $colMap[$roleType] ?? null;
+                if ($col && empty($data[$col])) {
+                    $lead->update([$col => $creator->id]);
+                }
+            }
+        }
 
         // Trigger the new Enrichment Service
         app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'manual_creation');

@@ -23,11 +23,15 @@ class LeadEnrichmentAiConfigSeeder extends Seeder
                 'route' => 'lead_company_enrichment',
                 'name' => 'Lead Company Enrichment',
                 'description' => 'Analyze company information from name, website, Google Maps result, and available context.',
-                'system_prompt' => 'You are an expert corporate researcher. Your task is to extract core company details from the provided context and return them in structured JSON. Do not invent information.',
+                'system_prompt' => 'You are an expert corporate researcher. Your task is to extract core company details from the provided context or use your knowledge to find the address, phone, email, and website. Return them in structured JSON. Do not invent information.',
                 'user_prompt' => "Context:\nCompany Name: {{company_name}}\nAddress: {{existing_address}}\nWebsite: {{existing_website}}\nGoogle Maps: {{google_maps_result}}\nWebsite Result: {{website_result}}\nLark Sync Payload: {{lark_sync_payload}}\n\nPlease enrich and return JSON.",
                 'output_contract_json' => [
                     'company_name' => '',
                     'description' => '',
+                    'address' => '',
+                    'phone' => '',
+                    'email' => '',
+                    'website' => '',
                     'year_founded' => '',
                     'headquarters' => '',
                     'confidence' => 'low | medium | high'
