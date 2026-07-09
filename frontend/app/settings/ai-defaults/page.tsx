@@ -942,12 +942,12 @@ export default function AiDefaultsPage() {
       )}
 
       {tab === "prompts" && (
-        <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
-          <Card>
+        <div className="grid gap-4 xl:grid-cols-[300px_1fr] items-start">
+          <Card className="sticky top-6">
             <CardContent className="p-4 pt-4">
             <h2 className="text-lg font-semibold">Prompt Templates</h2>
             <p className="mt-1 text-sm text-muted-foreground">Versioned prompt control per feature with activation history.</p>
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
               {promptTemplates.map((template) => (
                 <button
                   key={template.id}
