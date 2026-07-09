@@ -4,7 +4,12 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.14.0** — 2026-07-06
+Current release: **v1.14.1** — 2026-07-09
+
+## What's New in v1.14.1 (Brand Field & Lark Sync Updates)
+
+- **Brand Identifier** — Added a dedicated `Brand` field to the Leads model. The brand is now editable, visible on lead lists and details, and supports CSV imports.
+- **Always-on Lark Sync** — Modified the `LeadObserver` so that *any* update to a lead's record now automatically pushes updates to the integrated Lark Base (provided `company_name` is present and sync rules allow).
 
 ## What's New in v1.14.0 (AI Enrichment Automation)
 
