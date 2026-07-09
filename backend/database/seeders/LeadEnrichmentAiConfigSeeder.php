@@ -156,9 +156,9 @@ class LeadEnrichmentAiConfigSeeder extends Seeder
                 ]
             );
 
-            if (!$template->versions()->exists()) {
-                $version = $template->versions()->create([
-                    'version' => 1,
+            $version = $template->versions()->updateOrCreate(
+                ['version' => 1],
+                [
                     'content' => $f['system_prompt'] . "\n\n" . $f['user_prompt'],
                     'system_prompt' => $f['system_prompt'],
                     'user_prompt' => $f['user_prompt'],
@@ -167,10 +167,10 @@ class LeadEnrichmentAiConfigSeeder extends Seeder
                     'is_active' => true,
                     'is_enabled' => true,
                     'activated_at' => now(),
-                ]);
+                ]
+            );
 
-                $template->update(['active_version_id' => $version->id]);
-            }
+            $template->update(['active_version_id' => $version->id]);
         }
     }
 }
