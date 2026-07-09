@@ -4,7 +4,12 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.14.1** — 2026-07-09
+Current release: **v1.14.2** — 2026-07-09
+
+## What's New in v1.14.2 (AI Orchestration Fixes)
+
+- **AI Prompt Compilation Fix** — Resolved a `TypeError` in `AiOrchestrationService` caused by array-based system/user prompt outputs being checked as strings. The orchestrator now properly merges and executes multi-part prompts.
+- **Queue Worker Defaults** — Updated the local `npm run dev` script to properly listen to custom queues (`enrichment`, `intelligence`, `scoring`) alongside `default`, ensuring automated jobs execute correctly.
 
 ## What's New in v1.14.1 (Brand Field & Lark Sync Updates)
 
