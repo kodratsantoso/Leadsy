@@ -205,27 +205,12 @@ class LeadEnrichmentAiOrchestrator
     private function runFeature(string $featureName, array $variables): ?array
     {
         try {
-            $promptCompiled = $this->promptService->compilePrompt($featureName, '', $variables);
-            
-            // If compilePrompt returns an array, it means it has system and user prompts
-            if (is_array($promptCompiled)) {
-                $response = $this->aiOrchestration->call(
-                    $featureName,
-                    $promptCompiled['user'],
-                    [
-                        'system_prompt' => $promptCompiled['system'],
-                        'response_format' => ['type' => 'json_object'],
-                        // We rely on the model instructions for output contract in this implementation,
-                        // though we could enforce it stricter if supported by the provider SDK wrapper.
-                    ]
-                );
-            } else {
-                $response = $this->aiOrchestration->call(
-                    $featureName,
-                    $promptCompiled,
-                    ['response_format' => ['type' => 'json_object']]
-                );
-            }
+            $context = array_merge($variables, ['response_format' => ['type' => 'json_object']]);
+            $response = $this->aiOrchestration->call(
+                $featureName,
+                '', // $input
+                $context
+            );
 
             if (!empty($response['content'])) {
                 // Ensure it's valid JSON

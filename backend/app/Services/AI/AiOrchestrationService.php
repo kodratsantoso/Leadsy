@@ -30,14 +30,18 @@ class AiOrchestrationService
      * @param  array  $context  Additional metadata
      * @return array{success: bool, content: string|null, tokens: array, cost: float, model: string}
      */
-    public function call(string $functionName, string $promptContent, array $context = []): array
+    public function call(string $functionName, string|array $promptContent, array $context = []): array
     {
         $routes = $this->priorityResolver->getRoutesForFeature($functionName);
         $promptContent = $this->promptTemplates->compilePrompt($functionName, $promptContent, $context);
 
+        $promptStringForCheck = is_array($promptContent) 
+            ? (($promptContent['user'] ?? '') . ' ' . ($promptContent['system'] ?? ''))
+            : $promptContent;
+
         $isNestle = (isset($context['lead_id']) && $context['lead_id'] == 15)
             || (isset($context['entity_id']) && str_contains($context['entity_id'], 'Nestle'))
-            || str_contains($promptContent, 'Nestle');
+            || str_contains($promptStringForCheck, 'Nestle');
 
         if ($isNestle) {
             $mockContent = match ($functionName) {
@@ -150,7 +154,7 @@ class AiOrchestrationService
     /*  PRIVATE */
     /* ──────────────────────────────────────────── */
 
-    private function tryModel($route, string $functionName, string $prompt, array $context, int $timeout, ?bool $isFallback = false): array
+    private function tryModel($route, string $functionName, string|array $prompt, array $context, int $timeout, ?bool $isFallback = false): array
     {
         $model = $route->aiModel()->with('provider')->first();
         if (! $model || ! $model->provider) {
@@ -235,22 +239,38 @@ class AiOrchestrationService
         PROMPT;
     }
 
-    private function buildRequestBody(string $slug, string $modelName, string $prompt, ?int $maxTokens = null): array
+    private function buildRequestBody(string $slug, string $modelName, string|array $prompt, ?int $maxTokens = null): array
     {
+        $systemPrompt = null;
+        $userPrompt = '';
+
+        if (is_array($prompt)) {
+            $systemPrompt = $prompt['system'] ?? null;
+            $userPrompt = $prompt['user'] ?? '';
+        } else {
+            $userPrompt = $prompt;
+        }
+
+        if (!$systemPrompt) {
+            $systemPrompt = 'You are a B2B sales intelligence assistant. Return valid JSON whenever the user requests JSON.';
+        }
+
         return match ($slug) {
             'anthropic' => array_filter([
                 'model' => $modelName,
                 'max_tokens' => $maxTokens ?? 1024,
-                'messages' => [['role' => 'user', 'content' => $prompt]],
+                'system' => $systemPrompt,
+                'messages' => [['role' => 'user', 'content' => $userPrompt]],
             ], fn ($value) => $value !== null),
             'google', 'gemini' => [
-                'contents' => [['parts' => [['text' => $prompt]]]],
+                'system_instruction' => ['parts' => [['text' => $systemPrompt]]],
+                'contents' => [['parts' => [['text' => $userPrompt]]]],
             ],
             default => array_filter([ // openai-compatible
                 'model' => $modelName,
                 'messages' => [
-                    ['role' => 'system', 'content' => 'You are a B2B sales intelligence assistant. Return valid JSON whenever the user requests JSON.'],
-                    ['role' => 'user',   'content' => $prompt],
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user',   'content' => $userPrompt],
                 ],
                 'response_format' => ['type' => 'json_object'],
                 'max_tokens' => $maxTokens,
@@ -364,7 +384,7 @@ class AiOrchestrationService
         return ['success' => false, 'content' => null, 'error' => $error, 'tokens' => [], 'cost' => 0, 'model' => ''];
     }
 
-    private function getCachedResult(string $functionName, string $promptContent, array $context, ?int $cacheTtlMinutes): ?array
+    private function getCachedResult(string $functionName, string|array $promptContent, array $context, ?int $cacheTtlMinutes): ?array
     {
         if (! $cacheTtlMinutes || $cacheTtlMinutes < 1) {
             return null;
@@ -380,7 +400,7 @@ class AiOrchestrationService
         return array_merge($cached, ['is_cached' => true]);
     }
 
-    private function putCachedResult(string $functionName, string $promptContent, array $context, ?int $cacheTtlMinutes, array $result): void
+    private function putCachedResult(string $functionName, string|array $promptContent, array $context, ?int $cacheTtlMinutes, array $result): void
     {
         if (! $cacheTtlMinutes || $cacheTtlMinutes < 1 || ! ($result['success'] ?? false)) {
             return;
@@ -400,13 +420,13 @@ class AiOrchestrationService
         );
     }
 
-    private function cacheKey(string $functionName, string $promptContent, array $context): string
+    private function cacheKey(string $functionName, string|array $promptContent, array $context): string
     {
         $identity = [
             'feature' => $functionName,
             'entity' => $context['entity_id'] ?? $context['lead_id'] ?? $context['conversation_id'] ?? null,
             'entity_type' => $context['entity_type'] ?? null,
-            'prompt_hash' => sha1($promptContent),
+            'prompt_hash' => sha1(is_array($promptContent) ? json_encode($promptContent) : $promptContent),
         ];
 
         return 'ai:result:'.sha1(json_encode($identity));
