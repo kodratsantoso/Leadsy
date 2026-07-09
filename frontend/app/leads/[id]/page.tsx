@@ -627,6 +627,7 @@ export default function LeadDetailPage() {
   const [showEditCompanyInfo, setShowEditCompanyInfo] = useState(false);
   const [companyForm, setCompanyForm] = useState({
     company_name: '',
+    brand: '',
     address: '',
     lat: '',
     lng: '',
@@ -908,6 +909,7 @@ export default function LeadDetailPage() {
   function openEditCompanyInfo() {
     setCompanyForm({
       company_name:             leadData.company_name           ?? '',
+      brand:                    leadData.brand                  ?? '',
       address:                  leadData.address                ?? '',
       lat:                      leadData.lat != null ? String(leadData.lat) : '',
       lng:                      leadData.lng != null ? String(leadData.lng) : '',
@@ -958,6 +960,7 @@ export default function LeadDetailPage() {
     const website = normalizeWebsiteInput(companyForm.website);
     const payload: Record<string, any> = {
       company_name:             companyForm.company_name           || undefined,
+      brand:                    companyForm.brand                  || null,
       address:                  companyForm.address                || null,
       lat:                      companyForm.lat ? Number(companyForm.lat) : null,
       lng:                      companyForm.lng ? Number(companyForm.lng) : null,
@@ -1604,7 +1607,14 @@ export default function LeadDetailPage() {
             </span>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">{leadData.company_name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">{leadData.company_name}</h1>
+              {leadData.brand && (
+                <Badge variant="outline" className="text-xs bg-slate-100 text-slate-800 border-slate-300">
+                  {leadData.brand}
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">{leadData.address}</p>
           </div>
         </div>
@@ -3967,7 +3977,7 @@ export default function LeadDetailPage() {
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Company</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-1">
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   Company Name <span className="text-[var(--status-danger)]">*</span>
                 </label>
@@ -3975,6 +3985,16 @@ export default function LeadDetailPage() {
                   value={companyForm.company_name}
                   onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
                   placeholder="e.g. PT. Asahimas Flat Glass"
+                />
+              </div>
+              <div className="sm:col-span-1">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Brand
+                </label>
+                <Input
+                  value={companyForm.brand}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, brand: e.target.value }))}
+                  placeholder="e.g. Asahimas"
                 />
               </div>
 

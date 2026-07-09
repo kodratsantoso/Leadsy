@@ -56,6 +56,7 @@ import { cn } from "@/lib/utils";
 type LeadRecord = {
   id: number;
   company_name: string;
+  brand?: string | null;
   address?: string | null;
   lat?: number | null;
   lng?: number | null;
@@ -121,6 +122,7 @@ type AssignableUser = {
 
 type LeadFormState = {
   company_name: string;
+  brand: string;
   address: string;
   email: string;
   phone: string;
@@ -156,6 +158,7 @@ type ImportContact = {
 
 type ImportLead = {
   company_name: string;
+  brand?: string;
   address?: string;
   lat?: number;
   lng?: number;
@@ -194,6 +197,7 @@ type ImportMappingTarget = {
 
 const emptyForm: LeadFormState = {
   company_name: "",
+  brand: "",
   address: "",
   email: "",
   phone: "",
@@ -218,6 +222,7 @@ const emptyForm: LeadFormState = {
 
 const importHeaderAliases: Record<keyof Omit<ImportLead, "contacts">, string[]> = {
   company_name: ["company_name", "company", "company name", "nama perusahaan", "perusahaan", "nama lead", "lead"],
+  brand: ["brand", "merek", "merk"],
   address: ["address", "alamat", "company address", "alamat perusahaan"],
   lat: ["lat", "latitude"],
   lng: ["lng", "long", "longitude"],
@@ -253,6 +258,7 @@ const contactHeaderAliases = {
 
 const leadImportTargets: ImportMappingTarget[] = [
   { key: "company_name", label: "company_name", group: "Lead", required: true, aliases: importHeaderAliases.company_name, example: "PT Artha Solusi Global", note: "Required" },
+  { key: "brand", label: "brand", group: "Lead", aliases: importHeaderAliases.brand, example: "Artha" },
   { key: "address", label: "address", group: "Lead", aliases: importHeaderAliases.address, example: "Jl. Sudirman No. 1, Jakarta" },
   { key: "lat", label: "lat", group: "Lead", aliases: importHeaderAliases.lat, example: -6.2001 },
   { key: "lng", label: "lng", group: "Lead", aliases: importHeaderAliases.lng, example: 106.8167 },
@@ -347,8 +353,9 @@ function rowToMappedImportLead(row: Record<string, unknown>, mapping: Record<str
   const lead: ImportLead = { company_name: companyName };
   const textFields: (keyof Pick<
     ImportLead,
-    "address" | "phone" | "email" | "business_category_id" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
+    "brand" | "address" | "phone" | "email" | "business_category_id" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
   >)[] = [
+    "brand",
     "address",
     "phone",
     "email",
@@ -466,8 +473,9 @@ function rowToImportLead(row: Record<string, unknown>): ImportLead | null {
   const lead: ImportLead = { company_name: companyName };
   const textFields: (keyof Pick<
     ImportLead,
-    "address" | "phone" | "email" | "business_category_id" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
+    "brand" | "address" | "phone" | "email" | "business_category_id" | "company_size_estimate" | "operating_hours" | "external_place_id" | "source_type"
   >)[] = [
+    "brand",
     "address",
     "phone",
     "email",
@@ -1072,6 +1080,7 @@ export default function LeadsPage() {
     setLocationFeedback("");
     setFormState({
       company_name:          lead.company_name || "",
+      brand:                 lead.brand || "",
       address:               lead.address || "",
       lat:                   lead.lat != null ? String(lead.lat) : "",
       lng:                   lead.lng != null ? String(lead.lng) : "",
@@ -1115,6 +1124,7 @@ export default function LeadsPage() {
 
     createMutation.mutate({
       company_name:          formState.company_name.trim(),
+      brand:                 formState.brand.trim() || undefined,
       address:               formState.address.trim() || undefined,
       lat:                   formState.lat ? Number(formState.lat) : undefined,
       lng:                   formState.lng ? Number(formState.lng) : undefined,
@@ -1143,6 +1153,7 @@ export default function LeadsPage() {
       id: editLead.id,
       payload: {
         company_name:          formState.company_name.trim(),
+        brand:                 formState.brand.trim() || null,
         address:               formState.address.trim() || null,
         lat:                   formState.lat ? Number(formState.lat) : null,
         lng:                   formState.lng ? Number(formState.lng) : null,
@@ -1639,7 +1650,14 @@ export default function LeadsPage() {
                     )}
                     <TableCell>
                       <Link href={`/leads/${lead.id}`} className="block space-y-1">
-                        <p className="font-medium">{lead.company_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{lead.company_name}</p>
+                          {lead.brand && (
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0 bg-slate-100 text-slate-800 border-slate-300">
+                              {lead.brand}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
                       </Link>
                     </TableCell>
@@ -2208,6 +2226,14 @@ export default function LeadsPage() {
             />
           </div>
           <div className="grid gap-2">
+            <label className="text-sm font-medium">Brand</label>
+            <Input
+              value={formState.brand}
+              onChange={(e) => setFormState((s) => ({ ...s, brand: e.target.value }))}
+              placeholder="e.g. Artha"
+            />
+          </div>
+          <div className="grid gap-2">
             <label className="text-sm font-medium">Address</label>
             <Input
               value={formState.address}
@@ -2476,6 +2502,13 @@ export default function LeadsPage() {
             <Input
               value={formState.company_name}
               onChange={(e) => setFormState((s) => ({ ...s, company_name: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Brand</label>
+            <Input
+              value={formState.brand}
+              onChange={(e) => setFormState((s) => ({ ...s, brand: e.target.value }))}
             />
           </div>
           <div className="grid gap-2">

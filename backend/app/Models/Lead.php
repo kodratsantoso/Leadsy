@@ -15,7 +15,7 @@ class Lead extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'company_name', 'address', 'lat', 'lng',
+        'company_name', 'brand', 'address', 'lat', 'lng',
         'website', 'website_domain', 'phone', 'email',
         'industry_id', 'sub_industry_id', 'business_category', 'business_category_id',
         'company_size_estimate', 'branch_count', 'operating_hours',

@@ -177,6 +177,7 @@ export const fetchLeadVerification = (leadId: number) =>
 export type Lead = {
   id: number;
   company_name: string;
+  brand?: string | null;
   address?: string | null;
   lat?: number | null;
   lng?: number | null;

@@ -305,6 +305,7 @@ class LeadController extends Controller
     {
         $data = $request->validate([
             'company_name' => 'required|string|max:255',
+            'brand' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
@@ -446,6 +447,7 @@ class LeadController extends Controller
 
         $data = $request->validate([
             'company_name' => 'sometimes|string|max:255',
+            'brand' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
@@ -875,6 +877,7 @@ class LeadController extends Controller
         $data = $request->validate([
             'leads' => 'required|array|min:1|max:500',
             'leads.*.company_name' => 'required|string|max:255',
+            'leads.*.brand' => 'nullable|string|max:255',
             'leads.*.address' => 'nullable|string',
             'leads.*.lat' => 'nullable|numeric',
             'leads.*.lng' => 'nullable|numeric',
