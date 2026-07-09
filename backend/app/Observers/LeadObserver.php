@@ -19,44 +19,15 @@ class LeadObserver
         $this->triggerLarkBaseSync($lead);
     }
 
-    /**
-     * Handle the Lead "updated" event.
-     */
     public function updated(Lead $lead): void
     {
-        // Trigger Lark notifications when a lead is updated
+        // Trigger Lark notifications for specific fields only
         if ($lead->wasChanged(['company_name', 'email', 'phone', 'funnel_stage_id', 'qualification_status'])) {
             $this->triggerLarkNotification($lead, 'updated');
         }
 
-        if ($lead->wasChanged([
-            'company_name',
-            'website',
-            'email',
-            'phone',
-            'address',
-            'business_category',
-            'lead_score',
-            'funnel_stage_id',
-            'qualification_status',
-            'owner_id',
-            'external_place_id',
-            'budget',
-            'authority',
-            'needs',
-            'timeline',
-            'competitor',
-        ])) {
-            $this->triggerLarkBaseSync($lead);
-        }
-
-        if ($lead->wasChanged([
-            'eligibility_status',
-            'score',
-            'confidentiality_score',
-        ])) {
-            \App\Jobs\SyncLeadToLarkBaseJob::dispatch($lead->id);
-        }
+        // Trigger Lark Base Sync on ANY change to the lead data
+        $this->triggerLarkBaseSync($lead);
     }
 
     /**
