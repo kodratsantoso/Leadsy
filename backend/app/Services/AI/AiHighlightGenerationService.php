@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Ai;
+namespace App\Services\AI;
 
 use App\Models\AiGeneratedOutput;
 use App\Models\AiAttentionHighlight;

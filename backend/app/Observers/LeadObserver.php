@@ -118,6 +118,8 @@ class LeadObserver
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
     private function triggerConfidentialityAssessment(Lead $lead): void
     {
         try {
