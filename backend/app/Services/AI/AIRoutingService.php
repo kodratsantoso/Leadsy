@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class AIRoutingService
 {
     public const FEATURE_CATALOG = [
+        'lead_profiling_strategy' => 'Lead Profiling & Strategy',
         'lead_analysis' => 'Lead Analysis',
         'lead_scoring' => 'Lead Scoring Analysis',
         'qualification_analysis' => 'Qualification Analysis',

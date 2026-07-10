@@ -29,5 +29,9 @@ class LeadPostEnrichmentAIService
         // If there are specific jobs for Qualification or ICP Match, they would be chained here.
         // For now, dispatching ScoreLeadJob is the unified entrypoint for scoring and ICP evaluation in Leadsy.
         ScoreLeadJob::dispatch($lead->id)->onQueue('intelligence');
+        
+        // Automate Qualification and ICP matching
+        \App\Jobs\QualifyLeadJob::dispatch($lead->id)->onQueue('intelligence');
+        \App\Jobs\ICPMatchLeadJob::dispatch($lead->id)->onQueue('intelligence');
     }
 }

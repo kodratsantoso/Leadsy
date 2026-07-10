@@ -997,13 +997,6 @@ export default function LeadDetailPage() {
     },
   });
 
-  const qualifyMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/qualify`, { method: 'POST' }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
-      qc.invalidateQueries({ queryKey: ['lead', leadId] });
-    },
-  });
 
 
   /* ── Contact mutations ── */
@@ -1421,13 +1414,7 @@ export default function LeadDetailPage() {
     onError: (err) => setJourneyFeedback(err.message),
   });
 
-  const icpMatchMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/icp-match`, { method: 'POST' }).then(r => r.json()),
-    onSuccess: () => {
-      refetchRevenue();
-      qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
-    },
-  });
+
 
   const predictMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/predict-conversion`, { method: 'POST' }),
@@ -1452,30 +1439,20 @@ export default function LeadDetailPage() {
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [outcomeForm, setOutcomeForm] = useState({ outcome: 'won', product_id: '', sale_type: 'new_sales', deal_size: '', feedback_notes: '' });
 
+  const profilingStrategyMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/run-profiling-strategy`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
+      refetchRevenue(); // Because it might also update product matches which affect revenue
+    }
+  });
+
   const analysisMutation = useMutation({
     mutationFn: () => apiFetch(`/leads/${leadId}/revenue-analysis`, { method: 'POST' }),
     onSuccess: () => refetchRevenue(),
   });
 
-  const matchProductsMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/match-products`, { method: 'POST' }).then(r => r.json()),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] }),
-  });
 
-  const confidentialityMutation = useMutation({
-    mutationFn: async () => {
-      const r = await apiFetch(`/confidentiality/assessments/lead/${leadId}/recalculate`, { method: 'POST' });
-      if (!r.ok) throw new Error('Recalculate failed');
-      return r.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['lead-confidentiality', leadId] });
-      setTimeout(() => confidentialityMutation.reset(), 3000);
-    },
-    onError: () => {
-      setTimeout(() => confidentialityMutation.reset(), 3000);
-    }
-  });
 
   /* ── Render ── */
   if (leadLoading) {
@@ -1674,15 +1651,7 @@ export default function LeadDetailPage() {
             <Badge variant="outline">{qualificationLabel(latestQual?.qualified)}</Badge>
             <span className="text-xs text-muted-foreground">{latestQual?.business_type || 'Unknown'}</span>
           </div>
-          <Button
-            onClick={() => qualifyMutation.mutate()}
-            disabled={qualifyMutation.isPending}
-            variant="outline"
-            size="xs"
-            className="mt-3"
-          >
-            {qualifyMutation.isPending ? 'Qualifying...' : 'Requalify'}
-          </Button>
+
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4">
@@ -2295,49 +2264,13 @@ export default function LeadDetailPage() {
                 {scoreMutation.isPending ? 'Scoring…' : 'Rescore Lead'}
               </Button>
               <Button
-                onClick={() => qualifyMutation.mutate()}
-                disabled={qualifyMutation.isPending}
+                onClick={() => profilingStrategyMutation.mutate()}
+                disabled={profilingStrategyMutation.isPending}
                 variant="outline"
                 size="sm"
               >
-                {qualifyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5 text-[var(--status-success)]" />}
-                {qualifyMutation.isPending ? 'Qualifying…' : 'Re-qualify'}
-              </Button>
-              <Button
-                onClick={() => icpMatchMutation.mutate()}
-                disabled={icpMatchMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                {icpMatchMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Target className="h-3.5 w-3.5 text-[var(--brand)]" />}
-                {icpMatchMutation.isPending ? 'Matching…' : 'Run ICP Match'}
-              </Button>
-              <Button
-                onClick={() => analysisMutation.mutate()}
-                disabled={analysisMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                {analysisMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5 text-[var(--status-warning)]" />}
-                {analysisMutation.isPending ? 'Analysing…' : 'Run AI Analysis'}
-              </Button>
-              <Button
-                onClick={() => matchProductsMutation.mutate()}
-                disabled={matchProductsMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                {matchProductsMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5 text-[var(--status-info)]" />}
-                {matchProductsMutation.isPending ? 'Matching…' : 'Run Product Match'}
-              </Button>
-              <Button
-                onClick={() => confidentialityMutation.mutate()}
-                disabled={confidentialityMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                {confidentialityMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5 text-purple-500" />}
-                {confidentialityMutation.isPending ? 'Assessing…' : 'Run Confidentiality'}
+                {profilingStrategyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5 text-[var(--status-info)]" />}
+                {profilingStrategyMutation.isPending ? 'Profiling…' : 'Run AI Profiling & Strategy'}
               </Button>
             </div>
             {scoreMutation.isSuccess && (
@@ -2350,33 +2283,18 @@ export default function LeadDetailPage() {
                 <AlertCircle className="h-3.5 w-3.5" /> Scoring failed. Check AI settings.
               </p>
             )}
-            {icpMatchMutation.isSuccess && (
+            {profilingStrategyMutation.isSuccess && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
-                <CheckCircle className="h-3.5 w-3.5" /> ICP Match complete — see results below.
+                <CheckCircle className="h-3.5 w-3.5" /> AI Profiling & Strategy complete — see results below.
               </p>
             )}
-            {matchProductsMutation.isSuccess && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
-                <CheckCircle className="h-3.5 w-3.5" /> Product Match complete — results updated below.
-              </p>
-            )}
-            {matchProductsMutation.isError && (
+            {profilingStrategyMutation.isError && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
-                <AlertCircle className="h-3.5 w-3.5" /> Product Match failed. Check AI settings and ensure products exist.
-              </p>
-            )}
-            {confidentialityMutation.isSuccess && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
-                <CheckCircle className="h-3.5 w-3.5" /> Confidentiality assessed successfully.
-              </p>
-            )}
-            {confidentialityMutation.isError && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
-                <AlertCircle className="h-3.5 w-3.5" /> Confidentiality assessment failed.
+                <AlertCircle className="h-3.5 w-3.5" /> AI Profiling & Strategy failed. Check AI settings.
               </p>
             )}
             <p className="mt-3 text-xs text-muted-foreground">
-              <strong>Rescore</strong> runs immediately. <strong>Re-qualify</strong> uses AI for business fit. <strong>ICP Match</strong> requires an active ICP Profile. <strong>AI Analysis</strong> generates a commercial readout. <strong>Product Match</strong> uses BANT + Competitor AI to rank all products against this lead.
+              <strong>Rescore</strong> runs immediately. <strong>AI Profiling & Strategy</strong> generates a commercial readout and uses BANT + Competitor AI to rank all products against this lead. Qualification, ICP Matching, and Confidentiality assessments are now fully automated.
             </p>
           </div>
 
@@ -2665,12 +2583,12 @@ export default function LeadDetailPage() {
                 </p>
               </div>
               <Button
-                onClick={() => matchProductsMutation.mutate()}
-                disabled={matchProductsMutation.isPending}
+                onClick={() => profilingStrategyMutation.mutate()}
+                disabled={profilingStrategyMutation.isPending}
                 variant="outline"
                 size="sm"
               >
-                {matchProductsMutation.isPending
+                {profilingStrategyMutation.isPending
                   ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Matching…</>
                   : <><ClipboardList className="h-3.5 w-3.5" /> Run Product Match</>}
               </Button>
@@ -2786,14 +2704,7 @@ export default function LeadDetailPage() {
             <>
               {/* Action buttons */}
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => icpMatchMutation.mutate()}
-                  disabled={icpMatchMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-lg border border-[var(--brand)]/40 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] disabled:opacity-50"
-                >
-                  {icpMatchMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Target className="h-3 w-3" />}
-                  Run ICP Match
-                </button>
+
                 <button
                   onClick={() => predictMutation.mutate()}
                   disabled={predictMutation.isPending}

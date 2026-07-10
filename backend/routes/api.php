@@ -226,6 +226,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/qualify', [LeadController::class, 'qualify'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/analyze', [LeadController::class, 'analyze'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/match-products', [LeadController::class, 'matchProducts'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/run-profiling-strategy', [LeadController::class, 'runProfilingStrategy'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/intelligence', [LeadController::class, 'intelligence'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/verification', [LeadController::class, 'verificationStatus'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/verification/request', [LeadController::class, 'requestVerificationReview'])->middleware('permission:leads.edit');

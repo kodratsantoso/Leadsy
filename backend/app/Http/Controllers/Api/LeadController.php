@@ -1110,6 +1110,40 @@ class LeadController extends Controller
         ], 201);
     }
 
+    /** POST /api/leads/{lead}/run-profiling-strategy — Consolidated AI Profiling and Strategy */
+    public function runProfilingStrategy(Request $request, Lead $lead): JsonResponse
+    {
+        $service = app(\App\Services\Lead\LeadProfilingAndStrategyService::class);
+        $result = $service->profileAndStrategize($lead, $request->user()?->id);
+
+        if (!$result['success']) {
+            return response()->json(['message' => $result['message']], 400);
+        }
+
+        // Reload relationships for response
+        $lead->loadMissing(['productMatches.product', 'aiAnalyses']);
+        
+        $enrichedProducts = $lead->productMatches()
+            ->with('product')
+            ->orderByDesc('match_score')
+            ->get();
+
+        AuditService::log('run_profiling_strategy', 'leads', $lead, null, [
+            'matches_count' => $enrichedProducts->count(),
+            'recommended_count' => $enrichedProducts->where('is_recommended', true)->count(),
+        ]);
+
+        return response()->json([
+            'analysis' => $result['analysis'],
+            'product_matches' => $enrichedProducts,
+            'summary' => [
+                'total_evaluated' => $enrichedProducts->count(),
+                'recommended' => $enrichedProducts->where('is_recommended', true)->count(),
+                'top_match' => $enrichedProducts->first()?->product?->name,
+            ],
+        ], 201);
+    }
+
     /** GET /api/leads/{lead}/intelligence — Get all lead intelligence */
     public function intelligence(Lead $lead): JsonResponse
     {

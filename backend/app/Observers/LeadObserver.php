@@ -26,6 +26,10 @@ class LeadObserver
             $this->triggerLarkNotification($lead, 'updated');
         }
 
+        if ($lead->wasChanged(['estimated_closing_amount', 'funnel_stage_id'])) {
+            $this->triggerConfidentialityAssessment($lead);
+        }
+
         // Trigger Lark Base Sync on ANY change to the lead data
         $this->triggerLarkBaseSync($lead);
     }
@@ -110,6 +114,29 @@ class LeadObserver
             );
         } catch (\Exception $e) {
             Log::error('Failed to trigger Lark Base sync', [
+                'lead_id' => $lead->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    private function triggerConfidentialityAssessment(Lead $lead): void
+    {
+        try {
+            $service = app(\App\Services\ConfidentialityAssessmentService::class);
+            $assessment = $service->assess($lead);
+
+            $lead->confidentialityAssessment()->updateOrCreate(
+                ['entity_id' => $lead->id, 'entity_type' => Lead::class],
+                [
+                    'level' => $assessment['level'],
+                    'score' => $assessment['score'],
+                    'classification_reason' => $assessment['classification_reason'],
+                    'basis' => $assessment['basis'],
+                    'recommended_access_handling' => $assessment['recommended_access_handling'],
+                    'special_attention' => $assessment['special_attention'],
+                ]
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to update confidentiality assessment', [
                 'lead_id' => $lead->id,
                 'error' => $e->getMessage(),
             ]);
