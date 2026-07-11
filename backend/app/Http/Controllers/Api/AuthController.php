@@ -306,4 +306,23 @@ class AuthController extends Controller
             'message' => 'Integration Token generated successfully.',
         ]);
     }
+
+    /** GET /api/auth/token/status — Get the status of the active API token */
+    public function getApiTokenStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $token = $user->tokens()->where('name', 'Integration_Token')->latest()->first();
+
+        if (!$token) {
+            return response()->json(['data' => null]);
+        }
+
+        return response()->json([
+            'data' => [
+                'name' => $token->name,
+                'created_at' => $token->created_at,
+                'last_used_at' => $token->last_used_at,
+            ]
+        ]);
+    }
 }

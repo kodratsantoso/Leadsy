@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Key, Copy, Check, FileText, Code2, AlertTriangle, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Key, Copy, Check, FileText, Code2, AlertTriangle, RefreshCw, Calendar, Clock } from "lucide-react";
 import { BackToSettings } from "../_components/back-to-settings";
 import { apiFetch } from "@/lib/apiFetch";
 
@@ -10,6 +10,25 @@ export default function ApiDocumentationPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tokenStatus, setTokenStatus] = useState<{ created_at: string, last_used_at: string | null } | null>(null);
+  
+  const fetchTokenStatus = async () => {
+    try {
+      const res = await apiFetch("/auth/token/status");
+      const data = await res.json();
+      if (data.data) {
+        setTokenStatus(data.data);
+      } else {
+        setTokenStatus(null);
+      }
+    } catch (e) {
+      console.error("Failed to fetch token status", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchTokenStatus();
+  }, []);
 
   const generateToken = async () => {
     setIsGenerating(true);
@@ -33,6 +52,7 @@ export default function ApiDocumentationPage() {
       
       setToken(data.token);
       setCopied(false);
+      fetchTokenStatus();
     } catch (err: any) {
       setError(err.message || "Failed to generate token.");
     } finally {
@@ -93,6 +113,23 @@ export default function ApiDocumentationPage() {
             </button>
           </div>
         </div>
+
+        {tokenStatus && !token && (
+          <div className="p-4 border-b bg-muted/5 flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Check className="w-4 h-4 text-[var(--status-success)]" />
+              <span>An active token exists</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              <span>Created: {new Date(tokenStatus.created_at).toLocaleDateString()}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span>Last Used: {tokenStatus.last_used_at ? new Date(tokenStatus.last_used_at).toLocaleDateString() : "Never"}</span>
+            </div>
+          </div>
+        )}
 
         {token && (
           <div className="p-5 space-y-3 bg-[color-mix(in_oklch,var(--status-success)_5%,transparent)]">
@@ -195,6 +232,30 @@ export default function ApiDocumentationPage() {
                 </table>
               </div>
             </div>
+          </section>
+
+          {/* Endpoint: Get Leads */}
+          <section className="space-y-4 pt-4 border-t">
+            <h4 className="text-base font-semibold border-b pb-2">Retrieve Leads</h4>
+            <div className="flex items-center gap-3">
+              <span className="bg-[var(--status-info)] text-white px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider">GET</span>
+              <code className="font-mono text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded text-sm">/api/leads</code>
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              Retrieve a paginated list of leads. You can append query parameters like <code className="bg-muted px-1.5 py-0.5 rounded text-xs">?search=acme</code> or <code className="bg-muted px-1.5 py-0.5 rounded text-xs">?page=2</code>.
+            </p>
+          </section>
+
+          {/* Endpoint: Update Lead */}
+          <section className="space-y-4 pt-4 border-t">
+            <h4 className="text-base font-semibold border-b pb-2">Update a Lead</h4>
+            <div className="flex items-center gap-3">
+              <span className="bg-[var(--status-warning)] text-white px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider">PUT</span>
+              <code className="font-mono text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded text-sm">/api/leads/&#123;id&#125;</code>
+            </div>
+            <p className="text-muted-foreground leading-relaxed">
+              Update an existing lead by its numeric <code className="bg-muted px-1.5 py-0.5 rounded text-xs">id</code>. Send a JSON payload containing the fields you wish to update.
+            </p>
           </section>
 
           {/* Sample Codes */}
