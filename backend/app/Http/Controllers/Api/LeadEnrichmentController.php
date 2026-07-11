@@ -30,17 +30,43 @@ class LeadEnrichmentController extends Controller
 
     public function enrich(Request $request, Lead $lead)
     {
-        $prompt = "Please perform a web search to identify the firmographics of the following company:
-Name: {$lead->company_name}
+        $prompt = "Act as a B2B company firmographic research analyst.
+
+Perform a web search to identify and validate the company profile using reliable public sources such as the official website, Google Business/Profile, LinkedIn, business directories, company registry, and credible references.
+
+Input:
+Company Name / Brand: {$lead->company_name}
 Address: {$lead->address}
 Website: {$lead->website}
 
-Return ONLY a JSON object with:
-- industry_name: (string) General industry e.g., 'Technology'
-- sub_industry_name: (string) Specific niche e.g., 'SaaS'
-- business_category_name: (string) Company type e.g., 'B2B Software'
-- website: (string) Website URL if you found one and it was missing
-- company_size_estimate: (string) e.g., '1-50', '51-200', '1000+'";
+Return ONLY a valid JSON object with the following structure:
+{
+\"brand\": \"\",
+\"address\": \"\",
+\"address_google_maps_url\": \"\",
+\"industry_name\": \"\",
+\"sub_industry_name\": \"\",
+\"phone\": \"\",
+\"company_email\": \"\",
+\"website\": \"\",
+\"company_size_estimate\": \"\",
+\"business_category_name\": \"\",
+\"confidence_level\": \"\",
+\"notes\": \"\"
+}
+
+Rules:
+* Use the provided company name as the main search reference.
+* If address or website is provided, use it to validate the correct company.
+* Prioritize official company sources first, then credible third-party sources.
+* Do not guess phone numbers, emails, or websites.
+* If data is unavailable, use null.
+* For address_google_maps_url, provide a Google Maps search link based on the verified address.
+* company_size_estimate must use ranges such as \"1-50\", \"51-200\", \"201-500\", \"501-1000\", or \"1000+\".
+* business_category_name should describe the company type, for example \"B2B\", \"B2C\", \"B2B2C\", \"Manufacturer\", \"Distributor\", \"Retailer\", \"Service Provider\", \"Holding Company\", \"Contractor\", or \"SaaS / Technology Provider\".
+* confidence_level must be one of: \"High\", \"Medium\", or \"Low\".
+* notes should briefly explain if the data is verified, estimated, or not publicly available.
+* Do not include markdown, tables, explanations, or source list outside the JSON.";
 
         $result = $this->ai->call('lead_enrichment', $prompt, ['lead_id' => $lead->id]);
 
@@ -65,6 +91,16 @@ Return ONLY a JSON object with:
         if (empty($lead->company_size_estimate) && !empty($parsed['company_size_estimate'])) {
             $lead->company_size_estimate = $parsed['company_size_estimate'];
         }
+        if (empty($lead->address) && !empty($parsed['address'])) {
+            $lead->address = $parsed['address'];
+        }
+        if (empty($lead->phone) && !empty($parsed['phone'])) {
+            $lead->phone = $parsed['phone'];
+        }
+        if (empty($lead->email) && !empty($parsed['company_email'])) {
+            $lead->email = $parsed['company_email'];
+        }
+        // If company_name was empty or very generic, we could use brand, but we'll leave company_name intact to avoid overriding user input.
 
         // Mapping Taxonomy (Auto-create as per instruction #1)
         if (!empty($parsed['industry_name'])) {
@@ -89,6 +125,22 @@ Return ONLY a JSON object with:
 
         $lead->save();
         $lead->load(['industry', 'subIndustry', 'businessCategory']);
+
+        // Log AI reasoning and extra fields as Lead Activity
+        $activityNotes = collect([
+            !empty($parsed['notes']) ? "Notes: {$parsed['notes']}" : null,
+            !empty($parsed['confidence_level']) ? "Confidence: {$parsed['confidence_level']}" : null,
+            !empty($parsed['address_google_maps_url']) ? "Google Maps: {$parsed['address_google_maps_url']}" : null,
+        ])->filter()->implode("\n");
+
+        if ($activityNotes) {
+            \App\Models\LeadActivity::create([
+                'lead_id' => $lead->id,
+                'activity_type' => 'system',
+                'description' => "AI Enrichment Summary:\n" . $activityNotes,
+                'activity_date' => now(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
