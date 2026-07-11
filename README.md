@@ -327,6 +327,12 @@ Schema lives in `backend/database/migrations/`. A deploy snapshot is also commit
 
 Set `IMPORT_LEADSY_DB_SNAPSHOT=true` only on a fresh database where application tables are empty. The snapshot carries encrypted secrets; keep the same `APP_KEY` from the source environment or re-enter AI/Lark credentials after deploy.
 
+## API Integration & Automation
+
+Leadsy provides an API that allows you to push new leads automatically from external platforms (e.g. Lark Base, Zapier, Make).
+- **API Documentation**: [docs/api.md](docs/api.md)
+- **Token Generation**: You can generate a non-expiring Integration Bearer Token via CLI: `php artisan integration:generate-token your-email@example.com`
+
 ## Git Hooks
 
 This repository uses tracked Git hooks under `.githooks/`.
