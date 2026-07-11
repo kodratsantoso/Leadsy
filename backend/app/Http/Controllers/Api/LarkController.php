@@ -617,7 +617,7 @@ class LarkController extends Controller
             try {
                 do {
                     $records = $service->getRecords($baseTable->app_token, $baseTable->table_id, [
-                        'page_size' => min(500, $limit - count($items)),
+                        'page_size' => min(100, $limit - count($items)),
                         'page_token' => $pageToken,
                     ]);
 
@@ -626,8 +626,8 @@ class LarkController extends Controller
                     $pageToken = $records['page_token'] ?? null;
                     $hasMore = $records['has_more'] ?? false;
                 } while ($pageToken && $hasMore && count($items) < $limit);
-            } catch (\Exception $e) {
-                return response()->json(['success' => false, 'message' => 'Failed to search records: ' . $this->enhanceErrorMessage($e->getMessage())], 500);
+            } catch (\Throwable $e) {
+                return response()->json(['success' => false, 'message' => 'Failed to fetch records: ' . $this->enhanceErrorMessage($e->getMessage()) . ' (Line: ' . $e->getLine() . ')'], 500);
             }
 
             foreach ($items as $record) {

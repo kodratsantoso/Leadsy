@@ -232,24 +232,14 @@ class LarkBaseService extends LarkService
         string $tableId,
         array $query = []
     ): ?array {
-        try {
-            $params = array_merge([
-                'page_size' => 100,
-                'page_token' => null,
-            ], $query);
+        $params = array_merge([
+            'page_size' => 100,
+            'page_token' => null,
+        ], $query);
 
-            $response = $this->request('GET', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records", [], $params);
+        $response = $this->request('GET', "/bitable/v1/apps/{$baseId}/tables/{$tableId}/records", [], $params);
 
-            return $response;
-        } catch (Exception $e) {
-            Log::error('Failed to get Lark Base records', [
-                'base_id' => $baseId,
-                'table_id' => $tableId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return null;
-        }
+        return $response;
     }
 
     /**
