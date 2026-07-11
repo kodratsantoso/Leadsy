@@ -616,7 +616,7 @@ class LarkController extends Controller
 
             try {
                 do {
-                    $records = $service->searchRecords($baseTable->app_token, $baseTable->table_id, [], [
+                    $records = $service->getRecords($baseTable->app_token, $baseTable->table_id, [
                         'page_size' => min(500, $limit - count($items)),
                         'page_token' => $pageToken,
                     ]);
