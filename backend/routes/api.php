@@ -93,7 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/token/status', [AuthController::class, 'getApiTokenStatus']);
 
     // Maps — Lead Discovery + Geo Product Fit Intelligence
-    Route::prefix('maps')->group(function () {
+    Route::prefix('maps')->middleware('permission:maps.view')->group(function () {
         Route::get('categories', [MapDiscoveryController::class, 'categories']);
         Route::get('geocode', [MapDiscoveryController::class, 'geocode']);
         Route::get('search', [MapDiscoveryController::class, 'search']);
@@ -353,36 +353,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/backups/{filename}/download', [BackupController::class, 'download'])->middleware('permission:integrations.manage');
     Route::delete('settings/backups/{filename}', [BackupController::class, 'destroy'])->middleware('permission:integrations.manage');
 
-    // WhatsApp — Session
-    Route::post('whatsapp/session/init', [WhatsAppController::class, 'initSession']);
-    Route::get('whatsapp/session/status', [WhatsAppController::class, 'status']);
-    Route::post('whatsapp/session/refresh-qr', [WhatsAppController::class, 'refreshQr']);
-    Route::post('whatsapp/session/disconnect', [WhatsAppController::class, 'disconnect']);
+    // WhatsApp — Session (Personal)
+    Route::post('whatsapp/session/init', [WhatsAppController::class, 'initSession'])->middleware('permission:whatsapp.personal');
+    Route::get('whatsapp/session/status', [WhatsAppController::class, 'status'])->middleware('permission:whatsapp.personal');
+    Route::post('whatsapp/session/refresh-qr', [WhatsAppController::class, 'refreshQr'])->middleware('permission:whatsapp.personal');
+    Route::post('whatsapp/session/disconnect', [WhatsAppController::class, 'disconnect'])->middleware('permission:whatsapp.personal');
 
-    // WhatsApp — Direct Messaging
-    Route::post('whatsapp/messages/send', [WhatsAppController::class, 'sendMessage']);
+    // WhatsApp — Direct Messaging (Personal)
+    Route::post('whatsapp/messages/send', [WhatsAppController::class, 'sendMessage'])->middleware('permission:whatsapp.personal');
 
-    // WhatsApp — Conversations
-    Route::get('whatsapp/conversations', [WhatsAppController::class, 'getConversations']);
-    Route::get('whatsapp/conversations/{id}/messages', [WhatsAppController::class, 'getConversationMessages']);
-    Route::post('whatsapp/conversations/{id}/analyze', [WhatsAppController::class, 'analyzeConversation']);
-    Route::post('whatsapp/conversations/{id}/convert-to-lead', [WhatsAppController::class, 'convertToLead']);
-    Route::put('whatsapp/conversations/{id}/meta', [WhatsAppController::class, 'updateMeta']);
+    // WhatsApp — Conversations (Personal)
+    Route::get('whatsapp/conversations', [WhatsAppController::class, 'getConversations'])->middleware('permission:whatsapp.personal');
+    Route::get('whatsapp/conversations/{id}/messages', [WhatsAppController::class, 'getConversationMessages'])->middleware('permission:whatsapp.personal');
+    Route::post('whatsapp/conversations/{id}/analyze', [WhatsAppController::class, 'analyzeConversation'])->middleware('permission:whatsapp.personal');
+    Route::post('whatsapp/conversations/{id}/convert-to-lead', [WhatsAppController::class, 'convertToLead'])->middleware('permission:whatsapp.personal');
+    Route::put('whatsapp/conversations/{id}/meta', [WhatsAppController::class, 'updateMeta'])->middleware('permission:whatsapp.personal');
 
     // WhatsApp — Settings / Active Users Monitor
     Route::get('settings/whatsapp/active-users', [WhatsAppController::class, 'activeUsers'])->middleware('permission:integrations.manage');
     Route::post('settings/whatsapp/active-users/{userId}/disconnect', [WhatsAppController::class, 'disconnectUser'])->middleware('permission:integrations.manage');
 
-    // WhatsApp — Broadcast Campaigns
-    Route::get('whatsapp/campaigns', [WhatsAppController::class, 'listCampaigns']);
-    Route::post('whatsapp/campaigns', [WhatsAppController::class, 'createCampaign']);
-    Route::post('whatsapp/campaigns/{campaign}/execute', [WhatsAppController::class, 'executeCampaign']);
-    Route::put('whatsapp/campaigns/{campaign}', [WhatsAppController::class, 'updateCampaign']);
-    Route::delete('whatsapp/campaigns/{campaign}', [WhatsAppController::class, 'destroyCampaign']);
+    // WhatsApp — Broadcast Campaigns (Qontak)
+    Route::get('whatsapp/campaigns', [WhatsAppController::class, 'listCampaigns'])->middleware('permission:whatsapp.qontak');
+    Route::post('whatsapp/campaigns', [WhatsAppController::class, 'createCampaign'])->middleware('permission:whatsapp.qontak');
+    Route::post('whatsapp/campaigns/{campaign}/execute', [WhatsAppController::class, 'executeCampaign'])->middleware('permission:whatsapp.qontak');
+    Route::put('whatsapp/campaigns/{campaign}', [WhatsAppController::class, 'updateCampaign'])->middleware('permission:whatsapp.qontak');
+    Route::delete('whatsapp/campaigns/{campaign}', [WhatsAppController::class, 'destroyCampaign'])->middleware('permission:whatsapp.qontak');
 
-    // WhatsApp — Sync Rules
-    Route::get('whatsapp/sync-rules', [WhatsAppController::class, 'getSyncRules']);
-    Route::post('whatsapp/sync-rules', [WhatsAppController::class, 'updateSyncRules']);
+    // WhatsApp — Sync Rules (Qontak)
+    Route::get('whatsapp/sync-rules', [WhatsAppController::class, 'getSyncRules'])->middleware('permission:whatsapp.qontak');
+    Route::post('whatsapp/sync-rules', [WhatsAppController::class, 'updateSyncRules'])->middleware('permission:whatsapp.qontak');
 
     // Users & Roles — restricted to admin
     Route::apiResource('users', UserController::class)->middleware('permission:users.manage');

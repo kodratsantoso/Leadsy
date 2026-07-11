@@ -23,7 +23,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'audit.view',          'module' => 'audit',        'display_name' => 'View Audit Logs'],
             ['name' => 'ai.manage',           'module' => 'ai',           'display_name' => 'Manage AI Config'],
             ['name' => 'whatsapp.manage',     'module' => 'whatsapp',     'display_name' => 'Manage WhatsApp'],
+            ['name' => 'whatsapp.personal',   'module' => 'whatsapp',     'display_name' => 'Use Personal WhatsApp'],
+            ['name' => 'whatsapp.qontak',     'module' => 'whatsapp',     'display_name' => 'Use Mekari Qontak'],
             ['name' => 'integrations.manage', 'module' => 'integrations', 'display_name' => 'Manage Integrations'],
+            ['name' => 'maps.view',           'module' => 'maps',         'display_name' => 'View Maps & Territory'],
         ];
 
         foreach ($permissions as $p) {
