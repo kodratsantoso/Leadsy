@@ -370,8 +370,24 @@ class WhatsAppControllerTest extends TestCase
             'status' => 'active',
         ]);
 
+        $role = \App\Models\Role::create([
+            'name' => 'whatsapp_admin_test',
+            'display_name' => 'WhatsApp Admin Test',
+        ]);
+
+        $perm1 = \App\Models\Permission::firstOrCreate(
+            ['name' => 'whatsapp.personal'],
+            ['module' => 'whatsapp', 'display_name' => 'Personal WhatsApp']
+        );
+        $perm2 = \App\Models\Permission::firstOrCreate(
+            ['name' => 'whatsapp.qontak'],
+            ['module' => 'whatsapp', 'display_name' => 'WhatsApp Qontak']
+        );
+        $role->permissions()->attach([$perm1->id, $perm2->id]);
+
         return User::create([
             'tenant_id' => $tenant->id,
+            'role_id' => $role->id,
             'name' => 'Integration Admin',
             'email' => 'integration-admin@example.com',
             'password' => bcrypt('password'),
