@@ -2906,11 +2906,11 @@ export default function LeadDetailPage() {
                           {revenueIntel.data.revenue_check.summary}
                         </p>
                       </div>
-                      {revenueIntel.data.revenue_check.rules_triggered.length > 0 && (
+                      {safeJsonArray(revenueIntel.data.revenue_check.rules_triggered).length > 0 && (
                         <div>
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Triggered Rules</p>
                           <div className="space-y-1.5">
-                            {revenueIntel.data.revenue_check.rules_triggered.map((r: any, i: number) => (
+                            {safeJsonArray(revenueIntel.data.revenue_check.rules_triggered).map((r: any, i: number) => (
                               <div key={i} className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-xs ${
                                 r.severity === 'critical' ? 'bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
                                 : r.severity === 'warning' ? 'bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] text-[var(--status-warning)]'
@@ -2923,9 +2923,9 @@ export default function LeadDetailPage() {
                           </div>
                         </div>
                       )}
-                      {revenueIntel.data.revenue_check.flags.length > 0 && (
+                      {safeJsonArray(revenueIntel.data.revenue_check.flags).length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {revenueIntel.data.revenue_check.flags.map((f: string) => (
+                          {safeJsonArray(revenueIntel.data.revenue_check.flags).map((f: string) => (
                             <span key={f} className="rounded-full bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--status-warning)]">{f}</span>
                           ))}
                         </div>
