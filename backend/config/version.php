@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.12.0',
-    'released_at' => '2026-06-28',
+    'version' => '1.14.0',
+    'released_at' => '2026-07-11',
     'type' => 'minor',
-    'notes' => 'Split target functionality into Revenue Target and KPI Target modules.',
+    'notes' => 'Added API Documentation and Token Generator UI.',
 ];
