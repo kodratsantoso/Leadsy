@@ -893,6 +893,41 @@ export default function LeadDetailPage() {
     },
   });
 
+  const runProofingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiFetch(`/leads/${params.id}/run-proofing-strategy`, { method: "POST" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? "Failed to run Proofing & Strategy");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      invalidateLead();
+      setEnrichmentFeedback({ type: 'success', msg: data.message });
+    },
+    onError: (err: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: err.message });
+    }
+  });
+
+  const runIntelligenceMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiFetch(`/leads/${params.id}/run-intelligence`, { method: "POST" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? "Failed to run AI Intelligence");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setEnrichmentFeedback({ type: 'success', msg: data.message });
+    },
+    onError: (err: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: err.message });
+    }
+  });
+
   const updateLeadMutation = useMutation({
     mutationFn: (data: Record<string, any>) =>
       apiFetch(`/leads/${leadId}`, {
@@ -1601,6 +1636,26 @@ export default function LeadDetailPage() {
                {larkBaseFeedback.msg}
              </span>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30 hover:bg-[var(--status-info)] hover:text-white"
+            onClick={() => runProofingMutation.mutate()}
+            disabled={runProofingMutation.isPending}
+          >
+            {runProofingMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+            Run AI Proofing & Strategy
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white"
+            onClick={() => runIntelligenceMutation.mutate()}
+            disabled={runIntelligenceMutation.isPending}
+          >
+            {runIntelligenceMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
+            Run AI Intelligence
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -2352,7 +2407,7 @@ export default function LeadDetailPage() {
                     gradient="var(--brand)"
                   />
                   <p className="text-sm text-muted-foreground">
-                    {icpReasoning || 'Run ICP Match to evaluate this lead against your configured ICP.'}
+                    {icpReasoning || 'Run AI Proofing & Strategy to evaluate this lead against your configured ICP.'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Profile: {icpMatch.icp_profile || 'Lead ICP Config'}
@@ -2360,7 +2415,7 @@ export default function LeadDetailPage() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No ICP match yet. Click <strong>Run ICP Match</strong> above to evaluate this lead.
+                  No ICP match yet. Click <strong>Run AI Proofing & Strategy</strong> above to evaluate this lead.
                 </p>
               )}
             </div>
@@ -2810,7 +2865,7 @@ export default function LeadDetailPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">No ICP match yet. Click "Run ICP Match" to evaluate.</p>
+                    <p className="text-xs text-muted-foreground">No ICP match yet. Click "Run AI Proofing & Strategy" to evaluate.</p>
                   )}
                 </div>
 

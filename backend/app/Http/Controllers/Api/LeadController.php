@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\EnrichLeadContactsJob;
 use App\Jobs\EnrichLeadJob;
+use App\Jobs\RunLeadIntelligenceJob;
 use App\Jobs\ScoreLeadJob;
 use App\Models\FunnelStage;
 use App\Models\Lead;
@@ -1806,5 +1807,55 @@ class LeadController extends Controller
             ],
             'revenue_check' => $revenueCheck,
         ], 422));
+    }
+
+    /** POST /api/leads/{lead}/run-proofing-strategy */
+    public function runProofingStrategy(Lead $lead): JsonResponse
+    {
+        // 1. ICP Match
+        $icpService = app(\App\Services\Revenue\ICPMatchingService::class);
+        $icpService->matchLead($lead);
+
+        // 2. Score Lead
+        $scoreService = app(\App\Services\Lead\LeadScoringService::class);
+        $scoreService->scoreLead($lead);
+
+        // 3. Qualify Lead
+        $qualifyService = app(\App\Services\Lead\LeadQualificationService::class);
+        $qualifyService->qualifyLead($lead, useAi: true);
+
+        // 4. Dispatch Automated Enrichment (Background)
+        EnrichLeadJob::dispatch($lead->id);
+
+        return response()->json([
+            'message' => 'AI Proofing & Strategy completed successfully (Enrichment running in background).',
+        ]);
+    }
+
+    /** POST /api/leads/{lead}/run-intelligence */
+    public function runIntelligence(Lead $lead): JsonResponse
+    {
+        RunLeadIntelligenceJob::dispatch($lead->id);
+
+        return response()->json([
+            'message' => 'AI Intelligence analysis running in background.',
+        ]);
+    }
+
+    /** POST /api/leads/bulk-intelligence */
+    public function bulkIntelligence(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'lead_ids' => 'required|array',
+            'lead_ids.*' => 'exists:leads,id',
+        ]);
+
+        foreach ($data['lead_ids'] as $leadId) {
+            RunLeadIntelligenceJob::dispatch((int) $leadId);
+        }
+
+        return response()->json([
+            'message' => 'Bulk AI Intelligence analysis running in background for ' . count($data['lead_ids']) . ' leads.',
+        ]);
     }
 }

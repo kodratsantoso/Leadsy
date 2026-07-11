@@ -154,6 +154,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');
     Route::apiResource('leads', LeadController::class);
     Route::apiResource('business-categories', \App\Http\Controllers\Api\BusinessCategoryController::class);
+    // Unified AI Triggers
+    Route::post('leads/bulk-intelligence', [LeadController::class, 'bulkIntelligence'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/run-proofing-strategy', [LeadController::class, 'runProofingStrategy'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/run-intelligence', [LeadController::class, 'runIntelligence'])->middleware('permission:leads.edit');
+
     Route::post('leads/{lead}/enrich', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'enrich'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/enrich/retry', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'retry'])->middleware('permission:leads.edit');
     Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['show'])->middleware('permission:leads.edit');

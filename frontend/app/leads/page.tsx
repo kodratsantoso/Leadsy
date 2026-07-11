@@ -26,6 +26,7 @@ import {
   UserCheck,
   UserPlus,
   X,
+  BrainCircuit
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -1047,6 +1048,29 @@ export default function LeadsPage() {
     },
   });
 
+  const batchIntelligenceMutation = useMutation({
+    mutationFn: async (leadIds: number[]) => {
+      const response = await apiFetch(`/leads/bulk-intelligence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_ids: leadIds }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message ?? "Failed to run AI Intelligence.");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setFeedback("AI Intelligence analysis is running in the background for selected leads.");
+      setSelectedLeads([]);
+    },
+    onError: (err: any) => {
+      setFeedback(err.message || "Failed to trigger AI Intelligence.");
+    },
+  });
+
   const assignLeadMutation = useMutation({
     mutationFn: async ({ id, ownerId }: { id: number; ownerId: string }) => {
       const response = await apiFetch(`/leads/${id}/assign`, {
@@ -1405,6 +1429,21 @@ export default function LeadsPage() {
               >
                 <Trash2 className="h-4 w-4" />
                 Delete Selected ({selectedLeads.length})
+              </Button>
+            )}
+            {selectedLeads.length > 0 && (
+              <Button
+                variant="outline"
+                className="bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white"
+                onClick={() => batchIntelligenceMutation.mutate(selectedLeads)}
+                disabled={batchIntelligenceMutation.isPending}
+              >
+                {batchIntelligenceMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <BrainCircuit className="h-4 w-4 mr-2" />
+                )}
+                Run AI Intelligence ({selectedLeads.length})
               </Button>
             )}
             <Button
