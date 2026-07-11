@@ -139,8 +139,12 @@ class LarkService
                 'Content-Type' => 'application/json; charset=utf-8',
             ]);
 
+            if (!empty($query)) {
+                $url .= (parse_url($url, PHP_URL_QUERY) ? '&' : '?') . http_build_query($query);
+            }
+
             if ($method === 'GET') {
-                $response = $pending->get($url, $query);
+                $response = $pending->get($url); // query already appended
             } elseif ($method === 'POST') {
                 $response = $pending->post($url, $data);
             } elseif ($method === 'PUT') {
