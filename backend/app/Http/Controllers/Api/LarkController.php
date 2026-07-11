@@ -315,9 +315,12 @@ class LarkController extends Controller
             'app_token' => 'required|string',
         ]);
 
-        $service = new LarkBaseService($this->tenantIntegration());
-
-        return response()->json($service->listTables($request->app_token));
+        try {
+            $service = new LarkBaseService($this->tenantIntegration());
+            return response()->json($service->listTables($request->app_token));
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to list tables: ' . $this->enhanceErrorMessage($e->getMessage())], 500);
+        }
     }
 
     public function listBaseFields(Request $request)
@@ -327,9 +330,12 @@ class LarkController extends Controller
             'table_id' => 'required|string',
         ]);
 
-        $service = new LarkBaseService($this->tenantIntegration());
-
-        return response()->json($service->listFields($request->app_token, $request->table_id));
+        try {
+            $service = new LarkBaseService($this->tenantIntegration());
+            return response()->json($service->listFields($request->app_token, $request->table_id));
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to list fields: ' . $this->enhanceErrorMessage($e->getMessage())], 500);
+        }
     }
 
     public function previewBaseRecords(Request $request)
@@ -341,13 +347,16 @@ class LarkController extends Controller
             'page_token' => 'nullable|string',
         ]);
 
-        $service = new LarkBaseService($this->tenantIntegration());
-
-        return response()->json($service->getRecords(
-            $request->app_token,
-            $request->table_id,
-            $request->only(['page_size', 'page_token'])
-        ));
+        try {
+            $service = new LarkBaseService($this->tenantIntegration());
+            return response()->json($service->getRecords(
+                $request->app_token,
+                $request->table_id,
+                $request->only(['page_size', 'page_token'])
+            ));
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to preview records: ' . $this->enhanceErrorMessage($e->getMessage())], 500);
+        }
     }
 
     public function getBaseMappings(Request $request)
@@ -443,7 +452,7 @@ class LarkController extends Controller
 
             try {
                 $fieldDefinitions = $service->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 return response()->json(['success' => false, 'message' => 'Failed to fetch base fields: ' . $this->enhanceErrorMessage($e->getMessage())], 500);
             }
 
@@ -553,7 +562,7 @@ class LarkController extends Controller
                             'reason' => null,
                         ];
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $enhancedMessage = $this->enhanceErrorMessage($e->getMessage());
                     $errors[] = ['message' => 'Batch Create Failed: ' . $enhancedMessage];
                     $skipped += count($chunk);
@@ -600,7 +609,7 @@ class LarkController extends Controller
                             'reason' => null,
                         ];
                     }
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     $enhancedMessage = $this->enhanceErrorMessage($e->getMessage());
                     $errors[] = ['message' => 'Batch Update Failed: ' . $enhancedMessage];
                     $skipped += count($chunk);

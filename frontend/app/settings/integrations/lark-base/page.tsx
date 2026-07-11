@@ -180,7 +180,7 @@ export default function LarkBaseSettingsPage() {
         }
       } catch (e) {}
 
-      const res = await apiFetch(`/api/lark/base/tables?app_token=${token}`);
+      const res = await apiFetch(`/api/lark/base/tables?app_token=${encodeURIComponent(token)}`);
       const json = await res.json();
       if (!res.ok) {
         let msg = json?.message || 'Failed to fetch base tables';
@@ -208,7 +208,7 @@ export default function LarkBaseSettingsPage() {
         }
       } catch (e) {}
 
-      const res = await apiFetch(`/api/lark/base/fields?app_token=${token}&table_id=${tableId}`);
+      const res = await apiFetch(`/api/lark/base/fields?app_token=${encodeURIComponent(token)}&table_id=${encodeURIComponent(tableId)}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || 'Failed to fetch base fields');
       return json;
