@@ -349,9 +349,10 @@ class LarkController extends Controller
 
         try {
             $service = new LarkBaseService($this->tenantIntegration());
-            return response()->json($service->getRecords(
+            return response()->json($service->searchRecords(
                 $request->app_token,
                 $request->table_id,
+                [],
                 $request->only(['page_size', 'page_token'])
             ));
         } catch (\Throwable $e) {
@@ -625,8 +626,8 @@ class LarkController extends Controller
 
             try {
                 do {
-                    $records = $service->getRecords($baseTable->app_token, $baseTable->table_id, [
-                        'page_size' => min(100, $limit - count($items)),
+                    $records = $service->searchRecords($baseTable->app_token, $baseTable->table_id, [], [
+                        'page_size' => min(500, $limit - count($items)),
                         'page_token' => $pageToken,
                     ]);
 

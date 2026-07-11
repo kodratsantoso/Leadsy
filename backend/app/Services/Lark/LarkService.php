@@ -146,9 +146,9 @@ class LarkService
             if ($method === 'GET') {
                 $response = $pending->get($url); // query already appended
             } elseif ($method === 'POST') {
-                $response = $pending->post($url, $data);
+                $response = $pending->post($url, empty($data) ? new \stdClass() : $data);
             } elseif ($method === 'PUT') {
-                $response = $pending->put($url, $data);
+                $response = $pending->put($url, empty($data) ? new \stdClass() : $data);
             } elseif ($method === 'DELETE') {
                 $response = $pending->delete($url);
             } else {
