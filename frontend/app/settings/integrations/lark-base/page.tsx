@@ -289,8 +289,8 @@ export default function LarkBaseSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ direction, limit: 3000 }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.message || 'Failed to sync mapping');
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || `Failed to sync mapping (Status: ${res.status}, Content-Type: ${res.headers.get('content-type')})`);
       return json;
     },
     onSuccess: (data: LarkBaseSyncResult, variables) => {
