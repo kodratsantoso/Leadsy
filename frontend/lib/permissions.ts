@@ -25,6 +25,7 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/settings/currency": { any: ["integrations.manage"] },
   "/settings/integrations": { any: ["integrations.manage"] },
   "/settings/webhooks": { any: ["integrations.manage"] },
+  "/settings/api": { any: ["integrations.manage"] },
   "/settings/notifications": { any: ["integrations.manage"] },
   "/settings/environment": { any: ["integrations.manage"] },
   "/settings/security": { any: ["integrations.manage"] },
