@@ -287,4 +287,23 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /** POST /api/auth/token/generate — Generate a long-lived API token */
+    public function generateApiToken(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Revoke any existing Integration_Token to ensure only one is active at a time
+        $user->tokens()->where('name', 'Integration_Token')->delete();
+
+        // Generate a new token
+        $token = $user->createToken('Integration_Token')->plainTextToken;
+
+        AuditService::log('generate_api_token', 'auth', $user);
+
+        return response()->json([
+            'token' => $token,
+            'message' => 'Integration Token generated successfully.',
+        ]);
+    }
 }

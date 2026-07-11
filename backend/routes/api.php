@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('auth/me', [AuthController::class, 'me']);
+    Route::post('auth/token/generate', [AuthController::class, 'generateApiToken']);
 
     // Maps — Lead Discovery + Geo Product Fit Intelligence
     Route::prefix('maps')->group(function () {

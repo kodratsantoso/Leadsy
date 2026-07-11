@@ -41,6 +41,7 @@ const categories = [
     items: [
       { icon: Key,       title: "Integration Settings",   desc: "Social media, ad platform, CRM, SSO, Maps, WhatsApp, and credentials", href: "/settings/integrations",  color: "bg-[color:var(--status-warning)]" },
       { icon: Webhook,   title: "Webhooks",              desc: "Webhook URL configuration and event management",                     href: "/settings/webhooks",      color: "bg-[color:var(--status-info)]" },
+      { icon: FileText,  title: "API Documentation",     desc: "API reference and Integration Token generation",                     href: "/settings/api",           color: "bg-[color:var(--brand)]" },
     ]
   },
   {
