@@ -48,9 +48,13 @@ Return ONLY a JSON object with:
             return response()->json(['success' => false, 'error' => $result['error']], 500);
         }
 
-        $parsed = json_decode($result['content'], true);
+        $content = $result['content'];
+        $content = preg_replace('/```json\s*/i', '', $content);
+        $content = preg_replace('/```\s*/', '', $content);
+        
+        $parsed = json_decode(trim($content), true);
         if (!$parsed) {
-            return response()->json(['success' => false, 'error' => 'AI returned invalid JSON'], 500);
+            return response()->json(['success' => false, 'error' => 'AI returned invalid JSON: ' . substr($content, 0, 100)], 500);
         }
 
         // Fill empty fields only (as per instruction #2)

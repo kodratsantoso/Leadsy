@@ -1461,11 +1461,11 @@ export default function LeadDetailPage() {
 
   const leadData      = lead?.data || {};
   const contacts      = leadData.contacts || [];
-  const leadOutcomes  = leadData.outcomes || [];
+  const leadOutcomes = Array.isArray(leadData?.outcomes) ? leadData.outcomes : [];
   const defaultOutcomeSaleType = leadOutcomes.some((outcome: any) => outcome.outcome === 'won') ? 'upsales' : 'new_sales';
   const latestScore   = intelligence?.latest_score;
   const latestQual    = intelligence?.latest_qualification;
-  const topProducts   = intelligence?.recommended_products || [];
+  const topProducts   = Array.isArray(intelligence?.recommended_products) ? intelligence.recommended_products : [];
   const latestAnalysis = intelligence?.latest_analysis;
   const verification = verificationData?.data;
   const latestVerificationReview = verification?.latest_review;
