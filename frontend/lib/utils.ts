@@ -17,3 +17,9 @@ export function safeJsonArray(value: any): any[] {
   }
   return [];
 }
+
+export function safeRender(val: any): string {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+}

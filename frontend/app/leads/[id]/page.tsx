@@ -21,7 +21,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import Link from 'next/link';
-import { cn, safeJsonArray } from '@/lib/utils';
+import { cn, safeJsonArray, safeRender } from '@/lib/utils';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuide';
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
@@ -2438,8 +2438,8 @@ export default function LeadDetailPage() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium">{factor.factor}</p>
-                          <Badge variant="outline">{factor.value}</Badge>
+                          <p className="font-medium">{safeRender(factor.factor)}</p>
+                          <Badge variant="outline">{safeRender(factor.value)}</Badge>
                         </div>
                         <p className="mt-2 text-sm text-muted-foreground">{factor.reason}</p>
                       </div>
@@ -2481,7 +2481,7 @@ export default function LeadDetailPage() {
                 {latestAnalysis.company_summary && (
                   <div>
                     <span className="mb-1 block text-muted-foreground">AI Summary:</span>
-                    <p>{latestAnalysis.company_summary}</p>
+                    <p>{safeRender(latestAnalysis.company_summary)}</p>
                   </div>
                 )}
                 <div>
@@ -2496,19 +2496,19 @@ export default function LeadDetailPage() {
                 {latestAnalysis.suggested_approach && (
                   <div>
                     <span className="mb-1 block text-muted-foreground">Recommendation:</span>
-                    <p>{latestAnalysis.suggested_approach}</p>
+                    <p>{safeRender(latestAnalysis.suggested_approach)}</p>
                   </div>
                 )}
                 {latestAnalysis.potential_use_case && (
                   <div>
                     <span className="mb-1 block text-muted-foreground">Potential Use Case:</span>
-                    <p>{latestAnalysis.potential_use_case}</p>
+                    <p>{safeRender(latestAnalysis.potential_use_case)}</p>
                   </div>
                 )}
                 {latestAnalysis.risk_insight && (
                   <div className="rounded-lg border border-[var(--warning)]/20 bg-[var(--warning-soft)]/60 p-3">
                     <span className="mb-1 block text-muted-foreground">Risk Insight:</span>
-                    <p>{latestAnalysis.risk_insight}</p>
+                    <p>{safeRender(latestAnalysis.risk_insight)}</p>
                   </div>
                 )}
                 {typeof latestAnalysis.confidence_score === 'number' && (
@@ -2519,14 +2519,14 @@ export default function LeadDetailPage() {
                 )}
                 <div>
                   <span className="mb-2 block text-muted-foreground">Opportunity Summary:</span>
-                  <p>{latestAnalysis.business_opportunity_summary}</p>
+                  <p>{safeRender(latestAnalysis.business_opportunity_summary)}</p>
                 </div>
                 <div>
                   <span className="mb-1 block text-muted-foreground">Probable Needs:</span>
                   {Array.isArray(latestAnalysis.probable_needs) &&
                     latestAnalysis.probable_needs.map((need: string, idx: number) => (
                       <div key={idx} className="mr-2 mt-1 inline-block rounded bg-muted/20 px-2 py-1 text-xs">
-                        {need}
+                        {safeRender(need)}
                       </div>
                     ))}
                 </div>
@@ -2585,8 +2585,8 @@ export default function LeadDetailPage() {
                         {safeJsonArray(confidentiality.score_breakdown).map((item: any, i: number) => (
                           <li key={i} className="flex flex-wrap justify-between items-center gap-2 rounded bg-muted/20 p-2">
                             <div>
-                              <span className="font-medium text-xs block">{item.parameter}</span>
-                              <span className="text-xs text-muted-foreground">Found: {item.detected_value}</span>
+                              <span className="font-medium text-xs block">{safeRender(item.parameter)}</span>
+                              <span className="text-xs text-muted-foreground">Found: {safeRender(item.detected_value)}</span>
                             </div>
                             <Badge variant="outline">+{item.score_impact}</Badge>
                           </li>
@@ -2602,7 +2602,7 @@ export default function LeadDetailPage() {
                         {safeJsonArray(confidentiality.recommended_handling).map((rec: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 text-muted-foreground">
                             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand)]" />
-                            <span>{rec}</span>
+                            <span>{safeRender(rec)}</span>
                           </li>
                         ))}
                       </ul>
@@ -2614,7 +2614,7 @@ export default function LeadDetailPage() {
                       <h4 className="mb-2 font-medium text-xs uppercase tracking-wider text-[var(--status-warning)]">Missing Data For Assessment</h4>
                       <div className="flex flex-wrap gap-2">
                         {safeJsonArray(confidentiality.missing_data).map((item: string, i: number) => (
-                          <Badge key={i} variant="outline" className="border-[var(--status-warning)]/30 text-[var(--status-warning)] bg-transparent">{item}</Badge>
+                          <Badge key={i} variant="outline" className="border-[var(--status-warning)]/30 text-[var(--status-warning)] bg-transparent">{safeRender(item)}</Badge>
                         ))}
                       </div>
                     </div>
@@ -2703,7 +2703,7 @@ export default function LeadDetailPage() {
                           ].filter(f => bant[f.key]).map(({ key, label }) => (
                             <div key={key} className="rounded-lg bg-muted/20 p-2">
                               <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-                              <p className="mt-0.5 text-xs">{bant[key]}</p>
+                              <p className="mt-0.5 text-xs">{safeRender(bant[key])}</p>
                             </div>
                           ))}
                         </div>
@@ -2716,7 +2716,7 @@ export default function LeadDetailPage() {
                           <ul className="space-y-0.5">
                             {reasoning.map((r: string, i: number) => (
                               <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                                <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-[var(--brand)]" />{r}
+                                <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-[var(--brand)]" />{safeRender(r)}
                               </li>
                             ))}
                           </ul>
@@ -2727,7 +2727,7 @@ export default function LeadDetailPage() {
                       {match.recommended_approach && (
                         <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] p-3">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-1">Recommended Approach</p>
-                          <p className="text-xs">{match.recommended_approach}</p>
+                          <p className="text-xs">{safeRender(match.recommended_approach)}</p>
                         </div>
                       )}
 

@@ -15,7 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/apiFetch";
-import { cn } from "@/lib/utils";
+import { cn, safeRender } from "@/lib/utils";
 
 type BantcCategory = "Budget" | "Authority" | "Need" | "Timeline" | "Competition";
 
@@ -134,7 +134,7 @@ function QuestionRow({
       </span>
 
       <textarea
-        value={question.text}
+        value={safeRender(question.text)}
         onChange={(e) => onChange(question.id, { text: e.target.value })}
         rows={2}
         className="flex-1 resize-none rounded-lg border-0 bg-transparent py-0.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-0"
