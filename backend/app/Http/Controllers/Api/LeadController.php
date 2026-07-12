@@ -375,39 +375,21 @@ class LeadController extends Controller
 
         AuditService::logCreated('leads', $lead);
 
-        // Commercial Team assignment based on creator's role
+        // Commercial Team assignment: Auto assign as 'sales' (Sales / BD Executive)
         $creator = $request->user();
-        if ($creator && $creator->role) {
-            $roleMap = [
-                'sales_manager' => 'sales',
-                'sales_exec' => 'sales',
-                'presales' => 'presales',
-                'admin' => 'presales',
-                'super_admin' => 'presales',
-            ];
+        if ($creator) {
+            \App\Models\LeadRoleAssignment::create([
+                'lead_id' => $lead->id,
+                'user_id' => $creator->id,
+                'role_type' => 'sales',
+                'assigned_by' => $creator->id,
+                'assigned_at' => now(),
+                'assignment_status' => 'active',
+            ]);
 
-            $roleType = $roleMap[$creator->role->name] ?? null;
-            if ($roleType) {
-                \App\Models\LeadRoleAssignment::create([
-                    'lead_id' => $lead->id,
-                    'user_id' => $creator->id,
-                    'role_type' => $roleType,
-                    'assigned_by' => $creator->id,
-                    'assigned_at' => now(),
-                    'assignment_status' => 'active',
-                ]);
-
-                // Also update the corresponding owner column on the lead if not already set
-                $colMap = [
-                    'sales' => 'owner_id',
-                    'presales' => 'presales_owner_id',
-                    'account_manager' => 'am_owner_id',
-                    'csm' => 'csm_owner_id'
-                ];
-                $col = $colMap[$roleType] ?? null;
-                if ($col && empty($data[$col])) {
-                    $lead->update([$col => $creator->id]);
-                }
+            // Ensure owner_id is set
+            if (empty($lead->owner_id)) {
+                $lead->update(['owner_id' => $creator->id]);
             }
         }
 
@@ -523,7 +505,28 @@ class LeadController extends Controller
         }
 
         $original = $lead->getAttributes();
-        $lead->update(['owner_id' => $request->user()?->id]);
+        $claimer = $request->user();
+        
+        if ($claimer) {
+            $lead->update(['owner_id' => $claimer->id]);
+
+            $existingRole = \App\Models\LeadRoleAssignment::where('lead_id', $lead->id)
+                ->where('user_id', $claimer->id)
+                ->first();
+            
+            if (!$existingRole) {
+                \App\Models\LeadRoleAssignment::create([
+                    'lead_id' => $lead->id,
+                    'user_id' => $claimer->id,
+                    'role_type' => 'sales',
+                    'assigned_by' => $claimer->id,
+                    'assigned_at' => now(),
+                    'assignment_status' => 'active',
+                ]);
+            } elseif ($existingRole->role_type !== 'sales') {
+                $existingRole->update(['role_type' => 'sales']);
+            }
+        }
 
         AuditService::log(
             'lead_claimed',
@@ -643,8 +646,28 @@ class LeadController extends Controller
         // ScoreLeadJob is preserved for background use; manual rescore executes inline.
         try {
             $lead->update(['ai_processing_status' => 'processing']);
+            
+            // 1. Scoring
             $service = app(LeadScoringService::class);
             $result = $service->scoreLead($lead);
+            
+            // 2. ICP Match
+            $icpResult = app(ICPMatchingService::class)->matchLead($lead);
+            AuditService::log('icp_match', 'leads', $lead, null, $icpResult);
+            
+            // 3. Qualification
+            $qualResult = app(LeadQualificationService::class)->qualifyLead($lead, useAi: true);
+            if ($qualResult->classification === 'need_review' && $request = request()) {
+                app(HumanVerificationWorkflowService::class)->requestReview($lead->fresh('funnelStage'), $request->user(), [
+                    'justification' => $qualResult->qualification_reason,
+                    'recommended_status' => 'pending',
+                ]);
+            }
+            AuditService::log('qualify', 'leads', $lead, $lead->toArray(), [
+                'qualified' => $qualResult->qualified,
+                'business_type' => $qualResult->business_type,
+            ]);
+
             $lead->update(['ai_processing_status' => 'completed']);
 
             AuditService::log('rescore', 'leads', $lead, null, [
@@ -653,7 +676,7 @@ class LeadController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'Lead rescored successfully',
+                'message' => 'Lead rescored, ICP matched, and qualified successfully',
                 'data' => $result,
             ]);
         } catch (\Throwable $e) {

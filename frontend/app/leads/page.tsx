@@ -53,6 +53,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
+import { CreateNewModal } from "@/components/ui/CreateNewModal";
 
 type LeadRecord = {
   id: number;
@@ -642,6 +643,14 @@ export default function LeadsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { setting: numberFormatSetting, formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
+  const [createNewModalConfig, setCreateNewModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    endpoint: string;
+    payloadKey?: string;
+    additionalPayload?: Record<string, any>;
+    onSuccess: (item: any) => void;
+  } | null>(null);
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [page, setPage] = useState(1);
@@ -2286,27 +2295,57 @@ export default function LeadsPage() {
               <label className="text-sm font-medium">Industry</label>
               <Select
                 value={formState.industry_id}
-                onChange={(e) =>
-                  setFormState((s) => ({ ...s, industry_id: e.target.value, sub_industry_id: "" }))
-                }
+                onChange={(e) => {
+                  if (e.target.value === '__CREATE_NEW__') {
+                    setCreateNewModalConfig({
+                      isOpen: true,
+                      title: 'Create New Industry',
+                      endpoint: '/industries',
+                      onSuccess: (newItem) => {
+                        queryClient.invalidateQueries({ queryKey: ['industries'] });
+                        setFormState((s) => ({ ...s, industry_id: String(newItem.id), sub_industry_id: "" }));
+                      }
+                    });
+                  } else {
+                    setFormState((s) => ({ ...s, industry_id: e.target.value, sub_industry_id: "" }));
+                  }
+                }}
                 placeholder="Select industry"
               >
                 {allIndustries.map((ind) => (
                   <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
                 ))}
+                <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
               </Select>
             </div>
             <div className="grid gap-2">
               <label className="text-sm font-medium">Sub-Industry</label>
               <Select
                 value={formState.sub_industry_id}
-                onChange={(e) => setFormState((s) => ({ ...s, sub_industry_id: e.target.value }))}
+                onChange={(e) => {
+                  if (e.target.value === '__CREATE_NEW__') {
+                    setCreateNewModalConfig({
+                      isOpen: true,
+                      title: 'Create New Sub-Industry',
+                      endpoint: `/industries/${formState.industry_id}/sub-industries`,
+                      onSuccess: (newItem) => {
+                        queryClient.invalidateQueries({ queryKey: ['industries'] });
+                        setFormState((s) => ({ ...s, sub_industry_id: String(newItem.id) }));
+                      }
+                    });
+                  } else {
+                    setFormState((s) => ({ ...s, sub_industry_id: e.target.value }));
+                  }
+                }}
                 placeholder="Select sub-industry"
-                disabled={!formState.industry_id || selectedSubIndustries.length === 0}
+                disabled={!formState.industry_id}
               >
                 {selectedSubIndustries.map((sub) => (
                   <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
                 ))}
+                {formState.industry_id && (
+                  <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
+                )}
               </Select>
             </div>
           </div>
@@ -2368,19 +2407,48 @@ export default function LeadsPage() {
             <label className="text-sm font-medium">Business Category</label>
             <Select
               value={formState.business_category_id}
-              onChange={(e) => setFormState((s) => ({ ...s, business_category_id: e.target.value }))}
+              onChange={(e) => {
+                if (e.target.value === '__CREATE_NEW__') {
+                  setCreateNewModalConfig({
+                    isOpen: true,
+                    title: 'Create New Business Category',
+                    endpoint: '/business-categories',
+                    onSuccess: (newItem) => {
+                      queryClient.invalidateQueries({ queryKey: ['business-categories'] });
+                      setFormState((s) => ({ ...s, business_category_id: String(newItem.id) }));
+                    }
+                  });
+                } else {
+                  setFormState((s) => ({ ...s, business_category_id: e.target.value }));
+                }
+              }}
             >
               <option value="">Select Business Category</option>
               {businessCategories.map((bc: any) => (
                 <option key={bc.id} value={bc.id.toString()}>{bc.code ? `[${bc.code}] ` : ''}{bc.name}</option>
               ))}
+              <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
             </Select>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Initial Product</label>
             <Select
               value={formState.product_id}
-              onChange={(e) => setFormState((s) => ({ ...s, product_id: e.target.value }))}
+              onChange={(e) => {
+                if (e.target.value === '__CREATE_NEW__') {
+                  setCreateNewModalConfig({
+                    isOpen: true,
+                    title: 'Create New Product',
+                    endpoint: '/products',
+                    onSuccess: (newItem) => {
+                      queryClient.invalidateQueries({ queryKey: ['products'] });
+                      setFormState((s) => ({ ...s, product_id: String(newItem.id) }));
+                    }
+                  });
+                } else {
+                  setFormState((s) => ({ ...s, product_id: e.target.value }));
+                }
+              }}
               placeholder="Select product"
             >
               {products.map((product) => (
@@ -2388,6 +2456,7 @@ export default function LeadsPage() {
                   {product.name}
                 </option>
               ))}
+              <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
             </Select>
             <p className="text-xs text-muted-foreground">
               Use this for the first product interest. Additional products are recorded from Revenue → Record Outcome.
@@ -2419,25 +2488,61 @@ export default function LeadsPage() {
             <label className="text-sm font-medium">Lead Source</label>
             <Select
               value={formState.source_type}
-              onChange={(e) => setFormState((s) => ({ ...s, source_type: e.target.value, channel_type_id: "" }))}
+              onChange={(e) => {
+                if (e.target.value === '__CREATE_NEW__') {
+                  setCreateNewModalConfig({
+                    isOpen: true,
+                    title: 'Create New Lead Source',
+                    endpoint: '/settings/lead-sources',
+                    onSuccess: (newItem) => {
+                      queryClient.invalidateQueries({ queryKey: ['lead-sources'] });
+                      setFormState((s) => ({ ...s, source_type: newItem.slug, channel_type_id: "" }));
+                    }
+                  });
+                } else {
+                  setFormState((s) => ({ ...s, source_type: e.target.value, channel_type_id: "" }));
+                }
+              }}
               placeholder="Select source"
             >
               {activeLeadSources.map((source) => (
                 <option key={source.id} value={source.slug}>{source.name}</option>
               ))}
+              <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
             </Select>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Channel Type</label>
             <Select
               value={formState.channel_type_id}
-              onChange={(e) => setFormState((s) => ({ ...s, channel_type_id: e.target.value }))}
+              onChange={(e) => {
+                if (e.target.value === '__CREATE_NEW__') {
+                  const selectedSourceObj = activeLeadSources.find((s) => s.slug === formState.source_type);
+                  if (selectedSourceObj) {
+                    setCreateNewModalConfig({
+                      isOpen: true,
+                      title: 'Create New Channel Type',
+                      endpoint: '/settings/lead-channels',
+                      additionalPayload: { lead_source_type_id: selectedSourceObj.id },
+                      onSuccess: (newItem) => {
+                        queryClient.invalidateQueries({ queryKey: ['lead-channels'] });
+                        setFormState((s) => ({ ...s, channel_type_id: String(newItem.id) }));
+                      }
+                    });
+                  }
+                } else {
+                  setFormState((s) => ({ ...s, channel_type_id: e.target.value }));
+                }
+              }}
               placeholder="Select channel"
-              disabled={!formState.source_type || selectedLeadChannels.length === 0}
+              disabled={!formState.source_type}
             >
               {selectedLeadChannels.map((channel) => (
                 <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
               ))}
+              {formState.source_type && (
+                <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
+              )}
             </Select>
           </div>
           <div className="grid gap-2">
@@ -2563,27 +2668,57 @@ export default function LeadsPage() {
               <label className="text-sm font-medium">Industry</label>
               <Select
                 value={formState.industry_id}
-                onChange={(e) =>
-                  setFormState((s) => ({ ...s, industry_id: e.target.value, sub_industry_id: "" }))
-                }
+                onChange={(e) => {
+                  if (e.target.value === '__CREATE_NEW__') {
+                    setCreateNewModalConfig({
+                      isOpen: true,
+                      title: 'Create New Industry',
+                      endpoint: '/industries',
+                      onSuccess: (newItem) => {
+                        queryClient.invalidateQueries({ queryKey: ['industries'] });
+                        setFormState((s) => ({ ...s, industry_id: String(newItem.id), sub_industry_id: "" }));
+                      }
+                    });
+                  } else {
+                    setFormState((s) => ({ ...s, industry_id: e.target.value, sub_industry_id: "" }));
+                  }
+                }}
                 placeholder="Select industry"
               >
                 {allIndustries.map((ind) => (
                   <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
                 ))}
+                <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
               </Select>
             </div>
             <div className="grid gap-2">
               <label className="text-sm font-medium">Sub-Industry</label>
               <Select
                 value={formState.sub_industry_id}
-                onChange={(e) => setFormState((s) => ({ ...s, sub_industry_id: e.target.value }))}
+                onChange={(e) => {
+                  if (e.target.value === '__CREATE_NEW__') {
+                    setCreateNewModalConfig({
+                      isOpen: true,
+                      title: 'Create New Sub-Industry',
+                      endpoint: `/industries/${formState.industry_id}/sub-industries`,
+                      onSuccess: (newItem) => {
+                        queryClient.invalidateQueries({ queryKey: ['industries'] });
+                        setFormState((s) => ({ ...s, sub_industry_id: String(newItem.id) }));
+                      }
+                    });
+                  } else {
+                    setFormState((s) => ({ ...s, sub_industry_id: e.target.value }));
+                  }
+                }}
                 placeholder="Select sub-industry"
-                disabled={!formState.industry_id || selectedSubIndustries.length === 0}
+                disabled={!formState.industry_id}
               >
                 {selectedSubIndustries.map((sub) => (
                   <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
                 ))}
+                {formState.industry_id && (
+                  <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
+                )}
               </Select>
             </div>
           </div>
@@ -2633,19 +2768,48 @@ export default function LeadsPage() {
             <label className="text-sm font-medium">Business Category</label>
             <Select
               value={formState.business_category_id}
-              onChange={(e) => setFormState((s) => ({ ...s, business_category_id: e.target.value }))}
+              onChange={(e) => {
+                if (e.target.value === '__CREATE_NEW__') {
+                  setCreateNewModalConfig({
+                    isOpen: true,
+                    title: 'Create New Business Category',
+                    endpoint: '/business-categories',
+                    onSuccess: (newItem) => {
+                      queryClient.invalidateQueries({ queryKey: ['business-categories'] });
+                      setFormState((s) => ({ ...s, business_category_id: String(newItem.id) }));
+                    }
+                  });
+                } else {
+                  setFormState((s) => ({ ...s, business_category_id: e.target.value }));
+                }
+              }}
             >
               <option value="">Select Business Category</option>
               {businessCategories.map((bc: any) => (
                 <option key={bc.id} value={bc.id.toString()}>{bc.code ? `[${bc.code}] ` : ''}{bc.name}</option>
               ))}
+              <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
             </Select>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Initial Product</label>
             <Select
               value={formState.product_id}
-              onChange={(e) => setFormState((s) => ({ ...s, product_id: e.target.value }))}
+              onChange={(e) => {
+                if (e.target.value === '__CREATE_NEW__') {
+                  setCreateNewModalConfig({
+                    isOpen: true,
+                    title: 'Create New Product',
+                    endpoint: '/products',
+                    onSuccess: (newItem) => {
+                      queryClient.invalidateQueries({ queryKey: ['products'] });
+                      setFormState((s) => ({ ...s, product_id: String(newItem.id) }));
+                    }
+                  });
+                } else {
+                  setFormState((s) => ({ ...s, product_id: e.target.value }));
+                }
+              }}
               placeholder="Select product"
             >
               {products.map((product) => (
@@ -2653,6 +2817,7 @@ export default function LeadsPage() {
                   {product.name}
                 </option>
               ))}
+              <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
             </Select>
             <p className="text-xs text-muted-foreground">
               Use this for the first product interest. Additional products are recorded from Revenue → Record Outcome.
@@ -2684,7 +2849,21 @@ export default function LeadsPage() {
             <label className="text-sm font-medium">Lead Source</label>
             <Select
               value={formState.source_type}
-              onChange={(e) => setFormState((s) => ({ ...s, source_type: e.target.value, channel_type_id: "" }))}
+              onChange={(e) => {
+                if (e.target.value === '__CREATE_NEW__') {
+                  setCreateNewModalConfig({
+                    isOpen: true,
+                    title: 'Create New Lead Source',
+                    endpoint: '/settings/lead-sources',
+                    onSuccess: (newItem) => {
+                      queryClient.invalidateQueries({ queryKey: ['lead-sources'] });
+                      setFormState((s) => ({ ...s, source_type: newItem.slug, channel_type_id: "" }));
+                    }
+                  });
+                } else {
+                  setFormState((s) => ({ ...s, source_type: e.target.value, channel_type_id: "" }));
+                }
+              }}
               placeholder="Select source"
             >
               {activeLeadSources.map((source) => (
@@ -2695,15 +2874,34 @@ export default function LeadsPage() {
                   {sourceNameBySlug.get(formState.source_type) ?? formState.source_type}
                 </option>
               ) : null}
+              <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
             </Select>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Channel Type</label>
             <Select
               value={formState.channel_type_id}
-              onChange={(e) => setFormState((s) => ({ ...s, channel_type_id: e.target.value }))}
+              onChange={(e) => {
+                if (e.target.value === '__CREATE_NEW__') {
+                  const selectedSourceObj = activeLeadSources.find((s) => s.slug === formState.source_type);
+                  if (selectedSourceObj) {
+                    setCreateNewModalConfig({
+                      isOpen: true,
+                      title: 'Create New Channel Type',
+                      endpoint: '/settings/lead-channels',
+                      additionalPayload: { lead_source_type_id: selectedSourceObj.id },
+                      onSuccess: (newItem) => {
+                        queryClient.invalidateQueries({ queryKey: ['lead-channels'] });
+                        setFormState((s) => ({ ...s, channel_type_id: String(newItem.id) }));
+                      }
+                    });
+                  }
+                } else {
+                  setFormState((s) => ({ ...s, channel_type_id: e.target.value }));
+                }
+              }}
               placeholder="Select channel"
-              disabled={!formState.source_type || selectedLeadChannels.length === 0}
+              disabled={!formState.source_type}
             >
               {selectedLeadChannels.map((channel) => (
                 <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
@@ -2713,6 +2911,9 @@ export default function LeadsPage() {
                   {channelNameById.get(Number(formState.channel_type_id)) ?? "Saved channel"}
                 </option>
               ) : null}
+              {formState.source_type && (
+                <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
+              )}
             </Select>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -2720,12 +2921,27 @@ export default function LeadsPage() {
               <label className="text-sm font-medium">Stage</label>
               <Select
                 value={formState.funnel_stage_id}
-                onChange={(e) => setFormState((s) => ({ ...s, funnel_stage_id: e.target.value }))}
+                onChange={(e) => {
+                  if (e.target.value === '__CREATE_NEW__') {
+                    setCreateNewModalConfig({
+                      isOpen: true,
+                      title: 'Create New Stage',
+                      endpoint: '/funnel/stages',
+                      onSuccess: (newItem) => {
+                        queryClient.invalidateQueries({ queryKey: ['funnel-stages'] });
+                        setFormState((s) => ({ ...s, funnel_stage_id: String(newItem.id) }));
+                      }
+                    });
+                  } else {
+                    setFormState((s) => ({ ...s, funnel_stage_id: e.target.value }));
+                  }
+                }}
                 placeholder="Unassigned"
               >
                 {funnelStages.map((stage) => (
                   <option key={stage.id} value={String(stage.id)}>{stage.name}</option>
                 ))}
+                <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
               </Select>
             </div>
             <div className="grid gap-2">
@@ -2910,6 +3126,18 @@ export default function LeadsPage() {
           This will permanently remove <span className="font-medium text-foreground">{selectedLeads.length}</span> selected lead{selectedLeads.length === 1 ? "" : "s"}.
         </p>
       </Modal>
+
+      {createNewModalConfig && (
+        <CreateNewModal
+          isOpen={createNewModalConfig.isOpen}
+          onClose={() => setCreateNewModalConfig(null)}
+          title={createNewModalConfig.title}
+          endpoint={createNewModalConfig.endpoint}
+          payloadKey={createNewModalConfig.payloadKey}
+          additionalPayload={createNewModalConfig.additionalPayload}
+          onSuccess={createNewModalConfig.onSuccess}
+        />
+      )}
     </div>
   );
 }

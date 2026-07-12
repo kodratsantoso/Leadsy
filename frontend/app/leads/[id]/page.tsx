@@ -28,6 +28,7 @@ import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import { PreMeetingBriefTab } from '@/components/leads/PreMeetingBriefTab';
 import { CommercialTeam } from '@/components/leads/CommercialTeam';
 import { OrderToCash } from '@/components/leads/OrderToCash';
+import { CreateNewModal } from '@/components/ui/CreateNewModal';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -612,6 +613,14 @@ export default function LeadDetailPage() {
   const qc = useQueryClient();
   const { formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
+  const [createNewModalConfig, setCreateNewModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    endpoint: string;
+    payloadKey?: string;
+    additionalPayload?: Record<string, any>;
+    onSuccess: (item: any) => void;
+  } | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -4000,14 +4009,27 @@ export default function LeadDetailPage() {
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Industry</label>
                 <Select
                   value={companyForm.industry_id}
-                  onChange={(e) =>
-                    setCompanyForm((f) => ({ ...f, industry_id: e.target.value, sub_industry_id: '' }))
-                  }
+                  onChange={(e) => {
+                    if (e.target.value === '__CREATE_NEW__') {
+                      setCreateNewModalConfig({
+                        isOpen: true,
+                        title: 'Create New Industry',
+                        endpoint: '/industries',
+                        onSuccess: (newItem) => {
+                          qc.invalidateQueries({ queryKey: ['industries'] });
+                          setCompanyForm((f) => ({ ...f, industry_id: String(newItem.id), sub_industry_id: '' }));
+                        }
+                      });
+                    } else {
+                      setCompanyForm((f) => ({ ...f, industry_id: e.target.value, sub_industry_id: '' }));
+                    }
+                  }}
                   placeholder="— Select industry —"
                 >
                   {allIndustries.map((ind: any) => (
                     <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
                   ))}
+                  <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
                 </Select>
               </div>
 
@@ -4015,13 +4037,30 @@ export default function LeadDetailPage() {
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sub-Industry</label>
                 <Select
                   value={companyForm.sub_industry_id}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, sub_industry_id: e.target.value }))}
+                  onChange={(e) => {
+                    if (e.target.value === '__CREATE_NEW__') {
+                      setCreateNewModalConfig({
+                        isOpen: true,
+                        title: 'Create New Sub-Industry',
+                        endpoint: `/industries/${companyForm.industry_id}/sub-industries`,
+                        onSuccess: (newItem) => {
+                          qc.invalidateQueries({ queryKey: ['industries'] });
+                          setCompanyForm((f) => ({ ...f, sub_industry_id: String(newItem.id) }));
+                        }
+                      });
+                    } else {
+                      setCompanyForm((f) => ({ ...f, sub_industry_id: e.target.value }));
+                    }
+                  }}
                   placeholder="— Select sub-industry —"
-                  disabled={!companyForm.industry_id || selectedIndustrySubIndustries.length === 0}
+                  disabled={!companyForm.industry_id}
                 >
                   {selectedIndustrySubIndustries.map((sub: any) => (
                     <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
                   ))}
+                  {companyForm.industry_id && (
+                    <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
+                  )}
                 </Select>
               </div>
 
@@ -4075,7 +4114,21 @@ export default function LeadDetailPage() {
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category</label>
                 <Select
                   value={companyForm.business_category_id}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, business_category_id: e.target.value }))}
+                  onChange={(e) => {
+                    if (e.target.value === '__CREATE_NEW__') {
+                      setCreateNewModalConfig({
+                        isOpen: true,
+                        title: 'Create New Business Category',
+                        endpoint: '/business-categories',
+                        onSuccess: (newItem) => {
+                          qc.invalidateQueries({ queryKey: ['business-categories'] });
+                          setCompanyForm((f) => ({ ...f, business_category_id: String(newItem.id) }));
+                        }
+                      });
+                    } else {
+                      setCompanyForm((f) => ({ ...f, business_category_id: e.target.value }));
+                    }
+                  }}
                   placeholder="— Select category —"
                 >
                   {(businessCategoriesData?.data || []).filter((c: any) => c.is_active).map((cat: any) => (
@@ -4083,6 +4136,7 @@ export default function LeadDetailPage() {
                       {cat.name}
                     </option>
                   ))}
+                  <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
                 </Select>
               </div>
 
@@ -4090,12 +4144,27 @@ export default function LeadDetailPage() {
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Initial Product</label>
                 <Select
                   value={companyForm.product_id}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, product_id: e.target.value }))}
+                  onChange={(e) => {
+                    if (e.target.value === '__CREATE_NEW__') {
+                      setCreateNewModalConfig({
+                        isOpen: true,
+                        title: 'Create New Product',
+                        endpoint: '/products',
+                        onSuccess: (newItem) => {
+                          qc.invalidateQueries({ queryKey: ['products'] });
+                          setCompanyForm((f) => ({ ...f, product_id: String(newItem.id) }));
+                        }
+                      });
+                    } else {
+                      setCompanyForm((f) => ({ ...f, product_id: e.target.value }));
+                    }
+                  }}
                   placeholder="— Select product —"
                 >
                   {products.map((product: any) => (
                     <option key={product.id} value={String(product.id)}>{product.name}</option>
                   ))}
+                  <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Use this as the first product interest. Additional product purchases are tracked as outcomes in the Revenue tab.
@@ -4131,25 +4200,61 @@ export default function LeadDetailPage() {
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Lead Source</label>
                 <Select
                   value={companyForm.source_type}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, source_type: e.target.value, channel_type_id: '' }))}
+                  onChange={(e) => {
+                    if (e.target.value === '__CREATE_NEW__') {
+                      setCreateNewModalConfig({
+                        isOpen: true,
+                        title: 'Create New Lead Source',
+                        endpoint: '/settings/lead-sources',
+                        onSuccess: (newItem) => {
+                          qc.invalidateQueries({ queryKey: ['lead-sources'] });
+                          setCompanyForm((f) => ({ ...f, source_type: newItem.slug, channel_type_id: '' }));
+                        }
+                      });
+                    } else {
+                      setCompanyForm((f) => ({ ...f, source_type: e.target.value, channel_type_id: '' }));
+                    }
+                  }}
                   placeholder="— Select source —"
                 >
                   {activeLeadSources.map((src: any) => (
                     <option key={src.slug} value={src.slug}>{src.name}</option>
                   ))}
+                  <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
                 </Select>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Channel Type</label>
                 <Select
                   value={companyForm.channel_type_id}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, channel_type_id: e.target.value }))}
+                  onChange={(e) => {
+                    if (e.target.value === '__CREATE_NEW__') {
+                      const selectedSourceObj = activeLeadSources.find((s: any) => s.slug === companyForm.source_type);
+                      if (selectedSourceObj) {
+                        setCreateNewModalConfig({
+                          isOpen: true,
+                          title: 'Create New Channel Type',
+                          endpoint: '/settings/lead-channels',
+                          additionalPayload: { lead_source_type_id: selectedSourceObj.id },
+                          onSuccess: (newItem) => {
+                            qc.invalidateQueries({ queryKey: ['lead-channels'] });
+                            setCompanyForm((f) => ({ ...f, channel_type_id: String(newItem.id) }));
+                          }
+                        });
+                      }
+                    } else {
+                      setCompanyForm((f) => ({ ...f, channel_type_id: e.target.value }));
+                    }
+                  }}
                   placeholder="— Select channel —"
-                  disabled={!companyForm.source_type || selectedLeadChannels.length === 0}
+                  disabled={!companyForm.source_type}
                 >
                   {selectedLeadChannels.map((ch: any) => (
                     <option key={ch.id} value={String(ch.id)}>{ch.name}</option>
                   ))}
+                  {companyForm.source_type && (
+                    <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
+                  )}
                 </Select>
               </div>
 
@@ -4157,12 +4262,27 @@ export default function LeadDetailPage() {
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Funnel Stage</label>
                 <Select
                   value={companyForm.funnel_stage_id}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, funnel_stage_id: e.target.value }))}
+                  onChange={(e) => {
+                    if (e.target.value === '__CREATE_NEW__') {
+                      setCreateNewModalConfig({
+                        isOpen: true,
+                        title: 'Create New Funnel Stage',
+                        endpoint: '/funnel/stages',
+                        onSuccess: (newItem) => {
+                          qc.invalidateQueries({ queryKey: ['funnel-stages'] });
+                          setCompanyForm((f) => ({ ...f, funnel_stage_id: String(newItem.id) }));
+                        }
+                      });
+                    } else {
+                      setCompanyForm((f) => ({ ...f, funnel_stage_id: e.target.value }));
+                    }
+                  }}
                   placeholder="— Unassigned —"
                 >
                   {(funnelStagesData?.data ?? funnelStagesData ?? []).map((stage: any) => (
                     <option key={stage.id} value={String(stage.id)}>{stage.name}</option>
                   ))}
+                  <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
                 </Select>
               </div>
               <div>
@@ -4854,6 +4974,18 @@ export default function LeadDetailPage() {
             </p>
           </div>
         </div>
+      )}
+
+      {createNewModalConfig && (
+        <CreateNewModal
+          isOpen={createNewModalConfig.isOpen}
+          onClose={() => setCreateNewModalConfig(null)}
+          title={createNewModalConfig.title}
+          endpoint={createNewModalConfig.endpoint}
+          payloadKey={createNewModalConfig.payloadKey}
+          additionalPayload={createNewModalConfig.additionalPayload}
+          onSuccess={createNewModalConfig.onSuccess}
+        />
       )}
     </div>
   );
