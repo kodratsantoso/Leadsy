@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
 export function EditLeadModal({
   lead,
@@ -50,8 +51,9 @@ export function EditLeadModal({
   const [locationCenter, setLocationCenter] = useState({ lat: -6.2088, lng: 106.8456 });
 
   // Parent lead search
-  const [parentLeadSearch, setParentLeadSearch] = useState("");
-  const debouncedParentSearch = useDebounce(parentLeadSearch, 300);
+  const [parentLeadSearch, setParentLeadSearch] = useState(lead?.parent_lead?.name || "");
+  const [debouncedParentSearch] = useDebounce(parentLeadSearch, 300);
+  const { normalizeAmountInput, formatAmountInput } = useNumberFormat();
 
   useEffect(() => {
     if (open && lead) {
@@ -84,7 +86,7 @@ export function EditLeadModal({
       });
       setLocationSearch("");
       setLocationFeedback("");
-      setParentLeadSearch("");
+      setParentLeadSearch(lead?.parent_lead?.company_name || "");
       if (lead.lat && lead.lng) {
         setLocationCenter({ lat: Number(lead.lat), lng: Number(lead.lng) });
       }
@@ -97,8 +99,9 @@ export function EditLeadModal({
     queryFn: () => apiFetch('/settings/public').then((r) => r.json()),
     enabled: open
   });
-  const mapsApiKey = publicSettingsData?.data?.google_maps_api_key || "";
-  const mapsEnabled = publicSettingsData?.data?.features?.google_maps_enabled ?? false;
+  const settings = publicSettingsData?.data || {};
+  const mapsApiKey = settings.GOOGLE_MAPS_BROWSER_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  const mapsEnabled = settings.GOOGLE_MAPS_ENABLED === undefined || settings.GOOGLE_MAPS_ENABLED === true || settings.GOOGLE_MAPS_ENABLED === "true";
 
   const { data: businessCategoriesData } = useQuery({
     queryKey: ['business-categories'],
@@ -137,21 +140,21 @@ export function EditLeadModal({
     enabled: open && debouncedParentSearch.length >= 2,
   });
 
-  const allIndustries: any[] = industriesData?.data ?? [];
-  const products: any[] = productsData?.data ?? [];
-  const businessCategories: any[] = businessCategoriesData?.data ?? [];
-  const leadSources: any[] = leadSourcesData?.data ?? [];
-  const funnelStages: any[] = funnelStagesData?.data ?? [];
-  const assignableUsers = assignableUsersData?.data || { sales: [], presales: [], am: [], csm: [] };
-  const parentLeadResults = parentLeadSearchData?.data || [];
+  const allIndustries: any[] = industriesData?.data ?? industriesData ?? [];
+  const products: any[] = productsData?.data ?? productsData ?? [];
+  const businessCategories: any[] = businessCategoriesData?.data ?? businessCategoriesData ?? [];
+  const leadSources: any[] = leadSourcesData?.data ?? leadSourcesData ?? [];
+  const funnelStages: any[] = funnelStagesData?.data ?? funnelStagesData ?? [];
+  
+  const usersList = assignableUsersData?.data ?? assignableUsersData ?? [];
+  const salesUsers = usersList.filter((u: any) => ["sales_exec", "sales_manager", "admin", "super_admin"].includes(u.role?.name));
+  const presalesUsers = usersList.filter((u: any) => ["presales", "admin", "super_admin"].includes(u.role?.name));
+  const amUsers = usersList.filter((u: any) => ["account_manager", "admin", "super_admin"].includes(u.role?.name));
+  const csmUsers = usersList.filter((u: any) => ["csm", "admin", "super_admin"].includes(u.role?.name));
+
+  const parentLeadResults = parentLeadSearchData?.data ?? parentLeadSearchData ?? [];
   
   const activeLeadSources = leadSources.filter((s: any) => s.is_active);
-  const activeLeadChannels = activeLeadSources.flatMap((s: any) =>
-    (s.channels ?? []).filter((c: any) => c.is_active).map((c: any) => ({ ...c, source_slug: s.slug }))
-  );
-  const selectedLeadChannels = activeLeadChannels.filter((c: any) =>
-    !companyForm.source_type || c.source_slug === companyForm.source_type
-  );
   const selectedIndustrySubIndustries: any[] =
     allIndustries.find((i: any) => String(i.id) === companyForm.industry_id)?.sub_industries ?? [];
 
@@ -325,6 +328,7 @@ export function EditLeadModal({
                         defaultCenter={locationCenter}
                         defaultZoom={companyForm.lat && companyForm.lng ? 15 : 11}
                         gestureHandling="greedy"
+                        disableDefaultUI={true}
                       >
                         {companyForm.lat && companyForm.lng ? (
                           <AdvancedMarker position={locationCenter}>
@@ -487,6 +491,26 @@ export function EditLeadModal({
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">3. Sales & Status</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Estimated Closing Amount</label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={formatAmountInput(companyForm.estimated_closing_amount)}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, estimated_closing_amount: normalizeAmountInput(e.target.value) }))}
+                  placeholder={`e.g. ${formatAmountInput("15000000")}`}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Realized Closing Amount</label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={formatAmountInput(companyForm.realized_closing_amount)}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, realized_closing_amount: normalizeAmountInput(e.target.value) }))}
+                  placeholder={`e.g. ${formatAmountInput("12000000")}`}
+                />
+              </div>
+              <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Initial Product</label>
                 <Select
                   value={companyForm.product_id}
@@ -601,24 +625,24 @@ export function EditLeadModal({
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Sales Owner</label>
                 <Select
-                  value={companyForm.owner_id}
+                  value={companyForm.owner_id || ""}
                   onChange={(e) => setCompanyForm((f) => ({ ...f, owner_id: e.target.value }))}
-                  placeholder="— Unassigned Sales (Lead Pool) —"
                 >
-                  {assignableUsers.sales?.map((u: any) => (
+                  <option value="">-- Lead Pool --</option>
+                  {salesUsers.map((u: any) => (
                     <option key={u.id} value={String(u.id)}>{u.name}</option>
                   ))}
-                  {!assignableUsers.sales && <option value="" disabled>Loading users...</option>}
+                  {salesUsers.length === 0 && <option value="" disabled>Loading users...</option>}
                 </Select>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Presales Owner</label>
                 <Select
-                  value={companyForm.presales_owner_id}
+                  value={companyForm.presales_owner_id || ""}
                   onChange={(e) => setCompanyForm((f) => ({ ...f, presales_owner_id: e.target.value }))}
-                  placeholder="— Unassigned Presales —"
                 >
-                  {assignableUsers.presales?.map((u: any) => (
+                  <option value="">-- Unassigned --</option>
+                  {presalesUsers.map((u: any) => (
                     <option key={u.id} value={String(u.id)}>{u.name}</option>
                   ))}
                 </Select>
@@ -626,11 +650,11 @@ export function EditLeadModal({
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Account Manager</label>
                 <Select
-                  value={companyForm.am_owner_id}
+                  value={companyForm.am_owner_id || ""}
                   onChange={(e) => setCompanyForm((f) => ({ ...f, am_owner_id: e.target.value }))}
-                  placeholder="— Unassigned AM —"
                 >
-                  {assignableUsers.am?.map((u: any) => (
+                  <option value="">-- Unassigned --</option>
+                  {amUsers.map((u: any) => (
                     <option key={u.id} value={String(u.id)}>{u.name}</option>
                   ))}
                 </Select>
@@ -638,11 +662,11 @@ export function EditLeadModal({
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">CSM Owner</label>
                 <Select
-                  value={companyForm.csm_owner_id}
+                  value={companyForm.csm_owner_id || ""}
                   onChange={(e) => setCompanyForm((f) => ({ ...f, csm_owner_id: e.target.value }))}
-                  placeholder="— Unassigned CSM —"
                 >
-                  {assignableUsers.csm?.map((u: any) => (
+                  <option value="">-- Unassigned --</option>
+                  {csmUsers.map((u: any) => (
                     <option key={u.id} value={String(u.id)}>{u.name}</option>
                   ))}
                 </Select>
