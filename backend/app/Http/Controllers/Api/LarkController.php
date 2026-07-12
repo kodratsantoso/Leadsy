@@ -621,104 +621,24 @@ class LarkController extends Controller
 
         } else {
             $limit = $request->integer('limit', 3000);
-            $pageToken = null;
-            $items = [];
-
-            try {
-                do {
-                    $records = $service->searchRecords($baseTable->app_token, $baseTable->table_id, [], [
-                        'page_size' => min(500, $limit - count($items)),
-                        'page_token' => $pageToken,
-                    ]);
-
-                    $fetchedItems = $records['items'] ?? [];
-                    $items = array_merge($items, $fetchedItems);
-                    $pageToken = $records['page_token'] ?? null;
-                    $hasMore = $records['has_more'] ?? false;
-                } while ($pageToken && $hasMore && count($items) < $limit);
-            } catch (\Throwable $e) {
-                return response()->json(['success' => false, 'message' => 'Failed to fetch records: ' . $this->enhanceErrorMessage($e->getMessage()) . ' (Line: ' . $e->getLine() . ')'], 500);
-            }
-
-            // Get all existing mappings for this table to filter the pulled items
-            $existingMappings = \App\Models\LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
-                ->where('leadsy_entity_type', 'lead')
-                ->pluck('lark_record_id')
-                ->flip(); // allows fast O(1) lookup using isset
-
-            foreach ($items as $record) {
-                $recordId = $record['record_id'] ?? null;
-                if (! $recordId) {
-                    $skipped++;
-                    $results[] = [
-                        'status' => 'skipped',
-                        'action' => 'skipped',
-                        'record_id' => null,
-                        'company_name' => null,
-                        'lead_id' => null,
-                        'reason' => 'Lark Base record is missing record_id.',
-                    ];
-
-                    continue;
-                }
-
-                // Skip records that do not have an existing mapping in Leadsy
-                if (!isset($existingMappings[$recordId])) {
-                    $skipped++;
-                    $results[] = [
-                        'status' => 'skipped',
-                        'action' => 'skipped',
-                        'record_id' => $recordId,
-                        'company_name' => null,
-                        'lead_id' => null,
-                        'reason' => 'Record not mapped to any Leadsy ID.',
-                    ];
-                    continue;
-                }
-
-                $attempted++;
-
-                try {
-                    $result = $service->syncRecordToLeadWithResult($baseTable, $recordId, $record);
-                    $lead = $result['lead'];
-                    $action = $result['action'];
-
-                    if ($lead) {
-                        $count++;
-                        if ($action === 'added') {
-                            $added++;
-                        } elseif ($action === 'updated') {
-                            $updated++;
-                        }
-                    } else {
-                        $skipped++;
-                    }
-
-                    $results[] = [
-                        'status' => $lead ? 'success' : 'skipped',
-                        'action' => $action,
-                        'record_id' => $recordId,
-                        'lead_id' => $result['lead_id'] ?? null,
-                        'company_name' => $lead?->company_name,
-                        'reason' => $result['reason'] ?? null,
-                    ];
-                } catch (\Exception $exception) {
-                    $enhancedMessage = $this->enhanceErrorMessage($exception->getMessage());
-                    $error = [
-                        'record_id' => $recordId,
-                        'message' => $enhancedMessage,
-                    ];
-                    $errors[] = $error;
-                    $results[] = [
-                        'status' => 'failed',
-                        'action' => 'failed',
-                        'record_id' => $recordId,
-                        'lead_id' => null,
-                        'company_name' => null,
-                        'reason' => $enhancedMessage,
-                    ];
-                }
-            }
+            
+            \App\Jobs\PullLarkBaseJob::dispatch($baseTable->id, $limit);
+            
+            // Return early for pull since it's processed in the background
+            return response()->json([
+                'success' => true,
+                'message' => 'Lark Base pull synchronization started in the background.',
+                'synced_count' => 0,
+                'attempted_count' => 0,
+                'skipped_count' => 0,
+                'added_count' => 0,
+                'updated_count' => 0,
+                'deleted_count' => 0,
+                'failed_count' => 0,
+                'error_count' => 0,
+                'errors' => [],
+                'results' => [],
+            ]);
         }
 
         return response()->json([

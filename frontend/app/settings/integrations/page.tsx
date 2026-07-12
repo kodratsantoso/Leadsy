@@ -175,6 +175,7 @@ type LarkBaseSyncResultItem = {
 
 type LarkBaseSyncResult = {
   success: boolean;
+  message?: string;
   synced_count: number;
   attempted_count: number;
   skipped_count: number;

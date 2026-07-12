@@ -30,7 +30,7 @@ type LarkBaseMapping = {
 };
 type LarkBaseSyncDirection = "push" | "pull";
 type LarkBaseSyncResultItem = { status: "success" | "skipped" | "failed"; action: "added" | "updated" | "deleted" | "skipped" | "failed"; lead_id?: number | string | null; record_id?: string | null; lark_record_id?: string | null; company_name?: string | null; reason?: string | null; };
-type LarkBaseSyncResult = { success: boolean; synced_count: number; attempted_count: number; skipped_count: number; added_count: number; updated_count: number; deleted_count: number; failed_count: number; error_count: number; errors?: { message?: string; company_name?: string; record_id?: string | null; lead_id?: number | string | null }[]; results?: LarkBaseSyncResultItem[]; };
+type LarkBaseSyncResult = { success: boolean; message?: string; synced_count: number; attempted_count: number; skipped_count: number; added_count: number; updated_count: number; deleted_count: number; failed_count: number; error_count: number; errors?: { message?: string; company_name?: string; record_id?: string | null; lead_id?: number | string | null }[]; results?: LarkBaseSyncResultItem[]; };
 type LarkBaseSyncDialogState = { open: boolean; status: "running" | "success" | "failed"; direction: LarkBaseSyncDirection; mappingName: string; result?: LarkBaseSyncResult; error?: string; };
 
 const LEADSY_LEAD_FIELDS = [
@@ -669,30 +669,41 @@ export default function LarkBaseSettingsPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-emerald-600">
                 <Check className="h-5 w-5" />
-                <span className="font-medium">Sync completed successfully</span>
+                <span className="font-medium">
+                  {baseSyncDialog.direction === "pull" ? "Sync started successfully" : "Sync completed successfully"}
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <div className="rounded-lg border p-3">
-                  <div className="text-2xl font-bold">{baseSyncDialog.result.synced_count}</div>
-                  <div className="text-xs text-muted-foreground">Synced</div>
+              
+              {baseSyncDialog.direction === "pull" ? (
+                <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+                  {baseSyncDialog.result.message || "Lark Base pull synchronization is running in the background. Your leads will be updated shortly."}
                 </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-2xl font-bold">{baseSyncDialog.result.added_count}</div>
-                  <div className="text-xs text-muted-foreground">Added</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-2xl font-bold">{baseSyncDialog.result.updated_count}</div>
-                  <div className="text-xs text-muted-foreground">Updated</div>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <div className="text-2xl font-bold">{baseSyncDialog.result.skipped_count}</div>
-                  <div className="text-xs text-muted-foreground">Skipped</div>
-                </div>
-              </div>
-              {baseSyncDialog.result.failed_count > 0 && (
-                <div className="rounded-lg bg-orange-500/10 p-3 text-sm text-orange-600">
-                  {baseSyncDialog.result.failed_count} records failed to sync. {baseSyncDialog.result.errors?.[0]?.message}
-                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div className="rounded-lg border p-3">
+                      <div className="text-2xl font-bold">{baseSyncDialog.result.synced_count}</div>
+                      <div className="text-xs text-muted-foreground">Synced</div>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="text-2xl font-bold">{baseSyncDialog.result.added_count}</div>
+                      <div className="text-xs text-muted-foreground">Added</div>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="text-2xl font-bold">{baseSyncDialog.result.updated_count}</div>
+                      <div className="text-xs text-muted-foreground">Updated</div>
+                    </div>
+                    <div className="rounded-lg border p-3">
+                      <div className="text-2xl font-bold">{baseSyncDialog.result.skipped_count}</div>
+                      <div className="text-xs text-muted-foreground">Skipped</div>
+                    </div>
+                  </div>
+                  {baseSyncDialog.result.failed_count > 0 && (
+                    <div className="rounded-lg bg-orange-500/10 p-3 text-sm text-orange-600">
+                      {baseSyncDialog.result.failed_count} records failed to sync. {baseSyncDialog.result.errors?.[0]?.message}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
