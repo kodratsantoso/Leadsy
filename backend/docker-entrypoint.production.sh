@@ -146,6 +146,11 @@ php artisan config:cache  || log "WARNING: config:cache failed (non-fatal)."
 php artisan route:cache   || log "WARNING: route:cache failed (non-fatal)."
 php artisan view:cache    || log "WARNING: view:cache failed (non-fatal)."
 
-# ── 10. Start server ──────────────────────────────────────────────────────────
-log "Starting Laravel server on 0.0.0.0:8000..."
-exec php artisan serve --host=0.0.0.0 --port=8000
+# ── 10. Start server or custom command ────────────────────────────────────────
+if [ "$#" -gt 0 ]; then
+    log "Running command: $*"
+    exec "$@"
+else
+    log "Starting Laravel server on 0.0.0.0:8000..."
+    exec php artisan serve --host=0.0.0.0 --port=8000
+fi

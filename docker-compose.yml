@@ -77,6 +77,39 @@ services:
       redis:
         condition: service_healthy
 
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: leadsy-worker
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: leads
+      DB_USERNAME: leads
+      DB_PASSWORD: leads
+      REDIS_HOST: redis
+      APP_URL: http://localhost:3001
+      FRONTEND_URL: http://localhost:3000
+      WHATSAPP_SIDECAR_URL: http://whatsapp-service:3002
+      WHATSAPP_SESSION_NAME: leads_platform_session
+      LARK_OPEN_API_BASE_URLS: https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis
+      LARK_ACCOUNTS_BASE_URL: https://accounts.larksuite.com
+      LARK_OAUTH_SCOPES: auth:user.id:read
+    volumes:
+      - ./backend:/var/www/html
+    networks:
+      - leadsy_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command: ["php", "artisan", "horizon"]
+
   frontend:
     build:
       context: ./frontend

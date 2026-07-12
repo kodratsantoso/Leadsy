@@ -111,6 +111,57 @@ services:
       - "traefik.http.services.leadsy-backend.loadbalancer.server.port=8000"
       - "traefik.http.routers.leadsy-backend.priority=100"
 
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.production
+    image: leadsy-backend:latest
+    container_name: leadsy-leads-worker
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://leadsy.virtuenet.space
+      FRONTEND_URL: https://leadsy.virtuenet.space
+      APP_KEY: "${APP_KEY}"
+      DB_CONNECTION: pgsql
+      DB_HOST: "leadsy-postgres-${COOLIFY_RESOURCE_UUID:-local}"
+      DB_PORT: 5432
+      DB_DATABASE: "${DB_DATABASE:-leads}"
+      DB_USERNAME: "${DB_USERNAME:-leads}"
+      DB_PASSWORD: "${DB_PASSWORD:-leads}"
+      REDIS_HOST: "leadsy-redis-${COOLIFY_RESOURCE_UUID:-local}"
+      REDIS_PORT: 6379
+      REDIS_CLIENT: predis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      WHATSAPP_SIDECAR_URL: "http://leadsy-whatsapp-${COOLIFY_RESOURCE_UUID:-local}:3002"
+      WHATSAPP_SESSION_NAME: leads_platform_session
+      LARK_OPEN_API_BASE_URLS: "${LARK_OPEN_API_BASE_URLS:-https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis}"
+      LARK_ACCOUNTS_BASE_URL: "${LARK_ACCOUNTS_BASE_URL:-https://accounts.larksuite.com}"
+      LARK_OAUTH_SCOPES: "${LARK_OAUTH_SCOPES:-auth:user.id:read}"
+      AUTO_MIGRATE: "false"
+      AUTO_SEED_BASELINE: "false"
+      SEED_DEMO_DATA: "false"
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@prasetia.com}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    volumes:
+      - backend_storage:/var/www/html/storage
+      - ./logs/worker:/var/www/html/storage/logs
+    networks:
+      coolify:
+        aliases:
+          - "leadsy-worker-${COOLIFY_RESOURCE_UUID:-local}"
+    command: ["php", "artisan", "horizon"]
+    restart: always
+    init: true
   frontend:
     build:
       context: ./frontend

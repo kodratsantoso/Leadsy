@@ -22,5 +22,9 @@ fi
 php artisan migrate --force
 php artisan db:seed --force || true
 
-# Boot the server
-exec php artisan serve --host=0.0.0.0 --port=8000
+# Boot the server or run custom command
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+else
+  exec php artisan serve --host=0.0.0.0 --port=8000
+fi
