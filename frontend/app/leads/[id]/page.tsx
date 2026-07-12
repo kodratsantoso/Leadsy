@@ -693,7 +693,6 @@ export default function LeadDetailPage() {
     timeline: '',
     competitor: '',
   });
-
   // Transcript state
   const [showTranscriptForm, setShowTranscriptForm] = useState(false);
   const [transcriptFeedback, setTranscriptFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -705,6 +704,7 @@ export default function LeadDetailPage() {
     recorded_at: '',
     transcript_text: '',
     transcript_file: null as File | null,
+    meeting_link: '',
     analyze_after_save: true,
   });
   const [evaluatingTranscriptId, setEvaluatingTranscriptId] = useState<number | null>(null);
@@ -1266,6 +1266,7 @@ export default function LeadDetailPage() {
             }
             if (recordedAt) formData.append('recorded_at', recordedAt);
             if (data.transcript_text) formData.append('transcript_text', data.transcript_text);
+            if (data.meeting_link) formData.append('meeting_link', data.meeting_link);
             formData.append('transcript_file', data.transcript_file);
             return formData;
           })(),
@@ -1293,7 +1294,7 @@ export default function LeadDetailPage() {
     onSuccess: (payload) => {
       refetchTranscripts();
       setShowTranscriptForm(false);
-      setTranscriptForm({ title: '', source_type: 'manual', activity_id: '', recorded_at: '', transcript_text: '', transcript_file: null, analyze_after_save: true });
+      setTranscriptForm({ title: '', source_type: 'manual', activity_id: '', recorded_at: '', transcript_text: '', transcript_file: null, meeting_link: '', analyze_after_save: true });
       setTranscriptFeedback({ type: 'success', msg: 'Transcript saved successfully.' });
       if (transcriptForm.analyze_after_save && payload?.data?.id && payload?.data?.transcript_text?.trim()) {
         setEvaluatingTranscriptId(payload.data.id);
@@ -3310,41 +3311,52 @@ export default function LeadDetailPage() {
                     Format: DD/MM/YYYY, HH:mm. Kosongkan untuk memakai waktu saat disimpan.
                   </p>
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Transcript File</label>
-                  <Input
-                    type="file"
-                    accept=".txt,.vtt,.srt,audio/*,video/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] ?? null;
-                      setTranscriptForm((f) => ({
-                        ...f,
-                        transcript_file: file,
-                        source_type: file?.type.startsWith('audio/')
-                          ? 'audio'
-                          : file?.type.startsWith('video/')
-                            ? 'video'
-                            : file
-                              ? 'file'
-                              : f.source_type,
-                      }));
-                    }}
+                {['video', 'audio', 'transcript'].includes(transcriptForm.source_type) && (
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">File</label>
+                    <Input
+                      type="file"
+                      accept=".txt,.vtt,.srt,audio/*,video/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        setTranscriptForm((f) => ({
+                          ...f,
+                          transcript_file: file,
+                          source_type: file?.type.startsWith('audio/')
+                            ? 'audio'
+                            : file?.type.startsWith('video/')
+                              ? 'video'
+                              : file
+                                ? 'transcript'
+                                : f.source_type,
+                        }));
+                      }}
+                    />
+                  </div>
+                )}
+                {transcriptForm.source_type === 'link' && (
+                  <div className="sm:col-span-2">
+                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Minutes / Meeting Link</label>
+                    <Input
+                      value={transcriptForm.meeting_link}
+                      onChange={(e) => setTranscriptForm((f) => ({ ...f, meeting_link: e.target.value }))}
+                      placeholder="https://..."
+                    />
+                  </div>
+                )}
+              </div>
+              {transcriptForm.source_type === 'manual' && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Transcript Text / Notes</label>
+                  <textarea
+                    value={transcriptForm.transcript_text}
+                    onChange={(e) => setTranscriptForm((f) => ({ ...f, transcript_text: e.target.value }))}
+                    rows={8}
+                    placeholder="Paste your meeting notes, call transcript, or conversation here..."
+                    className="min-h-[160px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
                   />
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    TXT/VTT/SRT akan dibaca sebagai teks. Audio/video disimpan sebagai referensi; paste transkrip atau catatan agar AI bisa menganalisis isi meeting.
-                  </p>
                 </div>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Transcript Text / Notes</label>
-                <textarea
-                  value={transcriptForm.transcript_text}
-                  onChange={(e) => setTranscriptForm((f) => ({ ...f, transcript_text: e.target.value }))}
-                  rows={8}
-                  placeholder="Paste your meeting notes, call transcript, or conversation here..."
-                  className="min-h-[160px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
-                />
-              </div>
+              )}
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <input
                   type="checkbox"
@@ -3358,7 +3370,13 @@ export default function LeadDetailPage() {
                 <Button variant="outline" onClick={() => setShowTranscriptForm(false)}>Cancel</Button>
                 <Button
                   onClick={() => storeTranscriptMutation.mutate(transcriptForm)}
-                  disabled={storeTranscriptMutation.isPending || (!transcriptForm.transcript_text.trim() && !transcriptForm.transcript_file)}
+                  disabled={storeTranscriptMutation.isPending || (
+                    transcriptForm.source_type === 'manual' && !transcriptForm.transcript_text.trim()
+                  ) || (
+                    ['video', 'audio', 'transcript'].includes(transcriptForm.source_type) && !transcriptForm.transcript_file
+                  ) || (
+                    transcriptForm.source_type === 'link' && !transcriptForm.meeting_link.trim()
+                  )}
                 >
                   {storeTranscriptMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   Save Transcript

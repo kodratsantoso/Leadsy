@@ -33,7 +33,7 @@ export function EditLeadModal({
     company_size_estimate: '', business_category_id: '', product_id: '',
     estimated_closing_amount: '', realized_closing_amount: '',
     source_type: '', channel_type_id: '', funnel_stage_id: '',
-    qualification_status: '', parent_lead_id: '', meeting_link: '',
+    qualification_status: '', parent_lead_id: '',
     owner_id: '', presales_owner_id: '', am_owner_id: '', csm_owner_id: ''
   });
 
@@ -78,7 +78,6 @@ export function EditLeadModal({
         funnel_stage_id: lead.funnel_stage_id?.toString() || '',
         qualification_status: lead.qualification_status || 'pending',
         parent_lead_id: lead.parent_lead_id?.toString() || '',
-        meeting_link: lead.meeting_link || '',
         owner_id: lead.owner_id?.toString() || '',
         presales_owner_id: lead.presales_owner_id?.toString() || '',
         am_owner_id: lead.am_owner_id?.toString() || '',
@@ -200,7 +199,6 @@ export function EditLeadModal({
       funnel_stage_id: companyForm.funnel_stage_id ? Number(companyForm.funnel_stage_id) : null,
       qualification_status: companyForm.qualification_status || null,
       parent_lead_id: companyForm.parent_lead_id ? Number(companyForm.parent_lead_id) : null,
-      meeting_link: companyForm.meeting_link.trim() || null,
       owner_id: companyForm.owner_id ? Number(companyForm.owner_id) : null,
       presales_owner_id: companyForm.presales_owner_id ? Number(companyForm.presales_owner_id) : null,
       am_owner_id: companyForm.am_owner_id ? Number(companyForm.am_owner_id) : null,
@@ -606,15 +604,6 @@ export function EditLeadModal({
                   ))}
                   <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
                 </Select>
-              </div>
-              
-              <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Meeting Link (Lark)</label>
-                <Input
-                  value={companyForm.meeting_link}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, meeting_link: e.target.value }))}
-                  placeholder="https://vc.larksuite.com/minutes/..."
-                />
               </div>
             </div>
           </div>
