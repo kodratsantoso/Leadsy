@@ -640,6 +640,12 @@ class LarkController extends Controller
                 return response()->json(['success' => false, 'message' => 'Failed to fetch records: ' . $this->enhanceErrorMessage($e->getMessage()) . ' (Line: ' . $e->getLine() . ')'], 500);
             }
 
+            // Get all existing mappings for this table to filter the pulled items
+            $existingMappings = \App\Models\LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
+                ->where('leadsy_entity_type', 'lead')
+                ->pluck('lark_record_id')
+                ->flip(); // allows fast O(1) lookup using isset
+
             foreach ($items as $record) {
                 $recordId = $record['record_id'] ?? null;
                 if (! $recordId) {
@@ -653,6 +659,20 @@ class LarkController extends Controller
                         'reason' => 'Lark Base record is missing record_id.',
                     ];
 
+                    continue;
+                }
+
+                // Skip records that do not have an existing mapping in Leadsy
+                if (!isset($existingMappings[$recordId])) {
+                    $skipped++;
+                    $results[] = [
+                        'status' => 'skipped',
+                        'action' => 'skipped',
+                        'record_id' => $recordId,
+                        'company_name' => null,
+                        'lead_id' => null,
+                        'reason' => 'Record not mapped to any Leadsy ID.',
+                    ];
                     continue;
                 }
 
