@@ -1,6 +1,5 @@
-import { EditLeadModal } from "@/components/leads/EditLeadModal";
-
 'use client';
+import { EditLeadModal } from "@/components/leads/EditLeadModal";
 
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
