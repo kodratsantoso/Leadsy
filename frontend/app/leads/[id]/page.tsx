@@ -1547,12 +1547,11 @@ export default function LeadDetailPage() {
 
   const TRANSCRIPT_SOURCES: Record<string, string> = {
     manual:   'Manual / Copy-Paste',
-    meeting:  'Meeting Transcript',
-    call:     'Call Recording',
+    link:     'Link',
     whatsapp: 'WhatsApp Conversation',
     audio:    'Audio File',
     video:    'Video File',
-    file:     'Transcript File',
+    transcript: 'Transcript File',
   };
 
   const leadInitialScore = Number(latestScore?.score ?? leadData.lead_score ?? 0);
