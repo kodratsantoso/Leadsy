@@ -743,6 +743,8 @@ class LeadController extends Controller
             'activity_type' => $data['activity_type'],
         ]);
 
+        \App\Jobs\RunLeadIntelligenceJob::dispatch($lead->id);
+
         return response()->json(['data' => $activity->load('user')], 201);
     }
 
@@ -1287,6 +1289,8 @@ class LeadController extends Controller
         ]);
         $activity->update($data);
         AuditService::log('update_activity', 'lead_activities', $activity, $activity->toArray());
+
+        \App\Jobs\RunLeadIntelligenceJob::dispatch($lead->id);
 
         return response()->json(['data' => $activity->load('user')]);
     }
