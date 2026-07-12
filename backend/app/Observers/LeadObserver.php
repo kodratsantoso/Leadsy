@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Jobs\TriggerLarkAction;
+use App\Jobs\ProcessLarkMinutesLinkJob;
 use App\Models\LarkIntegration;
 use App\Models\Lead;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +29,11 @@ class LeadObserver
 
         if ($lead->wasChanged(['estimated_closing_amount', 'funnel_stage_id'])) {
             $this->triggerConfidentialityAssessment($lead);
+        }
+
+        // Trigger Lark Minutes fetch & AI processing if meeting link is added/updated
+        if ($lead->wasChanged('meeting_link') && !empty($lead->meeting_link)) {
+            ProcessLarkMinutesLinkJob::dispatch((string) $lead->id, $lead->meeting_link);
         }
 
         // Trigger Lark Base Sync on ANY change to the lead data
