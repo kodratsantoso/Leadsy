@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input, Textarea } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs } from '@/components/ui/tabs';
@@ -120,28 +120,28 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
             
             <div>
               <label className="text-sm font-medium mb-1.5 block">Initial Needs / Stated Problem</label>
-              <Input placeholder="What did the customer state they need?" value={form.initial_needs} onChange={e => setForm(f => ({ ...f, initial_needs: e.target.value }))} />
+              <Textarea placeholder="What did the customer state they need?" value={form.initial_needs} onChange={e => setForm(f => ({ ...f, initial_needs: e.target.value }))} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Customer Objective</label>
-                <Input placeholder="What are they trying to achieve?" value={form.customer_objective} onChange={e => setForm(f => ({ ...f, customer_objective: e.target.value }))} />
+                <Textarea placeholder="What are they trying to achieve?" value={form.customer_objective} onChange={e => setForm(f => ({ ...f, customer_objective: e.target.value }))} />
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Demo Expectation</label>
-                <Input placeholder="What do they expect to see?" value={form.demo_expectation} onChange={e => setForm(f => ({ ...f, demo_expectation: e.target.value }))} />
+                <Textarea placeholder="What do they expect to see?" value={form.demo_expectation} onChange={e => setForm(f => ({ ...f, demo_expectation: e.target.value }))} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Known Pain Points</label>
-                <Input placeholder="Current operational challenge" value={form.pain_point} onChange={e => setForm(f => ({ ...f, pain_point: e.target.value }))} />
+                <Textarea placeholder="Current operational challenge" value={form.pain_point} onChange={e => setForm(f => ({ ...f, pain_point: e.target.value }))} />
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">KPI / Business Target</label>
-                <Input placeholder="Metrics they care about" value={form.kpi_target} onChange={e => setForm(f => ({ ...f, kpi_target: e.target.value }))} />
+                <Textarea placeholder="Metrics they care about" value={form.kpi_target} onChange={e => setForm(f => ({ ...f, kpi_target: e.target.value }))} />
               </div>
             </div>
 
