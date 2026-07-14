@@ -20,6 +20,7 @@ class AIRoutingService
         'conversation_evaluation' => 'Conversation Evaluation',
         'transcript_evaluation' => 'Transcript Evaluation',
         'activity_transcript_analysis' => 'Activity Transcript Analysis',
+        'meeting_summary_generation' => 'Meeting Summary Generation',
         'next_action_recommendation' => 'Next Action Recommendation',
         'recommendation_engine' => 'Recommendation Engine',
         'summary_generation' => 'Summary Generation',
@@ -46,7 +47,7 @@ class AIRoutingService
     public function listRoutes(): Collection
     {
         return AiFeatureRoute::with(['aiModel.provider'])
-            ->where('feature_name', 'global')
+            ->whereIn('feature_name', ['global', 'meeting_summary_generation'])
             ->orderBy('priority')
             ->get();
     }

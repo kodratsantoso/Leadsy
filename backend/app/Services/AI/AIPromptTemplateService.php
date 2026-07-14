@@ -318,6 +318,48 @@ class AIPromptTemplateService
                 'You will receive compiled Lead Context, Timeline Events, Meeting Intelligence, and Product Fit data. Combine these into a professional enterprise-toned consulting-style narrative. Explain why the customer came in, what problem they had, how the solution fits, and their current status. Do not use robotic repetition, internal debug language, or raw JSON keys in your narrative text.',
                 'Return ONLY valid JSON with exactly one key: `story` (string). Do not return markdown, do not wrap in codeblocks.'
             ),
+            'meeting_summary_general_prompt' => $this->featureTemplate(
+                'Meeting Summary (General)',
+                'Generate the base general meeting summary sections for any B2B customer interaction.',
+                'Focus on extracting the Executive Summary, Key Discussion Points, Customer Needs/Pain Points, Decision/Agreement, Action Items, Risks/Concerns, Next Step, and Missing Information.',
+                'Return a JSON object with: executive_summary (string), key_discussion_points (array of strings), customer_needs_pain_points (array of strings), decision_agreement (array of strings), action_items (array of strings), risks_concerns (array of strings), next_step (array of strings), missing_information (array of strings).'
+            ),
+            'meeting_summary_discovery_prompt' => $this->featureTemplate(
+                'Meeting Summary (Discovery)',
+                'Extract discovery-specific qualification insights, problem validation details, current processes, business needs, and decision readiness.',
+                'Specifically validation of pain points, details of customer current processes, qualifications (BANTC), stakeholder insights, urgency signals, qualification results, and recommended next steps.',
+                'Return a JSON object containing keys: customer_background (string), current_process (string), pain_point_validation (string), bantc (object with keys: budget, authority, needs, timeline, competitor), stakeholder_decision_maker_insight (string), urgency_signal (string), qualification_result (string), recommended_next_step (string).'
+            ),
+            'meeting_summary_demo_prompt' => $this->featureTemplate(
+                'Meeting Summary (Demo)',
+                'Extract demo objectives, demonstrated features, customer reactions, relevant use cases, product fit analysis, gap/concerns, demo outcomes, and recommended follow-up actions.',
+                'Focus heavily on product fit, customer reactions to demo features, gaps identified, and follow-up activities.',
+                'Return a JSON object containing keys: demo_objective (string), products_features_demonstrated (array of strings), customer_reaction (string), relevant_use_cases (array of strings), product_fit_analysis (string), feature_interest (array of strings), gaps_concerns (array of strings), demo_outcome (string), recommended_follow_up_action (string).'
+            ),
+            'meeting_summary_follow_up_prompt' => $this->featureTemplate(
+                'Meeting Summary (Follow-up)',
+                'Extract follow-up progress, recaps, updated requirements, blockers, feedback, pending actions, decision changes, and recommended next steps.',
+                'Focus on tracking progress against past commitments, blockers, and feedback.',
+                'Return a JSON object containing keys: previous_meeting_recap (string), progress_update (string), updated_requirement (string), open_blockers (array of strings), customer_feedback (string), pending_action_items (array of strings), decision_changes (array of strings), recommended_next_step (string).'
+            ),
+            'meeting_summary_proposal_discussion_prompt' => $this->featureTemplate(
+                'Meeting Summary (Proposal Discussion)',
+                'Extract proposed scope, pricing/packaging details, commercial objections, scope concerns, approval processes, legal considerations, proposal risks, required revisions, and recommended closing strategies.',
+                'Focus on commercial terms, negotiation details, pricing discussions, and legal/procurement next steps.',
+                'Return a JSON object containing keys: proposed_scope (string), pricing_package_discussion (string), commercial_objection (array of strings), scope_concern (array of strings), approval_process (string), procurement_legal_consideration (string), proposal_risk (array of strings), required_revision (array of strings), recommended_closing_strategy (string).'
+            ),
+            'meeting_summary_closing_discussion_prompt' => $this->featureTemplate(
+                'Meeting Summary (Closing Discussion)',
+                'Extract closing status, final decision signals, remaining blockers, legal/procurement status, commercial agreements, expected closing timelines, required internal actions, deal risks, and next steps to contract/sales order.',
+                'Focus on contract completion steps, closing timeline commitments, final blockers, and legal signing status.',
+                'Return a JSON object containing keys: closing_status (string), final_decision_signal (string), remaining_blockers (array of strings), legal_procurement_status (string), commercial_agreement (string), expected_closing_timeline (string), required_internal_action (array of strings), deal_risk (array of strings), next_step_to_contract_sales_order (string).'
+            ),
+            'meeting_summary_handover_csm_prompt' => $this->featureTemplate(
+                'Meeting Summary (Handover to CSM)',
+                'Extract post-sales transition scope, customer expectations, key stakeholders, success criteria, implementation notes, adoption risks, pending sales commitments, CSM attention points, and recommended onboarding actions.',
+                'Focus on transition details, implementation roadmap, onboarding plans, adoption risks, and CSM priority tasks.',
+                'Return a JSON object containing keys: agreed_scope (string), customer_expectation (string), key_stakeholders (array of strings), success_criteria (string), implementation_notes (string), adoption_risk (array of strings), pending_sales_commitment (array of strings), csm_attention_points (array of strings), recommended_onboarding_action (string).'
+            ),
         ];
     }
 

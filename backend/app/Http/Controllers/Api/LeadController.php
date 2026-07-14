@@ -1446,6 +1446,7 @@ class LeadController extends Controller
             'transcript_file' => 'nullable|file|max:51200|mimes:txt,vtt,srt,mp3,wav,m4a,mp4,mov,webm',
             'source_id' => 'nullable|integer',
             'recorded_at' => 'nullable|date',
+            'meeting_type' => 'nullable|string|max:100',
         ]);
 
         if (! empty($data['activity_id']) && ! $lead->activities()->whereKey($data['activity_id'])->exists()) {
@@ -1490,6 +1491,7 @@ class LeadController extends Controller
             'file_size' => $fileSize,
             'recorded_at' => $data['recorded_at'] ?? now(),
             'evaluation_status' => 'pending',
+            'meeting_type' => $data['meeting_type'] ?? 'General',
         ]);
 
         AuditService::log('create_transcript', 'lead_transcripts', $transcript, null, [
@@ -1507,6 +1509,31 @@ class LeadController extends Controller
         }
 
         return response()->json(['data' => $transcript->load('activity:id,activity_type,activity_date,description')], 201);
+    }
+
+    /** PUT /api/leads/{lead}/transcripts/{transcript} */
+    public function updateTranscript(Request $request, Lead $lead, $transcriptId): JsonResponse
+    {
+        $transcript = $lead->transcripts()->findOrFail($transcriptId);
+
+        $data = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'recorded_at' => 'nullable|date',
+            'meeting_type' => 'nullable|string|max:100',
+            'transcript_text' => 'nullable|string',
+        ]);
+
+        $updateData = [];
+        if (array_key_exists('title', $data)) $updateData['title'] = $data['title'];
+        if (array_key_exists('recorded_at', $data)) $updateData['recorded_at'] = $data['recorded_at'] ? Carbon::parse($data['recorded_at']) : null;
+        if (array_key_exists('meeting_type', $data)) $updateData['meeting_type'] = $data['meeting_type'];
+        if (array_key_exists('transcript_text', $data)) $updateData['transcript_text'] = $data['transcript_text'];
+
+        $transcript->update($updateData);
+
+        AuditService::log('update_transcript', 'lead_transcripts', $transcript, null, $updateData);
+
+        return response()->json(['data' => $transcript]);
     }
 
     /** POST /api/leads/{lead}/transcripts/fetch-link */

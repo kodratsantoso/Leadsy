@@ -83,69 +83,14 @@ class LeadEvaluationService
      */
     public function evaluateTranscript(Lead $lead, LeadTranscript $transcript): LeadAiEvaluation
     {
-        $prompt = $this->buildTranscriptEvaluationPrompt($lead, $transcript);
-        $result = $this->ai->call('transcript_evaluation', $prompt);
+        $summaryService = app(\App\Services\Sales\MeetingSummaryGenerationService::class);
+        $summaryService->generate($transcript);
 
-        if ($result['success'] && $result['content']) {
-            $evaluation = $this->parseJson($result['content']) ?: $this->defaultEvaluation();
-        } else {
-            $evaluation = $this->defaultEvaluation();
-        }
-
-        // Persist evaluation
-        $aiEvaluation = $lead->aiEvaluations()->create([
-            'source_type' => LeadTranscript::class,
-            'source_id' => $transcript->id,
-            'sentiment' => $evaluation['sentiment'] ?? 'neutral',
-            'intent_level' => $evaluation['intent_level'] ?? 'low',
-            'interest_level' => $evaluation['interest_level'] ?? 'medium',
-            'summary' => $this->stringValue($evaluation['summary'] ?? null),
-            'objections_detected' => $evaluation['objections'] ?? [],
-            'buying_signals' => $evaluation['buying_signals'] ?? [],
-            'bantc_extracted' => $evaluation['bantc_extracted'] ?? null,
-            'eligibility_reason' => $this->stringValue($evaluation['eligibility_reason'] ?? null),
-            'presales_analysis' => $this->stringValue($evaluation['presales_analysis'] ?? null),
-            'presales_recommendation' => $this->stringValue($evaluation['presales_recommendation'] ?? null),
-            'estimated_closing_date' => $this->stringValue($evaluation['estimated_closing_date'] ?? null),
-            'next_best_action' => $evaluation['next_best_action'] ?? 'Schedule follow-up',
-            'recommended_product_id' => $evaluation['recommended_product_id'] ?? null,
-            'confidence_score' => (int) ($evaluation['confidence'] ?? 50),
-            'evaluated_at' => Carbon::now(),
-        ]);
-
-        // Mark transcript as evaluated
-        $transcript->update(['evaluation_status' => 'evaluated']);
-
-        // Save BANTC to Lead Activity to ensure it is visible in CRM timeline and synced to Lark Base
-        if (!empty($evaluation['bantc_extracted']) && is_array($evaluation['bantc_extracted'])) {
-            $budget = $evaluation['bantc_extracted']['budget'] ?? null;
-            $authority = $evaluation['bantc_extracted']['authority'] ?? null;
-            $needs = $evaluation['bantc_extracted']['needs'] ?? null;
-            $timeline = $evaluation['bantc_extracted']['timeline'] ?? null;
-            $competitor = $evaluation['bantc_extracted']['competitor'] ?? null;
-
-            $lead->activities()->create([
-                'activity_type' => 'Meeting Analysis',
-                'description' => 'AI extracted BANTC from meeting transcript. Summary: ' . $this->stringValue($evaluation['summary'] ?? 'Meeting evaluated.'),
-                'budget' => $budget,
-                'authority' => $authority,
-                'needs' => $needs,
-                'timeline' => $timeline,
-                'competitor' => $competitor,
-                'activity_date' => now(),
-            ]);
-
-            // Update the lead's current BANT-C state
-            $lead->update([
-                'budget' => $budget ?? $lead->budget,
-                'authority' => $authority ?? $lead->authority,
-                'needs' => $needs ?? $lead->needs,
-                'timeline' => $timeline ?? $lead->timeline,
-                'competitor' => $competitor ?? $lead->competitor,
-            ]);
-        }
-
-        return $aiEvaluation;
+        return $lead->aiEvaluations()
+            ->where('source_type', LeadTranscript::class)
+            ->where('source_id', $transcript->id)
+            ->latest()
+            ->first();
     }
 
     /**

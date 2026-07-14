@@ -307,20 +307,22 @@ export default function AiDefaultsPage() {
     setRouteDrafts(() => {
       const next: RouteDraftState = {};
 
-      const existing = featureRoutes.find((item) => item.feature_name === "global")?.routes ?? [];
-      next["global"] = Array.from({ length: 10 }, (_, index) => {
-        const route = existing.find((item) => item.priority === index + 1);
-        return {
-          priority: index + 1,
-          ai_model_id: route?.ai_model_id ? String(route.ai_model_id) : "",
-          timeout_seconds: String(route?.timeout_seconds ?? 30),
-          max_retries: String(route?.max_retries ?? 1),
-          cache_ttl_minutes: route?.cache_ttl_minutes ? String(route.cache_ttl_minutes) : "",
-          max_tokens: route?.max_tokens ? String(route.max_tokens) : "",
-          complexity_mode: route?.complexity_mode ?? "standard",
-          cost_sensitivity: route?.cost_sensitivity ?? "balanced",
-          is_active: route?.is_active ?? true,
-        };
+      ["global", "meeting_summary_generation"].forEach((feat) => {
+        const existing = featureRoutes.find((item) => item.feature_name === feat)?.routes ?? [];
+        next[feat] = Array.from({ length: 10 }, (_, index) => {
+          const route = existing.find((item) => item.priority === index + 1);
+          return {
+            priority: index + 1,
+            ai_model_id: route?.ai_model_id ? String(route.ai_model_id) : "",
+            timeout_seconds: String(route?.timeout_seconds ?? 30),
+            max_retries: String(route?.max_retries ?? 1),
+            cache_ttl_minutes: route?.cache_ttl_minutes ? String(route.cache_ttl_minutes) : "",
+            max_tokens: route?.max_tokens ? String(route.max_tokens) : "",
+            complexity_mode: route?.complexity_mode ?? "standard",
+            cost_sensitivity: route?.cost_sensitivity ?? "balanced",
+            is_active: route?.is_active ?? true,
+          };
+        });
       });
 
       return next;
@@ -867,32 +869,37 @@ export default function AiDefaultsPage() {
       )}
 
       {tab === "routing" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <div>
                 <CardTitle>Feature Routing</CardTitle>
                 <CardDescription>
-                  Configure up to 10 ordered providers and models for all AI features. Only one executes per request, and lower priorities run only on failure.
+                  Configure up to 10 ordered providers and models for AI features. Feature-specific routing overrides the global routing settings.
                 </CardDescription>
               </div>
             </CardHeader>
           </Card>
 
-          {(() => {
-            const draft = routeDrafts["global"] ?? [];
+          {["global", "meeting_summary_generation"].map((featName) => {
+            const draft = routeDrafts[featName] ?? [];
+            const isGlobal = featName === "global";
             return (
-              <Card>
+              <Card key={featName}>
                 <CardContent className="p-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">Global AI Routing</h3>
-                    <p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">Applies to all AI features</p>
+                    <h3 className="text-lg font-semibold">
+                      {isGlobal ? "Global AI Routing" : "Meeting Summary Generation Routing"}
+                    </h3>
+                    <p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                      {isGlobal ? "Applies to all AI features by default" : "Overrides global routing for meeting summaries"}
+                    </p>
                   </div>
                   <Button
-                    onClick={() => saveRoutesMutation.mutate({ featureName: "global", routes: draft })}
+                    onClick={() => saveRoutesMutation.mutate({ featureName: featName, routes: draft })}
                   >
-                    {saveRoutesMutation.isPending && saveRoutesMutation.variables?.featureName === "global" ? (
+                    {saveRoutesMutation.isPending && saveRoutesMutation.variables?.featureName === featName ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Save className="h-4 w-4" />
@@ -903,22 +910,22 @@ export default function AiDefaultsPage() {
 
                 <div className="mt-4 grid gap-4">
                   {draft.map((route) => (
-                    <div key={`global-${route.priority}`} className="grid gap-3 rounded-2xl border border-border bg-background/80 p-4 lg:grid-cols-[90px_1.2fr_repeat(5,140px)_110px]">
+                    <div key={`${featName}-${route.priority}`} className="grid gap-3 rounded-2xl border border-border bg-background/80 p-4 lg:grid-cols-[90px_1.2fr_repeat(5,140px)_110px]">
                       <div className="rounded-2xl bg-muted px-3 py-2 text-center">
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Priority</p>
                         <p className="mt-1 text-xl font-semibold">{route.priority}</p>
                       </div>
-                      <Select value={route.ai_model_id} onChange={(e) => updateRouteDraft("global", route.priority, "ai_model_id", e.target.value)}>
+                      <Select value={route.ai_model_id} onChange={(e) => updateRouteDraft(featName, route.priority, "ai_model_id", e.target.value)}>
                         <option value="">Unassigned</option>
                         {modelOptions.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </Select>
-                      <Input value={route.timeout_seconds} onChange={(e) => updateRouteDraft("global", route.priority, "timeout_seconds", e.target.value)} placeholder="Timeout" />
-                      <Input value={route.max_retries} onChange={(e) => updateRouteDraft("global", route.priority, "max_retries", e.target.value)} placeholder="Retry" />
-                      <Input value={route.cache_ttl_minutes} onChange={(e) => updateRouteDraft("global", route.priority, "cache_ttl_minutes", e.target.value)} placeholder="Cache TTL" />
-                      <Input value={route.max_tokens} onChange={(e) => updateRouteDraft("global", route.priority, "max_tokens", e.target.value)} placeholder="Max tokens" />
-                      <Select value={route.complexity_mode} onChange={(e) => updateRouteDraft("global", route.priority, "complexity_mode", e.target.value)}>
+                      <Input value={route.timeout_seconds} onChange={(e) => updateRouteDraft(featName, route.priority, "timeout_seconds", e.target.value)} placeholder="Timeout" />
+                      <Input value={route.max_retries} onChange={(e) => updateRouteDraft(featName, route.priority, "max_retries", e.target.value)} placeholder="Retry" />
+                      <Input value={route.cache_ttl_minutes} onChange={(e) => updateRouteDraft(featName, route.priority, "cache_ttl_minutes", e.target.value)} placeholder="Cache TTL" />
+                      <Input value={route.max_tokens} onChange={(e) => updateRouteDraft(featName, route.priority, "max_tokens", e.target.value)} placeholder="Max tokens" />
+                      <Select value={route.complexity_mode} onChange={(e) => updateRouteDraft(featName, route.priority, "complexity_mode", e.target.value)}>
                         <option value="standard">Standard</option>
                         <option value="lightweight">Lightweight</option>
                         <option value="deep_reasoning">Deep reasoning</option>
@@ -927,7 +934,7 @@ export default function AiDefaultsPage() {
                         <input
                           type="checkbox"
                           checked={route.is_active}
-                          onChange={(e) => updateRouteDraft("global", route.priority, "is_active", e.target.checked)}
+                          onChange={(e) => updateRouteDraft(featName, route.priority, "is_active", e.target.checked)}
                         />
                         Enabled
                       </label>
@@ -937,7 +944,7 @@ export default function AiDefaultsPage() {
                 </CardContent>
               </Card>
             );
-          })()}
+          })}
         </div>
       )}
 

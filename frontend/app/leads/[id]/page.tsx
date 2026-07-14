@@ -706,6 +706,7 @@ export default function LeadDetailPage() {
     transcript_file: null as File | null,
     meeting_link: '',
     analyze_after_save: true,
+    meeting_type: 'General',
   });
   const [evaluatingTranscriptId, setEvaluatingTranscriptId] = useState<number | null>(null);
   const [expandedEvalId, setExpandedEvalId]       = useState<number | null>(null);
@@ -1260,9 +1261,10 @@ export default function LeadDetailPage() {
             formData.append('source_type', data.source_type);
             if (data.title) formData.append('title', data.title);
             if (data.activity_id) formData.append('activity_id', data.activity_id);
+            if (data.meeting_type) formData.append('meeting_type', data.meeting_type);
             const recordedAt = toApiDateTime(data.recorded_at);
             if (data.recorded_at && !recordedAt) {
-              throw new Error('Recorded At harus memakai format DD/MM/YYYY, HH:mm. Contoh: 21/05/2026, 17:37');
+               throw new Error('Recorded At harus memakai format DD/MM/YYYY, HH:mm. Contoh: 21/05/2026, 17:37');
             }
             if (recordedAt) formData.append('recorded_at', recordedAt);
             if (data.transcript_text) formData.append('transcript_text', data.transcript_text);
@@ -1294,7 +1296,7 @@ export default function LeadDetailPage() {
     onSuccess: (payload) => {
       refetchTranscripts();
       setShowTranscriptForm(false);
-      setTranscriptForm({ title: '', source_type: 'manual', activity_id: '', recorded_at: '', transcript_text: '', transcript_file: null, meeting_link: '', analyze_after_save: true });
+      setTranscriptForm({ title: '', source_type: 'manual', activity_id: '', recorded_at: '', transcript_text: '', transcript_file: null, meeting_link: '', analyze_after_save: true, meeting_type: 'General' });
       setTranscriptFeedback({ type: 'success', msg: 'Transcript saved successfully.' });
       if (transcriptForm.analyze_after_save && payload?.data?.id && payload?.data?.transcript_text?.trim()) {
         setEvaluatingTranscriptId(payload.data.id);
@@ -3273,6 +3275,21 @@ export default function LeadDetailPage() {
                   />
                 </div>
                 <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Meeting Type</label>
+                  <Select
+                    value={transcriptForm.meeting_type}
+                    onChange={(e) => setTranscriptForm((f) => ({ ...f, meeting_type: e.target.value }))}
+                  >
+                    <option value="General">General</option>
+                    <option value="Discovery">Discovery</option>
+                    <option value="Demo">Demo</option>
+                    <option value="Follow-up">Follow-up</option>
+                    <option value="Proposal Discussion">Proposal Discussion</option>
+                    <option value="Closing Discussion">Closing Discussion</option>
+                    <option value="Handover to CSM">Handover to CSM</option>
+                  </Select>
+                </div>
+                <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Related Activity</label>
                   <Select
                     value={transcriptForm.activity_id}
@@ -3405,6 +3422,14 @@ export default function LeadDetailPage() {
                       <div className="space-y-1">
                         {tr.title && <p className="text-sm font-semibold">{tr.title}</p>}
                         <div className="flex items-center gap-2 flex-wrap">
+                          {tr.meeting_type && (
+                            <Badge variant="info">{tr.meeting_type}</Badge>
+                          )}
+                          {tr.meeting_type && !['discovery', 'demo', 'follow-up', 'proposal discussion', 'closing discussion', 'handover to csm'].includes(tr.meeting_type.toLowerCase()) && (
+                            <Badge variant="warning" className="text-xs">
+                              ⚠️ Unsupported: using General
+                            </Badge>
+                          )}
                           <Badge variant="neutral">{TRANSCRIPT_SOURCES[tr.source_type] ?? tr.source_type}</Badge>
                           <Badge variant={tr.evaluation_status === 'evaluated' ? 'success' : 'warning'}>
                             {tr.evaluation_status}
@@ -3507,10 +3532,67 @@ export default function LeadDetailPage() {
                           ))}
                         </div>
 
-                        {evaluation.summary && (
+                        {evaluation.summary && !tr.general_sections_json && (
                           <div className="rounded-lg border border-border bg-card p-3">
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Meeting Summary</p>
                             <p className="whitespace-pre-wrap text-sm text-muted-foreground">{typeof evaluation.summary === 'object' ? JSON.stringify(evaluation.summary) : String(evaluation.summary)}</p>
+                          </div>
+                        )}
+
+                        {tr.general_sections_json && (
+                          <div className="space-y-3">
+                            {Object.entries(tr.general_sections_json).map(([key, val]) => {
+                              if (!val || (Array.isArray(val) && val.length === 0) || val === "Not available") return null;
+                              return (
+                                <div key={key} className="rounded-lg border border-border bg-card p-3">
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                                    {key.replace(/_/g, ' ')}
+                                  </p>
+                                  <div className="text-sm text-muted-foreground">
+                                    {Array.isArray(val) ? (
+                                      <ul className="list-disc pl-4 space-y-1">
+                                        {val.map((item: any, idx: number) => (
+                                          <li key={idx}>{String(item)}</li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="whitespace-pre-wrap">{String(val)}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {tr.meeting_type_sections_json && Object.keys(tr.meeting_type_sections_json).length > 0 && (
+                          <div className="rounded-lg border border-[var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_5%,transparent)] p-3">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand)] mb-2">
+                              {tr.meeting_type} Focus Details
+                            </p>
+                            <div className="grid grid-cols-1 gap-3">
+                              {Object.entries(tr.meeting_type_sections_json).map(([key, val]) => {
+                                if (key.toLowerCase() === 'bantc' || !val || val === "Not available") return null;
+                                return (
+                                  <div key={key} className="border-t border-border/40 pt-2 first:border-0 first:pt-0">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                      {key.replace(/_/g, ' ')}
+                                    </p>
+                                    <div className="text-sm text-foreground mt-1">
+                                      {Array.isArray(val) ? (
+                                        <ul className="list-disc pl-4 space-y-1">
+                                          {val.map((item: any, idx: number) => (
+                                            <li key={idx}>{String(item)}</li>
+                                          ))}
+                                        </ul>
+                                      ) : (
+                                        <p className="whitespace-pre-wrap">{String(val)}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
 

@@ -261,6 +261,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('leads/{lead}/meetings/{meeting}', [LeadController::class, 'deleteMeeting'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/transcripts', [LeadController::class, 'getTranscripts'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/transcripts', [LeadController::class, 'storeTranscript'])->middleware('permission:leads.edit');
+    Route::put('leads/{lead}/transcripts/{transcript}', [LeadController::class, 'updateTranscript'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/transcripts/fetch-link', [LeadController::class, 'fetchTranscriptFromLink'])->middleware('permission:leads.edit');
     Route::delete('leads/{lead}/transcripts/{transcript}', [LeadController::class, 'deleteTranscript'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');

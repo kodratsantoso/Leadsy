@@ -39,6 +39,16 @@ class SaveTranscriptAnalysisJob implements ShouldQueue
             return;
         }
 
+        $existing = LeadAiEvaluation::where('source_type', LeadTranscript::class)
+            ->where('source_id', $this->transcriptId)
+            ->exists();
+
+        if ($existing) {
+            $transcript->update(['evaluation_status' => 'evaluated']);
+            Log::info("SaveTranscriptAnalysisJob: Evaluation already created, skipping.");
+            return;
+        }
+
         $log = DB::table('lead_analysis_logs')
             ->where('lead_id', $transcript->lead_id)
             ->where('analysis_type', 'transcript_evaluation_raw')

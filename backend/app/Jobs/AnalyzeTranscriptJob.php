@@ -30,7 +30,7 @@ class AnalyzeTranscriptJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(AiOrchestrationService $ai): void
+    public function handle(\App\Services\Sales\MeetingSummaryGenerationService $summaryService): void
     {
         $transcript = LeadTranscript::with('lead')->find($this->transcriptId);
         
@@ -40,32 +40,29 @@ class AnalyzeTranscriptJob implements ShouldQueue
         }
 
         $transcript->update(['evaluation_status' => 'analyzing']);
-
-        $prompt = $this->buildTranscriptEvaluationPrompt($transcript->lead, $transcript);
         
-        Log::info("Starting AI analysis for transcript ID {$transcript->id}");
-        
-        $result = $ai->call('transcript_evaluation', $prompt);
-
-        if ($result['success'] && !empty($result['content'])) {
-            // Save raw result to lead_analysis_logs
+        try {
+            $summaryService->generate($transcript);
+            $transcript->update(['evaluation_status' => 'evaluated']);
+            
+            // Log raw compatibility placeholder in lead_analysis_logs
             DB::table('lead_analysis_logs')->insert([
                 'tenant_id' => $transcript->lead->tenant_id,
                 'lead_id' => $transcript->lead_id,
                 'analysis_type' => 'transcript_evaluation_raw',
                 'result_json' => json_encode([
                     'transcript_id' => $transcript->id,
-                    'raw_content' => $result['content'],
-                    'tokens' => $result['tokens'] ?? null,
+                    'raw_content' => json_encode($transcript->only([
+                        'general_sections_json', 'meeting_type_sections_json', 'bantc_json', 'score_updates_json'
+                    ])),
                 ]),
                 'created_at' => now(),
             ]);
-            
             Log::info("AI analysis completed successfully for transcript ID {$transcript->id}");
-        } else {
+        } catch (\Exception $e) {
             $transcript->update(['evaluation_status' => 'failed']);
-            Log::error("AI analysis failed for transcript ID {$transcript->id}");
-            $this->fail(new \Exception("AI analysis failed or returned empty content."));
+            Log::error("AI analysis failed for transcript ID {$transcript->id}: " . $e->getMessage());
+            $this->fail($e);
         }
     }
     

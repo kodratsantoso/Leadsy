@@ -12,10 +12,18 @@ class LeadTranscript extends Model
         'lead_id', 'activity_id', 'title', 'source_type', 'source_id',
         'transcript_text', 'file_path', 'file_name', 'file_mime', 'file_size',
         'recorded_at', 'evaluation_status',
+        'meeting_type', 'summary_type', 'general_sections_json', 'meeting_type_sections_json',
+        'bantc_json', 'score_updates_json', 'presales_recommendation',
+        'prompt_template_key', 'prompt_version', 'ai_provider', 'ai_model', 'generated_at',
     ];
 
     protected $casts = [
         'recorded_at' => 'datetime',
+        'generated_at' => 'datetime',
+        'general_sections_json' => 'array',
+        'meeting_type_sections_json' => 'array',
+        'bantc_json' => 'array',
+        'score_updates_json' => 'array',
     ];
 
     public function lead(): BelongsTo
