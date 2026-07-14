@@ -1441,7 +1441,7 @@ class LeadController extends Controller
         $data = $request->validate([
             'title' => 'nullable|string|max:255',
             'activity_id' => 'nullable|integer|exists:lead_activities,id',
-            'source_type' => 'required|in:whatsapp,meeting,manual,call,audio,video,file',
+            'source_type' => 'required|in:whatsapp,meeting,manual,call,audio,video,file,transcript,link',
             'transcript_text' => 'nullable|string',
             'transcript_file' => 'nullable|file|max:51200|mimes:txt,vtt,srt,mp3,wav,m4a,mp4,mov,webm',
             'source_id' => 'nullable|integer',
