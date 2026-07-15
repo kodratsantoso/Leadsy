@@ -111,7 +111,7 @@ class MeetingSummaryGenerationService
         $userPrompt .= "Return ONLY the raw JSON string, without markdown formatting, code block ticks, or any text wrapper.";
 
         // Execute AI Call using routing
-        $result = $this->ai->call('meeting_summary_generation', [
+        $result = $this->ai->call('global', [
             'system' => $systemPrompt,
             'user' => $userPrompt,
         ]);
