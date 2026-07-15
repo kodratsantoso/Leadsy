@@ -123,8 +123,12 @@ class AIPromptTemplateService
         return $template?->activeVersion;
     }
 
-    public function compilePrompt(string $featureName, string $input, array $variables = []): array|string
+    public function compilePrompt(string $featureName, string|array $input, array $variables = []): array|string
     {
+        if (is_array($input)) {
+            return $input;
+        }
+
         $version = $this->getActiveVersionForFeature($featureName);
         if (! $version) {
             return $input;
