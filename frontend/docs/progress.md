@@ -149,3 +149,13 @@ Leadsy now has database-backed source and channel classification for leads.
 - Built `TargetCalculationService` to compute dynamic actuals from DB metrics (lead sales orders, meetings, activities).
 - Updated Team Performance Dashboard to pull data from new `targets` implementation.
 - Refactored `settings/targets/page.tsx` from tree to list view with role-based dynamic forms.
+
+## Phase 12: Order to Cash Foundation Audit & Restructure (Completed ✅)
+**Date completed**: 2026-07-18
+
+- Audited and aligned database models (`LeadQuotation`, `LeadSalesOrder`) with frontend properties.
+- Updated `LeadOrderToCashController` to enforce strict currency validation (blocking if default currency not set), backend total calculations, and transaction-safe quotation conversions.
+- Implemented direct Sales Order creation from Lead with a warning notice in the UI.
+- Integrated automated Lead activity logging and audit logging across all quotation/sales order creations and status transitions.
+- Fully tested using a new PHPUnit integration test suite (`tests/Feature/OrderToCashTest.php`).
+- Verified zero type regressions on Next.js frontend using TypeScript compiler checks.

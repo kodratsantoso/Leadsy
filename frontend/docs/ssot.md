@@ -305,3 +305,19 @@ Source of truth: `frontend/public/opensearch.xml` (descriptor) & `backend/app/Ht
 - **OSDD XML:** Defines the search metadata and URLs using template keys (`{searchTerms}`, `{count}`, `{startIndex}`).
 - **Multi-Format Output:** The endpoint `/api/opensearch/contacts` renders search results as RSS 2.0 with `<opensearch:totalResults>` namespaces, Atom 1.0, or standard JSON, matching headers and format query strings.
 - **Service Account Credentials:** Supports optional Google Cloud Service Account authentication using `GOOGLE_SEARCH_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SEARCH_SERVICE_ACCOUNT_PRIVATE_KEY` (secret), and `GOOGLE_SEARCH_SERVICE_ACCOUNT_PROJECT_ID` config keys.
+
+## Order to Cash (O2C) Module
+
+Source of truth: `frontend/components/leads/OrderToCash.tsx` (UI), `backend/app/Http/Controllers/Api/LeadOrderToCashController.php` (API backend), `LeadQuotation` (Model), `LeadSalesOrder` (Model).
+
+**Purpose:** Manages the commercial quotation, approval, and order realization pipeline.
+
+**Core Rules:**
+- **Calculations**: Calculated strictly on the backend: `line_total = quantity * unit_price - discount_amount + tax_amount`, and `total_amount = subtotal - discount_amount + tax_amount`.
+- **Currency**: Checks for default currency configuration from `CurrencySetting`. Creation blocks and warns if missing.
+- **Quotation Status Lifecycle**: `draft` -> `submitted` -> `approved` -> `rejected`/`sent` -> `accepted` -> `converted`.
+- **Sales Order Status Lifecycle**: `draft` -> `confirmed` -> `fulfilled` -> `closed`.
+- **Quotation to Sales Order Conversion**: Transactional copy of header & line items, blocks duplicates, updates quotation status to `converted`. Only allowed for `approved` or `accepted` quotations.
+- **Direct Sales Order**: Allowed directly from Lead, showing warning banner in UI: *"Sales Order created directly without source quotation."*
+- **Revenue Integration**: Realized revenue closing amount and Closed Won funnel stage transition are synced to `Lead` only when a `new` Sales Order status transitions to `confirmed`.
+- **Logs**: Registers activity logs (`LeadActivity`) and audit logs (`AuditService`) on all status changes and creations.

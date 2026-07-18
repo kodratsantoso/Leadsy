@@ -208,14 +208,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/{lead}/quotations', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'getQuotations'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/quotations', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'storeQuotation'])->middleware('permission:leads.edit');
     Route::get('quotations/{quotation}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'showQuotation'])->middleware('permission:leads.view');
+    Route::put('quotations/{quotation}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'updateQuotation'])->middleware('permission:leads.edit');
+    Route::delete('quotations/{quotation}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'destroyQuotation'])->middleware('permission:leads.edit');
     Route::post('quotations/{quotation}/accept', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'acceptQuotation'])->middleware('permission:leads.edit');
     Route::post('quotations/{quotation}/reject', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'rejectQuotation'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/status', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'updateQuotationStatus'])->middleware('permission:leads.edit');
     Route::post('quotations/{quotation}/convert', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/convert-to-sales-order', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
 
     // Lead Order-to-Cash (Sales Orders)
     Route::get('leads/{lead}/sales-orders', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'getSalesOrders'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/sales-orders', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'storeSalesOrder'])->middleware('permission:leads.edit');
     Route::get('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'showSalesOrder'])->middleware('permission:leads.view');
+    Route::put('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'updateSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/confirm', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'confirmSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/cancel', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'cancelSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/renew', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'createRenewalQuotation'])->middleware('permission:leads.edit');
 
     // Lead Commissions
