@@ -360,6 +360,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        if (err.errors) {
+          const detail = Object.values(err.errors).flat().join(', ');
+          throw new Error(`${err.message || 'Validation failed'}: ${detail}`);
+        }
         throw new Error(err.message || 'Failed to create quotation');
       }
       qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
