@@ -14,7 +14,8 @@ class LeadSalesOrderItem extends Model
         // Extended NetSuite / Tier / Tax / WHT fields
         'product_tier_id', 'pricing_model', 'billing_cycle', 'price_source',
         'tax_code_id', 'tax_rate', 'withholding_tax_code_id', 'withholding_tax_rate',
-        'withholding_tax_amount', 'line_total_before_wht', 'line_total_after_wht'
+        'withholding_tax_amount', 'line_total_before_wht', 'line_total_after_wht',
+        'duration_value', 'duration_unit'
     ];
 
     protected $casts = [
@@ -32,6 +33,8 @@ class LeadSalesOrderItem extends Model
         'withholding_tax_amount' => 'decimal:2',
         'line_total_before_wht' => 'decimal:2',
         'line_total_after_wht' => 'decimal:2',
+        'duration_value' => 'integer',
+        'duration_unit' => 'string',
     ];
 
     public function salesOrder()

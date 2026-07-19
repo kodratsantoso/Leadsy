@@ -234,3 +234,10 @@
 - **Decision**: Implemented an interactive Sales Stage Flow above the Human Verification Card in the Lead Detail page. The flow represents the stages dynamically based on the active funnel stages from database and settings. Any stage transition (either by clicking a stage or clicking "Complete Step") forces the user to write an activity log first.
 - **Rationale**: Pipeline stage changes are critical milestones that should always have explanation/context (e.g. why did the deal stall, or what was agreed during negotiation). Intercepting stage changes with the Log Activity modal ensures that stage history transitions are always accompanied by context.
 - **Impact**: The Lead Detail page now renders a modern chevron flow. Clicking a stage pre-populates and opens the Log Activity modal. Successfully compiles and passes type checks.
+
+## ADR-033: Wide-Layout Estimate Modal and SaaS Period Fields
+- **Date**: 2026-07-19
+- **Status**: Active
+- **Decision**: Enlarged the quotation creation modal to `7xl` (`max-w-7xl`). Added `Start Date Period`, `Duration` (with Day, Month, Year unit dropdown), and `End Date Period` to the line items table for SaaS products. Implemented dynamic calculations where changing start/duration automatically updates end date, and changing end date updates duration. Added database columns to store these attributes on line items.
+- **Rationale**: SaaS pricing contracts are period-bound (e.g. 1 year, 3 months). Making these columns available and automatically calculated inside a spacious modal layout simplifies contract generation and prevents human calculation errors.
+- **Impact**: Added a database migration for `duration_value` and `duration_unit` columns. Updated `LeadQuotationItem` and `LeadSalesOrderItem` models and backend controllers. Table component in frontend was modified to render period columns, with a TypeScript build succeeding.

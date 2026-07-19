@@ -9,7 +9,7 @@ type ModalProps = {
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "5xl" | "7xl" | "full";
   footer?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -19,6 +19,9 @@ const sizeClasses = {
   md: "max-w-md",
   lg: "max-w-2xl",
   xl: "max-w-4xl",
+  "5xl": "max-w-6xl",
+  "7xl": "max-w-7xl",
+  full: "max-w-[95vw]",
 };
 
 function Modal({

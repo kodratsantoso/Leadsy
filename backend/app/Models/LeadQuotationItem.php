@@ -18,7 +18,8 @@ class LeadQuotationItem extends Model
         // Product Tier, Tax settings, WHT extensions
         'product_tier_id', 'pricing_model', 'price_source', 'tax_code_id',
         'withholding_tax_code_id', 'withholding_tax_rate', 'withholding_tax_amount',
-        'line_total_before_wht', 'line_total_after_wht'
+        'line_total_before_wht', 'line_total_after_wht',
+        'duration_value', 'duration_unit'
     ];
 
     protected $casts = [
@@ -39,6 +40,8 @@ class LeadQuotationItem extends Model
         'withholding_tax_amount' => 'decimal:2',
         'line_total_before_wht' => 'decimal:2',
         'line_total_after_wht' => 'decimal:2',
+        'duration_value' => 'integer',
+        'duration_unit' => 'string',
     ];
 
     public function quotation()

@@ -124,6 +124,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         line_discount_value: '0',
         tax_code: '',
         tax_rate: 0,
+        start_date: '',
+        end_date: '',
+        duration_value: '',
+        duration_unit: 'month',
       }
     ]
   });
@@ -158,6 +162,94 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
  
   const quotations = qData?.data || [];
   const salesOrders = soData?.data || [];
+ 
+  const isSaaSProduct = (productId: string) => {
+    const prod = products.find((p: any) => String(p.id) === productId);
+    return prod && String(prod.category || '').toLowerCase().includes('saas');
+  };
+ 
+  const calculateEndDate = (startDateStr: string, durationVal: number, durationUnit: string): string => {
+    if (!startDateStr || !durationVal) return '';
+    const date = new Date(startDateStr);
+    if (isNaN(date.getTime())) return '';
+    
+    if (durationUnit === 'day') {
+      date.setDate(date.getDate() + durationVal);
+    } else if (durationUnit === 'month') {
+      date.setMonth(date.getMonth() + durationVal);
+    } else if (durationUnit === 'year') {
+      date.setFullYear(date.getFullYear() + durationVal);
+    }
+    return date.toISOString().split('T')[0];
+  };
+ 
+  const calculateDuration = (startDateStr: string, endDateStr: string, durationUnit: string): number => {
+    if (!startDateStr || !endDateStr) return 0;
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+    if (end < start) return 0;
+    
+    if (durationUnit === 'day') {
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    } else if (durationUnit === 'month') {
+      const yearsDiff = end.getFullYear() - start.getFullYear();
+      const monthsDiff = end.getMonth() - start.getMonth();
+      return yearsDiff * 12 + monthsDiff;
+    } else if (durationUnit === 'year') {
+      return end.getFullYear() - start.getFullYear();
+    }
+    return 0;
+  };
+ 
+  const handleStartDateChange = (index: number, val: string) => {
+    const newItems = [...qForm.items];
+    const item = newItems[index];
+    item.start_date = val;
+    
+    if (val && item.duration_value) {
+      item.end_date = calculateEndDate(val, Number(normalizeAmountInput(item.duration_value)), item.duration_unit || 'month');
+    } else if (val && item.end_date) {
+      item.duration_value = String(calculateDuration(val, item.end_date, item.duration_unit || 'month'));
+    }
+    setQForm({ ...qForm, items: newItems });
+  };
+ 
+  const handleEndDateChange = (index: number, val: string) => {
+    const newItems = [...qForm.items];
+    const item = newItems[index];
+    item.end_date = val;
+    
+    if (item.start_date && val) {
+      item.duration_value = String(calculateDuration(item.start_date, val, item.duration_unit || 'month'));
+    }
+    setQForm({ ...qForm, items: newItems });
+  };
+ 
+  const handleDurationValueChange = (index: number, val: string) => {
+    const newItems = [...qForm.items];
+    const item = newItems[index];
+    item.duration_value = val;
+    
+    if (item.start_date && val) {
+      item.end_date = calculateEndDate(item.start_date, Number(normalizeAmountInput(val)), item.duration_unit || 'month');
+    }
+    setQForm({ ...qForm, items: newItems });
+  };
+ 
+  const handleDurationUnitChange = (index: number, val: string) => {
+    const newItems = [...qForm.items];
+    const item = newItems[index];
+    item.duration_unit = val;
+    
+    if (item.start_date && item.duration_value) {
+      item.end_date = calculateEndDate(item.start_date, Number(normalizeAmountInput(item.duration_value)), val);
+    } else if (item.start_date && item.end_date) {
+      item.duration_value = String(calculateDuration(item.start_date, item.end_date, val));
+    }
+    setQForm({ ...qForm, items: newItems });
+  };
  
   const calculateFrontendSummary = () => {
     let subtotal = 0;
@@ -247,6 +339,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           quantity: Number(normalizeAmountInput(String(item.quantity))) || 0,
           unit_price: Number(normalizeAmountInput(String(item.unit_price))) || 0,
           line_discount_value: Number(normalizeAmountInput(String(item.line_discount_value))) || 0,
+          start_date: item.start_date || null,
+          end_date: item.end_date || null,
+          duration_value: item.duration_value ? Number(normalizeAmountInput(String(item.duration_value))) : null,
+          duration_unit: item.duration_unit || null,
         }))
       };
       
@@ -432,6 +528,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           line_discount_value: '0',
           tax_code: '',
           tax_rate: 0,
+          start_date: '',
+          end_date: '',
+          duration_value: '',
+          duration_unit: 'month',
         }
       ]
     });
@@ -473,6 +573,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           line_discount_value: '0',
           tax_code: '',
           tax_rate: 0,
+          start_date: '',
+          end_date: '',
+          duration_value: '',
+          duration_unit: 'month',
         }
       ]
     });
@@ -717,7 +821,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           onOpenChange={(v) => !v && setShowQModal(false)}
           title="Create Estimate / Quotation"
           description="Draft a NetSuite-style detailed commercial proposal."
-          size="xl"
+          size="7xl"
           footer={
             <div className="flex justify-between w-full items-center">
               <div className="text-sm font-bold text-blue-700">
@@ -981,15 +1085,18 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-muted/50 border-b border-border">
-                          <th className="p-2 font-semibold w-[22%]">Product & Tier</th>
-                          <th className="p-2 font-semibold w-[15%]">Item Name</th>
-                          <th className="p-2 font-semibold w-[6%]">Qty</th>
-                          <th className="p-2 font-semibold w-[10%]">Unit Price</th>
-                          <th className="p-2 font-semibold w-[12%]">Line Discount</th>
-                          <th className="p-2 font-semibold w-[11%]">Tax Code</th>
-                          <th className="p-2 font-semibold w-[11%]">WHT Code</th>
-                          <th className="p-2 font-semibold w-[10%] text-right">Total</th>
-                          <th className="p-2 font-semibold w-[8%] text-center">Actions</th>
+                          <th className="p-2 font-semibold w-[15%]">Product & Tier</th>
+                          <th className="p-2 font-semibold w-[10%]">Item Name</th>
+                          <th className="p-2 font-semibold w-[10%]">Start Date</th>
+                          <th className="p-2 font-semibold w-[12%]">Duration</th>
+                          <th className="p-2 font-semibold w-[10%]">End Date</th>
+                          <th className="p-2 font-semibold w-[5%]">Qty</th>
+                          <th className="p-2 font-semibold w-[8%]">Unit Price</th>
+                          <th className="p-2 font-semibold w-[8%]">Line Discount</th>
+                          <th className="p-2 font-semibold w-[8%]">Tax Code</th>
+                          <th className="p-2 font-semibold w-[8%]">WHT Code</th>
+                          <th className="p-2 font-semibold w-[8%] text-right">Total</th>
+                          <th className="p-2 font-semibold w-[6%] text-center">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1037,6 +1144,53 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                     setQForm({...qForm, items: newItems});
                                   }} 
                                 />
+                              </td>
+                              <td className="p-1">
+                                {isSaaSProduct(item.product_id) ? (
+                                  <Input 
+                                    type="date"
+                                    className="h-8 p-1 text-xs" 
+                                    value={item.start_date || ''} 
+                                    onChange={e => handleStartDateChange(index, e.target.value)}
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground block text-center">-</span>
+                                )}
+                              </td>
+                              <td className="p-1">
+                                {isSaaSProduct(item.product_id) ? (
+                                  <div className="flex gap-1 items-center">
+                                    <Input 
+                                      className="h-8 p-1 text-xs w-[50px]" 
+                                      value={item.duration_value || ''} 
+                                      onChange={e => handleDurationValueChange(index, formatAmountInput(normalizeAmountInput(e.target.value)))}
+                                      placeholder="Qty"
+                                    />
+                                    <select
+                                      className="rounded border border-input bg-background p-1 text-[10px] h-8"
+                                      value={item.duration_unit || 'month'}
+                                      onChange={e => handleDurationUnitChange(index, e.target.value)}
+                                    >
+                                      <option value="day">Days</option>
+                                      <option value="month">Months</option>
+                                      <option value="year">Years</option>
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground block text-center">-</span>
+                                )}
+                              </td>
+                              <td className="p-1">
+                                {isSaaSProduct(item.product_id) ? (
+                                  <Input 
+                                    type="date"
+                                    className="h-8 p-1 text-xs" 
+                                    value={item.end_date || ''} 
+                                    onChange={e => handleEndDateChange(index, e.target.value)}
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground block text-center">-</span>
+                                )}
                               </td>
                               <td className="p-1">
                                 <Input 

@@ -236,6 +236,8 @@ class LeadOrderToCashController extends Controller
             'items.*.tax_rate' => 'nullable|numeric|min:0',
             'items.*.start_date' => 'nullable|date',
             'items.*.end_date' => 'nullable|date|after_or_equal:items.*.start_date',
+            'items.*.duration_value' => 'nullable|integer',
+            'items.*.duration_unit' => 'nullable|string',
             'items.*.sort_order' => 'nullable|integer',
         ]);
  
@@ -337,6 +339,8 @@ class LeadOrderToCashController extends Controller
                     'billing_period' => $item['billing_period'],
                     'start_date' => $item['start_date'] ?? null,
                     'end_date' => $item['end_date'] ?? null,
+                    'duration_value' => $item['duration_value'] ?? null,
+                    'duration_unit' => $item['duration_unit'] ?? null,
  
                     // Extended line-item fields
                     'unit' => $item['unit'] ?? null,
@@ -429,6 +433,8 @@ class LeadOrderToCashController extends Controller
             'items.*.tax_rate' => 'nullable|numeric|min:0',
             'items.*.start_date' => 'nullable|date',
             'items.*.end_date' => 'nullable|date|after_or_equal:items.*.start_date',
+            'items.*.duration_value' => 'nullable|integer',
+            'items.*.duration_unit' => 'nullable|string',
             'items.*.sort_order' => 'nullable|integer',
         ]);
  
@@ -530,6 +536,8 @@ class LeadOrderToCashController extends Controller
                     'billing_period' => $item['billing_period'],
                     'start_date' => $item['start_date'] ?? null,
                     'end_date' => $item['end_date'] ?? null,
+                    'duration_value' => $item['duration_value'] ?? null,
+                    'duration_unit' => $item['duration_unit'] ?? null,
  
                     // Extended line-item fields
                     'unit' => $item['unit'] ?? null,
@@ -695,6 +703,10 @@ class LeadOrderToCashController extends Controller
                     'withholding_tax_amount' => $item->withholding_tax_amount,
                     'line_total_before_wht' => $item->line_total_before_wht,
                     'line_total_after_wht' => $item->line_total_after_wht,
+                    'duration_value' => $item->duration_value,
+                    'duration_unit' => $item->duration_unit,
+                    'start_date' => $item->start_date,
+                    'end_date' => $item->end_date,
                 ]);
             }
  
