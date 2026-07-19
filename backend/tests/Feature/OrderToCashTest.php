@@ -311,6 +311,86 @@ class OrderToCashTest extends TestCase
         $this->assertEquals(950.00, (float)$quotation->total_amount);
     }
  
+    public function test_withholding_tax_and_tier_recalculation(): void
+    {
+        $user = $this->makeUser();
+        $lead = $this->makeLead($user);
+        $this->setupCurrency();
+ 
+        // Create product, tier, tax code, and withholding tax code
+        $product = \App\Models\Product::create([
+            'name' => 'SaaS Suite',
+            'category' => 'SaaS solutions',
+            'tenant_id' => $user->tenant_id,
+        ]);
+ 
+        $tier = $product->tiers()->create([
+            'name' => 'Pro Tier',
+            'price' => 500.00,
+            'pricing_type' => 'flat_rate',
+            'billing_period' => 'monthly',
+        ]);
+ 
+        $taxCode = \App\Models\TaxCode::create([
+            'tax_code' => 'VAT_10',
+            'tax_name' => 'VAT 10%',
+            'tax_type' => 'vat',
+            'rate_percentage' => 10.00,
+        ]);
+ 
+        $whtCode = \App\Models\WithholdingTaxCode::create([
+            'wht_code' => 'WHT_2',
+            'wht_name' => 'Withholding 2%',
+            'wht_type' => 'service_withholding',
+            'rate_percentage' => 2.00,
+        ]);
+ 
+        $response = $this->actingAs($user)
+            ->postJson("/api/leads/{$lead->id}/quotations", [
+                'quotation_type' => 'new',
+                'quotation_date' => now()->toDateString(),
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'product_tier_id' => $tier->id,
+                        'pricing_model' => 'flat_rate',
+                        'price_source' => 'product_tier',
+                        'tax_code_id' => $taxCode->id,
+                        'withholding_tax_code_id' => $whtCode->id,
+                        'withholding_tax_rate' => 2.00,
+                        'item_name' => 'SaaS Pro Package',
+                        'quantity' => 2,
+                        'unit_price' => 500.00,
+                        'line_discount_type' => 'percentage',
+                        'line_discount_value' => 10.00,
+                        'tax_rate' => 10.00,
+                        'billing_period' => 'monthly',
+                    ]
+                ]
+            ]);
+ 
+        $response->assertStatus(201);
+        $quotation = LeadQuotation::first();
+        $this->assertNotNull($quotation);
+        $this->assertEquals(1000.00, (float)$quotation->subtotal_amount);
+        $this->assertEquals(90.00, (float)$quotation->tax_amount);
+        $this->assertEquals(18.00, (float)$quotation->total_withholding_tax);
+        $this->assertEquals(990.00, (float)$quotation->grand_total_before_wht);
+        $this->assertEquals(972.00, (float)$quotation->total_amount);
+ 
+        // Convert to Sales Order
+        $quotation->update(['quotation_status' => 'approved']);
+        $convResponse = $this->actingAs($user)
+            ->postJson("/api/quotations/{$quotation->id}/convert-to-sales-order");
+        $convResponse->assertStatus(201);
+ 
+        $so = LeadSalesOrder::first();
+        $this->assertNotNull($so);
+        $this->assertEquals(18.00, (float)$so->total_withholding_tax);
+        $this->assertEquals(990.00, (float)$so->grand_total_before_wht);
+        $this->assertEquals(972.00, (float)$so->total_amount);
+    }
+ 
     private function makeUser(): User
     {
         $tenant = Tenant::create([

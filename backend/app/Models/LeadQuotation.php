@@ -20,7 +20,10 @@ class LeadQuotation extends Model
         'header_discount_type', 'header_discount_value', 'header_discount_amount',
         'total_line_discount', 'other_cost', 'scope_of_work', 'exclusions',
         'delivery_timeline', 'warranty_support_terms', 'customer_notes',
-        'internal_notes', 'approval_status', 'pdf_url', 'converted_sales_order_id'
+        'internal_notes', 'approval_status', 'pdf_url', 'converted_sales_order_id',
+        
+        // WHT fields
+        'total_withholding_tax', 'grand_total_before_wht'
     ];
 
     protected $casts = [
@@ -44,6 +47,8 @@ class LeadQuotation extends Model
         'header_discount_amount' => 'decimal:2',
         'total_line_discount' => 'decimal:2',
         'other_cost' => 'decimal:2',
+        'total_withholding_tax' => 'decimal:2',
+        'grand_total_before_wht' => 'decimal:2',
     ];
 
     public function lead()

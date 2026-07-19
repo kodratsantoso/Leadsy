@@ -299,6 +299,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Products — ai-generate must be before apiResource to avoid {product} collision
     Route::post('products/ai-generate', [ProductController::class, 'aiGenerate'])->middleware('permission:products.edit');
     Route::apiResource('products', ProductController::class);
+ 
+    // Product Tiers
+    Route::get('products/{product}/tiers', [\App\Http\Controllers\Api\ProductTierController::class, 'getTiers']);
+    Route::post('products/{product}/tiers', [\App\Http\Controllers\Api\ProductTierController::class, 'storeTier'])->middleware('permission:products.edit');
+    Route::put('product-tiers/{id}', [\App\Http\Controllers\Api\ProductTierController::class, 'updateTier'])->middleware('permission:products.edit');
+    Route::delete('product-tiers/{id}', [\App\Http\Controllers\Api\ProductTierController::class, 'destroyTier'])->middleware('permission:products.edit');
 
     // Product Question Guide
     Route::prefix('products/{product}/questions')->group(function () {
@@ -313,6 +319,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('industries/{industry}/sub-industries/{sub}', [IndustryController::class, 'updateSub']);
     Route::delete('industries/{industry}/sub-industries/{sub}', [IndustryController::class, 'destroySub']);
 
+    // O2C Settings: Tax, WHT, and Item settings
+    Route::prefix('settings/o2c')->group(function () {
+        Route::get('tax-codes', [\App\Http\Controllers\Api\O2CSettingsController::class, 'getTaxCodes']);
+        Route::post('tax-codes', [\App\Http\Controllers\Api\O2CSettingsController::class, 'storeTaxCode']);
+        Route::put('tax-codes/{id}', [\App\Http\Controllers\Api\O2CSettingsController::class, 'updateTaxCode']);
+        Route::delete('tax-codes/{id}', [\App\Http\Controllers\Api\O2CSettingsController::class, 'destroyTaxCode']);
+        
+        Route::get('withholding-tax-codes', [\App\Http\Controllers\Api\O2CSettingsController::class, 'getWithholdingTaxCodes']);
+        Route::post('withholding-tax-codes', [\App\Http\Controllers\Api\O2CSettingsController::class, 'storeWithholdingTaxCode']);
+        Route::put('withholding-tax-codes/{id}', [\App\Http\Controllers\Api\O2CSettingsController::class, 'updateWithholdingTaxCode']);
+        Route::delete('withholding-tax-codes/{id}', [\App\Http\Controllers\Api\O2CSettingsController::class, 'destroyWithholdingTaxCode']);
+        
+        Route::get('item-settings', [\App\Http\Controllers\Api\O2CSettingsController::class, 'getItemSettings']);
+        Route::put('item-settings', [\App\Http\Controllers\Api\O2CSettingsController::class, 'updateItemSettings']);
+    });
+ 
     // Funnel
     Route::get('funnel/stages', [FunnelController::class, 'stages']);
     Route::post('funnel/stages', [FunnelController::class, 'storeStage'])->middleware('permission:leads.edit');

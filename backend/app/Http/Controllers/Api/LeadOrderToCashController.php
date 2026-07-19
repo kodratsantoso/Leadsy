@@ -33,6 +33,7 @@ class LeadOrderToCashController extends Controller
         $subtotal = 0;
         $totalLineDiscount = 0;
         $totalTax = 0;
+        $totalWithholdingTax = 0;
         $items = [];
  
         foreach ($itemsData as $index => $item) {
@@ -41,6 +42,7 @@ class LeadOrderToCashController extends Controller
             $discType = $item['line_discount_type'] ?? null;
             $discVal = (float) ($item['line_discount_value'] ?? 0);
             $taxRate = (float) ($item['tax_rate'] ?? 0);
+            $whtRate = (float) ($item['withholding_tax_rate'] ?? 0);
  
             if ($qty <= 0) {
                 throw new \InvalidArgumentException('Quantity must be greater than 0.');
@@ -53,6 +55,9 @@ class LeadOrderToCashController extends Controller
             }
             if ($taxRate < 0) {
                 throw new \InvalidArgumentException('Tax rate cannot be negative.');
+            }
+            if ($whtRate < 0) {
+                throw new \InvalidArgumentException('Withholding tax rate cannot be negative.');
             }
  
             $baseAmount = $qty * $price;
@@ -70,18 +75,25 @@ class LeadOrderToCashController extends Controller
  
             $taxableAmount = $baseAmount - $lineDiscountAmount;
             $lineTaxAmount = $taxableAmount * ($taxRate / 100);
-            $lineTotal = $taxableAmount + $lineTaxAmount;
+            $lineTotalBeforeWht = $taxableAmount + $lineTaxAmount;
+            
+            $lineWhtAmount = $taxableAmount * ($whtRate / 100);
+            $lineTotalAfterWht = $lineTotalBeforeWht - $lineWhtAmount;
  
             $subtotal += $baseAmount;
             $totalLineDiscount += $lineDiscountAmount;
             $totalTax += $lineTaxAmount;
+            $totalWithholdingTax += $lineWhtAmount;
  
             $items[] = array_merge($item, [
                 'quantity' => $qty,
                 'unit_price' => $price,
                 'line_discount_amount' => $lineDiscountAmount,
                 'tax_amount' => $lineTaxAmount,
-                'total_amount' => $lineTotal,
+                'withholding_tax_amount' => $lineWhtAmount,
+                'line_total_before_wht' => $lineTotalBeforeWht,
+                'line_total_after_wht' => $lineTotalAfterWht,
+                'total_amount' => $lineTotalAfterWht,
                 'sort_order' => $item['sort_order'] ?? $index
             ]);
         }
@@ -100,14 +112,17 @@ class LeadOrderToCashController extends Controller
             throw new \InvalidArgumentException('Header discount cannot exceed the taxable subtotal.');
         }
  
-        $grandTotal = $subtotal - $totalLineDiscount - $headerDiscountAmount + $totalTax + $otherCost;
+        $grandTotalBeforeWht = $subtotal - $totalLineDiscount - $headerDiscountAmount + $totalTax + $otherCost;
+        $grandTotalAfterWht = $grandTotalBeforeWht - $totalWithholdingTax;
  
         return [
             'subtotal' => $subtotal,
             'total_line_discount' => $totalLineDiscount,
             'header_discount_amount' => $headerDiscountAmount,
             'tax_amount' => $totalTax,
-            'total' => max(0, $grandTotal),
+            'total_withholding_tax' => $totalWithholdingTax,
+            'grand_total_before_wht' => $grandTotalBeforeWht,
+            'total' => max(0, $grandTotalAfterWht),
             'items' => $items
         ];
     }
@@ -203,6 +218,12 @@ class LeadOrderToCashController extends Controller
             // Items validation
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
+            'items.*.product_tier_id' => 'nullable|exists:product_tiers,id',
+            'items.*.pricing_model' => 'nullable|string',
+            'items.*.price_source' => 'nullable|string',
+            'items.*.tax_code_id' => 'nullable|exists:tax_codes,id',
+            'items.*.withholding_tax_code_id' => 'nullable|exists:withholding_tax_codes,id',
+            'items.*.withholding_tax_rate' => 'nullable|numeric|min:0',
             'items.*.item_name' => 'required|string',
             'items.*.description' => 'nullable|string',
             'items.*.quantity' => 'required|numeric|min:0.01',
@@ -217,6 +238,25 @@ class LeadOrderToCashController extends Controller
             'items.*.end_date' => 'nullable|date|after_or_equal:items.*.start_date',
             'items.*.sort_order' => 'nullable|integer',
         ]);
+ 
+        // SaaS Product Tier validation check
+        $requireTierSetting = \App\Models\ItemSetting::where('setting_key', 'require_product_tier_for_saas_product')->first();
+        $requireTier = $requireTierSetting && isset($requireTierSetting->setting_value_json['enabled']) 
+            ? (bool)$requireTierSetting->setting_value_json['enabled'] 
+            : false;
+ 
+        foreach ($validated['items'] as $item) {
+            if ($item['product_id'] ?? null) {
+                $product = \App\Models\Product::find($item['product_id']);
+                if ($requireTier && $product && str_contains(strtolower($product->category ?? ''), 'saas')) {
+                    if (empty($item['product_tier_id'])) {
+                        return response()->json([
+                            'message' => "Product Tier is required for SaaS product: {$product->name}."
+                        ], 422);
+                    }
+                }
+            }
+        }
  
         try {
             $totals = $this->calculateTotals(
@@ -242,6 +282,8 @@ class LeadOrderToCashController extends Controller
                 'subtotal_amount' => $totals['subtotal'],
                 'discount_amount' => $totals['header_discount_amount'],
                 'tax_amount' => $totals['tax_amount'],
+                'total_withholding_tax' => $totals['total_withholding_tax'],
+                'grand_total_before_wht' => $totals['grand_total_before_wht'],
                 'total_amount' => $totals['total'],
                 'notes' => $validated['notes'] ?? null,
                 'terms_conditions' => $validated['terms_conditions'] ?? null,
@@ -276,6 +318,15 @@ class LeadOrderToCashController extends Controller
             foreach ($totals['items'] as $item) {
                 $quotation->items()->create([
                     'product_id' => $item['product_id'] ?? null,
+                    'product_tier_id' => $item['product_tier_id'] ?? null,
+                    'pricing_model' => $item['pricing_model'] ?? null,
+                    'price_source' => $item['price_source'] ?? null,
+                    'tax_code_id' => $item['tax_code_id'] ?? null,
+                    'withholding_tax_code_id' => $item['withholding_tax_code_id'] ?? null,
+                    'withholding_tax_rate' => $item['withholding_tax_rate'] ?? 0,
+                    'withholding_tax_amount' => $item['withholding_tax_amount'] ?? 0,
+                    'line_total_before_wht' => $item['line_total_before_wht'] ?? 0,
+                    'line_total_after_wht' => $item['line_total_after_wht'] ?? 0,
                     'item_name' => $item['item_name'],
                     'description' => $item['description'] ?? null,
                     'quantity' => $item['quantity'],
@@ -358,9 +409,14 @@ class LeadOrderToCashController extends Controller
             'internal_notes' => 'nullable|string',
             'approval_status' => 'nullable|string|in:not_required,pending,approved,rejected',
  
-            // Items validation
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
+            'items.*.product_tier_id' => 'nullable|exists:product_tiers,id',
+            'items.*.pricing_model' => 'nullable|string',
+            'items.*.price_source' => 'nullable|string',
+            'items.*.tax_code_id' => 'nullable|exists:tax_codes,id',
+            'items.*.withholding_tax_code_id' => 'nullable|exists:withholding_tax_codes,id',
+            'items.*.withholding_tax_rate' => 'nullable|numeric|min:0',
             'items.*.item_name' => 'required|string',
             'items.*.description' => 'nullable|string',
             'items.*.quantity' => 'required|numeric|min:0.01',
@@ -375,6 +431,25 @@ class LeadOrderToCashController extends Controller
             'items.*.end_date' => 'nullable|date|after_or_equal:items.*.start_date',
             'items.*.sort_order' => 'nullable|integer',
         ]);
+ 
+        // SaaS Product Tier validation check
+        $requireTierSetting = \App\Models\ItemSetting::where('setting_key', 'require_product_tier_for_saas_product')->first();
+        $requireTier = $requireTierSetting && isset($requireTierSetting->setting_value_json['enabled']) 
+            ? (bool)$requireTierSetting->setting_value_json['enabled'] 
+            : false;
+ 
+        foreach ($validated['items'] as $item) {
+            if ($item['product_id'] ?? null) {
+                $product = \App\Models\Product::find($item['product_id']);
+                if ($requireTier && $product && str_contains(strtolower($product->category ?? ''), 'saas')) {
+                    if (empty($item['product_tier_id'])) {
+                        return response()->json([
+                            'message' => "Product Tier is required for SaaS product: {$product->name}."
+                        ], 422);
+                    }
+                }
+            }
+        }
  
         try {
             $totals = $this->calculateTotals(
@@ -399,6 +474,8 @@ class LeadOrderToCashController extends Controller
                 'subtotal_amount' => $totals['subtotal'],
                 'discount_amount' => $totals['header_discount_amount'],
                 'tax_amount' => $totals['tax_amount'],
+                'total_withholding_tax' => $totals['total_withholding_tax'],
+                'grand_total_before_wht' => $totals['grand_total_before_wht'],
                 'total_amount' => $totals['total'],
                 'notes' => $validated['notes'] ?? null,
                 'terms_conditions' => $validated['terms_conditions'] ?? null,
@@ -434,6 +511,15 @@ class LeadOrderToCashController extends Controller
             foreach ($totals['items'] as $item) {
                 $quotation->items()->create([
                     'product_id' => $item['product_id'] ?? null,
+                    'product_tier_id' => $item['product_tier_id'] ?? null,
+                    'pricing_model' => $item['pricing_model'] ?? null,
+                    'price_source' => $item['price_source'] ?? null,
+                    'tax_code_id' => $item['tax_code_id'] ?? null,
+                    'withholding_tax_code_id' => $item['withholding_tax_code_id'] ?? null,
+                    'withholding_tax_rate' => $item['withholding_tax_rate'] ?? 0,
+                    'withholding_tax_amount' => $item['withholding_tax_amount'] ?? 0,
+                    'line_total_before_wht' => $item['line_total_before_wht'] ?? 0,
+                    'line_total_after_wht' => $item['line_total_after_wht'] ?? 0,
                     'item_name' => $item['item_name'],
                     'description' => $item['description'] ?? null,
                     'quantity' => $item['quantity'],
@@ -577,8 +663,10 @@ class LeadOrderToCashController extends Controller
                 'billing_entity' => $quotation->billing_entity,
                 'currency' => $quotation->currency,
                 'subtotal_amount' => $quotation->subtotal_amount,
-                'discount_amount' => $quotation->discount_amount + $quotation->total_line_discount,
+                'discount_amount' => $quotation->discount_amount,
                 'tax_amount' => $quotation->tax_amount,
+                'total_withholding_tax' => $quotation->total_withholding_tax,
+                'grand_total_before_wht' => $quotation->grand_total_before_wht,
                 'total_amount' => $quotation->total_amount,
                 'created_by' => Auth::id(),
             ]);
@@ -587,6 +675,7 @@ class LeadOrderToCashController extends Controller
                 $order->items()->create([
                     'quotation_item_id' => $item->id,
                     'product_id' => $item->product_id,
+                    'product_tier_id' => $item->product_tier_id,
                     'item_name' => $item->item_name,
                     'description' => $item->description,
                     'quantity' => $item->quantity,
@@ -595,6 +684,17 @@ class LeadOrderToCashController extends Controller
                     'tax_amount' => $item->tax_amount,
                     'total_amount' => $item->total_amount,
                     'billing_period' => $item->billing_period,
+                    
+                    'pricing_model' => $item->pricing_model,
+                    'billing_cycle' => $item->billing_period,
+                    'price_source' => $item->price_source,
+                    'tax_code_id' => $item->tax_code_id,
+                    'tax_rate' => $item->tax_rate,
+                    'withholding_tax_code_id' => $item->withholding_tax_code_id,
+                    'withholding_tax_rate' => $item->withholding_tax_rate,
+                    'withholding_tax_amount' => $item->withholding_tax_amount,
+                    'line_total_before_wht' => $item->line_total_before_wht,
+                    'line_total_after_wht' => $item->line_total_after_wht,
                 ]);
             }
  
@@ -643,12 +743,18 @@ class LeadOrderToCashController extends Controller
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
+            'items.*.product_tier_id' => 'nullable|exists:product_tiers,id',
+            'items.*.pricing_model' => 'nullable|string',
+            'items.*.price_source' => 'nullable|string',
+            'items.*.tax_code_id' => 'nullable|exists:tax_codes,id',
+            'items.*.withholding_tax_code_id' => 'nullable|exists:withholding_tax_codes,id',
+            'items.*.withholding_tax_rate' => 'nullable|numeric|min:0',
             'items.*.item_name' => 'required|string',
             'items.*.description' => 'nullable|string',
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.discount_amount' => 'nullable|numeric|min:0',
-            'items.*.tax_amount' => 'nullable|numeric|min:0',
+            'items.*.tax_rate' => 'nullable|numeric|min:0',
             'items.*.billing_period' => 'required|string|in:one_time,monthly,quarterly,yearly',
         ]);
  
@@ -659,8 +765,17 @@ class LeadOrderToCashController extends Controller
                 'unit_price' => $item['unit_price'],
                 'line_discount_type' => 'amount',
                 'line_discount_value' => $item['discount_amount'] ?? 0,
-                'tax_rate' => 0,
-                'tax_amount' => $item['tax_amount'] ?? 0,
+                'tax_rate' => $item['tax_rate'] ?? 0,
+                'withholding_tax_rate' => $item['withholding_tax_rate'] ?? 0,
+                'product_id' => $item['product_id'] ?? null,
+                'product_tier_id' => $item['product_tier_id'] ?? null,
+                'pricing_model' => $item['pricing_model'] ?? null,
+                'price_source' => $item['price_source'] ?? null,
+                'tax_code_id' => $item['tax_code_id'] ?? null,
+                'withholding_tax_code_id' => $item['withholding_tax_code_id'] ?? null,
+                'item_name' => $item['item_name'],
+                'description' => $item['description'] ?? null,
+                'billing_period' => $item['billing_period'],
             ];
         }
  
@@ -682,21 +797,34 @@ class LeadOrderToCashController extends Controller
                 'subtotal_amount' => $totals['subtotal'],
                 'discount_amount' => $totals['total_line_discount'],
                 'tax_amount' => $totals['tax_amount'],
+                'total_withholding_tax' => $totals['total_withholding_tax'],
+                'grand_total_before_wht' => $totals['grand_total_before_wht'],
                 'total_amount' => $totals['total'],
                 'created_by' => Auth::id(),
             ]);
  
-            foreach ($validated['items'] as $item) {
+            foreach ($totals['items'] as $item) {
                 $order->items()->create([
                     'product_id' => $item['product_id'] ?? null,
+                    'product_tier_id' => $item['product_tier_id'] ?? null,
                     'item_name' => $item['item_name'],
                     'description' => $item['description'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
-                    'discount_amount' => $item['discount_amount'] ?? 0,
+                    'discount_amount' => $item['line_discount_amount'] ?? 0,
                     'tax_amount' => $item['tax_amount'] ?? 0,
-                    'total_amount' => ($item['quantity'] * $item['unit_price']) - ($item['discount_amount'] ?? 0) + ($item['tax_amount'] ?? 0),
-                    'billing_period' => $item['billing_period'],
+                    'total_amount' => $item['total_amount'],
+                    'billing_period' => $item['billing_period'] ?? 'monthly',
+                    'pricing_model' => $item['pricing_model'] ?? null,
+                    'billing_cycle' => $item['billing_period'] ?? null,
+                    'price_source' => $item['price_source'] ?? null,
+                    'tax_code_id' => $item['tax_code_id'] ?? null,
+                    'tax_rate' => $item['tax_rate'] ?? 0,
+                    'withholding_tax_code_id' => $item['withholding_tax_code_id'] ?? null,
+                    'withholding_tax_rate' => $item['withholding_tax_rate'] ?? 0,
+                    'withholding_tax_amount' => $item['withholding_tax_amount'] ?? 0,
+                    'line_total_before_wht' => $item['line_total_before_wht'] ?? 0,
+                    'line_total_after_wht' => $item['line_total_after_wht'] ?? 0,
                 ]);
             }
  

@@ -47,6 +47,36 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const leadObj = leadDataQuery?.data || {};
   const contacts = leadObj.contacts || [];
  
+  // Fetch Tax Codes
+  const { data: taxCodesData } = useQuery({
+    queryKey: ['o2c-tax-codes'],
+    queryFn: () => apiFetch('/settings/o2c/tax-codes').then(r => r.json()),
+  });
+  const taxCodes = taxCodesData?.data || [];
+ 
+  // Fetch Withholding Tax Codes
+  const { data: whtCodesData } = useQuery({
+    queryKey: ['o2c-withholding-tax-codes'],
+    queryFn: () => apiFetch('/settings/o2c/withholding-tax-codes').then(r => r.json()),
+  });
+  const whtCodes = whtCodesData?.data || [];
+ 
+  // Fetch Item Settings
+  const { data: itemSettingsData } = useQuery({
+    queryKey: ['o2c-item-settings'],
+    queryFn: () => apiFetch('/settings/o2c/item-settings').then(r => r.json()),
+  });
+  const itemSettings = itemSettingsData?.data || [];
+ 
+  const settingRequireTierObj = itemSettings.find((s: any) => s.setting_key === 'require_product_tier_for_saas_product');
+  const settingRequireTier = settingRequireTierObj ? !!settingRequireTierObj.setting_value_json?.enabled : false;
+ 
+  const settingAllowOverrideObj = itemSettings.find((s: any) => s.setting_key === 'allow_price_override');
+  const settingAllowOverride = settingAllowOverrideObj ? !!settingAllowOverrideObj.setting_value_json?.enabled : true;
+ 
+  const settingAllowDiscountObj = itemSettings.find((s: any) => s.setting_key === 'allow_discount');
+  const settingAllowDiscount = settingAllowDiscountObj ? !!settingAllowDiscountObj.setting_value_json?.enabled : true;
+ 
   const [qForm, setQForm] = useState({
     quotation_type: 'new',
     quotation_date: new Date().toISOString().split('T')[0],
@@ -78,6 +108,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     items: [
       {
         product_id: '',
+        product_tier_id: '',
+        pricing_model: 'flat_rate',
+        price_source: 'manual',
+        tax_code_id: '',
+        withholding_tax_code_id: '',
+        withholding_tax_rate: 0,
         item_name: 'Platform Subscription',
         description: 'Platform Access License',
         quantity: 1,
@@ -86,7 +122,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         billing_period: 'monthly',
         line_discount_type: 'none',
         line_discount_value: 0,
-        tax_code: 'VAT',
+        tax_code: '',
         tax_rate: 0,
       }
     ]
@@ -127,12 +163,14 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     let subtotal = 0;
     let totalLineDiscount = 0;
     let totalTax = 0;
+    let totalWithholdingTax = 0;
  
     const itemsCalculated = qForm.items.map(item => {
       const qty = Number(item.quantity) || 0;
       const price = Number(item.unit_price) || 0;
       const discVal = Number(item.line_discount_value) || 0;
       const taxRate = Number(item.tax_rate) || 0;
+      const whtRate = Number(item.withholding_tax_rate) || 0;
  
       const baseAmount = qty * price;
       let lineDiscountAmount = 0;
@@ -144,18 +182,25 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
  
       const taxableAmount = baseAmount - lineDiscountAmount;
       const lineTaxAmount = taxableAmount * (taxRate / 100);
-      const lineTotal = taxableAmount + lineTaxAmount;
+      const lineTotalBeforeWht = taxableAmount + lineTaxAmount;
+      
+      const lineWhtAmount = taxableAmount * (whtRate / 100);
+      const lineTotalAfterWht = lineTotalBeforeWht - lineWhtAmount;
  
       subtotal += baseAmount;
       totalLineDiscount += lineDiscountAmount;
       totalTax += lineTaxAmount;
+      totalWithholdingTax += lineWhtAmount;
  
       return {
         ...item,
         line_subtotal: baseAmount,
         line_discount_amount: lineDiscountAmount,
         line_tax_amount: lineTaxAmount,
-        line_total: lineTotal
+        line_withholding_tax_amount: lineWhtAmount,
+        line_total_before_wht: lineTotalBeforeWht,
+        line_total_after_wht: lineTotalAfterWht,
+        line_total: lineTotalAfterWht
       };
     });
  
@@ -168,14 +213,17 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     }
  
     const otherCost = Number(qForm.other_cost) || 0;
-    const grandTotal = subtotal - totalLineDiscount - headerDiscountAmount + totalTax + otherCost;
+    const grandTotalBeforeWht = subtotal - totalLineDiscount - headerDiscountAmount + totalTax + otherCost;
+    const grandTotalAfterWht = grandTotalBeforeWht - totalWithholdingTax;
  
     return {
       subtotal,
       totalLineDiscount,
       headerDiscountAmount,
       totalTax,
-      grandTotal: Math.max(0, grandTotal),
+      totalWithholdingTax,
+      grandTotalBeforeWht,
+      grandTotal: Math.max(0, grandTotalAfterWht),
       items: itemsCalculated
     };
   };
@@ -299,12 +347,60 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       newItems[index] = {
         ...newItems[index],
         product_id: productId,
+        product_tier_id: '',
         item_name: prod.name,
         description: prod.description || '',
-        unit_price: Number(prod.base_price || 0)
+        unit_price: Number(prod.base_price || 0),
+        price_source: 'product_base_price',
+        pricing_model: 'flat_rate',
       };
       setQForm({ ...qForm, items: newItems });
     }
+  };
+ 
+  const handleTierSelect = (index: number, tierId: string) => {
+    const productId = qForm.items[index].product_id;
+    const prod = products.find((p: any) => String(p.id) === productId);
+    if (!prod) return;
+    
+    const tier = prod.tiers?.find((t: any) => String(t.id) === tierId);
+    if (tier) {
+      const newItems = [...qForm.items];
+      newItems[index] = {
+        ...newItems[index],
+        product_tier_id: tierId,
+        item_name: `${prod.name} — ${tier.name}`,
+        description: tier.features ? tier.features.join(', ') : (prod.description || ''),
+        unit_price: Number(tier.price || 0),
+        billing_period: tier.billing_period || 'monthly',
+        pricing_model: tier.pricing_type || 'flat_rate',
+        price_source: 'product_tier',
+      };
+      setQForm({ ...qForm, items: newItems });
+    }
+  };
+ 
+  const handleTaxCodeSelect = (index: number, taxCodeId: string) => {
+    const code = taxCodes.find((c: any) => String(c.id) === taxCodeId);
+    const newItems = [...qForm.items];
+    newItems[index] = {
+      ...newItems[index],
+      tax_code_id: taxCodeId,
+      tax_code: code ? code.tax_code : '',
+      tax_rate: code ? Number(code.rate_percentage) : 0,
+    };
+    setQForm({ ...qForm, items: newItems });
+  };
+ 
+  const handleWhtCodeSelect = (index: number, whtCodeId: string) => {
+    const code = whtCodes.find((c: any) => String(c.id) === whtCodeId);
+    const newItems = [...qForm.items];
+    newItems[index] = {
+      ...newItems[index],
+      withholding_tax_code_id: whtCodeId,
+      withholding_tax_rate: code ? Number(code.rate_percentage) : 0,
+    };
+    setQForm({ ...qForm, items: newItems });
   };
  
   const addLineItem = () => {
@@ -314,6 +410,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         ...qForm.items,
         {
           product_id: '',
+          product_tier_id: '',
+          pricing_model: 'flat_rate',
+          price_source: 'manual',
+          tax_code_id: '',
+          withholding_tax_code_id: '',
+          withholding_tax_rate: 0,
           item_name: 'Custom Item',
           description: '',
           quantity: 1,
@@ -322,7 +424,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           billing_period: 'monthly',
           line_discount_type: 'none',
           line_discount_value: 0,
-          tax_code: 'VAT',
+          tax_code: '',
           tax_rate: 0,
         }
       ]
@@ -349,6 +451,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       items: [
         {
           product_id: '',
+          product_tier_id: '',
+          pricing_model: 'flat_rate',
+          price_source: 'manual',
+          tax_code_id: '',
+          withholding_tax_code_id: '',
+          withholding_tax_rate: 0,
           item_name: 'Custom Item',
           description: '',
           quantity: 1,
@@ -357,7 +465,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           billing_period: 'monthly',
           line_discount_type: 'none',
           line_discount_value: 0,
-          tax_code: 'VAT',
+          tax_code: '',
           tax_rate: 0,
         }
       ]
@@ -867,14 +975,15 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-muted/50 border-b border-border">
-                          <th className="p-2 font-semibold w-[20%]">Product</th>
-                          <th className="p-2 font-semibold w-[20%]">Item Name</th>
-                          <th className="p-2 font-semibold w-[8%]">Qty</th>
-                          <th className="p-2 font-semibold w-[12%]">Unit Price</th>
-                          <th className="p-2 font-semibold w-[15%]">Line Discount</th>
-                          <th className="p-2 font-semibold w-[8%]">Tax %</th>
-                          <th className="p-2 font-semibold w-[12%] text-right">Total</th>
-                          <th className="p-2 font-semibold w-[10%] text-center">Actions</th>
+                          <th className="p-2 font-semibold w-[22%]">Product & Tier</th>
+                          <th className="p-2 font-semibold w-[15%]">Item Name</th>
+                          <th className="p-2 font-semibold w-[6%]">Qty</th>
+                          <th className="p-2 font-semibold w-[10%]">Unit Price</th>
+                          <th className="p-2 font-semibold w-[12%]">Line Discount</th>
+                          <th className="p-2 font-semibold w-[11%]">Tax Code</th>
+                          <th className="p-2 font-semibold w-[11%]">WHT Code</th>
+                          <th className="p-2 font-semibold w-[10%] text-right">Total</th>
+                          <th className="p-2 font-semibold w-[8%] text-center">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -888,11 +997,29 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   value={item.product_id}
                                   onChange={e => handleProductSelect(index, e.target.value)}
                                 >
-                                  <option value="">-- Custom --</option>
+                                  <option value="">-- Custom / Manual --</option>
                                   {products.map((p: any) => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                   ))}
                                 </select>
+                                {item.product_id && (() => {
+                                  const prod = products.find((p: any) => String(p.id) === item.product_id);
+                                  if (prod && prod.tiers && prod.tiers.length > 0) {
+                                    return (
+                                      <select
+                                        className="w-full rounded border border-input bg-background p-1 text-[10px] mt-1"
+                                        value={item.product_tier_id}
+                                        onChange={e => handleTierSelect(index, e.target.value)}
+                                      >
+                                        <option value="">-- Select Tier --</option>
+                                        {prod.tiers.map((t: any) => (
+                                          <option key={t.id} value={t.id}>{t.name} ({formatCurrency(t.price)})</option>
+                                        ))}
+                                      </select>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </td>
                               <td className="p-1">
                                 <Input 
@@ -923,10 +1050,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   className="h-8 p-1 text-xs" 
                                   type="number" 
                                   min="0" 
+                                  disabled={!settingAllowOverride && item.price_source === 'product_tier'}
                                   value={item.unit_price} 
                                   onChange={e => {
                                     const newItems = [...qForm.items];
                                     newItems[index].unit_price = Number(e.target.value);
+                                    newItems[index].price_source = 'manual';
                                     setQForm({...qForm, items: newItems});
                                   }} 
                                 />
@@ -935,6 +1064,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                 <div className="flex gap-1">
                                   <select 
                                     className="rounded border border-input bg-background p-0.5 text-[10px]"
+                                    disabled={!settingAllowDiscount}
                                     value={item.line_discount_type}
                                     onChange={e => {
                                       const newItems = [...qForm.items];
@@ -946,7 +1076,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                     <option value="amount">Value</option>
                                     <option value="percentage">%</option>
                                   </select>
-                                  {item.line_discount_type !== 'none' && (
+                                  {item.line_discount_type !== 'none' && settingAllowDiscount && (
                                     <Input 
                                       className="h-8 p-1 text-xs w-[60px]" 
                                       type="number" 
@@ -961,17 +1091,28 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                 </div>
                               </td>
                               <td className="p-1">
-                                <Input 
-                                  className="h-8 p-1 text-xs" 
-                                  type="number" 
-                                  min="0" 
-                                  value={item.tax_rate} 
-                                  onChange={e => {
-                                    const newItems = [...qForm.items];
-                                    newItems[index].tax_rate = Number(e.target.value);
-                                    setQForm({...qForm, items: newItems});
-                                  }} 
-                                />
+                                <select
+                                  className="w-full rounded border border-input bg-background p-1 text-xs"
+                                  value={item.tax_code_id || ''}
+                                  onChange={e => handleTaxCodeSelect(index, e.target.value)}
+                                >
+                                  <option value="">No Tax</option>
+                                  {taxCodes.filter((c: any) => c.is_active).map((c: any) => (
+                                    <option key={c.id} value={c.id}>{c.tax_code} ({c.rate_percentage}%)</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="p-1">
+                                <select
+                                  className="w-full rounded border border-input bg-background p-1 text-xs"
+                                  value={item.withholding_tax_code_id || ''}
+                                  onChange={e => handleWhtCodeSelect(index, e.target.value)}
+                                >
+                                  <option value="">No WHT</option>
+                                  {whtCodes.filter((c: any) => c.is_active).map((c: any) => (
+                                    <option key={c.id} value={c.id}>{c.wht_code} ({c.rate_percentage}%)</option>
+                                  ))}
+                                </select>
                               </td>
                               <td className="p-1 text-right font-medium tabular-nums">
                                 {formatCurrency(lineTotal)}
@@ -1087,7 +1228,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                         <span>Header Discount Amount:</span>
                         <span className="tabular-nums font-bold text-red-600">-{formatCurrency(summary.headerDiscountAmount)}</span>
                       </div>
-                      <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                       <div className="flex justify-between text-xs font-medium text-muted-foreground">
                         <span>Estimated Tax (VAT/PPN):</span>
                         <span className="tabular-nums font-bold text-foreground">+{formatCurrency(summary.totalTax)}</span>
                       </div>
@@ -1097,8 +1238,16 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           <span className="tabular-nums font-bold text-foreground">+{formatCurrency(qForm.other_cost)}</span>
                         </div>
                       )}
+                      <div className="flex justify-between text-xs font-medium text-muted-foreground border-t pt-1">
+                        <span>Grand Total Before WHT:</span>
+                        <span className="tabular-nums font-bold text-foreground">{formatCurrency(summary.grandTotalBeforeWht)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                        <span>Withholding Tax (WHT):</span>
+                        <span className="tabular-nums font-bold text-red-600">-{formatCurrency(summary.totalWithholdingTax)}</span>
+                      </div>
                       <div className="border-t border-border pt-2 flex justify-between text-sm font-bold text-blue-700 dark:text-blue-400">
-                        <span>Grand Total Amount:</span>
+                        <span>Net Grand Total:</span>
                         <span className="tabular-nums text-lg">{formatCurrency(summary.grandTotal)}</span>
                       </div>
                     </div>

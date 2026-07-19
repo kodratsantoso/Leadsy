@@ -11,7 +11,10 @@ class LeadSalesOrder extends Model
         'order_type', 'order_status', 'order_date', 'customer_name', 'billing_entity',
         'currency', 'subtotal_amount', 'discount_amount', 'tax_amount', 'total_amount',
         'recurring_amount', 'contract_start_date', 'contract_end_date', 'renewal_date',
-        'created_by', 'confirmed_by', 'confirmed_at'
+        'created_by', 'confirmed_by', 'confirmed_at',
+        
+        // WHT fields
+        'total_withholding_tax', 'grand_total_before_wht'
     ];
 
     protected $casts = [
@@ -25,6 +28,8 @@ class LeadSalesOrder extends Model
         'total_amount' => 'decimal:2',
         'recurring_amount' => 'decimal:2',
         'confirmed_at' => 'datetime',
+        'total_withholding_tax' => 'decimal:2',
+        'grand_total_before_wht' => 'decimal:2',
     ];
 
     public function lead()
