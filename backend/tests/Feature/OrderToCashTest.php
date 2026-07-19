@@ -365,6 +365,7 @@ class OrderToCashTest extends TestCase
                         'line_discount_value' => 10.00,
                         'tax_rate' => 10.00,
                         'billing_period' => 'monthly',
+                        'duration_value' => 12,
                     ]
                 ]
             ]);
@@ -372,11 +373,11 @@ class OrderToCashTest extends TestCase
         $response->assertStatus(201);
         $quotation = LeadQuotation::first();
         $this->assertNotNull($quotation);
-        $this->assertEquals(1000.00, (float)$quotation->subtotal_amount);
-        $this->assertEquals(90.00, (float)$quotation->tax_amount);
-        $this->assertEquals(18.00, (float)$quotation->total_withholding_tax);
-        $this->assertEquals(990.00, (float)$quotation->grand_total_before_wht);
-        $this->assertEquals(972.00, (float)$quotation->total_amount);
+        $this->assertEquals(12000.00, (float)$quotation->subtotal_amount);
+        $this->assertEquals(1080.00, (float)$quotation->tax_amount);
+        $this->assertEquals(216.00, (float)$quotation->total_withholding_tax);
+        $this->assertEquals(11880.00, (float)$quotation->grand_total_before_wht);
+        $this->assertEquals(11664.00, (float)$quotation->total_amount);
  
         // Convert to Sales Order
         $quotation->update(['quotation_status' => 'approved']);
@@ -386,9 +387,9 @@ class OrderToCashTest extends TestCase
  
         $so = LeadSalesOrder::first();
         $this->assertNotNull($so);
-        $this->assertEquals(18.00, (float)$so->total_withholding_tax);
-        $this->assertEquals(990.00, (float)$so->grand_total_before_wht);
-        $this->assertEquals(972.00, (float)$so->total_amount);
+        $this->assertEquals(216.00, (float)$so->total_withholding_tax);
+        $this->assertEquals(11880.00, (float)$so->grand_total_before_wht);
+        $this->assertEquals(11664.00, (float)$so->total_amount);
     }
  
     private function makeUser(): User

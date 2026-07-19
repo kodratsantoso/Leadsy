@@ -60,7 +60,12 @@ class LeadOrderToCashController extends Controller
                 throw new \InvalidArgumentException('Withholding tax rate cannot be negative.');
             }
  
-            $baseAmount = $qty * $price;
+            $duration = isset($item['duration_value']) && $item['duration_value'] !== '' ? (float) $item['duration_value'] : 1.0;
+            if ($duration <= 0) {
+                $duration = 1.0;
+            }
+
+            $baseAmount = $qty * $price * $duration;
             $lineDiscountAmount = 0;
  
             if ($discType === 'percentage') {

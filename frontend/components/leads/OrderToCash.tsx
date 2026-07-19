@@ -258,13 +258,14 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     let totalWithholdingTax = 0;
  
     const itemsCalculated = qForm.items.map(item => {
-      const qty = Number(item.quantity) || 0;
-      const price = Number(item.unit_price) || 0;
-      const discVal = Number(item.line_discount_value) || 0;
+      const qty = Number(normalizeAmountInput(String(item.quantity))) || 0;
+      const price = Number(normalizeAmountInput(String(item.unit_price))) || 0;
+      const duration = Number(normalizeAmountInput(String(item.duration_value))) || 1;
+      const discVal = Number(normalizeAmountInput(String(item.line_discount_value))) || 0;
       const taxRate = Number(item.tax_rate) || 0;
       const whtRate = Number(item.withholding_tax_rate) || 0;
  
-      const baseAmount = qty * price;
+      const baseAmount = qty * price * duration;
       let lineDiscountAmount = 0;
       if (item.line_discount_type === 'percentage') {
         lineDiscountAmount = baseAmount * (discVal / 100);
@@ -1146,51 +1147,39 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                 />
                               </td>
                               <td className="p-1">
-                                {isSaaSProduct(item.product_id) ? (
-                                  <Input 
-                                    type="date"
-                                    className="h-8 p-1 text-xs" 
-                                    value={item.start_date || ''} 
-                                    onChange={e => handleStartDateChange(index, e.target.value)}
-                                  />
-                                ) : (
-                                  <span className="text-[10px] text-muted-foreground block text-center">-</span>
-                                )}
+                                <Input 
+                                  type="date"
+                                  className="h-8 p-1 text-xs" 
+                                  value={item.start_date || ''} 
+                                  onChange={e => handleStartDateChange(index, e.target.value)}
+                                />
                               </td>
                               <td className="p-1">
-                                {isSaaSProduct(item.product_id) ? (
-                                  <div className="flex gap-1 items-center">
-                                    <Input 
-                                      className="h-8 p-1 text-xs w-[50px]" 
-                                      value={item.duration_value || ''} 
-                                      onChange={e => handleDurationValueChange(index, formatAmountInput(normalizeAmountInput(e.target.value)))}
-                                      placeholder="Qty"
-                                    />
-                                    <select
-                                      className="rounded border border-input bg-background p-1 text-[10px] h-8"
-                                      value={item.duration_unit || 'month'}
-                                      onChange={e => handleDurationUnitChange(index, e.target.value)}
-                                    >
-                                      <option value="day">Days</option>
-                                      <option value="month">Months</option>
-                                      <option value="year">Years</option>
-                                    </select>
-                                  </div>
-                                ) : (
-                                  <span className="text-[10px] text-muted-foreground block text-center">-</span>
-                                )}
+                                <div className="flex gap-1 items-center">
+                                  <Input 
+                                    className="h-8 p-1 text-xs w-[50px]" 
+                                    value={item.duration_value || ''} 
+                                    onChange={e => handleDurationValueChange(index, formatAmountInput(normalizeAmountInput(e.target.value)))}
+                                    placeholder="1"
+                                  />
+                                  <select
+                                    className="rounded border border-input bg-background p-1 text-[10px] h-8"
+                                    value={item.duration_unit || 'month'}
+                                    onChange={e => handleDurationUnitChange(index, e.target.value)}
+                                  >
+                                    <option value="day">Days</option>
+                                    <option value="month">Months</option>
+                                    <option value="year">Years</option>
+                                  </select>
+                                </div>
                               </td>
                               <td className="p-1">
-                                {isSaaSProduct(item.product_id) ? (
-                                  <Input 
-                                    type="date"
-                                    className="h-8 p-1 text-xs" 
-                                    value={item.end_date || ''} 
-                                    onChange={e => handleEndDateChange(index, e.target.value)}
-                                  />
-                                ) : (
-                                  <span className="text-[10px] text-muted-foreground block text-center">-</span>
-                                )}
+                                <Input 
+                                  type="date"
+                                  className="h-8 p-1 text-xs" 
+                                  value={item.end_date || ''} 
+                                  onChange={e => handleEndDateChange(index, e.target.value)}
+                                />
                               </td>
                               <td className="p-1">
                                 <Input 
