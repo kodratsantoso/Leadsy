@@ -13,7 +13,7 @@ import { Modal } from '@/components/ui/modal';
  
 export function OrderToCash({ leadId }: { leadId: string | number }) {
   const qc = useQueryClient();
-  const { formatCurrency } = useNumberFormat();
+  const { formatCurrency, formatNumber, formatAmountInput, normalizeAmountInput } = useNumberFormat();
   
   const [showQModal, setShowQModal] = useState(false);
   const [showSOModal, setShowSOModal] = useState(false);
@@ -95,8 +95,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     forecast_type: 'Pipeline',
     tax_included: false,
     header_discount_type: 'none',
-    header_discount_value: 0,
-    other_cost: 0,
+    header_discount_value: '0',
+    other_cost: '0',
     scope_of_work: '',
     exclusions: '',
     delivery_timeline: '',
@@ -116,12 +116,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         withholding_tax_rate: 0,
         item_name: 'Platform Subscription',
         description: 'Platform Access License',
-        quantity: 1,
+        quantity: '1',
         unit: 'license',
-        unit_price: 0,
+        unit_price: '0',
         billing_period: 'monthly',
         line_discount_type: 'none',
-        line_discount_value: 0,
+        line_discount_value: '0',
         tax_code: '',
         tax_rate: 0,
       }
@@ -142,8 +142,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     order_date: new Date().toISOString().split('T')[0],
     order_type: 'new',
     description: 'Platform Subscription Direct',
-    quantity: 1,
-    unit_price: 0,
+    quantity: '1',
+    unit_price: '0',
   });
  
   const { data: qData, isLoading: loadingQ } = useQuery({
@@ -240,8 +240,14 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         sales_owner_id: qForm.sales_owner_id ? Number(qForm.sales_owner_id) : null,
         presales_owner_id: qForm.presales_owner_id ? Number(qForm.presales_owner_id) : null,
         probability: qForm.probability ? Number(qForm.probability) : null,
-        header_discount_value: Number(qForm.header_discount_value) || 0,
-        other_cost: Number(qForm.other_cost) || 0,
+        header_discount_value: Number(normalizeAmountInput(String(qForm.header_discount_value))) || 0,
+        other_cost: Number(normalizeAmountInput(String(qForm.other_cost))) || 0,
+        items: qForm.items.map(item => ({
+          ...item,
+          quantity: Number(normalizeAmountInput(String(item.quantity))) || 0,
+          unit_price: Number(normalizeAmountInput(String(item.unit_price))) || 0,
+          line_discount_value: Number(normalizeAmountInput(String(item.line_discount_value))) || 0,
+        }))
       };
       
       const res = await apiFetch(`/leads/${leadId}/quotations`, {
@@ -272,8 +278,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           {
             item_name: soForm.description,
             description: soForm.description,
-            quantity: soForm.quantity,
-            unit_price: soForm.unit_price,
+            quantity: Number(normalizeAmountInput(String(soForm.quantity))) || 0,
+            unit_price: Number(normalizeAmountInput(String(soForm.unit_price))) || 0,
             discount_amount: 0,
             tax_amount: 0,
             billing_period: 'monthly'
@@ -350,7 +356,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         product_tier_id: '',
         item_name: prod.name,
         description: prod.description || '',
-        unit_price: Number(prod.base_price || 0),
+        unit_price: formatAmountInput(String(prod.base_price || 0)),
         price_source: 'product_base_price',
         pricing_model: 'flat_rate',
       };
@@ -371,7 +377,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         product_tier_id: tierId,
         item_name: `${prod.name} — ${tier.name}`,
         description: tier.features ? tier.features.join(', ') : (prod.description || ''),
-        unit_price: Number(tier.price || 0),
+        unit_price: formatAmountInput(String(tier.price || 0)),
         billing_period: tier.billing_period || 'monthly',
         pricing_model: tier.pricing_type || 'flat_rate',
         price_source: 'product_tier',
@@ -418,12 +424,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           withholding_tax_rate: 0,
           item_name: 'Custom Item',
           description: '',
-          quantity: 1,
+          quantity: '1',
           unit: 'license',
-          unit_price: 0,
+          unit_price: '0',
           billing_period: 'monthly',
           line_discount_type: 'none',
-          line_discount_value: 0,
+          line_discount_value: '0',
           tax_code: '',
           tax_rate: 0,
         }
@@ -459,12 +465,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           withholding_tax_rate: 0,
           item_name: 'Custom Item',
           description: '',
-          quantity: 1,
+          quantity: '1',
           unit: 'license',
-          unit_price: 0,
+          unit_price: '0',
           billing_period: 'monthly',
           line_discount_type: 'none',
-          line_discount_value: 0,
+          line_discount_value: '0',
           tax_code: '',
           tax_rate: 0,
         }
@@ -923,7 +929,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Other Shipping / Cost</label>
-                    <Input type="number" min="0" value={qForm.other_cost} onChange={e => setQForm({...qForm, other_cost: Number(e.target.value)})} />
+                    <Input value={qForm.other_cost} onChange={e => setQForm({...qForm, other_cost: formatAmountInput(normalizeAmountInput(e.target.value))})} />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Header Discount Type</label>
@@ -940,7 +946,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                   {qForm.header_discount_type !== 'none' && (
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Header Discount Value</label>
-                      <Input type="number" min="0" value={qForm.header_discount_value} onChange={e => setQForm({...qForm, header_discount_value: Number(e.target.value)})} />
+                      <Input value={qForm.header_discount_value} onChange={e => setQForm({...qForm, header_discount_value: formatAmountInput(normalizeAmountInput(e.target.value))})} />
                     </div>
                   )}
                   <div className="col-span-2 flex items-center gap-2 pt-2">
@@ -1035,12 +1041,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                               <td className="p-1">
                                 <Input 
                                   className="h-8 p-1 text-xs" 
-                                  type="number" 
-                                  min="0.01" 
                                   value={item.quantity} 
                                   onChange={e => {
                                     const newItems = [...qForm.items];
-                                    newItems[index].quantity = Number(e.target.value);
+                                    newItems[index].quantity = formatAmountInput(normalizeAmountInput(e.target.value));
                                     setQForm({...qForm, items: newItems});
                                   }} 
                                 />
@@ -1048,13 +1052,11 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                               <td className="p-1">
                                 <Input 
                                   className="h-8 p-1 text-xs" 
-                                  type="number" 
-                                  min="0" 
                                   disabled={!settingAllowOverride && item.price_source === 'product_tier'}
                                   value={item.unit_price} 
                                   onChange={e => {
                                     const newItems = [...qForm.items];
-                                    newItems[index].unit_price = Number(e.target.value);
+                                    newItems[index].unit_price = formatAmountInput(normalizeAmountInput(e.target.value));
                                     newItems[index].price_source = 'manual';
                                     setQForm({...qForm, items: newItems});
                                   }} 
@@ -1079,11 +1081,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   {item.line_discount_type !== 'none' && settingAllowDiscount && (
                                     <Input 
                                       className="h-8 p-1 text-xs w-[60px]" 
-                                      type="number" 
                                       value={item.line_discount_value} 
                                       onChange={e => {
                                         const newItems = [...qForm.items];
-                                        newItems[index].line_discount_value = Number(e.target.value);
+                                        newItems[index].line_discount_value = formatAmountInput(normalizeAmountInput(e.target.value));
                                         setQForm({...qForm, items: newItems});
                                       }} 
                                     />
@@ -1232,10 +1233,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                         <span>Estimated Tax (VAT/PPN):</span>
                         <span className="tabular-nums font-bold text-foreground">+{formatCurrency(summary.totalTax)}</span>
                       </div>
-                      {qForm.other_cost > 0 && (
+                      {Number(normalizeAmountInput(String(qForm.other_cost))) > 0 && (
                         <div className="flex justify-between text-xs font-medium text-muted-foreground">
                           <span>Other Cost:</span>
-                          <span className="tabular-nums font-bold text-foreground">+{formatCurrency(qForm.other_cost)}</span>
+                          <span className="tabular-nums font-bold text-foreground">+{formatCurrency(normalizeAmountInput(String(qForm.other_cost)))}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-xs font-medium text-muted-foreground border-t pt-1">
@@ -1316,13 +1317,13 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Quantity</label>
-                <Input type="number" min="1" value={soForm.quantity} onChange={e => setSoForm({...soForm, quantity: Number(e.target.value)})} />
+                <Input value={soForm.quantity} onChange={e => setSoForm({...soForm, quantity: formatAmountInput(normalizeAmountInput(e.target.value))})} />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1 block">Unit Price (Value)</label>
                 <div className="relative">
                   <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input type="number" min="0" className="pl-9" value={soForm.unit_price} onChange={e => setSoForm({...soForm, unit_price: Number(e.target.value)})} />
+                  <Input className="pl-9" value={soForm.unit_price} onChange={e => setSoForm({...soForm, unit_price: formatAmountInput(normalizeAmountInput(e.target.value))})} />
                 </div>
               </div>
             </div>
