@@ -313,7 +313,10 @@ Source of truth: `frontend/components/leads/OrderToCash.tsx` (UI), `backend/app/
 **Purpose:** Manages the commercial quotation, approval, and order realization pipeline.
 
 **Core Rules:**
-- **Calculations**: Calculated strictly on the backend: `line_total = quantity * unit_price - discount_amount + tax_amount`, and `total_amount = subtotal - discount_amount + tax_amount`.
+- **Calculations**: Calculated strictly on the backend:
+  * Line level: `line_subtotal = quantity * unit_price`, `line_discount_amount` is calculated based on type (percentage/value), `taxable_amount = line_subtotal - line_discount_amount`, and `line_tax_amount = taxable_amount * (tax_rate / 100)`.
+  * Header level: `subtotal = sum(line_subtotal)`, `total_line_discount = sum(line_discount_amount)`, `header_discount_amount` is calculated based on type/value on `subtotal - total_line_discount`, and `grand_total = subtotal - total_line_discount - header_discount_amount + tax_amount + other_cost`.
+- **UI Structure**: Organized into NetSuite-style sub-tabs inside the Create Quotation form: Primary Info, Commercial Info, Line Items, Terms & Exclusions, and Review Summary. Includes live calculation previews, product selectors, assignable users, and lead contacts.
 - **Currency**: Checks for default currency configuration from `CurrencySetting`. Creation blocks and warns if missing.
 - **Quotation Status Lifecycle**: `draft` -> `submitted` -> `approved` -> `rejected`/`sent` -> `accepted` -> `converted`.
 - **Sales Order Status Lifecycle**: `draft` -> `confirmed` -> `fulfilled` -> `closed`.

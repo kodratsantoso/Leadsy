@@ -67,8 +67,9 @@ class OrderToCashTest extends TestCase
                         'item_name' => 'Consulting',
                         'quantity' => 2,
                         'unit_price' => 500,
-                        'discount_amount' => 100,
-                        'tax_amount' => 50,
+                        'line_discount_type' => 'amount',
+                        'line_discount_value' => 100,
+                        'tax_rate' => 5.5556, // 5.5556% on 900 taxable amount is 50.00
                         'billing_period' => 'monthly'
                     ]
                 ]
@@ -83,10 +84,11 @@ class OrderToCashTest extends TestCase
         $this->assertEquals($currencySetting->currency->code, $quotation->currency);
         // Recalculation verification:
         // quantity (2) * unit_price (500) = 1000 subtotal
-        // discount = 100, tax = 50
+        // line discount = 100, tax_rate = 5.5556% on 900 = 50.00
         // total = 1000 - 100 + 50 = 950
         $this->assertEquals(1000.00, (float)$quotation->subtotal_amount);
-        $this->assertEquals(100.00, (float)$quotation->discount_amount);
+        $this->assertEquals(0.00, (float)$quotation->discount_amount); // Header discount is 0
+        $this->assertEquals(100.00, (float)$quotation->total_line_discount); // Line discount is 100
         $this->assertEquals(50.00, (float)$quotation->tax_amount);
         $this->assertEquals(950.00, (float)$quotation->total_amount);
  
@@ -241,6 +243,72 @@ class OrderToCashTest extends TestCase
         $lead->refresh();
         $this->assertEquals(5000.00, (float)$lead->realized_closing_amount);
         $this->assertEquals($stage->id, $lead->funnel_stage_id);
+    }
+ 
+    public function test_advanced_netsuite_quotation_features(): void
+    {
+        $user = $this->makeUser();
+        $lead = $this->makeLead($user);
+        $this->setupCurrency();
+        
+        // Create a contact for the lead
+        $contact = $lead->contacts()->create([
+            'name' => 'John Doe',
+            'email' => 'john@testcorp.com',
+            'phone' => '12345678',
+        ]);
+ 
+        $response = $this->actingAs($user)
+            ->postJson("/api/leads/{$lead->id}/quotations", [
+                'quotation_type' => 'expansion',
+                'quotation_date' => now()->toDateString(),
+                'customer_name' => 'Target Customer Exp',
+                'contact_id' => $contact->id,
+                'sales_owner_id' => $user->id,
+                'payment_terms' => 'Net 30',
+                'billing_frequency' => 'yearly',
+                'header_discount_type' => 'percentage',
+                'header_discount_value' => 10, // 10% header discount
+                'other_cost' => 150, // Shipping or setup cost
+                'items' => [
+                    [
+                        'item_name' => 'License Tier A',
+                        'quantity' => 10,
+                        'unit_price' => 100, // 1000 subtotal
+                        'line_discount_type' => 'percentage',
+                        'line_discount_value' => 20, // 20% line discount = 200
+                        'tax_rate' => 10, // 10% tax on 800 taxable amount = 80
+                        'billing_period' => 'yearly'
+                    ]
+                ]
+            ]);
+ 
+        $response->assertStatus(201);
+ 
+        $quotation = LeadQuotation::first();
+        $this->assertNotNull($quotation);
+        $this->assertEquals($contact->id, $quotation->contact_id);
+        $this->assertEquals($user->id, $quotation->sales_owner_id);
+        $this->assertEquals('Net 30', $quotation->payment_terms);
+        $this->assertEquals('yearly', $quotation->billing_frequency);
+ 
+        // Verification of calculations:
+        // base amount = 10 * 100 = 1000
+        // line discount = 20% of 1000 = 200
+        // total line discount = 200
+        // line tax = 10% of (1000 - 200) = 80
+        // subtotal = 1000
+        // taxable subtotal = 1000 - 200 = 800
+        // header discount = 10% of 800 = 80
+        // other cost = 150
+        // total tax = 80
+        // grand total = 1000 - 200 - 80 + 80 + 150 = 950
+        $this->assertEquals(1000.00, (float)$quotation->subtotal_amount);
+        $this->assertEquals(200.00, (float)$quotation->total_line_discount);
+        $this->assertEquals(80.00, (float)$quotation->discount_amount); // Header discount
+        $this->assertEquals(80.00, (float)$quotation->tax_amount);
+        $this->assertEquals(150.00, (float)$quotation->other_cost);
+        $this->assertEquals(950.00, (float)$quotation->total_amount);
     }
  
     private function makeUser(): User

@@ -159,3 +159,13 @@ Leadsy now has database-backed source and channel classification for leads.
 - Integrated automated Lead activity logging and audit logging across all quotation/sales order creations and status transitions.
 - Fully tested using a new PHPUnit integration test suite (`tests/Feature/OrderToCashTest.php`).
 - Verified zero type regressions on Next.js frontend using TypeScript compiler checks.
+
+## Phase 13: Enterprise Quotation Input Improvement (Completed ✅)
+**Date completed**: 2026-07-19
+
+- Designed and executed database migration to safely expand `lead_quotations` and `lead_quotation_items` tables with commercial/primary fields.
+- Re-implemented the Create Quotation form with a NetSuite-inspired tabbed interface (Primary, Commercial, Items, Terms & Exclusions, Summary) inside `OrderToCash.tsx`.
+- Wired Assignable Users and Lead Contacts selectors, and added Product Master dropdowns that auto-populate details while keeping them editable.
+- Built live calculation previews in the UI (Subtotal, Line/Header Discounts, Taxes, Setup Cost, and Grand Total).
+- Implemented backend recalculation validations (quantity $> 0$, unit price $\ge 0$, and non-negative discounts/taxes/grand totals).
+- Verified with backend unit tests (asserting correct calculations for complex discount types, tax rates, and setup costs) and frontend TypeScript checks.

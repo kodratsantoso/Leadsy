@@ -220,3 +220,10 @@
 - **Decision**: Restructured the O2C API routes and controller logic (`LeadOrderToCashController`) to strictly enforce default currency validation, dynamic backend price/discount/tax recalculations, transactional quotation-to-sales-order conversion, and full audit and activity logging.
 - **Rationale**: The previous implementation had key property name mismatches between the frontend and database models, lacked direct sales order creation APIs, and allowed invalid status transitions and duplicate conversions. Enforcing transaction boundaries and logging at the database controller level ensures a reliable, trackable pipeline.
 - **Impact**: Backend APIs and the `OrderToCash.tsx` component are fully aligned. Integrates direct sales order creation with warnings, prevents duplicate conversions, and updates Lead closing amounts on confirmed orders. Fully covered by feature tests.
+
+## ADR-031: NetSuite-style Quotation Input System Improvement
+- **Date**: 2026-07-19
+- **Status**: Active
+- **Decision**: Upgraded the Create Quotation input layout into an enterprise-grade form with sub-tabs (Primary, Commercial, Items, Terms & Exclusions, Summary) using dynamic dropdowns for Contacts, Sales/Presales Owners, and Product Masters. Also implemented multi-item line discounts (percentage & absolute amount), tax rates, header-level discounts, other costs, and custom terms.
+- **Rationale**: Real-world corporate quotations require multi-faceted pricing models, specific payment terms (e.g. Net 30), contract start/end boundaries, and custom scope definitions. Moving away from a simple single-level modal to a tabbed enterprise interface makes Leadsy capable of handling complex B2B sales agreements.
+- **Impact**: Added a safe schema migration expanding `lead_quotations` and `lead_quotation_items` tables. Updated model casts and relation maps. Rewrote controller calculation algorithms and validation constraints, supported by an updated integration test suite.
