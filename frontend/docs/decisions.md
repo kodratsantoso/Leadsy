@@ -227,3 +227,10 @@
 - **Decision**: Upgraded the Create Quotation input layout into an enterprise-grade form with sub-tabs (Primary, Commercial, Items, Terms & Exclusions, Summary) using dynamic dropdowns for Contacts, Sales/Presales Owners, and Product Masters. Also implemented multi-item line discounts (percentage & absolute amount), tax rates, header-level discounts, other costs, and custom terms.
 - **Rationale**: Real-world corporate quotations require multi-faceted pricing models, specific payment terms (e.g. Net 30), contract start/end boundaries, and custom scope definitions. Moving away from a simple single-level modal to a tabbed enterprise interface makes Leadsy capable of handling complex B2B sales agreements.
 - **Impact**: Added a safe schema migration expanding `lead_quotations` and `lead_quotation_items` tables. Updated model casts and relation maps. Rewrote controller calculation algorithms and validation constraints, supported by an updated integration test suite.
+
+## ADR-032: Interactive Sales Stage Flow with Activity Logging
+- **Date**: 2026-07-19
+- **Status**: Active
+- **Decision**: Implemented an interactive Sales Stage Flow above the Human Verification Card in the Lead Detail page. The flow represents the stages dynamically based on the active funnel stages from database and settings. Any stage transition (either by clicking a stage or clicking "Complete Step") forces the user to write an activity log first.
+- **Rationale**: Pipeline stage changes are critical milestones that should always have explanation/context (e.g. why did the deal stall, or what was agreed during negotiation). Intercepting stage changes with the Log Activity modal ensures that stage history transitions are always accompanied by context.
+- **Impact**: The Lead Detail page now renders a modern chevron flow. Clicking a stage pre-populates and opens the Log Activity modal. Successfully compiles and passes type checks.

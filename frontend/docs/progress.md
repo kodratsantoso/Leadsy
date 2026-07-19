@@ -169,3 +169,11 @@ Leadsy now has database-backed source and channel classification for leads.
 - Built live calculation previews in the UI (Subtotal, Line/Header Discounts, Taxes, Setup Cost, and Grand Total).
 - Implemented backend recalculation validations (quantity $> 0$, unit price $\ge 0$, and non-negative discounts/taxes/grand totals).
 - Verified with backend unit tests (asserting correct calculations for complex discount types, tax rates, and setup costs) and frontend TypeScript checks.
+
+## Phase 14: Interactive Sales Stage Flow (Completed ✅)
+**Date completed**: 2026-07-19
+
+- Built an interactive chevron progress flow directly above the Human Verification Card in the Lead Detail page.
+- Rendered status dot indicators (Not Started, In Progress, Done) matching the funnel stages configuration from database and settings.
+- Wired click-transitions on the flow and the "Complete Step" button to trigger the Log Activity modal, pre-populating the target stage.
+- Validated with complete type safety and zero typescript compilation errors.

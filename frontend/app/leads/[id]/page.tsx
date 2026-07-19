@@ -1599,6 +1599,24 @@ export default function LeadDetailPage() {
     }));
   }
 
+  function openLogActivityWithStage(targetStageId: number | string) {
+    setActivityForm({
+      activity_type: 'Other',
+      description: '',
+      outcome: '',
+      activity_date: new Date().toISOString().slice(0, 16),
+      next_follow_up_date: '',
+      funnel_stage_id: String(targetStageId),
+      budget: '',
+      authority: '',
+      needs: '',
+      timeline: '',
+      competitor: '',
+    });
+    setEditingActivity(null);
+    setShowActivityModal(true);
+  }
+
   function submitActivity() {
     const payload = {
       activity_type: activityForm.activity_type,
@@ -1743,6 +1761,124 @@ export default function LeadDetailPage() {
               : 'Not set'}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{progressData.next_follow_up?.purpose || 'N/A'}</p>
+        </div>
+      </div>
+ 
+      {/* ── SALES STAGE FLOW ── */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">Sales Stage Flow</span>
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+              {leadData.funnelStage?.name || leadData.current_funnel_stage?.name || 'No Stage'}
+            </Badge>
+          </div>
+          
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-xs">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700" /> Not started
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" /> In progress
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Done
+            </span>
+          </div>
+        </div>
+ 
+        {/* Chevron Progress Flow */}
+        <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
+          <div className="flex items-center min-w-[700px] md:min-w-0">
+            {funnelStages.map((stage: any, index: number) => {
+              const currentStageId = leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id;
+              const currentStageIndex = funnelStages.findIndex((s: any) => s.id === currentStageId);
+              
+              let status: 'done' | 'active' | 'future' = 'future';
+              if (index < currentStageIndex) {
+                status = 'done';
+              } else if (index === currentStageIndex) {
+                status = 'active';
+              }
+ 
+              // Color dot
+              let dotBg = 'bg-slate-300 dark:bg-slate-700';
+              if (status === 'done') dotBg = 'bg-emerald-500';
+              if (status === 'active') dotBg = 'bg-orange-500 animate-pulse';
+ 
+              // Clip path polygon calculation
+              const isFirst = index === 0;
+              const isLast = index === funnelStages.length - 1;
+              let clipPath = 'polygon(0% 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 0% 100%, 10px 50%)';
+              if (isFirst) {
+                clipPath = 'polygon(0% 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 0% 100%)';
+              } else if (isLast) {
+                clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 10px 50%)';
+              }
+ 
+              // Card styling classes
+              let bgClass = 'bg-slate-100 hover:bg-slate-200/80 text-muted-foreground dark:bg-slate-800/40 dark:hover:bg-slate-800/60';
+              let borderClass = 'border-transparent';
+              
+              if (status === 'done') {
+                bgClass = 'bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-800 dark:text-emerald-400';
+              } else if (status === 'active') {
+                bgClass = 'bg-blue-600/10 text-blue-900 dark:text-blue-300 ring-2 ring-blue-500 ring-inset';
+              }
+ 
+              return (
+                <div 
+                  key={stage.id}
+                  onClick={() => {
+                    if (status !== 'active') {
+                      openLogActivityWithStage(stage.id);
+                    }
+                  }}
+                  className={`flex-1 relative h-10 flex items-center justify-center font-medium text-xs select-none transition-all cursor-pointer ${bgClass} ${borderClass} px-4 py-2`}
+                  style={{ 
+                    clipPath, 
+                    marginLeft: isFirst ? '0px' : '-8px',
+                    zIndex: funnelStages.length - index 
+                  }}
+                >
+                  <div className="flex items-center gap-2 pl-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${dotBg}`} />
+                    <span className="truncate">{stage.name}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+ 
+        {/* Footer info & button */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+            <span className="text-sm font-semibold">{leadData.funnelStage?.name || leadData.current_funnel_stage?.name || 'No Stage'}</span>
+          </div>
+ 
+          {/* Complete Step button (moves to the next stage in sequence) */}
+          {(() => {
+            const currentStageId = leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id;
+            const currentStageIndex = funnelStages.findIndex((s: any) => s.id === currentStageId);
+            const nextStage = currentStageIndex !== -1 && currentStageIndex < funnelStages.length - 1 
+              ? funnelStages[currentStageIndex + 1] 
+              : null;
+ 
+            if (!nextStage) return null;
+ 
+            return (
+              <Button 
+                size="sm" 
+                onClick={() => openLogActivityWithStage(nextStage.id)}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs transition-all"
+              >
+                Complete Step
+              </Button>
+            );
+          })()}
         </div>
       </div>
 

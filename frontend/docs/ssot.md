@@ -324,3 +324,18 @@ Source of truth: `frontend/components/leads/OrderToCash.tsx` (UI), `backend/app/
 - **Direct Sales Order**: Allowed directly from Lead, showing warning banner in UI: *"Sales Order created directly without source quotation."*
 - **Revenue Integration**: Realized revenue closing amount and Closed Won funnel stage transition are synced to `Lead` only when a `new` Sales Order status transitions to `confirmed`.
 - **Logs**: Registers activity logs (`LeadActivity`) and audit logs (`AuditService`) on all status changes and creations.
+
+## Sales Stage Flow Module
+
+Source of truth: `frontend/app/leads/[id]/page.tsx` (UI), `backend/app/Http/Controllers/Api/LeadController.php` (API backend).
+
+**Purpose:** Renders an interactive, modern chevron progress flow showing the Lead's pipeline progression directly in the Lead Detail page.
+
+**Rules:**
+- **Placement**: Statically displayed directly above the Human Verification Card.
+- **Stage Progression State**:
+  - **Done**: Stages prior to the active stage (indicated with green dots and soft green backgrounds).
+  - **In Progress**: The active stage of the lead (indicated with orange blinking dots and highlight borders/bg).
+  - **Not Started**: Future stages (indicated with grey dots and muted backgrounds).
+- **Stage Transition Constraint**: Stage transitions are not performed blindly. When a user clicks a stage or clicks the "Complete Step" button to move to the next stage, the system opens the governed "Log Activity" modal with the targeted `funnel_stage_id` pre-selected.
+- **Backend Logging**: Saving the activity submits the new stage target to the backend, which registers both the new interaction log and the official stage history transition.
