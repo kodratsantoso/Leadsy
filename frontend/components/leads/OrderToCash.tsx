@@ -136,19 +136,102 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     if (leadObj && showQModal) {
       setQForm(prev => ({
         ...prev,
-        customer_name: leadObj.company_name || '',
+        customer_name: String(leadObj.company_name || ''),
         sales_owner_id: String(leadObj.owner_id || ''),
       }));
     }
   }, [leadObj, showQModal]);
+
  
+  const [soActiveTab, setSoActiveTab] = useState<'primary' | 'sales' | 'classification' | 'items' | 'billing' | 'summary'>('primary');
+  const [editingSOId, setEditingSOId] = useState<number | null>(null);
+
   const [soForm, setSoForm] = useState({
+    source_type: 'direct', // 'direct' or 'quotation_conversion'
+    quotation_id: '',
+    sales_order_number: '',
     order_date: new Date().toISOString().split('T')[0],
-    order_type: 'new',
-    description: 'Platform Subscription Direct',
-    quantity: '1',
-    unit_price: '0',
+    start_date: '',
+    end_date: '',
+    spk_number: '',
+    customer_po_number: '',
+    currency_code: 'IDR',
+    memo: '',
+    
+    order_type: 'new', // new, renewal, expansion, upsell, cross_sell, add_on
+    sales_owner_id: '',
+    presales_owner_id: '',
+    account_manager_id: '',
+    lead_source: '',
+    channel: '',
+    expected_fulfillment_date: '',
+    sales_effective_date: '',
+
+    department: '',
+    cost_center: '',
+    location: '',
+    industry: '',
+    business_category: '',
+
+    payment_terms: 'Net 30',
+    billing_frequency: 'monthly',
+    delivery_timeline: '',
+    fulfillment_notes: '',
+    customer_notes: '',
+    internal_notes: '',
+    terms_conditions: '',
+
+    customer_name: '',
+    billing_entity: '',
+    contact_id: '',
+    tax_included: false,
+    header_discount_type: 'none',
+    header_discount_value: '0',
+    other_cost: '0',
+    scope_of_work: '',
+    exclusions: '',
+    warranty_support_terms: '',
+
+    items: [
+      {
+        product_id: '',
+        product_tier_id: '',
+        pricing_model: 'flat_rate',
+        price_source: 'manual',
+        tax_code_id: '',
+        withholding_tax_code_id: '',
+        withholding_tax_rate: 0,
+        item_name: 'Platform Subscription',
+        description: 'Platform Access License',
+        quantity: '1',
+        unit: 'license',
+        unit_price: '0',
+        billing_period: 'monthly',
+        line_discount_type: 'none',
+        line_discount_value: '0',
+        tax_code: '',
+        tax_rate: 0,
+        start_date: '',
+        end_date: '',
+        duration_value: '',
+        duration_unit: 'month',
+      }
+    ]
   });
+
+  useEffect(() => {
+    if (leadObj && showSOModal && !editingSOId) {
+      setSoForm(prev => ({
+        ...prev,
+        customer_name: String(leadObj.company_name || ''),
+        sales_owner_id: String(leadObj.owner_id || ''),
+        lead_source: String(leadObj.lead_source || ''),
+        channel: String(leadObj.channel || ''),
+        industry: String(leadObj.industry || ''),
+        business_category: String(leadObj.business_category_name || ''),
+      }));
+    }
+  }, [leadObj, showSOModal, editingSOId]);
  
   const { data: qData, isLoading: loadingQ } = useQuery({
     queryKey: ['lead-quotations', leadId],
@@ -375,32 +458,138 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     }
   };
  
+  const calculateSOFrontendSummary = () => {
+    let subtotal = 0;
+    let lineDiscountTotal = 0;
+    let taxTotal = 0;
+    let whtTotal = 0;
+
+    const itemsCalculated = soForm.items.map(item => {
+      const qty = Number(normalizeAmountInput(String(item.quantity))) || 0;
+      const price = Number(normalizeAmountInput(String(item.unit_price))) || 0;
+      const duration = Number(normalizeAmountInput(String(item.duration_value))) || 1;
+      const baseAmount = qty * price * duration;
+
+      let disc = 0;
+      const discVal = Number(normalizeAmountInput(String(item.line_discount_value))) || 0;
+      if (item.line_discount_type === 'percentage') {
+        disc = baseAmount * (discVal / 100);
+      } else if (item.line_discount_type === 'amount') {
+        disc = discVal;
+      }
+
+      const taxable = baseAmount - disc;
+      const taxRate = Number(item.tax_rate) || 0;
+      const tax = taxable * (taxRate / 100);
+
+      const whtRate = Number(item.withholding_tax_rate) || 0;
+      const wht = taxable * (whtRate / 100);
+
+      subtotal += baseAmount;
+      lineDiscountTotal += disc;
+      taxTotal += tax;
+      whtTotal += wht;
+
+      return {
+        ...item,
+        quantity: qty,
+        unit_price: price,
+        duration_value: item.duration_value ? Number(item.duration_value) : null,
+        line_discount_amount: disc,
+        tax_amount: tax,
+        withholding_tax_amount: wht,
+        total_amount: baseAmount - disc + tax - wht
+      };
+    });
+
+    const otherCost = Number(normalizeAmountInput(String(soForm.other_cost))) || 0;
+    const headerDiscVal = Number(normalizeAmountInput(String(soForm.header_discount_value))) || 0;
+    let headerDisc = 0;
+    if (soForm.header_discount_type === 'percentage') {
+      headerDisc = (subtotal - lineDiscountTotal) * (headerDiscVal / 100);
+    } else if (soForm.header_discount_type === 'amount') {
+      headerDisc = headerDiscVal;
+    }
+
+    const grandTotalBeforeWht = subtotal - lineDiscountTotal - headerDisc + taxTotal + otherCost;
+    const grandTotal = grandTotalBeforeWht - whtTotal;
+
+    return {
+      subtotal,
+      lineDiscountTotal,
+      headerDiscountAmount: headerDisc,
+      taxTotal,
+      whtTotal,
+      otherCost,
+      grandTotalBeforeWht,
+      grandTotal,
+      items: itemsCalculated
+    };
+  };
+
   const createSalesOrderDirect = async () => {
     setSavingSO(true);
     setErrorMessage(null);
     try {
+      const summary = calculateSOFrontendSummary();
       const payload = {
         order_type: soForm.order_type,
         order_date: soForm.order_date,
-        items: [
-          {
-            item_name: soForm.description,
-            description: soForm.description,
-            quantity: Number(normalizeAmountInput(String(soForm.quantity))) || 0,
-            unit_price: Number(normalizeAmountInput(String(soForm.unit_price))) || 0,
-            discount_amount: 0,
-            tax_amount: 0,
-            billing_period: 'monthly'
-          }
-        ]
+        customer_name: soForm.customer_name || null,
+        billing_entity: soForm.billing_entity || null,
+        contact_id: soForm.contact_id ? Number(soForm.contact_id) : null,
+        sales_owner_id: soForm.sales_owner_id ? Number(soForm.sales_owner_id) : null,
+        presales_owner_id: soForm.presales_owner_id ? Number(soForm.presales_owner_id) : null,
+        account_manager_id: soForm.account_manager_id ? Number(soForm.account_manager_id) : null,
+        spk_number: soForm.spk_number || null,
+        customer_po_number: soForm.customer_po_number || null,
+        expected_fulfillment_date: soForm.expected_fulfillment_date || null,
+        sales_effective_date: soForm.sales_effective_date || null,
+        payment_terms: soForm.payment_terms || null,
+        billing_frequency: soForm.billing_frequency || null,
+        tax_included: soForm.tax_included,
+        header_discount_type: soForm.header_discount_type,
+        header_discount_value: Number(normalizeAmountInput(String(soForm.header_discount_value))) || 0,
+        other_cost: Number(normalizeAmountInput(String(soForm.other_cost))) || 0,
+        scope_of_work: soForm.scope_of_work || null,
+        exclusions: soForm.exclusions || null,
+        delivery_timeline: soForm.delivery_timeline || null,
+        warranty_support_terms: soForm.warranty_support_terms || null,
+        customer_notes: soForm.customer_notes || null,
+        internal_notes: soForm.internal_notes || null,
+        terms_conditions: soForm.terms_conditions || null,
+        department: soForm.department || null,
+        cost_center: soForm.cost_center || null,
+        location: soForm.location || null,
+        items: summary.items.map(item => ({
+          ...item,
+          product_id: item.product_id ? Number(item.product_id) : null,
+          product_tier_id: item.product_tier_id ? Number(item.product_tier_id) : null,
+          tax_code_id: item.tax_code_id ? Number(item.tax_code_id) : null,
+          withholding_tax_code_id: item.withholding_tax_code_id ? Number(item.withholding_tax_code_id) : null,
+          start_date: item.start_date || null,
+          end_date: item.end_date || null,
+          duration_value: item.duration_value ? Number(item.duration_value) : null,
+          duration_unit: item.duration_unit || null,
+        }))
       };
-      const res = await apiFetch(`/leads/${leadId}/sales-orders`, {
-        method: 'POST',
+
+      const url = editingSOId 
+        ? `/sales-orders/${editingSOId}` 
+        : `/leads/${leadId}/sales-orders`;
+      const method = editingSOId ? 'PUT' : 'POST';
+
+      const res = await apiFetch(url, {
+        method,
         body: JSON.stringify(payload)
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to create sales order');
+        if (err.errors) {
+          const detail = Object.values(err.errors).flat().join(', ');
+          throw new Error(`${err.message || 'Validation failed'}: ${detail}`);
+        }
+        throw new Error(err.message || 'Failed to save sales order');
       }
       qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
       setShowSOModal(false);
@@ -409,6 +598,78 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     } finally {
       setSavingSO(false);
     }
+  };
+
+  const startEditSO = (so: any) => {
+    setErrorMessage(null);
+    setEditingSOId(so.id);
+    setSoActiveTab('primary');
+    setSoForm({
+      source_type: so.source_type || 'direct',
+      quotation_id: so.quotation_id ? String(so.quotation_id) : '',
+      sales_order_number: so.sales_order_number || '',
+      order_date: so.order_date ? so.order_date.split('T')[0] : new Date().toISOString().split('T')[0],
+      start_date: so.contract_start_date ? so.contract_start_date.split('T')[0] : '',
+      end_date: so.contract_end_date ? so.contract_end_date.split('T')[0] : '',
+      spk_number: so.spk_number || '',
+      customer_po_number: so.customer_po_number || '',
+      currency_code: so.currency || 'IDR',
+      memo: so.internal_notes || '',
+      order_type: so.order_type || 'new',
+      sales_owner_id: so.sales_owner_id ? String(so.sales_owner_id) : '',
+      presales_owner_id: so.presales_owner_id ? String(so.presales_owner_id) : '',
+      account_manager_id: so.account_manager_id ? String(so.account_manager_id) : '',
+      lead_source: so.lead_source || '',
+      channel: so.channel || '',
+      expected_fulfillment_date: so.expected_fulfillment_date ? so.expected_fulfillment_date.split('T')[0] : '',
+      sales_effective_date: so.sales_effective_date ? so.sales_effective_date.split('T')[0] : '',
+      department: so.department || '',
+      cost_center: so.cost_center || '',
+      location: so.location || '',
+      industry: so.industry || '',
+      business_category: so.business_category || '',
+      payment_terms: so.payment_terms || 'Net 30',
+      billing_frequency: so.billing_frequency || 'monthly',
+      delivery_timeline: so.delivery_timeline || '',
+      fulfillment_notes: '',
+      customer_notes: so.customer_notes || '',
+      internal_notes: so.internal_notes || '',
+      terms_conditions: so.terms_conditions || '',
+      customer_name: so.customer_name || '',
+      billing_entity: so.billing_entity || '',
+      contact_id: so.contact_id ? String(so.contact_id) : '',
+      tax_included: !!so.tax_included,
+      header_discount_type: so.header_discount_type || 'none',
+      header_discount_value: String(so.header_discount_value || '0'),
+      other_cost: String(so.other_cost || '0'),
+      scope_of_work: so.scope_of_work || '',
+      exclusions: so.exclusions || '',
+      warranty_support_terms: so.warranty_support_terms || '',
+      items: (so.items || []).map((item: any) => ({
+        product_id: item.product_id ? String(item.product_id) : '',
+        product_tier_id: item.product_tier_id ? String(item.product_tier_id) : '',
+        pricing_model: item.pricing_model || 'flat_rate',
+        price_source: item.price_source || 'manual',
+        tax_code_id: item.tax_code_id ? String(item.tax_code_id) : '',
+        withholding_tax_code_id: item.withholding_tax_code_id ? String(item.withholding_tax_code_id) : '',
+        withholding_tax_rate: Number(item.withholding_tax_rate) || 0,
+        item_name: item.item_name || '',
+        description: item.description || '',
+        quantity: String(item.quantity || '1'),
+        unit: item.unit || 'license',
+        unit_price: String(item.unit_price || '0'),
+        billing_period: item.billing_period || 'monthly',
+        line_discount_type: item.line_discount_type || 'none',
+        line_discount_value: String(item.line_discount_value || '0'),
+        tax_code: item.tax_code || '',
+        tax_rate: Number(item.tax_rate) || 0,
+        start_date: item.service_start_date ? item.service_start_date.split('T')[0] : '',
+        end_date: item.service_end_date ? item.service_end_date.split('T')[0] : '',
+        duration_value: item.duration_value ? String(item.duration_value) : '',
+        duration_unit: item.duration_unit || 'month',
+      }))
+    });
+    setShowSOModal(true);
   };
  
   const updateQuotationStatus = async (id: number, targetStatus: string) => {
@@ -593,7 +854,147 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       ]
     });
   };
- 
+
+  const handleSOProductSelect = (index: number, productId: string) => {
+    const prod = products.find((p: any) => String(p.id) === productId);
+    if (prod) {
+      const newItems = [...soForm.items];
+      newItems[index] = {
+        ...newItems[index],
+        product_id: productId,
+        product_tier_id: '',
+        item_name: prod.name,
+        description: prod.description || '',
+        unit_price: formatAmountInput(String(prod.base_price || 0)),
+        price_source: 'product_base_price',
+        pricing_model: 'flat_rate',
+      };
+      setSoForm({ ...soForm, items: newItems });
+    }
+  };
+
+  const handleSOTierSelect = (index: number, tierId: string) => {
+    const productId = soForm.items[index].product_id;
+    const prod = products.find((p: any) => String(p.id) === productId);
+    if (!prod) return;
+    
+    const tier = prod.tiers?.find((t: any) => String(t.id) === tierId);
+    if (tier) {
+      const newItems = [...soForm.items];
+      newItems[index] = {
+        ...newItems[index],
+        product_tier_id: tierId,
+        item_name: `${prod.name} — ${tier.name}`,
+        description: tier.features ? tier.features.join(', ') : (prod.description || ''),
+        unit_price: formatAmountInput(String(tier.price || 0)),
+        billing_period: tier.billing_period || 'monthly',
+        pricing_model: tier.pricing_type || 'flat_rate',
+        price_source: 'product_tier',
+      };
+      setSoForm({ ...soForm, items: newItems });
+    }
+  };
+
+  const handleSOTaxCodeSelect = (index: number, taxCodeId: string) => {
+    const code = taxCodes.find((c: any) => String(c.id) === taxCodeId);
+    const newItems = [...soForm.items];
+    newItems[index] = {
+      ...newItems[index],
+      tax_code_id: taxCodeId,
+      tax_code: code ? code.tax_code : '',
+      tax_rate: code ? Number(code.rate_percentage) : 0,
+    };
+    setSoForm({ ...soForm, items: newItems });
+  };
+
+  const handleSOWhtCodeSelect = (index: number, whtCodeId: string) => {
+    const code = whtCodes.find((c: any) => String(c.id) === whtCodeId);
+    const newItems = [...soForm.items];
+    newItems[index] = {
+      ...newItems[index],
+      withholding_tax_code_id: whtCodeId,
+      withholding_tax_rate: code ? Number(code.rate_percentage) : 0,
+    };
+    setSoForm({ ...soForm, items: newItems });
+  };
+
+  const addSOLineItem = () => {
+    setSoForm({
+      ...soForm,
+      items: [
+        ...soForm.items,
+        {
+          product_id: '',
+          product_tier_id: '',
+          pricing_model: 'flat_rate',
+          price_source: 'manual',
+          tax_code_id: '',
+          withholding_tax_code_id: '',
+          withholding_tax_rate: 0,
+          item_name: 'Custom Item',
+          description: '',
+          quantity: '1',
+          unit: 'license',
+          unit_price: '0',
+          billing_period: 'monthly',
+          line_discount_type: 'none',
+          line_discount_value: '0',
+          tax_code: '',
+          tax_rate: 0,
+          start_date: '',
+          end_date: '',
+          duration_value: '',
+          duration_unit: 'month',
+        }
+      ]
+    });
+  };
+
+  const removeSOLineItem = (index: number) => {
+    if (soForm.items.length <= 1) return;
+    const newItems = soForm.items.filter((_, i) => i !== index);
+    setSoForm({ ...soForm, items: newItems });
+  };
+
+  const duplicateSOLineItem = (index: number) => {
+    const itemToCopy = soForm.items[index];
+    setSoForm({
+      ...soForm,
+      items: [...soForm.items, { ...itemToCopy }]
+    });
+  };
+
+  const clearAllSOItems = () => {
+    setSoForm({
+      ...soForm,
+      items: [
+        {
+          product_id: '',
+          product_tier_id: '',
+          pricing_model: 'flat_rate',
+          price_source: 'manual',
+          tax_code_id: '',
+          withholding_tax_code_id: '',
+          withholding_tax_rate: 0,
+          item_name: 'Custom Item',
+          description: '',
+          quantity: '1',
+          unit: 'license',
+          unit_price: '0',
+          billing_period: 'monthly',
+          line_discount_type: 'none',
+          line_discount_value: '0',
+          tax_code: '',
+          tax_rate: 0,
+          start_date: '',
+          end_date: '',
+          duration_value: '',
+          duration_unit: 'month',
+        }
+      ]
+    });
+  };
+
   const renderQuotationStatus = (status: string) => {
     const val = status.toLowerCase();
     if (val === 'draft') return <Badge variant="neutral">Draft</Badge>;
@@ -753,7 +1154,79 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
               </CardTitle>
               <CardDescription>Confirmed commercial value and bookings.</CardDescription>
             </div>
-            <Button size="sm" variant="outline" className="border-green-500/30 text-green-700 hover:bg-green-50" onClick={() => { setErrorMessage(null); setShowSOModal(true); }}>
+            <Button size="sm" variant="outline" className="border-green-500/30 text-green-700 hover:bg-green-50" onClick={() => {
+              setErrorMessage(null);
+              setEditingSOId(null);
+              setSoActiveTab('primary');
+              setSoForm({
+                source_type: 'direct',
+                quotation_id: '',
+                sales_order_number: '',
+                order_date: new Date().toISOString().split('T')[0],
+                start_date: '',
+                end_date: '',
+                spk_number: '',
+                customer_po_number: '',
+                currency_code: 'IDR',
+                memo: '',
+                order_type: 'new',
+                sales_owner_id: leadObj ? String(leadObj.owner_id || '') : '',
+                presales_owner_id: '',
+                account_manager_id: '',
+                lead_source: leadObj ? String(leadObj.lead_source || '') : '',
+                channel: leadObj ? String(leadObj.channel || '') : '',
+                expected_fulfillment_date: '',
+                sales_effective_date: '',
+                department: '',
+                cost_center: '',
+                location: '',
+                industry: leadObj ? String(leadObj.industry || '') : '',
+                business_category: leadObj ? String(leadObj.business_category_name || '') : '',
+                payment_terms: 'Net 30',
+                billing_frequency: 'monthly',
+                delivery_timeline: '',
+                fulfillment_notes: '',
+                customer_notes: '',
+                internal_notes: '',
+                terms_conditions: '',
+                customer_name: leadObj ? String(leadObj.company_name || '') : '',
+                billing_entity: '',
+                contact_id: '',
+                tax_included: false,
+                header_discount_type: 'none',
+                header_discount_value: '0',
+                other_cost: '0',
+                scope_of_work: '',
+                exclusions: '',
+                warranty_support_terms: '',
+                items: [
+                  {
+                    product_id: '',
+                    product_tier_id: '',
+                    pricing_model: 'flat_rate',
+                    price_source: 'manual',
+                    tax_code_id: '',
+                    withholding_tax_code_id: '',
+                    withholding_tax_rate: 0,
+                    item_name: 'Platform Subscription',
+                    description: 'Platform Access License',
+                    quantity: '1',
+                    unit: 'license',
+                    unit_price: '0',
+                    billing_period: 'monthly',
+                    line_discount_type: 'none',
+                    line_discount_value: '0',
+                    tax_code: '',
+                    tax_rate: 0,
+                    start_date: '',
+                    end_date: '',
+                    duration_value: '',
+                    duration_unit: 'month',
+                  }
+                ]
+              });
+              setShowSOModal(true);
+            }}>
               <Plus className="h-4 w-4 mr-1.5" />
               New Sales Order
             </Button>
@@ -798,6 +1271,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     <div className="flex gap-2 pt-2 border-t border-green-500/10">
                       {so.order_status === 'draft' && (
                         <>
+                          <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-100/50" onClick={() => startEditSO(so)}>
+                            Edit
+                          </Button>
                           <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-100/50" onClick={() => updateSalesOrderStatus(so.id, 'confirm')}>
                             Confirm Order
                           </Button>
@@ -1416,74 +1892,704 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       )}
  
       {/* Direct Sales Order Creation Modal */}
-      {showSOModal && (
-        <Modal
-          open={showSOModal}
-          onOpenChange={(v) => !v && setShowSOModal(false)}
-          title="Create Direct Sales Order"
-          description="Draft a confirmed commercial order directly."
-          footer={
-            <>
-              <Button variant="outline" onClick={() => setShowSOModal(false)}>Cancel</Button>
-              <Button onClick={createSalesOrderDirect} disabled={savingSO} className="bg-green-600 hover:bg-green-700 text-white">
-                {savingSO && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
-                Generate Order
-              </Button>
-            </>
-          }
-        >
-          <div className="space-y-4">
-            <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 text-yellow-800 dark:text-yellow-400 text-xs rounded-lg flex items-start gap-2 border border-yellow-200 dark:border-yellow-900/30">
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold block mb-0.5">Direct Order Warning</span>
-                Sales Order created directly without source quotation. This will bypass the proposal pipeline phase.
-              </div>
-            </div>
- 
-            {errorMessage && (
-              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 border border-red-200">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Order Type</label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={soForm.order_type} 
-                  onChange={e => setSoForm({...soForm, order_type: e.target.value})}
-                >
-                  <option value="new">New Business</option>
-                  <option value="renewal">Renewal</option>
-                  <option value="expansion">Expansion</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Order Date</label>
-                <Input type="date" value={soForm.order_date} onChange={e => setSoForm({...soForm, order_date: e.target.value})} />
-              </div>
-              <div className="col-span-2">
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Item Description</label>
-                <Input value={soForm.description} onChange={e => setSoForm({...soForm, description: e.target.value})} />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Quantity</label>
-                <Input value={soForm.quantity} onChange={e => setSoForm({...soForm, quantity: formatAmountInput(normalizeAmountInput(e.target.value))})} />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Unit Price (Value)</label>
-                <div className="relative">
-                  <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input className="pl-9" value={soForm.unit_price} onChange={e => setSoForm({...soForm, unit_price: formatAmountInput(normalizeAmountInput(e.target.value))})} />
+      {/* Direct/Edit Sales Order Creation Modal */}
+      {showSOModal && (() => {
+        const soSummary = calculateSOFrontendSummary();
+        return (
+          <Modal
+            open={showSOModal}
+            onOpenChange={(v) => !v && setShowSOModal(false)}
+            title={editingSOId ? "Edit Sales Order" : "Create Sales Order"}
+            description={editingSOId ? "Update details of this commercial booking." : "Draft a NetSuite-style detailed commercial order."}
+            size="7xl"
+            footer={
+              <div className="flex justify-between w-full items-center">
+                <div className="text-sm font-bold text-green-700">
+                  Grand Total: {formatCurrency(soSummary.grandTotal)}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setShowSOModal(false)}>Cancel</Button>
+                  <Button onClick={createSalesOrderDirect} disabled={savingSO} className="bg-green-600 hover:bg-green-700 text-white">
+                    {savingSO && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+                    {editingSOId ? "Update Order" : "Save as Draft"}
+                  </Button>
                 </div>
               </div>
+            }
+          >
+            <div className="space-y-4">
+              {soForm.source_type === 'direct' ? (
+                <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 text-yellow-800 dark:text-yellow-400 text-xs rounded-lg flex items-start gap-2 border border-yellow-200 dark:border-yellow-900/30">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block mb-0.5">Direct Order Warning</span>
+                    Sales Order created directly without source quotation. This will bypass the proposal pipeline phase.
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-green-50 dark:bg-green-950/20 text-green-800 dark:text-green-400 text-xs rounded-lg flex items-start gap-2 border border-green-200 dark:border-green-900/30">
+                  <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block mb-0.5">Converted from Quotation</span>
+                    Copied from Quotation ID: {soForm.quotation_id}. Line items and snapshot totals are preserved.
+                  </div>
+                </div>
+              )}
+
+              {errorMessage && (
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 border border-red-200">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {/* Pill navigation */}
+              <div className="flex border-b border-border pb-1 gap-1 overflow-x-auto">
+                {(['primary', 'sales', 'classification', 'items', 'billing', 'summary'] as const).map((tab, idx) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setSoActiveTab(tab)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors capitalize whitespace-nowrap ${soActiveTab === tab ? 'bg-green-600 text-white' : 'hover:bg-muted text-muted-foreground'}`}
+                  >
+                    {idx + 1}. {tab === 'primary' ? 'Primary Info' : tab === 'sales' ? 'Sales Info' : tab === 'billing' ? 'Billing & Terms' : tab === 'summary' ? 'Review Summary' : tab}
+                  </button>
+                ))}
+              </div>
+
+              <div className="min-h-[300px] py-2">
+                {/* Tab 1: Primary Information */}
+                {soActiveTab === 'primary' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Sales Order Number (Auto)</label>
+                      <Input value={soForm.sales_order_number || "[Auto-Generated on Save]"} disabled className="bg-muted" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Source Type</label>
+                      <Input value={soForm.source_type} disabled className="bg-muted capitalize" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Customer / Company Snapshot</label>
+                      <Input value={soForm.customer_name} onChange={e => setSoForm({...soForm, customer_name: e.target.value})} disabled={soForm.source_type === 'quotation_conversion'} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Billing Entity Name</label>
+                      <Input placeholder="Acme Billing LLC" value={soForm.billing_entity} onChange={e => setSoForm({...soForm, billing_entity: e.target.value})} disabled={soForm.source_type === 'quotation_conversion'} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Primary Contact Person</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.contact_id}
+                        onChange={e => setSoForm({...soForm, contact_id: e.target.value})}
+                        disabled={soForm.source_type === 'quotation_conversion'}
+                      >
+                        <option value="">-- Select Contact --</option>
+                        {contacts.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.first_name} {c.last_name} ({c.job_title || 'No Title'})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Order Date</label>
+                      <Input type="date" value={soForm.order_date} onChange={e => setSoForm({...soForm, order_date: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Contract Start Date</label>
+                      <Input type="date" value={soForm.start_date} onChange={e => setSoForm({...soForm, start_date: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Contract End Date</label>
+                      <Input type="date" value={soForm.end_date} onChange={e => setSoForm({...soForm, end_date: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">SPK / Contract Reference Number</label>
+                      <Input placeholder="SPK-2026-XXXX" value={soForm.spk_number} onChange={e => setSoForm({...soForm, spk_number: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Customer PO Number</label>
+                      <Input placeholder="PO-XXXXXX" value={soForm.customer_po_number} onChange={e => setSoForm({...soForm, customer_po_number: e.target.value})} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 2: Sales Information */}
+                {soActiveTab === 'sales' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Order Type</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.order_type}
+                        onChange={e => setSoForm({...soForm, order_type: e.target.value})}
+                      >
+                        <option value="new">New Business</option>
+                        <option value="renewal">Renewal</option>
+                        <option value="expansion">Expansion</option>
+                        <option value="upsell">Upsell</option>
+                        <option value="cross_sell">Cross-sell</option>
+                        <option value="add_on">Add-on</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Sales Owner</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.sales_owner_id}
+                        onChange={e => setSoForm({...soForm, sales_owner_id: e.target.value})}
+                        disabled={soForm.source_type === 'quotation_conversion'}
+                      >
+                        <option value="">-- Select Owner --</option>
+                        {assignableUsers.map((u: any) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Presales Owner / Solution Architect</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.presales_owner_id}
+                        onChange={e => setSoForm({...soForm, presales_owner_id: e.target.value})}
+                        disabled={soForm.source_type === 'quotation_conversion'}
+                      >
+                        <option value="">-- Select Presales --</option>
+                        {assignableUsers.map((u: any) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Account Manager</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.account_manager_id}
+                        onChange={e => setSoForm({...soForm, account_manager_id: e.target.value})}
+                      >
+                        <option value="">-- Select AM --</option>
+                        {assignableUsers.map((u: any) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Lead Source</label>
+                      <Input value={soForm.lead_source} disabled className="bg-muted" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Channel</label>
+                      <Input value={soForm.channel} disabled className="bg-muted" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Expected Fulfillment Date</label>
+                      <Input type="date" value={soForm.expected_fulfillment_date} onChange={e => setSoForm({...soForm, expected_fulfillment_date: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Sales Effective Date</label>
+                      <Input type="date" value={soForm.sales_effective_date} onChange={e => setSoForm({...soForm, sales_effective_date: e.target.value})} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 3: Classification */}
+                {soActiveTab === 'classification' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Department</label>
+                      <Input placeholder="e.g. Sales, Professional Services" value={soForm.department} onChange={e => setSoForm({...soForm, department: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Cost Center</label>
+                      <Input placeholder="e.g. CC-GLOBAL-01" value={soForm.cost_center} onChange={e => setSoForm({...soForm, cost_center: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Location</label>
+                      <Input placeholder="e.g. Jakarta HQ, Singapore Branch" value={soForm.location} onChange={e => setSoForm({...soForm, location: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Industry Classification</label>
+                      <Input value={soForm.industry} disabled className="bg-muted" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Business Category Name</label>
+                      <Input value={soForm.business_category} disabled className="bg-muted" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 4: Line Items */}
+                {soActiveTab === 'items' && (
+                  <div className="space-y-4">
+                    {soForm.source_type === 'quotation_conversion' && (
+                      <div className="text-[11px] text-muted-foreground bg-muted p-2 rounded flex items-center gap-1.5 border border-border">
+                        <AlertCircle className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        Converted Sales Order line items are preserved from Quotation snapshot, but can be updated or overridden if draft.
+                      </div>
+                    )}
+                    <div className="overflow-x-auto border rounded-lg max-h-[350px]">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-muted sticky top-0 text-[10px] uppercase text-muted-foreground border-b">
+                          <tr>
+                            <th className="p-2 w-[180px]">Product / Service</th>
+                            <th className="p-2 w-[150px]">Billing Info</th>
+                            <th className="p-2 w-[80px]">Qty</th>
+                            <th className="p-2 w-[110px]">Unit Price</th>
+                            <th className="p-2 w-[110px]">Line Discount</th>
+                            <th className="p-2 w-[110px]">Tax Setting</th>
+                            <th className="p-2 w-[110px]">WHT Setting</th>
+                            <th className="p-2 w-[150px]">Duration & Period</th>
+                            <th className="p-2 w-[90px]">Total Amount</th>
+                            <th className="p-2 w-[40px]"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {soForm.items.map((item, index) => (
+                            <tr key={index} className="hover:bg-muted/30">
+                              <td className="p-1">
+                                <select 
+                                  className="w-full rounded border border-input bg-background p-1 text-[10px]"
+                                  value={item.product_id}
+                                  onChange={e => handleSOProductSelect(index, e.target.value)}
+                                >
+                                  <option value="">-- Custom / Manual --</option>
+                                  {products.map((p: any) => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                  ))}
+                                </select>
+                                {item.product_id && (() => {
+                                  const prod = products.find((p: any) => String(p.id) === item.product_id);
+                                  if (prod && prod.tiers && prod.tiers.length > 0) {
+                                    return (
+                                      <select
+                                        className="w-full rounded border border-input bg-background p-1 text-[10px] mt-1"
+                                        value={item.product_tier_id}
+                                        onChange={e => handleSOTierSelect(index, e.target.value)}
+                                      >
+                                        <option value="">-- Select Tier --</option>
+                                        {prod.tiers.map((t: any) => (
+                                          <option key={t.id} value={t.id}>{t.name} ({formatCurrency(t.price)})</option>
+                                        ))}
+                                      </select>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                                <Input 
+                                  className="text-[10px] h-6 mt-1"
+                                  placeholder="Item Name Override"
+                                  value={item.item_name}
+                                  onChange={e => {
+                                    const newItems = [...soForm.items];
+                                    newItems[index].item_name = e.target.value;
+                                    setSoForm({...soForm, items: newItems});
+                                  }}
+                                />
+                                <textarea
+                                  className="w-full rounded border border-input bg-background p-1 text-[10px] mt-1 h-12 resize-none"
+                                  placeholder="Line item description"
+                                  value={item.description}
+                                  onChange={e => {
+                                    const newItems = [...soForm.items];
+                                    newItems[index].description = e.target.value;
+                                    setSoForm({...soForm, items: newItems});
+                                  }}
+                                />
+                              </td>
+                              <td className="p-1 space-y-1">
+                                <div>
+                                  <label className="text-[9px] text-muted-foreground font-semibold uppercase">Period</label>
+                                  <select 
+                                    className="w-full rounded border border-input bg-background p-1 text-[10px]"
+                                    value={item.billing_period}
+                                    onChange={e => {
+                                      const newItems = [...soForm.items];
+                                      newItems[index].billing_period = e.target.value;
+                                      setSoForm({...soForm, items: newItems});
+                                    }}
+                                  >
+                                    <option value="one_time">One Time</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="quarterly">Quarterly</option>
+                                    <option value="yearly">Yearly</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="text-[9px] text-muted-foreground font-semibold uppercase">Pricing Model</label>
+                                  <select 
+                                    className="w-full rounded border border-input bg-background p-1 text-[10px]"
+                                    value={item.pricing_model}
+                                    onChange={e => {
+                                      const newItems = [...soForm.items];
+                                      newItems[index].pricing_model = e.target.value;
+                                      setSoForm({...soForm, items: newItems});
+                                    }}
+                                  >
+                                    <option value="flat_rate">Flat Rate</option>
+                                    <option value="per_user">Per User</option>
+                                    <option value="per_license">Per License</option>
+                                    <option value="per_package">Per Package</option>
+                                    <option value="per_mandays">Per Manday</option>
+                                    <option value="usage_based">Usage Based</option>
+                                    <option value="custom">Custom</option>
+                                  </select>
+                                </div>
+                              </td>
+                              <td className="p-1">
+                                <Input 
+                                  className="text-[10px] h-7"
+                                  value={item.quantity}
+                                  onChange={e => {
+                                    const newItems = [...soForm.items];
+                                    newItems[index].quantity = formatAmountInput(normalizeAmountInput(e.target.value));
+                                    setSoForm({...soForm, items: newItems});
+                                  }}
+                                />
+                                <Input 
+                                  className="text-[9px] h-6 mt-1"
+                                  placeholder="unit (e.g. user)"
+                                  value={item.unit}
+                                  onChange={e => {
+                                    const newItems = [...soForm.items];
+                                    newItems[index].unit = e.target.value;
+                                    setSoForm({...soForm, items: newItems});
+                                  }}
+                                />
+                              </td>
+                              <td className="p-1">
+                                <div className="relative">
+                                  <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground font-bold">Rp</span>
+                                  <Input 
+                                    className="pl-5 text-[10px] h-7 font-semibold"
+                                    value={item.unit_price}
+                                    onChange={e => {
+                                      const newItems = [...soForm.items];
+                                      newItems[index].unit_price = formatAmountInput(normalizeAmountInput(e.target.value));
+                                      newItems[index].price_source = 'manual';
+                                      setSoForm({...soForm, items: newItems});
+                                    }}
+                                  />
+                                </div>
+                                <span className="text-[8px] text-muted-foreground mt-0.5 block italic capitalize">Source: {item.price_source.replace(/_/g, ' ')}</span>
+                              </td>
+                              <td className="p-1 space-y-1">
+                                <select 
+                                  className="w-full rounded border border-input bg-background p-1 text-[10px]"
+                                  value={item.line_discount_type}
+                                  onChange={e => {
+                                    const newItems = [...soForm.items];
+                                    newItems[index].line_discount_type = e.target.value;
+                                    newItems[index].line_discount_value = '0';
+                                    setSoForm({...soForm, items: newItems});
+                                  }}
+                                >
+                                  <option value="none">None</option>
+                                  <option value="amount">Amount</option>
+                                  <option value="percentage">Percentage (%)</option>
+                                </select>
+                                {item.line_discount_type !== 'none' && (
+                                  <Input 
+                                    className="text-[10px] h-7"
+                                    value={item.line_discount_value}
+                                    onChange={e => {
+                                      const newItems = [...soForm.items];
+                                      newItems[index].line_discount_value = formatAmountInput(normalizeAmountInput(e.target.value));
+                                      setSoForm({...soForm, items: newItems});
+                                    }}
+                                  />
+                                )}
+                              </td>
+                              <td className="p-1">
+                                <select 
+                                  className="w-full rounded border border-input bg-background p-1 text-[10px]"
+                                  value={item.tax_code_id}
+                                  onChange={e => handleSOTaxCodeSelect(index, e.target.value)}
+                                >
+                                  <option value="">-- Tax Code --</option>
+                                  {taxCodes.map((c: any) => (
+                                    <option key={c.id} value={c.id}>{c.tax_code} ({c.rate_percentage}%)</option>
+                                  ))}
+                                </select>
+                                {item.tax_rate > 0 && (
+                                  <span className="text-[9px] text-muted-foreground block mt-1 font-semibold">Rate: {item.tax_rate}%</span>
+                                )}
+                              </td>
+                              <td className="p-1">
+                                <select 
+                                  className="w-full rounded border border-input bg-background p-1 text-[10px]"
+                                  value={item.withholding_tax_code_id}
+                                  onChange={e => handleSOWhtCodeSelect(index, e.target.value)}
+                                >
+                                  <option value="">-- WHT Code --</option>
+                                  {whtCodes.map((c: any) => (
+                                    <option key={c.id} value={c.id}>{c.wht_code} ({c.rate_percentage}%)</option>
+                                  ))}
+                                </select>
+                                {item.withholding_tax_rate > 0 && (
+                                  <span className="text-[9px] text-red-600 block mt-1 font-semibold">Deduct: {item.withholding_tax_rate}%</span>
+                                )}
+                              </td>
+                              <td className="p-1 space-y-1">
+                                <div>
+                                  <label className="text-[8px] text-muted-foreground uppercase font-bold">Start Date</label>
+                                  <Input 
+                                    type="date" 
+                                    className="text-[10px] h-6 p-1" 
+                                    value={item.start_date}
+                                    onChange={e => {
+                                      const newItems = [...soForm.items];
+                                      newItems[index].start_date = e.target.value;
+                                      if (e.target.value && item.duration_value) {
+                                        newItems[index].end_date = calculateEndDate(e.target.value, Number(item.duration_value), item.duration_unit);
+                                      }
+                                      setSoForm({...soForm, items: newItems});
+                                    }}
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-1">
+                                  <div>
+                                    <label className="text-[8px] text-muted-foreground uppercase font-bold">Duration</label>
+                                    <Input 
+                                      className="text-[10px] h-6 p-1" 
+                                      value={item.duration_value}
+                                      onChange={e => {
+                                        const newItems = [...soForm.items];
+                                        newItems[index].duration_value = formatAmountInput(normalizeAmountInput(e.target.value));
+                                        if (item.start_date && e.target.value) {
+                                          newItems[index].end_date = calculateEndDate(item.start_date, Number(normalizeAmountInput(e.target.value)), item.duration_unit);
+                                        }
+                                        setSoForm({...soForm, items: newItems});
+                                      }}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[8px] text-muted-foreground uppercase font-bold">Unit</label>
+                                    <select
+                                      className="w-full rounded border border-input bg-background p-1 text-[9px] h-6"
+                                      value={item.duration_unit}
+                                      onChange={e => {
+                                        const newItems = [...soForm.items];
+                                        newItems[index].duration_unit = e.target.value;
+                                        if (item.start_date && item.duration_value) {
+                                          newItems[index].end_date = calculateEndDate(item.start_date, Number(item.duration_value), e.target.value);
+                                        }
+                                        setSoForm({...soForm, items: newItems});
+                                      }}
+                                    >
+                                      <option value="day">Day</option>
+                                      <option value="month">Month</option>
+                                      <option value="year">Year</option>
+                                    </select>
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-[8px] text-muted-foreground uppercase font-bold">End Date</label>
+                                  <Input 
+                                    type="date" 
+                                    className="text-[10px] h-6 p-1" 
+                                    value={item.end_date}
+                                    onChange={e => {
+                                      const newItems = [...soForm.items];
+                                      newItems[index].end_date = e.target.value;
+                                      if (item.start_date && e.target.value) {
+                                        const days = calculateDuration(item.start_date, e.target.value, item.duration_unit || 'day');
+                                        newItems[index].duration_value = String(days);
+                                        newItems[index].duration_unit = 'day';
+                                      }
+                                      setSoForm({...soForm, items: newItems});
+                                    }}
+                                  />
+                                </div>
+                              </td>
+                              <td className="p-2 font-semibold tabular-nums text-right">
+                                {formatCurrency(soSummary.items[index].total_amount)}
+                              </td>
+                              <td className="p-1">
+                                <div className="flex flex-col gap-1 items-center">
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => duplicateSOLineItem(index)} title="Duplicate Row">
+                                    <Copy className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => removeSOLineItem(index)} disabled={soForm.items.length <= 1} title="Delete Row">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={addSOLineItem} className="text-xs">
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Row
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={clearAllSOItems} className="text-xs text-red-600 hover:bg-red-50 hover:text-red-700">
+                        Clear All Lines
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 5: Billing & Terms */}
+                {soActiveTab === 'billing' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Payment Terms</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.payment_terms}
+                        onChange={e => setSoForm({...soForm, payment_terms: e.target.value})}
+                      >
+                        <option value="Net 7">Net 7</option>
+                        <option value="Net 14">Net 14</option>
+                        <option value="Net 30">Net 30</option>
+                        <option value="Due on Receipt">Due on Receipt</option>
+                        <option value="Annual Upfront">Annual Upfront</option>
+                        <option value="Monthly Billing">Monthly Billing</option>
+                        <option value="Custom">Custom / Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Billing Frequency</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.billing_frequency}
+                        onChange={e => setSoForm({...soForm, billing_frequency: e.target.value})}
+                      >
+                        <option value="One-time">One-time</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Delivery Timeline Reference</label>
+                      <Input placeholder="e.g. 2 weeks after contract signed" value={soForm.delivery_timeline} onChange={e => setSoForm({...soForm, delivery_timeline: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Other Custom Cost / Implementation Surcharge</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Rp</span>
+                        <Input className="pl-8" value={soForm.other_cost} onChange={e => setSoForm({...soForm, other_cost: formatAmountInput(normalizeAmountInput(e.target.value))})} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Header Discount Type</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.header_discount_type}
+                        onChange={e => setSoForm({...soForm, header_discount_type: e.target.value, header_discount_value: '0'})}
+                      >
+                        <option value="none">None</option>
+                        <option value="amount">Fixed Amount</option>
+                        <option value="percentage">Percentage (%)</option>
+                      </select>
+                    </div>
+                    {soForm.header_discount_type !== 'none' && (
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">Header Discount Value</label>
+                        <Input value={soForm.header_discount_value} onChange={e => setSoForm({...soForm, header_discount_value: formatAmountInput(normalizeAmountInput(e.target.value))})} />
+                      </div>
+                    )}
+                    <div className="col-span-2 flex items-center space-x-2 py-1">
+                      <input 
+                        type="checkbox" 
+                        id="so_tax_included" 
+                        checked={soForm.tax_included} 
+                        onChange={e => setSoForm({...soForm, tax_included: e.target.checked})} 
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" 
+                      />
+                      <label htmlFor="so_tax_included" className="text-xs font-semibold text-foreground cursor-pointer">
+                        Tax / PPN is already included in prices (PPN Dalam Harga)
+                      </label>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Internal Memo / Fulfillment Notes</label>
+                      <textarea 
+                        className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="Internal only billing references..." 
+                        value={soForm.memo} 
+                        onChange={e => setSoForm({...soForm, memo: e.target.value})} 
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Contract Terms & Commercial Conditions</label>
+                      <textarea 
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="These terms will appear on the printed Sales Order copy..." 
+                        value={soForm.terms_conditions} 
+                        onChange={e => setSoForm({...soForm, terms_conditions: e.target.value})} 
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 6: Review Summary */}
+                {soActiveTab === 'summary' && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold border-b pb-1 text-foreground">Summary Audit Sheet</h3>
+                    <div className="grid grid-cols-2 gap-6 text-xs">
+                      <div className="space-y-2 border-r pr-6">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Order Status:</span><span className="font-semibold capitalize">{editingSOId ? 'Editing Draft' : 'New Draft'}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Order Date:</span><span className="font-semibold">{soForm.order_date}</span></div>
+                        {soForm.start_date && (
+                          <div className="flex justify-between"><span className="text-muted-foreground">Contract Period:</span><span className="font-semibold">{soForm.start_date} to {soForm.end_date}</span></div>
+                        )}
+                        <div className="flex justify-between"><span className="text-muted-foreground">Customer Snapshot:</span><span className="font-semibold text-right">{soForm.customer_name}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Terms:</span><span className="font-semibold">{soForm.payment_terms} ({soForm.billing_frequency})</span></div>
+                        {soForm.spk_number && (
+                          <div className="flex justify-between"><span className="text-muted-foreground">SPK / Contract Reference:</span><span className="font-semibold">{soForm.spk_number}</span></div>
+                        )}
+                        {soForm.customer_po_number && (
+                          <div className="flex justify-between"><span className="text-muted-foreground">Customer PO:</span><span className="font-semibold">{soForm.customer_po_number}</span></div>
+                        )}
+                      </div>
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between text-foreground">
+                          <span>Subtotal (Qty * Price * Duration):</span>
+                          <span className="font-bold tabular-nums">{formatCurrency(soSummary.subtotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-red-600">
+                          <span>Line Discounts Total:</span>
+                          <span className="font-semibold tabular-nums">- {formatCurrency(soSummary.lineDiscountTotal)}</span>
+                        </div>
+                        {soSummary.headerDiscountAmount > 0 && (
+                          <div className="flex justify-between text-red-600">
+                            <span>Header Discount Amount ({soForm.header_discount_type === 'percentage' ? `${soForm.header_discount_value}%` : 'Fixed'}):</span>
+                            <span className="font-semibold tabular-nums">- {formatCurrency(soSummary.headerDiscountAmount)}</span>
+                          </div>
+                        )}
+                        {soSummary.otherCost > 0 && (
+                          <div className="flex justify-between text-green-700">
+                            <span>Other Implementation Costs:</span>
+                            <span className="font-semibold tabular-nums">+ {formatCurrency(soSummary.otherCost)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-green-700">
+                          <span>Estimated Tax / VAT / PPN:</span>
+                          <span className="font-bold tabular-nums">+ {formatCurrency(soSummary.taxTotal)}</span>
+                        </div>
+                        <div className="flex justify-between border-t pt-1.5 font-bold text-foreground">
+                          <span>Grand Total Before WHT:</span>
+                          <span className="tabular-nums">{formatCurrency(soSummary.grandTotalBeforeWht)}</span>
+                        </div>
+                        <div className="flex justify-between text-red-600">
+                          <span>Withholding Tax (WHT / PPh Deductions):</span>
+                          <span className="font-semibold tabular-nums">- {formatCurrency(soSummary.whtTotal)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-double border-green-600 pt-2 font-extrabold text-sm text-green-700">
+                          <span>Net Grand Total (Total Booked Value):</span>
+                          <span className="tabular-nums text-lg">{formatCurrency(soSummary.grandTotal)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </Modal>
-      )}
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

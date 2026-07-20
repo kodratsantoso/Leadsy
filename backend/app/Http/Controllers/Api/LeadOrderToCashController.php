@@ -682,8 +682,34 @@ class LeadOrderToCashController extends Controller
                 'grand_total_before_wht' => $quotation->grand_total_before_wht,
                 'total_amount' => $quotation->total_amount,
                 'created_by' => Auth::id(),
+
+                // Extended NetSuite columns copied from Quotation
+                'source_type' => 'quotation_conversion',
+                'contact_id' => $quotation->contact_id,
+                'sales_owner_id' => $quotation->sales_owner_id,
+                'presales_owner_id' => $quotation->presales_owner_id,
+                'payment_terms' => $quotation->payment_terms,
+                'billing_frequency' => $quotation->billing_frequency,
+                'contract_start_date' => $quotation->contract_start_date,
+                'contract_end_date' => $quotation->contract_end_date,
+                'expected_fulfillment_date' => $quotation->contract_start_date,
+                'tax_included' => $quotation->tax_included,
+                'header_discount_type' => $quotation->header_discount_type,
+                'header_discount_value' => $quotation->header_discount_value,
+                'header_discount_amount' => $quotation->header_discount_amount,
+                'total_line_discount' => $quotation->total_line_discount,
+                'other_cost' => $quotation->other_cost,
+                'scope_of_work' => $quotation->scope_of_work,
+                'exclusions' => $quotation->exclusions,
+                'delivery_timeline' => $quotation->delivery_timeline,
+                'warranty_support_terms' => $quotation->warranty_support_terms,
+                'customer_notes' => $quotation->customer_notes,
+                'internal_notes' => $quotation->internal_notes,
+                'terms_conditions' => $quotation->terms_conditions,
+                'industry' => $quotation->lead?->industry,
+                'business_category' => $quotation->lead?->business_category_name,
             ]);
- 
+
             foreach ($quotation->items as $item) {
                 $order->items()->create([
                     'quotation_item_id' => $item->id,
@@ -712,6 +738,16 @@ class LeadOrderToCashController extends Controller
                     'duration_unit' => $item->duration_unit,
                     'start_date' => $item->start_date,
                     'end_date' => $item->end_date,
+
+                    // Extended NetSuite columns copied from QuotationItem
+                    'unit' => $item->unit,
+                    'line_discount_type' => $item->line_discount_type,
+                    'line_discount_value' => $item->line_discount_value,
+                    'line_discount_amount' => $item->line_discount_amount,
+                    'tax_code' => $item->tax_code,
+                    'sort_order' => $item->sort_order,
+                    'service_start_date' => $item->start_date,
+                    'service_end_date' => $item->end_date,
                 ]);
             }
  
@@ -753,11 +789,35 @@ class LeadOrderToCashController extends Controller
         $currency = $this->getCurrencyOrError();
  
         $validated = $request->validate([
-            'order_type' => 'required|string|in:new,renewal,expansion',
+            'order_type' => 'required|string|in:new,renewal,expansion,upsell,cross_sell,add_on',
             'order_date' => 'required|date',
             'customer_name' => 'nullable|string',
             'billing_entity' => 'nullable|string',
-            'notes' => 'nullable|string',
+            'contact_id' => 'nullable|exists:lead_contacts,id',
+            'sales_owner_id' => 'nullable|exists:users,id',
+            'presales_owner_id' => 'nullable|exists:users,id',
+            'account_manager_id' => 'nullable|exists:users,id',
+            'spk_number' => 'nullable|string',
+            'customer_po_number' => 'nullable|string',
+            'expected_fulfillment_date' => 'nullable|date',
+            'sales_effective_date' => 'nullable|date',
+            'payment_terms' => 'nullable|string',
+            'billing_frequency' => 'nullable|string',
+            'tax_included' => 'nullable|boolean',
+            'header_discount_type' => 'nullable|string|in:amount,percentage',
+            'header_discount_value' => 'nullable|numeric|min:0',
+            'other_cost' => 'nullable|numeric|min:0',
+            'scope_of_work' => 'nullable|string',
+            'exclusions' => 'nullable|string',
+            'delivery_timeline' => 'nullable|string',
+            'warranty_support_terms' => 'nullable|string',
+            'customer_notes' => 'nullable|string',
+            'internal_notes' => 'nullable|string',
+            'terms_conditions' => 'nullable|string',
+            'department' => 'nullable|string',
+            'cost_center' => 'nullable|string',
+            'location' => 'nullable|string',
+
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.product_tier_id' => 'nullable|exists:product_tiers,id',
@@ -769,19 +829,27 @@ class LeadOrderToCashController extends Controller
             'items.*.item_name' => 'required|string',
             'items.*.description' => 'nullable|string',
             'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.unit' => 'nullable|string',
             'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.discount_amount' => 'nullable|numeric|min:0',
-            'items.*.tax_rate' => 'nullable|numeric|min:0',
             'items.*.billing_period' => 'required|string|in:one_time,monthly,quarterly,yearly',
+            'items.*.line_discount_type' => 'nullable|string|in:amount,percentage',
+            'items.*.line_discount_value' => 'nullable|numeric|min:0',
+            'items.*.tax_code' => 'nullable|string',
+            'items.*.tax_rate' => 'nullable|numeric|min:0',
+            'items.*.start_date' => 'nullable|date',
+            'items.*.end_date' => 'nullable|date|after_or_equal:items.*.start_date',
+            'items.*.duration_value' => 'nullable|integer',
+            'items.*.duration_unit' => 'nullable|string',
+            'items.*.sort_order' => 'nullable|integer',
         ]);
- 
+
         $totalsCalculated = [];
         foreach ($validated['items'] as $item) {
             $totalsCalculated[] = [
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
-                'line_discount_type' => 'amount',
-                'line_discount_value' => $item['discount_amount'] ?? 0,
+                'line_discount_type' => $item['line_discount_type'] ?? 'none',
+                'line_discount_value' => $item['line_discount_value'] ?? 0,
                 'tax_rate' => $item['tax_rate'] ?? 0,
                 'withholding_tax_rate' => $item['withholding_tax_rate'] ?? 0,
                 'product_id' => $item['product_id'] ?? null,
@@ -793,15 +861,22 @@ class LeadOrderToCashController extends Controller
                 'item_name' => $item['item_name'],
                 'description' => $item['description'] ?? null,
                 'billing_period' => $item['billing_period'],
+                'duration_value' => $item['duration_value'] ?? null,
+                'duration_unit' => $item['duration_unit'] ?? null,
             ];
         }
- 
+
         try {
-            $totals = $this->calculateTotals($totalsCalculated);
+            $totals = $this->calculateTotals(
+                $totalsCalculated,
+                $validated['header_discount_type'] ?? null,
+                (float) ($validated['header_discount_value'] ?? 0),
+                (float) ($validated['other_cost'] ?? 0)
+            );
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
- 
+
         return DB::transaction(function () use ($lead, $validated, $totals, $currency) {
             $order = $lead->salesOrders()->create([
                 'sales_order_number' => 'SO-' . date('Ym') . '-' . sprintf('%04d', mt_rand(1, 9999)),
@@ -812,14 +887,47 @@ class LeadOrderToCashController extends Controller
                 'billing_entity' => $validated['billing_entity'] ?? null,
                 'currency' => $currency->code,
                 'subtotal_amount' => $totals['subtotal'],
-                'discount_amount' => $totals['total_line_discount'],
+                'discount_amount' => $totals['total_line_discount'] + $totals['header_discount_amount'],
                 'tax_amount' => $totals['tax_amount'],
                 'total_withholding_tax' => $totals['total_withholding_tax'],
                 'grand_total_before_wht' => $totals['grand_total_before_wht'],
                 'total_amount' => $totals['total'],
                 'created_by' => Auth::id(),
+
+                // NetSuite columns
+                'source_type' => 'direct',
+                'contact_id' => $validated['contact_id'] ?? null,
+                'sales_owner_id' => $validated['sales_owner_id'] ?? $lead->owner_id,
+                'presales_owner_id' => $validated['presales_owner_id'] ?? null,
+                'account_manager_id' => $validated['account_manager_id'] ?? null,
+                'spk_number' => $validated['spk_number'] ?? null,
+                'customer_po_number' => $validated['customer_po_number'] ?? null,
+                'lead_source' => $validated['lead_source'] ?? $lead->lead_source,
+                'channel' => $validated['channel'] ?? $lead->channel,
+                'expected_fulfillment_date' => $validated['expected_fulfillment_date'] ?? null,
+                'sales_effective_date' => $validated['sales_effective_date'] ?? null,
+                'payment_terms' => $validated['payment_terms'] ?? null,
+                'billing_frequency' => $validated['billing_frequency'] ?? null,
+                'tax_included' => $validated['tax_included'] ?? false,
+                'header_discount_type' => $validated['header_discount_type'] ?? null,
+                'header_discount_value' => $validated['header_discount_value'] ?? null,
+                'header_discount_amount' => $totals['header_discount_amount'],
+                'total_line_discount' => $totals['total_line_discount'],
+                'other_cost' => $validated['other_cost'] ?? 0,
+                'scope_of_work' => $validated['scope_of_work'] ?? null,
+                'exclusions' => $validated['exclusions'] ?? null,
+                'delivery_timeline' => $validated['delivery_timeline'] ?? null,
+                'warranty_support_terms' => $validated['warranty_support_terms'] ?? null,
+                'customer_notes' => $validated['customer_notes'] ?? null,
+                'internal_notes' => $validated['internal_notes'] ?? null,
+                'terms_conditions' => $validated['terms_conditions'] ?? null,
+                'department' => $validated['department'] ?? null,
+                'cost_center' => $validated['cost_center'] ?? null,
+                'location' => $validated['location'] ?? null,
+                'industry' => $lead->industry,
+                'business_category' => $lead->business_category_name,
             ]);
- 
+
             foreach ($totals['items'] as $item) {
                 $order->items()->create([
                     'product_id' => $item['product_id'] ?? null,
@@ -842,6 +950,20 @@ class LeadOrderToCashController extends Controller
                     'withholding_tax_amount' => $item['withholding_tax_amount'] ?? 0,
                     'line_total_before_wht' => $item['line_total_before_wht'] ?? 0,
                     'line_total_after_wht' => $item['line_total_after_wht'] ?? 0,
+                    'duration_value' => $item['duration_value'] ?? null,
+                    'duration_unit' => $item['duration_unit'] ?? null,
+                    'start_date' => $item['start_date'] ?? null,
+                    'end_date' => $item['end_date'] ?? null,
+
+                    // Extended NetSuite columns
+                    'unit' => $item['unit'] ?? null,
+                    'line_discount_type' => $item['line_discount_type'] ?? null,
+                    'line_discount_value' => $item['line_discount_value'] ?? null,
+                    'line_discount_amount' => $item['line_discount_amount'] ?? 0,
+                    'tax_code' => $item['tax_code'] ?? null,
+                    'sort_order' => $item['sort_order'] ?? 0,
+                    'service_start_date' => $item['start_date'] ?? null,
+                    'service_end_date' => $item['end_date'] ?? null,
                 ]);
             }
  
@@ -874,42 +996,96 @@ class LeadOrderToCashController extends Controller
         }
  
         $validated = $request->validate([
-            'order_type' => 'required|string|in:new,renewal,expansion',
+            'order_type' => 'required|string|in:new,renewal,expansion,upsell,cross_sell,add_on',
             'order_date' => 'required|date',
             'customer_name' => 'nullable|string',
             'billing_entity' => 'nullable|string',
-            'notes' => 'nullable|string',
+            'contact_id' => 'nullable|exists:lead_contacts,id',
+            'sales_owner_id' => 'nullable|exists:users,id',
+            'presales_owner_id' => 'nullable|exists:users,id',
+            'account_manager_id' => 'nullable|exists:users,id',
+            'spk_number' => 'nullable|string',
+            'customer_po_number' => 'nullable|string',
+            'expected_fulfillment_date' => 'nullable|date',
+            'sales_effective_date' => 'nullable|date',
+            'payment_terms' => 'nullable|string',
+            'billing_frequency' => 'nullable|string',
+            'tax_included' => 'nullable|boolean',
+            'header_discount_type' => 'nullable|string|in:amount,percentage',
+            'header_discount_value' => 'nullable|numeric|min:0',
+            'other_cost' => 'nullable|numeric|min:0',
+            'scope_of_work' => 'nullable|string',
+            'exclusions' => 'nullable|string',
+            'delivery_timeline' => 'nullable|string',
+            'warranty_support_terms' => 'nullable|string',
+            'customer_notes' => 'nullable|string',
+            'internal_notes' => 'nullable|string',
+            'terms_conditions' => 'nullable|string',
+            'department' => 'nullable|string',
+            'cost_center' => 'nullable|string',
+            'location' => 'nullable|string',
+
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
+            'items.*.product_tier_id' => 'nullable|exists:product_tiers,id',
+            'items.*.pricing_model' => 'nullable|string',
+            'items.*.price_source' => 'nullable|string',
+            'items.*.tax_code_id' => 'nullable|exists:tax_codes,id',
+            'items.*.withholding_tax_code_id' => 'nullable|exists:withholding_tax_codes,id',
+            'items.*.withholding_tax_rate' => 'nullable|numeric|min:0',
             'items.*.item_name' => 'required|string',
             'items.*.description' => 'nullable|string',
             'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.unit' => 'nullable|string',
             'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.discount_amount' => 'nullable|numeric|min:0',
-            'items.*.tax_amount' => 'nullable|numeric|min:0',
             'items.*.billing_period' => 'required|string|in:one_time,monthly,quarterly,yearly',
+            'items.*.line_discount_type' => 'nullable|string|in:amount,percentage',
+            'items.*.line_discount_value' => 'nullable|numeric|min:0',
+            'items.*.tax_code' => 'nullable|string',
+            'items.*.tax_rate' => 'nullable|numeric|min:0',
+            'items.*.start_date' => 'nullable|date',
+            'items.*.end_date' => 'nullable|date|after_or_equal:items.*.start_date',
+            'items.*.duration_value' => 'nullable|integer',
+            'items.*.duration_unit' => 'nullable|string',
+            'items.*.sort_order' => 'nullable|integer',
         ]);
- 
+
         $totalsCalculated = [];
         foreach ($validated['items'] as $item) {
             $totalsCalculated[] = [
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
-                'line_discount_type' => 'amount',
-                'line_discount_value' => $item['discount_amount'] ?? 0,
-                'tax_rate' => 0,
-                'tax_amount' => $item['tax_amount'] ?? 0,
+                'line_discount_type' => $item['line_discount_type'] ?? 'none',
+                'line_discount_value' => $item['line_discount_value'] ?? 0,
+                'tax_rate' => $item['tax_rate'] ?? 0,
+                'withholding_tax_rate' => $item['withholding_tax_rate'] ?? 0,
+                'product_id' => $item['product_id'] ?? null,
+                'product_tier_id' => $item['product_tier_id'] ?? null,
+                'pricing_model' => $item['pricing_model'] ?? null,
+                'price_source' => $item['price_source'] ?? null,
+                'tax_code_id' => $item['tax_code_id'] ?? null,
+                'withholding_tax_code_id' => $item['withholding_tax_code_id'] ?? null,
+                'item_name' => $item['item_name'],
+                'description' => $item['description'] ?? null,
+                'billing_period' => $item['billing_period'],
+                'duration_value' => $item['duration_value'] ?? null,
+                'duration_unit' => $item['duration_unit'] ?? null,
             ];
         }
- 
+
         try {
-            $totals = $this->calculateTotals($totalsCalculated);
+            $totals = $this->calculateTotals(
+                $totalsCalculated,
+                $validated['header_discount_type'] ?? null,
+                (float) ($validated['header_discount_value'] ?? 0),
+                (float) ($validated['other_cost'] ?? 0)
+            );
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
- 
+
         $original = $order->toArray();
- 
+
         return DB::transaction(function () use ($order, $validated, $totals, $original) {
             $order->update([
                 'order_type' => $validated['order_type'],
@@ -917,24 +1093,79 @@ class LeadOrderToCashController extends Controller
                 'customer_name' => $validated['customer_name'] ?? $order->customer_name,
                 'billing_entity' => $validated['billing_entity'] ?? null,
                 'subtotal_amount' => $totals['subtotal'],
-                'discount_amount' => $totals['total_line_discount'],
+                'discount_amount' => $totals['total_line_discount'] + $totals['header_discount_amount'],
                 'tax_amount' => $totals['tax_amount'],
+                'total_withholding_tax' => $totals['total_withholding_tax'],
+                'grand_total_before_wht' => $totals['grand_total_before_wht'],
                 'total_amount' => $totals['total'],
+                
+                // NetSuite headers
+                'contact_id' => $validated['contact_id'] ?? null,
+                'sales_owner_id' => $validated['sales_owner_id'] ?? $order->sales_owner_id,
+                'presales_owner_id' => $validated['presales_owner_id'] ?? null,
+                'account_manager_id' => $validated['account_manager_id'] ?? null,
+                'spk_number' => $validated['spk_number'] ?? null,
+                'customer_po_number' => $validated['customer_po_number'] ?? null,
+                'expected_fulfillment_date' => $validated['expected_fulfillment_date'] ?? null,
+                'sales_effective_date' => $validated['sales_effective_date'] ?? null,
+                'payment_terms' => $validated['payment_terms'] ?? null,
+                'billing_frequency' => $validated['billing_frequency'] ?? null,
+                'tax_included' => $validated['tax_included'] ?? false,
+                'header_discount_type' => $validated['header_discount_type'] ?? null,
+                'header_discount_value' => $validated['header_discount_value'] ?? null,
+                'header_discount_amount' => $totals['header_discount_amount'],
+                'total_line_discount' => $totals['total_line_discount'],
+                'other_cost' => $validated['other_cost'] ?? 0,
+                'scope_of_work' => $validated['scope_of_work'] ?? null,
+                'exclusions' => $validated['exclusions'] ?? null,
+                'delivery_timeline' => $validated['delivery_timeline'] ?? null,
+                'warranty_support_terms' => $validated['warranty_support_terms'] ?? null,
+                'customer_notes' => $validated['customer_notes'] ?? null,
+                'internal_notes' => $validated['internal_notes'] ?? null,
+                'terms_conditions' => $validated['terms_conditions'] ?? null,
+                'department' => $validated['department'] ?? null,
+                'cost_center' => $validated['cost_center'] ?? null,
+                'location' => $validated['location'] ?? null,
             ]);
- 
+
             $order->items()->delete();
- 
-            foreach ($validated['items'] as $item) {
+
+            foreach ($totals['items'] as $item) {
                 $order->items()->create([
                     'product_id' => $item['product_id'] ?? null,
+                    'product_tier_id' => $item['product_tier_id'] ?? null,
                     'item_name' => $item['item_name'],
                     'description' => $item['description'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
-                    'discount_amount' => $item['discount_amount'] ?? 0,
+                    'discount_amount' => $item['line_discount_amount'] ?? 0,
                     'tax_amount' => $item['tax_amount'] ?? 0,
-                    'total_amount' => ($item['quantity'] * $item['unit_price']) - ($item['discount_amount'] ?? 0) + ($item['tax_amount'] ?? 0),
-                    'billing_period' => $item['billing_period'],
+                    'total_amount' => $item['total_amount'],
+                    'billing_period' => $item['billing_period'] ?? 'monthly',
+                    'pricing_model' => $item['pricing_model'] ?? null,
+                    'billing_cycle' => $item['billing_period'] ?? null,
+                    'price_source' => $item['price_source'] ?? null,
+                    'tax_code_id' => $item['tax_code_id'] ?? null,
+                    'tax_rate' => $item['tax_rate'] ?? 0,
+                    'withholding_tax_code_id' => $item['withholding_tax_code_id'] ?? null,
+                    'withholding_tax_rate' => $item['withholding_tax_rate'] ?? 0,
+                    'withholding_tax_amount' => $item['withholding_tax_amount'] ?? 0,
+                    'line_total_before_wht' => $item['line_total_before_wht'] ?? 0,
+                    'line_total_after_wht' => $item['line_total_after_wht'] ?? 0,
+                    'duration_value' => $item['duration_value'] ?? null,
+                    'duration_unit' => $item['duration_unit'] ?? null,
+                    'start_date' => $item['start_date'] ?? null,
+                    'end_date' => $item['end_date'] ?? null,
+
+                    // Extended NetSuite columns
+                    'unit' => $item['unit'] ?? null,
+                    'line_discount_type' => $item['line_discount_type'] ?? null,
+                    'line_discount_value' => $item['line_discount_value'] ?? null,
+                    'line_discount_amount' => $item['line_discount_amount'] ?? 0,
+                    'tax_code' => $item['tax_code'] ?? null,
+                    'sort_order' => $item['sort_order'] ?? 0,
+                    'service_start_date' => $item['start_date'] ?? null,
+                    'service_end_date' => $item['end_date'] ?? null,
                 ]);
             }
  

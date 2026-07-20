@@ -14,7 +14,19 @@ class LeadSalesOrder extends Model
         'created_by', 'confirmed_by', 'confirmed_at',
         
         // WHT fields
-        'total_withholding_tax', 'grand_total_before_wht'
+        'total_withholding_tax', 'grand_total_before_wht',
+
+        // Extended NetSuite columns
+        'contact_id', 'sales_owner_id', 'presales_owner_id', 'account_manager_id',
+        'source_type', 'spk_number', 'customer_po_number', 'lead_source', 'channel',
+        'expected_fulfillment_date', 'sales_effective_date', 'payment_terms',
+        'billing_frequency', 'tax_included', 'header_discount_type',
+        'header_discount_value', 'header_discount_amount', 'total_line_discount',
+        'other_cost', 'scope_of_work', 'exclusions', 'delivery_timeline',
+        'warranty_support_terms', 'customer_notes', 'internal_notes',
+        'terms_conditions', 'department', 'cost_center', 'location',
+        'industry', 'business_category', 'updated_by', 'fulfilled_at',
+        'closed_at', 'cancelled_at'
     ];
 
     protected $casts = [
@@ -30,6 +42,17 @@ class LeadSalesOrder extends Model
         'confirmed_at' => 'datetime',
         'total_withholding_tax' => 'decimal:2',
         'grand_total_before_wht' => 'decimal:2',
+
+        'expected_fulfillment_date' => 'date',
+        'sales_effective_date' => 'date',
+        'tax_included' => 'boolean',
+        'header_discount_value' => 'decimal:2',
+        'header_discount_amount' => 'decimal:2',
+        'total_line_discount' => 'decimal:2',
+        'other_cost' => 'decimal:2',
+        'fulfilled_at' => 'datetime',
+        'closed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public function lead()

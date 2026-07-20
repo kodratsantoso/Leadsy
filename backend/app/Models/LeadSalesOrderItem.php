@@ -15,7 +15,11 @@ class LeadSalesOrderItem extends Model
         'product_tier_id', 'pricing_model', 'billing_cycle', 'price_source',
         'tax_code_id', 'tax_rate', 'withholding_tax_code_id', 'withholding_tax_rate',
         'withholding_tax_amount', 'line_total_before_wht', 'line_total_after_wht',
-        'duration_value', 'duration_unit'
+        'duration_value', 'duration_unit',
+        
+        // Expanded columns
+        'unit', 'line_discount_type', 'line_discount_value', 'line_discount_amount',
+        'tax_code', 'sort_order', 'service_start_date', 'service_end_date'
     ];
 
     protected $casts = [
@@ -35,6 +39,12 @@ class LeadSalesOrderItem extends Model
         'line_total_after_wht' => 'decimal:2',
         'duration_value' => 'integer',
         'duration_unit' => 'string',
+
+        'line_discount_value' => 'decimal:2',
+        'line_discount_amount' => 'decimal:2',
+        'sort_order' => 'integer',
+        'service_start_date' => 'date',
+        'service_end_date' => 'date',
     ];
 
     public function salesOrder()
