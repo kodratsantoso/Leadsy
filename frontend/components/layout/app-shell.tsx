@@ -73,6 +73,19 @@ const navItems: NavItem[] = [
   { href: "/qualification/reviews",  icon: ClipboardCheck,  label: "Review Queue" },
   { href: "/products",               icon: Package,         label: "Products" },
   {
+    href: "/professional-services",
+    icon: Briefcase,
+    label: "Professional Services",
+    children: [
+      { href: "/professional-services", icon: Briefcase, label: "Estimations", group: "Estimator" },
+      { href: "/professional-services/estimations/new", icon: ClipboardCheck, label: "New Estimation", group: "Estimator" },
+      { href: "/professional-services/templates", icon: FileText, label: "Templates", group: "Configuration" },
+      { href: "/professional-services/rate-cards", icon: Coins, label: "Rate Cards & Roles", group: "Configuration" },
+      { href: "/professional-services/complexity-matrix", icon: Layers, label: "Complexity Matrix", group: "Configuration" },
+      { href: "/professional-services/categories", icon: Package, label: "Categories", group: "Configuration" },
+    ],
+  },
+  {
     href: "/whatsapp",
     icon: MessageSquare,
     label: "WhatsApp",

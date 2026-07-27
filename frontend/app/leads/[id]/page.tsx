@@ -29,6 +29,7 @@ import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import { PreMeetingBriefTab } from '@/components/leads/PreMeetingBriefTab';
 import { CommercialTeam } from '@/components/leads/CommercialTeam';
 import { OrderToCash } from '@/components/leads/OrderToCash';
+import { ProfessionalServicesTab } from '@/components/leads/tabs/professional-services-tab';
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
@@ -1946,7 +1947,7 @@ export default function LeadDetailPage() {
       {/* Tabs */}
       <div className="border-b border-border">
         <div className="flex gap-0 overflow-x-auto">
-          {['Overview', 'Team', 'Orders', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Transcripts', 'Pre-Meeting Brief', 'Customer Journey'].map((tab) => (
+          {['Overview', 'Team', 'Orders', 'Professional Services', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Transcripts', 'Pre-Meeting Brief', 'Customer Journey'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab.toLowerCase())}
@@ -2299,6 +2300,13 @@ export default function LeadDetailPage() {
       {activeTab === 'orders' && (
         <div className="space-y-6">
           <OrderToCash leadId={leadId} />
+        </div>
+      )}
+
+      {/* ── PROFESSIONAL SERVICES TAB ── */}
+      {activeTab === 'professional services' && (
+        <div className="space-y-6">
+          <ProfessionalServicesTab leadId={Number(params.id)} />
         </div>
       )}
 

@@ -64,6 +64,11 @@ class Lead extends Model
         return $this->belongsTo(BusinessCategory::class);
     }
 
+    public function professionalServiceEstimations(): HasMany
+    {
+        return $this->hasMany(PsEstimation::class);
+    }
+
     public function funnelStage(): BelongsTo
     {
         return $this->belongsTo(FunnelStage::class);

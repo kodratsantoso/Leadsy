@@ -1,6 +1,6 @@
 {
-  "version": "1.14.0",
-  "released_at": "2026-07-11",
+  "version": "1.15.0",
+  "released_at": "2026-07-27",
   "type": "minor",
-  "notes": "Added API Documentation and Token Generator UI."
+  "notes": "Added Professional Services Estimator UI."
 }

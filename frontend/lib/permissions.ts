@@ -11,6 +11,7 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/qualification/reviews": { any: ["leads.view"] },
   "/products": { any: ["products.view"] },
   "/industries": { any: ["products.view", "products.edit"] },
+  "/professional-services": { any: ["professional_services.view"] },
   "/whatsapp/local": { any: ["whatsapp.personal"] },
   "/whatsapp/qontak": { any: ["whatsapp.qontak"] },
   "/whatsapp": { any: ["whatsapp.manage", "whatsapp.personal", "whatsapp.qontak"] },

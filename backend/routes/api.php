@@ -226,6 +226,42 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/renew', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'createRenewalQuotation'])->middleware('permission:leads.edit');
 
+    /* ── Professional Services Estimator ── */
+    Route::group(['prefix' => 'professional-services', 'middleware' => 'permission:professional_services.view'], function () {
+        Route::get('config', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'config']);
+        
+        // Estimations
+        Route::get('estimations', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'indexEstimations']);
+        Route::get('estimations/{id}', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'showEstimation']);
+        Route::post('estimations', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'storeEstimation'])->middleware('permission:professional_services.create');
+        Route::put('estimations/{id}', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'updateEstimation'])->middleware('permission:professional_services.edit');
+        Route::post('estimations/{id}/duplicate', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'duplicateEstimation'])->middleware('permission:professional_services.create');
+        Route::post('estimations/{id}/review', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'reviewEstimation'])->middleware('permission:professional_services.review');
+        Route::post('estimations/{id}/approve', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'approveEstimation'])->middleware('permission:professional_services.approve');
+        Route::post('estimations/{id}/convert-to-quotation-line', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'convertToQuotationLine'])->middleware('permission:professional_services.edit');
+        
+        // Templates
+        Route::get('templates', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'indexTemplates']);
+        Route::get('templates/{id}', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'showTemplate']);
+        // Simplified templates CRUD mapping (Phase 1 focus is the estimator workflow)
+    });
+
+    Route::post('quotations/{quotation}/accept', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'acceptQuotation'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/reject', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'rejectQuotation'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/status', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'updateQuotationStatus'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/convert', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/convert-to-sales-order', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
+
+    // Lead Order-to-Cash (Sales Orders)
+    Route::get('leads/{lead}/sales-orders', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'getSalesOrders'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/sales-orders', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'storeSalesOrder'])->middleware('permission:leads.edit');
+    Route::get('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'showSalesOrder'])->middleware('permission:leads.view');
+    Route::put('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'updateSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/confirm', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'confirmSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/cancel', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'cancelSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/renew', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'createRenewalQuotation'])->middleware('permission:leads.edit');
+
     // Lead Commissions
     Route::get('leads/{lead}/commissions', [\App\Http\Controllers\Api\LeadCommissionController::class, 'index'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/commissions/generate', [\App\Http\Controllers\Api\LeadCommissionController::class, 'generateDraft'])->middleware('permission:leads.edit');
