@@ -241,3 +241,10 @@
 - **Decision**: Enlarged the quotation creation modal to `7xl` (`max-w-7xl`). Added `Start Date Period`, `Duration` (with Day, Month, Year unit dropdown), and `End Date Period` to the line items table for SaaS products. Implemented dynamic calculations where changing start/duration automatically updates end date, and changing end date updates duration. Added database columns to store these attributes on line items.
 - **Rationale**: SaaS pricing contracts are period-bound (e.g. 1 year, 3 months). Making these columns available and automatically calculated inside a spacious modal layout simplifies contract generation and prevents human calculation errors.
 - **Impact**: Added a database migration for `duration_value` and `duration_unit` columns. Updated `LeadQuotationItem` and `LeadSalesOrderItem` models and backend controllers. Table component in frontend was modified to render period columns, with a TypeScript build succeeding.
+
+## ADR-034: Professional Services CRUD Stabilization Strategy
+- **Date**: 2026-07-30
+- **Status**: Active
+- **Decision**: Rather than duplicate existing architectures, we will complete the missing Master Data UI/API layers (Service Categories, Roles, Rate Cards, etc.) and strictly enforce lifecycle status locks (e.g. archiving instead of hard deleting). Hardcoded templates (e.g. PDF blade) will remain as-is for now to prioritize execution and logic stability over dynamic templating, unless specifically required.
+- **Rationale**: The Phase 1-8 modules successfully introduced the core domain models, but lacked the necessary UI configuration screens and backend API protections for production readiness.
+- **Impact**: Will introduce multiple new backend controllers and frontend Settings pages. Will strictly enforce middleware permissions on all PS routes.

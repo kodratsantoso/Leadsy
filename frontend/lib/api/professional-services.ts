@@ -24,12 +24,21 @@ export type PsComplexityLevel = {
   is_active: boolean;
 };
 
+export type PsRateCard = {
+  id: number;
+  role_id: number;
+  rate_per_manday: string;
+  effective_from: string;
+  effective_to: string | null;
+  is_active: boolean;
+};
+
 export type PsRole = {
   id: number;
   name: string;
   description: string;
   is_active: boolean;
-  rateCards?: any[];
+  rateCards?: PsRateCard[];
 };
 
 export type PsConfig = {
@@ -109,8 +118,10 @@ export type PsEstimation = {
 
 export type PsEstimationTemplate = {
   id: number;
+  service_category_id: number;
   name: string;
   description: string;
+  is_active: boolean;
   serviceCategory?: PsServiceCategory;
   components?: any[];
 };
@@ -212,6 +223,126 @@ export async function storeEstimationTask(id: number, payload: Partial<PsEstimat
     body: JSON.stringify(payload),
   });
   return data;
+}
+
+// ==========================================
+// Phase 1 - Master Data Settings APIs
+// ==========================================
+
+export async function getPsServiceCategories(): Promise<PsServiceCategory[]> {
+  const { data } = await fetchApi<{ data: PsServiceCategory[] }>("/settings/professional-services/service-categories");
+  return data;
+}
+
+export async function createPsServiceCategory(payload: { name: string; description?: string; is_active?: boolean }): Promise<PsServiceCategory> {
+  const { data } = await fetchApi<{ data: PsServiceCategory }>("/settings/professional-services/service-categories", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function updatePsServiceCategory(id: number, payload: { name: string; description?: string; is_active?: boolean }): Promise<PsServiceCategory> {
+  const { data } = await fetchApi<{ data: PsServiceCategory }>(`/settings/professional-services/service-categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function deletePsServiceCategory(id: number): Promise<void> {
+  await fetchApi(`/settings/professional-services/service-categories/${id}`, { method: "DELETE" });
+}
+
+export async function getPsRoles(): Promise<PsRole[]> {
+  const { data } = await fetchApi<{ data: PsRole[] }>("/settings/professional-services/roles");
+  return data;
+}
+
+export async function createPsRole(payload: { name: string; description?: string; is_active?: boolean; rate_per_manday?: number }): Promise<PsRole> {
+  const { data } = await fetchApi<{ data: PsRole }>("/settings/professional-services/roles", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function updatePsRole(id: number, payload: { name: string; description?: string; is_active?: boolean }): Promise<PsRole> {
+  const { data } = await fetchApi<{ data: PsRole }>(`/settings/professional-services/roles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function deletePsRole(id: number): Promise<void> {
+  await fetchApi(`/settings/professional-services/roles/${id}`, { method: "DELETE" });
+}
+
+export async function createPsRateCard(roleId: number, payload: { rate_per_manday: number; effective_from: string; effective_to?: string | null; is_active?: boolean }): Promise<PsRateCard> {
+  const { data } = await fetchApi<{ data: PsRateCard }>(`/settings/professional-services/roles/${roleId}/rate-cards`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function updatePsRateCard(roleId: number, rateCardId: number, payload: { rate_per_manday: number; effective_from: string; effective_to?: string | null; is_active?: boolean }): Promise<PsRateCard> {
+  const { data } = await fetchApi<{ data: PsRateCard }>(`/settings/professional-services/roles/${roleId}/rate-cards/${rateCardId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function getPsComplexityLevels(): Promise<PsComplexityLevel[]> {
+  const { data } = await fetchApi<{ data: PsComplexityLevel[] }>("/settings/professional-services/complexity/levels");
+  return data;
+}
+
+export async function createPsComplexityLevel(payload: { name: string; multiplier: number; description?: string; is_active?: boolean }): Promise<PsComplexityLevel> {
+  const { data } = await fetchApi<{ data: PsComplexityLevel }>("/settings/professional-services/complexity/levels", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function updatePsComplexityLevel(id: number, payload: { name: string; multiplier: number; description?: string; is_active?: boolean }): Promise<PsComplexityLevel> {
+  const { data } = await fetchApi<{ data: PsComplexityLevel }>(`/settings/professional-services/complexity/levels/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function deletePsComplexityLevel(id: number): Promise<void> {
+  await fetchApi(`/settings/professional-services/complexity/levels/${id}`, { method: "DELETE" });
+}
+
+export async function getPsSettingsTemplates(): Promise<PsEstimationTemplate[]> {
+  const { data } = await fetchApi<{ data: PsEstimationTemplate[] }>("/settings/professional-services/templates");
+  return data;
+}
+
+export async function createPsSettingsTemplate(payload: { service_category_id: number; name: string; description?: string; is_active?: boolean }): Promise<PsEstimationTemplate> {
+  const { data } = await fetchApi<{ data: PsEstimationTemplate }>("/settings/professional-services/templates", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function updatePsSettingsTemplate(id: number, payload: { service_category_id: number; name: string; description?: string; is_active?: boolean }): Promise<PsEstimationTemplate> {
+  const { data } = await fetchApi<{ data: PsEstimationTemplate }>(`/settings/professional-services/templates/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data;
+}
+
+export async function deletePsSettingsTemplate(id: number): Promise<void> {
+  await fetchApi(`/settings/professional-services/templates/${id}`, { method: "DELETE" });
 }
 
 export async function updateEstimationTask(id: number, taskId: number, payload: Partial<PsEstimationLine>): Promise<PsEstimationLine> {

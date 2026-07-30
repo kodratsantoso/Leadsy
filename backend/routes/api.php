@@ -228,6 +228,28 @@ Route::middleware('auth:sanctum')->group(function () {
 
     /* ── Professional Services Estimator ── */
     Route::group(['prefix' => 'professional-services', 'middleware' => 'permission:professional_services.view'], function () {
+        // Professional Services Master Data
+        Route::prefix('settings/professional-services')->group(function () {
+            Route::apiResource('service-categories', \App\Http\Controllers\Api\PsServiceCategoryController::class);
+            
+            Route::apiResource('roles', \App\Http\Controllers\Api\PsRoleController::class);
+            Route::post('roles/{id}/rate-cards', [\App\Http\Controllers\Api\PsRoleController::class, 'storeRateCard']);
+            Route::put('roles/{id}/rate-cards/{rateCardId}', [\App\Http\Controllers\Api\PsRoleController::class, 'updateRateCard']);
+            
+            Route::get('complexity/levels', [\App\Http\Controllers\Api\PsComplexityController::class, 'indexLevels']);
+            Route::post('complexity/levels', [\App\Http\Controllers\Api\PsComplexityController::class, 'storeLevel']);
+            Route::put('complexity/levels/{id}', [\App\Http\Controllers\Api\PsComplexityController::class, 'updateLevel']);
+            Route::delete('complexity/levels/{id}', [\App\Http\Controllers\Api\PsComplexityController::class, 'destroyLevel']);
+            
+            Route::get('complexity/dimensions', [\App\Http\Controllers\Api\PsComplexityController::class, 'indexDimensions']);
+            Route::post('complexity/dimensions', [\App\Http\Controllers\Api\PsComplexityController::class, 'storeDimension']);
+            Route::put('complexity/dimensions/{id}', [\App\Http\Controllers\Api\PsComplexityController::class, 'updateDimension']);
+            Route::delete('complexity/dimensions/{id}', [\App\Http\Controllers\Api\PsComplexityController::class, 'destroyDimension']);
+            
+            Route::apiResource('templates', \App\Http\Controllers\Api\PsEstimationTemplateController::class);
+        });
+
+        // Estimations
         Route::get('config', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'config']);
         
         // Estimations

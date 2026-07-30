@@ -45,6 +45,18 @@ const categories = [
     ]
   },
   {
+    name: "Professional Services",
+    desc: "Configure estimations, service categories, pricing rates, and project governance.",
+    items: [
+      { icon: Layers,    title: "Service Categories",    desc: "Manage high-level service domains for estimations",                 href: "/settings/professional-services/service-categories", color: "bg-[color:var(--status-info)]" },
+      { icon: Users,     title: "Roles & Rate Cards",    desc: "Define service roles and date-effective pricing structures",        href: "/settings/professional-services/roles",              color: "bg-[color:var(--brand)]" },
+      { icon: Target,    title: "Complexity Matrix",     desc: "Configure complexity levels and multipliers for estimations",       href: "/settings/professional-services/complexity",         color: "bg-[color:var(--status-warning)]" },
+      { icon: FileText,  title: "Estimation Templates",  desc: "Pre-defined task templates linked to service categories",           href: "/settings/professional-services/templates",          color: "bg-[color:var(--status-success)]" },
+      { icon: Shield,    title: "Governance Rules",      desc: "Configure approval blockers and locking rules for PS workflows",    href: "/settings/professional-services/governance",         color: "bg-[color:var(--status-danger)]" },
+      { icon: Activity,  title: "PSA Settings",          desc: "Global thresholds for PSA Lite execution tracking",                 href: "/settings/professional-services/psa",                color: "bg-[color:var(--status-info)]" },
+    ]
+  },
+  {
     name: "System & Security",
     desc: "Audit trailing, session governance, alerts, and system recovery.",
     items: [

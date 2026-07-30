@@ -177,3 +177,9 @@ Leadsy now has database-backed source and channel classification for leads.
 - Rendered status dot indicators (Not Started, In Progress, Done) matching the funnel stages configuration from database and settings.
 - Wired click-transitions on the flow and the "Complete Step" button to trigger the Log Activity modal, pre-populating the target stage.
 - Validated with complete type safety and zero typescript compilation errors.
+
+## Phase 15: Professional Services Module Stabilization (Pending ⏳)
+**Date started**: 2026-07-30
+
+- Audited Phase 1-8 implementation for missing CRUD, endpoints, UI actions, and security enforcement.
+- Beginning systematic remediation for Master Data (Service Categories, Roles, Rate Cards, Templates, etc.).
