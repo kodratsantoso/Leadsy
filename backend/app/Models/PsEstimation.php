@@ -15,6 +15,8 @@ class PsEstimation extends Model
 
     protected $fillable = [
         'estimation_number',
+        'version_number',
+        'parent_estimation_id',
         'lead_id',
         'service_category_id',
         'template_id',
@@ -40,6 +42,9 @@ class PsEstimation extends Model
         'approved_by',
         'reviewed_at',
         'approved_at',
+        'converted_quotation_id',
+        'converted_at',
+        'converted_by',
     ];
 
     protected function casts(): array
@@ -55,6 +60,7 @@ class PsEstimation extends Model
             'total_estimated_fee' => 'decimal:2',
             'reviewed_at' => 'datetime',
             'approved_at' => 'datetime',
+            'converted_at' => 'datetime',
         ];
     }
 
@@ -96,5 +102,45 @@ class PsEstimation extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function convertedQuotation(): BelongsTo
+    {
+        return $this->belongsTo(LeadQuotation::class, 'converted_quotation_id');
+    }
+
+    public function converter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'converted_by');
+    }
+
+    public function parentEstimation(): BelongsTo
+    {
+        return $this->belongsTo(PsEstimation::class, 'parent_estimation_id');
+    }
+
+    public function versions(): HasMany
+    {
+        return $this->hasMany(PsEstimationVersion::class, 'estimation_id');
+    }
+
+    public function approvalLogs(): HasMany
+    {
+        return $this->hasMany(PsApprovalLog::class, 'estimation_id');
+    }
+
+    public function revisionsAsOriginal(): HasMany
+    {
+        return $this->hasMany(PsRevision::class, 'original_estimation_id');
+    }
+
+    public function revisionsAsRevised(): HasMany
+    {
+        return $this->hasMany(PsRevision::class, 'revised_estimation_id');
+    }
+
+    public function projectPlan(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PsProjectPlan::class, 'estimation_id');
     }
 }

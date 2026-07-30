@@ -24,15 +24,59 @@ class EstimationCalculationService
         $multiplier = $estimation->complexity_multiplier ?? 1.0;
         $bufferPercentage = $estimation->buffer_percentage ?? 0.0;
 
-        foreach ($estimation->lines as $line) {
-            $this->calculateLine($line, $multiplier, $bufferPercentage);
+        // First, calculate all subtasks
+        $subtasks = $estimation->lines()->whereNotNull('parent_task_id')->get();
+        $parentTaskTotals = []; // To store sums for parent tasks
 
-            $totalBase += $line->base_mandays;
-            $totalAdjusted += $line->adjusted_mandays;
-            $totalBuffer += $line->buffer_mandays;
-            $totalManual += $line->manual_adjustment;
-            $totalFinal += $line->final_mandays;
-            $totalFee += $line->estimated_fee;
+        foreach ($subtasks as $subtask) {
+            $this->calculateLine($subtask, $multiplier, $bufferPercentage);
+            
+            if (!isset($parentTaskTotals[$subtask->parent_task_id])) {
+                $parentTaskTotals[$subtask->parent_task_id] = [
+                    'base_mandays' => 0,
+                    'adjusted_mandays' => 0,
+                    'buffer_mandays' => 0,
+                    'manual_adjustment' => 0,
+                    'final_mandays' => 0,
+                    'estimated_fee' => 0,
+                ];
+            }
+            
+            $parentTaskTotals[$subtask->parent_task_id]['base_mandays'] += $subtask->base_mandays;
+            $parentTaskTotals[$subtask->parent_task_id]['adjusted_mandays'] += $subtask->adjusted_mandays;
+            $parentTaskTotals[$subtask->parent_task_id]['buffer_mandays'] += $subtask->buffer_mandays;
+            $parentTaskTotals[$subtask->parent_task_id]['manual_adjustment'] += $subtask->manual_adjustment;
+            $parentTaskTotals[$subtask->parent_task_id]['final_mandays'] += $subtask->final_mandays;
+            $parentTaskTotals[$subtask->parent_task_id]['estimated_fee'] += $subtask->estimated_fee;
+        }
+
+        // Now, calculate parent tasks
+        $tasks = $estimation->lines()->whereNull('parent_task_id')->get();
+        
+        foreach ($tasks as $task) {
+            // If task has subtasks, override its values with the rolled-up totals
+            if (isset($parentTaskTotals[$task->id])) {
+                $totals = $parentTaskTotals[$task->id];
+                $task->base_mandays = $totals['base_mandays'];
+                // We still want to let calculateLine run if we want to apply parent-level complexity/buffer?
+                // Actually, if a task has subtasks, the values should just be the sum of subtasks.
+                $task->adjusted_mandays = $totals['adjusted_mandays'];
+                $task->buffer_mandays = $totals['buffer_mandays'];
+                $task->manual_adjustment = $totals['manual_adjustment'];
+                $task->final_mandays = $totals['final_mandays'];
+                $task->estimated_fee = $totals['estimated_fee'];
+                $task->saveQuietly();
+            } else {
+                // Leaf task (no subtasks), calculate normally
+                $this->calculateLine($task, $multiplier, $bufferPercentage);
+            }
+
+            $totalBase += $task->base_mandays;
+            $totalAdjusted += $task->adjusted_mandays;
+            $totalBuffer += $task->buffer_mandays;
+            $totalManual += $task->manual_adjustment;
+            $totalFinal += $task->final_mandays;
+            $totalFee += $task->estimated_fee;
         }
 
         $estimation->total_base_mandays = $totalBase;
@@ -50,8 +94,18 @@ class EstimationCalculationService
      */
     private function calculateLine(PsEstimationLine $line, float $multiplier, float $bufferPercentage): void
     {
-        $line->adjusted_mandays = round($line->base_mandays * $multiplier, 2);
-        $line->buffer_mandays = round($line->adjusted_mandays * ($bufferPercentage / 100), 2);
+        // Priority: Line-specific complexity multiplier > Estimation complexity multiplier
+        $lineMultiplier = $line->complexity_multiplier_snapshot ?? $multiplier;
+        if ($line->complexity_level_id && !$line->complexity_multiplier_snapshot) {
+            $lineMultiplier = $line->complexityLevel ? $line->complexityLevel->multiplier : $multiplier;
+            $line->complexity_multiplier_snapshot = $lineMultiplier;
+        }
+
+        // Priority: Line-specific buffer > Estimation buffer
+        $lineBuffer = $line->buffer_percentage_snapshot ?? $bufferPercentage;
+
+        $line->adjusted_mandays = round($line->base_mandays * $lineMultiplier, 2);
+        $line->buffer_mandays = round($line->adjusted_mandays * ($lineBuffer / 100), 2);
         
         $line->final_mandays = $line->adjusted_mandays + $line->buffer_mandays + $line->manual_adjustment;
 
@@ -107,10 +161,20 @@ class EstimationCalculationService
         $newEstimation->approved_at = null;
         $newEstimation->save();
 
-        foreach ($original->lines as $line) {
-            $newLine = $line->replicate();
-            $newLine->estimation_id = $newEstimation->id;
-            $newLine->save();
+        // Need to replicate hierarchy. First replicate tasks, then subtasks
+        $tasks = $original->lines()->whereNull('parent_task_id')->get();
+        foreach ($tasks as $task) {
+            $newTask = $task->replicate();
+            $newTask->estimation_id = $newEstimation->id;
+            $newTask->save();
+
+            $subtasks = $original->lines()->where('parent_task_id', $task->id)->get();
+            foreach ($subtasks as $subtask) {
+                $newSubtask = $subtask->replicate();
+                $newSubtask->estimation_id = $newEstimation->id;
+                $newSubtask->parent_task_id = $newTask->id;
+                $newSubtask->save();
+            }
         }
 
         $this->recalculate($newEstimation);

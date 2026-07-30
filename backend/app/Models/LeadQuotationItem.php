@@ -19,7 +19,11 @@ class LeadQuotationItem extends Model
         'product_tier_id', 'pricing_model', 'price_source', 'tax_code_id',
         'withholding_tax_code_id', 'withholding_tax_rate', 'withholding_tax_amount',
         'line_total_before_wht', 'line_total_after_wht',
-        'duration_value', 'duration_unit'
+        'duration_value', 'duration_unit',
+
+        // Source tracking
+        'source_type', 'source_reference_id', 
+        'professional_service_estimation_id', 'professional_service_estimation_line_id'
     ];
 
     protected $casts = [
@@ -67,5 +71,15 @@ class LeadQuotationItem extends Model
     public function withholdingTaxCode()
     {
         return $this->belongsTo(WithholdingTaxCode::class, 'withholding_tax_code_id');
+    }
+
+    public function psEstimation()
+    {
+        return $this->belongsTo(PsEstimation::class, 'professional_service_estimation_id');
+    }
+
+    public function psEstimationLine()
+    {
+        return $this->belongsTo(PsEstimationLine::class, 'professional_service_estimation_line_id');
     }
 }

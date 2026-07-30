@@ -1,6 +1,7 @@
 {
-  "version": "1.15.0",
-  "released_at": "2026-07-27",
+  "version": "1.21.0",
+  "codename": "ps-psa-lite",
+  "last_updated": "2026-07-30",
   "type": "minor",
-  "notes": "Added Professional Services Estimator UI."
+  "notes": "Added Professional Services PSA Lite execution tracking."
 }

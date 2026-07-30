@@ -235,10 +235,76 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('estimations/{id}', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'showEstimation']);
         Route::post('estimations', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'storeEstimation'])->middleware('permission:professional_services.create');
         Route::put('estimations/{id}', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'updateEstimation'])->middleware('permission:professional_services.edit');
-        Route::post('estimations/{id}/duplicate', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'duplicateEstimation'])->middleware('permission:professional_services.create');
-        Route::post('estimations/{id}/review', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'reviewEstimation'])->middleware('permission:professional_services.review');
-        Route::post('estimations/{id}/approve', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'approveEstimation'])->middleware('permission:professional_services.approve');
-        Route::post('estimations/{id}/convert-to-quotation-line', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'convertToQuotationLine'])->middleware('permission:professional_services.edit');
+        Route::post('estimations/{id}/duplicate', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'duplicateEstimation']);
+        Route::post('estimations/{id}/review', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'reviewEstimation'])
+            ->middleware('permission:professional_services.review');
+        Route::post('estimations/{id}/submit-approval', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'submitApproval']);
+        Route::post('estimations/{id}/approve', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'approveEstimation'])
+            ->middleware('permission:professional_services.approve');
+        Route::post('estimations/{id}/reject', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'rejectEstimation'])
+            ->middleware('permission:professional_services.approve');
+        Route::post('estimations/{id}/request-revision', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'requestRevision']);
+        Route::post('estimations/{id}/create-revision', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'createRevision']);
+        
+        Route::get('estimations/{id}/blockers', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'blockers']);
+        Route::get('estimations/{id}/versions', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'versions']);
+        
+        // Governance Rules
+        Route::get('governance-rules', [App\Http\Controllers\Api\PsGovernanceRuleController::class, 'index']);
+        Route::post('governance-rules', [App\Http\Controllers\Api\PsGovernanceRuleController::class, 'store']);
+        Route::put('governance-rules/{id}', [App\Http\Controllers\Api\PsGovernanceRuleController::class, 'update']);
+        
+        // Task Breakdown routes
+        Route::get('estimations/{id}/quotation-preview', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'quotationPreview'])->middleware('permission:professional_services.edit');
+        Route::post('/professional-services/estimations/{id}/convert-to-quotation', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'convertToQuotation']);
+
+        // Phase 5: Documents
+        Route::get('/professional-services/estimations/{id}/documents', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'index']);
+        Route::post('/professional-services/estimations/{id}/documents/generate', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'generate']);
+        Route::get('/professional-services/documents/{id}', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'show']);
+        Route::delete('/professional-services/documents/{id}', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'destroy']);
+        
+        // Phase 5: Digital Signature
+        Route::post('/professional-services/documents/{id}/send-signature', [App\Http\Controllers\Api\DigitalSignatureController::class, 'sendForSignature']);
+        Route::post('/professional-services/documents/{id}/refresh-signature-status', [App\Http\Controllers\Api\DigitalSignatureController::class, 'refreshStatus']);
+
+        Route::apiResource('settings/digital-signature', App\Http\Controllers\Api\DigitalSignatureSettingsController::class);
+
+        // Phase 7: Project Planning Lite
+        Route::get('/project-plans', [\App\Http\Controllers\Api\PsProjectPlanController::class, 'index']);
+        Route::get('/project-plans/{id}', [\App\Http\Controllers\Api\PsProjectPlanController::class, 'show']);
+        Route::post('/estimations/{id}/create-project-plan', [\App\Http\Controllers\Api\PsProjectPlanController::class, 'createFromEstimation']);
+        Route::put('/project-plans/{id}', [\App\Http\Controllers\Api\PsProjectPlanController::class, 'update']);
+        Route::put('/project-plans/{id}/status', [\App\Http\Controllers\Api\PsProjectPlanController::class, 'updateStatus']);
+
+        // Phase 8: PSA Lite Execution
+        Route::get('/psa-dashboard', [\App\Http\Controllers\Api\PsPsaDashboardController::class, 'index']);
+        
+        Route::get('/settings/psa', [\App\Http\Controllers\Api\PsPsaSettingsController::class, 'show']);
+        Route::put('/settings/psa', [\App\Http\Controllers\Api\PsPsaSettingsController::class, 'update']);
+        
+        Route::get('/work-logs', [\App\Http\Controllers\Api\PsWorkLogController::class, 'index']);
+        Route::post('/work-logs', [\App\Http\Controllers\Api\PsWorkLogController::class, 'store']);
+        Route::post('/work-logs/{id}/approve', [\App\Http\Controllers\Api\PsWorkLogController::class, 'approve']);
+        Route::post('/work-logs/{id}/reject', [\App\Http\Controllers\Api\PsWorkLogController::class, 'reject']);
+        
+        Route::get('/change-requests', [\App\Http\Controllers\Api\PsChangeRequestController::class, 'index']);
+        Route::post('/change-requests', [\App\Http\Controllers\Api\PsChangeRequestController::class, 'store']);
+        Route::post('/change-requests/{id}/approve', [\App\Http\Controllers\Api\PsChangeRequestController::class, 'approve']);
+        Route::post('/change-requests/{id}/reject', [\App\Http\Controllers\Api\PsChangeRequestController::class, 'reject']);
+        
+        Route::get('/bast', [\App\Http\Controllers\Api\PsBastController::class, 'index']);
+        Route::post('/project-plans/{id}/generate-bast', [\App\Http\Controllers\Api\PsBastController::class, 'generate']);
+
+        // Task Breakdown routes
+        Route::get('estimations/{id}/tasks', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'getTasks']);
+        Route::post('estimations/{id}/tasks', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'storeTask'])->middleware('permission:professional_services.edit');
+        Route::put('estimations/{id}/tasks/{taskId}', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'updateTask'])->middleware('permission:professional_services.edit');
+        Route::delete('estimations/{id}/tasks/{taskId}', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'deleteTask'])->middleware('permission:professional_services.edit');
+        Route::post('estimations/{id}/tasks/reorder', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'reorderTasks'])->middleware('permission:professional_services.edit');
+        Route::post('estimations/{id}/tasks/recalculate', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'recalculateTasks'])->middleware('permission:professional_services.edit');
+        Route::post('estimations/{id}/generate-task-breakdown', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'generateTaskBreakdown'])->middleware('permission:professional_services.edit');
+        Route::post('estimations/{id}/apply-task-breakdown', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'applyTaskBreakdown'])->middleware('permission:professional_services.edit');
         
         // Templates
         Route::get('templates', [App\Http\Controllers\Api\ProfessionalServiceController::class, 'indexTemplates']);

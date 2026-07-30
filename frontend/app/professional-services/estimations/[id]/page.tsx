@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, ClipboardCopy, Download, FileText, Send, Settings, AlertTriangle, MessageSquareQuote } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCopy, Download, FileText, Send, Settings, AlertTriangle, MessageSquareQuote, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { 
   PsEstimation, 
   getEstimation, 
-  approveEstimation, 
-  convertToQuotationLine 
+  approveEstimation,
+  createProjectPlanFromEstimation
 } from "@/lib/api/professional-services";
+import { TaskBreakdownEditor } from "@/components/professional-services/task-breakdown-editor";
+import { ConvertToQuotationModal } from "@/components/professional-services/modals/convert-to-quotation-modal";
+import { PsDocumentList } from "@/components/professional-services/ps-document-list";
+import { GovernancePanel } from "@/components/professional-services/governance/governance-panel";
 
 export default function EstimationDetailPage() {
   const router = useRouter();
@@ -23,6 +27,7 @@ export default function EstimationDetailPage() {
   const [estimation, setEstimation] = useState<PsEstimation | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
 
   useEffect(() => {
     if (estimationId) loadEstimation(estimationId);
@@ -41,28 +46,19 @@ export default function EstimationDetailPage() {
     }
   };
 
-  const handleApprove = async () => {
-    try {
-      setActionLoading(true);
-      const res = await approveEstimation(estimationId);
-      setEstimation(res);
-      toast({ title: "Estimation approved successfully" });
-    } catch (e: any) {
-      toast({ title: "Failed to approve", description: e.message, variant: "destructive" });
-    } finally {
-      setActionLoading(false);
-    }
+  const handleConversionSuccess = (data: any) => {
+    toast({ title: "Converted successfully", description: `Quotation ${data.quotation_number} generated.` });
+    loadEstimation(estimationId);
   };
 
-  const handleConvertToQuotation = async () => {
+  const handleCreateProjectPlan = async () => {
     try {
       setActionLoading(true);
-      await convertToQuotationLine(estimationId);
-      loadEstimation(estimationId);
-      toast({ title: "Converted to Quotation Line successfully" });
-      // In a real app, maybe redirect to the lead's quotation tab
-    } catch (e: any) {
-      toast({ title: "Failed to convert", description: e.message, variant: "destructive" });
+      const plan = await createProjectPlanFromEstimation(estimationId);
+      toast({ title: "Project Plan Created", description: `Plan ${plan.project_plan_number} generated.` });
+      router.push(`/professional-services/project-plans/${plan.id}`);
+    } catch (error: any) {
+      toast({ title: "Failed to create project plan", description: error.message || "Unknown error", variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
@@ -99,17 +95,25 @@ export default function EstimationDetailPage() {
               </Badge>
             </div>
             {estimation.lead && (
-              <p className="text-muted-foreground mt-1">Lead: {estimation.lead.company_name}</p>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-muted-foreground">Lead: {estimation.lead.company_name}</p>
+                {estimation.converted_quotation_id && (
+                  <Button variant="link" size="sm" className="h-auto p-0 text-purple-600" onClick={() => router.push(`/leads/${estimation.lead_id}?tab=quotations`)}>
+                    View Quotation <ExternalLink className="h-3 w-3 ml-1" />
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          {estimation.status === 'draft' || estimation.status === 'pm_reviewed' ? (
-            <Button onClick={handleApprove} disabled={actionLoading} className="bg-green-600 hover:bg-green-700 text-white">
-              <CheckCircle2 className="h-4 w-4 mr-2" /> Approve
+          {(estimation.status === 'approved' || estimation.status === 'signed' || estimation.status === 'converted_to_quotation') && (
+            <Button onClick={handleCreateProjectPlan} disabled={actionLoading} variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+              <ClipboardCopy className="h-4 w-4 mr-2" /> Create Project Plan
             </Button>
-          ) : estimation.status === 'approved' ? (
-            <Button onClick={handleConvertToQuotation} disabled={actionLoading} className="bg-purple-600 hover:bg-purple-700 text-white">
+          )}
+          {estimation.status === 'approved' || estimation.status === 'signed' ? (
+            <Button onClick={() => setConvertModalOpen(true)} disabled={actionLoading} className="bg-purple-600 hover:bg-purple-700 text-white">
               <ClipboardCopy className="h-4 w-4 mr-2" /> Convert to Quotation
             </Button>
           ) : null}
@@ -119,35 +123,7 @@ export default function EstimationDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Details */}
         <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader><CardTitle>Scope Components</CardTitle></CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="p-3 text-left font-medium">Task</th>
-                      <th className="p-3 text-left font-medium">Role</th>
-                      <th className="p-3 text-right font-medium">Base MD</th>
-                      <th className="p-3 text-right font-medium">Final MD</th>
-                      <th className="p-3 text-right font-medium">Fee</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {estimation.lines?.map(line => (
-                      <tr key={line.id} className="border-b">
-                        <td className="p-3">{line.task_name}</td>
-                        <td className="p-3">{(line as any).role?.name}</td>
-                        <td className="p-3 text-right text-muted-foreground">{line.base_mandays}</td>
-                        <td className="p-3 text-right font-medium">{line.final_mandays}</td>
-                        <td className="p-3 text-right">{formatCurrency(line.estimated_fee || 0, estimation.currency_code)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <TaskBreakdownEditor estimationId={estimation.id} onUpdate={() => loadEstimation(estimation.id)} />
 
           <Card>
             <CardHeader><CardTitle>Assumptions & Notes</CardTitle></CardHeader>
@@ -172,10 +148,14 @@ export default function EstimationDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          <PsDocumentList estimationId={estimation.id} />
         </div>
 
-        {/* Right Column - Summary */}
+        {/* Right Column - Summary & Governance */}
         <div className="space-y-6">
+          <GovernancePanel estimation={estimation} onUpdate={() => loadEstimation(estimation.id)} />
+
           <Card>
             <CardHeader className="bg-muted/30 border-b">
               <CardTitle className="text-lg">Financial Summary</CardTitle>
@@ -220,6 +200,15 @@ export default function EstimationDetailPage() {
           </Card>
         </div>
       </div>
+
+      {estimation && convertModalOpen && (
+        <ConvertToQuotationModal
+          open={convertModalOpen}
+          onOpenChange={setConvertModalOpen}
+          estimation={estimation}
+          onSuccess={handleConversionSuccess}
+        />
+      )}
     </div>
   );
 }

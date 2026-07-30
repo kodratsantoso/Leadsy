@@ -198,6 +198,20 @@ Source of truth: `frontend/components/products/QuestionGuide.tsx`
 - Drilldown Support: All blocks return structured JSON with a fallback standard table schema to surface the raw database rows that constructed the metric.
 
 ## Mobile Field Sales Companion
+- Dedicated React Native application.
+- Uses Sanctum for authentication.
+- Focused on offline capabilities and location tracking.
+
+## Professional Services Estimator
+Source of truth: `backend/app/Http/Controllers/Api/ProfessionalServiceController.php` & `frontend/app/professional-services/`
+
+**Module Flow:**
+1. Maintain configurations (Categories, Templates, Complexity Levels, Roles, Rate Cards).
+2. Users create a `PsEstimation` linked to a `Lead`.
+3. Fill in baseline scope (Assumptions, Out of Scope, Dependencies, Risks).
+4. Build `PsEstimationLine` (Tasks and Subtasks) with role assignment and base/adjusted ManDays.
+5. Apply complexity multipliers and buffers dynamically via `EstimationCalculationService`.
+6. **Phase 1-5 (Complete):** Core Module, Task Breakdown Engine, AI Scoping, Quotation Integration, Document Generation, and Digital Signature are active in both frontend UI (`frontend/app/professional-services`) and Backend (`PsEstimation`, `PsDocument`, `DigitalSignatureConnection`, `LeadQuotation`).
 
 - Runtime mobile source of truth: `mobile/`.
 - Testing helper: `npm run mobile:expo-go` starts Expo in LAN mode and points the app to the local backend API.
@@ -313,6 +327,9 @@ Source of truth: `frontend/components/leads/OrderToCash.tsx` (UI), `backend/app/
 **Purpose:** Manages the commercial quotation, approval, and order realization pipeline.
 
 **Core Rules:**
+- **Quotation**: `LeadQuotation` model with associated items.
+- **Documents & Digital Signature**: `PsDocument`, `PsDocumentSigner`, `DigitalSignatureConnection`, `DigitalSignatureEnvelope`.
+- **Integrations**: `DocumensoProvider` handles Digital Signatures, standard generic interfaces used for modularity.
 - **Calculations**: Calculated strictly on the backend:
   * Line level: `line_subtotal = quantity * unit_price`, `line_discount_amount` is calculated based on type (percentage/value), `taxable_amount = line_subtotal - line_discount_amount`, and `line_tax_amount = taxable_amount * (tax_rate / 100)`.
   * Header level: `subtotal = sum(line_subtotal)`, `total_line_discount = sum(line_discount_amount)`, `header_discount_amount` is calculated based on type/value on `subtotal - total_line_discount`, and `grand_total = subtotal - total_line_discount - header_discount_amount + tax_amount + other_cost`.
@@ -337,5 +354,17 @@ Source of truth: `frontend/app/leads/[id]/page.tsx` (UI), `backend/app/Http/Cont
   - **Done**: Stages prior to the active stage (indicated with green dots and soft green backgrounds).
   - **In Progress**: The active stage of the lead (indicated with orange blinking dots and highlight borders/bg).
   - **Not Started**: Future stages (indicated with grey dots and muted backgrounds).
-- **Stage Transition Constraint**: Stage transitions are not performed blindly. When a user clicks a stage or clicks the "Complete Step" button to move to the next stage, the system opens the governed "Log Activity" modal with the targeted `funnel_stage_id` pre-selected.
 - **Backend Logging**: Saving the activity submits the new stage target to the backend, which registers both the new interaction log and the official stage history transition.
+
+## Professional Services Module
+
+Source of truth: `frontend/app/professional-services/` (UI), `backend/app/Http/Controllers/Api/ProfessionalServiceController.php` (API backend).
+
+**Purpose:** Provides a centralized engine for estimating ManDays and generating quotations for implementation or consulting projects.
+
+**Core Rules:**
+- **Calculations**: Calculated strictly on the backend via `EstimationCalculationService` applying base mandays, complexity multipliers, buffers, and role rates.
+- **Hierarchical Engine**: `ps_estimation_lines` supports parent/child `parent_task_id` for granular Task & Subtask breakdowns. Rollups calculate recursively on the backend.
+- **AI Scope Analyzer**: Includes AI generation capabilities that interpret project context, assumptions, dependencies and output JSON-formatted structured tasks directly inserted into the hierarchy tree. AI outputs carry confidence flags and must be reviewed.
+- **Phase 1-6 (Complete):** Core Module, Task Breakdown Engine, AI Scoping, Quotation Integration, Document Generation, Digital Signature, and robust Approval & Governance are active in both frontend UI (`frontend/app/professional-services`) and Backend (`PsEstimation`, `PsDocument`, `DigitalSignatureConnection`, `LeadQuotation`, `PsApprovalLog`, `PsRevision`, `PsEstimationVersion`, `PsGovernanceRule`).
+- **State & Approval Lock**: Estimation lifecycle transitions are guarded by `PsBlockerValidationService` (hardcoded & dynamic governance rules). Approved estimations are fully locked; changes require minting a `PsRevision` which creates a new draft snapshot and traces back to the `parent_estimation_id`.

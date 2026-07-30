@@ -4,7 +4,16 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.14.2** — 2026-07-09
+Current release: **v1.21.0** — 2026-07-30
+
+## What's New in v1.21.0 (Professional Services PSA Lite)
+
+- **PSA Lite Execution Tracking** — Implemented execution tracking for approved plans.
+- **Work Logs** — Logging timesheets with backend validation against active plans, recalculating Actual ManDays and Costs.
+- **Actual vs Estimated Variance** — Dynamically tracks burn rate, variance percentage, and overrun status based on global PSA Settings.
+- **Change Requests** — Scaffolded tracking for project changes impacting timeline or commercial costs.
+- **Project Acceptance (BAST)** — Document generation logic, validating required checklist completion (e.g., UAT, Handover) before allowing BAST generation.
+- **PSA Dashboard & UI** — Added the PSA Lite Dashboard for overview health of active projects, and nested execution tabs within the Project Plan Details page (Summary, Work Logs, Change Requests, BAST).
 
 ## What's New in v1.14.2 (AI Orchestration Fixes)
 

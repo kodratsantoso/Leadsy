@@ -23,7 +23,10 @@ class LeadQuotation extends Model
         'internal_notes', 'approval_status', 'pdf_url', 'converted_sales_order_id',
         
         // WHT fields
-        'total_withholding_tax', 'grand_total_before_wht'
+        'total_withholding_tax', 'grand_total_before_wht',
+
+        // Source tracking
+        'source_type', 'source_reference_id'
     ];
 
     protected $casts = [
