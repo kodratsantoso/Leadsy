@@ -22,6 +22,7 @@ import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import Link from 'next/link';
+import DateTimePicker from "@/components/ui/date-time-picker";
 import { cn, safeJsonArray, safeRender } from '@/lib/utils';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuide';
@@ -4255,10 +4256,9 @@ export default function LeadDetailPage() {
           {/* Date & Time */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Date & Time</label>
-            <Input
-              type="datetime-local"
+            <DateTimePicker
               value={activityForm.activity_date}
-              onChange={(e) => setActivityForm((f) => ({ ...f, activity_date: e.target.value }))}
+              onChange={(d: Date | null) => setActivityForm((f) => ({ ...f, activity_date: d ? d.toISOString() : '' }))}
             />
           </div>
 
