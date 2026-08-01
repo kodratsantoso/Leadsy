@@ -15,6 +15,10 @@ class LeadTranscript extends Model
         'meeting_type', 'summary_type', 'general_sections_json', 'meeting_type_sections_json',
         'bantc_json', 'score_updates_json', 'presales_recommendation',
         'prompt_template_key', 'prompt_version', 'ai_provider', 'ai_model', 'generated_at',
+        
+        // Lark Import Fields
+        'source_provider', 'source_url', 'meeting_id', 'minute_token', 'recording_url',
+        'transcript_hash', 'import_status', 'import_error_code', 'import_error_message', 'imported_at',
     ];
 
     protected $casts = [

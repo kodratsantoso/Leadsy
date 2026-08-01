@@ -1554,46 +1554,66 @@ class LeadController extends Controller
             abort(400, 'No active Lark integration found for this tenant.');
         }
 
-        $larkService = new \App\Services\Lark\LarkMeetingService($integration);
-
-        $minuteToken = null;
-        if (preg_match('/minutes\/([a-zA-Z0-9]+)/', $url, $matches)) {
-            $minuteToken = $matches[1];
+        // Validate URL immediately
+        $parsed = \App\Services\Lark\LarkMeetingUrlParser::parse($url);
+        if (!$parsed['valid']) {
+            abort(400, 'Invalid Lark Meeting URL.');
         }
 
-        if (!$minuteToken) {
-            abort(400, 'Invalid Lark Minutes URL. Could not find minute token.');
+        // Application-level duplicate check for meetingId or minuteToken
+        if ($parsed['type'] === 'meetingId') {
+            $existing = \App\Models\LeadTranscript::where('meeting_id', $parsed['id'])
+                ->whereHas('lead', function($q) use ($lead) {
+                    $q->where('tenant_id', $lead->tenant_id);
+                })->first();
+                
+            if ($existing) {
+                return response()->json([
+                    'message' => 'Transcript already imported on lead: ' . $existing->lead_id,
+                    'duplicate' => true,
+                    'existing_id' => $existing->id,
+                    'lead_id' => $existing->lead_id
+                ], 409);
+            }
+        } elseif ($parsed['type'] === 'minuteToken') {
+            $existing = \App\Models\LeadTranscript::where('minute_token', $parsed['id'])
+                ->whereHas('lead', function($q) use ($lead) {
+                    $q->where('tenant_id', $lead->tenant_id);
+                })->first();
+                
+            if ($existing) {
+                return response()->json([
+                    'message' => 'Transcript already imported on lead: ' . $existing->lead_id,
+                    'duplicate' => true,
+                    'existing_id' => $existing->id,
+                    'lead_id' => $existing->lead_id
+                ], 409);
+            }
         }
 
-        $transcriptData = $larkService->getMinuteTranscript($minuteToken);
-        if (!$transcriptData) {
-            abort(400, 'Failed to fetch transcript from Lark API. Ensure integration has permissions.');
-        }
-
-        $transcriptText = $transcriptData['content'] ?? ($transcriptData['transcript'] ?? json_encode($transcriptData));
-
+        // Create pending transcript
         $transcript = $lead->transcripts()->create([
             'title' => 'Lark Meeting Transcript',
-            'source_type' => 'meeting',
-            'transcript_text' => $transcriptText,
+            'source_type' => 'link',
+            'source_provider' => 'LARK',
+            'source_url' => $url,
+            'transcript_text' => '',
             'recorded_at' => now(),
             'evaluation_status' => 'pending',
+            'import_status' => 'VALIDATING_LINK'
         ]);
 
         \App\Services\AuditService::log('create_transcript', 'lead_transcripts', $transcript, null, [
-            'source_type' => 'meeting',
+            'source_type' => 'link',
             'fetch_source' => 'lark_link',
         ]);
 
-        // Automatically run evaluation
-        $service = app(\App\Services\Sales\LeadEvaluationService::class);
-        $evaluation = $service->evaluateTranscript($lead, $transcript);
-        $transcript->update(['evaluation_status' => 'evaluated']);
+        // Dispatch background job
+        \App\Jobs\ImportLarkMeetingTranscriptJob::dispatch($transcript->id);
 
         return response()->json([
             'data' => $transcript->load('activity:id,activity_type,activity_date,description'),
-            'evaluation' => $evaluation,
-            'message' => 'Transcript fetched and analyzed successfully.',
+            'message' => 'Transcript import job started successfully.',
         ], 201);
     }
 

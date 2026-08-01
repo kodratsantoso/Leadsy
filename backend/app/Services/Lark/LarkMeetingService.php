@@ -29,6 +29,25 @@ class LarkMeetingService extends LarkService
     }
 
     /**
+     * Get meeting recording info (which includes the minutes url)
+     */
+    public function getMeetingRecording(string $meetingId): ?array
+    {
+        try {
+            $response = $this->request('GET', "/vc/v1/meetings/{$meetingId}/recording");
+
+            return $response;
+        } catch (Exception $e) {
+            Log::error('Failed to get Lark meeting recording info', [
+                'meeting_id' => $meetingId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
      * Get meeting participants
      */
     public function getMeetingParticipants(string $meetingId): ?array
@@ -190,6 +209,29 @@ class LarkMeetingService extends LarkService
             return $response;
         } catch (Exception $e) {
             Log::error('Failed to get Lark minute transcript', [
+                'minute_token' => $minuteToken,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Export raw meeting transcript from Minute Token
+     */
+    public function exportTranscript(string $minuteToken): ?string
+    {
+        try {
+            $response = $this->textRequest('GET', "/minutes/v1/minutes/{$minuteToken}/transcript", [
+                'need_speaker' => 'true',
+                'need_timestamp' => 'true',
+                'file_format' => 'txt',
+            ]);
+
+            return $response;
+        } catch (Exception $e) {
+            Log::error('Failed to export Lark minute transcript', [
                 'minute_token' => $minuteToken,
                 'error' => $e->getMessage(),
             ]);

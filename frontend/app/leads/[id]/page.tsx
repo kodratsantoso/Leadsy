@@ -824,6 +824,15 @@ export default function LeadDetailPage() {
     queryKey: ['lead-transcripts', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}/transcripts`).then((r) => r.json()),
     enabled: activeTab === 'transcripts',
+    refetchInterval: (query) => {
+      if (!query.state.data) return false;
+      const data = query.state.data as any[];
+      const isProcessing = data.some((t: any) => 
+        ['VALIDATING_LINK', 'RESOLVING_RECORDING', 'EXPORTING_TRANSCRIPT', 'ANALYZING'].includes(t.import_status) ||
+        t.evaluation_status === 'pending' || t.evaluation_status === 'analyzing'
+      );
+      return isProcessing ? 3000 : false;
+    }
   });
 
   // Fetch evaluations alongside transcripts
@@ -831,6 +840,11 @@ export default function LeadDetailPage() {
     queryKey: ['lead-evaluations', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}/evaluations`).then((r) => r.json()),
     enabled: activeTab === 'transcripts',
+    refetchInterval: (query) => {
+      if (!query.state.data) return false;
+      // We can just rely on transcripts refetch, but if we need evaluations, refetch at same rate
+      return transcriptsData?.some((t: any) => t.evaluation_status === 'pending' || t.evaluation_status === 'analyzing') ? 3000 : false;
+    }
   });
 
   const { data: businessCategoriesData } = useQuery({
@@ -1339,12 +1353,13 @@ export default function LeadDetailPage() {
   });
 
   const fetchTranscriptLinkMutation = useMutation({
-    mutationFn: async () => {
-      if (!leadData.meeting_link) throw new Error("No meeting link saved.");
+    mutationFn: async (url?: string) => {
+      const link = url || leadData.meeting_link;
+      if (!link) throw new Error("No meeting link provided.");
       const r = await apiFetch(`/leads/${leadId}/transcripts/fetch-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meeting_link: leadData.meeting_link })
+        body: JSON.stringify({ meeting_link: link })
       });
       if (!r.ok) {
         const error = await r.json();
@@ -1355,7 +1370,8 @@ export default function LeadDetailPage() {
     onSuccess: () => {
       refetchTranscripts();
       refetchEvaluations();
-      setTranscriptFeedback({ type: 'success', msg: 'Transcript fetched and analyzed from link successfully.' });
+      setShowTranscriptForm(false);
+      setTranscriptFeedback({ type: 'success', msg: 'Transcript import started from link successfully.' });
     },
     onError: (err: any) => {
       setTranscriptFeedback({ type: 'error', msg: err.message || 'Failed to fetch transcript from link.' });
@@ -3385,7 +3401,7 @@ export default function LeadDetailPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => fetchTranscriptLinkMutation.mutate()}
+                  onClick={() => fetchTranscriptLinkMutation.mutate(leadData.meeting_link)}
                   disabled={fetchTranscriptLinkMutation.isPending}
                 >
                   {fetchTranscriptLinkMutation.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
@@ -3537,8 +3553,14 @@ export default function LeadDetailPage() {
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowTranscriptForm(false)}>Cancel</Button>
                 <Button
-                  onClick={() => storeTranscriptMutation.mutate(transcriptForm)}
-                  disabled={storeTranscriptMutation.isPending || (
+                  onClick={() => {
+                    if (transcriptForm.source_type === 'link') {
+                      fetchTranscriptLinkMutation.mutate(transcriptForm.meeting_link);
+                    } else {
+                      storeTranscriptMutation.mutate(transcriptForm);
+                    }
+                  }}
+                  disabled={storeTranscriptMutation.isPending || fetchTranscriptLinkMutation.isPending || (
                     transcriptForm.source_type === 'manual' && !transcriptForm.transcript_text.trim()
                   ) || (
                     ['video', 'audio', 'transcript'].includes(transcriptForm.source_type) && !transcriptForm.transcript_file
@@ -3546,8 +3568,8 @@ export default function LeadDetailPage() {
                     transcriptForm.source_type === 'link' && !transcriptForm.meeting_link.trim()
                   )}
                 >
-                  {storeTranscriptMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  Save Transcript
+                  {(storeTranscriptMutation.isPending || fetchTranscriptLinkMutation.isPending) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {transcriptForm.source_type === 'link' ? 'Import & Analyze' : 'Save Transcript'}
                 </Button>
               </div>
             </div>
@@ -3583,6 +3605,11 @@ export default function LeadDetailPage() {
                             </Badge>
                           )}
                           <Badge variant="neutral">{TRANSCRIPT_SOURCES[tr.source_type] ?? tr.source_type}</Badge>
+                          {tr.import_status && !['COMPLETED', 'TRANSCRIPT_IMPORTED'].includes(tr.import_status) && (
+                            <Badge variant={tr.import_status === 'FAILED' ? 'danger' : 'warning'}>
+                              {tr.import_status === 'FAILED' ? 'Import Failed' : `Importing: ${tr.import_status}`}
+                            </Badge>
+                          )}
                           <Badge variant={tr.evaluation_status === 'evaluated' ? 'success' : 'warning'}>
                             {tr.evaluation_status}
                           </Badge>

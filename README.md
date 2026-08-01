@@ -4,7 +4,11 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.21.0** — 2026-07-30
+Current release: **v1.22.0** — 2026-08-01
+
+## What's New in v1.22.0 (Lark Meeting Transcript Import)
+
+- **Lark Meeting Transcript URL Import** — Implemented the ability to import a Lark Meeting Transcript directly by pasting a Lark Meeting or Minutes URL. The system validates the URL, resolves the recording and minute tokens, imports the raw transcript via the Lark API, and automatically queues the existing AI analysis pipeline. Includes robust duplicate detection and background progress polling in the UI.
 
 ## What's New in v1.21.0 (Professional Services PSA Lite)
 

@@ -177,6 +177,50 @@ class LarkService
     }
 
     /**
+     * Make authenticated request to Lark API and return raw text response (e.g. for transcripts)
+     */
+    protected function textRequest(
+        string $method,
+        string $endpoint,
+        array $query = []
+    ): string {
+        try {
+            if (! $this->accessToken) {
+                throw new Exception('Access token not available');
+            }
+
+            $url = $this->baseUrl.'/'.ltrim($endpoint, '/');
+
+            $pending = Http::withHeaders([
+                'Authorization' => 'Bearer '.$this->accessToken,
+            ]);
+
+            if (!empty($query)) {
+                $url .= (parse_url($url, PHP_URL_QUERY) ? '&' : '?') . http_build_query($query);
+            }
+
+            if ($method === 'GET') {
+                $response = $pending->get($url);
+            } else {
+                throw new Exception('Unsupported text request method: '.$method);
+            }
+
+            if (! $response->successful()) {
+                throw new Exception('Lark API text request error: '.$response->body());
+            }
+
+            return $response->body();
+        } catch (Exception $e) {
+            Log::error('Lark API text request failed', [
+                'method' => $method,
+                'endpoint' => $endpoint,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Test connection to Lark
      */
     public function testConnection(): array
