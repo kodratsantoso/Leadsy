@@ -35,11 +35,8 @@ class LarkMeetingUrlParser
         
         // Verify host against allowed hosts
         $isAllowed = false;
-        foreach (self::ALLOWED_HOSTS as $allowedHost) {
-            if ($host === $allowedHost || str_ends_with($host, '.' . $allowedHost)) {
-                $isAllowed = true;
-                break;
-            }
+        if (str_ends_with($host, 'larksuite.com')) {
+            $isAllowed = true;
         }
 
         if (!$isAllowed) {
@@ -79,6 +76,17 @@ class LarkMeetingUrlParser
                     ];
                 }
             }
+        }
+
+        // 3. Check for Meeting ID in path /j/123456 (e.g. https://vc-sg.larksuite.com/j/113975432)
+        if (isset($parsed['path']) && preg_match('/\/j\/(\d+)/i', $parsed['path'], $matches)) {
+            $meetingId = $matches[1];
+            return [
+                'type' => 'meetingId',
+                'id' => $meetingId,
+                'valid' => true,
+                'error' => null
+            ];
         }
 
         return [

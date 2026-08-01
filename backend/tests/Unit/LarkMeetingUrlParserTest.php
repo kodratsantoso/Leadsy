@@ -27,6 +27,16 @@ class LarkMeetingUrlParserTest extends TestCase
         $this->assertEquals('743385739847293', $result['id']);
     }
 
+    public function test_it_parses_regional_direct_join_url()
+    {
+        $url = 'https://vc-sg.larksuite.com/j/113975432';
+        $result = LarkMeetingUrlParser::parse($url);
+
+        $this->assertTrue($result['valid']);
+        $this->assertEquals('meetingId', $result['type']);
+        $this->assertEquals('113975432', $result['id']);
+    }
+
     public function test_it_rejects_invalid_host()
     {
         $url = 'https://zoom.us/j/123456789';
