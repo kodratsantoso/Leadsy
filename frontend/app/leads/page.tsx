@@ -1712,7 +1712,7 @@ export default function LeadsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="neutral">{lead.industry?.name ?? (businessCategories.find((bc: any) => bc.id === lead.business_category_id)?.name) ?? "Unknown"}</Badge>
+                      <Badge variant="neutral">{lead.industry?.name ?? ((Array.isArray(businessCategories) ? businessCategories : []).find((bc: any) => bc.id === lead.business_category_id)?.name) ?? "Unknown"}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={lead.product ? "info" : "neutral"}>
@@ -2426,7 +2426,7 @@ export default function LeadsPage() {
               }}
             >
               <option value="">Select Business Category</option>
-              {businessCategories.map((bc: any) => (
+              {(Array.isArray(businessCategories) ? businessCategories : []).map((bc: any) => (
                 <option key={bc.id} value={bc.id.toString()}>{bc.code ? `[${bc.code}] ` : ''}{bc.name}</option>
               ))}
               <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
