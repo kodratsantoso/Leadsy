@@ -133,7 +133,7 @@ export async function getPsConfig(): Promise<PsConfig> {
 
 export async function getEstimationsByLead(leadId: number): Promise<PsEstimation[]> {
   const { data } = await fetchApi<{ data: PsEstimation[] }>(`/professional-services/estimations?lead_id=${leadId}`);
-  return data;
+  return data || [];
 }
 
 export async function getEstimation(id: number): Promise<PsEstimation> {

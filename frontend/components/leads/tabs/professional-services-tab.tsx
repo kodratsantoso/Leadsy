@@ -50,7 +50,7 @@ export function ProfessionalServicesTab({ leadId }: ProfessionalServicesTabProps
 
       {loading ? (
         <div className="py-8 text-center text-muted-foreground">Loading estimations...</div>
-      ) : estimations.length === 0 ? (
+      ) : (!estimations || estimations.length === 0) ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-muted p-3 mb-4">
