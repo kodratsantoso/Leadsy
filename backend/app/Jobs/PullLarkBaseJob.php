@@ -16,7 +16,7 @@ class PullLarkBaseJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $timeout = 600;
+    public $timeout = 3600;
 
     protected $baseTableId;
     protected $limit;

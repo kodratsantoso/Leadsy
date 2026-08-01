@@ -470,6 +470,7 @@ class LarkBaseService extends LarkService
             $fields = $record['fields'] ?? [];
             $fields['Record ID'] = $record['record_id'] ?? $recordId;
             $attributes = self::mapBaseFieldsToLead($fields, $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING);
+            $originalLeadsyId = $attributes['leadsy_id'] ?? null;
 
             if (($attributes['company_name'] ?? '') === '') {
                 Log::warning('Skipping Lark Base record without company name', [
@@ -554,7 +555,9 @@ class LarkBaseService extends LarkService
                     ->first();
             }
             
+            
             $action = $lead ? 'updated' : 'added';
+            $wasModified = false;
 
             unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner'], $attributes['contact_name'], $attributes['contact_phone']);
 
@@ -578,6 +581,7 @@ class LarkBaseService extends LarkService
                 $attributes['lark_base_id'] = $baseTable->app_token;
                 $attributes['lark_table_id'] = $baseTable->table_id;
                 Lead::withoutEvents(fn () => $lead->update($attributes));
+                $wasModified = $lead->wasChanged();
 
                 $sourceType = \App\Models\LeadSourceType::firstOrCreate(
                     ['slug' => 'lark'],
@@ -698,7 +702,7 @@ class LarkBaseService extends LarkService
             $baseTable->update(['last_pull_at' => now()]);
 
             $mapping = $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING;
-            if (!empty($mapping['leadsy_id'])) {
+            if (!empty($mapping['leadsy_id']) && (empty($originalLeadsyId) || $originalLeadsyId != $lead->id)) {
                 try {
                     $this->updateRecord($baseTable->app_token, $baseTable->table_id, $recordId, [
                         $mapping['leadsy_id'] => (string) $lead->id,
@@ -712,7 +716,9 @@ class LarkBaseService extends LarkService
                 }
             }
 
-            app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'lark_sync');
+            if ($action === 'added' || $wasModified) {
+                app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'lark_sync');
+            }
 
             return [
                 'action' => $action,
