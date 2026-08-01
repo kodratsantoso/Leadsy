@@ -826,7 +826,8 @@ export default function LeadDetailPage() {
     enabled: activeTab === 'transcripts',
     refetchInterval: (query) => {
       if (!query.state.data) return false;
-      const data = query.state.data as any[];
+      const data = (query.state.data as any).data || [];
+      if (!Array.isArray(data)) return false;
       const isProcessing = data.some((t: any) => 
         ['VALIDATING_LINK', 'RESOLVING_RECORDING', 'EXPORTING_TRANSCRIPT', 'ANALYZING'].includes(t.import_status) ||
         t.evaluation_status === 'pending' || t.evaluation_status === 'analyzing'
@@ -843,7 +844,7 @@ export default function LeadDetailPage() {
     refetchInterval: (query) => {
       if (!query.state.data) return false;
       // We can just rely on transcripts refetch, but if we need evaluations, refetch at same rate
-      return transcriptsData?.some((t: any) => t.evaluation_status === 'pending' || t.evaluation_status === 'analyzing') ? 3000 : false;
+      return transcriptsData?.data?.some((t: any) => t.evaluation_status === 'pending' || t.evaluation_status === 'analyzing') ? 3000 : false;
     }
   });
 
