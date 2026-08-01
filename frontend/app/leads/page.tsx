@@ -759,7 +759,8 @@ export default function LeadsPage() {
     queryFn: async () => {
       const response = await apiFetch("/business-categories");
       const json = await response.json();
-      return json.data || json;
+      const result = json.data || json;
+      return Array.isArray(result) ? result : [];
     },
   });
 
