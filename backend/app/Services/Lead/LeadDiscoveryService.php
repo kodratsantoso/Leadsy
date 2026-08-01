@@ -54,9 +54,10 @@ class LeadDiscoveryService
                 ];
             }
 
-            // If Geocoding API is not activated, try fallback
-            if (($data['status'] ?? '') !== 'REQUEST_DENIED') {
-                return null; // Genuine "no results" — don't fall through
+            // If Geocoding API fails or returns no results, we will fall through to Places Text Search
+            if (!in_array(($data['status'] ?? ''), ['REQUEST_DENIED', 'ZERO_RESULTS', 'INVALID_REQUEST'])) {
+                // If it's another type of error (like OVER_QUERY_LIMIT), we might still want to try fallback
+                // But for now, let's just fall through for common issues where Text Search might succeed.
             }
 
             Log::info('[LeadDiscovery] Geocoding API not enabled, falling back to Places Text Search');
