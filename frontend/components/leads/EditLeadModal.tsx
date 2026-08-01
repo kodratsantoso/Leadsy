@@ -135,8 +135,8 @@ export function EditLeadModal({
 
   const { data: parentLeadSearchData, isFetching: parentLeadSearching } = useQuery({
     queryKey: ['leads-search', debouncedParentSearch],
-    queryFn: () => apiFetch(`/leads?search=${encodeURIComponent(debouncedParentSearch)}&per_page=5`).then((r) => r.json()),
-    enabled: open && debouncedParentSearch.length >= 2,
+    queryFn: () => apiFetch(`/leads?search=${encodeURIComponent(debouncedParentSearch || '')}&per_page=5`).then((r) => r.json()),
+    enabled: open && (debouncedParentSearch?.length || 0) >= 2,
   });
 
   const allIndustries: any[] = industriesData?.data ?? industriesData ?? [];
