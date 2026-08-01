@@ -52,11 +52,16 @@ export default function DateTimePicker({ value, onChange, disabled, className }:
     return d
   }, [date, hour, minute, ampm])
 
+  const onChangeRef = React.useRef(onChange)
   React.useEffect(() => {
-    if (onChange && selectedDateTime) {
-      onChange(selectedDateTime)
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  React.useEffect(() => {
+    if (onChangeRef.current && selectedDateTime) {
+      onChangeRef.current(selectedDateTime)
     }
-  }, [selectedDateTime, onChange])
+  }, [selectedDateTime])
 
   React.useEffect(() => {
     if (value) {
