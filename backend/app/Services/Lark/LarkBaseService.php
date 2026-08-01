@@ -509,17 +509,52 @@ class LarkBaseService extends LarkService
                     ->first();
             }
 
-            if (! $lead && !empty($attributes['company_name'])) {
-                $nameLower = mb_strtolower(trim($attributes['company_name']));
+            $contactName = $attributes['contact_name'] ?? null;
+            $contactPhone = $attributes['contact_phone'] ?? null;
+
+            if (! $lead) {
                 $lead = Lead::where('tenant_id', $baseTable->tenant_id)
-                    ->whereRaw('LOWER(TRIM(company_name)) = ?', [$nameLower])
+                    ->where(function ($query) use ($attributes, $contactName, $contactPhone) {
+                        $hasCondition = false;
+
+                        if (!empty($attributes['brand'])) {
+                            $brandLower = mb_strtolower(trim($attributes['brand']));
+                            $query->orWhereRaw('LOWER(TRIM(brand)) = ?', [$brandLower]);
+                            $hasCondition = true;
+                        }
+
+                        if (!empty($attributes['company_name'])) {
+                            $nameLower = mb_strtolower(trim($attributes['company_name']));
+                            $query->orWhereRaw('LOWER(TRIM(company_name)) = ?', [$nameLower]);
+                            $hasCondition = true;
+                        }
+
+                        if (!empty($attributes['phone'])) {
+                            $query->orWhere('phone', trim($attributes['phone']));
+                            $hasCondition = true;
+                        }
+
+                        if (!empty($contactName) || !empty($contactPhone)) {
+                            $query->orWhereHas('contacts', function ($contactQuery) use ($contactName, $contactPhone) {
+                                if (!empty($contactName)) {
+                                    $cNameLower = mb_strtolower(trim($contactName));
+                                    $contactQuery->whereRaw('LOWER(TRIM(name)) = ?', [$cNameLower]);
+                                }
+                                if (!empty($contactPhone)) {
+                                    $contactQuery->where('phone', trim($contactPhone));
+                                }
+                            });
+                            $hasCondition = true;
+                        }
+
+                        if (!$hasCondition) {
+                            $query->whereRaw('1 = 0');
+                        }
+                    })
                     ->first();
             }
             
             $action = $lead ? 'updated' : 'added';
-
-            $contactName = $attributes['contact_name'] ?? null;
-            $contactPhone = $attributes['contact_phone'] ?? null;
 
             unset($attributes['leadsy_id'], $attributes['funnel_stage'], $attributes['owner'], $attributes['contact_name'], $attributes['contact_phone']);
 

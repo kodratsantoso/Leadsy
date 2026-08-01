@@ -66,23 +66,12 @@ class PullLarkBaseJob implements ShouldQueue
             return;
         }
 
-        // Get all existing mappings for this table to filter the pulled items
-        $existingMappings = \App\Models\LarkBaseRecordMapping::where('lark_base_table_id', $baseTable->id)
-            ->where('leadsy_entity_type', 'lead')
-            ->pluck('lark_record_id')
-            ->flip(); // allows fast O(1) lookup using isset
-
+        // Existing mappings logic removed to allow creation of new leads from Lark Base
         foreach ($items as $record) {
             $recordId = $record['record_id'] ?? null;
             if (!$recordId) {
                 continue;
             }
-
-            // Skip records that do not have an existing mapping in Leadsy (User approved: keep skipping to avoid duplicates)
-            if (!isset($existingMappings[$recordId])) {
-                continue;
-            }
-
             try {
                 $service->syncRecordToLeadWithResult($baseTable, $recordId, $record);
             } catch (\Exception $exception) {
