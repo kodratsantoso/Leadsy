@@ -350,7 +350,7 @@ export default function DashboardPage() {
       });
   }, []);
 
-  const [period, setPeriod] = useState("month");
+  const [period, setPeriod] = useState("all");
   const [activeTab, setActiveTab] = useState<"pipeline" | "team" | "confidentiality">("pipeline");
 
   const { data, isLoading } = useQuery({
