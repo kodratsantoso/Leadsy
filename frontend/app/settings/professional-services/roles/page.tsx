@@ -276,7 +276,7 @@ export default function PsRolesPage() {
                     inputMode="numeric" 
                     className="flex-1"
                     value={formatAmountInput(roleInputString)} 
-                    onChange={(e) => setRoleInputString(e.target.value)} 
+                    onChange={(e) => setRoleInputString(normalizeAmountInput(e.target.value))} 
                   />
                 </div>
               </div>
@@ -317,7 +317,7 @@ export default function PsRolesPage() {
                   inputMode="numeric" 
                   className="flex-1"
                   value={formatAmountInput(rateInputString)} 
-                  onChange={(e) => setRateInputString(e.target.value)} 
+                  onChange={(e) => setRateInputString(normalizeAmountInput(e.target.value))} 
                 />
               </div>
             </div>
