@@ -19,6 +19,7 @@ import {
   deletePsRole,
   createPsRateCard,
   updatePsRateCard,
+  deletePsRateCard,
   PsRole,
   PsRateCard
 } from "@/lib/api/professional-services";
@@ -54,6 +55,7 @@ export default function PsRolesPage() {
   const [formRate, setFormRate] = useState({ rate_per_manday: 0, effective_from: new Date().toISOString().split('T')[0], effective_to: "", is_active: true });
   const [rateCurrency, setRateCurrency] = useState("IDR");
   const [rateInputString, setRateInputString] = useState("0");
+  const [deleteRateItem, setDeleteRateItem] = useState<{ roleId: number; rate: PsRateCard } | null>(null);
 
   const { data: roles = [], isLoading } = useQuery({
     queryKey: ["ps-roles"],
@@ -76,6 +78,14 @@ export default function PsRolesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ps-roles"] });
       setDeleteRoleItem(null);
+    },
+  });
+
+  const deleteRateMutation = useMutation({
+    mutationFn: async ({ roleId, rateCardId }: { roleId: number, rateCardId: number }) => deletePsRateCard(roleId, rateCardId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ps-roles"] });
+      setDeleteRateItem(null);
     },
   });
 
@@ -228,9 +238,14 @@ export default function PsRolesPage() {
                                 <span>{rate.effective_to || "Indefinite"}</span>
                               </div>
                             </div>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditRate(role.id, rate)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex flex-col gap-1">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEditRate(role.id, rate)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => setDeleteRateItem({ roleId: role.id, rate })}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -369,6 +384,21 @@ export default function PsRolesPage() {
               <Button variant="outline" onClick={() => setDeleteRoleItem(null)}>Cancel</Button>
               <Button variant="destructive" onClick={() => deleteRoleMutation.mutate(deleteRoleItem.id)} disabled={deleteRoleMutation.isPending}>
                 {deleteRoleMutation.isPending ? "Deactivating..." : "Deactivate"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Rate Modal */}
+      {deleteRateItem && (
+        <Modal open={!!deleteRateItem} title="Delete Rate Card" onOpenChange={(v) => setDeleteRateItem(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Are you sure you want to delete this rate card? This action cannot be undone.</p>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" onClick={() => setDeleteRateItem(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={() => deleteRateMutation.mutate({ roleId: deleteRateItem.roleId, rateCardId: deleteRateItem.rate.id })} disabled={deleteRateMutation.isPending}>
+                {deleteRateMutation.isPending ? "Deleting..." : "Delete"}
               </Button>
             </div>
           </div>

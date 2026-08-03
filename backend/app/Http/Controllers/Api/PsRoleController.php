@@ -111,4 +111,14 @@ class PsRoleController extends Controller
 
         return response()->json($rateCard);
     }
+
+    public function destroyRateCard($id, $rateCardId)
+    {
+        $role = PsRole::findOrFail($id);
+        $rateCard = $role->rateCards()->findOrFail($rateCardId);
+        
+        $rateCard->delete();
+        
+        return response()->json(['message' => 'Rate card deleted.'], 200);
+    }
 }

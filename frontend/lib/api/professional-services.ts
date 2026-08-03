@@ -287,12 +287,18 @@ export async function createPsRateCard(roleId: number, payload: { rate_per_manda
   return data;
 }
 
-export async function updatePsRateCard(roleId: number, rateCardId: number, payload: { rate_per_manday: number; effective_from: string; effective_to?: string | null; is_active?: boolean }): Promise<PsRateCard> {
+export async function updatePsRateCard(roleId: number, rateCardId: number, payload: Partial<PsRateCard>): Promise<PsRateCard> {
   const data = await fetchApi<PsRateCard>(`/settings/professional-services/roles/${roleId}/rate-cards/${rateCardId}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
   return data;
+}
+
+export async function deletePsRateCard(roleId: number, rateCardId: number): Promise<void> {
+  await fetchApi(`/settings/professional-services/roles/${roleId}/rate-cards/${rateCardId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function getPsComplexityLevels(): Promise<PsComplexityLevel[]> {

@@ -233,6 +233,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('roles', \App\Http\Controllers\Api\PsRoleController::class);
         Route::post('roles/{id}/rate-cards', [\App\Http\Controllers\Api\PsRoleController::class, 'storeRateCard']);
         Route::put('roles/{id}/rate-cards/{rateCardId}', [\App\Http\Controllers\Api\PsRoleController::class, 'updateRateCard']);
+        Route::delete('roles/{id}/rate-cards/{rateCardId}', [\App\Http\Controllers\Api\PsRoleController::class, 'destroyRateCard']);
         
         Route::get('complexity/levels', [\App\Http\Controllers\Api\PsComplexityController::class, 'indexLevels']);
         Route::post('complexity/levels', [\App\Http\Controllers\Api\PsComplexityController::class, 'storeLevel']);
