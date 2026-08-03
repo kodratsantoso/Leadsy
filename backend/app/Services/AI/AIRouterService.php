@@ -38,16 +38,25 @@ class AIRouterService
      */
     public function selectProviderAndModel(string $featureName, array $context = []): array
     {
-        // Get all active global routes, ordered by priority
-        $routes = AiFeatureRoute::where('feature_name', 'global')
+        // Get all active routes for the requested feature, ordered by priority
+        $routes = AiFeatureRoute::where('feature_name', $featureName)
             ->where('is_active', true)
             ->with(['aiModel', 'aiModel.aiProvider'])
             ->orderBy('priority', 'asc')
             ->get();
 
+        // Fallback to global if no specific routes exist
+        if ($routes->isEmpty() && $featureName !== 'global') {
+            $routes = AiFeatureRoute::where('feature_name', 'global')
+                ->where('is_active', true)
+                ->with(['aiModel', 'aiModel.aiProvider'])
+                ->orderBy('priority', 'asc')
+                ->get();
+        }
+
         if ($routes->isEmpty()) {
-            Log::warning("[AIRouter] No active global AI routing configured.");
-            throw new \Exception("No Global AI Routing configured. Please set it up in AI Defaults settings.");
+            Log::warning("[AIRouter] No active AI routing configured for feature: {$featureName} (or global).");
+            throw new \Exception("No AI Routing configured for this feature. Please set it up in AI Defaults settings.");
         }
 
         // Cost sensitivity from context
@@ -109,12 +118,24 @@ class AIRouterService
      */
     public function getNextFallback(string $featureName, int $currentPriority): ?array
     {
-        $nextRoute = AiFeatureRoute::where('feature_name', 'global')
+        $nextRoute = AiFeatureRoute::where('feature_name', $featureName)
             ->where('is_active', true)
             ->where('priority', '>', $currentPriority)
             ->with(['aiModel', 'aiModel.aiProvider'])
             ->orderBy('priority', 'asc')
             ->first();
+
+        // If no feature-specific fallback found, and we are not already looking at global, fallback to global
+        if (! $nextRoute && $featureName !== 'global') {
+            $nextRoute = AiFeatureRoute::where('feature_name', 'global')
+                ->where('is_active', true)
+                // If we fell back to global, we should start from priority 1?
+                // Actually, if we're falling back from a specific feature route that failed,
+                // we might want the highest priority global route available. Let's just grab the highest.
+                ->with(['aiModel', 'aiModel.aiProvider'])
+                ->orderBy('priority', 'asc')
+                ->first();
+        }
 
         if (! $nextRoute) {
             return null;

@@ -45,10 +45,15 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   }
 
   // Intercept 500 Internal Server error directly from Next.js proxy if backend disconnected
-  if (response.status === 500) {
+  if (response.status >= 500) {
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
        console.error("Critical Backend Failure or Disconnected Proxy.");
+       // Return a synthetic JSON response so callers can parse it properly
+       return new Response(JSON.stringify({ message: "Critical Backend Failure or Disconnected Proxy. The server took too long to respond or the connection was lost." }), {
+         status: response.status,
+         headers: { 'Content-Type': 'application/json' }
+       });
     }
   }
 
