@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { Select } from "@/components/ui/select";
 import { 
   getPsRoles, 
   createPsRole, 
@@ -21,19 +22,38 @@ import {
   PsRole,
   PsRateCard
 } from "@/lib/api/professional-services";
+import { apiFetch } from "@/lib/apiFetch";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
 export default function PsRolesPage() {
   const pathname = usePathname();
   const qc = useQueryClient();
+  const { formatAmountInput, normalizeAmountInput } = useNumberFormat();
+  
+  const { data: currencyData } = useQuery({
+    queryKey: ["currency-settings"],
+    queryFn: async () => {
+      const response = await apiFetch("/settings/currency");
+      return response.json();
+    },
+  });
+  const currencies = currencyData?.data?.currencies ?? [];
+  const idrRate = Number(currencies.find((c: any) => c.code === "IDR")?.exchange_rate || 1);
+  const usdRate = Number(currencies.find((c: any) => c.code === "USD")?.exchange_rate || 1);
+
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [editRole, setEditRole] = useState<PsRole | null>(null);
   const [formRole, setFormRole] = useState({ name: "", description: "", is_active: true, rate_per_manday: 0 });
+  const [roleCurrency, setRoleCurrency] = useState("IDR");
+  const [roleInputString, setRoleInputString] = useState("0");
   const [deleteRoleItem, setDeleteRoleItem] = useState<PsRole | null>(null);
 
   const [showRateModal, setShowRateModal] = useState<{ roleId: number; rate?: PsRateCard } | null>(null);
   const [formRate, setFormRate] = useState({ rate_per_manday: 0, effective_from: new Date().toISOString().split('T')[0], effective_to: "", is_active: true });
+  const [rateCurrency, setRateCurrency] = useState("IDR");
+  const [rateInputString, setRateInputString] = useState("0");
 
   const { data: roles = [], isLoading } = useQuery({
     queryKey: ["ps-roles"],
@@ -85,6 +105,8 @@ export default function PsRolesPage() {
   const openCreateRole = () => {
     setEditRole(null);
     setFormRole({ name: "", description: "", is_active: true, rate_per_manday: 0 });
+    setRoleCurrency("IDR");
+    setRoleInputString("0");
     setShowRoleModal(true);
   };
 
@@ -96,6 +118,8 @@ export default function PsRolesPage() {
 
   const openCreateRate = (roleId: number) => {
     setFormRate({ rate_per_manday: 0, effective_from: new Date().toISOString().split('T')[0], effective_to: "", is_active: true });
+    setRateCurrency("IDR");
+    setRateInputString("0");
     setShowRateModal({ roleId });
   };
 
@@ -106,6 +130,8 @@ export default function PsRolesPage() {
       effective_to: rate.effective_to || "", 
       is_active: rate.is_active 
     });
+    setRateCurrency("IDR");
+    setRateInputString(parseFloat(rate.rate_per_manday).toString());
     setShowRateModal({ roleId, rate });
   };
 
@@ -239,7 +265,20 @@ export default function PsRolesPage() {
             {!editRole && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Initial Rate per ManDay</label>
-                <Input type="number" min="0" step="0.01" value={formRole.rate_per_manday} onChange={(e) => setFormRole({ ...formRole, rate_per_manday: parseFloat(e.target.value) })} />
+                <div className="flex gap-2">
+                  <Select value={roleCurrency} onChange={(e) => setRoleCurrency(e.target.value)} className="w-[120px]">
+                    {currencies.map((c: any) => (
+                      <option key={c.code} value={c.code}>{c.code}</option>
+                    ))}
+                  </Select>
+                  <Input 
+                    type="text" 
+                    inputMode="numeric" 
+                    className="flex-1"
+                    value={formatAmountInput(roleInputString)} 
+                    onChange={(e) => setRoleInputString(e.target.value)} 
+                  />
+                </div>
               </div>
             )}
             <div className="flex items-center justify-between">
@@ -248,7 +287,12 @@ export default function PsRolesPage() {
             </div>
             <div className="flex justify-end gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowRoleModal(false)}>Cancel</Button>
-              <Button onClick={() => saveRoleMutation.mutate(formRole)} disabled={saveRoleMutation.isPending || !formRole.name.trim()}>
+              <Button onClick={() => {
+                const rawVal = Number(normalizeAmountInput(roleInputString));
+                const currentRate = Number(currencies.find((c: any) => c.code === roleCurrency)?.exchange_rate || 1);
+                const idrVal = Math.round((rawVal / currentRate) * idrRate * 100) / 100;
+                saveRoleMutation.mutate({ ...formRole, rate_per_manday: idrVal });
+              }} disabled={saveRoleMutation.isPending || !formRole.name.trim()}>
                 {saveRoleMutation.isPending ? "Saving..." : "Save Role"}
               </Button>
             </div>
@@ -262,7 +306,20 @@ export default function PsRolesPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Rate per ManDay</label>
-              <Input type="number" min="0" step="0.01" value={formRate.rate_per_manday} onChange={(e) => setFormRate({ ...formRate, rate_per_manday: parseFloat(e.target.value) })} />
+              <div className="flex gap-2">
+                <Select value={rateCurrency} onChange={(e) => setRateCurrency(e.target.value)} className="w-[120px]">
+                  {currencies.map((c: any) => (
+                    <option key={c.code} value={c.code}>{c.code}</option>
+                  ))}
+                </Select>
+                <Input 
+                  type="text" 
+                  inputMode="numeric" 
+                  className="flex-1"
+                  value={formatAmountInput(rateInputString)} 
+                  onChange={(e) => setRateInputString(e.target.value)} 
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -280,10 +337,17 @@ export default function PsRolesPage() {
             </div>
             <div className="flex justify-end gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowRateModal(null)}>Cancel</Button>
-              <Button onClick={() => saveRateMutation.mutate({
-                ...formRate,
-                effective_to: formRate.effective_to || null
-              })} disabled={saveRateMutation.isPending}>
+              <Button onClick={() => {
+                const rawVal = Number(normalizeAmountInput(rateInputString));
+                const currentRate = Number(currencies.find((c: any) => c.code === rateCurrency)?.exchange_rate || 1);
+                const idrVal = Math.round((rawVal / currentRate) * idrRate * 100) / 100;
+                
+                saveRateMutation.mutate({
+                  ...formRate,
+                  rate_per_manday: idrVal,
+                  effective_to: formRate.effective_to || null
+                });
+              }} disabled={saveRateMutation.isPending}>
                 {saveRateMutation.isPending ? "Saving..." : "Save Rate Card"}
               </Button>
             </div>

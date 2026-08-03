@@ -348,7 +348,14 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       const taxRate = Number(item.tax_rate) || 0;
       const whtRate = Number(item.withholding_tax_rate) || 0;
  
-      const baseAmount = qty * price * duration;
+      let durationMultiplier = duration;
+      if (item.billing_period === 'monthly' && item.duration_unit === 'year') {
+        durationMultiplier = duration * 12;
+      } else if (item.billing_period === 'yearly' && item.duration_unit === 'month') {
+        durationMultiplier = duration / 12;
+      }
+      
+      const baseAmount = qty * price * durationMultiplier;
       let lineDiscountAmount = 0;
       if (item.line_discount_type === 'percentage') {
         lineDiscountAmount = baseAmount * (discVal / 100);
@@ -468,7 +475,14 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       const qty = Number(normalizeAmountInput(String(item.quantity))) || 0;
       const price = Number(normalizeAmountInput(String(item.unit_price))) || 0;
       const duration = Number(normalizeAmountInput(String(item.duration_value))) || 1;
-      const baseAmount = qty * price * duration;
+      let durationMultiplier = duration;
+      if (item.billing_period === 'monthly' && item.duration_unit === 'year') {
+        durationMultiplier = duration * 12;
+      } else if (item.billing_period === 'yearly' && item.duration_unit === 'month') {
+        durationMultiplier = duration / 12;
+      }
+
+      const baseAmount = qty * price * durationMultiplier;
 
       let disc = 0;
       const discVal = Number(normalizeAmountInput(String(item.line_discount_value))) || 0;

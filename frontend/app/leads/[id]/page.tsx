@@ -1332,7 +1332,14 @@ export default function LeadDetailPage() {
     mutationFn: async (transcriptId: number) => {
       const r = await apiFetch(`/leads/${leadId}/transcripts/${transcriptId}/evaluate`, { method: 'POST' });
       if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
+        const errText = await r.text();
+        let err;
+        try {
+          const jsonStart = errText.indexOf('{');
+          err = JSON.parse(jsonStart !== -1 ? errText.substring(jsonStart) : errText);
+        } catch {
+          err = { message: errText || `AI analysis failed (${r.status})` };
+        }
         throw new Error(err.message || `AI analysis failed (${r.status})`);
       }
       return r.json();
@@ -1771,17 +1778,24 @@ export default function LeadDetailPage() {
           </p>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className={`rounded-lg border bg-card p-4 ${progressData.next_follow_up?.is_overdue ? 'border-red-200 dark:border-red-900/50' : 'border-border'}`}>
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">NEXT FOLLOW-UP</span>
-            <Calendar className={`h-4 w-4 ${progressData.next_follow_up ? 'text-orange-500' : 'text-muted-foreground'}`} />
+            <Calendar className={`h-4 w-4 ${progressData.next_follow_up?.is_overdue ? 'text-red-500 animate-pulse' : progressData.next_follow_up ? 'text-orange-500' : 'text-muted-foreground'}`} />
           </div>
-          <div className="text-sm font-bold">
-            {progressData.next_follow_up?.due_date
-              ? new Date(progressData.next_follow_up.due_date).toLocaleDateString()
-              : 'Not set'}
+          <div className="flex items-center gap-2">
+            <div className={`text-sm font-bold ${progressData.next_follow_up?.is_overdue ? 'text-red-600 dark:text-red-400' : ''}`}>
+              {progressData.next_follow_up?.due_date
+                ? new Date(progressData.next_follow_up.due_date).toLocaleDateString()
+                : 'Not set'}
+            </div>
+            {progressData.next_follow_up?.is_overdue && (
+              <Badge variant="danger" className="text-[10px] uppercase h-5 px-1.5 font-bold">Overdue</Badge>
+            )}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{progressData.next_follow_up?.purpose || 'N/A'}</p>
+          <p className="mt-1 text-xs text-muted-foreground truncate" title={progressData.next_follow_up?.purpose || 'N/A'}>
+            {progressData.next_follow_up?.purpose || 'N/A'}
+          </p>
         </div>
       </div>
  
@@ -1791,21 +1805,8 @@ export default function LeadDetailPage() {
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">Sales Stage Flow</span>
             <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
-              {leadData.funnelStage?.name || leadData.current_funnel_stage?.name || 'No Stage'}
+              {funnelStages?.find((s: any) => s.id === (leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id))?.name || 'No Stage'}
             </Badge>
-          </div>
-          
-          {/* Legend */}
-          <div className="flex items-center gap-4 text-xs">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700" /> Not started
-            </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" /> In progress
-            </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" /> Done
-            </span>
           </div>
         </div>
  
@@ -1877,7 +1878,7 @@ export default function LeadDetailPage() {
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-sm font-semibold">{leadData.funnelStage?.name || leadData.current_funnel_stage?.name || 'No Stage'}</span>
+            <span className="text-sm font-semibold">{funnelStages?.find((s: any) => s.id === (leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id))?.name || 'No Stage'}</span>
           </div>
  
           {/* Complete Step button (moves to the next stage in sequence) */}
@@ -3487,12 +3488,9 @@ export default function LeadDetailPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Recorded At</label>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
+                  <DateTimePicker
                     value={transcriptForm.recorded_at}
-                    onChange={(e) => setTranscriptForm((f) => ({ ...f, recorded_at: e.target.value }))}
-                    placeholder="21/05/2026, 17:37"
+                    onChange={(d: Date | null) => setTranscriptForm((f) => ({ ...f, recorded_at: d ? d.toISOString() : '' }))}
                   />
                   <p className="mt-1 text-[11px] text-muted-foreground">
                     Format: DD/MM/YYYY, HH:mm. Kosongkan untuk memakai waktu saat disimpan.

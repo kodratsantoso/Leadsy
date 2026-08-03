@@ -1227,7 +1227,12 @@ class LeadController extends Controller
         $latestActivity = $lead->activities()->latest('activity_date')->first();
         $latestMeeting = $lead->meetings()->latest('meeting_date')->first();
         $latestEvaluation = $lead->aiEvaluations()->latest()->first();
-        $nextFollowUp = $lead->followUps()->where('status', 'pending')->orderBy('due_date')->first();
+        
+        $nextFollowUpActivity = $lead->activities()
+            ->whereNotNull('next_follow_up_date')
+            ->orderBy('activity_date', 'desc')
+            ->first();
+
         $latestScore = $lead->scores()->latest()->first();
         $latestQualification = $lead->qualifications()->latest()->first();
 
@@ -1255,10 +1260,11 @@ class LeadController extends Controller
                 'interest_level' => $latestEvaluation->interest_level,
                 'buying_signals' => $latestEvaluation->buying_signals,
             ] : null,
-            'next_follow_up' => $nextFollowUp ? [
-                'due_date' => $nextFollowUp->due_date,
-                'purpose' => $nextFollowUp->purpose,
-                'assigned_to' => $nextFollowUp->assigned_to,
+            'next_follow_up' => $nextFollowUpActivity ? [
+                'due_date' => $nextFollowUpActivity->next_follow_up_date,
+                'purpose' => $nextFollowUpActivity->activity_type . ': ' . \Illuminate\Support\Str::limit($nextFollowUpActivity->description, 50),
+                'assigned_to' => $nextFollowUpActivity->user_id,
+                'is_overdue' => \Carbon\Carbon::parse($nextFollowUpActivity->next_follow_up_date)->endOfDay()->isPast(),
             ] : null,
             'current_stage' => $lead->funnelStage?->name,
             'current_score' => $latestScore?->score ?? $lead->lead_score,

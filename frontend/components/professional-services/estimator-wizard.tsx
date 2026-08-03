@@ -47,9 +47,9 @@ export function EstimatorWizard() {
         setTemplates(tmpl);
         
         // Defaults
-        if (conf.categories?.length > 0) setCategoryId(conf.categories[0].id);
-        if (conf.complexity_levels?.length > 0) {
-          const defaultCmplx = conf.complexity_levels.find(c => c.multiplier === "1.00") || conf.complexity_levels[0];
+        if (conf?.categories?.length > 0) setCategoryId(conf.categories[0].id);
+        if (conf?.complexity_levels?.length > 0) {
+          const defaultCmplx = conf.complexity_levels.find((c: any) => c.multiplier === "1.00") || conf.complexity_levels[0];
           setComplexityId(defaultCmplx.id);
         }
       } catch (err: any) {

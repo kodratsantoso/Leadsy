@@ -6,7 +6,7 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(`API Error: ${res.status}`);
   }
   const json = await res.json();
-  return json.data;
+  return (json && typeof json === 'object' && 'data' in json) ? (json as any).data : json;
 }
 
 export type PsServiceCategory = {
@@ -127,22 +127,22 @@ export type PsEstimationTemplate = {
 };
 
 export async function getPsConfig(): Promise<PsConfig> {
-  const { data } = await fetchApi<{ data: PsConfig }>("/professional-services/config");
+  const data = await fetchApi<PsConfig>("/professional-services/config");
   return data;
 }
 
 export async function getEstimationsByLead(leadId: number): Promise<PsEstimation[]> {
-  const { data } = await fetchApi<{ data: PsEstimation[] }>(`/professional-services/estimations?lead_id=${leadId}`);
+  const data = await fetchApi<PsEstimation[]>(`/professional-services/estimations?lead_id=${leadId}`);
   return data || [];
 }
 
 export async function getEstimation(id: number): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}`);
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}`);
   return data;
 }
 
 export async function createEstimation(payload: Partial<PsEstimation> & { lines: Partial<PsEstimationLine>[] }): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>("/professional-services/estimations", {
+  const data = await fetchApi<PsEstimation>("/professional-services/estimations", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -150,7 +150,7 @@ export async function createEstimation(payload: Partial<PsEstimation> & { lines:
 }
 
 export async function updateEstimation(id: number, payload: Partial<PsEstimation> & { lines: Partial<PsEstimationLine>[] }): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -158,21 +158,21 @@ export async function updateEstimation(id: number, payload: Partial<PsEstimation
 }
 
 export async function duplicateEstimation(id: number): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/duplicate`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/duplicate`, {
     method: "POST",
   });
   return data;
 }
 
 export async function reviewEstimation(id: number): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/review`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/review`, {
     method: "POST",
   });
   return data;
 }
 
 export async function approveEstimation(id: number): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/approve`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/approve`, {
     method: "POST",
   });
   return data;
@@ -185,7 +185,7 @@ export async function quotationPreview(id: number, params: any): Promise<any> {
       query.append(key, String(value));
     }
   }
-  const { data } = await fetchApi<{ data: any }>(`/professional-services/estimations/${id}/quotation-preview?${query.toString()}`);
+  const data = await fetchApi<any>(`/professional-services/estimations/${id}/quotation-preview?${query.toString()}`);
   return data;
 }
 
@@ -195,7 +195,7 @@ export async function convertToQuotation(id: number, payload: any): Promise<{
   estimation_id: number;
   conversion_status: string;
 }> {
-  const { data } = await fetchApi<{ data: any }>(`/professional-services/estimations/${id}/convert-to-quotation`, {
+  const data = await fetchApi<any>(`/professional-services/estimations/${id}/convert-to-quotation`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -203,22 +203,22 @@ export async function convertToQuotation(id: number, payload: any): Promise<{
 }
 
 export async function getTemplates(): Promise<PsEstimationTemplate[]> {
-  const { data } = await fetchApi<{ data: PsEstimationTemplate[] }>("/professional-services/templates");
+  const data = await fetchApi<PsEstimationTemplate[]>("/professional-services/templates");
   return data;
 }
 
 export async function getTemplate(id: number): Promise<PsEstimationTemplate> {
-  const { data } = await fetchApi<{ data: PsEstimationTemplate }>(`/professional-services/templates/${id}`);
+  const data = await fetchApi<PsEstimationTemplate>(`/professional-services/templates/${id}`);
   return data;
 }
 
 export async function getEstimationTasks(id: number): Promise<PsEstimationLine[]> {
-  const { data } = await fetchApi<{ data: PsEstimationLine[] }>(`/professional-services/estimations/${id}/tasks`);
+  const data = await fetchApi<PsEstimationLine[]>(`/professional-services/estimations/${id}/tasks`);
   return data;
 }
 
 export async function storeEstimationTask(id: number, payload: Partial<PsEstimationLine>): Promise<PsEstimationLine> {
-  const { data } = await fetchApi<{ data: PsEstimationLine }>(`/professional-services/estimations/${id}/tasks`, {
+  const data = await fetchApi<PsEstimationLine>(`/professional-services/estimations/${id}/tasks`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -230,12 +230,12 @@ export async function storeEstimationTask(id: number, payload: Partial<PsEstimat
 // ==========================================
 
 export async function getPsServiceCategories(): Promise<PsServiceCategory[]> {
-  const { data } = await fetchApi<{ data: PsServiceCategory[] }>("/settings/professional-services/service-categories");
+  const data = await fetchApi<PsServiceCategory[]>("/settings/professional-services/service-categories");
   return data;
 }
 
 export async function createPsServiceCategory(payload: { name: string; description?: string; is_active?: boolean }): Promise<PsServiceCategory> {
-  const { data } = await fetchApi<{ data: PsServiceCategory }>("/settings/professional-services/service-categories", {
+  const data = await fetchApi<PsServiceCategory>("/settings/professional-services/service-categories", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -243,7 +243,7 @@ export async function createPsServiceCategory(payload: { name: string; descripti
 }
 
 export async function updatePsServiceCategory(id: number, payload: { name: string; description?: string; is_active?: boolean }): Promise<PsServiceCategory> {
-  const { data } = await fetchApi<{ data: PsServiceCategory }>(`/settings/professional-services/service-categories/${id}`, {
+  const data = await fetchApi<PsServiceCategory>(`/settings/professional-services/service-categories/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -255,12 +255,12 @@ export async function deletePsServiceCategory(id: number): Promise<void> {
 }
 
 export async function getPsRoles(): Promise<PsRole[]> {
-  const { data } = await fetchApi<{ data: PsRole[] }>("/settings/professional-services/roles");
+  const data = await fetchApi<PsRole[]>("/settings/professional-services/roles");
   return data;
 }
 
 export async function createPsRole(payload: { name: string; description?: string; is_active?: boolean; rate_per_manday?: number }): Promise<PsRole> {
-  const { data } = await fetchApi<{ data: PsRole }>("/settings/professional-services/roles", {
+  const data = await fetchApi<PsRole>("/settings/professional-services/roles", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -268,7 +268,7 @@ export async function createPsRole(payload: { name: string; description?: string
 }
 
 export async function updatePsRole(id: number, payload: { name: string; description?: string; is_active?: boolean }): Promise<PsRole> {
-  const { data } = await fetchApi<{ data: PsRole }>(`/settings/professional-services/roles/${id}`, {
+  const data = await fetchApi<PsRole>(`/settings/professional-services/roles/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -280,7 +280,7 @@ export async function deletePsRole(id: number): Promise<void> {
 }
 
 export async function createPsRateCard(roleId: number, payload: { rate_per_manday: number; effective_from: string; effective_to?: string | null; is_active?: boolean }): Promise<PsRateCard> {
-  const { data } = await fetchApi<{ data: PsRateCard }>(`/settings/professional-services/roles/${roleId}/rate-cards`, {
+  const data = await fetchApi<PsRateCard>(`/settings/professional-services/roles/${roleId}/rate-cards`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -288,7 +288,7 @@ export async function createPsRateCard(roleId: number, payload: { rate_per_manda
 }
 
 export async function updatePsRateCard(roleId: number, rateCardId: number, payload: { rate_per_manday: number; effective_from: string; effective_to?: string | null; is_active?: boolean }): Promise<PsRateCard> {
-  const { data } = await fetchApi<{ data: PsRateCard }>(`/settings/professional-services/roles/${roleId}/rate-cards/${rateCardId}`, {
+  const data = await fetchApi<PsRateCard>(`/settings/professional-services/roles/${roleId}/rate-cards/${rateCardId}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -296,12 +296,12 @@ export async function updatePsRateCard(roleId: number, rateCardId: number, paylo
 }
 
 export async function getPsComplexityLevels(): Promise<PsComplexityLevel[]> {
-  const { data } = await fetchApi<{ data: PsComplexityLevel[] }>("/settings/professional-services/complexity/levels");
+  const data = await fetchApi<PsComplexityLevel[]>("/settings/professional-services/complexity/levels");
   return data;
 }
 
 export async function createPsComplexityLevel(payload: { name: string; multiplier: number; description?: string; is_active?: boolean }): Promise<PsComplexityLevel> {
-  const { data } = await fetchApi<{ data: PsComplexityLevel }>("/settings/professional-services/complexity/levels", {
+  const data = await fetchApi<PsComplexityLevel>("/settings/professional-services/complexity/levels", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -309,7 +309,7 @@ export async function createPsComplexityLevel(payload: { name: string; multiplie
 }
 
 export async function updatePsComplexityLevel(id: number, payload: { name: string; multiplier: number; description?: string; is_active?: boolean }): Promise<PsComplexityLevel> {
-  const { data } = await fetchApi<{ data: PsComplexityLevel }>(`/settings/professional-services/complexity/levels/${id}`, {
+  const data = await fetchApi<PsComplexityLevel>(`/settings/professional-services/complexity/levels/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -321,12 +321,12 @@ export async function deletePsComplexityLevel(id: number): Promise<void> {
 }
 
 export async function getPsSettingsTemplates(): Promise<PsEstimationTemplate[]> {
-  const { data } = await fetchApi<{ data: PsEstimationTemplate[] }>("/settings/professional-services/templates");
+  const data = await fetchApi<PsEstimationTemplate[]>("/settings/professional-services/templates");
   return data;
 }
 
 export async function createPsSettingsTemplate(payload: { service_category_id: number; name: string; description?: string; is_active?: boolean }): Promise<PsEstimationTemplate> {
-  const { data } = await fetchApi<{ data: PsEstimationTemplate }>("/settings/professional-services/templates", {
+  const data = await fetchApi<PsEstimationTemplate>("/settings/professional-services/templates", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -334,7 +334,7 @@ export async function createPsSettingsTemplate(payload: { service_category_id: n
 }
 
 export async function updatePsSettingsTemplate(id: number, payload: { service_category_id: number; name: string; description?: string; is_active?: boolean }): Promise<PsEstimationTemplate> {
-  const { data } = await fetchApi<{ data: PsEstimationTemplate }>(`/settings/professional-services/templates/${id}`, {
+  const data = await fetchApi<PsEstimationTemplate>(`/settings/professional-services/templates/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -346,7 +346,7 @@ export async function deletePsSettingsTemplate(id: number): Promise<void> {
 }
 
 export async function updateEstimationTask(id: number, taskId: number, payload: Partial<PsEstimationLine>): Promise<PsEstimationLine> {
-  const { data } = await fetchApi<{ data: PsEstimationLine }>(`/professional-services/estimations/${id}/tasks/${taskId}`, {
+  const data = await fetchApi<PsEstimationLine>(`/professional-services/estimations/${id}/tasks/${taskId}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -367,21 +367,21 @@ export async function reorderEstimationTasks(id: number, tasks: { id: number; so
 }
 
 export async function recalculateEstimationTasks(id: number): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/tasks/recalculate`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/tasks/recalculate`, {
     method: "POST",
   });
   return data;
 }
 
 export async function generateTaskBreakdown(id: number): Promise<any> {
-  const { data } = await fetchApi<{ data: any }>(`/professional-services/estimations/${id}/generate-task-breakdown`, {
+  const data = await fetchApi<any>(`/professional-services/estimations/${id}/generate-task-breakdown`, {
     method: "POST",
   });
   return data;
 }
 
 export async function applyTaskBreakdown(id: number, task_breakdown: any[]): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/apply-task-breakdown`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/apply-task-breakdown`, {
     method: "POST",
     body: JSON.stringify({ task_breakdown }),
   });
@@ -436,7 +436,7 @@ export type DigitalSignatureConnection = {
 };
 
 export async function getEstimationDocuments(id: number): Promise<PsDocument[]> {
-  const { data } = await fetchApi<{ data: PsDocument[] }>(`/professional-services/estimations/${id}/documents`);
+  const data = await fetchApi<PsDocument[]>(`/professional-services/estimations/${id}/documents`);
   return data;
 }
 
@@ -444,7 +444,7 @@ export async function generateEstimationDocument(
   id: number, 
   payload: { document_type: string; include_commercial: boolean; include_task_breakdown: boolean; include_appendix: boolean }
 ): Promise<PsDocument> {
-  const { data } = await fetchApi<{ data: PsDocument }>(`/professional-services/estimations/${id}/documents/generate`, {
+  const data = await fetchApi<PsDocument>(`/professional-services/estimations/${id}/documents/generate`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -459,7 +459,7 @@ export async function sendDocumentForSignature(
   id: number, 
   payload: { subject: string; message: string; signers: any[] }
 ): Promise<{ message: string; envelope: any; document: PsDocument }> {
-  const { data } = await fetchApi<{ data: any }>(`/professional-services/documents/${id}/send-signature`, {
+  const data = await fetchApi<any>(`/professional-services/documents/${id}/send-signature`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -467,19 +467,19 @@ export async function sendDocumentForSignature(
 }
 
 export async function refreshDocumentSignatureStatus(id: number): Promise<{ envelope: any; document: PsDocument }> {
-  const { data } = await fetchApi<{ data: any }>(`/professional-services/documents/${id}/refresh-signature-status`, {
+  const data = await fetchApi<any>(`/professional-services/documents/${id}/refresh-signature-status`, {
     method: "POST",
   });
   return data;
 }
 
 export async function getDigitalSignatureSettings(): Promise<DigitalSignatureConnection[]> {
-  const { data } = await fetchApi<{ data: DigitalSignatureConnection[] }>(`/settings/digital-signature`);
+  const data = await fetchApi<DigitalSignatureConnection[]>(`/settings/digital-signature`);
   return data;
 }
 
 export async function updateDigitalSignatureSetting(id: number, payload: any): Promise<DigitalSignatureConnection> {
-  const { data } = await fetchApi<{ data: DigitalSignatureConnection }>(`/settings/digital-signature/${id}`, {
+  const data = await fetchApi<DigitalSignatureConnection>(`/settings/digital-signature/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -487,7 +487,7 @@ export async function updateDigitalSignatureSetting(id: number, payload: any): P
 }
 
 export async function createDigitalSignatureSetting(payload: any): Promise<DigitalSignatureConnection> {
-  const { data } = await fetchApi<{ data: DigitalSignatureConnection }>(`/settings/digital-signature`, {
+  const data = await fetchApi<DigitalSignatureConnection>(`/settings/digital-signature`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -547,7 +547,7 @@ export type PsBlocker = {
 };
 
 export async function submitEstimationApproval(id: number, comment?: string): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/submit-approval`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/submit-approval`, {
     method: "POST",
     body: JSON.stringify({ comment }),
   });
@@ -555,7 +555,7 @@ export async function submitEstimationApproval(id: number, comment?: string): Pr
 }
 
 export async function rejectEstimation(id: number, reason: string): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/reject`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/reject`, {
     method: "POST",
     body: JSON.stringify({ reason }),
   });
@@ -563,7 +563,7 @@ export async function rejectEstimation(id: number, reason: string): Promise<PsEs
 }
 
 export async function requestEstimationRevision(id: number, reason: string): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/request-revision`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/request-revision`, {
     method: "POST",
     body: JSON.stringify({ reason }),
   });
@@ -571,7 +571,7 @@ export async function requestEstimationRevision(id: number, reason: string): Pro
 }
 
 export async function createEstimationRevision(id: number, reason: string): Promise<PsEstimation> {
-  const { data } = await fetchApi<{ data: PsEstimation }>(`/professional-services/estimations/${id}/create-revision`, {
+  const data = await fetchApi<PsEstimation>(`/professional-services/estimations/${id}/create-revision`, {
     method: "POST",
     body: JSON.stringify({ reason }),
   });
@@ -579,22 +579,22 @@ export async function createEstimationRevision(id: number, reason: string): Prom
 }
 
 export async function getEstimationBlockers(id: number): Promise<PsBlocker[]> {
-  const { data } = await fetchApi<{ data: PsBlocker[] }>(`/professional-services/estimations/${id}/blockers`);
+  const data = await fetchApi<PsBlocker[]>(`/professional-services/estimations/${id}/blockers`);
   return data;
 }
 
 export async function getEstimationVersions(id: number): Promise<{ versions: PsEstimationVersion[], logs: PsApprovalLog[], revisions: PsRevision[] }> {
-  const { data } = await fetchApi<{ data: any }>(`/professional-services/estimations/${id}/versions`);
+  const data = await fetchApi<any>(`/professional-services/estimations/${id}/versions`);
   return data;
 }
 
 export async function getGovernanceRules(): Promise<PsGovernanceRule[]> {
-  const { data } = await fetchApi<{ data: PsGovernanceRule[] }>(`/professional-services/governance-rules`);
+  const data = await fetchApi<PsGovernanceRule[]>(`/professional-services/governance-rules`);
   return data;
 }
 
 export async function storeGovernanceRule(payload: Partial<PsGovernanceRule>): Promise<PsGovernanceRule> {
-  const { data } = await fetchApi<{ data: PsGovernanceRule }>(`/professional-services/governance-rules`, {
+  const data = await fetchApi<PsGovernanceRule>(`/professional-services/governance-rules`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -602,7 +602,7 @@ export async function storeGovernanceRule(payload: Partial<PsGovernanceRule>): P
 }
 
 export async function updateGovernanceRule(id: number, payload: Partial<PsGovernanceRule>): Promise<PsGovernanceRule> {
-  const { data } = await fetchApi<{ data: PsGovernanceRule }>(`/professional-services/governance-rules/${id}`, {
+  const data = await fetchApi<PsGovernanceRule>(`/professional-services/governance-rules/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -739,19 +739,19 @@ export async function getProjectPlans(leadId?: number): Promise<any> {
 }
 
 export async function getProjectPlan(id: number): Promise<PsProjectPlan> {
-  const { data } = await fetchApi<{ data: PsProjectPlan }>(`/professional-services/project-plans/${id}`);
+  const data = await fetchApi<PsProjectPlan>(`/professional-services/project-plans/${id}`);
   return data;
 }
 
 export async function createProjectPlanFromEstimation(estimationId: number): Promise<PsProjectPlan> {
-  const { data } = await fetchApi<{ data: PsProjectPlan }>(`/professional-services/estimations/${estimationId}/create-project-plan`, {
+  const data = await fetchApi<PsProjectPlan>(`/professional-services/estimations/${estimationId}/create-project-plan`, {
     method: "POST"
   });
   return data;
 }
 
 export async function updateProjectPlan(id: number, payload: Partial<PsProjectPlan>): Promise<PsProjectPlan> {
-  const { data } = await fetchApi<{ data: PsProjectPlan }>(`/professional-services/project-plans/${id}`, {
+  const data = await fetchApi<PsProjectPlan>(`/professional-services/project-plans/${id}`, {
     method: "PUT",
     body: JSON.stringify(payload)
   });
@@ -759,7 +759,7 @@ export async function updateProjectPlan(id: number, payload: Partial<PsProjectPl
 }
 
 export async function updateProjectPlanStatus(id: number, status: string): Promise<PsProjectPlan> {
-  const { data } = await fetchApi<{ data: PsProjectPlan }>(`/professional-services/project-plans/${id}/status`, {
+  const data = await fetchApi<PsProjectPlan>(`/professional-services/project-plans/${id}/status`, {
     method: "PUT",
     body: JSON.stringify({ status })
   });

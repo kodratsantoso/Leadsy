@@ -304,7 +304,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                         if (child.group) {
                           lastGroup = child.group;
                         }
-                        const childActive = pathname.startsWith(child.href);
+                        
+                        // Find the most specific match among children
+                        const activeChildHref = item.children?.reduce((acc, c) => 
+                          pathname.startsWith(c.href) && c.href.length > acc.length ? c.href : acc
+                        , "") || "";
+                        const childActive = child.href === activeChildHref;
+                        
                         return (
                           <div key={child.href} className="space-y-0.5">
                             {showGroupHeader && (

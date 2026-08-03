@@ -69,7 +69,7 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const qc = useQueryClient();
-  const { formatCurrency } = useNumberFormat();
+  const { formatAmountInput, normalizeAmountInput } = useNumberFormat();
   const productId = Number(params.id);
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -111,6 +111,17 @@ export default function ProductDetailPage() {
       return response.json();
     },
   });
+
+  const { data: currencyData } = useQuery({
+    queryKey: ["currency-settings"],
+    queryFn: async () => {
+      const response = await apiFetch("/settings/currency");
+      return response.json();
+    },
+  });
+  const currencies = currencyData?.data?.currencies ?? [];
+  const idrRate = Number(currencies.find((c: any) => c.code === "IDR")?.exchange_rate || 1);
+  const usdRate = Number(currencies.find((c: any) => c.code === "USD")?.exchange_rate || 1);
 
   const product = data?.data as ProductRecord | undefined;
 
@@ -472,17 +483,31 @@ export default function ProductDetailPage() {
                         </Button>
                       </div>
                       <div className="p-4 space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                          <Input type="number" value={tier.price} onChange={(e) => {
-                            const nt = [...formTiers]; nt[idx].price = Number(e.target.value); setFormTiers(nt);
-                          }} placeholder="Price" />
-                          <Select value={tier.billing_period} onChange={(e) => {
-                            const nt = [...formTiers]; nt[idx].billing_period = e.target.value as any; setFormTiers(nt);
-                          }}>
-                            <option value="monthly">Monthly</option>
-                            <option value="yearly">Yearly</option>
-                            <option value="one_time">One Time</option>
-                          </Select>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">Price (IDR)</label>
+                            <Input type="text" inputMode="numeric" value={formatAmountInput(String(tier.price || 0))} onChange={(e) => {
+                              const nt = [...formTiers]; nt[idx].price = Number(normalizeAmountInput(e.target.value)); setFormTiers(nt);
+                            }} placeholder="0" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">Price (USD)</label>
+                            <Input type="text" inputMode="numeric" value={tier.price ? formatAmountInput(String(Math.round((tier.price / idrRate) * usdRate * 100) / 100)) : "0"} onChange={(e) => {
+                              const usdVal = Number(normalizeAmountInput(e.target.value));
+                              const idrVal = Math.round((usdVal / usdRate) * idrRate);
+                              const nt = [...formTiers]; nt[idx].price = idrVal; setFormTiers(nt);
+                            }} placeholder="0" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">Billing</label>
+                            <Select value={tier.billing_period} onChange={(e) => {
+                              const nt = [...formTiers]; nt[idx].billing_period = e.target.value as any; setFormTiers(nt);
+                            }}>
+                              <option value="monthly">Monthly</option>
+                              <option value="yearly">Yearly</option>
+                              <option value="one_time">One Time</option>
+                            </Select>
+                          </div>
                         </div>
                         
                         <div className="space-y-1.5">

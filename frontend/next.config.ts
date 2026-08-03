@@ -4,6 +4,7 @@ const internalBackendUrl =
   process.env.API_INTERNAL_URL || "http://backend:8000";
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
   async rewrites() {
     return [
       {
