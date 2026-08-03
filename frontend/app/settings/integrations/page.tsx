@@ -1396,7 +1396,7 @@ export default function IntegrationsSettingsPage() {
                           }))}
                         />
                         <p className="mt-1 text-[11px] text-muted-foreground leading-normal">
-                          Use https://api.mekari.com for modern production, or https://sandbox-api.mekari.com for sandbox.
+                          Use https://api.mekari.com for modern API (HMAC Client ID/Secret), or <strong>https://service-chat.qontak.com</strong> if using legacy Bearer Token.
                         </p>
                       </div>
 
