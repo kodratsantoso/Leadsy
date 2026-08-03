@@ -76,7 +76,7 @@ class MeetingSummaryGenerationTest extends TestCase
         $aiMock = Mockery::mock(AiOrchestrationService::class);
         $aiMock->shouldReceive('call')
             ->once()
-            ->with('global', Mockery::type('array'))
+            ->with('meeting_summary', Mockery::type('array'))
             ->andReturn([
                 'success' => true,
                 'content' => json_encode($mockJson),
