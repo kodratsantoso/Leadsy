@@ -38,7 +38,7 @@ export type PsRole = {
   name: string;
   description: string;
   is_active: boolean;
-  rateCards?: PsRateCard[];
+  rate_cards?: PsRateCard[];
 };
 
 export type PsConfig = {

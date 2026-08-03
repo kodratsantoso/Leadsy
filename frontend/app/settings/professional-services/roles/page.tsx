@@ -208,9 +208,9 @@ export default function PsRolesPage() {
                       </Button>
                     </div>
 
-                    {role.rateCards && role.rateCards.length > 0 ? (
+                    {role.rate_cards && role.rate_cards.length > 0 ? (
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {role.rateCards.map((rate) => (
+                        {role.rate_cards.map((rate) => (
                           <div key={rate.id} className="flex items-start justify-between rounded-lg border border-border bg-card p-3 shadow-sm hover:border-[color:var(--brand)] transition-colors">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">

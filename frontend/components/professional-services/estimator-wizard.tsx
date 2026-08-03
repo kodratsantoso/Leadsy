@@ -84,7 +84,7 @@ export function EstimatorWizard() {
   const calculatedLines = useMemo(() => {
     return lines.map((line) => {
       const role = config?.roles?.find(r => r.id === line.role_id);
-      const rateCard = role?.rateCards?.[0];
+      const rateCard = role?.rate_cards?.[0];
       const rate = rateCard ? parseFloat(rateCard.rate_per_manday) : 0;
       
       const base = parseFloat(line.base_mandays as any) || 0;

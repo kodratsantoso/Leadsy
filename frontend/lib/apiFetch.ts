@@ -50,7 +50,7 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     if (!contentType || !contentType.includes("application/json")) {
        console.error("Critical Backend Failure or Disconnected Proxy.");
        // Return a synthetic JSON response so callers can parse it properly
-       return new Response(JSON.stringify({ message: "Critical Backend Failure or Disconnected Proxy. The server took too long to respond or the connection was lost." }), {
+       return new Response(JSON.stringify({ message: "Critical Backend Failure or Disconnected Proxy. The server took too long to respond (possibly an AI model timeout or 503) or the connection was lost." }), {
          status: response.status,
          headers: { 'Content-Type': 'application/json' }
        });
