@@ -80,17 +80,19 @@ export default function PsRolesPage() {
   });
 
   const saveRateMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      if (!showRateModal) throw new Error("No rate modal state");
-      if (showRateModal.rate) {
-        return updatePsRateCard(showRateModal.roleId, showRateModal.rate.id, payload);
+    mutationFn: async ({ roleId, rateCardId, ...payload }: any) => {
+      if (rateCardId) {
+        return updatePsRateCard(roleId, rateCardId, payload);
       }
-      return createPsRateCard(showRateModal.roleId, payload);
+      return createPsRateCard(roleId, payload);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["ps-roles"] });
       setShowRateModal(null);
     },
+    onError: (error: any) => {
+      console.error("Failed to save rate card:", error);
+    }
   });
 
   const toggle = (id: number) => {
@@ -338,13 +340,16 @@ export default function PsRolesPage() {
             <div className="flex justify-end gap-3 pt-4">
               <Button variant="outline" onClick={() => setShowRateModal(null)}>Cancel</Button>
               <Button onClick={() => {
-                const rawVal = Number(normalizeAmountInput(rateInputString));
-                const currentRate = Number(currencies.find((c: any) => c.code === rateCurrency)?.exchange_rate || 1);
-                const idrVal = Math.round((rawVal / currentRate) * idrRate * 100) / 100;
+                const rawVal = Number(normalizeAmountInput(rateInputString)) || 0;
+                const currentRate = Number(currencies.find((c: any) => c.code === rateCurrency)?.exchange_rate) || 1;
+                const safeIdrRate = idrRate || 1;
+                const idrVal = Math.round((rawVal / currentRate) * safeIdrRate * 100) / 100;
                 
                 saveRateMutation.mutate({
+                  roleId: showRateModal.roleId,
+                  rateCardId: showRateModal.rate?.id,
                   ...formRate,
-                  rate_per_manday: idrVal,
+                  rate_per_manday: isNaN(idrVal) ? 0 : idrVal,
                   effective_to: formRate.effective_to || null
                 });
               }} disabled={saveRateMutation.isPending}>
