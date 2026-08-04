@@ -78,6 +78,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const settingAllowDiscount = settingAllowDiscountObj ? !!settingAllowDiscountObj.setting_value_json?.enabled : true;
  
   const [qForm, setQForm] = useState({
+    id: null as number | null,
     quotation_type: 'new',
     quotation_date: new Date().toISOString().split('T')[0],
     valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -131,6 +132,88 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       }
     ]
   });
+
+  const handleEditQuotation = (q: any) => {
+    setQForm({
+      id: q.id,
+      quotation_type: q.quotation_type || 'new',
+      quotation_date: q.quotation_date ? q.quotation_date.split('T')[0] : new Date().toISOString().split('T')[0],
+      valid_until: q.valid_until ? q.valid_until.split('T')[0] : '',
+      customer_name: q.customer_name || '',
+      billing_entity: q.billing_entity || '',
+      contact_id: q.contact_id ? String(q.contact_id) : '',
+      sales_owner_id: q.sales_owner_id ? String(q.sales_owner_id) : '',
+      presales_owner_id: q.presales_owner_id ? String(q.presales_owner_id) : '',
+      payment_terms: q.payment_terms || 'Net 30',
+      billing_frequency: q.billing_frequency || 'monthly',
+      contract_start_date: q.contract_start_date ? q.contract_start_date.split('T')[0] : '',
+      contract_end_date: q.contract_end_date ? q.contract_end_date.split('T')[0] : '',
+      expected_close_date: q.expected_close_date ? q.expected_close_date.split('T')[0] : '',
+      probability: q.probability || 80,
+      forecast_type: q.forecast_type || 'Pipeline',
+      tax_included: !!q.tax_included,
+      header_discount_type: q.header_discount_type || 'none',
+      header_discount_value: q.header_discount_value ? String(q.header_discount_value) : '0',
+      other_cost: q.other_cost ? String(q.other_cost) : '0',
+      scope_of_work: q.scope_of_work || '',
+      exclusions: q.exclusions || '',
+      delivery_timeline: q.delivery_timeline || '',
+      warranty_support_terms: q.warranty_support_terms || '',
+      customer_notes: q.customer_notes || '',
+      internal_notes: q.internal_notes || '',
+      approval_status: q.approval_status || 'not_required',
+      terms_conditions: q.terms_conditions || '',
+      items: q.items && q.items.length > 0 ? q.items.map((item: any) => ({
+        product_id: item.product_id ? String(item.product_id) : '',
+        product_tier_id: item.product_tier_id ? String(item.product_tier_id) : '',
+        pricing_model: item.pricing_model || 'flat_rate',
+        price_source: item.price_source || 'manual',
+        tax_code_id: item.tax_code_id ? String(item.tax_code_id) : '',
+        withholding_tax_code_id: item.withholding_tax_code_id ? String(item.withholding_tax_code_id) : '',
+        withholding_tax_rate: item.withholding_tax_rate || 0,
+        item_name: item.item_name || '',
+        description: item.description || '',
+        quantity: item.quantity ? String(item.quantity) : '1',
+        unit: item.unit || 'license',
+        unit_price: item.unit_price ? String(item.unit_price) : '0',
+        billing_period: item.billing_period || 'monthly',
+        line_discount_type: item.line_discount_type || 'none',
+        line_discount_value: item.line_discount_value ? String(item.line_discount_value) : '0',
+        tax_code: item.tax_code || '',
+        tax_rate: item.tax_rate || 0,
+        start_date: item.start_date ? item.start_date.split('T')[0] : '',
+        end_date: item.end_date ? item.end_date.split('T')[0] : '',
+        duration_value: item.duration_value ? String(item.duration_value) : '',
+        duration_unit: item.duration_unit || 'month',
+        sort_order: item.sort_order || 0,
+      })) : [{
+        product_id: '',
+        product_tier_id: '',
+        pricing_model: 'flat_rate',
+        price_source: 'manual',
+        tax_code_id: '',
+        withholding_tax_code_id: '',
+        withholding_tax_rate: 0,
+        item_name: 'Platform Subscription',
+        description: 'Platform Access License',
+        quantity: '1',
+        unit: 'license',
+        unit_price: '0',
+        billing_period: 'monthly',
+        line_discount_type: 'none',
+        line_discount_value: '0',
+        tax_code: '',
+        tax_rate: 0,
+        start_date: '',
+        end_date: '',
+        duration_value: '',
+        duration_unit: 'month',
+      }]
+    });
+    setErrorMessage(null);
+    setActiveTab('primary');
+    setShowQModal(true);
+  };
  
   useEffect(() => {
     if (leadObj && showQModal) {
@@ -423,6 +506,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         sales_owner_id: qForm.sales_owner_id ? Number(qForm.sales_owner_id) : null,
         presales_owner_id: qForm.presales_owner_id ? Number(qForm.presales_owner_id) : null,
         probability: qForm.probability ? Number(qForm.probability) : null,
+        header_discount_type: qForm.header_discount_type === 'none' ? null : qForm.header_discount_type,
         header_discount_value: Number(normalizeAmountInput(String(qForm.header_discount_value))) || 0,
         other_cost: Number(normalizeAmountInput(String(qForm.other_cost))) || 0,
         contract_start_date: qForm.contract_start_date || null,
@@ -436,6 +520,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           withholding_tax_code_id: item.withholding_tax_code_id ? Number(item.withholding_tax_code_id) : null,
           quantity: Number(normalizeAmountInput(String(item.quantity))) || 0,
           unit_price: Number(normalizeAmountInput(String(item.unit_price))) || 0,
+          line_discount_type: item.line_discount_type === 'none' ? null : item.line_discount_type,
           line_discount_value: Number(normalizeAmountInput(String(item.line_discount_value))) || 0,
           start_date: item.start_date || null,
           end_date: item.end_date || null,
@@ -444,8 +529,11 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         }))
       };
       
-      const res = await apiFetch(`/leads/${leadId}/quotations`, {
-        method: 'POST',
+      const url = qForm.id ? `/quotations/${qForm.id}` : `/leads/${leadId}/quotations`;
+      const method = qForm.id ? 'PUT' : 'POST';
+      
+      const res = await apiFetch(url, {
+        method: method,
         body: JSON.stringify(payload)
       });
       if (!res.ok) {
@@ -464,7 +552,23 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       setSavingQ(false);
     }
   };
- 
+  
+  const deleteQuotation = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this quotation?')) return;
+    try {
+      const res = await apiFetch(`/quotations/${id}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete quotation');
+      }
+      qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const calculateSOFrontendSummary = () => {
     let subtotal = 0;
     let lineDiscountTotal = 0;
@@ -562,7 +666,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         payment_terms: soForm.payment_terms || null,
         billing_frequency: soForm.billing_frequency || null,
         tax_included: soForm.tax_included,
-        header_discount_type: soForm.header_discount_type,
+        header_discount_type: soForm.header_discount_type === 'none' ? null : soForm.header_discount_type,
         header_discount_value: Number(normalizeAmountInput(String(soForm.header_discount_value))) || 0,
         other_cost: Number(normalizeAmountInput(String(soForm.other_cost))) || 0,
         scope_of_work: soForm.scope_of_work || null,
@@ -694,7 +798,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `Failed to change quotation status to ${targetStatus}`);
+        throw new Error(err.message || 'Failed to update status');
       }
       qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
     } catch (err: any) {
@@ -702,6 +806,22 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     }
   };
  
+  const executeWorkflowTransition = async (id: number, transitionId: number) => {
+    try {
+      const res = await apiFetch(`/quotations/${id}/workflow-transitions`, {
+        method: 'POST',
+        body: JSON.stringify({ transition_id: transitionId })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to execute transition');
+      }
+      qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const convertQuotationToSO = async (id: number) => {
     try {
       const res = await apiFetch(`/quotations/${id}/convert-to-sales-order`, { method: 'POST' });
@@ -729,6 +849,22 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     }
   };
  
+  const deleteSalesOrder = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this sales order?')) return;
+    try {
+      const res = await apiFetch(`/sales-orders/${id}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete sales order');
+      }
+      qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const handleProductSelect = (index: number, productId: string) => {
     const prod = products.find((p: any) => String(p.id) === productId);
     if (prod) {
@@ -1047,7 +1183,64 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
               </CardTitle>
               <CardDescription>Generated NetSuite-style commercial proposals.</CardDescription>
             </div>
-            <Button size="sm" onClick={() => { setErrorMessage(null); setActiveTab('primary'); setShowQModal(true); }}>
+            <Button size="sm" onClick={() => { 
+              setErrorMessage(null); 
+              setActiveTab('primary'); 
+              setQForm({
+                id: null,
+                quotation_type: 'new',
+                quotation_date: new Date().toISOString().split('T')[0],
+                valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                customer_name: String(leadObj?.company_name || ''),
+                billing_entity: '',
+                contact_id: '',
+                sales_owner_id: String(leadObj?.owner_id || ''),
+                presales_owner_id: '',
+                payment_terms: 'Net 30',
+                billing_frequency: 'monthly',
+                contract_start_date: '',
+                contract_end_date: '',
+                expected_close_date: '',
+                probability: 80,
+                forecast_type: 'Pipeline',
+                tax_included: false,
+                header_discount_type: 'none',
+                header_discount_value: '0',
+                other_cost: '0',
+                scope_of_work: '',
+                exclusions: '',
+                delivery_timeline: '',
+                warranty_support_terms: '',
+                customer_notes: '',
+                internal_notes: '',
+                approval_status: 'not_required',
+                terms_conditions: '',
+                items: [{
+                  product_id: '',
+                  product_tier_id: '',
+                  pricing_model: 'flat_rate',
+                  price_source: 'manual',
+                  tax_code_id: '',
+                  withholding_tax_code_id: '',
+                  withholding_tax_rate: 0,
+                  item_name: 'Platform Subscription',
+                  description: 'Platform Access License',
+                  quantity: '1',
+                  unit: 'license',
+                  unit_price: '0',
+                  billing_period: 'monthly',
+                  line_discount_type: 'none',
+                  line_discount_value: '0',
+                  tax_code: '',
+                  tax_rate: 0,
+                  start_date: '',
+                  end_date: '',
+                  duration_value: '',
+                  duration_unit: 'month',
+                }]
+              });
+              setShowQModal(true); 
+            }}>
               <Plus className="h-4 w-4 mr-1.5" />
               New Quotation
             </Button>
@@ -1090,64 +1283,101 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     </div>
                     
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-                      {q.quotation_status === 'draft' && (
+                      {q.workflow_state ? (
                         <>
-                          <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => updateQuotationStatus(q.id, 'submitted')}>
-                            Submit
-                          </Button>
-                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
-                            Cancel
-                          </Button>
+                          <span className="text-xs text-muted-foreground mr-2 my-auto">
+                            State: <Badge variant="outline">{q.workflow_state.name}</Badge>
+                          </span>
+                          {q.workflow_state.outgoing_transitions?.map((t: any) => (
+                            <Button 
+                              key={t.id}
+                              size="xs" 
+                              variant="outline" 
+                              className="text-blue-600 hover:bg-blue-50"
+                              onClick={() => executeWorkflowTransition(q.id, t.id)}
+                            >
+                              {t.name}
+                            </Button>
+                          ))}
+                          {q.quotation_status === 'draft' && (
+                            <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              Delete
+                            </Button>
+                          )}
+                          {q.quotation_status === 'accepted' && (
+                            <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
+                              Convert to SO
+                            </Button>
+                          )}
                         </>
-                      )}
-                      
-                      {q.quotation_status === 'submitted' && (
+                      ) : (
                         <>
-                          <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => updateQuotationStatus(q.id, 'approved')}>
-                            Approve
-                          </Button>
-                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'rejected')}>
-                            Reject
-                          </Button>
-                          <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
-                            Cancel
-                          </Button>
-                        </>
-                      )}
- 
-                      {q.quotation_status === 'approved' && (
-                        <>
-                          <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => updateQuotationStatus(q.id, 'sent')}>
-                            Mark Sent
-                          </Button>
-                          <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
-                            Convert to SO
-                          </Button>
-                          <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
-                            Cancel
-                          </Button>
-                        </>
-                      )}
- 
-                      {q.quotation_status === 'sent' && (
-                        <>
-                          <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => updateQuotationStatus(q.id, 'accepted')}>
-                            Mark Accepted
-                          </Button>
-                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
-                            Cancel
-                          </Button>
-                        </>
-                      )}
- 
-                      {q.quotation_status === 'accepted' && (
-                        <>
-                          <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
-                            Convert to SO
-                          </Button>
-                          <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
-                            Cancel
-                          </Button>
+                          {q.quotation_status === 'draft' && (
+                            <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => updateQuotationStatus(q.id, 'submitted')}>
+                                Submit
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+                          
+                          {q.quotation_status === 'submitted' && (
+                            <>
+                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => updateQuotationStatus(q.id, 'approved')}>
+                                Approve
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'rejected')}>
+                                Reject
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+
+                          {q.quotation_status === 'approved' && (
+                            <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => updateQuotationStatus(q.id, 'sent')}>
+                                Mark Sent
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
+                                Convert to SO
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+
+                          {q.quotation_status === 'sent' && (
+                            <>
+                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => updateQuotationStatus(q.id, 'accepted')}>
+                                Mark Accepted
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+
+                          {q.quotation_status === 'accepted' && (
+                            <>
+                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
+                                Convert to SO
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
+                                Cancel
+                              </Button>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
@@ -1290,6 +1520,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           </Button>
                           <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-100/50" onClick={() => updateSalesOrderStatus(so.id, 'confirm')}>
                             Confirm Order
+                          </Button>
+                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => deleteSalesOrder(so.id)}>
+                            Delete
                           </Button>
                           <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => updateSalesOrderStatus(so.id, 'cancel')}>
                             Cancel

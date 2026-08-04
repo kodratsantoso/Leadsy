@@ -92,6 +92,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/token/generate', [AuthController::class, 'generateApiToken']);
     Route::get('auth/token/status', [AuthController::class, 'getApiTokenStatus']);
 
+    // Custom Workflow Engine
+    Route::apiResource('workflows', \App\Http\Controllers\Api\WorkflowDefinitionController::class);
+    Route::post('workflows/{workflow}/activate', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'activate']);
+    
+    // Custom Workflow Engine for Quotations
+    Route::get('quotations/{quotation}/workflow-transitions', [\App\Http\Controllers\Api\QuotationWorkflowController::class, 'getTransitions']);
+    Route::post('quotations/{quotation}/workflow-transitions', [\App\Http\Controllers\Api\QuotationWorkflowController::class, 'executeTransition']);
+
     // Maps — Lead Discovery + Geo Product Fit Intelligence
     Route::prefix('maps')->middleware('permission:maps.view')->group(function () {
         Route::get('categories', [MapDiscoveryController::class, 'categories']);

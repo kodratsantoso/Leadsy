@@ -26,7 +26,10 @@ class LeadQuotation extends Model
         'total_withholding_tax', 'grand_total_before_wht',
 
         // Source tracking
-        'source_type', 'source_reference_id'
+        'source_type', 'source_reference_id',
+
+        // Custom Workflow tracking
+        'workflow_state_id'
     ];
 
     protected $casts = [
@@ -92,5 +95,10 @@ class LeadQuotation extends Model
     public function convertedSalesOrder()
     {
         return $this->belongsTo(LeadSalesOrder::class, 'converted_sales_order_id');
+    }
+
+    public function workflowState()
+    {
+        return $this->belongsTo(WorkflowState::class, 'workflow_state_id');
     }
 }

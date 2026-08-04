@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
  
 use App\Http\Controllers\Controller;
-use App\Models\Lead;
 use App\Models\LeadQuotation;
+use App\Models\WorkflowDefinition;
+use App\Models\Lead;
 use App\Models\LeadSalesOrder;
 use App\Models\LeadActivity;
 use App\Models\CurrencySetting;
@@ -67,7 +68,7 @@ class LeadOrderToCashController extends Controller
         $lead = Lead::findOrFail($id);
         return response()->json([
             'data' => $lead->quotations()
-                ->with(['items', 'createdBy:id,name', 'approvedBy:id,name', 'contact', 'salesOwner', 'presalesOwner'])
+                ->with(['items', 'createdBy:id,name', 'approvedBy:id,name', 'contact', 'salesOwner', 'presalesOwner', 'workflowState.outgoingTransitions.destinationState'])
                 ->orderByDesc('created_at')
                 ->get()
         ]);
@@ -167,10 +168,32 @@ class LeadOrderToCashController extends Controller
         }
  
         return DB::transaction(function () use ($lead, $validated, $totals, $currency) {
+            // Check for active workflow
+            $tenantId = Auth::user()->tenant_id;
+            $activeWorkflow = WorkflowDefinition::where('tenant_id', $tenantId)
+                ->where('base_record_type', 'LeadQuotation')
+                ->where('status', 'active')
+                ->with(['versions' => function ($q) {
+                    $q->where('is_active', true)->with(['states' => function ($sq) {
+                        $sq->where('type', 'ENTRY');
+                    }]);
+                }])
+                ->first();
+
+            $entryStateId = null;
+            if ($activeWorkflow && $activeWorkflow->versions->isNotEmpty()) {
+                $activeVersion = $activeWorkflow->versions->first();
+                $entryState = $activeVersion->states->first();
+                if ($entryState) {
+                    $entryStateId = $entryState->id;
+                }
+            }
+
             $quotation = $lead->quotations()->create([
                 'quotation_number' => 'QT-' . date('Ym') . '-' . sprintf('%04d', mt_rand(1, 9999)),
                 'quotation_type' => $validated['quotation_type'],
                 'quotation_status' => 'draft',
+                'workflow_state_id' => $entryStateId,
                 'quotation_date' => $validated['quotation_date'],
                 'valid_until' => $validated['valid_until'] ?? null,
                 'customer_name' => $validated['customer_name'] ?? $lead->company_name,
@@ -1072,7 +1095,35 @@ class LeadOrderToCashController extends Controller
             return response()->json(['data' => $order->load('items')]);
         });
     }
- 
+
+    public function destroySalesOrder($id)
+    {
+        $order = LeadSalesOrder::findOrFail($id);
+        
+        if ($order->order_status !== 'draft') {
+            return response()->json([
+                'message' => 'Only draft sales orders can be deleted.'
+            ], 422);
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->items()->delete();
+            $order->delete();
+            
+            LeadActivity::create([
+                'lead_id' => $order->lead_id,
+                'activity_type' => 'Sales Order Deleted',
+                'description' => "Sales Order {$order->sales_order_number} was deleted.",
+                'activity_date' => now(),
+                'user_id' => Auth::id(),
+            ]);
+            
+            AuditService::logDeleted('sales_orders', $order);
+        });
+
+        return response()->json(['message' => 'Sales Order deleted successfully']);
+    }
+
     public function confirmSalesOrder($id)
     {
         $order = LeadSalesOrder::findOrFail($id);

@@ -66,6 +66,13 @@ const categories = [
       { icon: Database,  title: "Backup & Recovery",     desc: "Scheduled backups, retention, and restore controls",                href: "/settings/backup",        color: "bg-[color:var(--status-success)]" },
       { icon: FileText,  title: "Audit Logs",            desc: "Governance trail for platform activity and sensitive changes",       href: "/settings/audit-logs",    color: "bg-[color:var(--status-warning)]" },
     ]
+  },
+  {
+    name: "Automation",
+    desc: "Configure generic workflow pipelines and automated rule execution.",
+    items: [
+      { icon: GitBranch, title: "Custom Workflows",      desc: "Visual workflow builder for custom process approvals",              href: "/settings/workflows",     color: "bg-[color:var(--status-info)]" },
+    ]
   }
 ];
 
