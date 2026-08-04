@@ -243,10 +243,10 @@ networks:
 # across redeploys. Fallback prefix is for local compose without Coolify env.
 volumes:
   leadsy_pg_data:
-    name: "${COOLIFY_RESOURCE_UUID:-rndleadsgenerator}_leadsy-pg-data"
+    name: "rndleadsgenerator_leadsy-pg-data"
   leadsy_redis_data:
-    name: "${COOLIFY_RESOURCE_UUID:-rndleadsgenerator}_leadsy-redis-data"
+    name: "rndleadsgenerator_leadsy-redis-data"
   backend_storage:
-    name: "${COOLIFY_RESOURCE_UUID:-rndleadsgenerator}_backend-storage"
+    name: "rndleadsgenerator_backend-storage"
   whatsapp_auth_data:
-    name: "${COOLIFY_RESOURCE_UUID:-rndleadsgenerator}_whatsapp-auth-data"
+    name: "rndleadsgenerator_whatsapp-auth-data"
