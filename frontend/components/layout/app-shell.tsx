@@ -118,6 +118,7 @@ const navItems: NavItem[] = [
       { href: "/settings/api",             icon: FileText,     label: "API Documentation", group: "Integrations" },
       { href: "/settings/integrations/lark-base", icon: Database, label: "Lark Base Sync", group: "Integrations" },
       { href: "/settings/security",        icon: Shield,       label: "Security", group: "System & Security" },
+      { href: "/settings/workflows",       icon: GitBranch,    label: "Custom Workflows", group: "System & Security" },
       { href: "/settings/environment",     icon: Globe,        label: "Environment", group: "System & Security" },
       { href: "/settings/notifications",   icon: Bell,         label: "Notifications", group: "System & Security" },
       { href: "/settings/backup",          icon: Database,     label: "Backup & Recovery", group: "System & Security" },
