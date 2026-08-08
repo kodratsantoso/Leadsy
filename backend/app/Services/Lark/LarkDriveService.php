@@ -187,7 +187,8 @@ class LarkDriveService extends LarkService
 
             // Divider block for visual polish
             $children[] = [
-                'block_type' => 22 // Divider
+                'block_type' => 22, // Divider
+                'divider' => new \stdClass()
             ];
         }
 
