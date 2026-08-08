@@ -31,7 +31,7 @@ services:
           - "leadsy-redis-${COOLIFY_RESOURCE_UUID:-local}"
     restart: always
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD-SHELL", "redis-cli ping || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
