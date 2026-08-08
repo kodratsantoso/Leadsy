@@ -134,45 +134,75 @@ class LarkService
 
             $url = $this->baseUrl.'/'.ltrim($endpoint, '/');
 
-            $pending = Http::withHeaders([
-                'Authorization' => 'Bearer '.$this->accessToken,
-                'Content-Type' => 'application/json; charset=utf-8',
-            ]);
+            $maxRetries = 3;
+            $retryDelay = 1.0; // base delay in seconds
 
-            if (!empty($query)) {
-                $url .= (parse_url($url, PHP_URL_QUERY) ? '&' : '?') . http_build_query($query);
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                try {
+                    $pending = Http::withHeaders([
+                        'Authorization' => 'Bearer '.$this->accessToken,
+                        'Content-Type' => 'application/json; charset=utf-8',
+                    ]);
+
+                    if (!empty($query)) {
+                        $urlWithQuery = $url . (parse_url($url, PHP_URL_QUERY) ? '&' : '?') . http_build_query($query);
+                    } else {
+                        $urlWithQuery = $url;
+                    }
+
+                    if ($method === 'GET') {
+                        $response = $pending->get($urlWithQuery);
+                    } elseif ($method === 'POST') {
+                        $response = $pending->post($urlWithQuery, empty($data) ? new \stdClass() : $data);
+                    } elseif ($method === 'PUT') {
+                        $response = $pending->put($urlWithQuery, empty($data) ? new \stdClass() : $data);
+                    } elseif ($method === 'DELETE') {
+                        $response = $pending->delete($urlWithQuery);
+                    } else {
+                        throw new Exception('Unsupported Lark API method: '.$method);
+                    }
+
+                    if (! $response->successful()) {
+                        throw new Exception('Lark API error: '.$response->body());
+                    }
+
+                    $result = $response->json();
+
+                    if (($result['code'] ?? 1) !== 0) {
+                        $errCode = $result['code'] ?? 1;
+                        $errMsg = $result['msg'] ?? 'Unknown error';
+                        
+                        // If it's a transient RpcError (code 1255002) or contains RpcError message, retry unless max retries reached
+                        if (($errCode === 1255002 || stripos($errMsg, 'RpcError') !== false) && $attempt < $maxRetries) {
+                            Log::warning("Lark API returned RpcError (attempt {$attempt}/{$maxRetries}). Retrying in {$retryDelay}s...");
+                            usleep((int)($retryDelay * 1000000));
+                            $retryDelay *= 2.0; // Exponential backoff
+                            continue;
+                        }
+                        
+                        throw new Exception('Lark API returned error: '.$errMsg);
+                    }
+
+                    return $result['data'] ?? $result;
+
+                } catch (Exception $e) {
+                    $isRpcError = (stripos($e->getMessage(), 'RpcError') !== false || stripos($e->getMessage(), '1255002') !== false);
+                    if ($isRpcError && $attempt < $maxRetries) {
+                        Log::warning("Lark API request failed with RpcError (attempt {$attempt}/{$maxRetries}). Retrying in {$retryDelay}s... Error: " . $e->getMessage());
+                        usleep((int)($retryDelay * 1000000));
+                        $retryDelay *= 2.0;
+                        continue;
+                    }
+                    Log::error('Lark API request failed', [
+                        'method' => $method,
+                        'endpoint' => $endpoint,
+                        'error' => $e->getMessage(),
+                    ]);
+                    throw $e;
+                }
             }
-
-            if ($method === 'GET') {
-                $response = $pending->get($url); // query already appended
-            } elseif ($method === 'POST') {
-                $response = $pending->post($url, empty($data) ? new \stdClass() : $data);
-            } elseif ($method === 'PUT') {
-                $response = $pending->put($url, empty($data) ? new \stdClass() : $data);
-            } elseif ($method === 'DELETE') {
-                $response = $pending->delete($url);
-            } else {
-                throw new Exception('Unsupported Lark API method: '.$method);
-            }
-
-            if (! $response->successful()) {
-                throw new Exception('Lark API error: '.$response->body());
-            }
-
-            $result = $response->json();
-
-            if (($result['code'] ?? 1) !== 0) {
-                throw new Exception('Lark API returned error: '.($result['msg'] ?? 'Unknown error'));
-            }
-
-            return $result['data'] ?? $result;
-        } catch (Exception $e) {
-            Log::error('Lark API request failed', [
-                'method' => $method,
-                'endpoint' => $endpoint,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
+        } catch (Exception $ex) {
+            throw $ex;
         }
     }
 
