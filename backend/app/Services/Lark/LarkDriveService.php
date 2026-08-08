@@ -80,10 +80,12 @@ class LarkDriveService extends LarkService
      */
     public function createDoc(string $folderToken, string $title): array
     {
-        $response = $this->request('POST', '/docx/v1/documents', [
-            'folder_token' => $folderToken,
-            'title' => $title
-        ]);
+        $response = $this->request(
+            'POST', 
+            '/docx/v1/documents', 
+            ['title' => $title], 
+            ['folder_token' => $folderToken]
+        );
 
         $docId = $response['document']['document_id'] ?? $response['data']['document']['document_id'] ?? null;
         if (empty($docId)) {
