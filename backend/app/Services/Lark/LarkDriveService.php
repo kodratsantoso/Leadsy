@@ -196,10 +196,13 @@ class LarkDriveService extends LarkService
             return;
         }
 
-        // Add blocks using block creation API
-        $this->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children", [
-            'children' => $children,
-            'index' => -1
-        ]);
+        // Chunk children blocks into batches of max 50 to satisfy Lark API constraints
+        $chunks = array_chunk($children, 50);
+        foreach ($chunks as $chunk) {
+            $this->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children", [
+                'children' => $chunk,
+                'index' => -1
+            ]);
+        }
     }
 }
