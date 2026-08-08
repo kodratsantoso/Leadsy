@@ -424,12 +424,24 @@ export function MeetingSummaryReport({ transcript, lead }: { transcript: any, le
                     <h3 className="font-bold text-slate-800 uppercase tracking-tight text-xs">{card.title}</h3>
                   </div>
                   <ul className="space-y-3">
-                    {(card.data || []).map((pt: string, i: number) => (
-                      <li key={i} className="flex gap-2 text-xs text-slate-600 leading-relaxed">
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${card.color}`}></span>
-                        {pt}
-                      </li>
-                    ))}
+                    {(card.data || []).map((pt: any, i: number) => {
+                      let textToShow = '';
+                      if (pt && typeof pt === 'object') {
+                        if (pt.use_case) {
+                          textToShow = `${pt.use_case} (${pt.priority || 'Medium'}): ${pt.description || ''}`;
+                        } else {
+                          textToShow = JSON.stringify(pt);
+                        }
+                      } else {
+                        textToShow = String(pt || '');
+                      }
+                      return (
+                        <li key={i} className="flex gap-2 text-xs text-slate-600 leading-relaxed">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${card.color}`}></span>
+                          {textToShow}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </CardContent>
               </Card>

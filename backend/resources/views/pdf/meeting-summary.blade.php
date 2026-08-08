@@ -137,10 +137,21 @@
     @php
         $formatVal = function($val) {
             if (is_array($val)) {
-                $mapped = array_map(function($item) {
-                    return is_scalar($item) ? (string)$item : json_encode($item);
-                }, $val);
-                return implode(', ', $mapped);
+                if (isset($val['use_case'])) {
+                    return $val['use_case'] . ' (' . ($val['priority'] ?? 'Medium') . '): ' . ($val['description'] ?? '');
+                }
+                return implode(', ', array_map(fn($item) => is_scalar($item) ? (string)$item : json_encode($item), $val));
+            }
+            if (is_string($val) && (str_starts_with($val, '[') || str_starts_with($val, '{'))) {
+                $decoded = json_decode($val, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    if (isset($decoded['use_case'])) {
+                        return $decoded['use_case'] . ' (' . ($decoded['priority'] ?? 'Medium') . '): ' . ($decoded['description'] ?? '');
+                    }
+                    if (is_array($decoded)) {
+                        return implode(', ', array_map(fn($item) => is_scalar($item) ? (string)$item : json_encode($item), $decoded));
+                    }
+                }
             }
             return is_scalar($val) ? (string)$val : json_encode($val);
         };
