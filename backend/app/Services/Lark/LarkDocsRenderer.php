@@ -320,7 +320,7 @@ class LarkDocsRenderer
         $children[] = [
             'block_type' => 19, // Callout
             'callout' => [
-                'emoji_id' => '💡',
+                'emoji_id' => 'bulb',
                 'background_color' => 5, // Light Blue
                 'border_color' => 5,
                 'text_color' => 5
