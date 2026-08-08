@@ -210,65 +210,60 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                     throw new Exception("Meeting Summary Lark Docs mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
                 }
 
-                $docUrl = $transcript->lark_doc_url;
-                $docId = $transcript->lark_doc_id;
-
-                if (empty($docUrl) || empty($docId)) {
-                    // Create native Lark Doc inside Lead folder
-                    $docTitle = "Meeting Summary - {$transcript->meeting_type} - " . date('Y-m-d');
-                    $docData = $larkDriveService->createDoc($folderToken, $docTitle);
-                    $docId = $docData['document_id'];
-                    $docUrl = $docData['url'];
-
-                    // Compile document sections
-                    $sections = [];
-                    if (!empty($transcript->general_sections_json)) {
-                        foreach ($transcript->general_sections_json as $key => $val) {
-                            $title = ucwords(str_replace('_', ' ', $key));
-                            $content = '';
-                            if (is_array($val)) {
-                                if (isset($val['positive']) || isset($val['neutral']) || isset($val['negative'])) {
-                                    $content = "Positive: " . ($val['positive'] ?? 0) . "%, Neutral: " . ($val['neutral'] ?? 0) . "%, Negative: " . ($val['negative'] ?? 0) . "%";
-                                } else {
-                                    $content = implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val));
-                                }
-                            } else {
-                                $content = (string)$val;
-                            }
-                            $sections[] = [
-                                'title' => $title,
-                                'content' => $content
-                            ];
-                        }
-                    }
-                    if (!empty($transcript->meeting_type_sections_json)) {
-                        foreach ($transcript->meeting_type_sections_json as $key => $val) {
-                            $title = ucwords(str_replace('_', ' ', $key));
-                            $content = is_array($val) ? implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val)) : (string)$val;
-                            $sections[] = [
-                                'title' => $title,
-                                'content' => $content
-                            ];
-                        }
-                    }
-                    if (!empty($transcript->conclusion_section_json)) {
-                        foreach ($transcript->conclusion_section_json as $key => $val) {
-                            $title = ucwords(str_replace('_', ' ', $key));
-                            $content = is_array($val) ? implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val)) : (string)$val;
-                            $sections[] = [
-                                'title' => $title,
-                                'content' => $content
-                            ];
-                        }
-                    }
-
-                    $larkDriveService->writeDocContent($docId, $sections);
-
-                    // Update transcript URLs
-                    $transcript->lark_doc_url = $docUrl;
-                    $transcript->lark_doc_id = $docId;
-                    $transcript->save();
-                }
+                 // Always create or overwrite Lark Doc content
+                 $docTitle = "Meeting Summary - {$transcript->meeting_type} - " . date('Y-m-d');
+                 $docData = $larkDriveService->createDoc($folderToken, $docTitle);
+                 $docId = $docData['document_id'];
+                 $docUrl = $docData['url'];
+ 
+                 // Compile document sections
+                 $sections = [];
+                 if (!empty($transcript->general_sections_json)) {
+                     foreach ($transcript->general_sections_json as $key => $val) {
+                         $title = ucwords(str_replace('_', ' ', $key));
+                         $content = '';
+                         if (is_array($val)) {
+                             if (isset($val['positive']) || isset($val['neutral']) || isset($val['negative'])) {
+                                 $content = "Positive: " . ($val['positive'] ?? 0) . "%, Neutral: " . ($val['neutral'] ?? 0) . "%, Negative: " . ($val['negative'] ?? 0) . "%";
+                             } else {
+                                 $content = implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val));
+                             }
+                         } else {
+                             $content = (string)$val;
+                         }
+                         $sections[] = [
+                             'title' => $title,
+                             'content' => $content
+                         ];
+                     }
+                 }
+                 if (!empty($transcript->meeting_type_sections_json)) {
+                     foreach ($transcript->meeting_type_sections_json as $key => $val) {
+                         $title = ucwords(str_replace('_', ' ', $key));
+                         $content = is_array($val) ? implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val)) : (string)$val;
+                         $sections[] = [
+                             'title' => $title,
+                             'content' => $content
+                         ];
+                     }
+                 }
+                 if (!empty($transcript->conclusion_section_json)) {
+                     foreach ($transcript->conclusion_section_json as $key => $val) {
+                         $title = ucwords(str_replace('_', ' ', $key));
+                         $content = is_array($val) ? implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val)) : (string)$val;
+                         $sections[] = [
+                             'title' => $title,
+                             'content' => $content
+                         ];
+                     }
+                 }
+ 
+                 $larkDriveService->writeDocContent($docId, $sections);
+ 
+                 // Update transcript URLs
+                 $transcript->lark_doc_url = $docUrl;
+                 $transcript->lark_doc_id = $docId;
+                 $transcript->save();
 
                 // If Bitable field is type 15 (Url), format payload, otherwise write text
                 if ((int)($targetField['type'] ?? 0) === 15) {
