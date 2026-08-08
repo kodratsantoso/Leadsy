@@ -321,14 +321,9 @@ class LarkDocsRenderer
             'block_type' => 19, // Callout
             'callout' => [
                 'emoji_id' => '💡',
-                'elements' => [
-                    [
-                        'type' => 'text',
-                        'text_run' => [
-                            'content' => "CONCLUSION\n" . $conclusionText
-                        ]
-                    ]
-                ]
+                'background_color' => 5, // Light Blue
+                'border_color' => 5,
+                'text_color' => 5
             ]
         ];
 
@@ -483,6 +478,39 @@ class LarkDocsRenderer
                     ],
                     'index' => -1
                 ]);
+            }
+        }
+
+        // Populate Callout block: Conclusion
+        foreach ($blocksList as $b) {
+            if (($b['block_type'] ?? null) === 19) { // Callout
+                $calloutBlockId = $b['block_id'];
+                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$calloutBlockId}/children", [
+                    'children' => [
+                        [
+                            'block_type' => 2,
+                            'text' => [
+                                'elements' => [
+                                    [
+                                        'type' => 'text',
+                                        'text_run' => [
+                                            'content' => "CONCLUSION\n",
+                                            'text_element_style' => ['bold' => true, 'text_color' => 5]
+                                        ]
+                                    ],
+                                    [
+                                        'type' => 'text',
+                                        'text_run' => [
+                                            'content' => $conclusionText
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'index' => -1
+                ]);
+                break;
             }
         }
     }
