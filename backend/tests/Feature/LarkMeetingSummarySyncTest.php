@@ -87,6 +87,31 @@ class LarkMeetingSummarySyncTest extends TestCase
             '*/docx/v1/documents/lark-docx-id-777/blocks/lark-docx-id-777/children' => Http::response([
                 'code' => 0
             ]),
+            '*/docx/v1/documents/lark-docx-id-777/blocks/*/children' => Http::response([
+                'code' => 0
+            ]),
+            '*/docx/v1/documents/lark-docx-id-777/blocks' => Http::response([
+                'code' => 0,
+                'data' => [
+                    'blocks' => [
+                        [
+                            'block_id' => 'tbl-1',
+                            'block_type' => 31,
+                            'children' => ['cell-1', 'cell-2', 'cell-3', 'cell-4', 'cell-5', 'cell-6']
+                        ],
+                        [
+                            'block_id' => 'tbl-2',
+                            'block_type' => 31,
+                            'children' => ['cell-a', 'cell-b', 'cell-c', 'cell-d']
+                        ],
+                        [
+                            'block_id' => 'tbl-3',
+                            'block_type' => 31,
+                            'children' => ['cell-x', 'cell-y', 'cell-z']
+                        ]
+                    ]
+                ]
+            ]),
             '*/bitable/v1/apps/app-token/tables/table-id/records/rec-leadsy-123' => Http::response([
                 'code' => 0
             ])
