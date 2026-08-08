@@ -16,7 +16,7 @@ import {
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown
+  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, Link as LinkIcon
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -3664,9 +3664,81 @@ export default function LeadDetailPage() {
                                 : <RefreshCw className="h-3 w-3" />}
                               {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' ? 'Analysing...' : 'Re-analyse'}
                             </Button>
-                            <Button variant="ghost" size="xs" onClick={() => setExpandedEvalId(isExpanded ? null : tr.id)}>
-                              {isExpanded ? 'Hide' : 'View'} Analysis
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => setExpandedEvalId(isExpanded ? null : tr.id)}
+                            >
+                              <span className="flex items-center gap-1">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                {isExpanded ? 'Hide' : 'View'} Image Analysis
+                              </span>
                             </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  const res = await apiFetch(`/transcripts/${tr.id}/meeting-summary/download`);
+                                  if (!res.ok) {
+                                    const err = await res.json().catch(() => ({}));
+                                    alert(err.message || 'Failed to download PDF. Please ensure it has been generated.');
+                                    return;
+                                  }
+                                  const blob = await res.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  let filename = 'meeting-summary.pdf';
+                                  const disposition = res.headers.get('Content-Disposition');
+                                  if (disposition && disposition.indexOf('attachment') !== -1) {
+                                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                                    if (matches != null && matches[1]) {
+                                      filename = matches[1].replace(/['"]/g, '');
+                                    }
+                                  }
+                                  a.download = filename;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  a.remove();
+                                  window.URL.revokeObjectURL(url);
+                                } catch (error) {
+                                  alert('Error downloading PDF');
+                                }
+                              }}
+                            >
+                              <span className="flex items-center gap-1 text-red-500 hover:text-red-600">
+                                <FileDown className="h-3.5 w-3.5" />
+                                View PDF Analysis
+                              </span>
+                            </Button>
+
+                            {tr.lark_doc_url ? (
+                              <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={() => window.open(tr.lark_doc_url, '_blank')}
+                              >
+                                <span className="flex items-center gap-1 text-blue-500 hover:text-blue-600">
+                                  <LinkIcon className="h-3.5 w-3.5" />
+                                  View Lark Docs Link
+                                </span>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="xs"
+                                disabled
+                                title="Lark Doc has not been created or synced yet"
+                              >
+                                <span className="flex items-center gap-1 text-muted-foreground opacity-60">
+                                  <LinkIcon className="h-3.5 w-3.5" />
+                                  Lark Docs (Not Synced)
+                                </span>
+                              </Button>
+                            )}
                           </>
                         )}
                         <button
