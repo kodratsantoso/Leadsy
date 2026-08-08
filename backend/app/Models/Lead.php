@@ -32,6 +32,13 @@ class Lead extends Model
         'lark_base_id', 'lark_table_id',
         'budget', 'authority', 'needs', 'timeline', 'competitor',
         'enrichment_status', 'last_enriched_at', 'enrichment_metadata',
+        'general_meeting_summary', 'general_meeting_attachment_id',
+        'discovery_meeting_summary', 'discovery_meeting_attachment_id',
+        'demo_meeting_summary', 'demo_meeting_attachment_id',
+        'follow_up_meeting_summary', 'follow_up_meeting_attachment_id',
+        'proposal_discussion_summary', 'proposal_discussion_attachment_id',
+        'closing_discussion_summary', 'closing_discussion_attachment_id',
+        'handover_to_csm_summary', 'handover_to_csm_attachment_id',
     ];
 
     protected $casts = [
@@ -45,6 +52,13 @@ class Lead extends Model
         'branch_count' => 'integer',
         'last_enriched_at' => 'datetime',
         'enrichment_metadata' => 'array',
+        'general_meeting_summary' => 'array',
+        'discovery_meeting_summary' => 'array',
+        'demo_meeting_summary' => 'array',
+        'follow_up_meeting_summary' => 'array',
+        'proposal_discussion_summary' => 'array',
+        'closing_discussion_summary' => 'array',
+        'handover_to_csm_summary' => 'array',
     ];
 
     /* ── Relationships ── */

@@ -39,7 +39,7 @@ class AnalyzeTranscriptJob implements ShouldQueue
             return;
         }
 
-        $transcript->update(['evaluation_status' => 'analyzing']);
+        $transcript->update(['evaluation_status' => 'pending']);
         
         try {
             $summaryService->generate($transcript);

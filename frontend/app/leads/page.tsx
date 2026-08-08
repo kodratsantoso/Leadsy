@@ -55,6 +55,7 @@ import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
 import { CreateNewModal } from "@/components/ui/CreateNewModal";
 import { EditLeadModal } from "@/components/leads/EditLeadModal";
+import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
 
 type LeadRecord = {
   id: number;
@@ -674,6 +675,8 @@ export default function LeadsPage() {
   const [formError, setFormError] = useState("");
   const [formState, setFormState] = useState<LeadFormState>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
+  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed">("idle");
+  const [profilingData, setProfilingData] = useState<any>(null);
   const [locationSearch, setLocationSearch] = useState("");
   const [locationFeedback, setLocationFeedback] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState("");
@@ -1155,6 +1158,10 @@ export default function LeadsPage() {
 
   const submitCreate = () => {
     setFormError("");
+    if (!formState.company_name.trim()) {
+      setFormError("Company Name is required.");
+      return;
+    }
     const website = normalizeWebsiteInput(formState.website);
 
     createMutation.mutate({
@@ -2253,7 +2260,7 @@ export default function LeadsPage() {
             </Button>
             <Button
               onClick={submitCreate}
-              disabled={createMutation.isPending || !formState.company_name.trim()}
+              disabled={createMutation.isPending}
             >
               {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Create Lead
@@ -2269,12 +2276,88 @@ export default function LeadsPage() {
           ) : null}
           <div className="grid gap-2">
             <label className="text-sm font-medium">Company Name <span className="text-destructive">*</span></label>
-            <Input
-              value={formState.company_name}
-              onChange={(e) => setFormState((s) => ({ ...s, company_name: e.target.value }))}
-              placeholder="e.g. PT Artha Solusi Global"
-            />
+            <div className="flex gap-2">
+              <Input
+                value={formState.company_name}
+                onChange={(e) => setFormState((s) => ({ ...s, company_name: e.target.value }))}
+                placeholder="e.g. PT Artha Solusi Global"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={profilingStatus === "researching" || !formState.company_name.trim()}
+                onClick={async () => {
+                  setProfilingStatus("researching");
+                  setProfilingData(null);
+                  try {
+                    const res = await apiFetch("/leads/ai-profiling/start", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ company_name: formState.company_name.trim() }),
+                    });
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                      let currentData = json.data;
+                      // Poll status
+                      const interval = setInterval(async () => {
+                        const statusRes = await apiFetch(`/leads/ai-profiling/${currentData.id}/status`);
+                        const statusJson = await statusRes.json();
+                        if (statusJson.success && statusJson.data) {
+                          currentData = statusJson.data;
+                          if (currentData.status === "ready_for_review") {
+                            clearInterval(interval);
+                            setProfilingStatus("ready_for_review");
+                            setProfilingData(currentData.current_output_json);
+                          } else if (currentData.status === "failed") {
+                            clearInterval(interval);
+                            setProfilingStatus("failed");
+                          }
+                        } else {
+                          clearInterval(interval);
+                          setProfilingStatus("failed");
+                        }
+                      }, 2000);
+                    } else {
+                      setProfilingStatus("failed");
+                    }
+                  } catch {
+                    setProfilingStatus("failed");
+                  }
+                }}
+              >
+                {profilingStatus === "researching" && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                AI Profiling Start
+              </Button>
+            </div>
           </div>
+          <AiProfilingPanel
+            status={profilingStatus}
+            data={profilingData}
+            onClose={() => {
+              setProfilingStatus("idle");
+              setProfilingData(null);
+            }}
+            onApply={(pData: any) => {
+              setFormState((s) => ({
+                ...s,
+                company_name: pData.company_name || s.company_name,
+                brand: pData.brand || s.brand,
+                address: pData.address || s.address,
+                phone: pData.phone || s.phone,
+                email: pData.email || s.email,
+                website: pData.website || s.website,
+                lat: pData.lat ? String(pData.lat) : s.lat,
+                lng: pData.lng ? String(pData.lng) : s.lng,
+                industry_id: pData.industry_id ? String(pData.industry_id) : s.industry_id,
+                sub_industry_id: pData.sub_industry_id ? String(pData.sub_industry_id) : s.sub_industry_id,
+                business_category_id: pData.business_category_id ? String(pData.business_category_id) : s.business_category_id,
+                company_size_estimate: pData.company_size || s.company_size_estimate,
+              }));
+              setProfilingStatus("idle");
+              setProfilingData(null);
+            }}
+          />
           <div className="grid gap-2">
             <label className="text-sm font-medium">Brand</label>
             <Input

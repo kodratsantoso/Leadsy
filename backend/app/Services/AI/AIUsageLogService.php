@@ -8,8 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class AIUsageLogService
 {
-    public function usageOverview(string $period = 'last_30_days'): array
+    public function usageOverview(string|array $filters = 'last_30_days'): array
     {
+        $period = is_array($filters) ? ($filters['period'] ?? 'last_30_days') : $filters;
+        $startDateParam = is_array($filters) ? ($filters['start_date'] ?? null) : null;
+        $endDateParam = is_array($filters) ? ($filters['end_date'] ?? null) : null;
+        $featureFilter = is_array($filters) ? ($filters['feature_name'] ?? null) : null;
+
         $perProviderQuery = DB::table('ai_requests')
             ->join('ai_models', 'ai_requests.ai_model_id', '=', 'ai_models.id')
             ->join('ai_providers', 'ai_models.ai_provider_id', '=', 'ai_providers.id')
@@ -37,28 +42,46 @@ class AIUsageLogService
 
         $now = now();
         $startDate = null;
+        $endDate = null;
 
-        switch ($period) {
-            case 'today':
-                $startDate = $now->copy()->startOfDay();
-                break;
-            case 'last_7_days':
-                $startDate = $now->copy()->subDays(7)->startOfDay();
-                break;
-            case 'last_30_days':
-                $startDate = $now->copy()->subDays(30)->startOfDay();
-                break;
-            case 'last_90_days':
-                $startDate = $now->copy()->subDays(90)->startOfDay();
-                break;
-            case 'this_year':
-                $startDate = $now->copy()->startOfYear();
-                break;
+        if ($startDateParam) {
+            $startDate = \Carbon\Carbon::parse($startDateParam)->startOfDay();
+        }
+        if ($endDateParam) {
+            $endDate = \Carbon\Carbon::parse($endDateParam)->endOfDay();
+        }
+
+        if (!$startDate && !$endDate) {
+            switch ($period) {
+                case 'today':
+                    $startDate = $now->copy()->startOfDay();
+                    break;
+                case 'last_7_days':
+                    $startDate = $now->copy()->subDays(7)->startOfDay();
+                    break;
+                case 'last_30_days':
+                    $startDate = $now->copy()->subDays(30)->startOfDay();
+                    break;
+                case 'last_90_days':
+                    $startDate = $now->copy()->subDays(90)->startOfDay();
+                    break;
+                case 'this_year':
+                    $startDate = $now->copy()->startOfYear();
+                    break;
+            }
         }
 
         if ($startDate) {
             $perProviderQuery->where('ai_requests.created_at', '>=', $startDate);
             $timelineQuery->where('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $perProviderQuery->where('ai_requests.created_at', '<=', $endDate);
+            $timelineQuery->where('created_at', '<=', $endDate);
+        }
+        if ($featureFilter) {
+            $perProviderQuery->where('ai_requests.function_name', $featureFilter);
+            $timelineQuery->where('ai_requests.function_name', $featureFilter);
         }
 
         $perProvider = $perProviderQuery->get();
@@ -85,11 +108,16 @@ class AIUsageLogService
         // If USD is not the user's active currency, we need to convert it.
         if ($usdCurrency && $userCurrency && $usdCurrency->code !== $userCurrency->code) {
             $isConverted = true;
-            $amountInBasePerUsd = (float) $usdCurrency->exchange_rate;
-            $amountInBasePerTarget = (float) $userCurrency->exchange_rate;
+            // The database exchange_rate column represents: How many units of base currency (e.g. IDR) is 1 unit of this currency.
+            // So: $usdCurrency->exchange_rate is IDR per 1 USD (approx 16000 IDR).
+            // $userCurrency->exchange_rate is IDR per 1 target currency.
+            // Thus, to convert USD to Target Currency: 
+            // TargetAmount = UsdAmount * (IDR per USD) / (IDR per Target)
+            $idrPerUsd = (float) $usdCurrency->exchange_rate;
+            $idrPerTarget = (float) $userCurrency->exchange_rate;
             
-            if ($amountInBasePerTarget > 0) {
-                $exchangeRateToUserCurrency = $amountInBasePerUsd / $amountInBasePerTarget;
+            if ($idrPerTarget > 0) {
+                $exchangeRateToUserCurrency = $idrPerUsd / $idrPerTarget;
             }
         }
 
@@ -126,6 +154,28 @@ class AIUsageLogService
                 'total_cost_usd' => round((float) $row->total_cost_usd, 4),
                 'total_cost_converted' => round((float) $row->total_cost_usd * $exchangeRateToUserCurrency, 4),
             ])->values()->all(),
+            'recent_logs' => AiRequest::with('aiModel.provider')
+                ->latest()
+                ->when($startDate, fn($q) => $q->where('created_at', '>=', $startDate))
+                ->when($endDate, fn($q) => $q->where('created_at', '<=', $endDate))
+                ->when($featureFilter, fn($q) => $q->where('function_name', $featureFilter))
+                ->limit(50)
+                ->get()
+                ->map(fn($req) => [
+                    'id' => $req->id,
+                    'function_name' => $req->function_name,
+                    'model_name' => $req->aiModel?->name ?? 'Unknown',
+                    'provider_name' => $req->aiModel?->provider?->name ?? 'Unknown',
+                    'prompt_tokens' => $req->prompt_tokens ?? 0,
+                    'completion_tokens' => $req->completion_tokens ?? 0,
+                    'total_tokens' => ($req->prompt_tokens ?? 0) + ($req->completion_tokens ?? 0),
+                    'cost_usd' => round($req->estimated_cost_usd, 5),
+                    'cost_converted' => round($req->estimated_cost_usd * $exchangeRateToUserCurrency, 4),
+                    'latency_ms' => $req->latency_ms,
+                    'status' => $req->status,
+                    'error_message' => $req->error_message,
+                    'created_at' => $req->created_at->toIso8601String(),
+                ])->values()->all(),
         ];
     }
 

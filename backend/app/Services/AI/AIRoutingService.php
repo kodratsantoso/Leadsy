@@ -41,6 +41,8 @@ class AIRoutingService
         'lead_initial_requalification' => 'Lead Initial Re-qualification',
         'lead_initial_icp_match' => 'Lead Initial ICP Match',
         'lead_enrichment_summary' => 'Lead Enrichment Summary',
+        'lead_ai_profiling' => 'Lead AI Company Profiling',
+        'meeting_summary' => 'Meeting Summary Generation',
     ];
 
     public function listRoutes(): Collection

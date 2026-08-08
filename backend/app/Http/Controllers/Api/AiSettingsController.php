@@ -38,7 +38,12 @@ class AiSettingsController extends Controller
                 'feature_catalog' => $this->routing->featureCatalog(),
                 'feature_routes' => $this->groupRoutes($this->routing->listRoutes()),
                 'prompt_templates' => $this->serialiseTemplates(),
-                'usage_overview' => $this->usage->usageOverview($period),
+                'usage_overview' => $this->usage->usageOverview([
+                    'period' => $request->query('period', 'last_30_days'),
+                    'start_date' => $request->query('start_date'),
+                    'end_date' => $request->query('end_date'),
+                    'feature_name' => $request->query('feature_name'),
+                ]),
                 'provider_health' => $this->usage->providersHealth(),
                 'permissions' => [
                     'can_manage_ai' => true,

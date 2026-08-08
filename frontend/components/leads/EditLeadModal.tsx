@@ -13,6 +13,7 @@ import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
 
 export function EditLeadModal({
   lead,
@@ -49,6 +50,9 @@ export function EditLeadModal({
   const [locationSearch, setLocationSearch] = useState("");
   const [locationFeedback, setLocationFeedback] = useState("");
   const [locationCenter, setLocationCenter] = useState({ lat: -6.2088, lng: 106.8456 });
+  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed">("idle");
+  const [profilingData, setProfilingData] = useState<any>(null);
+  const [validationError, setValidationError] = useState<string>("");
 
   // Parent lead search
   const [parentLeadSearch, setParentLeadSearch] = useState(lead?.parent_lead?.name || "");
@@ -178,6 +182,11 @@ export function EditLeadModal({
   });
 
   const submitCompanyInfo = () => {
+    setValidationError("");
+    if (!companyForm.company_name.trim()) {
+      setValidationError("Company Name is required.");
+      return;
+    }
     updateLeadMutation.mutate({
       company_name: companyForm.company_name.trim(),
       brand: companyForm.brand.trim() || null,
@@ -188,7 +197,7 @@ export function EditLeadModal({
       sub_industry_id: companyForm.sub_industry_id ? Number(companyForm.sub_industry_id) : null,
       phone: companyForm.phone.trim() || null,
       email: companyForm.email.trim() || null,
-      website: companyForm.website.trim() || null,
+      website: companyForm.website.trim() ? (companyForm.website.trim().startsWith('http') ? companyForm.website.trim() : `https://${companyForm.website.trim()}`) : null,
       company_size_estimate: companyForm.company_size_estimate || null,
       business_category_id: companyForm.business_category_id || null,
       product_id: companyForm.product_id ? Number(companyForm.product_id) : null,
@@ -248,7 +257,7 @@ export function EditLeadModal({
             </Button>
             <Button
               onClick={submitCompanyInfo}
-              disabled={updateLeadMutation.isPending || !companyForm.company_name.trim()}
+              disabled={updateLeadMutation.isPending}
             >
               {updateLeadMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />}
               Save Changes
@@ -258,25 +267,105 @@ export function EditLeadModal({
       >
         <div className="space-y-6">
           {updateLeadMutation.isError && (
-            <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left">
+            <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left w-full">
               {updateLeadMutation.error?.message}
+            </Badge>
+          )}
+          {validationError && (
+            <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left w-full">
+              {validationError}
             </Badge>
           )}
           
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">1. Company & Attributes</p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-1">
+              <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   Company Name <span className="text-[var(--status-danger)]">*</span>
                 </label>
-                <Input
-                  value={companyForm.company_name}
-                  onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
-                  placeholder="e.g. PT. Asahimas Flat Glass"
+                <div className="flex gap-2">
+                  <Input
+                    value={companyForm.company_name}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, company_name: e.target.value }))}
+                    placeholder="e.g. PT. Asahimas Flat Glass"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={profilingStatus === "researching" || !companyForm.company_name.trim()}
+                    onClick={async () => {
+                      setProfilingStatus("researching");
+                      setProfilingData(null);
+                      try {
+                        const res = await apiFetch("/leads/ai-profiling/start", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ company_name: companyForm.company_name.trim() }),
+                        });
+                        const json = await res.json();
+                        if (json.success && json.data) {
+                          let currentData = json.data;
+                          const interval = setInterval(async () => {
+                            const statusRes = await apiFetch(`/leads/ai-profiling/${currentData.id}/status`);
+                            const statusJson = await statusRes.json();
+                            if (statusJson.success && statusJson.data) {
+                              currentData = statusJson.data;
+                              if (currentData.status === "ready_for_review") {
+                                clearInterval(interval);
+                                setProfilingStatus("ready_for_review");
+                                setProfilingData(currentData.current_output_json);
+                              } else if (currentData.status === "failed") {
+                                clearInterval(interval);
+                                setProfilingStatus("failed");
+                              }
+                            } else {
+                              clearInterval(interval);
+                              setProfilingStatus("failed");
+                            }
+                          }, 2000);
+                        } else {
+                          setProfilingStatus("failed");
+                        }
+                      } catch {
+                        setProfilingStatus("failed");
+                      }
+                    }}
+                  >
+                    {profilingStatus === "researching" && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                    AI Profiling Start
+                  </Button>
+                </div>
+                <AiProfilingPanel
+                  status={profilingStatus}
+                  data={profilingData}
+                  onClose={() => {
+                    setProfilingStatus("idle");
+                    setProfilingData(null);
+                  }}
+                  onApply={(pData: any) => {
+                    setCompanyForm((f) => ({
+                      ...f,
+                      company_name: pData.company_name || f.company_name,
+                      brand: pData.brand || f.brand,
+                      address: pData.address || f.address,
+                      phone: pData.phone || f.phone,
+                      email: pData.email || f.email,
+                      website: pData.website || f.website,
+                      lat: pData.lat ? String(pData.lat) : f.lat,
+                      lng: pData.lng ? String(pData.lng) : f.lng,
+                      industry_id: pData.industry_id ? String(pData.industry_id) : f.industry_id,
+                      sub_industry_id: pData.sub_industry_id ? String(pData.sub_industry_id) : f.sub_industry_id,
+                      business_category_id: pData.business_category_id ? String(pData.business_category_id) : f.business_category_id,
+                      company_size_estimate: pData.company_size || f.company_size_estimate,
+                    }));
+                    setProfilingStatus("idle");
+                    setProfilingData(null);
+                  }}
                 />
               </div>
-              <div className="sm:col-span-1">
+              <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   Brand
                 </label>

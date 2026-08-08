@@ -99,9 +99,38 @@ class SyncMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
             }
             
             $fieldMapping = $baseTable->field_mapping ?: LarkBaseService::DEFAULT_LEAD_FIELD_MAPPING;
-            $mappedFieldName = $fieldMapping['meeting_summary_attachment'] ?? 'Meeting Summary Attachment';
-            $fieldId = null;
             
+            // Map meeting type to the correct field key
+            $meetingType = $transcript->meeting_type ?: 'General';
+            $typeFieldKey = match (strtolower(str_replace([' ', '-'], '_', $meetingType))) {
+                'discovery' => 'discovery_meeting_attachment',
+                'demo' => 'demo_meeting_attachment',
+                'follow_up' => 'follow_up_meeting_attachment',
+                'proposal_discussion' => 'proposal_discussion_attachment',
+                'closing_discussion' => 'closing_discussion_attachment',
+                'handover_to_csm' => 'handover_to_csm_attachment',
+                default => 'general_meeting_attachment'
+            };
+            
+            $mappedFieldName = $fieldMapping[$typeFieldKey] ?? null;
+
+            if (!$mappedFieldName) {
+                // If the user hasn't mapped this specific attachment type, we can skip or log.
+                Log::warning('Lark Base Upload skipped: Attachment field mapping not set for meeting type', [
+                    'meeting_type' => $meetingType,
+                    'type_field_key' => $typeFieldKey,
+                    'table_id' => $baseTable->table_id
+                ]);
+                
+                DB::table('lark_base_sync_jobs')->where('id', $syncJobId)->update([
+                    'status' => 'skipped',
+                    'error_message' => 'Mapping not configured for ' . $meetingType . ' attachment.',
+                    'updated_at' => now(),
+                ]);
+                return;
+            }
+
+            $fieldId = null;
             foreach ($fieldDefinitions as $fieldDef) {
                 if ($fieldDef['field_name'] === $mappedFieldName) {
                     $fieldId = $fieldDef['field_id'];
@@ -123,13 +152,35 @@ class SyncMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
                 return;
             }
 
-            // Update the record with the attachment token
+            // Fetch existing record to get current attachments
+            $existingAttachments = [];
+            try {
+                $existingRecord = $larkBaseService->getRecord($baseTable->app_token, $baseTable->table_id, $larkRecordId);
+                $existingAttachments = $existingRecord['record']['fields'][$mappedFieldName] ?? [];
+            } catch (Exception $e) {
+                Log::warning('Lark Base failed to get existing record, defaulting to empty attachments', [
+                    'record_id' => $larkRecordId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            if (!is_array($existingAttachments)) {
+                $existingAttachments = [];
+            }
+
+            $attachmentsPayload = [];
+            foreach ($existingAttachments as $attachment) {
+                if (isset($attachment['file_token'])) {
+                    $attachmentsPayload[] = ['file_token' => $attachment['file_token']];
+                }
+            }
+            
+            // Append the new attachment
+            $attachmentsPayload[] = ['file_token' => $fileToken];
+
+            // Update the record with the attachment token array
             $payloadFields = [
-                $mappedFieldName => [
-                    [
-                        'file_token' => $fileToken
-                    ]
-                ]
+                $mappedFieldName => $attachmentsPayload
             ];
 
             $larkBaseService->updateRecord(

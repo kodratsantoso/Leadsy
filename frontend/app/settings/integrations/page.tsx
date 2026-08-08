@@ -112,6 +112,20 @@ const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   am_owner: "Account Manager",
   external_place_id: "External Place ID",
   external_id: "External ID",
+  general_meeting_summary: "General Meeting Summary",
+  general_meeting_attachment: "General Meeting Attachment",
+  discovery_meeting_summary: "Discovery Meeting Summary",
+  discovery_meeting_attachment: "Discovery Meeting Attachment",
+  demo_meeting_summary: "Demo Meeting Summary",
+  demo_meeting_attachment: "Demo Meeting Attachment",
+  follow_up_meeting_summary: "Follow Up Meeting Summary",
+  follow_up_meeting_attachment: "Follow Up Meeting Attachment",
+  proposal_discussion_summary: "Proposal Discussion Summary",
+  proposal_discussion_attachment: "Proposal Discussion Attachment",
+  closing_discussion_summary: "Closing Discussion Summary",
+  closing_discussion_attachment: "Closing Discussion Attachment",
+  handover_to_csm_summary: "Handover to CSM Summary",
+  handover_to_csm_attachment: "Handover to CSM Attachment",
 };
 
 const LEADSY_LEAD_FIELDS = [
@@ -131,6 +145,20 @@ const LEADSY_LEAD_FIELDS = [
   { key: "am_owner", label: "Account Manager", description: "Account Manager" },
   { key: "external_place_id", label: "External Place ID", description: "Google Maps Place ID or external source ID" },
   { key: "external_id", label: "External ID", description: "External integration or source ID" },
+  { key: "general_meeting_summary", label: "General Meeting Summary", description: "Text summary of general meeting" },
+  { key: "general_meeting_attachment", label: "General Meeting Attachment", description: "PDF for general meeting" },
+  { key: "discovery_meeting_summary", label: "Discovery Meeting Summary", description: "Text summary of discovery meeting" },
+  { key: "discovery_meeting_attachment", label: "Discovery Meeting Attachment", description: "PDF for discovery meeting" },
+  { key: "demo_meeting_summary", label: "Demo Meeting Summary", description: "Text summary of demo meeting" },
+  { key: "demo_meeting_attachment", label: "Demo Meeting Attachment", description: "PDF for demo meeting" },
+  { key: "follow_up_meeting_summary", label: "Follow Up Meeting Summary", description: "Text summary of follow up meeting" },
+  { key: "follow_up_meeting_attachment", label: "Follow Up Meeting Attachment", description: "PDF for follow up meeting" },
+  { key: "proposal_discussion_summary", label: "Proposal Discussion Summary", description: "Text summary of proposal discussion" },
+  { key: "proposal_discussion_attachment", label: "Proposal Discussion Attachment", description: "PDF for proposal discussion" },
+  { key: "closing_discussion_summary", label: "Closing Discussion Summary", description: "Text summary of closing discussion" },
+  { key: "closing_discussion_attachment", label: "Closing Discussion Attachment", description: "PDF for closing discussion" },
+  { key: "handover_to_csm_summary", label: "Handover to CSM Summary", description: "Text summary of handover to csm" },
+  { key: "handover_to_csm_attachment", label: "Handover to CSM Attachment", description: "PDF for handover to csm" },
 ] as const;
 
 type LeadsyLeadFieldKey = (typeof LEADSY_LEAD_FIELDS)[number]["key"];
@@ -913,9 +941,9 @@ export default function IntegrationsSettingsPage() {
 
   const larkBaseFields: LarkBaseField[] = listBaseFieldsMutation.data?.items || [];
   const previewFieldNames = Object.keys(previewBaseRecordsMutation.data?.items?.[0]?.fields || {});
-  const larkBaseFieldNames = larkBaseFields.length > 0
+  const larkBaseFieldNames = Array.from(new Set(larkBaseFields.length > 0
     ? larkBaseFields.map((field) => field.field_name)
-    : previewFieldNames;
+    : previewFieldNames));
 
   const saveBaseMappingMutation = useMutation({
     mutationFn: async () => {

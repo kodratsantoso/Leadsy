@@ -286,6 +286,7 @@ class LeadDiscoveryService
                     'user_ratings_total' => $data['result']['user_ratings_total'] ?? null,
                     'maps_url' => $detail['google_maps_url'] ?? null,
                     'raw_payload' => $detail,
+                    'fetched_at' => Carbon::now(),
                     'last_enriched_at' => Carbon::now(),
                 ]
             );

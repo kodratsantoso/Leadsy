@@ -137,7 +137,10 @@
     @php
         $formatVal = function($val) {
             if (is_array($val)) {
-                return implode(', ', $val);
+                $mapped = array_map(function($item) {
+                    return is_scalar($item) ? (string)$item : json_encode($item);
+                }, $val);
+                return implode(', ', $mapped);
             }
             return is_scalar($val) ? (string)$val : json_encode($val);
         };

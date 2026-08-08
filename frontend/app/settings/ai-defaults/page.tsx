@@ -147,6 +147,21 @@ type UsageOverview = {
     total_cost_usd: number;
     total_cost_converted: number;
   }[];
+  recent_logs?: {
+    id: number;
+    function_name: string;
+    model_name: string;
+    provider_name: string;
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    cost_usd: number;
+    cost_converted: number;
+    latency_ms: number;
+    status: string;
+    error_message?: string | null;
+    created_at: string;
+  }[];
 };
 
 type HealthItem = {
@@ -249,6 +264,9 @@ export default function AiDefaultsPage() {
   const queryClient = useQueryClient();
   const { formatNumber, formatCurrency } = useNumberFormat();
   const [timelineFilter, setTimelineFilter] = useState("last_30_days");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
+  const [selectedFeatureFilter, setSelectedFeatureFilter] = useState("");
   const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("providers");
   const [expandedProviderId, setExpandedProviderId] = useState<number | null>(null);
   const [providerForm, setProviderForm] = useState<ProviderFormState>(emptyProviderForm);
@@ -270,9 +288,14 @@ export default function AiDefaultsPage() {
   const [newModelTier, setNewModelTier] = useState("medium");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["settings-ai-default", timelineFilter],
+    queryKey: ["settings-ai-default", timelineFilter, startDateFilter, endDateFilter, selectedFeatureFilter],
     queryFn: async () => {
-      const response = await apiFetch(`/settings/ai-default?period=${timelineFilter}`);
+      let url = `/settings/ai-default?period=${timelineFilter}`;
+      if (startDateFilter) url += `&start_date=${encodeURIComponent(startDateFilter)}`;
+      if (endDateFilter) url += `&end_date=${encodeURIComponent(endDateFilter)}`;
+      if (selectedFeatureFilter) url += `&feature_name=${encodeURIComponent(selectedFeatureFilter)}`;
+      
+      const response = await apiFetch(url);
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
         throw new Error(body.message || "Unable to load AI settings");
@@ -1094,18 +1117,61 @@ export default function AiDefaultsPage() {
           </div>
 
           <Card>
+            <CardContent className="p-4 grid gap-4 md:grid-cols-4 items-end">
+              <div className="grid gap-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Predefined Period</label>
+                <Select value={timelineFilter} onChange={(e) => {
+                  setTimelineFilter(e.target.value);
+                  setStartDateFilter("");
+                  setEndDateFilter("");
+                }}>
+                  <option value="today">Today</option>
+                  <option value="last_7_days">Last 7 Days</option>
+                  <option value="last_30_days">Last 30 Days</option>
+                  <option value="last_90_days">Last 90 Days</option>
+                  <option value="this_year">This Year</option>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Start Date</label>
+                <Input
+                  type="date"
+                  value={startDateFilter}
+                  onChange={(e) => {
+                    setStartDateFilter(e.target.value);
+                    setTimelineFilter("");
+                  }}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">End Date</label>
+                <Input
+                  type="date"
+                  value={endDateFilter}
+                  onChange={(e) => {
+                    setEndDateFilter(e.target.value);
+                    setTimelineFilter("");
+                  }}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Feature / Action</label>
+                <Select value={selectedFeatureFilter} onChange={(e) => setSelectedFeatureFilter(e.target.value)}>
+                  <option value="">-- All Actions --</option>
+                  {featureCatalog.map((feat) => (
+                    <option key={feat.key} value={feat.key}>
+                      {feat.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardContent className="p-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 className="text-xl font-semibold">Usage Timeline</h2>
-                <div className="w-40">
-                  <Select value={timelineFilter} onChange={(e) => setTimelineFilter(e.target.value)}>
-                    <option value="today">Today</option>
-                    <option value="last_7_days">Last 7 Days</option>
-                    <option value="last_30_days">Last 30 Days</option>
-                    <option value="last_90_days">Last 90 Days</option>
-                    <option value="this_year">This Year</option>
-                  </Select>
-                </div>
               </div>
               <div className="mt-4 h-[300px] w-full min-w-0">
                 {usageOverview?.daily_timeline && usageOverview.daily_timeline.length > 0 ? (
@@ -1213,6 +1279,64 @@ export default function AiDefaultsPage() {
               </div>
             </CardContent></Card>
           </div>
+
+          <Card>
+            <CardContent className="p-5">
+              <h2 className="text-xl font-semibold">Recent AI Activity Logs</h2>
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-border text-xs font-semibold text-muted-foreground">
+                      <th className="py-3 px-4">Time</th>
+                      <th className="py-3 px-4">Feature / Action</th>
+                      <th className="py-3 px-4">Model</th>
+                      <th className="py-3 px-4">Provider</th>
+                      <th className="py-3 px-4 text-right">Tokens</th>
+                      <th className="py-3 px-4 text-right">Cost (IDR)</th>
+                      <th className="py-3 px-4 text-right">Latency</th>
+                      <th className="py-3 px-4 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border text-sm">
+                    {usageOverview?.recent_logs && usageOverview.recent_logs.length > 0 ? (
+                      usageOverview.recent_logs.map((log) => (
+                        <tr key={log.id} className="hover:bg-[color:var(--surface-subtle)]">
+                          <td className="py-3 px-4 text-xs whitespace-nowrap text-muted-foreground">{fmtDate(log.created_at)}</td>
+                          <td className="py-3 px-4 text-sm font-medium">
+                            <span className="block">{featureCatalog.find((f) => f.key === log.function_name)?.label || log.function_name}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">{log.function_name}</span>
+                          </td>
+                          <td className="py-3 px-4 font-medium">{log.model_name}</td>
+                          <td className="py-3 px-4 text-muted-foreground">{log.provider_name}</td>
+                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                            <span className="font-semibold">{formatNumber(log.total_tokens, { decimals: 0 })}</span>
+                            <span className="text-[10px] text-muted-foreground block">
+                              P: {formatNumber(log.prompt_tokens, { decimals: 0 })} | C: {formatNumber(log.completion_tokens, { decimals: 0 })}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-medium text-emerald-500">
+                            {formatCurrency(log.cost_converted, { decimals: 2 })}
+                          </td>
+                          <td className="py-3 px-4 text-right text-muted-foreground">{formatNumber(log.latency_ms, { decimals: 0 })}ms</td>
+                          <td className="py-3 px-4 text-center">
+                            <Badge variant={log.status === "success" ? "success" : "danger"}>
+                              {log.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                          No recent logs recorded.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 

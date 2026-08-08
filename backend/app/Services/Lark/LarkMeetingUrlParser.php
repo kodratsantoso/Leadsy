@@ -35,7 +35,7 @@ class LarkMeetingUrlParser
         
         // Verify host against allowed hosts
         $isAllowed = false;
-        if (str_ends_with($host, 'larksuite.com')) {
+        if (str_ends_with($host, 'larksuite.com') || str_ends_with($host, 'feishu.cn') || str_ends_with($host, 'feishu.net')) {
             $isAllowed = true;
         }
 
@@ -48,10 +48,24 @@ class LarkMeetingUrlParser
             ];
         }
 
-        // 1. Check for Minute Token (e.g., https://vc.larksuite.com/minutes/obcnxxxxxxxxxxxx)
+        // 0. Check for Minute Token in query string first (e.g. ?token=xxx or ?_lark_minute_token=xxx)
+        if (isset($parsed['query'])) {
+            parse_str($parsed['query'], $queryParams);
+            $token = $queryParams['token'] ?? $queryParams['minute_token'] ?? $queryParams['_lark_minute_token'] ?? null;
+            if ($token && strlen($token) > 5) {
+                return [
+                    'type' => 'minuteToken',
+                    'id' => $token,
+                    'valid' => true,
+                    'error' => null
+                ];
+            }
+        }
+
+        // 1. Check for Minute Token in Path (e.g., https://vc.larksuite.com/minutes/obcnxxxxxxxxxxxx)
         if (isset($parsed['path']) && preg_match('/\/minutes\/([a-zA-Z0-9]+)/i', $parsed['path'], $matches)) {
             $token = $matches[1];
-            if ($token) {
+            if ($token && strtolower($token) !== 'detail') {
                 return [
                     'type' => 'minuteToken',
                     'id' => $token,

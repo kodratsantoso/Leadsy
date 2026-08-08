@@ -132,6 +132,34 @@ class LeadEnrichmentAiConfigSeeder extends Seeder
                 ],
                 'variables_schema_json' => ['company_name', 'existing_industry', 'existing_company_size'],
             ],
+            [
+                'route' => 'lead_ai_profiling',
+                'name' => 'Lead AI Profiling Research',
+                'description' => 'Perform live web research on a company name to find its profile details, maps, size, website, industry, sub-industry, category, and customer story.',
+                'system_prompt' => 'You are an elite corporate intelligence researcher. Using your web research capability, find precise, up-to-date facts about the requested brand/company name. You must determine: Brand name, website, physical/hq address, phone, email, industry, sub-industry, business category, company size range (1-10, 11-50, 51-200, 201-500, 501-1000, 1000+), and a brief customer story. If there are multiple different matching companies, provide them in the candidates array for disambiguation.',
+                'user_prompt' => "Research Request:\nCompany/Brand Name: {{company_name}}\n\nAvailable Industries: {{available_industries}}\nAvailable Sub-Industries: {{available_sub_industries}}\nAvailable Business Categories: {{available_business_categories}}\n\nReturn a JSON object conforming strictly to the contract.",
+                'output_contract_json' => [
+                    'company_name' => '',
+                    'brand' => '',
+                    'website' => '',
+                    'address' => '',
+                    'phone' => '',
+                    'email' => '',
+                    'industry' => '',
+                    'sub_industry' => '',
+                    'business_category' => '',
+                    'company_size' => '',
+                    'customer_story' => '',
+                    'confidence' => 'low | medium | high',
+                    'evidence' => [
+                        'website_sources' => [],
+                        'maps_sources' => [],
+                        'other_sources' => [],
+                    ],
+                    'candidates' => [],
+                ],
+                'variables_schema_json' => ['company_name', 'available_industries', 'available_sub_industries', 'available_business_categories'],
+            ],
         ];
 
         foreach ($features as $f) {

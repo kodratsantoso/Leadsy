@@ -1648,12 +1648,11 @@ class LeadController extends Controller
             ], 422);
         }
 
-        $service = app(LeadEvaluationService::class);
-        $evaluation = $service->evaluateTranscript($lead, $transcript);
+        $transcript->update(['evaluation_status' => 'pending']);
+        
+        \App\Jobs\AnalyzeTranscriptJob::dispatch($transcript->id);
 
-        $transcript->update(['evaluation_status' => 'evaluated']);
-
-        return response()->json(['data' => $evaluation], 201);
+        return response()->json(['message' => 'Evaluation queued', 'data' => []], 202);
     }
 
     /** GET /api/leads/{lead}/evaluations */

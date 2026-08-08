@@ -99,8 +99,33 @@ class GenerateMeetingSummaryPdfJob implements ShouldQueue
                 'generation_status' => 'success',
             ]);
 
-            // Note: Dispatching to Lark Base is now handled by the Job Chain
-            // via SyncMeetingSummaryPdfToLarkBaseJob
+            // Map meeting type to column prefix
+            $typeColumnPrefix = match (strtolower(str_replace([' ', '-'], '_', $transcript->meeting_type ?: 'General'))) {
+                'discovery' => 'discovery_meeting',
+                'demo' => 'demo_meeting',
+                'follow_up' => 'follow_up_meeting',
+                'proposal_discussion' => 'proposal_discussion',
+                'closing_discussion' => 'closing_discussion',
+                'handover_to_csm' => 'handover_to_csm',
+                default => 'general_meeting'
+            };
+
+            $summaryData = [
+                'summary' => $evaluation->summary ?? '',
+                'action_items' => $evaluation->action_items ?? [],
+                'presales_recommendation' => $evaluation->presales_recommendation ?? '',
+                'objections_detected' => $evaluation->objections_detected ?? [],
+            ];
+
+            // Update lead with the new summary and attachment
+            $lead->update([
+                "{$typeColumnPrefix}_summary" => $summaryData,
+                "{$typeColumnPrefix}_attachment_id" => $document->id,
+            ]);
+
+            // Sync to Lark Base
+            SyncMeetingSummaryPdfToLarkBaseJob::dispatch($transcript->id);
+            SyncLeadToLarkBaseJob::dispatch($lead->id);
 
         } catch (Exception $e) {
             \Illuminate\Support\Facades\Log::error('pdf_generation_failed', [

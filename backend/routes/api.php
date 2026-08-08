@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AiFeatureRouteController;
 use App\Http\Controllers\Api\AiProviderController;
+use App\Http\Controllers\Api\AiLeadProfilingController;
 use App\Http\Controllers\LarkBaseMappingController;
 use App\Http\Controllers\MeetingSummaryPdfController;
 use App\Http\Controllers\Api\AiSettingsController;
@@ -92,6 +93,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/token/generate', [AuthController::class, 'generateApiToken']);
     Route::get('auth/token/status', [AuthController::class, 'getApiTokenStatus']);
 
+    // Global Search
+    Route::get('search', [\App\Http\Controllers\Api\GlobalSearchController::class, 'search']);
+
     // Custom Workflow Engine
     Route::apiResource('workflows', \App\Http\Controllers\Api\WorkflowDefinitionController::class);
     Route::post('workflows/{workflow}/activate', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'activate']);
@@ -159,6 +163,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/discover', [LeadController::class, 'discover'])->middleware('permission:leads.create');
     Route::post('leads/bulk-import', [LeadController::class, 'bulkImport'])->middleware('permission:leads.create');
     Route::post('leads/batch-delete', [LeadController::class, 'batchDelete']);
+    Route::post('leads/ai-profiling/start', [AiLeadProfilingController::class, 'start'])->middleware('permission:leads.ai_profiling');
+    Route::get('leads/ai-profiling/{id}/status', [AiLeadProfilingController::class, 'status'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');
     Route::apiResource('leads', LeadController::class);
     Route::apiResource('business-categories', \App\Http\Controllers\Api\BusinessCategoryController::class);

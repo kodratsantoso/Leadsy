@@ -33,7 +33,7 @@ import { OrderToCash } from '@/components/leads/OrderToCash';
 import { ProfessionalServicesTab } from '@/components/leads/tabs/professional-services-tab';
 import { ProjectPlansTab } from '@/components/leads/tabs/project-plans-tab';
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
-import { MeetingSummaryReport } from '@/components/leads/MeetingSummaryReport';
+import { AnalysisReportDialog } from '@/components/leads/reports/AnalysisReportDialog';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -3641,13 +3641,13 @@ export default function LeadDetailPage() {
                             variant="outline"
                             size="xs"
                             onClick={() => { setEvaluatingTranscriptId(tr.id); evaluateTranscriptMutation.mutate(tr.id); }}
-                            disabled={(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || !tr.transcript_text?.trim()}
+                            disabled={(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' || !tr.transcript_text?.trim()}
                             title={!tr.transcript_text?.trim() ? 'Add transcript text before AI analysis' : undefined}
                           >
-                            {evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id
+                            {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing'
                               ? <Loader2 className="h-3 w-3 animate-spin" />
                               : <Sparkles className="h-3 w-3" />}
-                            Analyse with AI
+                            {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' ? 'Analysing...' : 'Analyse with AI'}
                           </Button>
                         )}
                         {evaluation && (
@@ -3656,13 +3656,13 @@ export default function LeadDetailPage() {
                               variant="outline"
                               size="xs"
                               onClick={() => { setEvaluatingTranscriptId(tr.id); evaluateTranscriptMutation.mutate(tr.id); }}
-                              disabled={(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || !tr.transcript_text?.trim()}
+                              disabled={(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' || !tr.transcript_text?.trim()}
                               title="Re-run AI Analysis"
                             >
-                              {evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id
+                              {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing'
                                 ? <Loader2 className="h-3 w-3 animate-spin" />
                                 : <RefreshCw className="h-3 w-3" />}
-                              Re-analyse
+                              {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' ? 'Analysing...' : 'Re-analyse'}
                             </Button>
                             <Button variant="ghost" size="xs" onClick={() => setExpandedEvalId(isExpanded ? null : tr.id)}>
                               {isExpanded ? 'Hide' : 'View'} Analysis
@@ -3698,13 +3698,11 @@ export default function LeadDetailPage() {
                           <h4 className="font-semibold text-sm">AI Transcript Analysis</h4>
                         </div>
 
-                        <MeetingSummaryReport 
-                          transcript={tr} 
-                          evaluation={evaluation} 
-                          onGeneratePdf={() => {
-                            setEvaluatingTranscriptId(tr.id);
-                            generateMeetingSummaryPdfMutation.mutate({ transcriptId: tr.id, evaluationId: evaluation.id });
-                          }} 
+                        <AnalysisReportDialog 
+                          open={isExpanded}
+                          onOpenChange={(open) => setExpandedEvalId(open ? tr.id : null)}
+                          transcript={tr}
+                          lead={lead?.data}
                         />
 
                         {tr.syncJobs?.length > 0 && (

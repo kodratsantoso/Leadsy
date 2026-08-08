@@ -69,6 +69,217 @@ class MeetingSummaryGenerationService
             $systemPrompt .= "--- TYPE-SPECIFIC SYSTEM PROMPT ---\n" . ($typeVersion?->system_prompt ?? '') . "\n\n";
         }
 
+        $dynamicSections = match(strtolower(str_replace([' ', '-'], '_', $meetingType))) {
+            'demo' => [
+                'meeting_type_sections' => <<<JSON
+  "meeting_type_sections": {
+    "features_demonstrated": ["string (up to 5 bullet points)"],
+    "customer_reactions": ["string (up to 5 bullet points)"],
+    "questions_objections": ["string (up to 5 bullet points)"],
+    "key_takeaways": ["string (up to 5 bullet points)"]
+  },
+JSON,
+                'detailed_insights' => <<<JSON
+  "detailed_insights": {
+    "demo_highlights": [
+      { "feature": "string", "summary": "string", "interest_level": "integer (1-5)" }
+    ],
+    "feature_interest_radar": {
+      "workflow_approval": "integer (1-5)",
+      "dokumen_kolaboratif": "integer (1-5)",
+      "lark_base": "integer (1-5)",
+      "messenger_integrasi": "integer (1-5)",
+      "dashboard_laporan": "integer (1-5)",
+      "keamanan_akses": "integer (1-5)"
+    },
+    "action_items": [
+      { "item": "string", "pic": "string", "due_date": "string (YYYY-MM-DD)", "status": "string ('Open', 'In Progress', 'Done')" }
+    ]
+  },
+JSON,
+                'conclusion_section' => <<<JSON
+  "conclusion_section": {
+    "conclusion": "string (1 paragraph)",
+    "next_step": "string",
+    "trial_poc_potensial": "string",
+    "decision_timeline": "string"
+  },
+JSON
+            ],
+            'follow_up' => [
+                'meeting_type_sections' => <<<JSON
+  "meeting_type_sections": {
+    "previous_commitments": ["string (up to 5 bullet points)"],
+    "completed_items": ["string (up to 5 bullet points)"],
+    "pending_issues": ["string (up to 5 bullet points)"],
+    "updated_decisions": ["string (up to 5 bullet points)"]
+  },
+JSON,
+                'detailed_insights' => <<<JSON
+  "detailed_insights": {
+    "progress_review": [
+      { "topic": "string", "current_update": "string", "progress": "integer (0-100)" }
+    ],
+    "open_vs_completed": {
+      "total": "integer",
+      "completed": "integer",
+      "pending": "integer",
+      "on_track": "integer"
+    },
+    "action_items": [
+      { "item": "string", "pic": "string", "due_date": "string (YYYY-MM-DD)", "status": "string ('Open', 'On Track', 'Tertunda')" }
+    ]
+  },
+JSON,
+                'conclusion_section' => <<<JSON
+  "conclusion_section": {
+    "conclusion": "string (1 paragraph)",
+    "next_step": "string",
+    "blockers": "string",
+    "revised_timeline": "string"
+  },
+JSON
+            ],
+            'proposal_discussion' => [
+                'meeting_type_sections' => <<<JSON
+  "meeting_type_sections": {
+    "scope_discussion": ["string (up to 5 bullet points)"],
+    "commercial_feedback": ["string (up to 5 bullet points)"],
+    "negotiation_points": ["string (up to 5 bullet points)"],
+    "agreements_pending": ["string (up to 5 bullet points)"]
+  },
+JSON,
+                'detailed_insights' => <<<JSON
+  "detailed_insights": {
+    "proposal_review": [
+      { "topic": "string", "summary": "string", "alignment": "string ('Selaras', 'Cukup Selaras', 'Kurang Selaras', 'Negosiasi')" }
+    ],
+    "proposal_alignment_radar": {
+      "scope_fit": "integer (0-100)",
+      "price_acceptance": "integer (0-100)",
+      "timeline_alignment": "integer (0-100)",
+      "technical_fit": "integer (0-100)",
+      "decision_readiness": "integer (0-100)"
+    },
+    "action_items": [
+      { "item": "string", "pic": "string", "due_date": "string (YYYY-MM-DD)", "status": "string ('Open', 'In Progress', 'Done')" }
+    ]
+  },
+JSON,
+                'conclusion_section' => <<<JSON
+  "conclusion_section": {
+    "conclusion": "string (1 paragraph)",
+    "next_step": "string",
+    "expected_revision": "string",
+    "approval_path": "string"
+  },
+JSON
+            ],
+            'closing_discussion' => [
+                'meeting_type_sections' => <<<JSON
+  "meeting_type_sections": {
+    "final_objections": ["string (up to 5 bullet points)"],
+    "decision_status": ["string (up to 5 bullet points)"],
+    "commercial_readiness": ["string (up to 5 bullet points)"],
+    "closing_agreements": ["string (up to 5 bullet points)"]
+  },
+JSON,
+                'detailed_insights' => <<<JSON
+  "detailed_insights": {
+    "closing_review": [
+      { "topic": "string", "summary": "string", "readiness": "string ('Tinggi', 'Sedang', 'Rendah')" }
+    ],
+    "deal_readiness_radar": {
+      "objection_status": "integer (1-5)",
+      "budget_approval": "integer (1-5)",
+      "contract_readiness": "integer (1-5)",
+      "timeline_commitment": "integer (1-5)",
+      "competitive_position": "integer (1-5)",
+      "decision_maker_support": "integer (1-5)"
+    },
+    "action_items": [
+      { "item": "string", "pic": "string", "due_date": "string (YYYY-MM-DD)", "status": "string ('Open', 'In Progress', 'Done')" }
+    ]
+  },
+JSON,
+                'conclusion_section' => <<<JSON
+  "conclusion_section": {
+    "conclusion": "string (1 paragraph)",
+    "next_step": "string",
+    "target_close_date": "string",
+    "key_risk": "string ('Low', 'Medium', 'High')"
+  },
+JSON
+            ],
+            'handover_to_csm' => [
+                'meeting_type_sections' => <<<JSON
+  "meeting_type_sections": {
+    "customer_profile": ["string (up to 5 bullet points)"],
+    "purchased_scope": ["string (up to 5 bullet points)"],
+    "key_stakeholders": ["string (up to 5 bullet points)"],
+    "risks_open_items": ["string (up to 5 bullet points)"]
+  },
+JSON,
+                'detailed_insights' => <<<JSON
+  "detailed_insights": {
+    "handover_checklist": [
+      { "topic": "string", "summary": "string", "completeness": "integer (0-100)" }
+    ],
+    "onboarding_readiness_radar": {
+      "contract_info": "integer (1-5)",
+      "scope_clarity": "integer (1-5)",
+      "stakeholder_mapping": "integer (1-5)",
+      "success_criteria": "integer (1-5)",
+      "risk_information": "integer (1-5)",
+      "next_milestone": "integer (1-5)"
+    },
+    "action_items": [
+      { "item": "string", "pic": "string", "due_date": "string (YYYY-MM-DD)", "status": "string ('Open', 'In Progress', 'Done')" }
+    ]
+  },
+JSON,
+                'conclusion_section' => <<<JSON
+  "conclusion_section": {
+    "conclusion": "string (1 paragraph)",
+    "next_step": "string",
+    "customer_success_goal": "string",
+    "first_milestone": "string"
+  },
+JSON
+            ],
+            default => [
+                'meeting_type_sections' => <<<JSON
+  "meeting_type_sections": {},
+JSON,
+                'detailed_insights' => <<<JSON
+  "detailed_insights": {
+    "topics_discussed": [
+      { "topik": "string", "ringkasan": "string", "relevansi": "string ('High', 'Medium', 'Low')" }
+    ],
+    "buying_signals_radar": {
+      "kebutuhan": "integer (1-5)",
+      "urgensi": "integer (1-5)",
+      "budget_kesiapan": "integer (1-5)",
+      "decision_support": "integer (1-5)",
+      "solusi_fit": "integer (1-5)",
+      "niat_implementasi": "integer (1-5)"
+    },
+    "action_items": [
+      { "item": "string", "pic": "string", "due_date": "string (YYYY-MM-DD)", "status": "string ('Open', 'In Progress', 'Done')" }
+    ]
+  },
+JSON,
+                'conclusion_section' => <<<JSON
+  "conclusion_section": {
+    "conclusion": "string (1 paragraph)",
+    "next_step": "string",
+    "expected_outcome": "string",
+    "target_implementation": "string"
+  },
+JSON
+            ]
+        };
+
         $userPrompt = "Company: {$lead->company_name}\n" .
             "Industry: " . ($lead->industry?->name ?? 'Not specified') . "\n" .
             "Meeting Type: {$meetingType}\n\n" .
@@ -78,16 +289,20 @@ class MeetingSummaryGenerationService
             "  \"meeting_type\": \"{$meetingType}\",\n" .
             "  \"summary_type\": \"" . ($typePromptKey ? $meetingType : 'General') . "\",\n" .
             "  \"general_sections\": {\n" .
-            "    \"executive_summary\": \"string\",\n" .
-            "    \"key_discussion_points\": [\"string\"],\n" .
-            "    \"customer_needs_pain_points\": [\"string\"],\n" .
-            "    \"decision_agreement\": [\"string\"],\n" .
-            "    \"action_items\": [\"string\"],\n" .
-            "    \"risks_concerns\": [\"string\"],\n" .
-            "    \"next_step\": [\"string\"],\n" .
-            "    \"missing_information\": [\"string\"]\n" .
+            "    \"executive_summary\": \"string (1 paragraph comprehensive summary)\",\n" .
+            "    \"overall_sentiment\": {\n" .
+            "      \"positive\": \"integer (0-100)\",\n" .
+            "      \"neutral\": \"integer (0-100)\",\n" .
+            "      \"negative\": \"integer (0-100, ensure they sum to 100)\"\n" .
+            "    },\n" .
+            "    \"key_pain_points\": [\"string (up to 5 bullet points)\"],\n" .
+            "    \"customer_needs\": [\"string (up to 5 bullet points)\"],\n" .
+            "    \"key_discussions\": [\"string (up to 5 bullet points)\"],\n" .
+            "    \"decisions_agreements\": [\"string (up to 5 bullet points)\"]\n" .
             "  },\n" .
-            "  \"meeting_type_sections\": " . ($typePromptKey ? "{\n    // Meeting type specific fields for {$meetingType}\n  }" : "{}") . ",\n" .
+            "{$dynamicSections['meeting_type_sections']}\n" .
+            "{$dynamicSections['detailed_insights']}\n" .
+            "{$dynamicSections['conclusion_section']}\n" .
             "  \"bantc\": {\n" .
             "    \"budget\": \"string\",\n" .
             "    \"authority\": \"string\",\n" .
@@ -140,6 +355,8 @@ class MeetingSummaryGenerationService
             'summary_type' => $parsed['summary_type'] ?? ($typePromptKey ? $meetingType : 'General'),
             'general_sections_json' => $parsed['general_sections'] ?? null,
             'meeting_type_sections_json' => $parsed['meeting_type_sections'] ?? null,
+            'detailed_insights_json' => $parsed['detailed_insights'] ?? null,
+            'conclusion_section_json' => $parsed['conclusion_section'] ?? null,
             'bantc_json' => $parsed['bantc'] ?? null,
             'score_updates_json' => $parsed['score_updates'] ?? null,
             'presales_recommendation' => $parsed['presales_recommendation'] ?? null,

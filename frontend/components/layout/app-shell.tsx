@@ -18,8 +18,9 @@ import { canAccessPath } from "@/lib/permissions";
 import { apiFetch } from "@/lib/apiFetch";
 import { ProductTour } from "@/components/ProductTour/ProductTour";
 import { Button } from "@/components/ui/button";
+import { GlobalSearch } from "./GlobalSearch";
 
-type NavItem = {
+export type NavItem = {
   href: string;
   icon: ComponentType<{ className?: string }>;
   label: string;
@@ -57,7 +58,7 @@ function MekariLogoIcon({ className }: { className?: string }) {
   );
 }
 
-const navItems: NavItem[] = [
+export const navItems: NavItem[] = [
   { href: "/",                       icon: LayoutDashboard, label: "Dashboard" },
   {
     href: "/lead-generator",
@@ -376,15 +377,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Top bar */}
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-6">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                data-tour="global-search"
-                type="text"
-                placeholder="Search..."
-                className="h-9 w-64 rounded-lg border border-input bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
+            <GlobalSearch />
           </div>
 
           <div className="flex items-center gap-2">

@@ -241,6 +241,9 @@ class AiOrchestrationService
             'google', 'gemini' => [
                 'system_instruction' => ['parts' => [['text' => $systemPrompt]]],
                 'contents' => [['parts' => [['text' => $userPrompt]]]],
+                'generationConfig' => [
+                    'responseMimeType' => 'application/json',
+                ],
             ],
             default => array_filter([ // openai-compatible
                 'model' => $modelName,
@@ -250,6 +253,8 @@ class AiOrchestrationService
                 ],
                 'response_format' => ['type' => 'json_object'],
                 'max_tokens' => $maxTokens,
+                // If it is our profiling feature and it is OpenAI (or supports tools/web search), we can append web search capability
+                'tools' => ($modelName === 'gpt-4o' || str_contains($modelName, 'gpt-4')) ? [['type' => 'web_search']] : null,
             ], fn ($value) => $value !== null),
         };
     }
