@@ -714,6 +714,8 @@ export default function LeadDetailPage() {
   });
   const [evaluatingTranscriptId, setEvaluatingTranscriptId] = useState<number | null>(null);
   const [expandedEvalId, setExpandedEvalId]       = useState<number | null>(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
 
   // Fetch lead details (includes contacts)
   const { data: lead, isLoading: leadLoading } = useQuery({
@@ -3684,28 +3686,15 @@ export default function LeadDetailPage() {
                                   const res = await apiFetch(`/transcripts/${tr.id}/meeting-summary/download`);
                                   if (!res.ok) {
                                     const err = await res.json().catch(() => ({}));
-                                    alert(err.message || 'Failed to download PDF. Please ensure it has been generated.');
+                                    alert(err.message || 'Failed to fetch PDF. Please ensure it has been generated.');
                                     return;
                                   }
                                   const blob = await res.blob();
                                   const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  let filename = 'meeting-summary.pdf';
-                                  const disposition = res.headers.get('Content-Disposition');
-                                  if (disposition && disposition.indexOf('attachment') !== -1) {
-                                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
-                                    if (matches != null && matches[1]) {
-                                      filename = matches[1].replace(/['"]/g, '');
-                                    }
-                                  }
-                                  a.download = filename;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  a.remove();
-                                  window.URL.revokeObjectURL(url);
+                                  setPdfPreviewUrl(url);
+                                  setShowPdfModal(true);
                                 } catch (error) {
-                                  alert('Error downloading PDF');
+                                  alert('Error loading PDF preview');
                                 }
                               }}
                             >
@@ -4626,6 +4615,45 @@ export default function LeadDetailPage() {
           additionalPayload={createNewModalConfig.additionalPayload}
           onSuccess={createNewModalConfig.onSuccess}
         />
+      )}
+
+      {showPdfModal && pdfPreviewUrl && (
+        <Modal
+          open={showPdfModal}
+          onOpenChange={(open) => {
+            setShowPdfModal(open);
+            if (!open) setPdfPreviewUrl(null);
+          }}
+          title="PDF Analysis Preview"
+          size="full"
+        >
+          <div className="flex flex-col h-[85vh]">
+            <div className="flex justify-end p-2 border-b">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = pdfPreviewUrl;
+                  a.download = 'meeting-summary.pdf';
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                }}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
+            </div>
+            <div className="flex-1 w-full bg-slate-100 p-4">
+              <iframe
+                src={pdfPreviewUrl}
+                className="w-full h-full border rounded shadow"
+                title="PDF Preview"
+              />
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
