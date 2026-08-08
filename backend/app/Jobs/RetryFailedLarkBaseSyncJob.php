@@ -9,6 +9,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\SyncMeetingSummaryToLarkJob;
 
 class RetryFailedLarkBaseSyncJob implements ShouldQueue
 {
@@ -56,7 +57,7 @@ class RetryFailedLarkBaseSyncJob implements ShouldQueue
                 
             if ($document) {
                 \Illuminate\Support\Facades\Log::info("Retrying failed PDF sync for document {$document->id}");
-                SyncMeetingSummaryPdfToLarkBaseJob::dispatch($document->transcript_id);
+                SyncMeetingSummaryToLarkJob::dispatch($document->transcript_id);
             } else {
                 Log::error("RetryFailedLarkBaseSyncJob failed: No successful PDF document found for transcript ID {$syncJob->transcript_id}");
             }

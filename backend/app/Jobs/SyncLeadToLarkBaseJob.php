@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\LarkBaseTable;
 use App\Models\LarkIntegration;
 use App\Services\Lark\LarkBaseService;
+use App\Jobs\SyncMeetingSummaryToLarkJob;
 
 class SyncLeadToLarkBaseJob implements ShouldQueue
 {
@@ -54,7 +55,7 @@ class SyncLeadToLarkBaseJob implements ShouldQueue
             ->first();
 
         if ($latestDocument && $latestDocument->transcript_id) {
-            \App\Jobs\SyncMeetingSummaryPdfToLarkBaseJob::dispatchSync($latestDocument->transcript_id);
+            \App\Jobs\SyncMeetingSummaryToLarkJob::dispatchSync($latestDocument->transcript_id);
         }
     }
 }

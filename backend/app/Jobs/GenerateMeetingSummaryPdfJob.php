@@ -12,6 +12,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 use Illuminate\Support\Str;
+use App\Jobs\SyncMeetingSummaryToLarkJob;
 
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -123,8 +124,8 @@ class GenerateMeetingSummaryPdfJob implements ShouldQueue
                 "{$typeColumnPrefix}_attachment_id" => $document->id,
             ]);
 
-            // Sync to Lark Base
-            SyncMeetingSummaryPdfToLarkBaseJob::dispatch($transcript->id);
+            // Sync to Lark Base & Drive
+            SyncMeetingSummaryToLarkJob::dispatch($transcript->id);
             SyncLeadToLarkBaseJob::dispatch($lead->id);
 
         } catch (Exception $e) {
