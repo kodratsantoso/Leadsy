@@ -3728,6 +3728,26 @@ export default function LeadDetailPage() {
                                 </span>
                               </Button>
                             )}
+
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              disabled={generateMeetingSummaryPdfMutation.isPending && evaluatingTranscriptId === tr.id}
+                              onClick={() => {
+                                setEvaluatingTranscriptId(tr.id);
+                                generateMeetingSummaryPdfMutation.mutate({ transcriptId: tr.id, evaluationId: evaluation.id });
+                              }}
+                              title="Regenerate summary PDF, render image, build Lark Docs, and push all attachments to Lark Base."
+                            >
+                              <span className="flex items-center gap-1 text-indigo-500 hover:text-indigo-600">
+                                {generateMeetingSummaryPdfMutation.isPending && evaluatingTranscriptId === tr.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-3.5 w-3.5" />
+                                )}
+                                Sync & Push to Lark
+                              </span>
+                            </Button>
                           </>
                         )}
                         <button
