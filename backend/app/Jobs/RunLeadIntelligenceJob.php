@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Services\Lead\RevenueIntelligenceAnalysisService;
+use App\Services\Revenue\RevenueIntelligenceAnalysisService;
 use App\Services\Lead\LeadAIAnalysisService;
 use App\Services\Lead\ConversionPredictionService;
 use App\Services\Lead\RevenueRuleEngineService;
