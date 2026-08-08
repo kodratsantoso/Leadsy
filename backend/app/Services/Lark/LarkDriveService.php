@@ -119,6 +119,8 @@ class LarkDriveService extends LarkService
                 continue;
             }
 
+            $isExecSummary = (stripos($section['title'], 'Executive Summary') !== false);
+
             if (!empty($section['title'])) {
                 $children[] = [
                     'block_type' => 3, // Heading 1
@@ -132,7 +134,8 @@ class LarkDriveService extends LarkService
                                 'text_run' => [
                                     'content' => $section['title'],
                                     'text_element_style' => [
-                                        'bold' => true
+                                        'bold' => true,
+                                        'text_color' => 4 // Dark blue/indigo header color in Lark
                                     ]
                                 ]
                             ]
@@ -149,8 +152,26 @@ class LarkDriveService extends LarkService
                         continue;
                     }
 
-                    // Check if it looks like a list item
-                    if (str_starts_with($trimmed, '-') || str_starts_with($trimmed, '*')) {
+                    if ($isExecSummary) {
+                        // Highlight Executive Summary inside a styled Quote block (type 17)
+                        $children[] = [
+                            'block_type' => 17, // Quote
+                            'quote' => [
+                                'elements' => [
+                                    [
+                                        'type' => 'text',
+                                        'text_run' => [
+                                            'content' => $trimmed,
+                                            'text_element_style' => [
+                                                'italic' => true
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ];
+                    } else if (str_starts_with($trimmed, '-') || str_starts_with($trimmed, '*')) {
+                        // Check if it looks like a list item
                         $children[] = [
                             'block_type' => 12, // Bullet list
                             'bullet' => [
