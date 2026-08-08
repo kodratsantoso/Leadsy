@@ -64,7 +64,7 @@ class LarkDriveService extends LarkService
         // 2. Create the folder if not found
         $createResponse = $this->request('POST', "/drive/v1/files/create_folder", [
             'name' => $leadFolderName,
-            'parent_token' => $parentFolderToken
+            'folder_token' => $parentFolderToken
         ]);
 
         $token = $createResponse['token'] ?? $createResponse['data']['token'] ?? null;
@@ -80,12 +80,10 @@ class LarkDriveService extends LarkService
      */
     public function createDoc(string $folderToken, string $title): array
     {
-        $response = $this->request(
-            'POST', 
-            '/docx/v1/documents', 
-            ['title' => $title], 
-            ['folder_token' => $folderToken]
-        );
+        $response = $this->request('POST', '/docx/v1/documents', [
+            'folder_token' => $folderToken,
+            'title' => $title
+        ]);
 
         $docId = $response['document']['document_id'] ?? $response['data']['document']['document_id'] ?? null;
         if (empty($docId)) {

@@ -68,7 +68,7 @@ class LarkMeetingSummarySyncTest extends TestCase
                     'file_token' => 'mock-media-file-token'
                 ]
             ]),
-            '*/docx/v1/documents*' => Http::response([
+            '*/docx/v1/documents' => Http::response([
                 'code' => 0,
                 'data' => [
                     'document' => [
