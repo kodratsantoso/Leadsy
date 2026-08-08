@@ -121,7 +121,7 @@ class LarkService
     /**
      * Make authenticated request to Lark API
      */
-    protected function request(
+    public function request(
         string $method,
         string $endpoint,
         array $data = [],
