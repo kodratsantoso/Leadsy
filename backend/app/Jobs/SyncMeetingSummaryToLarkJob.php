@@ -158,24 +158,48 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 $updateFields[$targetField['field_name']] = [['file_token' => $pdfFileToken]];
             }
 
-            // B. Handle Image Attachment mapping
-            $imageFieldId = $mapping['image_field_id'] ?? null;
-            $imageFieldName = $mapping['image_field_name'] ?? null;
-            if ($imageFieldId || $imageFieldName) {
-                $targetField = $fieldsById[$imageFieldId] ?? $fieldsByName[$imageFieldName] ?? null;
-                if (!$targetField) {
-                    throw new Exception("Meeting Summary Image mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
-                }
-
-                // Since we render PDF only, upload PDF as file_token or fallback upload PDF as first attachment
-                $imgFileToken = $larkBaseService->uploadAttachment(
-                    $appToken,
-                    storage_path('app/public/' . $document->file_path),
-                    $document->file_name
-                );
-
-                $updateFields[$targetField['field_name']] = [['file_token' => $imgFileToken]];
-            }
+             // B. Handle Image Attachment mapping
+             $imageFieldId = $mapping['image_field_id'] ?? null;
+             $imageFieldName = $mapping['image_field_name'] ?? null;
+             if ($imageFieldId || $imageFieldName) {
+                 $targetField = $fieldsById[$imageFieldId] ?? $fieldsByName[$imageFieldName] ?? null;
+                 if (!$targetField) {
+                     throw new Exception("Meeting Summary Image mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
+                 }
+ 
+                 // Generate PNG from first page of PDF using pdftoppm
+                 $pdfFullPath = storage_path('app/public/' . $document->file_path);
+                 $tempImagePrefix = storage_path('app/public/meeting-summaries/temp_img_' . $transcript->id);
+                 $pngPath = $tempImagePrefix . '-1.png';
+ 
+                 // Clean up previous temporary file if exists
+                 if (file_exists($pngPath)) {
+                     unlink($pngPath);
+                 }
+ 
+                 // Run pdftoppm command to convert first page (-f 1 -l 1) to PNG with 150 DPI
+                 $command = "pdftoppm -png -f 1 -l 1 -r 150 " . escapeshellarg($pdfFullPath) . " " . escapeshellarg($tempImagePrefix);
+                 shell_exec($command);
+ 
+                 if (file_exists($pngPath)) {
+                     $imgFileToken = $larkBaseService->uploadAttachment(
+                         $appToken,
+                         $pngPath,
+                         str_replace('.pdf', '.png', $document->file_name)
+                     );
+                     // Clean up temp image
+                     unlink($pngPath);
+                 } else {
+                     // Fallback: upload PDF if PNG generation failed
+                     $imgFileToken = $larkBaseService->uploadAttachment(
+                         $appToken,
+                         $pdfFullPath,
+                         $document->file_name
+                     );
+                 }
+ 
+                 $updateFields[$targetField['field_name']] = [['file_token' => $imgFileToken]];
+             }
 
             // C. Handle Lark Doc URL mapping
             $docFieldId = $mapping['doc_field_id'] ?? null;
@@ -199,26 +223,43 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                     // Compile document sections
                     $sections = [];
                     if (!empty($transcript->general_sections_json)) {
-                        foreach ($transcript->general_sections_json as $sect) {
+                        foreach ($transcript->general_sections_json as $key => $val) {
+                            $title = ucwords(str_replace('_', ' ', $key));
+                            $content = '';
+                            if (is_array($val)) {
+                                if (isset($val['positive']) || isset($val['neutral']) || isset($val['negative'])) {
+                                    $content = "Positive: " . ($val['positive'] ?? 0) . "%, Neutral: " . ($val['neutral'] ?? 0) . "%, Negative: " . ($val['negative'] ?? 0) . "%";
+                                } else {
+                                    $content = implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val));
+                                }
+                            } else {
+                                $content = (string)$val;
+                            }
                             $sections[] = [
-                                'title' => $sect['heading'] ?? '',
-                                'content' => $sect['content'] ?? ''
+                                'title' => $title,
+                                'content' => $content
                             ];
                         }
                     }
                     if (!empty($transcript->meeting_type_sections_json)) {
-                        foreach ($transcript->meeting_type_sections_json as $sect) {
+                        foreach ($transcript->meeting_type_sections_json as $key => $val) {
+                            $title = ucwords(str_replace('_', ' ', $key));
+                            $content = is_array($val) ? implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val)) : (string)$val;
                             $sections[] = [
-                                'title' => $sect['heading'] ?? '',
-                                'content' => $sect['content'] ?? ''
+                                'title' => $title,
+                                'content' => $content
                             ];
                         }
                     }
                     if (!empty($transcript->conclusion_section_json)) {
-                        $sections[] = [
-                            'title' => 'Conclusion',
-                            'content' => $transcript->conclusion_section_json['content'] ?? ''
-                        ];
+                        foreach ($transcript->conclusion_section_json as $key => $val) {
+                            $title = ucwords(str_replace('_', ' ', $key));
+                            $content = is_array($val) ? implode("\n", array_map(fn($item) => "- " . (is_scalar($item) ? $item : json_encode($item)), $val)) : (string)$val;
+                            $sections[] = [
+                                'title' => $title,
+                                'content' => $content
+                            ];
+                        }
                     }
 
                     $larkDriveService->writeDocContent($docId, $sections);
