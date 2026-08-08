@@ -35,15 +35,17 @@ class SyncMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $document = MeetingSummaryDocument::with(['lead'])
+        $document = MeetingSummaryDocument::with(['lead', 'transcript'])
             ->where('transcript_id', $this->transcriptId)
             ->where('generation_status', 'success')
             ->latest()
             ->first();
 
-        if (!$document || !$document->lead_id) {
+        if (!$document || !$document->lead_id || !$document->transcript) {
             return;
         }
+
+        $transcript = $document->transcript;
 
         $lead = $document->lead;
 

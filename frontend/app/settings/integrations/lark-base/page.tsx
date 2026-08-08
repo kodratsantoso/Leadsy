@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader, Check, Database, Eye, RefreshCw, X, ArrowLeft, Plus, Edit } from "lucide-react";
+import { Save, Loader, Check, Database, Eye, RefreshCw, X, ArrowLeft, Plus, Edit, FileText, Image as ImageIcon, Link as LinkIcon, HelpCircle } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,15 +98,15 @@ const DEFAULT_LARK_BASE_FIELD_MAPPING = {
   closing_discussion_attachment: "Closing Discussion Attachment",
   handover_to_csm_summary: "Handover to CSM Summary",
   handover_to_csm_attachment: "Handover to CSM Attachment",
-  contact_name: "Contact Name", contact_phone: "Contact Phone Number",
-  budget: "Budget", authority: "Authority", needs: "Needs", timeline: "Timeline", competitor: "Competitor",
-  meeting_summary_attachment: "Meeting Summary Attachment", eligibility_status: "Eligibility Status", confidentiality_score: "Confidentiality Score",
-  eligibility_reason: "Eligibility Reason", presales_analysis: "Presales Analysis", presales_recommendation: "Presales Recommendation",
-};
+  contact_name: "Contact Name", contact_phone: "Contact Phone", budget: "Budget", authority: "Authority", needs: "Needs", timeline: "Timeline", competitor: "Competitor",
+  meeting_summary_attachment: "Meeting Summary PDF", eligibility_status: "Eligibility Status", confidentiality_score: "Confidentiality Score",
+  eligibility_reason: "Eligibility Reason", presales_analysis: "Presales Analysis", presales_recommendation: "Presales Recommendation"
+} as const;
 
-const formatLarkBaseValue = (val: any, fieldName?: string): string => {
-  if (val == null) return "-";
-  
+const formatLarkBaseValue = (val: unknown, fieldName?: string): string => {
+  if (val == null) return "—";
+  if (typeof val === "string" || typeof val === "number" || typeof val === "boolean") return String(val);
+
   const dateFields = ["Submitted Date", "Reminder Assesment", "Meeting Date", "Estimated Closing", "Created Date"];
   const nameFields = ["Presales/Aftersales Team", "Requester", "Update By"];
 
@@ -163,11 +163,12 @@ const formatLarkBaseValue = (val: any, fieldName?: string): string => {
     }).join(", ");
   }
   if (typeof val === "object") {
-    if (val.text) return val.text;
-    if (val.name) return val.name;
-    if (val.full_name) return val.full_name;
-    if (val.email) return val.email;
-    if (val.link) return val.link;
+    const obj = val as Record<string, unknown>;
+    if (obj.text) return String(obj.text);
+    if (obj.name) return String(obj.name);
+    if (obj.full_name) return String(obj.full_name);
+    if (obj.email) return String(obj.email);
+    if (obj.link) return String(obj.link);
     return JSON.stringify(val);
   }
   return String(val);
@@ -180,12 +181,31 @@ function normalizeFieldName(value: string): string {
 export default function LarkBaseSettingsPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  
+  // Base State
   const [baseAppToken, setBaseAppToken] = useState("");
   const [selectedBaseTable, setSelectedBaseTable] = useState<LarkBaseTable | null>(null);
   const [baseSyncDirection, setBaseSyncDirection] = useState<"leadsy_to_lark" | "lark_to_leadsy" | "two_way">("two_way");
   const [baseFieldMapping, setBaseFieldMapping] = useState<Record<string, string>>(DEFAULT_LARK_BASE_FIELD_MAPPING);
   const [baseSyncDialog, setBaseSyncDialog] = useState<LarkBaseSyncDialogState>({ open: false, status: "running", direction: "pull", mappingName: "" });
 
+  // Meeting Summary Mapping State
+  const [sumAppToken, setSumAppToken] = useState("");
+  const [sumTableId, setSumTableId] = useState("");
+  const [sumTableName, setSumTableName] = useState("");
+  const [sharedFolderToken, setSharedFolderToken] = useState("");
+  const [pdfFieldId, setPdfFieldId] = useState("");
+  const [pdfFieldName, setPdfFieldName] = useState("");
+  const [imageFieldId, setImageFieldId] = useState("");
+  const [imageFieldName, setImageFieldName] = useState("");
+  const [docFieldId, setDocFieldId] = useState("");
+  const [docFieldName, setDocFieldName] = useState("");
+
+  const [sumFields, setSumFields] = useState<LarkBaseField[]>([]);
+  const [testResult, setTestResult] = useState<{ success: boolean; status: string; message: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  // Queries
   const { data: baseMappingsData, refetch: refetchBaseMappings } = useQuery({
     queryKey: ['lark-base-mappings'],
     queryFn: async () => {
@@ -194,6 +214,42 @@ export default function LarkBaseSettingsPage() {
     },
   });
   const baseMappings: LarkBaseMapping[] = baseMappingsData?.data || [];
+
+  const { data: sumMappingData } = useQuery({
+    queryKey: ['lark-sum-mapping'],
+    queryFn: async () => {
+      const res = await apiFetch('/api/lark/meeting-summary/mapping');
+      const json = await res.json();
+      if (json?.success && json?.mapping) {
+        const m = json.mapping;
+        setSumAppToken(m.app_token || "");
+        setSumTableId(m.table_id || "");
+        setSharedFolderToken(m.shared_folder_token || "");
+        setPdfFieldId(m.pdf_field_id || "");
+        setPdfFieldName(m.pdf_field_name || "");
+        setImageFieldId(m.image_field_id || "");
+        setImageFieldName(m.image_field_name || "");
+        setDocFieldId(m.doc_field_id || "");
+        setDocFieldName(m.doc_field_name || "");
+        if (m.app_token && m.table_id) {
+          loadSumFields(m.app_token, m.table_id);
+        }
+      }
+      return json;
+    }
+  });
+
+  const loadSumFields = async (appToken: string, tableId: string) => {
+    try {
+      const res = await apiFetch(`/api/lark/base/fields?app_token=${encodeURIComponent(appToken)}&table_id=${encodeURIComponent(tableId)}`);
+      const json = await res.json();
+      if (json?.items) {
+        setSumFields(json.items);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const listBaseTablesMutation = useMutation({
     mutationFn: async () => {
@@ -332,6 +388,62 @@ export default function LarkBaseSettingsPage() {
     }
   });
 
+  const saveSumMappingMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch('/api/lark/meeting-summary/mapping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_token: sumAppToken,
+          table_id: sumTableId,
+          shared_folder_token: sharedFolderToken,
+          pdf_field_id: pdfFieldId,
+          pdf_field_name: pdfFieldName,
+          image_field_id: imageFieldId,
+          image_field_name: imageFieldName,
+          doc_field_id: docFieldId,
+          doc_field_name: docFieldName
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || 'Failed to save Meeting Summary mapping');
+      return json;
+    },
+    onSuccess: () => {
+      setSuccessMsg('Meeting Summary mapping saved successfully!');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    },
+    onError: (err: any) => { setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000); }
+  });
+
+  const testSumMappingMutation = useMutation({
+    mutationFn: async () => {
+      setTesting(true);
+      setTestResult(null);
+      const res = await apiFetch('/api/lark/meeting-summary/mapping/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          app_token: sumAppToken,
+          table_id: sumTableId,
+          shared_folder_token: sharedFolderToken,
+          pdf_field_id: pdfFieldId,
+          image_field_id: imageFieldId,
+          doc_field_id: docFieldId
+        }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setTesting(false);
+      setTestResult(data);
+    },
+    onError: (err: any) => {
+      setTesting(false);
+      setTestResult({ success: false, status: 'Validation Error', message: err?.message || 'Unknown network error' });
+    }
+  });
+
   const startBaseSync = (mapping: LarkBaseMapping, direction: LarkBaseSyncDirection) => {
     const mappingName = mapping.table_name || mapping.table_id;
     setBaseSyncDialog({ open: true, status: "running", direction, mappingName });
@@ -416,6 +528,11 @@ export default function LarkBaseSettingsPage() {
   const larkBaseFieldNames = Array.from(new Set(["Record ID", ...((listBaseFieldsMutation.data?.items || []) as LarkBaseField[]).map((f) => f.field_name)]));
   const savedTokens = Array.from(new Set(baseMappings.map(m => m.app_token))).filter(Boolean);
 
+  // Filter sum fields by compatible types
+  // Type 17: Attachment, Type 15: Url, Type 1: Text
+  const attachmentFields = sumFields.filter(f => f.type === 17);
+  const linkFields = sumFields.filter(f => f.type === 15 || f.type === 1);
+
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center gap-4">
@@ -431,6 +548,150 @@ export default function LarkBaseSettingsPage() {
       {errorMsg && <div className="rounded-lg bg-red-500/10 p-4 text-red-600">{errorMsg}</div>}
 
       <div className="flex flex-col gap-8 w-full">
+        {/* ── Meeting Summary Field Mapping Configuration ── */}
+        <Card className="p-6 w-full">
+          <div className="mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-indigo-500" />
+            <h3 className="text-lg font-semibold">Meeting Summary Field Mapping</h3>
+          </div>
+
+          <p className="text-xs text-muted-foreground mb-6">
+            Map Leadsy AI Meeting summary outputs (PDF, Image, and Lark Docs URL) to Bitable fields and Drive Shared Folders.
+          </p>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Connection Specs */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Target Base App Token</label>
+                <Input
+                  value={sumAppToken}
+                  onChange={(e) => setSumAppToken(e.target.value)}
+                  placeholder="Example: appbcbWCzen6D8dezhoCH2RpMAh"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Target Table ID</label>
+                <Input
+                  value={sumTableId}
+                  onChange={(e) => {
+                    setSumTableId(e.target.value);
+                    if (sumAppToken && e.target.value) {
+                      loadSumFields(sumAppToken, e.target.value);
+                    }
+                  }}
+                  placeholder="Example: tblXyz123"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Lark Shared Folder Token</label>
+                <Input
+                  value={sharedFolderToken}
+                  onChange={(e) => setSharedFolderToken(e.target.value)}
+                  placeholder="Example: fldbcbWCzen6D8dezhoCH2RpMAh"
+                />
+                <span className="text-[10px] text-muted-foreground">The folder where Lead folders containing Lark Docs will be created.</span>
+              </div>
+            </div>
+
+            {/* Field Mappings */}
+            <div className="space-y-4">
+              {/* PDF Field */}
+              <div>
+                <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                  <FileText className="w-3.5 h-3.5" /> PDF Meeting Summary Field
+                </label>
+                <select
+                  value={pdfFieldId}
+                  onChange={(e) => {
+                    setPdfFieldId(e.target.value);
+                    const matched = attachmentFields.find(f => f.field_id === e.target.value);
+                    setPdfFieldName(matched?.field_name || "");
+                  }}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Do not sync</option>
+                  {attachmentFields.map((f) => (
+                    <option key={f.field_id} value={f.field_id}>{f.field_name} (Attachment)</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Image Field */}
+              <div>
+                <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                  <ImageIcon className="w-3.5 h-3.5" /> Image Meeting Summary Field
+                </label>
+                <select
+                  value={imageFieldId}
+                  onChange={(e) => {
+                    setImageFieldId(e.target.value);
+                    const matched = attachmentFields.find(f => f.field_id === e.target.value);
+                    setImageFieldName(matched?.field_name || "");
+                  }}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Do not sync</option>
+                  {attachmentFields.map((f) => (
+                    <option key={f.field_id} value={f.field_id}>{f.field_name} (Attachment)</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Doc Field */}
+              <div>
+                <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                  <LinkIcon className="w-3.5 h-3.5" /> Lark Docs Summary URL Field
+                </label>
+                <select
+                  value={docFieldId}
+                  onChange={(e) => {
+                    setDocFieldId(e.target.value);
+                    const matched = linkFields.find(f => f.field_id === e.target.value);
+                    setDocFieldName(matched?.field_name || "");
+                  }}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Do not sync</option>
+                  {linkFields.map((f) => (
+                    <option key={f.field_id} value={f.field_id}>{f.field_name} (URL/Text)</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Mapping diagnostics */}
+          {testResult && (
+            <div className={`mt-5 p-4 rounded-lg border ${testResult.success ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 'bg-rose-500/10 border-rose-500/20 text-rose-600'}`}>
+              <p className="font-semibold text-sm">Status: {testResult.status}</p>
+              <p className="text-xs mt-1">{testResult.message}</p>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="mt-6 flex flex-wrap gap-2 justify-end border-t pt-4">
+            <Button
+              variant="outline"
+              disabled={testing || !sumAppToken || !sumTableId || !sharedFolderToken}
+              onClick={() => testSumMappingMutation.mutate()}
+            >
+              {testing ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Test Mapping
+            </Button>
+            <Button
+              disabled={saveSumMappingMutation.isPending || !sumAppToken || !sumTableId || !sharedFolderToken}
+              onClick={() => saveSumMappingMutation.mutate()}
+            >
+              {saveSumMappingMutation.isPending ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Save Mapping Settings
+            </Button>
+          </div>
+        </Card>
+
+        {/* Existing Lark Base Mappings */}
         <Card className="p-6 w-full">
           <div className="mb-4 flex items-center gap-2">
             <Database className="h-5 w-5 text-muted-foreground" />

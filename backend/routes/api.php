@@ -605,6 +605,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('base/mappings', [LarkController::class, 'saveBaseMapping'])->middleware('permission:integrations.manage');
         Route::post('base/mappings/{baseTable}/sync', [LarkController::class, 'syncBaseMapping'])->middleware('permission:integrations.manage');
         Route::delete('base/mappings/{baseTable}', [LarkController::class, 'deleteBaseMapping'])->middleware('permission:integrations.manage');
+
+        // Meeting Summary Output Mappings
+        Route::get('meeting-summary/mapping', [LarkController::class, 'getMeetingSummaryMapping'])->middleware('permission:integrations.manage');
+        Route::post('meeting-summary/mapping', [LarkController::class, 'saveMeetingSummaryMapping'])->middleware('permission:integrations.manage');
+        Route::post('meeting-summary/mapping/test', [LarkController::class, 'testMeetingSummaryMapping'])->middleware('permission:integrations.manage');
     });
 });
 

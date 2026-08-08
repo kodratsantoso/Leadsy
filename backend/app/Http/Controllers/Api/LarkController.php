@@ -656,6 +656,168 @@ class LarkController extends Controller
         ]);
     }
 
+    public function getMeetingSummaryMapping(Request $request)
+    {
+        $integration = $this->tenantIntegration();
+        return response()->json([
+            'success' => true,
+            'mapping' => $integration->meeting_summary_mapping ?? [],
+        ]);
+    }
+
+    public function saveMeetingSummaryMapping(Request $request)
+    {
+        $request->validate([
+            'app_token' => 'required|string',
+            'table_id' => 'required|string',
+            'shared_folder_token' => 'required|string',
+            'pdf_field_id' => 'nullable|string',
+            'pdf_field_name' => 'nullable|string',
+            'image_field_id' => 'nullable|string',
+            'image_field_name' => 'nullable|string',
+            'doc_field_id' => 'nullable|string',
+            'doc_field_name' => 'nullable|string',
+        ]);
+
+        $integration = $this->tenantIntegration();
+        $integration->update([
+            'meeting_summary_mapping' => [
+                'app_token' => $request->app_token,
+                'table_id' => $request->table_id,
+                'shared_folder_token' => $request->shared_folder_token,
+                'pdf_field_id' => $request->pdf_field_id,
+                'pdf_field_name' => $request->pdf_field_name,
+                'image_field_id' => $request->image_field_id,
+                'image_field_name' => $request->image_field_name,
+                'doc_field_id' => $request->doc_field_id,
+                'doc_field_name' => $request->doc_field_name,
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Meeting summary mapping saved successfully.',
+            'mapping' => $integration->meeting_summary_mapping,
+        ]);
+    }
+
+    public function testMeetingSummaryMapping(Request $request)
+    {
+        $request->validate([
+            'app_token' => 'required|string',
+            'table_id' => 'required|string',
+            'shared_folder_token' => 'required|string',
+            'pdf_field_id' => 'nullable|string',
+            'image_field_id' => 'nullable|string',
+            'doc_field_id' => 'nullable|string',
+        ]);
+
+        try {
+            $integration = $this->tenantIntegration();
+            $baseService = new LarkBaseService($integration);
+
+            // 1. Verify app_token & table_id
+            try {
+                $fields = $baseService->listFields($request->app_token, $request->table_id)['items'] ?? [];
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'Table Not Found',
+                    'message' => 'Failed to access table: ' . $e->getMessage(),
+                ]);
+            }
+
+            // Map field list by ID
+            $fieldsById = collect($fields)->keyBy('field_id')->all();
+
+            // 2. Validate PDF Mapping (Type 17 = Attachment)
+            if ($request->pdf_field_id) {
+                if (!isset($fieldsById[$request->pdf_field_id])) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'Field Not Found',
+                        'message' => 'PDF field ID ' . $request->pdf_field_id . ' not found in Lark Base.',
+                    ]);
+                }
+                $pdfField = $fieldsById[$request->pdf_field_id];
+                if ((int)($pdfField['type'] ?? 0) !== 17) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'Invalid Field',
+                        'message' => 'PDF Field (' . $pdfField['field_name'] . ') must be an Attachment type.',
+                    ]);
+                }
+            }
+
+            // 3. Validate Image Mapping (Type 17 = Attachment)
+            if ($request->image_field_id) {
+                if (!isset($fieldsById[$request->image_field_id])) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'Field Not Found',
+                        'message' => 'Image field ID ' . $request->image_field_id . ' not found in Lark Base.',
+                    ]);
+                }
+                $imgField = $fieldsById[$request->image_field_id];
+                if ((int)($imgField['type'] ?? 0) !== 17) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'Invalid Field',
+                        'message' => 'Image Field (' . $imgField['field_name'] . ') must be an Attachment type.',
+                    ]);
+                }
+            }
+
+            // 4. Validate Doc Mapping (Type 15 = Url, or Type 1 = Text)
+            if ($request->doc_field_id) {
+                if (!isset($fieldsById[$request->doc_field_id])) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'Field Not Found',
+                        'message' => 'Doc field ID ' . $request->doc_field_id . ' not found in Lark Base.',
+                    ]);
+                }
+                $docField = $fieldsById[$request->doc_field_id];
+                $type = (int)($docField['type'] ?? 0);
+                if ($type !== 15 && $type !== 1) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'Invalid Field',
+                        'message' => 'Doc Field (' . $docField['field_name'] . ') must be a URL or Text type.',
+                    ]);
+                }
+            }
+
+            // 5. Verify shared folder token
+            try {
+                $driveService = new LarkDriveService($integration);
+                $driveService->request('GET', "/drive/v1/files", [], [
+                    'folder_token' => $request->shared_folder_token,
+                    'page_size' => 1
+                ]);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'Permission Denied',
+                    'message' => 'Failed to access Shared Folder token: ' . $e->getMessage() . '. Please verify permissions.',
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'status' => 'Connected',
+                'message' => 'Configuration is valid and all fields matched successfully.',
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'status' => 'Permission Denied',
+                'message' => 'Validation failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function syncSingleLead(Request $request, Lead $lead)
     {
         $this->authorize('view', $lead);

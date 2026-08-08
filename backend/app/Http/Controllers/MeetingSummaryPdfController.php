@@ -24,7 +24,9 @@ class MeetingSummaryPdfController extends Controller
 
         try {
             GenerateMeetingSummaryPdfJob::dispatchSync($request->transcript_id, $request->evaluation_id);
-            \App\Jobs\SyncMeetingSummaryPdfToLarkBaseJob::dispatchSync($request->transcript_id);
+            
+            $userId = auth()->check() ? auth()->id() : null;
+            \App\Jobs\SyncMeetingSummaryToLarkJob::dispatchSync($request->transcript_id, $userId);
 
             return response()->json([
                 'message' => 'Meeting summary generated and synced to Lark Base.'

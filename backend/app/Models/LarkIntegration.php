@@ -20,6 +20,7 @@ class LarkIntegration extends Model
         'base_url',
         'features',
         'enabled_modules',
+        'meeting_summary_mapping',
         'is_active',
         'last_sync_at',
         'sync_status',
@@ -28,6 +29,7 @@ class LarkIntegration extends Model
     protected $casts = [
         'features' => 'json',
         'enabled_modules' => 'json',
+        'meeting_summary_mapping' => 'json',
         'is_active' => 'boolean',
         'last_sync_at' => 'datetime',
     ];
