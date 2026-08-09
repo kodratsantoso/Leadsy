@@ -204,6 +204,7 @@
             font-size: 10px;
             color: #0f3d7a;
             padding: 2px 0;
+            font-family: 'DejaVu Sans', sans-serif;
         }
         .terms-text {
             font-size: 8.5px;
@@ -433,7 +434,7 @@
                 @foreach(explode("\n", str_replace("\r", "", $terms)) as $line)
                     @if(trim($line))
                         <tr>
-                            <td class="terms-bullet">✦</td>
+                            <td class="terms-bullet">✔</td>
                             <td class="terms-text">{!! e(ltrim(trim($line), "\t-*•. ")) !!}</td>
                         </tr>
                     @endif
