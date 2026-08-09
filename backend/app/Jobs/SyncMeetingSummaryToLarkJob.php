@@ -181,6 +181,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
 
                 \Spatie\Browsershot\Browsershot::html($html)
                     ->windowSize(1200, 1600)
+                    ->fullPage()
                     ->deviceScaleFactor(2)
                     ->waitUntilNetworkIdle() // wait for CDN and ApexCharts
                     ->delay(1500) // extra delay for chart animation

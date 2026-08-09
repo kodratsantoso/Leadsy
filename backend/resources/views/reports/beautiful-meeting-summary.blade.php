@@ -455,7 +455,28 @@
                 colors: ['#10b981', '#f59e0b', '#ef4444'],
                 plotOptions: {
                     pie: {
-                        donut: { size: '65%', labels: { show: true, total: { show: true, label: 'Sentiment' } } }
+                        donut: { 
+                            size: '65%', 
+                            labels: { 
+                                show: true, 
+                                name: {
+                                    fontSize: '12px',
+                                    color: '#64748b'
+                                },
+                                value: {
+                                    fontSize: '24px',
+                                    fontWeight: 'bold',
+                                    color: '#0f172a'
+                                },
+                                total: { 
+                                    show: true, 
+                                    label: '{{ $evaluation ? ucfirst($evaluation->sentiment) : "Sentiment" }}',
+                                    formatter: function (w) {
+                                        return '{{ $evaluation ? $evaluation->confidence_score : 100 }}' + '%'
+                                    }
+                                } 
+                            } 
+                        }
                     }
                 },
                 dataLabels: { enabled: false },
