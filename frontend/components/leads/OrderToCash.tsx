@@ -3070,7 +3070,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                 onClick={() => {
                   const relativeUrl = viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '');
                   const link = document.createElement('a');
-                  link.href = relativeUrl;
+                  link.href = `${relativeUrl}?t=${new Date().getTime()}`;
                   link.download = viewPdfTitle.replace(/\s+/g, '_') + '.pdf';
                   document.body.appendChild(link);
                   link.click();
@@ -3087,7 +3087,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         >
           <div className="w-full">
             <iframe
-              src={viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '')}
+              src={`${viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '')}?t=${new Date().getTime()}`}
               className="w-full h-[650px] border border-border rounded-lg"
               title="PDF Viewer"
             />
