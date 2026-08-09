@@ -171,7 +171,8 @@ export function EditLeadModal({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const errorDetails = body.errors ? Object.values(body.errors).flat().join(', ') : '';
+        const validationErrors = body.errors || body.error?.details;
+        const errorDetails = validationErrors ? Object.values(validationErrors).flat().join(', ') : '';
         throw new Error(errorDetails ? `${body.message}: ${errorDetails}` : (body.message || `Failed to update lead (${res.status})`));
       }
       return res.json();
