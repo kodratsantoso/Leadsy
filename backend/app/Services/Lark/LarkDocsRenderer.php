@@ -344,13 +344,13 @@ class LarkDocsRenderer
             ]
         ];
 
-        // Next Step Summary Table (1 Row x 3 Columns)
+        // Next Step Summary Table (2 Rows x 3 Columns)
         $nextStepVal = $conclusion['next_step'] ?? 'To be confirmed';
         $children[] = [
             'block_type' => 31, // Table
             'table' => [
                 'property' => [
-                    'row_size' => 1,
+                    'row_size' => 2,
                     'column_size' => 3
                 ]
             ]
@@ -522,12 +522,13 @@ class LarkDocsRenderer
             }
         }
 
-        // Populate Table 4: Next Steps
+        // Populate Table 4: Next Steps (2 Rows x 3 Columns)
         $nextStepTableIdx = 3;
-        if (isset($tableCells[$nextStepTableIdx]) && count($tableCells[$nextStepTableIdx]) >= 3) {
+        if (isset($tableCells[$nextStepTableIdx]) && count($tableCells[$nextStepTableIdx]) >= 6) {
             foreach ($nextStepCells as $idx => $cell) {
-                $cellBlockId = $tableCells[$nextStepTableIdx][$idx];
-                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
+                // Header row cells (0, 1, 2)
+                $headerCellId = $tableCells[$nextStepTableIdx][$idx];
+                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$headerCellId}/children", [
                     'children' => [
                         [
                             'block_type' => 2,
@@ -536,10 +537,25 @@ class LarkDocsRenderer
                                     [
                                         'type' => 'text',
                                         'text_run' => [
-                                            'content' => "{$cell['title']}\n",
+                                            'content' => $cell['title'],
                                             'text_element_style' => ['bold' => true, 'text_color' => 4]
                                         ]
-                                    ],
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'index' => -1
+                ]);
+
+                // Value row cells (3, 4, 5)
+                $valueCellId = $tableCells[$nextStepTableIdx][$idx + 3];
+                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$valueCellId}/children", [
+                    'children' => [
+                        [
+                            'block_type' => 2,
+                            'text' => [
+                                'elements' => [
                                     [
                                         'type' => 'text',
                                         'text_run' => [
