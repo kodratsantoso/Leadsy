@@ -825,8 +825,8 @@ export default function SettingsUsersPage() {
                   </div>
                   <div className="flex gap-2">
                     <label className="flex-1">
-                      <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/95 h-8 rounded-md text-xs font-medium cursor-pointer">
-                        <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload Image
+                      <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/95 h-9 rounded-md text-sm font-medium cursor-pointer">
+                        <Upload className="h-4 w-4 mr-2" /> Upload Signature
                       </span>
                       <input
                         type="file"
@@ -851,13 +851,13 @@ export default function SettingsUsersPage() {
                         }}
                       />
                     </label>
-                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setIsDrawingMode(true)}>
+                    <Button variant="outline" className="flex-1 h-9 rounded-md text-sm font-medium" onClick={() => setIsDrawingMode(true)}>
                       Draw Signature
                     </Button>
                     {editingUser.signature_path && (
                       <Button
                         variant="outline"
-                        size="xs"
+                        className="h-9 w-9 p-0 flex items-center justify-center rounded-md"
                         onClick={() => {
                           apiFetch(`/users/${editingUser.id}/signature`, { method: "DELETE" }).then((r) => {
                             if (r.ok) {
@@ -867,7 +867,7 @@ export default function SettingsUsersPage() {
                           });
                         }}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
                   </div>
