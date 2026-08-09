@@ -336,9 +336,9 @@ class LarkDocsRenderer
             'block_type' => 19, // Callout
             'callout' => [
                 'emoji_id' => 'bulb',
-                'background_color' => 5, // Light Blue
-                'border_color' => 5,
-                'text_color' => 5
+                'background_color' => 1, // Light Red / Neutral Light
+                'border_color' => 1,
+                'text_color' => 1
             ]
         ];
 
