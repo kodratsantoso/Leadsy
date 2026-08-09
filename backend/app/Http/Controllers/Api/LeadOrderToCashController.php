@@ -1291,7 +1291,7 @@ class LeadOrderToCashController extends Controller
         });
     }
 
-    public function generatePdf(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): JsonResponse
+    public function generatePdf(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): \Illuminate\Http\JsonResponse
     {
         try {
             $result = $pdfService->generatePdf('quotation', $id);
@@ -1326,7 +1326,7 @@ class LeadOrderToCashController extends Controller
         return Storage::disk('public')->download($path);
     }
 
-    public function generatePdfSo(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): JsonResponse
+    public function generatePdfSo(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): \Illuminate\Http\JsonResponse
     {
         try {
             $result = $pdfService->generatePdf('sales_order', $id);
