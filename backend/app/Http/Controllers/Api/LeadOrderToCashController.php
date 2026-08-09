@@ -43,6 +43,15 @@ class LeadOrderToCashController extends Controller
  
         return in_array($target, $transitions[$current] ?? []);
     }
+
+    private function syncLeadRealizedAmount($lead)
+    {
+        $lead->realized_closing_amount = $lead->salesOrders()
+            ->where('order_type', 'new')
+            ->whereIn('order_status', ['confirmed', 'closed'])
+            ->sum('total_amount');
+        $lead->save();
+    }
  
     private function isValidSalesOrderTransition(string $current, string $target): bool
     {
@@ -1080,6 +1089,8 @@ class LeadOrderToCashController extends Controller
  
             AuditService::logUpdated('sales_orders', $order, $original);
  
+            $this->syncLeadRealizedAmount($order->lead);
+
             return response()->json(['data' => $order->load('items')]);
         });
     }
@@ -1101,6 +1112,8 @@ class LeadOrderToCashController extends Controller
             ]);
             
             AuditService::logDeleted('sales_orders', $order);
+            
+            $this->syncLeadRealizedAmount($order->lead);
         });
 
         return response()->json(['message' => 'Sales Order deleted successfully']);
@@ -1128,17 +1141,14 @@ class LeadOrderToCashController extends Controller
  
             // Sync revenue to Lead
             $lead = $order->lead;
+            $this->syncLeadRealizedAmount($order->lead);
+            
             if ($order->order_type === 'new') {
-                $lead->realized_closing_amount = $lead->salesOrders()
-                    ->where('order_type', 'new')
-                    ->where('order_status', 'confirmed')
-                    ->sum('total_amount');
-                
                 $closedWonStage = \App\Models\FunnelStage::where('name', 'Closed Won')->first();
                 if ($closedWonStage) {
                     $lead->funnel_stage_id = $closedWonStage->id;
+                    $lead->save();
                 }
-                $lead->save();
             }
  
             LeadActivity::create([
@@ -1173,15 +1183,7 @@ class LeadOrderToCashController extends Controller
                 'order_status' => 'cancelled'
             ]);
  
-            // If it was a 'new' confirmed sales order that got cancelled, recalculate Lead closing amount
-            $lead = $order->lead;
-            if ($order->order_type === 'new') {
-                $lead->realized_closing_amount = $lead->salesOrders()
-                    ->where('order_type', 'new')
-                    ->where('order_status', 'confirmed')
-                    ->sum('total_amount');
-                $lead->save();
-            }
+            $this->syncLeadRealizedAmount($order->lead);
  
             LeadActivity::create([
                 'lead_id' => $order->lead_id,
@@ -1223,6 +1225,8 @@ class LeadOrderToCashController extends Controller
                 'user_id' => Auth::id(),
             ]);
  
+            $this->syncLeadRealizedAmount($order->lead);
+
             AuditService::logUpdated('sales_orders', $order, $original);
         });
  
