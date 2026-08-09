@@ -22,6 +22,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const [savingSO, setSavingSO] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [generatingPdfId, setGeneratingPdfId] = useState<number | null>(null);
+  const [viewPdfUrl, setViewPdfUrl] = useState<string | null>(null);
+  const [viewPdfTitle, setViewPdfTitle] = useState<string>("");
   
   // Tab state inside modal
   const [activeTab, setActiveTab] = useState<'primary' | 'commercial' | 'items' | 'terms' | 'summary'>('primary');
@@ -889,7 +891,15 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to generate PDF');
       }
+      const data = await res.json();
+      const pdfUrl = data.data?.url;
       qc.invalidateQueries({ queryKey: type === 'quotation' ? ['lead-quotations', leadId] : ['lead-sales-orders', leadId] });
+      
+      // Auto-open PDF preview modal
+      if (pdfUrl) {
+        setViewPdfUrl(pdfUrl);
+        setViewPdfTitle(type === 'quotation' ? 'Quotation PDF Preview' : 'Sales Order PDF Preview');
+      }
     } catch (err: any) {
       setErrorMessage(err.message);
     } finally {
@@ -1494,7 +1504,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           <Button 
                             size="xs" 
                             variant="secondary" 
-                            onClick={() => window.open(q.pdf_url, '_blank')}
+                            onClick={() => {
+                              setViewPdfUrl(q.pdf_url);
+                              setViewPdfTitle('Quotation PDF Preview');
+                            }}
                           >
                             View PDF
                           </Button>
@@ -1699,7 +1712,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           <Button 
                             size="xs" 
                             variant="secondary" 
-                            onClick={() => window.open(so.pdf_url, '_blank')}
+                            onClick={() => {
+                              setViewPdfUrl(so.pdf_url);
+                              setViewPdfTitle('Sales Order PDF Preview');
+                            }}
                           >
                             View PDF
                           </Button>
@@ -3029,6 +3045,46 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           </Modal>
         );
       })()}
+
+      {/* PDF View and Download Modal */}
+      {viewPdfUrl && (
+        <Modal
+          open={!!viewPdfUrl}
+          onOpenChange={(v) => !v && setViewPdfUrl(null)}
+          title={viewPdfTitle}
+          description="View and download the dynamically generated commercial document."
+          size="lg"
+          footer={
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const relativeUrl = viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '');
+                  const link = document.createElement('a');
+                  link.href = relativeUrl;
+                  link.download = viewPdfTitle.replace(/\s+/g, '_') + '.pdf';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                Download PDF
+              </Button>
+              <Button onClick={() => setViewPdfUrl(null)}>
+                Close
+              </Button>
+            </>
+          }
+        >
+          <div className="w-full">
+            <iframe
+              src={viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '')}
+              className="w-full h-[650px] border border-border rounded-lg"
+              title="PDF Viewer"
+            />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
