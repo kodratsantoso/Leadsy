@@ -1425,6 +1425,17 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                               </Button>
                             </>
                           )}
+
+                          {['converted', 'cancelled', 'rejected'].includes(q.quotation_status) && (
+                            <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
+                              </Button>
+                            </>
+                          )}
                         </>
                       )}
                     </div>
