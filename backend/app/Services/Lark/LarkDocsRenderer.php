@@ -72,7 +72,7 @@ class LarkDocsRenderer
 
         $children[] = [
             'block_type' => 31, // Table
-            'table' => ['property' => ['row_size' => 3, 'column_size' => 3, 'column_width' => [274, 273, 273]]]
+            'table' => ['property' => ['row_size' => 3, 'column_size' => 3, 'column_width' => [320, 320, 320]]]
         ];
         $tableMap['metadata'] = $tableIndex++;
 
@@ -183,7 +183,7 @@ class LarkDocsRenderer
 
         $children[] = [
             'block_type' => 31,
-            'table' => ['property' => ['row_size' => 2, 'column_size' => 2, 'column_width' => [410, 410]]]
+            'table' => ['property' => ['row_size' => 2, 'column_size' => 2, 'column_width' => [480, 480]]]
         ];
         $tableMap['insights'] = $tableIndex++;
 
@@ -205,7 +205,7 @@ class LarkDocsRenderer
             $children[] = $this->heading2('Topics Discussed');
             $children[] = [
                 'block_type' => 31,
-                'table' => ['property' => ['row_size' => count($topicRows) + 1, 'column_size' => 3, 'column_width' => [170, 550, 100]]]
+                'table' => ['property' => ['row_size' => count($topicRows) + 1, 'column_size' => 3, 'column_width' => [200, 640, 120]]]
             ];
             $tableMap['topics'] = $tableIndex++;
         }
@@ -288,7 +288,7 @@ class LarkDocsRenderer
                 $useCaseRows = array_slice($useCases, 0, 6);
                 $children[] = [
                     'block_type' => 31,
-                    'table' => ['property' => ['row_size' => count($useCaseRows) + 1, 'column_size' => 3, 'column_width' => [170, 480, 170]]]
+                    'table' => ['property' => ['row_size' => count($useCaseRows) + 1, 'column_size' => 3, 'column_width' => [200, 560, 200]]]
                 ];
                 $tableMap['use_cases'] = $tableIndex++;
             }
@@ -300,7 +300,7 @@ class LarkDocsRenderer
                 $stakeRows = array_slice($stakeholders, 0, 6);
                 $children[] = [
                     'block_type' => 31,
-                    'table' => ['property' => ['row_size' => count($stakeRows) + 1, 'column_size' => 3, 'column_width' => [200, 310, 310]]]
+                    'table' => ['property' => ['row_size' => count($stakeRows) + 1, 'column_size' => 3, 'column_width' => [240, 360, 360]]]
                 ];
                 $tableMap['stakeholders'] = $tableIndex++;
             }
@@ -330,7 +330,7 @@ class LarkDocsRenderer
             $children[] = $this->heading1('BANTC ANALYSIS', 4);
             $children[] = [
                 'block_type' => 31,
-                'table' => ['property' => ['row_size' => 2, 'column_size' => 3, 'column_width' => [274, 273, 273]]]
+                'table' => ['property' => ['row_size' => 2, 'column_size' => 3, 'column_width' => [320, 320, 320]]]
             ];
             $tableMap['bantc'] = $tableIndex++;
         }
@@ -349,7 +349,7 @@ class LarkDocsRenderer
         if (!empty($bantc) && (!empty($bantc['timeline']) || !empty($bantc['competitor']))) {
             $children[] = [
                 'block_type' => 31,
-                'table' => ['property' => ['row_size' => 2, 'column_size' => 2, 'column_width' => [410, 410]]]
+                'table' => ['property' => ['row_size' => 2, 'column_size' => 2, 'column_width' => [480, 480]]]
             ];
             $tableMap['bantc2'] = $tableIndex++;
         }
@@ -423,7 +423,7 @@ class LarkDocsRenderer
 
         $children[] = [
             'block_type' => 31,
-            'table' => ['property' => ['row_size' => 2, 'column_size' => 3, 'column_width' => [200, 470, 150]]]
+            'table' => ['property' => ['row_size' => 2, 'column_size' => 3, 'column_width' => [240, 560, 160]]]
         ];
         $tableMap['next_steps'] = $tableIndex++;
 
