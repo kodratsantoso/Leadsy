@@ -1300,14 +1300,37 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                             </Button>
                           ))}
                           {q.quotation_status === 'draft' && (
-                            <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
-                              Delete
-                            </Button>
+                            <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
+                              </Button>
+                            </>
                           )}
                           {q.quotation_status === 'accepted' && (
-                            <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
-                              Convert to SO
-                            </Button>
+                            <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
+                                Convert to SO
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
+                              </Button>
+                            </>
+                          )}
+                          {!['draft', 'accepted'].includes(q.quotation_status) && (
+                            <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
+                              </Button>
+                            </>
                           )}
                         </>
                       ) : (
@@ -1331,6 +1354,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           
                           {q.quotation_status === 'submitted' && (
                             <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
                               <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => updateQuotationStatus(q.id, 'approved')}>
                                 Approve
                               </Button>
@@ -1340,11 +1366,17 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                               <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
                               </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
+                              </Button>
                             </>
                           )}
 
                           {q.quotation_status === 'approved' && (
                             <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
                               <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => updateQuotationStatus(q.id, 'sent')}>
                                 Mark Sent
                               </Button>
@@ -1354,27 +1386,42 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                               <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
                               </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
+                              </Button>
                             </>
                           )}
 
                           {q.quotation_status === 'sent' && (
                             <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
                               <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => updateQuotationStatus(q.id, 'accepted')}>
                                 Mark Accepted
                               </Button>
                               <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
                               </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
+                              </Button>
                             </>
                           )}
 
                           {q.quotation_status === 'accepted' && (
                             <>
+                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                                Edit
+                              </Button>
                               <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
                                 Convert to SO
                               </Button>
                               <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
+                              </Button>
+                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                                Delete
                               </Button>
                             </>
                           )}
@@ -1531,11 +1578,27 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                       )}
                       {so.order_status === 'confirmed' && (
                         <>
+                          <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-100/50" onClick={() => startEditSO(so)}>
+                            Edit
+                          </Button>
                           <Button size="xs" variant="outline" className="text-neutral-600" onClick={() => updateSalesOrderStatus(so.id, 'close')}>
                             Close Order
                           </Button>
                           <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => updateSalesOrderStatus(so.id, 'cancel')}>
                             Cancel
+                          </Button>
+                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => deleteSalesOrder(so.id)}>
+                            Delete
+                          </Button>
+                        </>
+                      )}
+                      {!['draft', 'confirmed'].includes(so.order_status) && (
+                        <>
+                          <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-100/50" onClick={() => startEditSO(so)}>
+                            Edit
+                          </Button>
+                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => deleteSalesOrder(so.id)}>
+                            Delete
                           </Button>
                         </>
                       )}
