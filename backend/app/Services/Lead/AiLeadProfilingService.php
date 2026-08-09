@@ -84,8 +84,10 @@ class AiLeadProfilingService
                 'website' => $candidate['website'] ?? $bestMatch['website'] ?? null,
                 'address' => (is_array($candidate['physical_hq_address'] ?? null) ? ($candidate['physical_hq_address']['address'] ?? null) : ($candidate['physical_hq_address'] ?? $candidate['address'] ?? null))
                     ?? (is_array($bestMatch['physical_hq_address'] ?? null) ? ($bestMatch['physical_hq_address']['address'] ?? null) : ($bestMatch['physical_hq_address'] ?? $bestMatch['address'] ?? null)),
-                'phone' => $candidate['phone'] ?? $bestMatch['phone'] ?? null,
-                'email' => $candidate['email'] ?? $bestMatch['email'] ?? null,
+                'phone' => (is_array($candidate['phone'] ?? null) ? ($candidate['phone']['primary'] ?? null) : ($candidate['phone'] ?? null))
+                    ?? (is_array($bestMatch['phone'] ?? null) ? ($bestMatch['phone']['primary'] ?? null) : ($bestMatch['phone'] ?? null)),
+                'email' => (is_array($candidate['email'] ?? null) ? ($candidate['email']['primary'] ?? null) : ($candidate['email'] ?? null))
+                    ?? (is_array($bestMatch['email'] ?? null) ? ($bestMatch['email']['primary'] ?? null) : ($bestMatch['email'] ?? null)),
                 'industry' => $candidate['industry'] ?? $bestMatch['industry'] ?? null,
                 'sub_industry' => $candidate['sub_industry'] ?? $bestMatch['sub_industry'] ?? null,
                 'business_category' => $candidate['business_category'] ?? $bestMatch['business_category'] ?? null,
