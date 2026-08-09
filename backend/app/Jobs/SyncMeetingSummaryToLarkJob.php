@@ -160,16 +160,20 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
  
                  // Generate PNG from first page of PDF using pdftoppm
                  $pdfFullPath = storage_path('app/public/' . $document->file_path);
-                 $tempImagePrefix = storage_path('app/public/meeting-summaries/temp_img_' . $transcript->id);
+                 $tempDir = storage_path('app/public/meeting-summaries');
+                 if (!is_dir($tempDir)) {
+                     mkdir($tempDir, 0755, true);
+                 }
+                 $tempImagePrefix = $tempDir . '/temp_img_' . $transcript->id;
                  $pngPath = $tempImagePrefix . '-1.png';
  
                  // Clean up previous temporary file if exists
                  if (file_exists($pngPath)) {
-                     unlink($pngPath);
+                     @unlink($pngPath);
                  }
  
                  // Run pdftoppm command to convert first page (-f 1 -l 1) to PNG with 150 DPI
-                 $command = "pdftoppm -png -f 1 -l 1 -r 150 " . escapeshellarg($pdfFullPath) . " " . escapeshellarg($tempImagePrefix);
+                 $command = "/opt/homebrew/bin/pdftoppm -png -f 1 -l 1 -r 150 " . escapeshellarg($pdfFullPath) . " " . escapeshellarg($tempImagePrefix);
                  shell_exec($command);
  
                  if (file_exists($pngPath)) {
@@ -179,7 +183,9 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                          str_replace('.pdf', '.png', $document->file_name)
                      );
                      // Clean up temp image
-                     unlink($pngPath);
+                     if (file_exists($pngPath)) {
+                         @unlink($pngPath);
+                     }
                  } else {
                      // Fallback: upload PDF if PNG generation failed
                      $imgFileToken = $larkBaseService->uploadAttachment(
