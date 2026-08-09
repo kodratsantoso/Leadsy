@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Building2, Upload, Trash2, Shield, Check, CreditCard, Pencil, ToggleLeft } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 
 export default function CompanySettingsPage() {
   const qc = useQueryClient();
@@ -270,13 +271,18 @@ export default function CompanySettingsPage() {
   }
 
   return (
-    <div className="space-y-8 p-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Company Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure legal entity data, bank information, and branding defaults for documents.
-        </p>
-      </div>
+    <div className="space-y-6 p-6">
+      <Card>
+        <CardHeader>
+          <div className="space-y-1">
+            <BackToSettings />
+            <CardTitle>Company Settings</CardTitle>
+            <CardDescription>
+              Configure legal entity data, bank information, and branding defaults for documents.
+            </CardDescription>
+          </div>
+        </CardHeader>
+      </Card>
 
       {successMessage && (
         <div className="bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 text-sm">
@@ -333,21 +339,6 @@ export default function CompanySettingsPage() {
                   />
                 </div>
 
-                <div className="border-t border-border pt-4 mt-6">
-                  <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
-                    <Shield className="h-4 w-4" /> Authorized Signatory
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Signatory Name</label>
-                      <Input name="signatory_name" defaultValue={tenant.signatory_name || ""} placeholder="Reza Effendi" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-muted-foreground">Signatory Position</label>
-                      <Input name="signatory_position" defaultValue={tenant.signatory_position || ""} placeholder="General Manager Sales" />
-                    </div>
-                  </div>
-                </div>
 
                 <div className="flex justify-end pt-2">
                   <Button type="submit" disabled={updateSettingsMutation.isPending}>
@@ -467,38 +458,6 @@ export default function CompanySettingsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Signatory Signature</CardTitle>
-              <CardDescription>Authorized signature image stamped in the approval block.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center space-y-4">
-              <div className="h-28 w-full border border-dashed border-border rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 relative p-4">
-                {tenant.signatory_image_path ? (
-                  <img src={getStorageUrl(tenant.signatory_image_path)} className="max-h-full max-w-full object-contain" alt="Signature Preview" />
-                ) : (
-                  <div className="text-center text-xs text-muted-foreground flex flex-col items-center gap-1">
-                    <Pencil className="h-8 w-8 text-slate-300" />
-                    No Signature Uploaded
-                  </div>
-                )}
-              </div>
-              <label className="w-full">
-                <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/95 h-9 rounded-md text-sm font-medium cursor-pointer">
-                  <Upload className="h-4 w-4 mr-2" /> Upload Signature
-                </span>
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/png, image/jpeg"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadSignatoryMutation.mutate(file);
-                  }}
-                />
-              </label>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
