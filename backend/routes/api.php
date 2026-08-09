@@ -235,6 +235,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/sales-orders', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'storeSalesOrder'])->middleware('permission:leads.edit');
     Route::get('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'showSalesOrder'])->middleware('permission:leads.view');
     Route::put('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'updateSalesOrder'])->middleware('permission:leads.edit');
+    Route::delete('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'destroySalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/confirm', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'confirmSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/cancel', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'cancelSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
@@ -361,6 +362,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/sales-orders', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'storeSalesOrder'])->middleware('permission:leads.edit');
     Route::get('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'showSalesOrder'])->middleware('permission:leads.view');
     Route::put('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'updateSalesOrder'])->middleware('permission:leads.edit');
+    Route::delete('sales-orders/{order}', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'destroySalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/confirm', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'confirmSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/cancel', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'cancelSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
