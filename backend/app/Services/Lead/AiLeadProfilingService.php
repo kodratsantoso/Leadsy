@@ -40,19 +40,8 @@ class AiLeadProfilingService
             'current_output_json' => ['company_name' => $companyName],
         ]);
 
-        // Trigger async profiling or run synchronously for simple polling
-        // For development robustness, let's run the core logic in a try-catch block
-        // and update the status accordingly.
-        try {
-            $this->performProfiling($output, $companyName);
-        } catch (\Throwable $e) {
-            Log::error("[AiLeadProfiling] Profiling failed for {$companyName}", ['error' => $e->getMessage()]);
-            $output->update([
-                'status' => 'failed',
-                'original_output_json' => array_merge($output->original_output_json, ['error' => $e->getMessage()]),
-                'current_output_json' => array_merge($output->current_output_json, ['error' => $e->getMessage()]),
-            ]);
-        }
+        // 2. Trigger async profiling
+        \App\Jobs\RunAiLeadProfilingJob::dispatch($output, $companyName);
 
         return $output;
     }
@@ -60,7 +49,7 @@ class AiLeadProfilingService
     /**
      * Perform the actual profiling process.
      */
-    private function performProfiling(AiGeneratedOutput $output, string $companyName): void
+    public function performProfiling(AiGeneratedOutput $output, string $companyName): void
     {
         // 1. Retrieve taxonomies to pass as constraints
         $industries = Industry::where('is_active', true)->pluck('name')->toArray();
