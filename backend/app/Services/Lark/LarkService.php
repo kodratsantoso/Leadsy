@@ -166,7 +166,7 @@ class LarkService
                         Log::error('Lark API request failed payload detail', [
                             'method' => $method,
                             'url' => $urlWithQuery,
-                            'data' => $data,
+                            'data_json' => json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                             'response' => $response->body()
                         ]);
                         throw new Exception('Lark API error: '.$response->body());

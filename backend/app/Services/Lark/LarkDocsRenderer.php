@@ -40,7 +40,6 @@ class LarkDocsRenderer
         $children[] = [
             'block_type' => 3, // Heading 1
             'heading1' => [
-                'style' => ['align' => 1],
                 'elements' => [
                     [
                         'type' => 'text',
@@ -55,7 +54,6 @@ class LarkDocsRenderer
         $children[] = [
             'block_type' => 2, // Text paragraph
             'text' => [
-                'style' => ['align' => 1],
                 'elements' => [
                     [
                         'type' => 'text',
@@ -350,7 +348,6 @@ class LarkDocsRenderer
         $children[] = [
             'block_type' => 2, // Text paragraph
             'text' => [
-                'style' => ['align' => 1],
                 'elements' => [
                     [
                         'type' => 'text',
