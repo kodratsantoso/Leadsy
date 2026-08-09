@@ -395,7 +395,7 @@ class LarkDocsRenderer
         $tableCells = [];
         foreach ($blocksList as $b) {
             if (($b['block_type'] ?? null) === 31) { // Table
-                $tableCells[] = $b['children'] ?? [];
+                $tableCells[] = $b['table']['cells'] ?? $b['children'] ?? [];
             }
         }
 
