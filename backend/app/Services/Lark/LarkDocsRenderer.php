@@ -67,7 +67,7 @@ class LarkDocsRenderer
                 ]
             ]
         ];
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
+        $children[] = ['block_type' => 22, 'divider' => (object)[]];
 
         // --- 2. METADATA SECTION (TABLE) ---
         $dateStr = $transcript->recorded_at ? $transcript->recorded_at->format('d F Y') : '-';
@@ -108,7 +108,7 @@ class LarkDocsRenderer
                 ]
             ]
         ];
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
+        $children[] = ['block_type' => 22, 'divider' => (object)[]];
 
         // --- 4. PRIMARY INSIGHTS CARDS (TABLE) ---
         // Dynamically select cards depending on meeting type
@@ -221,7 +221,7 @@ class LarkDocsRenderer
         ];
 
         // --- 5. DETAILED INSIGHTS & ACTION PLAN ---
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
+        $children[] = ['block_type' => 22, 'divider' => (object)[]];
         $children[] = [
             'block_type' => 3, // Heading 1
             'heading1' => [
@@ -315,7 +315,7 @@ class LarkDocsRenderer
         }
 
         // --- 6. CONCLUSION & NEXT STEPS ---
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
+        $children[] = ['block_type' => 22, 'divider' => (object)[]];
         $conclusionText = $conclusion['conclusion'] ?? 'No conclusion available.';
         $children[] = [
             'block_type' => 19, // Callout
@@ -346,7 +346,7 @@ class LarkDocsRenderer
         ];
 
         // --- 7. FOOTER SECTION ---
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
+        $children[] = ['block_type' => 22, 'divider' => (object)[]];
         $children[] = [
             'block_type' => 2, // Text paragraph
             'text' => [

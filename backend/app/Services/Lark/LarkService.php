@@ -163,6 +163,12 @@ class LarkService
                     }
 
                     if (! $response->successful()) {
+                        Log::error('Lark API request failed payload detail', [
+                            'method' => $method,
+                            'url' => $urlWithQuery,
+                            'data' => $data,
+                            'response' => $response->body()
+                        ]);
                         throw new Exception('Lark API error: '.$response->body());
                     }
 
