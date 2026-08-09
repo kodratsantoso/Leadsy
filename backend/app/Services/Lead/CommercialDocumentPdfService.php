@@ -30,7 +30,7 @@ class CommercialDocumentPdfService
         }
 
         if ($documentType === 'quotation') {
-            $doc = LeadQuotation::with(['lead.contacts', 'items.product', 'bankAccount', 'createdBy', 'approvedBy'])->findOrFail($documentId);
+            $doc = LeadQuotation::with(['lead.contacts', 'items.product', 'bankAccount', 'createdBy', 'approvedBy', 'salesOwner'])->findOrFail($documentId);
             $docNumber = $doc->quotation_number;
             $docDate = $doc->quotation_date ? $doc->quotation_date->format('d F Y') : '-';
             $validUntil = $doc->valid_until ? $doc->valid_until->format('d F Y') : '-';
@@ -38,7 +38,7 @@ class CommercialDocumentPdfService
             $items = $doc->items;
             $termsConditions = $doc->terms_conditions;
         } elseif ($documentType === 'sales_order') {
-            $doc = LeadSalesOrder::with(['lead.contacts', 'items.product', 'bankAccount', 'createdBy', 'confirmedBy'])->findOrFail($documentId);
+            $doc = LeadSalesOrder::with(['lead.contacts', 'items.product', 'bankAccount', 'createdBy', 'confirmedBy', 'salesOwner'])->findOrFail($documentId);
             $docNumber = $doc->sales_order_number;
             $docDate = $doc->order_date ? $doc->order_date->format('d F Y') : '-';
             $validUntil = $doc->contract_end_date ? $doc->contract_end_date->format('d F Y') : '-';
@@ -123,7 +123,9 @@ class CommercialDocumentPdfService
             'wht' => $doc->total_withholding_tax,
             'productLogo' => $productLogoPath ? Storage::disk('public')->path($productLogoPath) : null,
             'issuerLogo' => $tenant->logo_path ? Storage::disk('public')->path($tenant->logo_path) : null,
-            'issuerSignatoryImage' => $tenant->signatory_image_path ? Storage::disk('public')->path($tenant->signatory_image_path) : null,
+            'issuerSignatoryImage' => ($doc->salesOwner && $doc->salesOwner->signature_path) ? Storage::disk('public')->path($doc->salesOwner->signature_path) : ($tenant->signatory_image_path ? Storage::disk('public')->path($tenant->signatory_image_path) : null),
+            'issuerSignatoryName' => $doc->salesOwner ? $doc->salesOwner->name : ($tenant->signatory_name ?: 'Authorized Signatory'),
+            'issuerSignatoryPosition' => $doc->salesOwner ? $doc->salesOwner->title : ($tenant->signatory_position ?: 'Management'),
             'bankAccount' => $bankAccount,
             'terms' => $resolvedTerms,
         ];

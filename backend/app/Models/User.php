@@ -17,6 +17,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'role_id', 'tenant_id', 'direct_manager_id',
         'phone', 'target_period', 'target_revenue', 'target_percentage', 'target_calculation_type', 'is_active', 'tier_level', 'buffer_rate',
+        'title', 'signature_path',
     ];
 
     protected $hidden = [

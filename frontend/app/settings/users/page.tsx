@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2, Upload } from "lucide-react";
 
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,8 @@ type AppUser = {
   role?: AppRole | null;
   role_id?: number | null;
   tier_level?: string | null;
+  title?: string | null;
+  signature_path?: string | null;
 };
 
 type UserFormState = {
@@ -68,6 +70,7 @@ type UserFormState = {
   target_period: string;
   target_revenue: string;
   tier_level: string;
+  title: string;
 };
 
 type RoleFormState = {
@@ -87,6 +90,7 @@ const userFormDefaults: UserFormState = {
   target_period: "monthly",
   target_revenue: "",
   tier_level: "",
+  title: "",
 };
 
 const roleFormDefaults: RoleFormState = {
@@ -279,6 +283,7 @@ export default function SettingsUsersPage() {
       target_period: user.target_period || "monthly",
       target_revenue: user.target_revenue != null ? String(user.target_revenue) : "",
       tier_level: user.tier_level || "",
+      title: user.title || "",
     });
     setUserError("");
     setUserModalOpen(true);
@@ -311,6 +316,7 @@ export default function SettingsUsersPage() {
       direct_manager_id: userForm.direct_manager_id ? Number(userForm.direct_manager_id) : null,
       target_period: userForm.target_period,
       target_revenue: userForm.target_revenue ? Number(userForm.target_revenue) : null,
+      title: userForm.title || null,
     };
     if (userForm.role_id) payload.role_id = Number(userForm.role_id);
     if (userForm.tier_level) payload.tier_level = userForm.tier_level;
@@ -406,7 +412,10 @@ export default function SettingsUsersPage() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="space-y-1">
-                        <p className="font-medium">{user.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{user.name}</p>
+                          {user.title && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">{user.title}</span>}
+                        </div>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
                       </div>
                     </TableCell>
@@ -614,6 +623,16 @@ export default function SettingsUsersPage() {
             />
           </div>
           <div className="grid gap-2">
+            <label className="text-sm font-medium">Job Title (Signatory Designation)</label>
+            <Input
+              value={userForm.title}
+              onChange={(event) =>
+                setUserForm((current) => ({ ...current, title: event.target.value }))
+              }
+              placeholder="e.g. Account Manager, Sales Director"
+            />
+          </div>
+          <div className="grid gap-2">
             <label className="text-sm font-medium">
               Password {editingUser ? "(leave blank to keep current password)" : ""}
             </label>
@@ -719,6 +738,64 @@ export default function SettingsUsersPage() {
               />
             </div>
           </div>
+
+          {editingUser && (
+            <div className="grid gap-2 border-t pt-4">
+              <label className="text-sm font-medium">Authorized Signature</label>
+              <div className="h-20 w-full border border-dashed rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 relative p-2">
+                {editingUser.signature_path ? (
+                  <img src={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/storage/${editingUser.signature_path}`} className="max-h-full max-w-full object-contain" alt="Signature Preview" />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">No Signature Uploaded</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <label className="flex-1">
+                  <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/95 h-8 rounded-md text-xs font-medium cursor-pointer">
+                    <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload Signature
+                  </span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/png, image/jpeg"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file && editingUser) {
+                        const fd = new FormData();
+                        fd.append("signature", file);
+                        apiFetch(`/users/${editingUser.id}/signature`, {
+                          method: "POST",
+                          body: fd,
+                        }).then(async (r) => {
+                          if (r.ok) {
+                            queryClient.invalidateQueries({ queryKey: ["users"] });
+                            const updatedUser = (await r.json()).data;
+                            setEditingUser(updatedUser);
+                          }
+                        });
+                      }
+                    }}
+                  />
+                </label>
+                {editingUser.signature_path && (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => {
+                      apiFetch(`/users/${editingUser.id}/signature`, { method: "DELETE" }).then((r) => {
+                        if (r.ok) {
+                          queryClient.invalidateQueries({ queryKey: ["users"] });
+                          setEditingUser(curr => curr ? { ...curr, signature_path: null } : null);
+                        }
+                      });
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </Modal>
 

@@ -40,6 +40,7 @@ class UserController extends Controller
             'target_revenue' => 'nullable|numeric|min:0',
             'tier_level' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
+            'title' => 'nullable|string|max:255',
         ]);
 
         $user = User::create($data);
@@ -63,6 +64,7 @@ class UserController extends Controller
             'target_revenue' => 'nullable|numeric|min:0',
             'tier_level' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
+            'title' => 'nullable|string|max:255',
         ]);
 
         if (isset($data['direct_manager_id']) && (int) $data['direct_manager_id'] === $user->id) {
@@ -77,6 +79,45 @@ class UserController extends Controller
         AuditService::logUpdated('users', $user, $original);
 
         return response()->json(['data' => $user->load(['role', 'directManager:id,name,email'])]);
+    }
+
+    public function uploadSignature(Request $request, User $user): JsonResponse
+    {
+        $request->validate([
+            'signature' => 'required|image|mimes:png,jpg,jpeg|max:2048'
+        ]);
+
+        if ($user->signature_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->signature_path);
+        }
+
+        $path = $request->file('signature')->store('signatures/users', 'public');
+        
+        $original = $user->getAttributes();
+        $user->update(['signature_path' => $path]);
+
+        AuditService::logUpdated('users', $user, $original);
+
+        return response()->json([
+            'success' => true,
+            'signature_url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path),
+            'data' => $user->load(['role', 'directManager:id,name,email'])
+        ]);
+    }
+
+    public function deleteSignature(User $user): JsonResponse
+    {
+        if ($user->signature_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->signature_path);
+            $original = $user->getAttributes();
+            $user->update(['signature_path' => null]);
+            AuditService::logUpdated('users', $user, $original);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $user->load(['role', 'directManager:id,name,email'])
+        ]);
     }
 
     public function destroy(Request $request, User $user): JsonResponse

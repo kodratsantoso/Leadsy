@@ -88,6 +88,11 @@ class LeadSalesOrder extends Model
         return $this->hasMany(LeadSalesOrderItem::class, 'sales_order_id');
     }
 
+    public function salesOwner()
+    {
+        return $this->belongsTo(User::class, 'sales_owner_id');
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

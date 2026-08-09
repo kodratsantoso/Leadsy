@@ -467,8 +467,8 @@
                     @endif
                 </div>
                 <div class="sig-container">
-                    <div class="sig-title">{{ $tenant->signatory_name ?: 'Authorized Signatory' }}</div>
-                    <div class="sig-position">{{ $tenant->signatory_position ?: 'Management' }}</div>
+                    <div class="sig-title">{{ $issuerSignatoryName }}</div>
+                    <div class="sig-position">{{ $issuerSignatoryPosition }}</div>
                 </div>
             </td>
         </tr>

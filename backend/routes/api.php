@@ -584,6 +584,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Users & Roles — restricted to admin
     Route::apiResource('users', UserController::class)->middleware('permission:users.manage');
+    Route::post('users/{user}/signature', [UserController::class, 'uploadSignature'])->middleware('permission:users.manage');
+    Route::delete('users/{user}/signature', [UserController::class, 'deleteSignature'])->middleware('permission:users.manage');
     Route::get('roles', [UserController::class, 'roles']);
     Route::get('permissions', [UserController::class, 'permissions'])->middleware('permission:users.manage');
     Route::post('roles', [UserController::class, 'storeRole'])->middleware('permission:users.manage');
