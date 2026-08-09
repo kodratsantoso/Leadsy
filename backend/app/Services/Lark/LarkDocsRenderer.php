@@ -338,7 +338,25 @@ class LarkDocsRenderer
             'block_type' => 19, // Callout
             'callout' => [
                 'emoji_id' => 'bulb',
-                'background_color' => 1
+                'background_color' => 1,
+                'border_color' => 1,
+                'text_color' => 1
+            ],
+            'children' => [
+                // Callout blocks must be created with at least one child block
+                [
+                    'block_type' => 2,
+                    'text' => [
+                        'elements' => [
+                            [
+                                'type' => 'text',
+                                'text_run' => [
+                                    'content' => 'Initializing...'
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
             ]
         ];
 
