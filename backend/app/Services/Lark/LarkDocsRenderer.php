@@ -114,6 +114,7 @@ class LarkDocsRenderer
             'quote' => [
                 'elements' => [
                     [
+                        'type' => 'text',
                         'text_run' => [
                             'content' => "EXECUTIVE SUMMARY\n" . $execSummaryText,
                             'text_element_style' => ['italic' => true]
@@ -319,6 +320,7 @@ class LarkDocsRenderer
                     'bullet' => [
                         'elements' => [
                             [
+                                'type' => 'text',
                                 'text_run' => [
                                     'content' => "{$no}. {$task} (PIC: {$pic}, Due: {$dueDate}, Status: {$status})"
                                 ]
