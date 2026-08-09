@@ -295,10 +295,6 @@ class LeadOrderToCashController extends Controller
     {
         $quotation = LeadQuotation::findOrFail($id);
  
-        if ($quotation->quotation_status !== 'draft') {
-            return response()->json(['message' => 'Only draft quotations can be updated.'], 422);
-        }
- 
         $validated = $request->validate([
             'quotation_type' => 'required|string|in:new,renewal,expansion,upsell,cross-sell,add-on',
             'quotation_date' => 'required|date',
@@ -485,10 +481,6 @@ class LeadOrderToCashController extends Controller
     public function destroyQuotation($id)
     {
         $quotation = LeadQuotation::findOrFail($id);
- 
-        if (!in_array($quotation->quotation_status, ['draft', 'cancelled'])) {
-            return response()->json(['message' => 'Only draft or cancelled quotations can be deleted.'], 422);
-        }
  
         DB::transaction(function () use ($quotation) {
             $quotation->items()->delete();
@@ -904,10 +896,6 @@ class LeadOrderToCashController extends Controller
     {
         $order = LeadSalesOrder::findOrFail($id);
  
-        if ($order->order_status !== 'draft') {
-            return response()->json(['message' => 'Only draft sales orders can be updated.'], 422);
-        }
- 
         $validated = $request->validate([
             'order_type' => 'required|string|in:new,renewal,expansion,upsell,cross_sell,add_on',
             'order_date' => 'required|date',
@@ -1100,12 +1088,6 @@ class LeadOrderToCashController extends Controller
     {
         $order = LeadSalesOrder::findOrFail($id);
         
-        if ($order->order_status !== 'draft') {
-            return response()->json([
-                'message' => 'Only draft sales orders can be deleted.'
-            ], 422);
-        }
-
         DB::transaction(function () use ($order) {
             $order->items()->delete();
             $order->delete();
