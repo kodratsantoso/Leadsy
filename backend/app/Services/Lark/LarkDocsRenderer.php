@@ -27,7 +27,7 @@ class LarkDocsRenderer
 
         // Clean up existing child blocks of root block to support safe retry recovery
         try {
-            $existingBlocks = $this->driveService->request('GET', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children");
+            $existingBlocks = $this->driveService->request('GET', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children", [], ['page_size' => 500]);
             $childrenList = $existingBlocks['items'] ?? [];
             $childCount = count($childrenList);
             if ($childCount > 0) {
@@ -489,12 +489,13 @@ class LarkDocsRenderer
             }
             $elements[] = [
                 'type' => 'text',
-                'text_run' => ['content' => $value]
+                'text_run' => ['content' => $value === '' ? '-' : $value]
             ];
             $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
                 'children' => [['block_type' => 2, 'text' => ['elements' => $elements]]],
                 'index' => -1
             ]);
+            usleep(150000);
         };
 
         // Helper to populate a simple cell (no title, just value)
@@ -508,7 +509,7 @@ class LarkDocsRenderer
                                 [
                                     'type' => 'text',
                                     'text_run' => array_filter([
-                                        'content' => $value,
+                                        'content' => $value === '' ? '-' : $value,
                                         'text_element_style' => !empty($style) ? $style : null,
                                     ])
                                 ]
@@ -518,6 +519,7 @@ class LarkDocsRenderer
                 ],
                 'index' => -1
             ]);
+            usleep(150000);
         };
 
         // Populate Table: Metadata (3×3 = 9 cells)
