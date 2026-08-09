@@ -3085,6 +3085,13 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           </div>
         </Modal>
       )}
+
+      {generatingPdfId !== null && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm font-semibold text-muted-foreground animate-pulse">Compiling PDF document layout...</p>
+        </div>
+      )}
     </div>
   );
 }
