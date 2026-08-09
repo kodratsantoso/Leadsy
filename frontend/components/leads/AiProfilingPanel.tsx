@@ -115,19 +115,19 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
             {data.industry && (
               <div className="flex justify-between border-b pb-1">
                 <span className="font-medium text-muted-foreground">Industry</span>
-                <span className="text-right font-semibold">{data.industry}</span>
+                <span className="text-right font-semibold">{Array.isArray(data.industry) ? data.industry.join(', ') : data.industry}</span>
               </div>
             )}
             {data.sub_industry && (
               <div className="flex justify-between border-b pb-1">
                 <span className="font-medium text-muted-foreground">Sub-Industry</span>
-                <span className="text-right">{data.sub_industry}</span>
+                <span className="text-right">{Array.isArray(data.sub_industry) ? data.sub_industry.join(', ') : data.sub_industry}</span>
               </div>
             )}
             {data.business_category && (
               <div className="flex justify-between border-b pb-1">
                 <span className="font-medium text-muted-foreground">Business Category</span>
-                <span className="text-right">{data.business_category}</span>
+                <span className="text-right">{Array.isArray(data.business_category) ? data.business_category.join(', ') : data.business_category}</span>
               </div>
             )}
             {data.company_size && (
