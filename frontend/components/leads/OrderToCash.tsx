@@ -1213,6 +1213,15 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
  
   return (
     <div className="space-y-6">
+      {errorMessage && (
+        <div className="bg-destructive/10 text-destructive p-3 rounded-lg border border-destructive/20 text-sm flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span>{errorMessage}</span>
+          </div>
+          <button className="text-xs underline hover:text-destructive/80" onClick={() => setErrorMessage(null)}>Dismiss</button>
+        </div>
+      )}
       <div className="grid gap-6 md:grid-cols-2">
         
         {/* Quotations Card */}
