@@ -163,13 +163,24 @@ class LarkService
                     }
 
                     if (! $response->successful()) {
+                        $body = $response->body();
+                        $status = $response->status();
+                        
+                        if ($status === 429 && $attempt < $maxRetries) {
+                            Log::warning("Lark API rate limited (HTTP 429). Retrying in {$retryDelay}s...");
+                            usleep((int)($retryDelay * 1000000));
+                            $retryDelay *= 2.0;
+                            continue;
+                        }
+                        
                         Log::error('Lark API request failed payload detail', [
                             'method' => $method,
                             'url' => $urlWithQuery,
                             'data_json' => json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                            'response' => $response->body()
+                            'status' => $status,
+                            'response' => $body
                         ]);
-                        throw new Exception('Lark API error: '.$response->body());
+                        throw new Exception('Lark API error (HTTP ' . $status . '): '.$body);
                     }
 
                     $result = $response->json();

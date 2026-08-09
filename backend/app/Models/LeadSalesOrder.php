@@ -26,7 +26,10 @@ class LeadSalesOrder extends Model
         'warranty_support_terms', 'customer_notes', 'internal_notes',
         'terms_conditions', 'department', 'cost_center', 'location',
         'industry', 'business_category', 'updated_by', 'fulfilled_at',
-        'closed_at', 'cancelled_at'
+        'closed_at', 'cancelled_at',
+        
+        // Bank Account selected
+        'bank_account_id'
     ];
 
     protected $casts = [
@@ -42,7 +45,7 @@ class LeadSalesOrder extends Model
         'confirmed_at' => 'datetime',
         'total_withholding_tax' => 'decimal:2',
         'grand_total_before_wht' => 'decimal:2',
-
+ 
         'expected_fulfillment_date' => 'date',
         'sales_effective_date' => 'date',
         'tax_included' => 'boolean',
@@ -58,6 +61,11 @@ class LeadSalesOrder extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function bankAccount()
+    {
+        return $this->belongsTo(CompanyBankAccount::class, 'bank_account_id');
     }
 
     public function quotation()

@@ -13,11 +13,18 @@ class Tenant extends Model
 
     protected $fillable = [
         'name', 'slug', 'status', 'metadata',
+        'legal_name', 'brand_name', 'logo_path', 'address', 'tax_number',
+        'signatory_name', 'signatory_position', 'signatory_image_path',
     ];
 
     protected $casts = [
         'metadata' => 'array',
     ];
+
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(CompanyBankAccount::class);
+    }
 
     public function users(): HasMany
     {

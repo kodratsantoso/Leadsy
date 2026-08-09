@@ -119,6 +119,7 @@ class LeadOrderToCashController extends Controller
             'customer_notes' => 'nullable|string',
             'internal_notes' => 'nullable|string',
             'approval_status' => 'nullable|string|in:not_required,pending,approved,rejected',
+            'bank_account_id' => 'nullable|exists:company_bank_accounts,id',
  
             // Items validation
             'items' => 'required|array|min:1',
@@ -242,6 +243,7 @@ class LeadOrderToCashController extends Controller
                 'customer_notes' => $validated['customer_notes'] ?? null,
                 'internal_notes' => $validated['internal_notes'] ?? null,
                 'approval_status' => $validated['approval_status'] ?? 'not_required',
+                'bank_account_id' => $validated['bank_account_id'] ?? null,
             ]);
  
             foreach ($totals['items'] as $item) {
@@ -335,6 +337,7 @@ class LeadOrderToCashController extends Controller
             'customer_notes' => 'nullable|string',
             'internal_notes' => 'nullable|string',
             'approval_status' => 'nullable|string|in:not_required,pending,approved,rejected',
+            'bank_account_id' => 'nullable|exists:company_bank_accounts,id',
  
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
@@ -433,6 +436,7 @@ class LeadOrderToCashController extends Controller
                 'customer_notes' => $validated['customer_notes'] ?? null,
                 'internal_notes' => $validated['internal_notes'] ?? null,
                 'approval_status' => $validated['approval_status'] ?? 'not_required',
+                'bank_account_id' => $validated['bank_account_id'] ?? null,
             ]);
  
             $quotation->items()->delete();
@@ -731,6 +735,7 @@ class LeadOrderToCashController extends Controller
             'department' => 'nullable|string',
             'cost_center' => 'nullable|string',
             'location' => 'nullable|string',
+            'bank_account_id' => 'nullable|exists:company_bank_accounts,id',
 
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
@@ -818,6 +823,7 @@ class LeadOrderToCashController extends Controller
                 'customer_po_number' => $validated['customer_po_number'] ?? null,
                 'lead_source' => $validated['lead_source'] ?? $lead->lead_source,
                 'channel' => $validated['channel'] ?? $lead->channel,
+                'bank_account_id' => $validated['bank_account_id'] ?? null,
                 'expected_fulfillment_date' => $validated['expected_fulfillment_date'] ?? null,
                 'sales_effective_date' => $validated['sales_effective_date'] ?? null,
                 'payment_terms' => $validated['payment_terms'] ?? null,
@@ -934,6 +940,7 @@ class LeadOrderToCashController extends Controller
             'department' => 'nullable|string',
             'cost_center' => 'nullable|string',
             'location' => 'nullable|string',
+            'bank_account_id' => 'nullable|exists:company_bank_accounts,id',
 
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'nullable|exists:products,id',
@@ -1036,6 +1043,7 @@ class LeadOrderToCashController extends Controller
                 'department' => $validated['department'] ?? null,
                 'cost_center' => $validated['cost_center'] ?? null,
                 'location' => $validated['location'] ?? null,
+                'bank_account_id' => $validated['bank_account_id'] ?? null,
             ]);
 
             $order->items()->delete();
@@ -1281,5 +1289,74 @@ class LeadOrderToCashController extends Controller
  
             return response()->json(['data' => $quotation->load('items')], 201);
         });
+    }
+
+    public function generatePdf(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): JsonResponse
+    {
+        try {
+            $result = $pdfService->generatePdf('quotation', $id);
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Quotation PDF generated successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function downloadPdf($id)
+    {
+        $quotation = LeadQuotation::findOrFail($id);
+        if (!$quotation->pdf_url) {
+            return response()->json(['message' => 'PDF has not been generated for this quotation.'], 404);
+        }
+
+        // Extract relative path from Storage url
+        $path = str_replace(Storage::disk('public')->url(''), '', $quotation->pdf_url);
+        $path = ltrim($path, '/');
+
+        if (!Storage::disk('public')->exists($path)) {
+            return response()->json(['message' => 'PDF file not found in storage.'], 404);
+        }
+
+        return Storage::disk('public')->download($path);
+    }
+
+    public function generatePdfSo(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): JsonResponse
+    {
+        try {
+            $result = $pdfService->generatePdf('sales_order', $id);
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => 'Sales Order PDF generated successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function downloadPdfSo($id)
+    {
+        $order = LeadSalesOrder::findOrFail($id);
+        if (!$order->pdf_url) {
+            return response()->json(['message' => 'PDF has not been generated for this sales order.'], 404);
+        }
+
+        $path = str_replace(Storage::disk('public')->url(''), '', $order->pdf_url);
+        $path = ltrim($path, '/');
+
+        if (!Storage::disk('public')->exists($path)) {
+            return response()->json(['message' => 'PDF file not found in storage.'], 404);
+        }
+
+        return Storage::disk('public')->download($path);
     }
 }

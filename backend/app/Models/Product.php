@@ -17,6 +17,7 @@ class Product extends Model
         'supported_regions', 'budget_range', 'target_company_size',
         'use_cases', 'competitor_notes', 'keywords',
         'status', 'created_by',
+        'logo_path', 'default_terms_conditions', 'quotation_terms_conditions', 'sales_order_terms_conditions',
     ];
 
     protected $casts = [

@@ -229,6 +229,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('quotations/{quotation}/status', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'updateQuotationStatus'])->middleware('permission:leads.edit');
     Route::post('quotations/{quotation}/convert', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
     Route::post('quotations/{quotation}/convert-to-sales-order', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
+    Route::post('quotations/{quotation}/generate-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'generatePdf'])->middleware('permission:leads.edit');
+    Route::get('quotations/{quotation}/download-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'downloadPdf'])->middleware('permission:leads.view');
 
     // Lead Order-to-Cash (Sales Orders)
     Route::get('leads/{lead}/sales-orders', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'getSalesOrders'])->middleware('permission:leads.view');
@@ -240,6 +242,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('sales-orders/{order}/cancel', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'cancelSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/renew', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'createRenewalQuotation'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/generate-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'generatePdfSo'])->middleware('permission:leads.edit');
+    Route::get('sales-orders/{order}/download-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'downloadPdfSo'])->middleware('permission:leads.view');
+
+    // Product document branding
+    Route::post('products/{product}/logo', [\App\Http\Controllers\Api\ProductController::class, 'uploadLogo'])->middleware('permission:products.edit');
+    Route::delete('products/{product}/logo', [\App\Http\Controllers\Api\ProductController::class, 'deleteLogo'])->middleware('permission:products.edit');
+    Route::put('products/{product}/document-settings', [\App\Http\Controllers\Api\ProductController::class, 'updateDocumentSettings'])->middleware('permission:products.edit');
+
+    // Company Settings & Brand
+    Route::get('settings/company', [\App\Http\Controllers\Api\CompanySettingsController::class, 'show'])->middleware('permission:integrations.manage');
+    Route::put('settings/company', [\App\Http\Controllers\Api\CompanySettingsController::class, 'update'])->middleware('permission:integrations.manage');
+    Route::post('settings/company/logo', [\App\Http\Controllers\Api\CompanySettingsController::class, 'uploadLogo'])->middleware('permission:integrations.manage');
+    Route::delete('settings/company/logo', [\App\Http\Controllers\Api\CompanySettingsController::class, 'deleteLogo'])->middleware('permission:integrations.manage');
+    Route::post('settings/company/signatory', [\App\Http\Controllers\Api\CompanySettingsController::class, 'uploadSignatoryImage'])->middleware('permission:integrations.manage');
+
+    // Company Bank Accounts
+    Route::apiResource('settings/company/bank-accounts', \App\Http\Controllers\Api\CompanyBankAccountController::class)->middleware('permission:integrations.manage');
+    Route::post('settings/company/bank-accounts/{id}/set-default', [\App\Http\Controllers\Api\CompanyBankAccountController::class, 'setDefault'])->middleware('permission:integrations.manage');
 
     /* ── Professional Services Master Data ── */
     Route::group(['prefix' => 'settings/professional-services', 'middleware' => 'permission:professional_services.view'], function () {

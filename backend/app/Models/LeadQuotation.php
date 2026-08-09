@@ -29,7 +29,10 @@ class LeadQuotation extends Model
         'source_type', 'source_reference_id',
 
         // Custom Workflow tracking
-        'workflow_state_id'
+        'workflow_state_id',
+
+        // Bank Account selected
+        'bank_account_id'
     ];
 
     protected $casts = [
@@ -60,6 +63,11 @@ class LeadQuotation extends Model
     public function lead()
     {
         return $this->belongsTo(Lead::class);
+    }
+
+    public function bankAccount()
+    {
+        return $this->belongsTo(CompanyBankAccount::class, 'bank_account_id');
     }
 
     public function contact()

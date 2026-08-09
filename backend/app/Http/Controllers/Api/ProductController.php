@@ -301,6 +301,76 @@ class ProductController extends Controller
         ]);
     }
 
+    /**
+     * POST /api/products/{product}/logo
+     */
+    public function uploadLogo(Request $request, Product $product): JsonResponse
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:png,jpg,jpeg,webp|max:2048'
+        ]);
+
+        if ($product->logo_path) {
+            Storage::disk('public')->delete($product->logo_path);
+        }
+
+        $path = $request->file('logo')->store('product_branding/logos', 'public');
+        
+        $original = $product->toArray();
+        $product->update(['logo_path' => $path]);
+
+        AuditService::logUpdated('product_branding', $product, $original);
+
+        return response()->json([
+            'success' => true,
+            'logo_url' => Storage::disk('public')->url($path),
+            'data' => $product,
+            'message' => 'Product logo uploaded successfully.'
+        ]);
+    }
+
+    /**
+     * DELETE /api/products/{product}/logo
+     */
+    public function deleteLogo(Product $product): JsonResponse
+    {
+        if ($product->logo_path) {
+            Storage::disk('public')->delete($product->logo_path);
+            $original = $product->toArray();
+            $product->update(['logo_path' => null]);
+            AuditService::logUpdated('product_branding', $product, $original);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $product,
+            'message' => 'Product logo removed successfully.'
+        ]);
+    }
+
+    /**
+     * PUT /api/products/{product}/document-settings
+     */
+    public function updateDocumentSettings(Request $request, Product $product): JsonResponse
+    {
+        $validated = $request->validate([
+            'default_terms_conditions' => 'nullable|string',
+            'quotation_terms_conditions' => 'nullable|string',
+            'sales_order_terms_conditions' => 'nullable|string',
+        ]);
+
+        $original = $product->toArray();
+        $product->update($validated);
+
+        AuditService::logUpdated('product_document_settings', $product, $original);
+
+        return response()->json([
+            'success' => true,
+            'data' => $product,
+            'message' => 'Product document settings updated successfully.'
+        ]);
+    }
+
     private function loadAvailableCategories(): array
     {
         $existingCategories = Product::whereNotNull('category')
