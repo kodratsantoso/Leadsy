@@ -5,28 +5,29 @@
     <title>{{ $documentTitle }} - {{ $documentNumber }}</title>
     <style>
         @page {
-            margin: 1.0cm 1.2cm 1.0cm 1.2cm;
+            margin: 0.8cm 1.0cm 0.8cm 1.0cm;
         }
         body {
             font-family: 'Verdana', Geneva, sans-serif;
             color: #1e293b;
-            line-height: 1.45;
-            font-size: 10px;
+            line-height: 1.4;
+            font-size: 9.5px;
             margin: 0;
             padding: 0;
         }
+        
         /* Top Blue Border Accent */
         .top-accent {
-            height: 4px;
+            height: 5px;
             background-color: #0f3d7a;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         /* Header section */
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .header-table td {
             vertical-align: middle;
@@ -36,31 +37,24 @@
             width: 55%;
         }
         .logo-img {
-            max-height: 44px;
-            max-width: 140px;
+            max-height: 40px;
+            max-width: 130px;
             vertical-align: middle;
         }
         .logo-divider {
             display: inline-block;
             width: 1px;
-            height: 32px;
+            height: 28px;
             background-color: #cbd5e1;
-            margin: 0 12px;
+            margin: 0 10px;
             vertical-align: middle;
-        }
-        .logo-subtext {
-            font-size: 8px;
-            color: #0f3d7a;
-            font-weight: bold;
-            margin-top: 3px;
-            display: block;
         }
         .doc-title-container {
             width: 45%;
             text-align: right;
         }
         .doc-title {
-            font-size: 26px;
+            font-size: 22px;
             font-weight: bold;
             color: #0f3d7a;
             margin: 0;
@@ -71,18 +65,18 @@
             display: inline-block;
             background-color: #0f3d7a;
             color: #ffffff;
-            font-size: 10.5px;
+            font-size: 10px;
             font-weight: bold;
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 4px;
-            margin-top: 6px;
+            margin-top: 5px;
         }
 
         /* Cards layout */
         .cards-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .cards-table td {
             width: 50%;
@@ -93,29 +87,29 @@
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-            padding: 12px 14px;
-            min-height: 95px;
+            padding: 10px 12px;
+            min-height: 90px;
         }
         .card-left {
-            margin-right: 8px;
+            margin-right: 6px;
         }
         .card-right {
-            margin-left: 8px;
+            margin-left: 6px;
         }
         .card-title-bar {
             background-color: #0f3d7a;
             color: #ffffff;
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: bold;
             text-transform: uppercase;
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin-bottom: 8px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            margin-bottom: 6px;
             display: inline-block;
         }
         .info-row {
-            margin-bottom: 4px;
-            font-size: 9.5px;
+            margin-bottom: 3px;
+            font-size: 9px;
         }
         .info-label {
             font-weight: bold;
@@ -131,7 +125,7 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 18px;
+            margin-bottom: 15px;
             border: 1px solid #e2e8f0;
         }
         .data-table th {
@@ -139,62 +133,43 @@
             color: #ffffff;
             font-weight: bold;
             text-align: left;
-            padding: 8px 10px;
-            font-size: 9.5px;
+            padding: 6px 8px;
+            font-size: 9px;
             text-transform: uppercase;
             border: 1px solid #0f3d7a;
         }
         .data-table td {
-            padding: 7px 10px;
+            padding: 6px 8px;
             border-bottom: 1px solid #e2e8f0;
-            font-size: 9px;
+            font-size: 8.5px;
             color: #1e293b;
+            vertical-align: top;
         }
         .data-table tr:nth-child(even) {
             background-color: #f8fafc;
         }
 
         /* Totals section */
-        .totals-table {
+        .totals-container-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
-        .totals-table td {
-            padding: 0;
-            vertical-align: top;
-        }
-        .totals-right {
-            width: 260px;
-            float: right;
+        .totals-inner-table {
+            width: 250px;
+            border-collapse: collapse;
             border: 1px solid #e2e8f0;
-            border-radius: 4px;
             background-color: #f8fafc;
-            overflow: hidden;
         }
-        .totals-row {
-            width: 100%;
+        .totals-inner-table td {
+            padding: 5px 8px;
+            font-size: 9px;
             border-bottom: 1px solid #e2e8f0;
-            padding: 6px 10px;
-            box-sizing: border-box;
-            font-size: 9.5px;
         }
-        .totals-row:last-child {
+        .totals-inner-table tr:last-child td {
             border-bottom: none;
             background-color: #0f3d7a;
             color: #ffffff;
-            font-weight: bold;
-        }
-        .totals-label {
-            float: left;
-            color: #475569;
-        }
-        .totals-row:last-child .totals-label {
-            color: #ffffff;
-        }
-        .totals-val {
-            float: right;
-            text-align: right;
             font-weight: bold;
         }
 
@@ -202,12 +177,12 @@
         .section-header-bar {
             background-color: #0f3d7a;
             color: #ffffff;
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: bold;
             text-transform: uppercase;
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin-bottom: 6px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            margin-bottom: 5px;
             display: inline-block;
         }
 
@@ -215,15 +190,15 @@
         .terms-section {
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-            padding: 10px 14px;
+            padding: 8px 12px;
             margin-bottom: 15px;
             background-color: #ffffff;
         }
         .terms-content {
-            font-size: 8.5px;
+            font-size: 8px;
             color: #334155;
             white-space: pre-wrap;
-            line-height: 1.4;
+            line-height: 1.35;
         }
 
         /* Bank Information */
@@ -231,23 +206,23 @@
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 25px;
+            padding: 8px 12px;
+            margin-bottom: 20px;
         }
         .bank-details-table {
             width: 100%;
             border-collapse: collapse;
         }
         .bank-details-table td {
-            padding: 3px 0;
-            font-size: 9px;
+            padding: 2px 0;
+            font-size: 8.5px;
         }
 
         /* Signatures block */
         .signatures-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            margin-top: 10px;
             page-break-inside: avoid;
         }
         .signatures-table td {
@@ -258,33 +233,33 @@
         }
         .sig-container {
             border-top: 1px solid #cbd5e1;
-            width: 220px;
+            width: 200px;
             margin: 0 auto;
-            padding-top: 5px;
-            font-size: 9.5px;
+            padding-top: 4px;
+            font-size: 9px;
         }
         .sig-space {
-            height: 60px;
+            height: 50px;
             vertical-align: middle;
             text-align: center;
         }
         .sig-image {
-            max-height: 52px;
-            max-width: 160px;
+            max-height: 44px;
+            max-width: 150px;
         }
         .sig-title {
             font-weight: bold;
             color: #1e293b;
         }
         .sig-company {
-            font-size: 9.5px;
+            font-size: 9px;
             color: #475569;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .sig-position {
-            font-size: 8.5px;
+            font-size: 8px;
             color: #64748b;
-            margin-top: 2px;
+            margin-top: 1px;
         }
     </style>
 </head>
@@ -299,7 +274,7 @@
                 @if($issuerLogo && file_exists($issuerLogo))
                     <img src="{{ $issuerLogo }}" class="logo-img" alt="Issuer Brand">
                 @else
-                    <span style="font-weight: bold; font-size: 15px; color: #0f3d7a;">{{ $tenant->brand_name ?: $tenant->name }}</span>
+                    <span style="font-weight: bold; font-size: 14px; color: #0f3d7a;">{{ $tenant->brand_name ?: $tenant->name }}</span>
                 @endif
 
                 @if($productLogo && file_exists($productLogo))
@@ -320,9 +295,9 @@
             <td>
                 <div class="card-inner card-left">
                     <span class="card-title-bar">Customer</span>
-                    <div style="font-weight: bold; font-size: 10.5px; margin-bottom: 4px; color: #0f3d7a;">{{ $customerName }}</div>
-                    <div style="color: #475569; font-size: 9px; margin-bottom: 6px; line-height: 1.3;">{{ $customerAddress }}</div>
-                    <div style="font-size: 9px; border-top: 1px solid #e2e8f0; padding-top: 4px; margin-top: 4px;">
+                    <div style="font-weight: bold; font-size: 10px; margin-bottom: 3px; color: #0f3d7a;">{{ $customerName }}</div>
+                    <div style="color: #475569; font-size: 8.5px; margin-bottom: 5px; line-height: 1.25;">{{ $customerAddress }}</div>
+                    <div style="font-size: 8.5px; border-top: 1px solid #e2e8f0; padding-top: 3px; margin-top: 3px;">
                         <span style="color: #64748b; font-weight: bold;">PIC:</span> <span style="font-weight: bold;">{{ $customerPicName }}</span>
                         @if($customerPicPosition)
                             <span style="color: #64748b;">({{ $customerPicPosition }})</span>
@@ -361,8 +336,8 @@
                 <th style="width: 15%; text-align: right;">Unit Price</th>
                 <th style="width: 15%; text-align: center;">Period</th>
                 <th style="width: 8%; text-align: center;">Qty</th>
-                <th style="width: 9%; text-align: center;">Discount</th>
-                <th style="width: 13%; text-align: right;">Total</th>
+                <th style="width: 8%; text-align: center;">Discount</th>
+                <th style="width: 9%; text-align: right;">Total</th>
             </tr>
         </thead>
         <tbody>
@@ -372,7 +347,7 @@
                     <td>
                         <div style="font-weight: bold; color: #0f3d7a;">{{ $item->item_name }}</div>
                         @if($item->description)
-                            <div style="color: #64748b; font-size: 8px; margin-top: 2px;">{!! nl2br(e($item->description)) !!}</div>
+                            <div style="color: #64748b; font-size: 7.5px; margin-top: 1px;">{!! nl2br(e($item->description)) !!}</div>
                         @endif
                     </td>
                     <td style="text-align: right;">
@@ -403,44 +378,37 @@
         </tbody>
     </table>
 
-    <!-- Totals & Summary -->
-    <table class="totals-table">
+    <!-- Totals Table (Nested layout to avoid overlap/floats in DomPDF) -->
+    <table class="totals-container-table">
         <tr>
-            <td style="width: 50%;">
-                <!-- Left blank / placeholder for notes if any -->
-            </td>
-            <td style="width: 50%;">
-                <div class="totals-right">
-                    <div class="totals-row">
-                        <span class="totals-label">Subtotal</span>
-                        <span class="totals-val">{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($subtotal, 0, ',', '.') }}</span>
-                        <div style="clear: both;"></div>
-                    </div>
+            <td style="width: 55%; border: none;"></td>
+            <td style="width: 45%; border: none; text-align: right;">
+                <table class="totals-inner-table" style="display: inline-table; text-align: left;">
+                    <tr>
+                        <td style="color: #475569;">Subtotal</td>
+                        <td style="text-align: right; font-weight: bold;">{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($subtotal, 0, ',', '.') }}</td>
+                    </tr>
                     @if($discount > 0)
-                    <div class="totals-row">
-                        <span class="totals-label">Discount</span>
-                        <span class="totals-val">-{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($discount, 0, ',', '.') }}</span>
-                        <div style="clear: both;"></div>
-                    </div>
+                    <tr>
+                        <td style="color: #475569;">Discount</td>
+                        <td style="text-align: right; font-weight: bold; color: #dc2626;">-{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($discount, 0, ',', '.') }}</td>
+                    </tr>
                     @endif
-                    <div class="totals-row">
-                        <span class="totals-label">VAT (11%)</span>
-                        <span class="totals-val">{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($tax, 0, ',', '.') }}</span>
-                        <div style="clear: both;"></div>
-                    </div>
+                    <tr>
+                        <td style="color: #475569;">VAT (11%)</td>
+                        <td style="text-align: right; font-weight: bold;">{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($tax, 0, ',', '.') }}</td>
+                    </tr>
                     @if($wht > 0)
-                    <div class="totals-row">
-                        <span class="totals-label">WHT</span>
-                        <span class="totals-val">-{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($wht, 0, ',', '.') }}</span>
-                        <div style="clear: both;"></div>
-                    </div>
+                    <tr>
+                        <td style="color: #475569;">WHT</td>
+                        <td style="text-align: right; font-weight: bold; color: #dc2626;">-{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($wht, 0, ',', '.') }}</td>
+                    </tr>
                     @endif
-                    <div class="totals-row">
-                        <span class="totals-label">Total</span>
-                        <span class="totals-val">{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($total, 0, ',', '.') }}</span>
-                        <div style="clear: both;"></div>
-                    </div>
-                </div>
+                    <tr>
+                        <td style="font-weight: bold; color: #ffffff;">Total</td>
+                        <td style="text-align: right; font-weight: bold; color: #ffffff;">{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($total, 0, ',', '.') }}</td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
@@ -480,7 +448,7 @@
             <!-- Customer Signatory -->
             <td>
                 <div class="sig-company">Confirmed by Customer,</div>
-                <div style="font-weight: bold; color: #0f3d7a; margin-bottom: 5px;">{{ $customerName }}</div>
+                <div style="font-weight: bold; color: #0f3d7a; margin-bottom: 4px;">{{ $customerName }}</div>
                 <div class="sig-space">
                     <!-- Blank area for customer physical signature -->
                 </div>
@@ -492,7 +460,7 @@
             <!-- Issuer Signatory -->
             <td>
                 <div class="sig-company">Approved by,</div>
-                <div style="font-weight: bold; color: #0f3d7a; margin-bottom: 5px;">{{ $tenant->legal_name ?: $tenant->name }}</div>
+                <div style="font-weight: bold; color: #0f3d7a; margin-bottom: 4px;">{{ $tenant->legal_name ?: $tenant->name }}</div>
                 <div class="sig-space">
                     @if($issuerSignatoryImage && file_exists($issuerSignatoryImage))
                         <img src="{{ $issuerSignatoryImage }}" class="sig-image" alt="Signature">
