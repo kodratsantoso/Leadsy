@@ -204,7 +204,22 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 $docId = $transcript->lark_doc_id;
                 $docUrl = $transcript->lark_doc_url;
 
-                if (empty($docId)) {
+                $needCreation = empty($docId);
+
+                if (!$needCreation) {
+                    try {
+                        // Verify existence by fetching root doc info
+                        $larkDriveService->request('GET', "/docx/v1/documents/{$docId}");
+                    } catch (Exception $e) {
+                        if (str_contains($e->getMessage(), 'resource deleted') || str_contains($e->getMessage(), '1770003')) {
+                            $needCreation = true;
+                        } else {
+                            throw $e;
+                        }
+                    }
+                }
+
+                if ($needCreation) {
                     $docTitle = "Meeting Summary - {$transcript->meeting_type} - " . date('Y-m-d');
                     $docData = $larkDriveService->createDoc($folderToken, $docTitle);
                     $docId = $docData['document_id'];
