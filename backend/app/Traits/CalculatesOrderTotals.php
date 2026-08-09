@@ -53,8 +53,17 @@ trait CalculatesOrderTotals
             if ($duration <= 0) {
                 $duration = 1.0;
             }
+            $durationMultiplier = $duration;
+            $billingPeriod = $item['billing_period'] ?? null;
+            $durationUnit = $item['duration_unit'] ?? null;
 
-            $baseAmount = $qty * $price * $duration;
+            if ($billingPeriod === 'monthly' && $durationUnit === 'year') {
+                $durationMultiplier = $duration * 12;
+            } elseif ($billingPeriod === 'yearly' && $durationUnit === 'month') {
+                $durationMultiplier = $duration / 12;
+            }
+
+            $baseAmount = $qty * $price * $durationMultiplier;
             $lineDiscountAmount = 0;
 
             if ($discType === 'percentage') {
