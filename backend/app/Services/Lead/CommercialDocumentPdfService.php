@@ -101,6 +101,39 @@ class CommercialDocumentPdfService
         // Use document-level override terms first, then fallback to product-specific terms, then tenant defaults if available
         $resolvedTerms = $termsConditions ?: $productTerms ?: '';
 
+        if ($resolvedTerms) {
+            // Resolve duration & dates from the first line item
+            $firstItem = $items->first();
+            $durationStr = '';
+            if ($firstItem && $firstItem->duration_value) {
+                $unit = $firstItem->duration_value > 1 ? Str::plural($firstItem->duration_unit) : $firstItem->duration_unit;
+                $durationStr = $firstItem->duration_value . ' ' . ucfirst($unit);
+                if ($firstItem->start_date && $firstItem->end_date) {
+                    $startDateFormatted = $firstItem->start_date->format('d F Y');
+                    $endDateFormatted = $firstItem->end_date->format('d F Y');
+                    $durationStr .= " ({$startDateFormatted} – {$endDateFormatted})";
+                }
+            }
+            
+            if ($durationStr) {
+                // Replace any line containing "Length of subscriptions" with the dynamic duration
+                $resolvedTerms = preg_replace(
+                    '/Length of subscriptions:[^\r\n]*/i',
+                    'Length of subscriptions: ' . $durationStr,
+                    $resolvedTerms
+                );
+            }
+            
+            // Resolve Payment Terms
+            $paymentTermsVal = $doc->payment_terms ?: 'Full Payment';
+            // Replace any line containing "Payments will be made using the following methods" with the dynamic payment terms
+            $resolvedTerms = preg_replace(
+                '/Payments will be made using the following methods:[^\r\n]*/i',
+                'Payments will be made using the following methods: ' . $paymentTermsVal,
+                $resolvedTerms
+            );
+        }
+
         // 5. Structure data for PDF view
         $data = [
             'documentType' => $documentType,
