@@ -340,7 +340,22 @@ class LarkDocsRenderer
                 'emoji_id' => 'bulb',
                 'background_color' => 1,
                 'border_color' => 1,
-                'text_color' => 1
+                'text_color' => 1,
+                'text' => [
+                    'elements' => [
+                        [
+                            'text_run' => [
+                                'content' => "CONCLUSION\n",
+                                'text_element_style' => ['bold' => true, 'text_color' => 5]
+                            ]
+                        ],
+                        [
+                            'text_run' => [
+                                'content' => $conclusionText
+                            ]
+                        ]
+                    ]
+                ]
             ]
         ];
 
@@ -571,35 +586,5 @@ class LarkDocsRenderer
             }
         }
 
-        // Populate Callout block: Conclusion
-        foreach ($blocksList as $b) {
-            if (($b['block_type'] ?? null) === 19) { // Callout
-                $calloutBlockId = $b['block_id'];
-                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$calloutBlockId}/children", [
-                    'children' => [
-                        [
-                            'block_type' => 2,
-                            'text' => [
-                                'elements' => [
-                                    [
-                                        'text_run' => [
-                                            'content' => "CONCLUSION\n",
-                                            'text_element_style' => ['bold' => true, 'text_color' => 5]
-                                        ]
-                                    ],
-                                    [
-                                        'text_run' => [
-                                            'content' => $conclusionText
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    'index' => -1
-                ]);
-                break;
-            }
-        }
     }
 }
