@@ -13,6 +13,7 @@ use App\Models\LarkIntegration;
 use App\Models\LarkBaseTable;
 use App\Models\Lead;
 use App\Models\User;
+use App\Jobs\GenerateMeetingSummaryPdfJob;
 use App\Services\Lark\LarkBaseService;
 use App\Services\Lark\LarkDriveService;
 use Exception;
