@@ -94,8 +94,9 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 }
             }
 
-            // 2. Resolve Drive Folder (Direct use of shared folder token)
-            $folderToken = $sharedFolderToken;
+            // 2. Resolve Drive Folder (Create unique folder for Lead)
+            $leadFolderName = "{$lead->name} - {$lead->id}";
+            $folderToken = $larkDriveService->getOrCreateLeadFolder($sharedFolderToken, $leadFolderName);
 
             // 3. Ensure PDF document exists or wait / load the latest successful PDF
             $document = MeetingSummaryDocument::where('transcript_id', $transcript->id)
@@ -235,7 +236,8 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 }
 
                 if ($needCreation) {
-                    $docTitle = "Meeting Summary - {$transcript->meeting_type} - " . date('Y-m-d');
+                    $meetingDate = $transcript->created_at ? $transcript->created_at->format('Y-m-d') : date('Y-m-d');
+                    $docTitle = "Meeting Summary | {$lead->name} | {$transcript->meeting_type} | {$meetingDate}";
                     $docData = $larkDriveService->createDoc($folderToken, $docTitle);
                     $docId = $docData['document_id'];
                     $docUrl = $docData['url'];

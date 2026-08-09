@@ -78,10 +78,8 @@ class GenerateMeetingSummaryPdfJob implements ShouldQueue
 
             // Store PDF
             $leadName = $lead->company_name ?? $lead->name ?? 'Unknown Lead';
-            $meetingDate = $transcript->recorded_at ? $transcript->recorded_at->format('Y-m-d') : now()->format('Y-m-d');
-            $meetingTitle = $transcript->title ?? 'Meeting';
-            
-            $rawFilename = "{$leadName} - {$meetingDate} - {$meetingTitle}";
+            $meetingDate = $transcript->created_at ? $transcript->created_at->format('Y-m-d') : date('Y-m-d');
+            $rawFilename = "Meeting Summary - {$leadName} - {$transcript->meeting_type} - {$meetingDate}";
             // Sanitize filename to avoid invalid path characters
             $safeFilename = preg_replace('/[^A-Za-z0-9\- \_]/', '', $rawFilename);
             $filename = trim($safeFilename) . '.pdf';
