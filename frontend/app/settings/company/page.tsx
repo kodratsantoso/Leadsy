@@ -259,7 +259,8 @@ export default function CompanySettingsPage() {
 
   const getStorageUrl = (path?: string) => {
     if (!path) return "";
-    return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/storage/${path}`;
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    return `${baseUrl}/storage/${path}`;
   };
 
   if (loadingCompany) {

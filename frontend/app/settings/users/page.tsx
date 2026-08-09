@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Pencil, Plus, Shield, ToggleLeft, ToggleRight, Trash2, Upload } from "lucide-react";
 
@@ -119,6 +119,76 @@ export default function SettingsUsersPage() {
   const [userError, setUserError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [transferUserId, setTransferUserId] = useState("");
+
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawing = useRef(false);
+
+  const getStorageUrl = (path?: string | null) => {
+    if (!path) return "";
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    return `${baseUrl}/storage/${path}`;
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    isDrawing.current = true;
+    const rect = canvas.getBoundingClientRect();
+    
+    let x, y;
+    if ("touches" in e) {
+      if (e.touches.length === 0) return;
+      x = e.touches[0].clientX - rect.left;
+      y = e.touches[0].clientY - rect.top;
+    } else {
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#0f172a"; // Slate 900
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    let x, y;
+    if ("touches" in e) {
+      if (e.touches.length === 0) return;
+      x = e.touches[0].clientX - rect.left;
+      y = e.touches[0].clientY - rect.top;
+    } else {
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    isDrawing.current = false;
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
 
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<AppRole | null>(null);
@@ -585,6 +655,7 @@ export default function SettingsUsersPage() {
             setEditingUser(null);
             setUserForm(userFormDefaults);
             setUserError("");
+            setIsDrawingMode(false);
           }
         }}
         title={editingUser ? "Edit User" : "Create User"}
@@ -742,58 +813,120 @@ export default function SettingsUsersPage() {
           {editingUser && (
             <div className="grid gap-2 border-t pt-4">
               <label className="text-sm font-medium">Authorized Signature</label>
-              <div className="h-20 w-full border border-dashed rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 relative p-2">
-                {editingUser.signature_path ? (
-                  <img src={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/storage/${editingUser.signature_path}`} className="max-h-full max-w-full object-contain" alt="Signature Preview" />
-                ) : (
-                  <span className="text-[10px] text-muted-foreground">No Signature Uploaded</span>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <label className="flex-1">
-                  <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/95 h-8 rounded-md text-xs font-medium cursor-pointer">
-                    <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload Signature
-                  </span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/png, image/jpeg"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file && editingUser) {
-                        const fd = new FormData();
-                        fd.append("signature", file);
-                        apiFetch(`/users/${editingUser.id}/signature`, {
-                          method: "POST",
-                          body: fd,
-                        }).then(async (r) => {
-                          if (r.ok) {
-                            queryClient.invalidateQueries({ queryKey: ["users"] });
-                            const updatedUser = (await r.json()).data;
-                            setEditingUser(updatedUser);
+              
+              {!isDrawingMode ? (
+                <>
+                  <div className="h-20 w-full border border-dashed rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 relative p-2">
+                    {editingUser.signature_path ? (
+                      <img src={getStorageUrl(editingUser.signature_path)} className="max-h-full max-w-full object-contain" alt="Signature Preview" />
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">No Signature Uploaded</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <label className="flex-1">
+                      <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/95 h-8 rounded-md text-xs font-medium cursor-pointer">
+                        <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload Image
+                      </span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/png, image/jpeg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && editingUser) {
+                            const fd = new FormData();
+                            fd.append("signature", file);
+                            apiFetch(`/users/${editingUser.id}/signature`, {
+                              method: "POST",
+                              body: fd,
+                            }).then(async (r) => {
+                              if (r.ok) {
+                                queryClient.invalidateQueries({ queryKey: ["users"] });
+                                const updatedUser = (await r.json()).data;
+                                setEditingUser(updatedUser);
+                              }
+                            });
                           }
-                        });
-                      }
-                    }}
+                        }}
+                      />
+                    </label>
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setIsDrawingMode(true)}>
+                      Draw Signature
+                    </Button>
+                    {editingUser.signature_path && (
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        onClick={() => {
+                          apiFetch(`/users/${editingUser.id}/signature`, { method: "DELETE" }).then((r) => {
+                            if (r.ok) {
+                              queryClient.invalidateQueries({ queryKey: ["users"] });
+                              setEditingUser(curr => curr ? { ...curr, signature_path: null } : null);
+                            }
+                          });
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <canvas
+                    ref={canvasRef}
+                    width={400}
+                    height={160}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
+                    className="bg-white border rounded-lg h-40 w-full cursor-crosshair touch-none"
                   />
-                </label>
-                {editingUser.signature_path && (
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => {
-                      apiFetch(`/users/${editingUser.id}/signature`, { method: "DELETE" }).then((r) => {
-                        if (r.ok) {
-                          queryClient.invalidateQueries({ queryKey: ["users"] });
-                          setEditingUser(curr => curr ? { ...curr, signature_path: null } : null);
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      className="flex-1 text-xs"
+                      onClick={() => {
+                        const canvas = canvasRef.current;
+                        if (canvas) {
+                          canvas.toBlob((blob) => {
+                            if (blob && editingUser) {
+                              const file = new File([blob], "signature.png", { type: "image/png" });
+                              const fd = new FormData();
+                              fd.append("signature", file);
+                              apiFetch(`/users/${editingUser.id}/signature`, {
+                                method: "POST",
+                                body: fd,
+                              }).then(async (r) => {
+                                if (r.ok) {
+                                  queryClient.invalidateQueries({ queryKey: ["users"] });
+                                  const updatedUser = (await r.json()).data;
+                                  setEditingUser(updatedUser);
+                                  setIsDrawingMode(false);
+                                }
+                              });
+                            }
+                          }, "image/png");
                         }
-                      });
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-              </div>
+                      }}
+                    >
+                      Save Signature
+                    </Button>
+                    <Button variant="outline" size="xs" className="text-xs" onClick={clearCanvas}>
+                      Clear
+                    </Button>
+                    <Button variant="ghost" size="xs" className="text-xs" onClick={() => setIsDrawingMode(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
