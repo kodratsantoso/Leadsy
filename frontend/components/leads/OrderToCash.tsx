@@ -21,6 +21,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const [savingQ, setSavingQ] = useState(false);
   const [savingSO, setSavingSO] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [generatingPdfId, setGeneratingPdfId] = useState<number | null>(null);
   
   // Tab state inside modal
   const [activeTab, setActiveTab] = useState<'primary' | 'commercial' | 'items' | 'terms' | 'summary'>('primary');
@@ -60,6 +61,13 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     queryFn: () => apiFetch('/settings/o2c/withholding-tax-codes').then(r => r.json()),
   });
   const whtCodes = whtCodesData?.data || [];
+
+  // Fetch Bank Accounts
+  const { data: bankAccountsData } = useQuery({
+    queryKey: ['company-bank-accounts'],
+    queryFn: () => apiFetch('/settings/company/bank-accounts').then(r => r.json()),
+  });
+  const bankAccounts = bankAccountsData?.data || [];
  
   // Fetch Item Settings
   const { data: itemSettingsData } = useQuery({
@@ -106,6 +114,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     internal_notes: '',
     approval_status: 'not_required',
     terms_conditions: '',
+    bank_account_id: '',
     items: [
       {
         product_id: '',
@@ -163,6 +172,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       internal_notes: q.internal_notes || '',
       approval_status: q.approval_status || 'not_required',
       terms_conditions: q.terms_conditions || '',
+      bank_account_id: q.bank_account_id ? String(q.bank_account_id) : '',
       items: q.items && q.items.length > 0 ? q.items.map((item: any) => ({
         product_id: item.product_id ? String(item.product_id) : '',
         product_tier_id: item.product_tier_id ? String(item.product_tier_id) : '',
@@ -263,6 +273,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     customer_notes: '',
     internal_notes: '',
     terms_conditions: '',
+    bank_account_id: '',
 
     customer_name: '',
     billing_entity: '',
@@ -512,6 +523,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         contract_start_date: qForm.contract_start_date || null,
         contract_end_date: qForm.contract_end_date || null,
         expected_close_date: qForm.expected_close_date || null,
+        bank_account_id: qForm.bank_account_id ? Number(qForm.bank_account_id) : null,
         items: qForm.items.map(item => ({
           ...item,
           product_id: item.product_id ? Number(item.product_id) : null,
@@ -679,6 +691,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         department: soForm.department || null,
         cost_center: soForm.cost_center || null,
         location: soForm.location || null,
+        bank_account_id: soForm.bank_account_id ? Number(soForm.bank_account_id) : null,
         items: summary.items.map(item => ({
           ...item,
           product_id: item.product_id ? Number(item.product_id) : null,
@@ -753,6 +766,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       customer_notes: so.customer_notes || '',
       internal_notes: so.internal_notes || '',
       terms_conditions: so.terms_conditions || '',
+      bank_account_id: so.bank_account_id ? String(so.bank_account_id) : '',
       customer_name: so.customer_name || '',
       billing_entity: so.billing_entity || '',
       contact_id: so.contact_id ? String(so.contact_id) : '',
@@ -862,6 +876,24 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  const generatePdf = async (type: 'quotation' | 'sales_order', id: number) => {
+    setGeneratingPdfId(id);
+    setErrorMessage(null);
+    try {
+      const endpoint = type === 'quotation' ? `/quotations/${id}/generate-pdf` : `/sales-orders/${id}/generate-pdf`;
+      const res = await apiFetch(endpoint, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to generate PDF');
+      }
+      qc.invalidateQueries({ queryKey: type === 'quotation' ? ['lead-quotations', leadId] : ['lead-sales-orders', leadId] });
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    } finally {
+      setGeneratingPdfId(null);
     }
   };
 
@@ -1215,6 +1247,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                 internal_notes: '',
                 approval_status: 'not_required',
                 terms_conditions: '',
+                bank_account_id: '',
                 items: [{
                   product_id: '',
                   product_tier_id: '',
@@ -1439,6 +1472,35 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                         </>
                       )}
                     </div>
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50 justify-between items-center">
+                      <div className="text-[10px] text-muted-foreground">
+                        {q.pdf_url ? (
+                          <span className="text-green-600 font-medium">PDF Generated</span>
+                        ) : (
+                          <span>PDF Not Generated</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="xs" 
+                          variant="outline" 
+                          onClick={() => generatePdf('quotation', q.id)}
+                          disabled={generatingPdfId === q.id}
+                        >
+                          {generatingPdfId === q.id && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                          {q.pdf_url ? 'Regenerate PDF' : 'Generate PDF'}
+                        </Button>
+                        {q.pdf_url && (
+                          <Button 
+                            size="xs" 
+                            variant="secondary" 
+                            onClick={() => window.open(q.pdf_url, '_blank')}
+                          >
+                            View PDF
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1491,6 +1553,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                 customer_notes: '',
                 internal_notes: '',
                 terms_conditions: '',
+                bank_account_id: '',
                 customer_name: leadObj ? String(leadObj.company_name || '') : '',
                 billing_entity: '',
                 contact_id: '',
@@ -1613,6 +1676,35 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           </Button>
                         </>
                       )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50 justify-between items-center">
+                      <div className="text-[10px] text-muted-foreground">
+                        {so.pdf_url ? (
+                          <span className="text-green-600 font-medium">PDF Generated</span>
+                        ) : (
+                          <span>PDF Not Generated</span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="xs" 
+                          variant="outline" 
+                          onClick={() => generatePdf('sales_order', so.id)}
+                          disabled={generatingPdfId === so.id}
+                        >
+                          {generatingPdfId === so.id && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                          {so.pdf_url ? 'Regenerate PDF' : 'Generate PDF'}
+                        </Button>
+                        {so.pdf_url && (
+                          <Button 
+                            size="xs" 
+                            variant="secondary" 
+                            onClick={() => window.open(so.pdf_url, '_blank')}
+                          >
+                            View PDF
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1862,6 +1954,19 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                       <Input value={qForm.header_discount_value} onChange={e => setQForm({...qForm, header_discount_value: formatAmountInput(normalizeAmountInput(e.target.value))})} />
                     </div>
                   )}
+                  <div className="col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Payment Bank Account</label>
+                    <select 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={qForm.bank_account_id} 
+                      onChange={e => setQForm({...qForm, bank_account_id: e.target.value})}
+                    >
+                      <option value="">-- Select Bank Account (Fallback to Default) --</option>
+                      {bankAccounts.filter((b: any) => b.is_active).map((b: any) => (
+                        <option key={b.id} value={b.id}>{b.bank_name} - {b.account_number} ({b.account_name})</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="col-span-2 flex items-center gap-2 pt-2">
                     <input 
                       type="checkbox" 
@@ -2841,6 +2946,19 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                         value={soForm.terms_conditions} 
                         onChange={e => setSoForm({...soForm, terms_conditions: e.target.value})} 
                       />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Payment Bank Account</label>
+                      <select 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        value={soForm.bank_account_id}
+                        onChange={e => setSoForm({...soForm, bank_account_id: e.target.value})}
+                      >
+                        <option value="">-- Select Bank Account (Fallback to Default) --</option>
+                        {bankAccounts.filter((b: any) => b.is_active).map((b: any) => (
+                          <option key={b.id} value={b.id}>{b.bank_name} - {b.account_number} ({b.account_name})</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 )}

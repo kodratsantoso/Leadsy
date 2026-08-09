@@ -53,6 +53,10 @@ type ProductRecord = {
   ai_reference_source_type?: string | null;
   created_at?: string | null;
   tiers?: ProductTier[] | null;
+  default_terms_conditions?: string | null;
+  quotation_terms_conditions?: string | null;
+  sales_order_terms_conditions?: string | null;
+  logo_path?: string | null;
 };
 
 const refTypeLabels: Record<
@@ -93,6 +97,12 @@ export default function ProductDetailPage() {
   const [formKeywords, setFormKeywords] = useState("");       
 
   const [formTiers, setFormTiers] = useState<ProductTier[]>([]);
+
+  // T&C Branding States
+  const [formDefaultTerms, setFormDefaultTerms] = useState("");
+  const [formQtTerms, setFormQtTerms] = useState("");
+  const [formSoTerms, setFormSoTerms] = useState("");
+  const [logoPath, setLogoPath] = useState<string | null>(null);
 
   // AI Generation State
   const [aiGenerated, setAiGenerated] = useState(false);
@@ -145,6 +155,11 @@ export default function ProductDetailPage() {
       setFormKeywords(product.keywords?.join(", ") || "");
 
       setFormTiers(product.tiers ?? []);
+      
+      setFormDefaultTerms(product.default_terms_conditions || "");
+      setFormQtTerms(product.quotation_terms_conditions || "");
+      setFormSoTerms(product.sales_order_terms_conditions || "");
+      setLogoPath(product.logo_path || null);
     }
   }, [product]);
 
@@ -166,6 +181,9 @@ export default function ProductDetailPage() {
         use_cases: formUseCases.split(",").map(v => v.trim()).filter(Boolean),
         competitor_notes: formCompetitorNotes,
         keywords: formKeywords.split(",").map(v => v.trim()).filter(Boolean),
+        default_terms_conditions: formDefaultTerms,
+        quotation_terms_conditions: formQtTerms,
+        sales_order_terms_conditions: formSoTerms,
         tiers: formTiers,
       };
 
@@ -177,6 +195,35 @@ export default function ProductDetailPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["products", productId] });
+    },
+  });
+
+  // Product logo upload mutation
+  const uploadLogoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData();
+      fd.append("logo", file);
+      const res = await apiFetch(`/products/${productId}/logo`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) throw new Error("Failed to upload product logo");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["products", productId] });
+    },
+  });
+
+  // Product logo delete mutation
+  const deleteLogoMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/products/${productId}/logo`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to remove product logo");
+      return res.json();
+    },
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products", productId] });
     },
   });
@@ -285,6 +332,7 @@ export default function ProductDetailPage() {
           { key: "tiers", label: "Product Tiers (SaaS)" },
           { key: "questions", label: "Question Guide" },
           { key: "history", label: "Comparison & Scraping" },
+          { key: "branding", label: "Document Branding" },
         ]}
       />
 
@@ -577,6 +625,73 @@ export default function ProductDetailPage() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* 6. DOCUMENT BRANDING */}
+        {activeTab === "branding" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Document Terms & Conditions</CardTitle>
+                  <CardDescription>Configure configurable contract and T&C text templates unique to this product.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Default Terms & Conditions</label>
+                    <Textarea value={formDefaultTerms} onChange={(e) => setFormDefaultTerms(e.target.value)} rows={6} placeholder="Standard terms when no quotation/sales order overrides are set..." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Quotation Terms & Conditions Override</label>
+                    <Textarea value={formQtTerms} onChange={(e) => setFormQtTerms(e.target.value)} rows={6} placeholder="These terms will override default terms on Quotations..." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Sales Order Terms & Conditions Override</label>
+                    <Textarea value={formSoTerms} onChange={(e) => setFormSoTerms(e.target.value)} rows={6} placeholder="These terms will override default terms on Sales Orders..." />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Product Logo</CardTitle>
+                  <CardDescription>Product brand logo printed alongside the company logo on documents.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center space-y-4">
+                  <div className="h-28 w-full border border-dashed border-border rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 relative p-4">
+                    {logoPath ? (
+                      <img src={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/storage/${logoPath}`} className="max-h-full max-w-full object-contain" alt="Product Logo" />
+                    ) : (
+                      <div className="text-center text-xs text-slate-400">No Product Logo Uploaded</div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 w-full">
+                    <label className="flex-1">
+                      <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/95 h-9 rounded-md text-sm font-medium cursor-pointer">
+                        <Upload className="h-4 w-4 mr-2" /> Upload Logo
+                      </span>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadLogoMutation.mutate(file);
+                        }}
+                      />
+                    </label>
+                    {logoPath && (
+                      <Button variant="outline" onClick={() => deleteLogoMutation.mutate()} disabled={deleteLogoMutation.isPending}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         )}
       </div>
     </div>

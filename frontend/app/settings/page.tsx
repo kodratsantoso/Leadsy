@@ -13,6 +13,7 @@ const categories = [
       { icon: Users,     title: "Users & Roles",         desc: "User accounts, role management, permissions",                        href: "/settings/users",         color: "bg-[color:var(--brand)]" },
       { icon: Target,    title: "Target Revenue",        desc: "Configure company revenue targets and cascade to Sales and AMs",      href: "/settings/targets/revenue", color: "bg-[color:var(--brand)]" },
       { icon: Activity,  title: "Target KPI",            desc: "Configure role-specific metrics and KPIs for all user levels",        href: "/settings/targets/kpi",   color: "bg-[color:var(--brand)]" },
+      { icon: Shield,    title: "Company Settings",      desc: "Configure company brand, logo, NPWP, signatory details, and bank accounts", href: "/settings/company", color: "bg-[color:var(--brand)]" },
     ]
   },
   {
