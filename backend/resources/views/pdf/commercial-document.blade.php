@@ -194,11 +194,23 @@
             margin-bottom: 15px;
             background-color: #ffffff;
         }
-        .terms-content {
-            font-size: 8px;
+        .terms-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .terms-bullet {
+            width: 14px;
+            vertical-align: top;
+            font-size: 10px;
+            color: #0f3d7a;
+            padding: 2px 0;
+        }
+        .terms-text {
+            font-size: 8.5px;
             color: #334155;
-            white-space: pre-wrap;
-            line-height: 1.35;
+            line-height: 1.4;
+            padding: 2px 0;
+            vertical-align: top;
         }
 
         /* Bank Information */
@@ -417,7 +429,16 @@
     @if($terms)
         <span class="section-header-bar">Terms and Conditions</span>
         <div class="terms-section">
-            <div class="terms-content">{!! e($terms) !!}</div>
+            <table class="terms-table">
+                @foreach(explode("\n", str_replace("\r", "", $terms)) as $line)
+                    @if(trim($line))
+                        <tr>
+                            <td class="terms-bullet">✦</td>
+                            <td class="terms-text">{!! e(ltrim(trim($line), "\t-*•. ")) !!}</td>
+                        </tr>
+                    @endif
+                @endforeach
+            </table>
         </div>
     @endif
 
