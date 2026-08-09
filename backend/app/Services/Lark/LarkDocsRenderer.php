@@ -341,22 +341,6 @@ class LarkDocsRenderer
                 'background_color' => 1,
                 'border_color' => 1,
                 'text_color' => 1
-            ],
-            'children' => [
-                // Callout blocks must be created with at least one child block
-                [
-                    'block_type' => 2,
-                    'text' => [
-                        'elements' => [
-                            [
-                                'type' => 'text',
-                                'text_run' => [
-                                    'content' => 'Initializing...'
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
             ]
         ];
 
@@ -598,14 +582,12 @@ class LarkDocsRenderer
                             'text' => [
                                 'elements' => [
                                     [
-                                        'type' => 'text',
                                         'text_run' => [
                                             'content' => "CONCLUSION\n",
                                             'text_element_style' => ['bold' => true, 'text_color' => 5]
                                         ]
                                     ],
                                     [
-                                        'type' => 'text',
                                         'text_run' => [
                                             'content' => $conclusionText
                                         ]
