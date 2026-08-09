@@ -110,7 +110,7 @@ class LarkDocsRenderer
         // --- 3. EXECUTIVE SUMMARY ---
         $execSummaryText = $general['executive_summary'] ?? 'No summary available.';
         $children[] = [
-            'block_type' => 17, // Quote
+            'block_type' => 15, // Quote
             'quote' => [
                 'elements' => [
                     [
@@ -335,16 +335,18 @@ class LarkDocsRenderer
         $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
         $conclusionText = $conclusion['conclusion'] ?? 'No conclusion available.';
         $children[] = [
-            'block_type' => 17, // Quote
+            'block_type' => 15, // Quote
             'quote' => [
                 'elements' => [
                     [
+                        'type' => 'text',
                         'text_run' => [
                             'content' => "CONCLUSION\n",
                             'text_element_style' => ['bold' => true, 'text_color' => 5]
                         ]
                     ],
                     [
+                        'type' => 'text',
                         'text_run' => [
                             'content' => $conclusionText
                         ]

@@ -155,7 +155,7 @@ class LarkDriveService extends LarkService
                     if ($isExecSummary) {
                         // Highlight Executive Summary inside a styled Quote block (type 17)
                         $children[] = [
-                            'block_type' => 17, // Quote
+                            'block_type' => 15, // Quote
                             'quote' => [
                                 'elements' => [
                                     [
