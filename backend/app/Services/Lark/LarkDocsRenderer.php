@@ -253,7 +253,8 @@ class LarkDocsRenderer
 
         // Topics discussed
         $topics = $detailed['topics_discussed'] ?? [];
-        if (!empty($topics)) {
+        $topicRows = array_slice($topics, 0, 8);
+        if (!empty($topicRows)) {
             $children[] = [
                 'block_type' => 4, // Heading 2
                 'heading2' => [
@@ -268,24 +269,16 @@ class LarkDocsRenderer
                     ]
                 ]
             ];
-            // Format a simple summary of topics
-            foreach (array_slice($topics, 0, 8) as $topic) {
-                $topikName = $topic['topik'] ?? $topic['topic'] ?? 'Topic';
-                $ringkasan = $topic['ringkasan'] ?? $topic['summary'] ?? '';
-                $relevance = $topic['relevansi'] ?? $topic['relevance'] ?? 'Not Scored';
-                $children[] = [
-                    'block_type' => 12, // Bullet
-                    'bullet' => [
-                        'elements' => [
-                            [
-                                'text_run' => [
-                                    'content' => "{$topikName} [Relevance: {$relevance}]: {$ringkasan}"
-                                ]
-                            ]
-                        ]
+
+            $children[] = [
+                'block_type' => 31, // Table
+                'table' => [
+                    'property' => [
+                        'row_size' => count($topicRows) + 1,
+                        'column_size' => 3
                     ]
-                ];
-            }
+                ]
+            ];
         }
 
         // Action Items Table
@@ -460,10 +453,68 @@ class LarkDocsRenderer
             }
         }
 
-        // Populate Table 3: Next Steps
-        if (isset($tableCells[2]) && count($tableCells[2]) >= 3) {
+        // Populate Table 3: Topics Discussed Table
+        if (isset($tableCells[2]) && count($tableCells[2]) >= (count($topicRows) + 1) * 3) {
+            $headers = ['Topic', 'Summary', 'Relevance'];
+            // Headers
+            for ($col = 0; $col < 3; $col++) {
+                $cellBlockId = $tableCells[2][$col];
+                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
+                    'children' => [
+                        [
+                            'block_type' => 2,
+                            'text' => [
+                                'elements' => [
+                                    [
+                                        'type' => 'text',
+                                        'text_run' => [
+                                            'content' => $headers[$col],
+                                            'text_element_style' => ['bold' => true, 'text_color' => 4]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'index' => -1
+                ]);
+            }
+            // Rows
+            foreach ($topicRows as $rowIdx => $topic) {
+                $topikName = $topic['topik'] ?? $topic['topic'] ?? 'Topic';
+                $ringkasan = $topic['ringkasan'] ?? $topic['summary'] ?? '';
+                $relevance = $topic['relevansi'] ?? $topic['relevance'] ?? 'Not Scored';
+
+                $rowVals = [$topikName, $ringkasan, $relevance];
+                for ($col = 0; $col < 3; $col++) {
+                    $cellBlockId = $tableCells[2][($rowIdx + 1) * 3 + $col];
+                    $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
+                        'children' => [
+                            [
+                                'block_type' => 2,
+                                'text' => [
+                                    'elements' => [
+                                        [
+                                            'type' => 'text',
+                                            'text_run' => [
+                                                'content' => $rowVals[$col]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        'index' => -1
+                    ]);
+                }
+            }
+        }
+
+        // Populate Table 4: Next Steps
+        $nextStepTableIdx = 3;
+        if (isset($tableCells[$nextStepTableIdx]) && count($tableCells[$nextStepTableIdx]) >= 3) {
             foreach ($nextStepCells as $idx => $cell) {
-                $cellBlockId = $tableCells[2][$idx];
+                $cellBlockId = $tableCells[$nextStepTableIdx][$idx];
                 $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
                     'children' => [
                         [
