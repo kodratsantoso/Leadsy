@@ -335,24 +335,18 @@ class LarkDocsRenderer
         $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
         $conclusionText = $conclusion['conclusion'] ?? 'No conclusion available.';
         $children[] = [
-            'block_type' => 19, // Callout
-            'callout' => [
-                'emoji_id' => 'bulb',
-                'background_color' => 1,
-                'border_color' => 1,
-                'text_color' => 1,
-                'text' => [
-                    'elements' => [
-                        [
-                            'text_run' => [
-                                'content' => "CONCLUSION\n",
-                                'text_element_style' => ['bold' => true, 'text_color' => 5]
-                            ]
-                        ],
-                        [
-                            'text_run' => [
-                                'content' => $conclusionText
-                            ]
+            'block_type' => 17, // Quote
+            'quote' => [
+                'elements' => [
+                    [
+                        'text_run' => [
+                            'content' => "CONCLUSION\n",
+                            'text_element_style' => ['bold' => true, 'text_color' => 5]
+                        ]
+                    ],
+                    [
+                        'text_run' => [
+                            'content' => $conclusionText
                         ]
                     ]
                 ]
