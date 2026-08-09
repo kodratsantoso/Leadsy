@@ -277,12 +277,15 @@ class LarkBaseService extends LarkService
             'Authorization' => 'Bearer ' . $this->accessToken,
         ])->attach(
             'file', $fileContents, $fileName
-        )->post($url, [
-            'file_name' => $fileName,
-            'parent_type' => 'bitable_file',
-            'parent_node' => $appToken,
-            'size' => $fileSize,
-        ]);
+        )->attach(
+            'file_name', $fileName
+        )->attach(
+            'parent_type', 'bitable_file'
+        )->attach(
+            'parent_node', $appToken
+        )->attach(
+            'size', (string) $fileSize
+        )->post($url);
 
         if (! $response->successful()) {
             throw new Exception('Lark Media Upload error: ' . $response->body());
