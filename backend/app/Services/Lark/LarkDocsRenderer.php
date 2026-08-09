@@ -207,8 +207,18 @@ class LarkDocsRenderer
                 if (is_array($item)) {
                     if (isset($item['use_case'])) {
                         $lines[] = "• " . $item['use_case'] . ' (' . ($item['priority'] ?? 'Medium') . '): ' . ($item['description'] ?? '');
+                    } elseif (isset($item['pain_point'])) {
+                        $lines[] = "• " . $item['pain_point'] . ' (' . ($item['severity'] ?? 'Medium') . '): ' . ($item['description'] ?? '');
+                    } elseif (isset($item['feature'])) {
+                        $lines[] = "• " . $item['feature'] . ' - Reaction: ' . ($item['reaction'] ?? 'Neutral');
+                    } elseif (isset($item['objection'])) {
+                        $lines[] = "• " . $item['objection'] . ' - Status: ' . ($item['resolution_status'] ?? 'Open');
+                    } elseif (isset($item['topic'])) {
+                        $lines[] = "• " . $item['topic'] . ': ' . ($item['summary'] ?? '');
                     } else {
-                        $lines[] = "• " . json_encode($item);
+                        // Fallback value mapping keys
+                        $possibleVal = $item['val'] ?? $item['value'] ?? $item['content'] ?? $item['description'] ?? json_encode($item);
+                        $lines[] = "• " . $possibleVal;
                     }
                 } else {
                     $lines[] = "• " . $item;
