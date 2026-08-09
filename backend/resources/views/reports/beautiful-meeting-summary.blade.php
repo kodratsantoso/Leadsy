@@ -339,17 +339,25 @@
                             @forelse($tableConfig['data'] as $row)
                             <tr>
                                 @foreach($tableConfig['keys'] as $key)
+                                @php
+                                    $val = $row[$key] ?? null;
+                                    if ($val === null && $key === 'topic') $val = $row['topik'] ?? null;
+                                    if ($val === null && $key === 'summary') $val = $row['ringkasan'] ?? null;
+                                    if ($val === null && $key === 'relevance') $val = $row['relevansi'] ?? null;
+                                    if ($val === null && $key === 'feature') $val = $row['fitur'] ?? null;
+                                    if ($val === null && $key === 'interest_level') $val = $row['level_minat'] ?? null;
+                                @endphp
                                 <td class="px-4 py-3 align-top {{ $loop->first ? 'font-medium text-slate-900' : 'text-slate-600' }}">
-                                    @if($loop->last && in_array(strtolower($row[$key] ?? ''), ['high', 'tinggi', 'yes', 'completed', 'strong']))
+                                    @if($loop->last && in_array(strtolower($val ?? ''), ['high', 'tinggi', 'yes', 'completed', 'strong']))
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                                            {{ $row[$key] }}
+                                            {{ $val }}
                                         </span>
-                                    @elseif($loop->last && in_array(strtolower($row[$key] ?? ''), ['medium', 'sedang', 'pending']))
+                                    @elseif($loop->last && in_array(strtolower($val ?? ''), ['medium', 'sedang', 'pending']))
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
-                                            {{ $row[$key] }}
+                                            {{ $val }}
                                         </span>
                                     @else
-                                        {{ $row[$key] ?? '-' }}
+                                        {{ $val ?? '-' }}
                                     @endif
                                 </td>
                                 @endforeach
