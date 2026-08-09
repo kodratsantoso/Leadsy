@@ -25,6 +25,23 @@ class LarkDocsRenderer
         $docInfo = $this->driveService->request('GET', "/docx/v1/documents/{$documentId}");
         $rootBlockId = $docInfo['data']['document']['document_id'] ?? $documentId;
 
+        // Clean up existing child blocks of root block to support safe retry recovery
+        try {
+            $existingBlocks = $this->driveService->request('GET', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children");
+            $childrenList = $existingBlocks['data']['items'] ?? [];
+            $childCount = count($childrenList);
+            if ($childCount > 0) {
+                $this->driveService->request('DELETE', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children/batch_delete", [
+                    'start_index' => 0,
+                    'end_index' => $childCount
+                ]);
+            }
+        } catch (Exception $e) {
+            Log::warning("Failed to clean up existing blocks for Lark Doc {$documentId}, appending instead", [
+                'error' => $e->getMessage()
+            ]);
+        }
+
         $meetingType = $transcript->meeting_type ?: 'General';
         $typeKey = strtolower(str_replace([' ', '-'], '_', $meetingType));
 

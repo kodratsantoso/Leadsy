@@ -93,17 +93,8 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 }
             }
 
-            // 2. Resolve Drive Folder for Lead folder
-            $leadFolderName = "LEAD-{$lead->id} - " . ($lead->company_name ?: 'Unknown Company');
-            
-            // Check if folder is already cached, otherwise create and save it
-            $folderToken = $lead->lark_folder_token;
-            if (empty($folderToken)) {
-                $folderToken = $larkDriveService->getOrCreateLeadFolder($sharedFolderToken, $leadFolderName);
-                Lead::withoutEvents(function() use ($lead, $folderToken) {
-                    $lead->update(['lark_folder_token' => $folderToken]);
-                });
-            }
+            // 2. Resolve Drive Folder (Direct use of shared folder token)
+            $folderToken = $sharedFolderToken;
 
             // 3. Ensure PDF document exists or wait / load the latest successful PDF
             $document = MeetingSummaryDocument::where('transcript_id', $transcript->id)
@@ -210,19 +201,23 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                     throw new Exception("Meeting Summary Lark Docs mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
                 }
 
-                 // Always create or overwrite Lark Doc content using the dedicated LarkDocsRenderer
-                 $docTitle = "Meeting Summary - {$transcript->meeting_type} - " . date('Y-m-d');
-                 $docData = $larkDriveService->createDoc($folderToken, $docTitle);
-                 $docId = $docData['document_id'];
-                 $docUrl = $docData['url'];
- 
-                 $renderer = new \App\Services\Lark\LarkDocsRenderer($larkDriveService);
-                 $renderer->renderDoc($docId, $transcript, $lead, $imgFileToken ?? null);
- 
-                 // Update transcript URLs
-                 $transcript->lark_doc_url = $docUrl;
-                 $transcript->lark_doc_id = $docId;
-                 $transcript->save();
+                $docId = $transcript->lark_doc_id;
+                $docUrl = $transcript->lark_doc_url;
+
+                if (empty($docId)) {
+                    $docTitle = "Meeting Summary - {$transcript->meeting_type} - " . date('Y-m-d');
+                    $docData = $larkDriveService->createDoc($folderToken, $docTitle);
+                    $docId = $docData['document_id'];
+                    $docUrl = $docData['url'];
+
+                    // Persist document info immediately
+                    $transcript->lark_doc_id = $docId;
+                    $transcript->lark_doc_url = $docUrl;
+                    $transcript->save();
+                }
+
+                $renderer = new \App\Services\Lark\LarkDocsRenderer($larkDriveService);
+                $renderer->renderDoc($docId, $transcript, $lead, $imgFileToken ?? null);
 
                 // If Bitable field is type 15 (Url), format payload, otherwise write text
                 if ((int)($targetField['type'] ?? 0) === 15) {
