@@ -50,61 +50,45 @@ class LarkDocsRenderer
         $conclusion = $transcript->conclusion_section_json ?: [];
         $meetingSpecific = $transcript->meeting_type_sections_json ?: [];
         $bantc = $transcript->bantc_json ?: [];
+        $scoreUpdates = $transcript->score_updates_json ?: [];
 
         $children = [];
 
-        // --- 1. HEADER SECTION ---
-        $children[] = [
-            'block_type' => 3, // Heading 1
-            'heading1' => [
-                'elements' => [
-                    [
-                        'type' => 'text',
-                        'text_run' => [
-                            'content' => "MEETING SUMMARY - " . strtoupper($meetingType),
-                            'text_element_style' => ['bold' => true, 'text_color' => 4]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-        $children[] = [
-            'block_type' => 2, // Text paragraph
-            'text' => [
-                'elements' => [
-                    [
-                        'type' => 'text',
-                        'text_run' => [
-                            'content' => "AI-Powered Summary by Leadsy",
-                            'text_element_style' => ['italic' => true]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
+        // Track table indices for later cell population
+        $tableIndex = 0;
+        $tableMap = []; // key => table index
 
-        // --- 2. METADATA SECTION (TABLE) ---
+        // --- 1. HEADER SECTION ---
+        $children[] = $this->heading1("MEETING SUMMARY - " . strtoupper($meetingType), 4);
+        $children[] = $this->textBlock("AI-Powered Summary by Leadsy", ['italic' => true]);
+        $children[] = $this->divider();
+
+        // --- 2. METADATA SECTION (TABLE 3×3) ---
         $dateStr = $transcript->recorded_at ? $transcript->recorded_at->format('d F Y') : '-';
         $ownerName = $lead->owner ? $lead->owner->name : 'Unassigned';
+        $industryName = $lead->industry ? $lead->industry->name : '-';
+        $funnelStageName = $lead->funnelStage ? $lead->funnelStage->name : '-';
+        $qualStatus = $lead->qualification_status ? ucfirst($lead->qualification_status) : '-';
+
         $children[] = [
             'block_type' => 31, // Table
-            'table' => [
-                'property' => [
-                    'row_size' => 2,
-                    'column_size' => 3
-                ]
-            ]
+            'table' => ['property' => ['row_size' => 3, 'column_size' => 3]]
         ];
+        $tableMap['metadata'] = $tableIndex++;
 
-        // Metadata cells content
         $metaCells = [
+            // Row 1
             ['title' => 'Meeting Type', 'val' => $meetingType],
             ['title' => 'Product', 'val' => $lead->product ? $lead->product->name : 'LarkSuite'],
             ['title' => 'Company', 'val' => $lead->company_name ?: 'Unknown Company'],
+            // Row 2
             ['title' => 'Date & Time', 'val' => $dateStr],
             ['title' => 'Owner', 'val' => $ownerName],
-            ['title' => 'Lead Score', 'val' => $lead->lead_score ? (string)$lead->lead_score : 'N/A']
+            ['title' => 'Lead Score', 'val' => $lead->lead_score ? (string)$lead->lead_score : 'N/A'],
+            // Row 3
+            ['title' => 'Industry', 'val' => $industryName],
+            ['title' => 'Funnel Stage', 'val' => $funnelStageName],
+            ['title' => 'Qualification', 'val' => $qualStatus],
         ];
 
         // --- 3. EXECUTIVE SUMMARY ---
@@ -123,10 +107,22 @@ class LarkDocsRenderer
                 ]
             ]
         ];
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
+
+        // --- 3b. OVERALL SENTIMENT ---
+        $sentiment = $general['overall_sentiment'] ?? null;
+        if ($sentiment && (isset($sentiment['positive']) || isset($sentiment['neutral']) || isset($sentiment['negative']))) {
+            $pos = $sentiment['positive'] ?? 0;
+            $neu = $sentiment['neutral'] ?? 0;
+            $neg = $sentiment['negative'] ?? 0;
+            $children[] = $this->textBlock(
+                "Sentiment:  ✅ Positive {$pos}%  |  ⚠️ Neutral {$neu}%  |  ❌ Negative {$neg}%",
+                ['bold' => true]
+            );
+        }
+
+        $children[] = $this->divider();
 
         // --- 4. PRIMARY INSIGHTS CARDS (TABLE) ---
-        // Dynamically select cards depending on meeting type
         $card1Title = 'KEY PAIN POINTS';
         $card1Data = $general['key_pain_points'] ?? [];
         $card2Title = 'CUSTOMER NEEDS';
@@ -183,132 +179,41 @@ class LarkDocsRenderer
             $card4Data = $meetingSpecific['risks_open_items'] ?? [];
         }
 
-        $children[] = [
-            'block_type' => 3, // Heading 1
-            'heading1' => [
-                'elements' => [
-                    [
-                        'type' => 'text',
-                        'text_run' => [
-                            'content' => 'PRIMARY INSIGHTS',
-                            'text_element_style' => ['bold' => true]
-                        ]
-                    ]
-                ]
-            ]
-        ];
-
-        // Format bullet lists for primary insights
-        $formatList = function($data) {
-            if (empty($data)) {
-                return "• Not specified";
-            }
-            $lines = [];
-            foreach ((array)$data as $item) {
-                if (is_array($item)) {
-                    if (isset($item['use_case'])) {
-                        $lines[] = "• " . $item['use_case'] . ' (' . ($item['priority'] ?? 'Medium') . '): ' . ($item['description'] ?? '');
-                    } elseif (isset($item['pain_point'])) {
-                        $lines[] = "• " . $item['pain_point'] . ' (' . ($item['severity'] ?? 'Medium') . '): ' . ($item['description'] ?? '');
-                    } elseif (isset($item['feature'])) {
-                        $lines[] = "• " . $item['feature'] . ' - Reaction: ' . ($item['reaction'] ?? 'Neutral');
-                    } elseif (isset($item['objection'])) {
-                        $lines[] = "• " . $item['objection'] . ' - Status: ' . ($item['resolution_status'] ?? 'Open');
-                    } elseif (isset($item['topic'])) {
-                        $lines[] = "• " . $item['topic'] . ': ' . ($item['summary'] ?? '');
-                    } else {
-                        // Fallback value mapping keys
-                        $possibleVal = $item['val'] ?? $item['value'] ?? $item['content'] ?? $item['description'] ?? json_encode($item);
-                        $lines[] = "• " . $possibleVal;
-                    }
-                } else {
-                    $lines[] = "• " . $item;
-                }
-            }
-            return implode("\n", $lines);
-        };
+        $children[] = $this->heading1('PRIMARY INSIGHTS');
 
         $children[] = [
-            'block_type' => 31, // Table
-            'table' => [
-                'property' => [
-                    'row_size' => 2,
-                    'column_size' => 2
-                ]
-            ]
+            'block_type' => 31,
+            'table' => ['property' => ['row_size' => 2, 'column_size' => 2]]
         ];
+        $tableMap['insights'] = $tableIndex++;
 
         $insightCells = [
-            ['title' => $card1Title, 'content' => $formatList($card1Data)],
-            ['title' => $card2Title, 'content' => $formatList($card2Data)],
-            ['title' => $card3Title, 'content' => $formatList($card3Data)],
-            ['title' => $card4Title, 'content' => $formatList($card4Data)]
+            ['title' => $card1Title, 'content' => $this->formatList($card1Data)],
+            ['title' => $card2Title, 'content' => $this->formatList($card2Data)],
+            ['title' => $card3Title, 'content' => $this->formatList($card3Data)],
+            ['title' => $card4Title, 'content' => $this->formatList($card4Data)],
         ];
 
         // --- 5. DETAILED INSIGHTS & ACTION PLAN ---
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
-        $children[] = [
-            'block_type' => 3, // Heading 1
-            'heading1' => [
-                'elements' => [
-                    [
-                        'type' => 'text',
-                        'text_run' => [
-                            'content' => 'DETAILED INSIGHTS & ACTION PLAN',
-                            'text_element_style' => ['bold' => true, 'text_color' => 4]
-                        ]
-                    ]
-                ]
-            ]
-        ];
+        $children[] = $this->divider();
+        $children[] = $this->heading1('DETAILED INSIGHTS & ACTION PLAN', 4);
 
         // Topics discussed
         $topics = $detailed['topics_discussed'] ?? [];
         $topicRows = array_slice($topics, 0, 8);
         if (!empty($topicRows)) {
+            $children[] = $this->heading2('Topics Discussed');
             $children[] = [
-                'block_type' => 4, // Heading 2
-                'heading2' => [
-                    'elements' => [
-                        [
-                            'type' => 'text',
-                            'text_run' => [
-                                'content' => 'Topics Discussed',
-                                'text_element_style' => ['bold' => true]
-                            ]
-                        ]
-                    ]
-                ]
+                'block_type' => 31,
+                'table' => ['property' => ['row_size' => count($topicRows) + 1, 'column_size' => 3]]
             ];
-
-            $children[] = [
-                'block_type' => 31, // Table
-                'table' => [
-                    'property' => [
-                        'row_size' => count($topicRows) + 1,
-                        'column_size' => 3
-                    ]
-                ]
-            ];
+            $tableMap['topics'] = $tableIndex++;
         }
 
-        // Action Items Table
+        // Action Items
         $actionItems = $detailed['action_items'] ?? [];
         if (!empty($actionItems)) {
-            $children[] = [
-                'block_type' => 4, // Heading 2
-                'heading2' => [
-                    'elements' => [
-                        [
-                            'type' => 'text',
-                            'text_run' => [
-                                'content' => 'Action Items',
-                                'text_element_style' => ['bold' => true]
-                            ]
-                        ]
-                    ]
-                ]
-            ];
+            $children[] = $this->heading2('Action Items');
             foreach (array_slice($actionItems, 0, 8) as $idx => $item) {
                 $no = $idx + 1;
                 $task = $item['item'] ?? 'Task';
@@ -331,8 +236,134 @@ class LarkDocsRenderer
             }
         }
 
-        // --- 6. CONCLUSION & NEXT STEPS ---
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
+        // --- 5b. BUYING SIGNALS RADAR ---
+        $radar = $detailed['buying_signals_radar'] ?? null;
+        if ($radar && is_array($radar)) {
+            $children[] = $this->heading2('Buying Signals Radar');
+            $radarLabels = [
+                'kebutuhan' => 'Needs',
+                'urgensi' => 'Urgency',
+                'budget_kesiapan' => 'Budget Readiness',
+                'decision_support' => 'Decision Support',
+                'solusi_fit' => 'Solution Fit',
+                'niat_implementasi' => 'Implementation Intent',
+            ];
+            $radarLines = [];
+            foreach ($radar as $key => $val) {
+                $label = $radarLabels[$key] ?? ucfirst(str_replace('_', ' ', $key));
+                $score = is_numeric($val) ? (int)$val : 0;
+                $stars = str_repeat('★', $score) . str_repeat('☆', max(0, 5 - $score));
+                $radarLines[] = "{$label}: {$stars} ({$score}/5)";
+            }
+            $children[] = $this->textBlock(implode("\n", $radarLines));
+        }
+
+        // --- 5c. DISCOVERY-SPECIFIC SECTIONS ---
+        if ($typeKey === 'discovery' && !empty($meetingSpecific)) {
+            $children[] = $this->divider();
+            $children[] = $this->heading1('DISCOVERY INSIGHTS', 4);
+
+            // Discovery Objectives
+            $objectives = $meetingSpecific['discovery_objectives'] ?? [];
+            if (!empty($objectives)) {
+                $children[] = $this->heading2('Discovery Objectives');
+                foreach (array_slice((array)$objectives, 0, 5) as $obj) {
+                    $children[] = $this->bulletItem(is_array($obj) ? json_encode($obj) : $obj);
+                }
+            }
+
+            // Business Challenges
+            $challenges = $meetingSpecific['business_challenges'] ?? [];
+            if (!empty($challenges)) {
+                $children[] = $this->heading2('Business Challenges');
+                foreach (array_slice((array)$challenges, 0, 5) as $ch) {
+                    $children[] = $this->bulletItem(is_array($ch) ? json_encode($ch) : $ch);
+                }
+            }
+
+            // Priority Use Cases (table)
+            $useCases = $meetingSpecific['priority_use_cases'] ?? [];
+            if (!empty($useCases) && is_array($useCases)) {
+                $children[] = $this->heading2('Priority Use Cases');
+                $useCaseRows = array_slice($useCases, 0, 6);
+                $children[] = [
+                    'block_type' => 31,
+                    'table' => ['property' => ['row_size' => count($useCaseRows) + 1, 'column_size' => 3]]
+                ];
+                $tableMap['use_cases'] = $tableIndex++;
+            }
+
+            // Stakeholders Identified (table)
+            $stakeholders = $meetingSpecific['stakeholders_identified'] ?? [];
+            if (!empty($stakeholders) && is_array($stakeholders)) {
+                $children[] = $this->heading2('Stakeholders Identified');
+                $stakeRows = array_slice($stakeholders, 0, 6);
+                $children[] = [
+                    'block_type' => 31,
+                    'table' => ['property' => ['row_size' => count($stakeRows) + 1, 'column_size' => 3]]
+                ];
+                $tableMap['stakeholders'] = $tableIndex++;
+            }
+
+            // Risks & Constraints
+            $risks = $meetingSpecific['risks_constraints'] ?? [];
+            if (!empty($risks)) {
+                $children[] = $this->heading2('Risks & Constraints');
+                foreach (array_slice((array)$risks, 0, 5) as $r) {
+                    $children[] = $this->bulletItem(is_array($r) ? json_encode($r) : $r);
+                }
+            }
+
+            // Missing Information
+            $missing = $meetingSpecific['missing_information'] ?? [];
+            if (!empty($missing)) {
+                $children[] = $this->heading2('Missing Information');
+                foreach (array_slice((array)$missing, 0, 5) as $m) {
+                    $children[] = $this->bulletItem(is_array($m) ? json_encode($m) : $m);
+                }
+            }
+        }
+
+        // --- 6. BANTC ANALYSIS ---
+        if (!empty($bantc)) {
+            $children[] = $this->divider();
+            $children[] = $this->heading1('BANTC ANALYSIS', 4);
+            $children[] = [
+                'block_type' => 31,
+                'table' => ['property' => ['row_size' => 2, 'column_size' => 3]]
+            ];
+            $tableMap['bantc'] = $tableIndex++;
+        }
+
+        $bantcCells = [];
+        if (!empty($bantc)) {
+            $bantcCells = [
+                // Row 1 headers + Row 2 values
+                ['title' => 'BUDGET', 'val' => $bantc['budget'] ?? '-'],
+                ['title' => 'AUTHORITY', 'val' => $bantc['authority'] ?? '-'],
+                ['title' => 'NEEDS', 'val' => $bantc['needs'] ?? '-'],
+            ];
+        }
+
+        // BANTC Row 2: Timeline + Competitor (separate table)
+        if (!empty($bantc) && (!empty($bantc['timeline']) || !empty($bantc['competitor']))) {
+            $children[] = [
+                'block_type' => 31,
+                'table' => ['property' => ['row_size' => 2, 'column_size' => 2]]
+            ];
+            $tableMap['bantc2'] = $tableIndex++;
+        }
+
+        $bantc2Cells = [];
+        if (!empty($bantc)) {
+            $bantc2Cells = [
+                ['title' => 'TIMELINE', 'val' => $bantc['timeline'] ?? '-'],
+                ['title' => 'COMPETITOR', 'val' => $bantc['competitor'] ?? '-'],
+            ];
+        }
+
+        // --- 7. CONCLUSION & NEXT STEPS ---
+        $children[] = $this->divider();
         $conclusionText = $conclusion['conclusion'] ?? 'No conclusion available.';
         $children[] = [
             'block_type' => 15, // Quote
@@ -355,232 +386,334 @@ class LarkDocsRenderer
             ]
         ];
 
-        // Next Step Summary Table (2 Rows x 3 Columns)
+        // Next Step Summary Table — meeting-type-specific keys
         $nextStepVal = $conclusion['next_step'] ?? 'To be confirmed';
-        $children[] = [
-            'block_type' => 31, // Table
-            'table' => [
-                'property' => [
-                    'row_size' => 2,
-                    'column_size' => 3
-                ]
-            ]
-        ];
+        $nextStepCells = match ($typeKey) {
+            'demo' => [
+                ['title' => 'NEXT STEP', 'val' => $nextStepVal],
+                ['title' => 'TRIAL / POC POTENTIAL', 'val' => $conclusion['trial_poc_potensial'] ?? 'To be confirmed'],
+                ['title' => 'DECISION TIMELINE', 'val' => $conclusion['decision_timeline'] ?? 'To be confirmed'],
+            ],
+            'follow_up' => [
+                ['title' => 'NEXT STEP', 'val' => $nextStepVal],
+                ['title' => 'BLOCKERS', 'val' => $conclusion['blockers'] ?? 'None identified'],
+                ['title' => 'REVISED TIMELINE', 'val' => $conclusion['revised_timeline'] ?? 'To be confirmed'],
+            ],
+            'proposal_discussion' => [
+                ['title' => 'NEXT STEP', 'val' => $nextStepVal],
+                ['title' => 'EXPECTED REVISION', 'val' => $conclusion['expected_revision'] ?? 'To be confirmed'],
+                ['title' => 'APPROVAL PATH', 'val' => $conclusion['approval_path'] ?? 'To be confirmed'],
+            ],
+            'closing_discussion' => [
+                ['title' => 'NEXT STEP', 'val' => $nextStepVal],
+                ['title' => 'TARGET CLOSE DATE', 'val' => $conclusion['target_close_date'] ?? 'To be confirmed'],
+                ['title' => 'KEY RISK', 'val' => $conclusion['key_risk'] ?? 'To be assessed'],
+            ],
+            'handover_to_csm' => [
+                ['title' => 'NEXT STEP', 'val' => $nextStepVal],
+                ['title' => 'CS GOAL', 'val' => $conclusion['customer_success_goal'] ?? 'To be confirmed'],
+                ['title' => 'FIRST MILESTONE', 'val' => $conclusion['first_milestone'] ?? 'To be confirmed'],
+            ],
+            default => [
+                ['title' => 'NEXT STEP', 'val' => $nextStepVal],
+                ['title' => 'EXPECTED OUTCOME', 'val' => $conclusion['expected_outcome'] ?? 'To be confirmed'],
+                ['title' => 'TARGET TIMELINE', 'val' => $conclusion['target_implementation'] ?? 'To be confirmed'],
+            ],
+        };
 
-        $nextStepCells = [
-            ['title' => 'NEXT STEP', 'val' => $nextStepVal],
-            ['title' => 'EXPECTED OUTCOME', 'val' => $conclusion['expected_outcome'] ?? 'To be confirmed'],
-            ['title' => 'TARGET TIMELINE', 'val' => $conclusion['target_implementation'] ?? 'To be confirmed']
-        ];
-
-        // --- 7. FOOTER SECTION ---
-        $children[] = ['block_type' => 22, 'divider' => new \stdClass()];
         $children[] = [
-            'block_type' => 2, // Text paragraph
-            'text' => [
-                'elements' => [
-                    [
-                        'type' => 'text',
-                        'text_run' => [
-                            'content' => "Leadsy · AI-Powered Sales & CRM\nGenerated by Leadsy AI • " . date('d F Y H:i:s'),
-                            'text_element_style' => ['text_color' => 7] // Gray text color
-                        ]
-                    ]
-                ]
-            ]
+            'block_type' => 31,
+            'table' => ['property' => ['row_size' => 2, 'column_size' => 3]]
         ];
+        $tableMap['next_steps'] = $tableIndex++;
+
+        // --- 8. SCORE UPDATES & PRESALES RECOMMENDATION ---
+        if (!empty($scoreUpdates) || !empty($transcript->presales_recommendation)) {
+            $children[] = $this->divider();
+            $children[] = $this->heading2('AI Score & Recommendation');
+
+            if (!empty($scoreUpdates)) {
+                $scoreText = "Lead Score: " . ($scoreUpdates['lead_score'] ?? 'N/A')
+                    . "  |  Eligibility: " . ucfirst($scoreUpdates['eligibility_status'] ?? 'N/A')
+                    . "  |  Confidence: " . ($scoreUpdates['confidence'] ?? 'N/A') . "%";
+                $children[] = $this->textBlock($scoreText, ['bold' => true]);
+            }
+
+            if (!empty($transcript->presales_recommendation)) {
+                $children[] = $this->textBlock("Presales Recommendation: " . $transcript->presales_recommendation, ['italic' => true]);
+            }
+        }
+
+        // --- 9. FOOTER SECTION ---
+        $children[] = $this->divider();
+        $children[] = $this->textBlock(
+            "Leadsy · AI-Powered Sales & CRM\nGenerated by Leadsy AI • " . date('d F Y H:i:s'),
+            ['text_color' => 7]
+        );
 
         // Batch send document blocks creation in chunks of max 50 blocks
         $chunks = array_chunk($children, 50);
-        foreach ($chunks as $chunk) {
+        foreach ($chunks as $chunkIdx => $chunk) {
             $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children", [
                 'children' => $chunk,
                 'index' => -1
             ]);
+            // Rate limit: 3 edits/sec for a single document
+            if ($chunkIdx < count($chunks) - 1) {
+                usleep(400000); // 400ms delay between chunks
+            }
         }
 
-        // --- 8. POPULATE NESTED TABLES ---
-        // Fetch all blocks to retrieve cell block IDs of created tables
+        // --- 10. POPULATE NESTED TABLES ---
         $allBlocks = $this->driveService->request('GET', "/docx/v1/documents/{$documentId}/blocks");
-        $blocksList = $allBlocks['data']['blocks'] ?? [];
+        $blocksList = $allBlocks['data']['blocks'] ?? $allBlocks['blocks'] ?? [];
 
-        // Match table blocks and update their cell contents
         $tableCells = [];
         foreach ($blocksList as $b) {
-            if (($b['block_type'] ?? null) === 31) { // Table
+            if (($b['block_type'] ?? null) === 31) {
                 $tableCells[] = $b['table']['cells'] ?? $b['children'] ?? [];
             }
         }
 
-        // Populate Table 1: Metadata table
-        if (isset($tableCells[0]) && count($tableCells[0]) >= 6) {
+        // Helper to populate a table cell
+        $populateCell = function (string $cellBlockId, string $title, string $value, bool $isTitleBold = true) use ($documentId) {
+            $elements = [];
+            if (!empty($title)) {
+                $elements[] = [
+                    'type' => 'text',
+                    'text_run' => [
+                        'content' => $title . "\n",
+                        'text_element_style' => ['bold' => $isTitleBold, 'text_color' => 4]
+                    ]
+                ];
+            }
+            $elements[] = [
+                'type' => 'text',
+                'text_run' => ['content' => $value]
+            ];
+            $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
+                'children' => [['block_type' => 2, 'text' => ['elements' => $elements]]],
+                'index' => -1
+            ]);
+        };
+
+        // Helper to populate a simple cell (no title, just value)
+        $populateSimpleCell = function (string $cellBlockId, string $value, array $style = []) use ($documentId) {
+            $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
+                'children' => [
+                    [
+                        'block_type' => 2,
+                        'text' => [
+                            'elements' => [
+                                [
+                                    'type' => 'text',
+                                    'text_run' => array_filter([
+                                        'content' => $value,
+                                        'text_element_style' => !empty($style) ? $style : null,
+                                    ])
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                'index' => -1
+            ]);
+        };
+
+        // Populate Table: Metadata (3×3 = 9 cells)
+        $metaIdx = $tableMap['metadata'] ?? null;
+        if ($metaIdx !== null && isset($tableCells[$metaIdx]) && count($tableCells[$metaIdx]) >= 9) {
             foreach ($metaCells as $idx => $cell) {
-                $cellBlockId = $tableCells[0][$idx];
-                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
-                    'children' => [
-                        [
-                            'block_type' => 2,
-                            'text' => [
-                                'elements' => [
-                                    [
-                                        'type' => 'text',
-                                        'text_run' => [
-                                            'content' => "{$cell['title']}\n",
-                                            'text_element_style' => ['bold' => true, 'text_color' => 4]
-                                        ]
-                                    ],
-                                    [
-                                        'type' => 'text',
-                                        'text_run' => [
-                                            'content' => $cell['val']
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    'index' => -1
-                ]);
+                $populateCell($tableCells[$metaIdx][$idx], $cell['title'], $cell['val']);
             }
         }
 
-        // Populate Table 2: Primary Insights
-        if (isset($tableCells[1]) && count($tableCells[1]) >= 4) {
+        // Populate Table: Primary Insights (2×2 = 4 cells)
+        $insightsIdx = $tableMap['insights'] ?? null;
+        if ($insightsIdx !== null && isset($tableCells[$insightsIdx]) && count($tableCells[$insightsIdx]) >= 4) {
             foreach ($insightCells as $idx => $cell) {
-                $cellBlockId = $tableCells[1][$idx];
-                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
-                    'children' => [
-                        [
-                            'block_type' => 2,
-                            'text' => [
-                                'elements' => [
-                                    [
-                                        'type' => 'text',
-                                        'text_run' => [
-                                            'content' => "{$cell['title']}\n",
-                                            'text_element_style' => ['bold' => true, 'text_color' => 4]
-                                        ]
-                                    ],
-                                    [
-                                        'type' => 'text',
-                                        'text_run' => [
-                                            'content' => $cell['content']
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    'index' => -1
-                ]);
+                $populateCell($tableCells[$insightsIdx][$idx], $cell['title'], $cell['content']);
             }
         }
 
-        // Populate Table 3: Topics Discussed Table
-        if (isset($tableCells[2]) && count($tableCells[2]) >= (count($topicRows) + 1) * 3) {
+        // Populate Table: Topics Discussed
+        $topicsIdx = $tableMap['topics'] ?? null;
+        if ($topicsIdx !== null && isset($tableCells[$topicsIdx]) && count($tableCells[$topicsIdx]) >= (count($topicRows) + 1) * 3) {
             $headers = ['Topic', 'Summary', 'Relevance'];
-            // Headers
             for ($col = 0; $col < 3; $col++) {
-                $cellBlockId = $tableCells[2][$col];
-                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
-                    'children' => [
-                        [
-                            'block_type' => 2,
-                            'text' => [
-                                'elements' => [
-                                    [
-                                        'type' => 'text',
-                                        'text_run' => [
-                                            'content' => $headers[$col],
-                                            'text_element_style' => ['bold' => true, 'text_color' => 4]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    'index' => -1
-                ]);
+                $populateSimpleCell($tableCells[$topicsIdx][$col], $headers[$col], ['bold' => true, 'text_color' => 4]);
             }
-            // Rows
             foreach ($topicRows as $rowIdx => $topic) {
                 $topikName = $topic['topik'] ?? $topic['topic'] ?? 'Topic';
                 $ringkasan = $topic['ringkasan'] ?? $topic['summary'] ?? '';
                 $relevance = $topic['relevansi'] ?? $topic['relevance'] ?? 'Not Scored';
-
                 $rowVals = [$topikName, $ringkasan, $relevance];
                 for ($col = 0; $col < 3; $col++) {
-                    $cellBlockId = $tableCells[2][($rowIdx + 1) * 3 + $col];
-                    $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$cellBlockId}/children", [
-                        'children' => [
-                            [
-                                'block_type' => 2,
-                                'text' => [
-                                    'elements' => [
-                                        [
-                                            'type' => 'text',
-                                            'text_run' => [
-                                                'content' => $rowVals[$col]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ],
-                        'index' => -1
-                    ]);
+                    $populateSimpleCell($tableCells[$topicsIdx][($rowIdx + 1) * 3 + $col], $rowVals[$col]);
                 }
             }
         }
 
-        // Populate Table 4: Next Steps (2 Rows x 3 Columns)
-        $nextStepTableIdx = 3;
-        if (isset($tableCells[$nextStepTableIdx]) && count($tableCells[$nextStepTableIdx]) >= 6) {
-            foreach ($nextStepCells as $idx => $cell) {
-                // Header row cells (0, 1, 2)
-                $headerCellId = $tableCells[$nextStepTableIdx][$idx];
-                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$headerCellId}/children", [
-                    'children' => [
-                        [
-                            'block_type' => 2,
-                            'text' => [
-                                'elements' => [
-                                    [
-                                        'type' => 'text',
-                                        'text_run' => [
-                                            'content' => $cell['title'],
-                                            'text_element_style' => ['bold' => true, 'text_color' => 4]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    'index' => -1
-                ]);
-
-                // Value row cells (3, 4, 5)
-                $valueCellId = $tableCells[$nextStepTableIdx][$idx + 3];
-                $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$valueCellId}/children", [
-                    'children' => [
-                        [
-                            'block_type' => 2,
-                            'text' => [
-                                'elements' => [
-                                    [
-                                        'type' => 'text',
-                                        'text_run' => [
-                                            'content' => $cell['val']
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
-                    'index' => -1
-                ]);
+        // Populate Table: Use Cases (Discovery)
+        $useCasesIdx = $tableMap['use_cases'] ?? null;
+        if ($useCasesIdx !== null && isset($tableCells[$useCasesIdx])) {
+            $useCaseData = $meetingSpecific['priority_use_cases'] ?? [];
+            $useCaseRows = array_slice($useCaseData, 0, 6);
+            $ucHeaders = ['Use Case', 'Priority', 'Description'];
+            for ($col = 0; $col < 3; $col++) {
+                $populateSimpleCell($tableCells[$useCasesIdx][$col], $ucHeaders[$col], ['bold' => true, 'text_color' => 4]);
+            }
+            foreach ($useCaseRows as $rowIdx => $uc) {
+                $ucVals = [
+                    $uc['use_case'] ?? (is_string($uc) ? $uc : 'Use Case'),
+                    $uc['priority'] ?? '-',
+                    $uc['description'] ?? '-',
+                ];
+                for ($col = 0; $col < 3; $col++) {
+                    if (isset($tableCells[$useCasesIdx][($rowIdx + 1) * 3 + $col])) {
+                        $populateSimpleCell($tableCells[$useCasesIdx][($rowIdx + 1) * 3 + $col], $ucVals[$col]);
+                    }
+                }
             }
         }
 
+        // Populate Table: Stakeholders (Discovery)
+        $stakeholdersIdx = $tableMap['stakeholders'] ?? null;
+        if ($stakeholdersIdx !== null && isset($tableCells[$stakeholdersIdx])) {
+            $stakeData = $meetingSpecific['stakeholders_identified'] ?? [];
+            $stakeRows = array_slice($stakeData, 0, 6);
+            $shHeaders = ['Name', 'Role', 'Organization'];
+            for ($col = 0; $col < 3; $col++) {
+                $populateSimpleCell($tableCells[$stakeholdersIdx][$col], $shHeaders[$col], ['bold' => true, 'text_color' => 4]);
+            }
+            foreach ($stakeRows as $rowIdx => $sh) {
+                $shVals = [
+                    $sh['name'] ?? (is_string($sh) ? $sh : 'Stakeholder'),
+                    $sh['role'] ?? '-',
+                    $sh['organization'] ?? '-',
+                ];
+                for ($col = 0; $col < 3; $col++) {
+                    if (isset($tableCells[$stakeholdersIdx][($rowIdx + 1) * 3 + $col])) {
+                        $populateSimpleCell($tableCells[$stakeholdersIdx][($rowIdx + 1) * 3 + $col], $shVals[$col]);
+                    }
+                }
+            }
+        }
+
+        // Populate Table: BANTC (2×3)
+        $bantcIdx = $tableMap['bantc'] ?? null;
+        if ($bantcIdx !== null && isset($tableCells[$bantcIdx]) && count($tableCells[$bantcIdx]) >= 6 && !empty($bantcCells)) {
+            foreach ($bantcCells as $idx => $cell) {
+                // Header row
+                $populateSimpleCell($tableCells[$bantcIdx][$idx], $cell['title'], ['bold' => true, 'text_color' => 4]);
+                // Value row
+                $populateSimpleCell($tableCells[$bantcIdx][$idx + 3], $cell['val']);
+            }
+        }
+
+        // Populate Table: BANTC2 (2×2) - Timeline & Competitor
+        $bantc2Idx = $tableMap['bantc2'] ?? null;
+        if ($bantc2Idx !== null && isset($tableCells[$bantc2Idx]) && count($tableCells[$bantc2Idx]) >= 4 && !empty($bantc2Cells)) {
+            foreach ($bantc2Cells as $idx => $cell) {
+                $populateSimpleCell($tableCells[$bantc2Idx][$idx], $cell['title'], ['bold' => true, 'text_color' => 4]);
+                $populateSimpleCell($tableCells[$bantc2Idx][$idx + 2], $cell['val']);
+            }
+        }
+
+        // Populate Table: Next Steps (2×3)
+        $nextStepsIdx = $tableMap['next_steps'] ?? null;
+        if ($nextStepsIdx !== null && isset($tableCells[$nextStepsIdx]) && count($tableCells[$nextStepsIdx]) >= 6) {
+            foreach ($nextStepCells as $idx => $cell) {
+                $populateSimpleCell($tableCells[$nextStepsIdx][$idx], $cell['title'], ['bold' => true, 'text_color' => 4]);
+                $populateSimpleCell($tableCells[$nextStepsIdx][$idx + 3], $cell['val']);
+            }
+        }
+    }
+
+    // ─── Helper Methods ───────────────────────────────────────────────
+
+    private function heading1(string $content, int $color = 0): array
+    {
+        $style = ['bold' => true];
+        if ($color > 0) {
+            $style['text_color'] = $color;
+        }
+        return [
+            'block_type' => 3,
+            'heading1' => [
+                'elements' => [['type' => 'text', 'text_run' => ['content' => $content, 'text_element_style' => $style]]]
+            ]
+        ];
+    }
+
+    private function heading2(string $content): array
+    {
+        return [
+            'block_type' => 4,
+            'heading2' => [
+                'elements' => [['type' => 'text', 'text_run' => ['content' => $content, 'text_element_style' => ['bold' => true]]]]
+            ]
+        ];
+    }
+
+    private function textBlock(string $content, array $style = []): array
+    {
+        $textRun = ['content' => $content];
+        if (!empty($style)) {
+            $textRun['text_element_style'] = $style;
+        }
+        return [
+            'block_type' => 2,
+            'text' => [
+                'elements' => [['type' => 'text', 'text_run' => $textRun]]
+            ]
+        ];
+    }
+
+    private function bulletItem(string $content): array
+    {
+        return [
+            'block_type' => 12,
+            'bullet' => [
+                'elements' => [['type' => 'text', 'text_run' => ['content' => $content]]]
+            ]
+        ];
+    }
+
+    private function divider(): array
+    {
+        return ['block_type' => 22, 'divider' => new \stdClass()];
+    }
+
+    /**
+     * Formats an array of items into a bullet list string for table cells.
+     */
+    private function formatList(mixed $data): string
+    {
+        if (empty($data)) {
+            return "• Not specified";
+        }
+        $lines = [];
+        foreach ((array)$data as $item) {
+            if (is_array($item)) {
+                if (isset($item['use_case'])) {
+                    $lines[] = "• " . $item['use_case'] . ' (' . ($item['priority'] ?? 'Medium') . '): ' . ($item['description'] ?? '');
+                } elseif (isset($item['pain_point'])) {
+                    $lines[] = "• " . $item['pain_point'] . ' (' . ($item['severity'] ?? 'Medium') . '): ' . ($item['description'] ?? '');
+                } elseif (isset($item['feature'])) {
+                    $lines[] = "• " . $item['feature'] . ' - Reaction: ' . ($item['reaction'] ?? 'Neutral');
+                } elseif (isset($item['objection'])) {
+                    $lines[] = "• " . $item['objection'] . ' - Status: ' . ($item['resolution_status'] ?? 'Open');
+                } elseif (isset($item['topic'])) {
+                    $lines[] = "• " . $item['topic'] . ': ' . ($item['summary'] ?? '');
+                } else {
+                    $possibleVal = $item['val'] ?? $item['value'] ?? $item['content'] ?? $item['description'] ?? json_encode($item);
+                    $lines[] = "• " . $possibleVal;
+                }
+            } else {
+                $lines[] = "• " . $item;
+            }
+        }
+        return implode("\n", $lines);
     }
 }

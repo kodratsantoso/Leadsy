@@ -42,7 +42,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $transcript = LeadTranscript::with(['lead'])->find($this->transcriptId);
+        $transcript = LeadTranscript::with(['lead.owner', 'lead.product', 'lead.industry', 'lead.funnelStage'])->find($this->transcriptId);
         if (!$transcript || !$transcript->lead) {
             Log::warning("SyncMeetingSummaryToLarkJob aborted: Transcript or Lead not found for ID {$this->transcriptId}");
             return;
