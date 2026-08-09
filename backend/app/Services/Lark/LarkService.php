@@ -157,7 +157,7 @@ class LarkService
                     } elseif ($method === 'PUT') {
                         $response = $pending->put($urlWithQuery, empty($data) ? new \stdClass() : $data);
                     } elseif ($method === 'DELETE') {
-                        $response = $pending->delete($urlWithQuery);
+                        $response = $pending->delete($urlWithQuery, empty($data) ? [] : $data);
                     } else {
                         throw new Exception('Unsupported Lark API method: '.$method);
                     }

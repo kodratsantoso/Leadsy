@@ -28,7 +28,7 @@ class LarkDocsRenderer
         // Clean up existing child blocks of root block to support safe retry recovery
         try {
             $existingBlocks = $this->driveService->request('GET', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children");
-            $childrenList = $existingBlocks['data']['items'] ?? [];
+            $childrenList = $existingBlocks['items'] ?? [];
             $childCount = count($childrenList);
             if ($childCount > 0) {
                 $this->driveService->request('DELETE', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children/batch_delete", [
