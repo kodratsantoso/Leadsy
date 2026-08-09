@@ -95,7 +95,8 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
             }
 
             // 2. Resolve Drive Folder (Create unique folder for Lead)
-            $leadFolderName = "{$lead->name} - {$lead->id}";
+            $leadDisplayName = $lead->company_name ?? $lead->name ?? 'Unknown Lead';
+            $leadFolderName = "{$leadDisplayName} - {$lead->id}";
             $folderToken = $larkDriveService->getOrCreateLeadFolder($sharedFolderToken, $leadFolderName);
 
             // 3. Ensure PDF document exists or wait / load the latest successful PDF
@@ -238,7 +239,8 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
 
                 if ($needCreation) {
                     $meetingDate = $transcript->created_at ? $transcript->created_at->format('Y-m-d') : date('Y-m-d');
-                    $docTitle = "Meeting Summary | {$lead->name} | {$transcript->meeting_type} | {$meetingDate}";
+                    $leadDisplayName = $lead->company_name ?? $lead->name ?? 'Unknown Lead';
+                    $docTitle = "Meeting Summary | {$leadDisplayName} | {$transcript->meeting_type} | {$meetingDate}";
                     $docData = $larkDriveService->createDoc($folderToken, $docTitle);
                     $docId = $docData['document_id'];
                     $docUrl = $docData['url'];
