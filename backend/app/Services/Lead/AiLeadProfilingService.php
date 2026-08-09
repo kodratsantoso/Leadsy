@@ -80,19 +80,22 @@ class AiLeadProfilingService
             // Map keys from candidates/best_match block structure (e.g. brand_name -> brand)
             $profileData = array_merge($profileData, [
                 'company_name' => $candidate['legal_company_name'] ?? $candidate['legal_name'] ?? $candidate['company_name'] ?? $bestMatch['legal_company_name'] ?? $bestMatch['legal_name'] ?? $bestMatch['company_name'] ?? null,
-                'brand' => $candidate['brand_name'] ?? $candidate['brand'] ?? $bestMatch['brand_name'] ?? $bestMatch['brand'] ?? null,
-                'website' => $candidate['website'] ?? $bestMatch['website'] ?? null,
+                'brand' => $candidate['brand_name'] ?? $candidate['brand'] ?? $bestMatch['brand_name'] ?? $bestMatch['brand'] ?? $profileData['brand_name'] ?? $profileData['brand'] ?? null,
+                'website' => $candidate['website'] ?? $bestMatch['website'] ?? $profileData['website'] ?? null,
                 'address' => (is_array($candidate['physical_hq_address'] ?? null) ? ($candidate['physical_hq_address']['address'] ?? null) : ($candidate['physical_hq_address'] ?? $candidate['address'] ?? null))
-                    ?? (is_array($bestMatch['physical_hq_address'] ?? null) ? ($bestMatch['physical_hq_address']['address'] ?? null) : ($bestMatch['physical_hq_address'] ?? $bestMatch['address'] ?? null)),
+                    ?? (is_array($bestMatch['physical_hq_address'] ?? null) ? ($bestMatch['physical_hq_address']['address'] ?? null) : ($bestMatch['physical_hq_address'] ?? $bestMatch['address'] ?? null))
+                    ?? (is_array($profileData['physical_hq_address'] ?? null) ? ($profileData['physical_hq_address']['address'] ?? null) : ($profileData['physical_hq_address'] ?? $profileData['address'] ?? null)),
                 'phone' => (is_array($candidate['phone'] ?? null) ? ($candidate['phone']['primary'] ?? null) : ($candidate['phone'] ?? null))
-                    ?? (is_array($bestMatch['phone'] ?? null) ? ($bestMatch['phone']['primary'] ?? null) : ($bestMatch['phone'] ?? null)),
+                    ?? (is_array($bestMatch['phone'] ?? null) ? ($bestMatch['phone']['primary'] ?? null) : ($bestMatch['phone'] ?? null))
+                    ?? (is_array($profileData['phone'] ?? null) ? ($profileData['phone']['primary'] ?? null) : ($profileData['phone'] ?? null)),
                 'email' => (is_array($candidate['email'] ?? null) ? ($candidate['email']['primary'] ?? null) : ($candidate['email'] ?? null))
-                    ?? (is_array($bestMatch['email'] ?? null) ? ($bestMatch['email']['primary'] ?? null) : ($bestMatch['email'] ?? null)),
-                'industry' => $candidate['industry'] ?? $bestMatch['industry'] ?? null,
-                'sub_industry' => $candidate['sub_industry'] ?? $bestMatch['sub_industry'] ?? null,
-                'business_category' => $candidate['business_category'] ?? $bestMatch['business_category'] ?? null,
-                'company_size' => $candidate['company_size_range'] ?? $candidate['company_size'] ?? $bestMatch['company_size_range'] ?? $bestMatch['company_size'] ?? null,
-                'customer_story' => $candidate['brief_customer_story'] ?? $candidate['customer_story'] ?? $bestMatch['brief_customer_story'] ?? $bestMatch['customer_story'] ?? null,
+                    ?? (is_array($bestMatch['email'] ?? null) ? ($bestMatch['email']['primary'] ?? null) : ($bestMatch['email'] ?? null))
+                    ?? (is_array($profileData['email'] ?? null) ? ($profileData['email']['primary'] ?? null) : ($profileData['email'] ?? null)),
+                'industry' => $candidate['industry'] ?? $bestMatch['industry'] ?? $profileData['industry'] ?? null,
+                'sub_industry' => $candidate['sub_industry'] ?? $bestMatch['sub_industry'] ?? $profileData['sub_industry'] ?? null,
+                'business_category' => $candidate['business_category'] ?? $bestMatch['business_category'] ?? $profileData['business_category'] ?? null,
+                'company_size' => $candidate['company_size_range'] ?? $candidate['company_size'] ?? $bestMatch['company_size_range'] ?? $bestMatch['company_size'] ?? $profileData['company_size_range'] ?? $profileData['company_size'] ?? null,
+                'customer_story' => $candidate['brief_customer_story'] ?? $candidate['customer_story'] ?? $bestMatch['brief_customer_story'] ?? $bestMatch['customer_story'] ?? $profileData['brief_customer_story'] ?? $profileData['customer_story'] ?? null,
                 'evidence' => [
                     'website_sources' => $candidate['sources'] ?? $bestMatch['sources'] ?? $profileData['sources'] ?? [],
                 ],
