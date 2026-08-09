@@ -126,8 +126,7 @@ export default function SettingsUsersPage() {
 
   const getStorageUrl = (path?: string | null) => {
     if (!path) return "";
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-    return `${baseUrl}/storage/${path}`;
+    return `/storage/${path}`;
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {

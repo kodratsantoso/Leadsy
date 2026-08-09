@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination: `${internalBackendUrl.replace(/\/$/, "")}/api/:path*`,
       },
+      {
+        source: "/storage/:path*",
+        destination: `${internalBackendUrl.replace(/\/$/, "")}/storage/:path*`,
+      },
     ];
   },
 };

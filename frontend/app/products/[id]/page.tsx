@@ -662,7 +662,7 @@ export default function ProductDetailPage() {
                 <CardContent className="flex flex-col items-center justify-center space-y-4">
                   <div className="h-28 w-full border border-dashed border-border rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 relative p-4">
                     {logoPath ? (
-                      <img src={`${process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/storage/${logoPath}`} className="max-h-full max-w-full object-contain" alt="Product Logo" />
+                      <img src={`/storage/${logoPath}`} className="max-h-full max-w-full object-contain" alt="Product Logo" />
                     ) : (
                       <div className="text-center text-xs text-slate-400">No Product Logo Uploaded</div>
                     )}
