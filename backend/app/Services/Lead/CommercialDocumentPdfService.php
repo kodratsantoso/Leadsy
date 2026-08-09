@@ -152,6 +152,8 @@ class CommercialDocumentPdfService
             'subtotal' => $doc->subtotal_amount,
             'tax' => $doc->tax_amount,
             'discount' => $doc->discount_amount,
+            'headerDiscount' => $doc->header_discount_amount ?: 0,
+            'lineDiscount' => $doc->total_line_discount ?: 0,
             'total' => $doc->total_amount,
             'wht' => $doc->total_withholding_tax,
             'productLogo' => $productLogoPath ? Storage::disk('public')->path($productLogoPath) : null,

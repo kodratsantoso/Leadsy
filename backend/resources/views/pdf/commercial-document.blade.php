@@ -340,16 +340,24 @@
         </tr>
     </table>
 
+    @php
+        $hasLineDiscount = collect($items)->contains(function($item) {
+            return ($item->line_discount_amount ?? 0) > 0;
+        });
+    @endphp
+
     <!-- Items Table -->
     <table class="data-table">
         <thead>
             <tr>
                 <th style="width: 5%; text-align: center;">No</th>
-                <th style="width: 40%;">Product</th>
+                <th style="width: {{ $hasLineDiscount ? '40%' : '48%' }};">Product</th>
                 <th style="width: 15%; text-align: right;">Unit Price</th>
                 <th style="width: 15%; text-align: center;">Period</th>
                 <th style="width: 8%; text-align: center;">Qty</th>
-                <th style="width: 8%; text-align: center;">Discount</th>
+                @if($hasLineDiscount)
+                    <th style="width: 8%; text-align: center;">Discount</th>
+                @endif
                 <th style="width: 9%; text-align: right;">Total</th>
             </tr>
         </thead>
@@ -376,13 +384,15 @@
                     <td style="text-align: center;">
                         {{ number_format($item->quantity, 0) }} {{ $item->unit ?: 'User' }}
                     </td>
-                    <td style="text-align: center; color: #475569;">
-                        @if(($item->line_discount_amount ?? 0) > 0)
-                            {{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($item->line_discount_amount, 0, ',', '.') }}
-                        @else
-                            -
-                        @endif
-                    </td>
+                    @if($hasLineDiscount)
+                        <td style="text-align: center; color: #475569;">
+                            @if(($item->line_discount_amount ?? 0) > 0)
+                                {{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($item->line_discount_amount, 0, ',', '.') }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                    @endif
                     <td style="text-align: right; font-weight: bold; color: #0f3d7a;">
                         {{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($item->line_total_before_wht, 0, ',', '.') }}
                     </td>
@@ -401,10 +411,16 @@
                         <td style="color: #475569;">Subtotal</td>
                         <td style="text-align: right; font-weight: bold;">{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($subtotal, 0, ',', '.') }}</td>
                     </tr>
-                    @if($discount > 0)
+                    @if(($lineDiscount ?? 0) > 0)
                     <tr>
-                        <td style="color: #475569;">Discount</td>
-                        <td style="text-align: right; font-weight: bold; color: #dc2626;">-{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($discount, 0, ',', '.') }}</td>
+                        <td style="color: #475569;">Line Discount</td>
+                        <td style="text-align: right; font-weight: bold; color: #dc2626;">-{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($lineDiscount, 0, ',', '.') }}</td>
+                    </tr>
+                    @endif
+                    @if(($headerDiscount ?? 0) > 0)
+                    <tr>
+                        <td style="color: #475569;">{{ ($lineDiscount ?? 0) > 0 ? 'Header Discount' : 'Discount' }}</td>
+                        <td style="text-align: right; font-weight: bold; color: #dc2626;">-{{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($headerDiscount, 0, ',', '.') }}</td>
                     </tr>
                     @endif
                     <tr>
