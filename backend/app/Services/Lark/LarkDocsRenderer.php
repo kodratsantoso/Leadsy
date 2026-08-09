@@ -466,7 +466,7 @@ class LarkDocsRenderer
 
         // --- 10. POPULATE NESTED TABLES ---
         $allBlocks = $this->driveService->request('GET', "/docx/v1/documents/{$documentId}/blocks");
-        $blocksList = $allBlocks['data']['blocks'] ?? $allBlocks['blocks'] ?? [];
+        $blocksList = $allBlocks['items'] ?? [];
 
         $tableCells = [];
         foreach ($blocksList as $b) {

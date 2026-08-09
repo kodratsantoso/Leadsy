@@ -106,7 +106,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
             if (!$document) {
                 // If PDF is not generated yet, try to dispatch PDF generation synchronously
                 GenerateMeetingSummaryPdfJob::dispatchSync($transcript->id);
-                
+
                 $document = MeetingSummaryDocument::where('transcript_id', $transcript->id)
                     ->where('generation_status', 'success')
                     ->latest()
@@ -150,54 +150,62 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 $updateFields[$targetField['field_name']] = [['file_token' => $pdfFileToken]];
             }
 
-             // B. Handle Image Attachment mapping
-             $imageFieldId = $mapping['image_field_id'] ?? null;
-             $imageFieldName = $mapping['image_field_name'] ?? null;
-             if ($imageFieldId || $imageFieldName) {
-                 $targetField = $fieldsById[$imageFieldId] ?? $fieldsByName[$imageFieldName] ?? null;
-                 if (!$targetField) {
-                     throw new Exception("Meeting Summary Image mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
-                 }
- 
-                 // Generate PNG from first page of PDF using pdftoppm
-                 $pdfFullPath = storage_path('app/public/' . $document->file_path);
-                 $tempDir = storage_path('app/public/meeting-summaries');
-                 if (!is_dir($tempDir)) {
-                     mkdir($tempDir, 0755, true);
-                 }
-                 $tempImagePrefix = $tempDir . '/temp_img_' . $transcript->id;
-                 $pngPath = $tempImagePrefix . '-1.png';
- 
-                 // Clean up previous temporary file if exists
-                 if (file_exists($pngPath)) {
-                     @unlink($pngPath);
-                 }
- 
-                 // Run pdftoppm command to convert first page (-f 1 -l 1) to PNG with 150 DPI
-                 $command = "/opt/homebrew/bin/pdftoppm -png -f 1 -l 1 -r 150 " . escapeshellarg($pdfFullPath) . " " . escapeshellarg($tempImagePrefix);
-                 shell_exec($command);
- 
-                 if (file_exists($pngPath)) {
-                     $imgFileToken = $larkBaseService->uploadAttachment(
-                         $appToken,
-                         $pngPath,
-                         str_replace('.pdf', '.png', $document->file_name)
-                     );
-                     // Clean up temp image
-                     if (file_exists($pngPath)) {
-                         @unlink($pngPath);
-                     }
-                 } else {
-                     // Fallback: upload PDF if PNG generation failed
-                     $imgFileToken = $larkBaseService->uploadAttachment(
-                         $appToken,
-                         $pdfFullPath,
-                         $document->file_name
-                     );
-                 }
- 
-                 $updateFields[$targetField['field_name']] = [['file_token' => $imgFileToken]];
-             }
+            // B. Handle Image Attachment mapping
+            $imageFieldId = $mapping['image_field_id'] ?? null;
+            $imageFieldName = $mapping['image_field_name'] ?? null;
+            if ($imageFieldId || $imageFieldName) {
+                $targetField = $fieldsById[$imageFieldId] ?? $fieldsByName[$imageFieldName] ?? null;
+                if (!$targetField) {
+                    throw new Exception("Meeting Summary Image mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
+                }
+
+                $tempDir = storage_path('app/public/meeting-summaries');
+                if (!is_dir($tempDir)) {
+                    mkdir($tempDir, 0755, true);
+                }
+                $pngPath = $tempDir . '/beautiful_img_' . $transcript->id . '.png';
+
+                // Clean up previous temporary file if exists
+                if (file_exists($pngPath)) {
+                    @unlink($pngPath);
+                }
+
+                // Render Beautiful Blade View and capture screenshot using Browsershot
+                $evaluation = $transcript->evaluations()->latest()->first();
+                $html = \Illuminate\Support\Facades\View::make('reports.beautiful-meeting-summary', [
+                    'transcript' => $transcript,
+                    'lead' => $lead,
+                    'evaluation' => $evaluation,
+                ])->render();
+
+                \Spatie\Browsershot\Browsershot::html($html)
+                    ->windowSize(1200, 1600)
+                    ->deviceScaleFactor(2)
+                    ->waitUntilNetworkIdle() // wait for CDN and ApexCharts
+                    ->delay(1500) // extra delay for chart animation
+                    ->save($pngPath);
+
+                if (file_exists($pngPath)) {
+                    $imgFileToken = $larkBaseService->uploadAttachment(
+                        $appToken,
+                        $pngPath,
+                        str_replace('.pdf', '.png', $document->file_name)
+                    );
+                    // Clean up temp image
+                    if (file_exists($pngPath)) {
+                        @unlink($pngPath);
+                    }
+                } else {
+                    // Fallback: upload PDF if PNG generation failed
+                    $imgFileToken = $larkBaseService->uploadAttachment(
+                        $appToken,
+                        $pdfFullPath,
+                        $document->file_name
+                    );
+                }
+
+                $updateFields[$targetField['field_name']] = [['file_token' => $imgFileToken]];
+            }
 
             // C. Handle Lark Doc URL mapping
             $docFieldId = $mapping['doc_field_id'] ?? null;
@@ -242,7 +250,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 $renderer->renderDoc($docId, $transcript, $lead, $imgFileToken ?? null);
 
                 // If Bitable field is type 15 (Url), format payload, otherwise write text
-                if ((int)($targetField['type'] ?? 0) === 15) {
+                if ((int) ($targetField['type'] ?? 0) === 15) {
                     $updateFields[$targetField['field_name']] = [
                         'link' => $docUrl,
                         'text' => 'View Lark Doc Summary'
