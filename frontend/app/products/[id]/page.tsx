@@ -103,6 +103,7 @@ export default function ProductDetailPage() {
   const [formQtTerms, setFormQtTerms] = useState("");
   const [formSoTerms, setFormSoTerms] = useState("");
   const [logoPath, setLogoPath] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // AI Generation State
   const [aiGenerated, setAiGenerated] = useState(false);
@@ -202,29 +203,49 @@ export default function ProductDetailPage() {
   // Product logo upload mutation
   const uploadLogoMutation = useMutation({
     mutationFn: async (file: File) => {
+      setUploadError(null);
       const fd = new FormData();
       fd.append("logo", file);
       const res = await apiFetch(`/products/${productId}/logo`, {
         method: "POST",
         body: fd,
       });
-      if (!res.ok) throw new Error("Failed to upload product logo");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to upload product logo");
+      }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["products", productId] });
+      if (data?.data?.logo_path) {
+        setLogoPath(data.data.logo_path);
+      }
+      setUploadError(null);
+    },
+    onError: (err: any) => {
+      setUploadError(err.message || "Failed to upload product logo");
     },
   });
 
   // Product logo delete mutation
   const deleteLogoMutation = useMutation({
     mutationFn: async () => {
+      setUploadError(null);
       const res = await apiFetch(`/products/${productId}/logo`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to remove product logo");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to remove product logo");
+      }
       return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["products", productId] });
+      setLogoPath(null);
+      setUploadError(null);
+    },
+    onError: (err: any) => {
+      setUploadError(err.message || "Failed to remove product logo");
     },
   });
 
@@ -661,12 +682,22 @@ export default function ProductDetailPage() {
                 </CardHeader>
                 <CardContent className="flex flex-col items-center justify-center space-y-4">
                   <div className="h-28 w-full border border-dashed border-border rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 relative p-4">
-                    {logoPath ? (
+                    {uploadLogoMutation.isPending || deleteLogoMutation.isPending ? (
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        <span className="text-[10px] text-slate-400">Updating logo...</span>
+                      </div>
+                    ) : logoPath ? (
                       <img src={`/storage/${logoPath}`} className="max-h-full max-w-full object-contain" alt="Product Logo" />
                     ) : (
                       <div className="text-center text-xs text-slate-400">No Product Logo Uploaded</div>
                     )}
                   </div>
+                  {uploadError && (
+                    <div className="w-full text-xs text-red-500 font-semibold text-center border border-red-200/50 bg-red-50/50 rounded p-2">
+                      {uploadError}
+                    </div>
+                  )}
                   <div className="flex gap-2 w-full">
                     <label className="flex-1">
                       <span className="w-full inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/95 h-9 rounded-md text-sm font-medium cursor-pointer">
@@ -680,10 +711,11 @@ export default function ProductDetailPage() {
                           const file = e.target.files?.[0];
                           if (file) uploadLogoMutation.mutate(file);
                         }}
+                        disabled={uploadLogoMutation.isPending || deleteLogoMutation.isPending}
                       />
                     </label>
                     {logoPath && (
-                      <Button variant="outline" onClick={() => deleteLogoMutation.mutate()} disabled={deleteLogoMutation.isPending}>
+                      <Button variant="outline" onClick={() => deleteLogoMutation.mutate()} disabled={uploadLogoMutation.isPending || deleteLogoMutation.isPending}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
