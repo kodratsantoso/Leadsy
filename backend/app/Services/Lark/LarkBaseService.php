@@ -615,8 +615,9 @@ class LarkBaseService extends LarkService
                 }
                 
                 $channelType = \App\Models\LeadChannelType::firstOrCreate(
-                    ['slug' => $channelSlug, 'lead_source_type_id' => $sourceType->id],
+                    ['slug' => $channelSlug],
                     [
+                        'lead_source_type_id' => $sourceType->id,
                         'name' => $baseTable->table_name,
                         'description' => 'Synced from Lark Base',
                         'sort_order' => 10,
@@ -626,7 +627,7 @@ class LarkBaseService extends LarkService
 
                 \App\Models\LeadSource::updateOrCreate([
                     'lead_id' => $lead->id,
-                    'source_type' => 'lark_base',
+                    'source_type' => $sourceType->slug,
                     'lark_app_token' => $baseTable->app_token,
                     'lark_table_id' => $baseTable->table_id,
                 ], [
@@ -661,8 +662,9 @@ class LarkBaseService extends LarkService
                 }
                 
                 $channelType = \App\Models\LeadChannelType::firstOrCreate(
-                    ['slug' => $channelSlug, 'lead_source_type_id' => $sourceType->id],
+                    ['slug' => $channelSlug],
                     [
+                        'lead_source_type_id' => $sourceType->id,
                         'name' => $baseTable->table_name,
                         'description' => 'Synced from Lark Base',
                         'sort_order' => 10,
@@ -672,7 +674,7 @@ class LarkBaseService extends LarkService
 
                 \App\Models\LeadSource::create([
                     'lead_id' => $lead->id,
-                    'source_type' => 'lark_base',
+                    'source_type' => $sourceType->slug,
                     'lark_app_token' => $baseTable->app_token,
                     'lark_table_id' => $baseTable->table_id,
                     'channel_type_id' => $channelType->id,
