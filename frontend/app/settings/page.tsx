@@ -34,6 +34,7 @@ const categories = [
     items: [
       { icon: Bot,       title: "AI Defaults",           desc: "Providers, API keys, routing, prompts, health, and fallbacks",      href: "/settings/ai-defaults",   color: "bg-[color:var(--brand)]" },
       { icon: Target,    title: "ICP Profiles",          desc: "Ideal Customer Profiles for lead scoring and ICP match evaluation", href: "/settings/icp-profiles",  color: "bg-[color:var(--status-info)]" },
+      { icon: Activity,  title: "AI Usage",              desc: "Track AI token consumption and estimated API costs",                href: "/settings/ai-usage",      color: "bg-[color:var(--status-warning)]" },
     ]
   },
   {

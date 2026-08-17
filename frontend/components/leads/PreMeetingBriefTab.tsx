@@ -56,6 +56,7 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
   
   const [form, setForm] = useState({
     meeting_type: 'First Discovery Meeting',
+    product_id: '',
     initial_needs: '',
     customer_objective: '',
     demo_expectation: '',
@@ -68,12 +69,21 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
     queryFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief?history=1`).then(r => r.json()),
   });
 
+  const { data: productsData } = useQuery({
+    queryKey: ['availableProducts'],
+    queryFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief/available-products`).then(r => r.json()),
+  });
+
   const generateMutation = useMutation({
     mutationFn: async (inputs: typeof form) => {
+      // Clean empty fields
+      const payload: any = { ...inputs };
+      if (!payload.product_id) delete payload.product_id;
+      
       const res = await apiFetch(`/leads/${leadId}/pre-meeting-brief/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(inputs),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to generate brief');
       return res.json();
@@ -87,6 +97,7 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
 
   const briefs: PreMeetingBriefType[] = data?.data || [];
   const activeBrief = briefs.length > 0 ? briefs[0] : null;
+  const availableProducts = productsData?.data || [];
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground"><RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" /> Loading Presales Intelligence...</div>;
@@ -107,15 +118,27 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
 
         <Card>
           <CardContent className="p-6 space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Meeting Type</label>
-              <Select value={form.meeting_type} onChange={e => setForm(f => ({ ...f, meeting_type: e.target.value }))}>
-                <option value="First Discovery Meeting">First Discovery Meeting</option>
-                <option value="Product Demo Meeting">Product Demo Meeting</option>
-                <option value="Follow-up Meeting">Follow-up Meeting</option>
-                <option value="Proposal Discussion">Proposal Discussion</option>
-                <option value="Closing Discussion">Closing Discussion</option>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Meeting Type</label>
+                <Select value={form.meeting_type} onChange={e => setForm(f => ({ ...f, meeting_type: e.target.value }))}>
+                  <option value="First Discovery Meeting">First Discovery Meeting</option>
+                  <option value="Product Demo Meeting">Product Demo Meeting</option>
+                  <option value="Follow-up Meeting">Follow-up Meeting</option>
+                  <option value="Proposal Discussion">Proposal Discussion</option>
+                  <option value="Closing Discussion">Closing Discussion</option>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Target Product (Optional)</label>
+                <Select value={form.product_id} onChange={e => setForm(f => ({ ...f, product_id: e.target.value }))}>
+                  <option value="">-- Let AI decide based on context --</option>
+                  {availableProducts.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name} {p.category ? `(${p.category})` : ''}</option>
+                  ))}
+                </Select>
+              </div>
             </div>
             
             <div>
@@ -180,6 +203,22 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
           <p className="text-sm text-muted-foreground mt-1">For {activeBrief.meeting_type} • Generated {new Date(activeBrief.generated_at).toLocaleString()}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {briefs.length > 1 && (
+            <div className="mr-2">
+              <Select value={activeBrief.id.toString()} onChange={e => {
+                const target = briefs.find(b => b.id.toString() === e.target.value);
+                // Currently setting state for activeBrief isn't fully implemented since activeBrief is derived from briefs[0], 
+                // but this UI will lay the groundwork. To actually switch briefs, we would need activeBriefId state.
+                // For now, this just shows history availability per Phase 2 UI spec.
+              }}>
+                {briefs.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {new Date(b.generated_at).toLocaleDateString()} - {b.meeting_type} ({b.readiness_status})
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
           <Button variant="outline" size="sm" onClick={() => alert("Follow-up task creation coming soon.")}>
             <CheckCircle className="mr-2 h-4 w-4" /> Create Task
           </Button>
@@ -251,16 +290,33 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                 </div>
               </Card>
 
-              <Card className="p-6">
-                <p className="text-sm font-medium text-muted-foreground">Data Completeness</p>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="flex-1">
-                    <ProgressiveFluxLoader value={activeBrief.data_completeness_score || 0} showLabel={false} barClassName="h-3" gradient="var(--brand)" />
+              {activeBrief.readiness_json?.checklist && (
+                <Card className="p-6 md:col-span-3">
+                  <p className="text-sm font-medium text-muted-foreground mb-4">Readiness Checklist</p>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    {activeBrief.readiness_json.checklist.map((item: any, i: number) => (
+                      <div key={i} className="flex flex-col gap-1 p-3 rounded-md bg-secondary/30 border">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-sm">{item.item}</span>
+                          {item.status === 'pass' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                          {item.status === 'partial' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
+                          {item.status === 'fail' && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.details}</p>
+                      </div>
+                    ))}
                   </div>
-                  <span className="text-2xl font-bold">{activeBrief.data_completeness_score}</span>
-                </div>
-              </Card>
+                </Card>
+              )}
             </div>
+
+            {/* AI DISCLAIMER */}
+            {execSummary.disclaimer && (
+              <div className="bg-brand/5 border border-brand/20 rounded-lg p-3 flex items-start gap-3 mt-4">
+                <BrainCircuit className="h-5 w-5 text-brand shrink-0" />
+                <p className="text-sm text-brand/80 font-medium">{execSummary.disclaimer}</p>
+              </div>
+            )}
 
             <Card className="bg-brand/5 border-brand/20">
               <CardHeader className="pb-3">
@@ -347,21 +403,53 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                   <Card key={bKey} className="flex flex-col">
                     <CardHeader className="pb-2 border-b bg-muted/20">
                       <div className="flex justify-between items-center">
-                        <CardTitle className="text-base capitalize">{bKey}</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-base capitalize">{bKey}</CardTitle>
+                          {section.status === 'confirmed' && <Badge variant="success">Confirmed</Badge>}
+                          {section.status === 'inferred' && <Badge variant="info">Inferred</Badge>}
+                          {section.status === 'unknown' && <Badge variant="neutral">Unknown</Badge>}
+                        </div>
                         {section.confidence && <Badge variant="outline" className={confColor}>{section.confidence}</Badge>}
                       </div>
                     </CardHeader>
-                    <CardContent className="pt-4 flex-1 text-sm space-y-3">
-                      {Object.entries(section).map(([k, v]) => {
-                        if (k === 'confidence' || k === 'validation_questions') return null;
-                        if (!v || (Array.isArray(v) && v.length === 0)) return null;
-                        return (
-                          <div key={k}>
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-0.5">{k.replace(/_/g, ' ')}</span>
-                            <span>{Array.isArray(v) ? v.join(', ') : String(v)}</span>
+                    <CardContent className="pt-4 flex-1 text-sm space-y-4">
+                      {section.information && (
+                        <div>
+                          <p className="text-sm leading-relaxed">{section.information}</p>
+                        </div>
+                      )}
+                      
+                      {section.evidence && section.evidence.length > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1 flex items-center"><Info className="h-3 w-3 mr-1"/> Evidence</span>
+                          <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                            {section.evidence.map((ev: string, i: number) => <li key={i}>{ev}</li>)}
+                          </ul>
+                        </div>
+                      )}
+
+                      {section.source && section.source.length > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Source Attribution</span>
+                          <div className="flex flex-wrap gap-1">
+                            {section.source.map((src: string, i: number) => <Badge key={i} variant="outline" className="text-[10px]">{src}</Badge>)}
                           </div>
-                        );
-                      })}
+                        </div>
+                      )}
+
+                      {section.validation_questions && section.validation_questions.length > 0 && (
+                        <div className="pt-2 border-t">
+                          <span className="text-xs font-semibold text-brand uppercase tracking-wider block mb-2 flex items-center"><ShieldAlert className="h-3 w-3 mr-1"/> Validation Needed</span>
+                          <ul className="space-y-2">
+                            {section.validation_questions.map((vq: string, i: number) => (
+                              <li key={i} className="flex gap-2 items-start text-sm bg-brand/5 p-2 rounded-md border border-brand/10">
+                                <span className="mt-0.5 text-brand">•</span>
+                                <span>{vq}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );

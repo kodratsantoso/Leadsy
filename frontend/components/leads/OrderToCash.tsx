@@ -195,7 +195,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         tax_rate: item.tax_rate || 0,
         start_date: item.start_date ? item.start_date.split('T')[0] : '',
         end_date: item.end_date ? item.end_date.split('T')[0] : '',
-        duration_value: item.duration_value ? String(item.duration_value) : '',
+        duration_value: item.duration_value !== null && item.duration_value !== undefined ? String(item.duration_value) : '',
         duration_unit: item.duration_unit || 'month',
         sort_order: item.sort_order || 0,
       })) : [{
@@ -321,8 +321,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         ...prev,
         customer_name: String(leadObj.company_name || ''),
         sales_owner_id: String(leadObj.owner_id || ''),
-        lead_source: String(leadObj.lead_source || ''),
-        channel: String(leadObj.channel || ''),
+        lead_source: String(leadObj.sources?.[0]?.source_type || leadObj.lead_source || ''),
+        channel: String(leadObj.sources?.[0]?.channel_type?.name || leadObj.channel || ''),
         industry: String(leadObj.industry || ''),
         business_category: String(leadObj.business_category_name || ''),
       }));
@@ -797,9 +797,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         line_discount_value: item.line_discount_value ? formatAmountInput(String(item.line_discount_value)) : '0',
         tax_code: item.tax_code || '',
         tax_rate: Number(item.tax_rate) || 0,
-        start_date: item.service_start_date ? item.service_start_date.split('T')[0] : '',
-        end_date: item.service_end_date ? item.service_end_date.split('T')[0] : '',
-        duration_value: item.duration_value ? String(item.duration_value) : '',
+        start_date: item.service_start_date ? item.service_start_date.split('T')[0] : (item.start_date ? item.start_date.split('T')[0] : ''),
+        end_date: item.service_end_date ? item.service_end_date.split('T')[0] : (item.end_date ? item.end_date.split('T')[0] : ''),
+        duration_value: item.duration_value !== null && item.duration_value !== undefined ? String(item.duration_value) : '',
         duration_unit: item.duration_unit || 'month',
       }))
     });
@@ -1559,8 +1559,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                 sales_owner_id: leadObj ? String(leadObj.owner_id || '') : '',
                 presales_owner_id: '',
                 account_manager_id: '',
-                lead_source: leadObj ? String(leadObj.lead_source || '') : '',
-                channel: leadObj ? String(leadObj.channel || '') : '',
+                lead_source: leadObj ? String(leadObj.sources?.[0]?.source_type || leadObj.lead_source || '') : '',
+                channel: leadObj ? String(leadObj.sources?.[0]?.channel_type?.name || leadObj.channel || '') : '',
                 expected_fulfillment_date: '',
                 sales_effective_date: '',
                 department: '',

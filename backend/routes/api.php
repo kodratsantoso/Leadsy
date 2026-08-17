@@ -96,6 +96,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Global Search
     Route::get('search', [\App\Http\Controllers\Api\GlobalSearchController::class, 'search']);
 
+    // AI Usage
+    Route::get('settings/ai-usage', [\App\Http\Controllers\Api\AiUsageLogController::class, 'index']);
+
     // Custom Workflow Engine
     Route::apiResource('workflows', \App\Http\Controllers\Api\WorkflowDefinitionController::class);
     Route::post('workflows/{workflow}/activate', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'activate']);
@@ -444,6 +447,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('transcripts/{transcript}/meeting-summary/download', [MeetingSummaryPdfController::class, 'download'])->middleware('permission:leads.view');
     
     Route::get('/leads/{lead}/pre-meeting-brief', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'show'])->middleware('permission:leads.view');
+    Route::get('/leads/{lead}/pre-meeting-brief/available-products', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'availableProducts'])->middleware('permission:leads.view');
     Route::post('/leads/{lead}/pre-meeting-brief/generate', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'generate'])->middleware('permission:leads.edit');
 
     Route::get('/leads/{lead}/customer-journey', [\App\Http\Controllers\Api\CustomerJourneyController::class, 'show'])->middleware('permission:leads.view');

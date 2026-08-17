@@ -143,7 +143,7 @@ class AiOrchestrationService
         try {
             $apiKey = $provider->decrypted_api_key;
             $baseUrl = $provider->base_url ?? $this->defaultBaseUrl($provider->slug);
-            $body = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $route->max_tokens ?? $provider->max_tokens_default);
+            $body = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $route->max_tokens ?? $provider->max_tokens_default, $context);
 
             $ch = curl_init();
             curl_setopt_array($ch, [
@@ -181,6 +181,26 @@ class AiOrchestrationService
 
             $this->logRequest($model, $functionName, $promptTokens, $completionTokens, $cost, $latencyMs, 'success', null, $isFallback);
 
+            // Log AiUsageLog specifically for user accounting
+            if (isset($context['user_id'])) {
+                \App\Models\AiUsageLog::create([
+                    'tenant_id' => $context['tenant_id'] ?? null,
+                    'user_id' => $context['user_id'],
+                    'action' => $functionName,
+                    'provider' => $provider->slug,
+                    'model' => $model->name,
+                    'tokens_prompt' => $promptTokens,
+                    'tokens_completion' => $completionTokens,
+                    'tokens_total' => $promptTokens + $completionTokens,
+                    'estimated_cost_usd' => $cost,
+                    'has_web_search' => $context['web_search'] ?? false,
+                    'metadata' => [
+                        'latency_ms' => $latencyMs,
+                        'lead_id' => $context['lead_id'] ?? null,
+                    ],
+                ]);
+            }
+
             return [
                 'success' => true,
                 'content' => $content,
@@ -215,7 +235,7 @@ class AiOrchestrationService
         PROMPT;
     }
 
-    private function buildRequestBody(string $slug, string $modelName, string|array $prompt, ?int $maxTokens = null): array
+    private function buildRequestBody(string $slug, string $modelName, string|array $prompt, ?int $maxTokens = null, array $context = []): array
     {
         $systemPrompt = null;
         $userPrompt = '';
@@ -238,13 +258,14 @@ class AiOrchestrationService
                 'system' => $systemPrompt,
                 'messages' => [['role' => 'user', 'content' => $userPrompt]],
             ], fn ($value) => $value !== null),
-            'google', 'gemini' => [
+            'google', 'gemini' => array_filter([
                 'system_instruction' => ['parts' => [['text' => $systemPrompt]]],
                 'contents' => [['parts' => [['text' => $userPrompt]]]],
+                'tools' => ($context['web_search'] ?? false) ? [['googleSearch' => new \stdClass()]] : null,
                 'generationConfig' => [
                     'responseMimeType' => 'application/json',
                 ],
-            ],
+            ], fn ($value) => $value !== null),
             default => array_filter([ // openai-compatible
                 'model' => $modelName,
                 'messages' => [

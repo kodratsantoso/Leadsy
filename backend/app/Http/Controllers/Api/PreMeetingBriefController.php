@@ -47,4 +47,10 @@ class PreMeetingBriefController extends Controller
 
         return response()->json(['data' => $brief]);
     }
+    
+    public function availableProducts(): JsonResponse
+    {
+        $products = \App\Models\Product::where('is_active', true)->select('id', 'name', 'category')->get();
+        return response()->json(['data' => $products]);
+    }
 }

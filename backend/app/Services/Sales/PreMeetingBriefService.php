@@ -20,12 +20,22 @@ class PreMeetingBriefService
         // 1. Gather Context
         $lead->loadMissing([
             'industry',
+            'subIndustry',
+            'businessCategory',
+            'funnelStage',
+            'contacts' => fn($q) => $q->take(5),
+            'sources.channelType',
             'bantcQuestionGuide',
             'activities' => fn($q) => $q->latest()->take(10),
             'transcripts' => fn($q) => $q->latest()->take(5),
             'aiEvaluations' => fn($q) => $q->latest()->take(5),
             'productMatches' => fn($q) => $q->with('product.questionGuide')->orderBy('match_score', 'desc')->take(3)
         ]);
+        
+        // Load WhatsApp Conversations (through WhatsappContact)
+        $whatsappConversations = \App\Models\WhatsappConversation::whereHas('contact', function($q) use ($lead) {
+            $q->where('linked_lead_id', $lead->id);
+        })->with(['messages' => fn($q) => $q->latest()->take(20)])->latest()->take(3)->get();
 
         $product = null;
         if (!empty($inputs['product_id'])) {
@@ -58,14 +68,18 @@ class PreMeetingBriefService
             'Lead Profile' => [
                 'name' => $lead->name,
                 'company' => $lead->company_name,
+                'website' => $lead->website ?? $lead->website_domain,
                 'stage' => $lead->stage,
+                'funnel_stage' => $lead->funnelStage?->name,
                 'score' => $lead->score,
                 'employees' => $lead->employees,
+                'contacts' => $lead->contacts->map(fn($c) => ['name' => $c->name, 'title' => $c->title, 'is_primary' => $c->is_primary])->toArray(),
+                'sources' => $lead->sources->map(fn($s) => ['type' => $s->source_type, 'channel' => $s->channelType?->name])->toArray(),
             ],
             'Industry & Business Category' => [
                 'Industry' => $lead->industry?->name,
-                'Sub-Industry' => $lead->sub_industry_id,
-                'Business Category' => $lead->business_category,
+                'Sub-Industry' => $lead->subIndustry?->name,
+                'Business Category' => $lead->businessCategory?->name ?? $lead->business_category,
                 'Business Type' => $lead->business_type,
             ],
             'Recent Activities' => $lead->activities->map(fn($a) => [
@@ -73,11 +87,19 @@ class PreMeetingBriefService
                 'notes' => $a->notes,
                 'date' => $a->created_at->toIso8601String(),
             ])->toArray(),
-            'Recent Transcripts & Evaluations' => $lead->aiEvaluations->map(fn($e) => [
-                'summary' => $e->summary,
-                'bantc_extracted' => $e->bantc_extracted,
-                'date' => $e->evaluated_at,
-            ])->toArray(),
+            'WhatsApp Conversations' => PreMeetingBriefServiceContextHelper::formatWhatsappConversations($whatsappConversations),
+            'Recent Transcripts & Evaluations' => [
+                'Transcripts' => $lead->transcripts->map(fn($t) => [
+                    'title' => $t->title,
+                    'text' => substr($t->transcript_text, 0, 1500), // Limit text size to prevent token overflow
+                    'date' => $t->recorded_at?->toIso8601String(),
+                ])->toArray(),
+                'AI Evaluations' => $lead->aiEvaluations->map(fn($e) => [
+                    'summary' => $e->summary,
+                    'bantc_extracted' => $e->bantc_extracted,
+                    'date' => $e->evaluated_at,
+                ])->toArray(),
+            ],
             'Product Context' => $product ? [
                 'name' => $product->name,
                 'description' => $product->description,
@@ -103,25 +125,27 @@ class PreMeetingBriefService
 
         $prompt = "You are an elite Sales Readiness Engine. Generate a comprehensive Pre-Meeting Brief based on the provided context. 
 Your goal is to prepare the Sales/Presales team for the upcoming '{$meetingType}'.
-Do NOT invent budget numbers, competitor names, or specific facts if they are missing. Use hypotheses where data is missing.
+You MUST analyze the prospect/customer before the meeting using: Company Name, Industry, Sub Industry, Business Type, Product offered, Existing Lead Data, and Public Internet Sources (use your web search capabilities if needed to ground the analysis).
+Do NOT invent facts, budget numbers, competitor names, or specific details if they are missing. Use hypotheses where data is missing.
+CRITICAL: Every BANTC item MUST have a status (confirmed/inferred/unknown), evidence, source, confidence (Low/Medium/High), and validation questions.
 
 Respond ONLY in valid JSON matching this exact structure:
 {
-  \"executive_summary\": {\"summary\": \"\", \"key_objective\": \"\", \"primary_challenge\": \"\"},
+  \"executive_summary\": {\"summary\": \"\", \"key_objective\": \"\", \"primary_challenge\": \"\", \"disclaimer\": \"AI-generated hypothesis based on publicly available evidence and existing Leadsy data.\"},
   \"customer_context\": {\"company_summary\": \"\", \"industry_context\": \"\", \"business_category_context\": \"\", \"known_evidence\": [], \"missing_data\": []},
   \"initial_product_intelligence\": {\"product_relevance\": \"\", \"product_fit_hypothesis\": \"\", \"relevant_use_cases\": [], \"buyer_persona_hypothesis\": \"\", \"demo_relevance\": \"\"},
   \"initial_bantc_estimation\": {
-    \"budget\": {\"estimated_readiness\": \"\", \"evidence\": \"\", \"assumptions\": \"\", \"confidence\": \"Low|Medium|High\", \"validation_questions\": []},
-    \"authority\": {\"likely_decision_maker\": \"\", \"likely_influencer\": \"\", \"possible_blocker\": \"\", \"authority_gaps\": \"\", \"confidence\": \"Low|Medium|High\"},
-    \"need\": {\"likely_need_strength\": \"\", \"related_pain_points\": [], \"product_relevance\": \"\", \"confidence\": \"Low|Medium|High\"},
-    \"timeline\": {\"likely_urgency_level\": \"\", \"possible_buying_trigger\": \"\", \"implementation_timing_hypothesis\": \"\", \"confidence\": \"Low|Medium|High\"},
-    \"competitor\": {\"possible_competitor_or_legacy\": \"\", \"switching_risk\": \"\", \"validation_questions\": [], \"confidence\": \"Low|Medium|High\"},
-    \"challenge\": {\"expected_implementation_challenge\": \"\", \"operational_challenge_hypothesis\": \"\", \"confidence\": \"Low|Medium|High\"}
+    \"budget\": {\"status\": \"confirmed|inferred|unknown\", \"information\": \"\", \"evidence\": [], \"source\": [], \"confidence\": \"Low|Medium|High\", \"validation_questions\": []},
+    \"authority\": {\"status\": \"confirmed|inferred|unknown\", \"information\": \"\", \"evidence\": [], \"source\": [], \"confidence\": \"Low|Medium|High\", \"validation_questions\": []},
+    \"need\": {\"status\": \"confirmed|inferred|unknown\", \"information\": \"\", \"evidence\": [], \"source\": [], \"confidence\": \"Low|Medium|High\", \"validation_questions\": []},
+    \"timeline\": {\"status\": \"confirmed|inferred|unknown\", \"information\": \"\", \"evidence\": [], \"source\": [], \"confidence\": \"Low|Medium|High\", \"validation_questions\": []},
+    \"competitor\": {\"status\": \"confirmed|inferred|unknown\", \"information\": \"\", \"evidence\": [], \"source\": [], \"confidence\": \"Low|Medium|High\", \"validation_questions\": []},
+    \"challenge\": {\"status\": \"confirmed|inferred|unknown\", \"information\": \"\", \"evidence\": [], \"source\": [], \"confidence\": \"Low|Medium|High\", \"validation_questions\": []}
   },
   \"question_guide\": [
     {
-      \"question\": \"\", \"category\": \"Budget|Authority|Need|Timeline|Competitor|Challenge|Legacy|Other\", \"source\": \"product_question_guide|bantc_question_guide|ai_contextual|digital_resistance_check\",
-      \"why_this_question_matters\": \"\", \"what_good_answer_indicates\": \"\", \"what_risk_answer_indicates\": \"\", \"follow_up_question\": \"\",
+      \"question\": \"\", \"category\": \"Budget|Authority|Need|Timeline|Competitor|Challenge|Legacy|Other\", \"source_reference\": \"product_question_guide|bantc_question_guide|ai_contextual|digital_resistance_check\",
+      \"validation_status\": \"needs_validation|partially_validated|confirmed\", \"why_this_question_matters\": \"\", \"what_good_answer_indicates\": \"\", \"what_risk_answer_indicates\": \"\", \"follow_up_question\": \"\",
       \"priority\": \"critical|high|medium|low\", \"recommended_timing\": \"opening|discovery|validation|demo|closing\",
       \"related_product\": \"\", \"related_pain_point\": \"\", \"related_bantc_area\": \"\"
     }
@@ -150,20 +174,33 @@ Respond ONLY in valid JSON matching this exact structure:
     \"meeting_risks\": [], \"demo_risks\": [], \"deal_risks\": [], \"adoption_risks\": []
   },
   \"readiness\": {
-    \"score\": 0, \"readiness_status\": \"Ready|Needs Clarification|Not Ready\", \"reason\": \"\", \"missing_information\": []
+    \"score\": 0, 
+    \"readiness_status\": \"Ready|Needs Clarification|Not Ready\", 
+    \"reason\": \"\", 
+    \"checklist\": [
+      {\"item\": \"Data Completeness\", \"status\": \"pass|fail|partial\", \"details\": \"\"},
+      {\"item\": \"Industry Context\", \"status\": \"pass|fail|partial\", \"details\": \"\"},
+      {\"item\": \"Product-Industry Fit\", \"status\": \"pass|fail|partial\", \"details\": \"\"}
+    ],
+    \"missing_information\": []
   }
 }
 
 Important Rules:
-1. Merge questions from Product Question Guide and Customer BANTC Question Guide, plus generate your own ai_contextual and digital_resistance_check questions. Ensure at least 8 highly relevant questions are generated.
-2. Adapt 'meeting_strategy' based specifically on the selected meeting type ('{$meetingType}').
-3. For Readiness Score (0-100), penalize if Initial Product is missing, if Question Guides are missing, or if Industry/Business Category is missing.
-4. Separate confirmed pain points from inferred ones based strictly on evidence provided.
+1. Use the Lead Website/Domain to perform a search and gather public context if possible. Combine public info with Leadsy internal data.
+2. Adapt 'meeting_strategy' based specifically on the selected meeting type ('{$meetingType}') and the current funnel stage ('{$lead->funnelStage?->name}').
+3. For Readiness Score (0-100), penalize if Initial Product is missing, if Question Guides are missing, or if Industry/Business Category is missing. Give detailed checklist breakdown.
+4. Separate confirmed pain points from inferred ones based strictly on evidence provided. Do not claim facts without evidence.
 
 Context data:
 " . json_encode($context, JSON_PRETTY_PRINT);
 
-        $result = $this->ai->call('pre_meeting_brief_generation', $prompt);
+        $result = $this->ai->call('pre_meeting_brief_generation', $prompt, [
+            'user_id' => auth()->id(),
+            'tenant_id' => auth()->user()?->tenant_id,
+            'lead_id' => $lead->id,
+            'web_search' => true,
+        ]);
         
         if (!$result['success']) {
             abort(500, 'AI Generation Failed: ' . ($result['error'] ?? 'Unknown error'));
