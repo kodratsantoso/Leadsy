@@ -186,6 +186,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                     ->deviceScaleFactor(2)
                     ->waitUntilNetworkIdle() // wait for CDN and ApexCharts
                     ->delay(1500) // extra delay for chart animation
+                    ->noSandbox()
                     ->save($pngPath);
 
                 if (file_exists($pngPath)) {
