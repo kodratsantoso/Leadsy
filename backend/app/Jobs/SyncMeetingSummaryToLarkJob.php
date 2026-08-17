@@ -203,7 +203,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                     // Fallback: upload PDF if PNG generation failed
                     $imgFileToken = $larkBaseService->uploadAttachment(
                         $appToken,
-                        $pdfFullPath,
+                        storage_path('app/public/' . $document->file_path),
                         $document->file_name
                     );
                 }
