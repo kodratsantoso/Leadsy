@@ -22,6 +22,8 @@ class LeadObserver
 
     public function updated(Lead $lead): void
     {
+        $this->syncRoleAssignments($lead);
+
         // Trigger Lark notifications for specific fields only
         if ($lead->wasChanged(['company_name', 'email', 'phone', 'funnel_stage_id', 'qualification_status'])) {
             $this->triggerLarkNotification($lead, 'updated');
@@ -148,6 +150,59 @@ class LeadObserver
                 'lead_id' => $lead->id,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    private function syncRoleAssignments(Lead $lead): void
+    {
+        $roleMap = [
+            'owner_id' => 'sales',
+            'presales_owner_id' => 'presales',
+            'am_owner_id' => 'account_manager',
+            'csm_owner_id' => 'csm',
+        ];
+
+        foreach ($roleMap as $field => $roleType) {
+            if ($lead->wasChanged($field)) {
+                $newUserId = $lead->$field;
+                
+                // If the new user_id is null, remove the active assignment
+                if (!$newUserId) {
+                    \App\Models\LeadRoleAssignment::where('lead_id', $lead->id)
+                        ->where('role_type', $roleType)
+                        ->where('assignment_status', 'active')
+                        ->update([
+                            'assignment_status' => 'removed',
+                            'removed_at' => now(),
+                        ]);
+                } else {
+                    // Check if this exact assignment already exists and is active
+                    $existing = \App\Models\LeadRoleAssignment::where('lead_id', $lead->id)
+                        ->where('role_type', $roleType)
+                        ->where('assignment_status', 'active')
+                        ->first();
+                        
+                    if (!$existing || $existing->user_id != $newUserId) {
+                        // Mark existing as replaced if someone else was there
+                        if ($existing) {
+                            $existing->update([
+                                'assignment_status' => 'replaced',
+                                'removed_at' => now(),
+                            ]);
+                        }
+                        
+                        // Create new
+                        \App\Models\LeadRoleAssignment::create([
+                            'lead_id' => $lead->id,
+                            'user_id' => $newUserId,
+                            'role_type' => $roleType,
+                            'assigned_by' => auth()->id() ?? $lead->created_by,
+                            'assigned_at' => now(),
+                            'assignment_status' => 'active',
+                        ]);
+                    }
+                }
+            }
         }
     }
 }

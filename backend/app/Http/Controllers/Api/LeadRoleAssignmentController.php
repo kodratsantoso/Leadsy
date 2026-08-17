@@ -41,6 +41,8 @@ class LeadRoleAssignmentController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
+        $this->syncToLeadModel($lead, $validated['role_type'], $validated['user_id']);
+
         return response()->json(['data' => $assignment->load('user:id,name,email')], 201);
     }
 
@@ -55,6 +57,7 @@ class LeadRoleAssignmentController extends Controller
 
         if (isset($validated['assignment_status']) && $validated['assignment_status'] !== 'active' && $assignment->assignment_status === 'active') {
             $assignment->removed_at = now();
+            $this->syncToLeadModel(Lead::findOrFail($id), $assignment->role_type, null, $assignment->user_id);
         }
 
         $assignment->update($validated);
@@ -71,6 +74,35 @@ class LeadRoleAssignmentController extends Controller
             'removed_at' => now(),
         ]);
 
+        $this->syncToLeadModel(Lead::findOrFail($id), $assignment->role_type, null, $assignment->user_id);
+
         return response()->json(['message' => 'Role assignment removed']);
+    }
+
+    private function syncToLeadModel(Lead $lead, string $roleType, ?int $newUserId, ?int $expectedCurrentUserId = null): void
+    {
+        $roleMap = [
+            'sales' => 'owner_id',
+            'presales' => 'presales_owner_id',
+            'account_manager' => 'am_owner_id',
+            'csm' => 'csm_owner_id',
+        ];
+
+        if (isset($roleMap[$roleType])) {
+            $field = $roleMap[$roleType];
+            
+            // If removing, only nullify if it's currently assigned to the user we are removing
+            if ($newUserId === null && $expectedCurrentUserId !== null) {
+                if ($lead->$field == $expectedCurrentUserId) {
+                    // Use updateQuietly to prevent infinite loop or duplicate observer triggers
+                    $lead->updateQuietly([$field => null]);
+                }
+            } else {
+                // If adding, update if it's different
+                if ($lead->$field != $newUserId) {
+                    $lead->updateQuietly([$field => $newUserId]);
+                }
+            }
+        }
     }
 }
