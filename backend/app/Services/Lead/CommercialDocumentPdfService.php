@@ -102,10 +102,12 @@ class CommercialDocumentPdfService
         $resolvedTerms = $termsConditions ?: $productTerms ?: '';
 
         if ($resolvedTerms) {
-            // Resolve duration & dates from the first line item
-            $firstItem = $items->first();
+            // Resolve duration & dates from the first subscription line item
+            $firstItem = $items->first(function ($item) {
+                return $item->duration_value && $item->duration_value > 0;
+            });
             $durationStr = '';
-            if ($firstItem && $firstItem->duration_value) {
+            if ($firstItem) {
                 $unit = $firstItem->duration_value > 1 ? Str::plural($firstItem->duration_unit) : $firstItem->duration_unit;
                 $durationStr = $firstItem->duration_value . ' ' . ucfirst($unit);
                 if ($firstItem->start_date && $firstItem->end_date) {
@@ -126,6 +128,9 @@ class CommercialDocumentPdfService
             
             // Resolve Payment Terms
             $paymentTermsVal = $doc->payment_terms ?: 'Full Payment';
+            if ($doc->billing_frequency && strtolower($doc->billing_frequency) !== 'one_time') {
+                $paymentTermsVal .= ' (' . ucfirst($doc->billing_frequency) . ')';
+            }
             // Replace any line containing "Payments will be made using the following methods" with the dynamic payment terms
             $resolvedTerms = preg_replace(
                 '/Payments will be made using the following methods:[^\r\n]*/i',
