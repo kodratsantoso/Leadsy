@@ -10,6 +10,65 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property \Illuminate\Support\Carbon|null $email_verified_at
+ * @property string $password
+ * @property int|null $role_id
+ * @property string|null $phone
+ * @property bool $is_active
+ * @property string|null $remember_token
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property int|null $tenant_id
+ * @property int|null $direct_manager_id
+ * @property string $target_period
+ * @property numeric|null $target_revenue
+ * @property string $tier_level
+ * @property float $buffer_rate
+ * @property numeric $target_percentage
+ * @property string $target_calculation_type
+ * @property string|null $title
+ * @property string|null $signature_path
+ * @property-read User|null $directManager
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, User> $directReports
+ * @property-read int|null $direct_reports_count
+ * @property-read \App\Models\LarkSsoUser|null $larkSsoUser
+ * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
+ * @property-read int|null $notifications_count
+ * @property-read \App\Models\Role|null $role
+ * @property-read \App\Models\Tenant|null $tenant
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \Laravel\Sanctum\PersonalAccessToken> $tokens
+ * @property-read int|null $tokens_count
+ * @method static \Database\Factories\UserFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereBufferRate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereDirectManagerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmail($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereEmailVerifiedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereIsActive($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePassword($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePhone($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRememberToken($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRoleId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereSignaturePath($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereTargetCalculationType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereTargetPercentage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereTargetPeriod($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereTargetRevenue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereTenantId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereTierLevel($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereTitle($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;

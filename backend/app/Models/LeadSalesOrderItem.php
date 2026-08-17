@@ -4,6 +4,92 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $sales_order_id
+ * @property int|null $quotation_item_id
+ * @property int|null $product_id
+ * @property string $item_name
+ * @property string|null $description
+ * @property numeric $quantity
+ * @property numeric $unit_price
+ * @property numeric $discount_amount
+ * @property numeric $tax_amount
+ * @property numeric $total_amount
+ * @property string $billing_period
+ * @property \Illuminate\Support\Carbon|null $start_date
+ * @property \Illuminate\Support\Carbon|null $end_date
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property int|null $product_tier_id
+ * @property string|null $pricing_model
+ * @property string|null $billing_cycle
+ * @property string|null $price_source
+ * @property int|null $tax_code_id
+ * @property numeric $tax_rate
+ * @property int|null $withholding_tax_code_id
+ * @property numeric $withholding_tax_rate
+ * @property numeric $withholding_tax_amount
+ * @property numeric $line_total_before_wht
+ * @property numeric $line_total_after_wht
+ * @property int|null $duration_value
+ * @property string|null $duration_unit
+ * @property string|null $unit
+ * @property string|null $line_discount_type
+ * @property numeric|null $line_discount_value
+ * @property numeric $line_discount_amount
+ * @property string|null $tax_code
+ * @property int $sort_order
+ * @property \Illuminate\Support\Carbon|null $service_start_date
+ * @property \Illuminate\Support\Carbon|null $service_end_date
+ * @property-read \App\Models\Product|null $product
+ * @property-read \App\Models\ProductTier|null $productTier
+ * @property-read \App\Models\LeadQuotationItem|null $quotationItem
+ * @property-read \App\Models\LeadSalesOrder $salesOrder
+ * @property-read \App\Models\TaxCode|null $taxCode
+ * @property-read \App\Models\WithholdingTaxCode|null $withholdingTaxCode
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereBillingCycle($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereBillingPeriod($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereDiscountAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereDurationUnit($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereDurationValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereEndDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereItemName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereLineDiscountAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereLineDiscountType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereLineDiscountValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereLineTotalAfterWht($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereLineTotalBeforeWht($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem wherePriceSource($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem wherePricingModel($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereProductId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereProductTierId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereQuantity($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereQuotationItemId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereSalesOrderId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereServiceEndDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereServiceStartDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereSortOrder($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereStartDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereTaxAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereTaxCode($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereTaxCodeId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereTaxRate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereTotalAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereUnit($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereUnitPrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereWithholdingTaxAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereWithholdingTaxCodeId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrderItem whereWithholdingTaxRate($value)
+ * @mixin \Eloquent
+ */
 class LeadSalesOrderItem extends Model
 {
     protected $fillable = [

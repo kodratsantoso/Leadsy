@@ -7,6 +7,49 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @property int $id
+ * @property int $tenant_id
+ * @property int $integration_connection_id
+ * @property string $credential_type
+ * @property string $key_name
+ * @property string $encrypted_value
+ * @property string $encryption_key_id
+ * @property string|null $value_fingerprint
+ * @property string|null $last4
+ * @property array<array-key, mixed> $metadata
+ * @property \Illuminate\Support\Carbon|null $expires_at
+ * @property \Illuminate\Support\Carbon|null $rotated_at
+ * @property \Illuminate\Support\Carbon|null $revoked_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property \Illuminate\Support\Carbon|null $deleted_at
+ * @property-read \App\Models\IntegrationConnection|null $connection
+ * @property-read \App\Models\Tenant|null $tenant
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore onlyTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereCredentialType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereDeletedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereEncryptedValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereEncryptionKeyId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereExpiresAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereIntegrationConnectionId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereKeyName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereLast4($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereMetadata($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereRevokedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereRotatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereTenantId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore whereValueFingerprint($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore withTrashed(bool $withTrashed = true)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationCredentialStore withoutTrashed()
+ * @mixin \Eloquent
+ */
 class IntegrationCredentialStore extends Model
 {
     use SoftDeletes;

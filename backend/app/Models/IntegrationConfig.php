@@ -6,6 +6,35 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
 
+/**
+ * @property int $id
+ * @property string $category
+ * @property string $key
+ * @property string|null $value_encrypted
+ * @property string $value_type
+ * @property bool $is_secret
+ * @property bool $is_active
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property int|null $tenant_id
+ * @property-read mixed $safe_value
+ * @property mixed $value
+ * @property-read \App\Models\Tenant|null $tenant
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereCategory($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereIsActive($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereIsSecret($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereKey($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereTenantId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereValueEncrypted($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|IntegrationConfig whereValueType($value)
+ * @mixin \Eloquent
+ */
 class IntegrationConfig extends Model
 {
     protected $fillable = [

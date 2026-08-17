@@ -6,6 +6,37 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $kpi_key
+ * @property numeric $actual_value
+ * @property numeric|null $target_value
+ * @property numeric|null $achievement_percentage
+ * @property string $period_type
+ * @property \Illuminate\Support\Carbon|null $period_start
+ * @property \Illuminate\Support\Carbon|null $period_end
+ * @property \Illuminate\Support\Carbon $generated_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\User $user
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereAchievementPercentage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereActualValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereGeneratedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereKpiKey($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot wherePeriodEnd($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot wherePeriodStart($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot wherePeriodType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereTargetValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiSnapshot whereUserId($value)
+ * @mixin \Eloquent
+ */
 class KpiSnapshot extends Model
 {
     use HasFactory;

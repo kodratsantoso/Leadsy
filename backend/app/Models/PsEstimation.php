@@ -7,6 +7,101 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property string $estimation_number
+ * @property int|null $lead_id
+ * @property int|null $service_category_id
+ * @property int|null $template_id
+ * @property int|null $complexity_level_id
+ * @property string $title
+ * @property numeric $complexity_multiplier
+ * @property numeric $buffer_percentage
+ * @property string $currency_code
+ * @property numeric $total_base_mandays
+ * @property numeric $total_adjusted_mandays
+ * @property numeric $total_buffer_mandays
+ * @property numeric $total_manual_adjustment_mandays
+ * @property numeric $total_final_mandays
+ * @property numeric $total_estimated_fee
+ * @property string|null $assumptions
+ * @property string|null $out_of_scope
+ * @property string|null $dependencies
+ * @property string|null $risks
+ * @property string|null $internal_notes
+ * @property string $status
+ * @property int|null $created_by
+ * @property int|null $reviewed_by
+ * @property int|null $approved_by
+ * @property \Illuminate\Support\Carbon|null $reviewed_at
+ * @property \Illuminate\Support\Carbon|null $approved_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property int|null $converted_quotation_id
+ * @property \Illuminate\Support\Carbon|null $converted_at
+ * @property int|null $converted_by
+ * @property int $version_number
+ * @property int|null $parent_estimation_id
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\PsApprovalLog> $approvalLogs
+ * @property-read int|null $approval_logs_count
+ * @property-read \App\Models\User|null $approver
+ * @property-read \App\Models\PsServiceCategory|null $category
+ * @property-read \App\Models\PsComplexityLevel|null $complexityLevel
+ * @property-read \App\Models\LeadQuotation|null $convertedQuotation
+ * @property-read \App\Models\User|null $converter
+ * @property-read \App\Models\User|null $creator
+ * @property-read \App\Models\Lead|null $lead
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\PsEstimationLine> $lines
+ * @property-read int|null $lines_count
+ * @property-read PsEstimation|null $parentEstimation
+ * @property-read \App\Models\PsProjectPlan|null $projectPlan
+ * @property-read \App\Models\User|null $reviewer
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\PsRevision> $revisionsAsOriginal
+ * @property-read int|null $revisions_as_original_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\PsRevision> $revisionsAsRevised
+ * @property-read int|null $revisions_as_revised_count
+ * @property-read \App\Models\PsEstimationTemplate|null $template
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\PsEstimationVersion> $versions
+ * @property-read int|null $versions_count
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereApprovedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereApprovedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereAssumptions($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereBufferPercentage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereComplexityLevelId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereComplexityMultiplier($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereConvertedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereConvertedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereConvertedQuotationId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereCreatedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereCurrencyCode($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereDependencies($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereEstimationNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereInternalNotes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereLeadId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereOutOfScope($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereParentEstimationId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereReviewedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereReviewedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereRisks($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereServiceCategoryId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereTemplateId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereTitle($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereTotalAdjustedMandays($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereTotalBaseMandays($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereTotalBufferMandays($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereTotalEstimatedFee($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereTotalFinalMandays($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereTotalManualAdjustmentMandays($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsEstimation whereVersionNumber($value)
+ * @mixin \Eloquent
+ */
 class PsEstimation extends Model
 {
     use HasFactory;

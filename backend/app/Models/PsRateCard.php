@@ -6,6 +6,29 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $role_id
+ * @property numeric $rate_per_manday
+ * @property \Illuminate\Support\Carbon $effective_from
+ * @property \Illuminate\Support\Carbon|null $effective_to
+ * @property bool $is_active
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\PsRole $role
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard whereEffectiveFrom($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard whereEffectiveTo($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard whereIsActive($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard whereRatePerManday($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard whereRoleId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|PsRateCard whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class PsRateCard extends Model
 {
     use HasFactory;

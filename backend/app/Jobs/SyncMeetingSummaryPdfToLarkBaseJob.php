@@ -58,13 +58,13 @@ class SyncMeetingSummaryPdfToLarkBaseJob implements ShouldQueue
         $tenantId = $lead->tenant_id;
 
         // Get active Lark Integration
-        $integration = LarkIntegration::where('tenant_id', $tenantId)->where('is_active', true)->first();
+        $integration = LarkIntegration::query()->where('tenant_id', $tenantId)->where('is_active', true)->first();
         if (!$integration) {
             return;
         }
 
         // Get active Base Table
-        $baseTable = LarkBaseTable::where('tenant_id', $tenantId)->where('is_active', true)->first();
+        $baseTable = LarkBaseTable::query()->where('tenant_id', $tenantId)->where('is_active', true)->first();
         if (!$baseTable || !$baseTable->app_token || !$baseTable->table_id) {
             return;
         }

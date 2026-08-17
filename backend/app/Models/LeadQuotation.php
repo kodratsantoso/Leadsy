@@ -4,6 +4,131 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $lead_id
+ * @property string $quotation_number
+ * @property string $quotation_type
+ * @property string $quotation_status
+ * @property \Illuminate\Support\Carbon $quotation_date
+ * @property \Illuminate\Support\Carbon|null $valid_until
+ * @property string|null $customer_name
+ * @property string|null $billing_entity
+ * @property string $currency
+ * @property numeric $subtotal_amount
+ * @property numeric $discount_amount
+ * @property numeric $tax_amount
+ * @property numeric $total_amount
+ * @property string|null $notes
+ * @property string|null $terms_conditions
+ * @property int|null $created_by
+ * @property int|null $approved_by
+ * @property \Illuminate\Support\Carbon|null $sent_at
+ * @property \Illuminate\Support\Carbon|null $accepted_at
+ * @property \Illuminate\Support\Carbon|null $rejected_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property int|null $contact_id
+ * @property int|null $sales_owner_id
+ * @property int|null $presales_owner_id
+ * @property string|null $payment_terms
+ * @property string|null $billing_frequency
+ * @property \Illuminate\Support\Carbon|null $contract_start_date
+ * @property \Illuminate\Support\Carbon|null $contract_end_date
+ * @property \Illuminate\Support\Carbon|null $expected_close_date
+ * @property int|null $probability
+ * @property string|null $forecast_type
+ * @property bool $tax_included
+ * @property string|null $header_discount_type
+ * @property numeric|null $header_discount_value
+ * @property numeric $header_discount_amount
+ * @property numeric $total_line_discount
+ * @property numeric $other_cost
+ * @property string|null $scope_of_work
+ * @property string|null $exclusions
+ * @property string|null $delivery_timeline
+ * @property string|null $warranty_support_terms
+ * @property string|null $customer_notes
+ * @property string|null $internal_notes
+ * @property string $approval_status
+ * @property string|null $pdf_url
+ * @property int|null $converted_sales_order_id
+ * @property numeric $total_withholding_tax
+ * @property numeric $grand_total_before_wht
+ * @property string|null $source_type
+ * @property int|null $source_reference_id
+ * @property int|null $workflow_state_id
+ * @property int|null $bank_account_id
+ * @property-read \App\Models\User|null $approvedBy
+ * @property-read \App\Models\CompanyBankAccount|null $bankAccount
+ * @property-read \App\Models\LeadContact|null $contact
+ * @property-read \App\Models\LeadSalesOrder|null $convertedSalesOrder
+ * @property-read \App\Models\User|null $createdBy
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\LeadQuotationItem> $items
+ * @property-read int|null $items_count
+ * @property-read \App\Models\Lead|null $lead
+ * @property-read \App\Models\User|null $presalesOwner
+ * @property-read \App\Models\User|null $salesOwner
+ * @property-read \App\Models\WorkflowState|null $workflowState
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereAcceptedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereApprovalStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereApprovedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereBankAccountId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereBillingEntity($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereBillingFrequency($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereContactId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereContractEndDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereContractStartDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereConvertedSalesOrderId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereCreatedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereCurrency($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereCustomerName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereCustomerNotes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereDeliveryTimeline($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereDiscountAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereExclusions($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereExpectedCloseDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereForecastType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereGrandTotalBeforeWht($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereHeaderDiscountAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereHeaderDiscountType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereHeaderDiscountValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereInternalNotes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereLeadId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereNotes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereOtherCost($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation wherePaymentTerms($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation wherePdfUrl($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation wherePresalesOwnerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereProbability($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereQuotationDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereQuotationNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereQuotationStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereQuotationType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereRejectedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereSalesOwnerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereScopeOfWork($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereSentAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereSourceReferenceId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereSourceType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereSubtotalAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereTaxAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereTaxIncluded($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereTermsConditions($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereTotalAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereTotalLineDiscount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereTotalWithholdingTax($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereValidUntil($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereWarrantySupportTerms($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotation whereWorkflowStateId($value)
+ * @mixin \Eloquent
+ */
 class LeadQuotation extends Model
 {
     protected $fillable = [

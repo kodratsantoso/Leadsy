@@ -43,7 +43,10 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
      */
     public function handle(): void
     {
-        $transcript = LeadTranscript::with(['lead.owner', 'lead.product', 'lead.industry', 'lead.funnelStage'])->find($this->transcriptId);
+        /** @var \App\Models\LeadTranscript|null $transcript */
+        $transcript = LeadTranscript::with(['lead.owner', 'lead.product', 'lead.industry', 'lead.funnelStage'])
+            ->where('id', $this->transcriptId)
+            ->first();
         if (!$transcript || !$transcript->lead) {
             Log::warning("SyncMeetingSummaryToLarkJob aborted: Transcript or Lead not found for ID {$this->transcriptId}");
             return;
@@ -53,7 +56,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
         $tenantId = $lead->tenant_id;
 
         // Get active Lark Integration
-        $integration = LarkIntegration::where('tenant_id', $tenantId)->where('is_active', true)->first();
+        $integration = LarkIntegration::query()->where('tenant_id', $tenantId)->where('is_active', true)->first();
         if (!$integration) {
             Log::info("No active Lark integration for tenant {$tenantId}");
             return;
@@ -88,7 +91,7 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
             // 1. Resolve User email lookup in Lark if user trigger ID was passed
             $larkUserId = null;
             if ($this->userId) {
-                $userModel = User::find($this->userId);
+                $userModel = User::query()->find($this->userId);
                 if ($userModel && $userModel->email) {
                     $larkUserId = $larkDriveService->getLarkUserIdByEmail($userModel->email);
                 }
@@ -100,7 +103,8 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
             $folderToken = $larkDriveService->getOrCreateLeadFolder($sharedFolderToken, $leadFolderName);
 
             // 3. Ensure PDF document exists or wait / load the latest successful PDF
-            $document = MeetingSummaryDocument::where('transcript_id', $transcript->id)
+            $document = MeetingSummaryDocument::query()
+                ->where('transcript_id', $transcript->id)
                 ->where('generation_status', 'success')
                 ->latest()
                 ->first();
@@ -109,8 +113,9 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
                 // If PDF is not generated yet, try to dispatch PDF generation synchronously
                 GenerateMeetingSummaryPdfJob::dispatchSync($transcript->id);
 
-                $document = MeetingSummaryDocument::where('transcript_id', $transcript->id)
-                    ->where('generation_status', 'success')
+                    $document = MeetingSummaryDocument::query()
+                        ->where('transcript_id', $transcript->id)
+                        ->where('generation_status', 'success')
                     ->latest()
                     ->first();
             }
@@ -270,11 +275,12 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
             $larkRecordId = $lead->external_id;
             if (empty($larkRecordId)) {
                 // Find or fallback mapping
-                $mappingRecord = \App\Models\LarkBaseRecordMapping::where('tenant_id', $tenantId)
+                $recordMapping = \App\Models\LarkBaseRecordMapping::query()
+                    ->where('tenant_id', $tenantId)
                     ->where('leadsy_entity_type', 'lead')
                     ->where('leadsy_entity_id', (string) $lead->id)
                     ->first();
-                $larkRecordId = $mappingRecord?->lark_record_id;
+                $larkRecordId = $recordMapping?->lark_record_id;
             }
 
             if (empty($larkRecordId)) {

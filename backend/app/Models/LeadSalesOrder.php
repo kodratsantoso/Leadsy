@@ -4,6 +4,147 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $lead_id
+ * @property int|null $quotation_id
+ * @property int|null $parent_sales_order_id
+ * @property string $sales_order_number
+ * @property string $order_type
+ * @property string $order_status
+ * @property \Illuminate\Support\Carbon $order_date
+ * @property string|null $customer_name
+ * @property string|null $billing_entity
+ * @property string $currency
+ * @property numeric $subtotal_amount
+ * @property numeric $discount_amount
+ * @property numeric $tax_amount
+ * @property numeric $total_amount
+ * @property numeric|null $recurring_amount
+ * @property \Illuminate\Support\Carbon|null $contract_start_date
+ * @property \Illuminate\Support\Carbon|null $contract_end_date
+ * @property \Illuminate\Support\Carbon|null $renewal_date
+ * @property int|null $created_by
+ * @property int|null $confirmed_by
+ * @property \Illuminate\Support\Carbon|null $confirmed_at
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property numeric $total_withholding_tax
+ * @property numeric $grand_total_before_wht
+ * @property int|null $contact_id
+ * @property int|null $sales_owner_id
+ * @property int|null $presales_owner_id
+ * @property int|null $account_manager_id
+ * @property string $source_type
+ * @property string|null $spk_number
+ * @property string|null $customer_po_number
+ * @property string|null $lead_source
+ * @property string|null $channel
+ * @property \Illuminate\Support\Carbon|null $expected_fulfillment_date
+ * @property \Illuminate\Support\Carbon|null $sales_effective_date
+ * @property string|null $payment_terms
+ * @property string|null $billing_frequency
+ * @property bool $tax_included
+ * @property string|null $header_discount_type
+ * @property numeric|null $header_discount_value
+ * @property numeric $header_discount_amount
+ * @property numeric $total_line_discount
+ * @property numeric $other_cost
+ * @property string|null $scope_of_work
+ * @property string|null $exclusions
+ * @property string|null $delivery_timeline
+ * @property string|null $warranty_support_terms
+ * @property string|null $customer_notes
+ * @property string|null $internal_notes
+ * @property string|null $terms_conditions
+ * @property string|null $department
+ * @property string|null $cost_center
+ * @property string|null $location
+ * @property string|null $industry
+ * @property string|null $business_category
+ * @property int|null $updated_by
+ * @property \Illuminate\Support\Carbon|null $fulfilled_at
+ * @property \Illuminate\Support\Carbon|null $closed_at
+ * @property \Illuminate\Support\Carbon|null $cancelled_at
+ * @property int|null $bank_account_id
+ * @property-read \App\Models\CompanyBankAccount|null $bankAccount
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, LeadSalesOrder> $childSalesOrders
+ * @property-read int|null $child_sales_orders_count
+ * @property-read \App\Models\User|null $confirmedBy
+ * @property-read \App\Models\User|null $createdBy
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\LeadSalesOrderItem> $items
+ * @property-read int|null $items_count
+ * @property-read \App\Models\Lead|null $lead
+ * @property-read LeadSalesOrder|null $parentSalesOrder
+ * @property-read \App\Models\LeadQuotation|null $quotation
+ * @property-read \App\Models\User|null $salesOwner
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereAccountManagerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereBankAccountId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereBillingEntity($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereBillingFrequency($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereBusinessCategory($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereCancelledAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereChannel($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereClosedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereConfirmedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereConfirmedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereContactId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereContractEndDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereContractStartDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereCostCenter($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereCreatedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereCurrency($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereCustomerName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereCustomerNotes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereCustomerPoNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereDeliveryTimeline($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereDepartment($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereDiscountAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereExclusions($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereExpectedFulfillmentDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereFulfilledAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereGrandTotalBeforeWht($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereHeaderDiscountAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereHeaderDiscountType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereHeaderDiscountValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereIndustry($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereInternalNotes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereLeadId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereLeadSource($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereLocation($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereOrderDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereOrderStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereOrderType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereOtherCost($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereParentSalesOrderId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder wherePaymentTerms($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder wherePresalesOwnerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereQuotationId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereRecurringAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereRenewalDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereSalesEffectiveDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereSalesOrderNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereSalesOwnerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereScopeOfWork($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereSourceType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereSpkNumber($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereSubtotalAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereTaxAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereTaxIncluded($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereTermsConditions($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereTotalAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereTotalLineDiscount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereTotalWithholdingTax($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereUpdatedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadSalesOrder whereWarrantySupportTerms($value)
+ * @mixin \Eloquent
+ */
 class LeadSalesOrder extends Model
 {
     protected $fillable = [

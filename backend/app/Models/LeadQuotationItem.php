@@ -4,6 +4,93 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $quotation_id
+ * @property int|null $product_id
+ * @property string $item_name
+ * @property string|null $description
+ * @property numeric $quantity
+ * @property numeric $unit_price
+ * @property numeric $discount_amount
+ * @property numeric $tax_amount
+ * @property numeric $total_amount
+ * @property string $billing_period
+ * @property \Illuminate\Support\Carbon|null $start_date
+ * @property \Illuminate\Support\Carbon|null $end_date
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property string|null $unit
+ * @property string|null $line_discount_type
+ * @property numeric|null $line_discount_value
+ * @property numeric $line_discount_amount
+ * @property string|null $tax_code
+ * @property numeric $tax_rate
+ * @property int $sort_order
+ * @property int|null $product_tier_id
+ * @property string|null $pricing_model
+ * @property string|null $price_source
+ * @property int|null $tax_code_id
+ * @property int|null $withholding_tax_code_id
+ * @property numeric $withholding_tax_rate
+ * @property numeric $withholding_tax_amount
+ * @property numeric $line_total_before_wht
+ * @property numeric $line_total_after_wht
+ * @property int|null $duration_value
+ * @property string|null $duration_unit
+ * @property string|null $source_type
+ * @property int|null $source_reference_id
+ * @property int|null $professional_service_estimation_id
+ * @property int|null $professional_service_estimation_line_id
+ * @property-read \App\Models\Product|null $product
+ * @property-read \App\Models\ProductTier|null $productTier
+ * @property-read \App\Models\PsEstimation|null $psEstimation
+ * @property-read \App\Models\PsEstimationLine|null $psEstimationLine
+ * @property-read \App\Models\LeadQuotation $quotation
+ * @property-read \App\Models\TaxCode|null $taxCode
+ * @property-read \App\Models\WithholdingTaxCode|null $withholdingTaxCode
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereBillingPeriod($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereDiscountAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereDurationUnit($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereDurationValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereEndDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereItemName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereLineDiscountAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereLineDiscountType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereLineDiscountValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereLineTotalAfterWht($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereLineTotalBeforeWht($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem wherePriceSource($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem wherePricingModel($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereProductId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereProductTierId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereProfessionalServiceEstimationId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereProfessionalServiceEstimationLineId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereQuantity($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereQuotationId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereSortOrder($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereSourceReferenceId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereSourceType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereStartDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereTaxAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereTaxCode($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereTaxCodeId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereTaxRate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereTotalAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereUnit($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereUnitPrice($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereWithholdingTaxAmount($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereWithholdingTaxCodeId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LeadQuotationItem whereWithholdingTaxRate($value)
+ * @mixin \Eloquent
+ */
 class LeadQuotationItem extends Model
 {
     protected $fillable = [

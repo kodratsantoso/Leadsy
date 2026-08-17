@@ -5,6 +5,36 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $tenant_id
+ * @property int $lark_integration_id
+ * @property string $event_type
+ * @property string|null $lark_entity_type
+ * @property string|null $lark_entity_id
+ * @property array<array-key, mixed>|null $event_data
+ * @property string $status
+ * @property string|null $processing_error
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\LarkIntegration|null $larkIntegration
+ * @property-read \App\Models\Tenant|null $tenant
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereEventData($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereEventType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereLarkEntityId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereLarkEntityType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereLarkIntegrationId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereProcessingError($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereTenantId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LarkEvent whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class LarkEvent extends Model
 {
     public $timestamps = true;

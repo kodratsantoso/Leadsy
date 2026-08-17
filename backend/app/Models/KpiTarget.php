@@ -5,6 +5,69 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property string|null $target_name
+ * @property string $role_type
+ * @property int|null $assigned_user_id
+ * @property int|null $direct_manager_id
+ * @property string $kpi_type
+ * @property string $period_type
+ * @property string $start_date
+ * @property string $end_date
+ * @property string $target_value_type
+ * @property int|null $target_quantity
+ * @property numeric|null $target_percentage
+ * @property numeric|null $target_score
+ * @property int|null $target_days
+ * @property numeric|null $target_hours
+ * @property numeric|null $actual_value
+ * @property numeric|null $achievement_percentage
+ * @property int|null $product_id
+ * @property int|null $industry_id
+ * @property int|null $business_category_id
+ * @property numeric $weight
+ * @property string $status
+ * @property string|null $notes
+ * @property int|null $created_by
+ * @property int $tenant_id
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\User|null $assignedUser
+ * @property-read \App\Models\User|null $creator
+ * @property-read \App\Models\User|null $directManager
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereAchievementPercentage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereActualValue($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereAssignedUserId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereBusinessCategoryId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereCreatedBy($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereDirectManagerId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereEndDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereIndustryId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereKpiType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereNotes($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget wherePeriodType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereProductId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereRoleType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereStartDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereStatus($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereTargetDays($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereTargetHours($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereTargetName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereTargetPercentage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereTargetQuantity($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereTargetScore($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereTargetValueType($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereTenantId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|KpiTarget whereWeight($value)
+ * @mixin \Eloquent
+ */
 class KpiTarget extends Model
 {
     use HasFactory;
