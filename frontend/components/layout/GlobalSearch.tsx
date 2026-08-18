@@ -101,7 +101,7 @@ export function GlobalSearch() {
       <Command 
         className="relative" 
         shouldFilter={false} // We handle filtering manually
-        onKeyDown={(e) => {
+        onKeyDown={(e: React.KeyboardEvent) => {
             if (e.key === "Escape") {
                 setOpen(false);
                 const input = containerRef.current?.querySelector('input');

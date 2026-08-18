@@ -191,13 +191,13 @@ services:
       start_period: 40s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.leadsy-frontend.rule=Host(`leadsy.virtuenet.space`)"
+      - "traefik.http.routers.leadsy-frontend.rule=Host(`leadsy.virtuenet.space`) || Host(`leadgen.virtuenet.space`)"
       - "traefik.http.routers.leadsy-frontend.entrypoints=https"
       - "traefik.http.routers.leadsy-frontend.tls=true"
       - "traefik.http.routers.leadsy-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.leadsy-frontend.loadbalancer.server.port=3000"
       - "traefik.http.routers.leadsy-frontend.priority=10"
-      - "traefik.http.routers.leadsy-http.rule=Host(`leadsy.virtuenet.space`)"
+      - "traefik.http.routers.leadsy-http.rule=Host(`leadsy.virtuenet.space`) || Host(`leadgen.virtuenet.space`)"
       - "traefik.http.routers.leadsy-http.entrypoints=http"
       - "traefik.http.routers.leadsy-http.middlewares=leadsy-redirect-to-https"
       - "traefik.http.middlewares.leadsy-redirect-to-https.redirectscheme.scheme=https"

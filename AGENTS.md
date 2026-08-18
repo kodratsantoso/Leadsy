@@ -1,5 +1,10 @@
 # Leadsy UI Governance
 
+This project rule extends `/root/AGENTS.md` and `/root/SSOT/standards/agent_rules_standard.md`;
+it does not override native agent instructions. GitHub is canonical, `virtuenet` deploys via
+the development Coolify webhook, and `main` deploys through GitHub Actions and Coolify API.
+Review the actual diff and user workflow before reporting completion.
+
 This repository contains deprecated root-level UI mirrors and one active runtime frontend.
 
 ## Active UI Source of Truth

@@ -1,5 +1,10 @@
 # UI Governance Rules
 
+This rule extends `/root/AGENTS.md` and `/root/SSOT/standards/agent_rules_standard.md`;
+native agent skills remain independent. GitHub is canonical, `virtuenet` is development via
+Coolify webhook, and `main` is production via GitHub Actions and Coolify API. Review the
+actual diff and critical user flow before reporting completion.
+
 This file is the UI governance reference for the active runtime frontend in `frontend/`.
 
 ## Scope
