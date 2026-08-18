@@ -9,6 +9,7 @@ interface User {
     name: string;
     permissions?: any[];
   };
+  two_factor_enabled?: boolean;
 }
 
 interface AuthState {

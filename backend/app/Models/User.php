@@ -76,12 +76,14 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'role_id', 'tenant_id', 'direct_manager_id',
         'phone', 'target_period', 'target_revenue', 'target_percentage', 'target_calculation_type', 'is_active', 'tier_level', 'buffer_rate',
-        'title', 'signature_path',
+        'title', 'signature_path', 'two_factor_secret', 'two_factor_enabled', 'two_factor_recovery_codes',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     protected function casts(): array
@@ -93,6 +95,8 @@ class User extends Authenticatable
             'target_revenue' => 'decimal:2',
             'target_percentage' => 'decimal:2',
             'buffer_rate' => 'float',
+            'two_factor_enabled' => 'boolean',
+            'two_factor_recovery_codes' => 'array',
         ];
     }
 

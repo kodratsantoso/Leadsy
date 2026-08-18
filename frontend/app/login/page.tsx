@@ -9,7 +9,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-type Mode = "login" | "register";
+type Mode = "login" | "register" | "2fa";
 type RegisterStep = "form" | "otp";
 
 const inputCls =
@@ -30,6 +30,10 @@ export default function LoginPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
+  
+  // ── 2FA state ──
+  const [tempToken, setTempToken] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
 
   // ── Register state ──
   const [registerStep, setRegisterStep] = useState<RegisterStep>("form");
@@ -107,6 +111,7 @@ export default function LoginPage() {
     setSuccess("");
     setRegisterStep("form");
     setOtpDigits(["", "", "", "", "", ""]);
+    setTwoFactorCode("");
   };
 
   // ── Login ──
@@ -129,6 +134,13 @@ export default function LoginPage() {
         throw new Error(`Invalid response from backend: ${rawText.slice(0, 150)}`);
       }
       if (!res.ok) throw new Error(data?.message || "Invalid credentials. Please try again.");
+      
+      if (data.requires_2fa) {
+        setTempToken(data.token);
+        setMode("2fa");
+        return;
+      }
+
       setAuth(data.token, data.user);
       router.push("/");
     } catch (err: any) {
@@ -137,6 +149,30 @@ export default function LoginPage() {
           ? "Cannot connect to the backend. Please ensure the server is running."
           : err.message || "An unexpected error occurred."
       );
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handle2faVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setError("");
+    try {
+      const res = await apiFetch("/auth/login/2fa", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${tempToken}`
+        },
+        body: JSON.stringify({ code: twoFactorCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || "Invalid 2FA code or recovery code.");
+      setAuth(data.token, data.user);
+      router.push("/");
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setLoginLoading(false);
     }
@@ -371,6 +407,35 @@ export default function LoginPage() {
                 Create one
               </button>
             </p>
+          </form>
+        )}
+
+        {/* ── 2FA VERIFICATION ── */}
+        {mode === "2fa" && (
+          <form onSubmit={handle2faVerify} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">Authentication Code</label>
+              <input 
+                type="text" 
+                required 
+                value={twoFactorCode} 
+                onChange={(e) => setTwoFactorCode(e.target.value)} 
+                className={inputCls} 
+                placeholder="6-digit code or recovery code" 
+                autoComplete="one-time-code"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-3">
+              <button type="submit" disabled={loginLoading} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[color:var(--brand)] py-2.5 text-sm font-medium text-[color:var(--brand-foreground)] transition-colors hover:bg-[color:var(--brand-hover)] disabled:opacity-50">
+                {loginLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loginLoading ? "Verifying..." : "Verify Code"}
+              </button>
+              <button type="button" onClick={() => switchMode("login")} disabled={loginLoading} className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary/90 disabled:opacity-50">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Login
+              </button>
+            </div>
           </form>
         )}
 

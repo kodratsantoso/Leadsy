@@ -42,6 +42,15 @@ class AuthController extends Controller
             return response()->json(['message' => 'Account deactivated'], 403);
         }
 
+        if ($user->two_factor_enabled) {
+            $tempToken = $user->createToken('2fa_token', ['2fa'])->plainTextToken;
+
+            return response()->json([
+                'requires_2fa' => true,
+                'token' => $tempToken,
+            ]);
+        }
+
         $token = $user->createToken('api')->plainTextToken;
 
         AuditService::log('login', 'auth', $user);

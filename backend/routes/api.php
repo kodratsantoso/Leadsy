@@ -93,6 +93,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/token/generate', [AuthController::class, 'generateApiToken']);
     Route::get('auth/token/status', [AuthController::class, 'getApiTokenStatus']);
 
+    // 2FA
+    Route::post('auth/login/2fa', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'verifyLogin']);
+    Route::post('auth/2fa/generate', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'generate']);
+    Route::post('auth/2fa/enable', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'enable']);
+    Route::post('auth/2fa/disable', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'disable']);
+
     // Global Search
     Route::get('search', [\App\Http\Controllers\Api\GlobalSearchController::class, 'search']);
 
