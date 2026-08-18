@@ -960,6 +960,7 @@ class LarkBaseService extends LarkService
                 'owner',
                 'contact_name',
                 'contact_phone',
+                'meeting_link',
             ])
             ->all();
     }

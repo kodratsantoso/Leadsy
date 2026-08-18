@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -53,6 +53,8 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
   const qc = useQueryClient();
   const [mode, setMode] = useState<'view' | 'form'>('view');
   const [activeTab, setActiveTab] = useState('overview');
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [wasProcessing, setWasProcessing] = useState(false);
   
   const [form, setForm] = useState({
     meeting_type: 'First Discovery Meeting',
@@ -67,7 +69,20 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['preMeetingBriefs', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}/pre-meeting-brief?history=1`).then(r => r.json()),
+    refetchInterval: (query) => query.state.data?.is_processing ? 3000 : false,
   });
+
+  useEffect(() => {
+    if (data?.is_processing) {
+      setWasProcessing(true);
+    } else if (wasProcessing && !data?.is_processing) {
+      // Transitioned from processing to not processing
+      setWasProcessing(false);
+      setShowSuccessNotification(true);
+      setTimeout(() => setShowSuccessNotification(false), 5000);
+      setMode('view');
+    }
+  }, [data?.is_processing, wasProcessing]);
 
   const { data: productsData } = useQuery({
     queryKey: ['availableProducts'],
@@ -90,17 +105,37 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['preMeetingBriefs', leadId] });
-      setMode('view');
-      setActiveTab('overview');
+      // We don't change mode to 'view' immediately here, we let the polling do it
+      // when is_processing becomes false.
     },
   });
 
   const briefs: PreMeetingBriefType[] = data?.data || [];
+  const isProcessing = data?.is_processing;
   const activeBrief = briefs.length > 0 ? briefs[0] : null;
   const availableProducts = productsData?.data || [];
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground"><RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2" /> Loading Presales Intelligence...</div>;
+  }
+
+  if (isProcessing) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-brand/50 shadow-md">
+          <CardContent className="p-12 flex flex-col items-center justify-center space-y-6">
+            <RefreshCw className="h-10 w-10 animate-spin text-brand" />
+            <div className="text-center">
+              <h3 className="text-lg font-bold">Generating Intelligence in Background...</h3>
+              <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                Our AI is currently analyzing the customer profile, gathering industry insights, and formulating a tailored pre-meeting brief. You can navigate away and come back later.
+              </p>
+            </div>
+            <ProgressiveFluxLoader value={65} showLabel={false} barClassName="h-2 w-64" />
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (mode === 'form' || (!activeBrief && mode === 'view')) {
@@ -195,7 +230,20 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
   const risks = activeBrief.risk_analysis_json || { meeting_risks: activeBrief.risk_flags_json || [] };
 
   return (
-    <div className="space-y-6" id="pre-meeting-brief-container">
+    <div className="space-y-6 relative" id="pre-meeting-brief-container">
+      {/* SUCCESS NOTIFICATION */}
+      {showSuccessNotification && (
+        <div className="absolute top-0 right-0 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <div>
+              <p className="font-bold text-sm">Success</p>
+              <p className="text-xs">Pre-Meeting Brief generated successfully!</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER ACTION AREA */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>

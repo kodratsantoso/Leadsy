@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lead;
+use App\Jobs\GeneratePreMeetingBriefJob;
 use App\Services\Sales\PreMeetingBriefService;
 use Illuminate\Http\JsonResponse;
 
@@ -19,11 +20,17 @@ class PreMeetingBriefController extends Controller
 
         if (request()->query('history')) {
             $briefs = $lead->preMeetingBriefs()->with('product')->take(10)->get();
-            return response()->json(['data' => $briefs]);
+            return response()->json([
+                'data' => $briefs,
+                'is_processing' => $lead->ai_processing_status === 'processing'
+            ]);
         }
 
         $brief = $lead->preMeetingBrief()->with('product')->first();
-        return response()->json(['data' => $brief]);
+        return response()->json([
+            'data' => $brief,
+            'is_processing' => $lead->ai_processing_status === 'processing'
+        ]);
     }
 
     public function generate(Lead $lead): JsonResponse
@@ -42,10 +49,11 @@ class PreMeetingBriefController extends Controller
             'product_id' => 'nullable|exists:products,id',
         ]);
         
-        $brief = $this->briefService->generateBrief($lead, $validated);
-        $brief->load('product');
+        $lead->updateQuietly(['ai_processing_status' => 'processing']);
+        
+        GeneratePreMeetingBriefJob::dispatch($lead, $validated, request()->user()->id);
 
-        return response()->json(['data' => $brief]);
+        return response()->json(['message' => 'Generation started', 'is_processing' => true], 202);
     }
     
     public function availableProducts(): JsonResponse

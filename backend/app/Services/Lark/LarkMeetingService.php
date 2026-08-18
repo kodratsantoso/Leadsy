@@ -213,7 +213,7 @@ class LarkMeetingService extends LarkService
                 'error' => $e->getMessage(),
             ]);
 
-            return null;
+            throw $e;
         }
     }
 
@@ -236,7 +236,7 @@ class LarkMeetingService extends LarkService
                 'error' => $e->getMessage(),
             ]);
 
-            return null;
+            throw $e;
         }
     }
 
