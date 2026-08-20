@@ -374,6 +374,16 @@ class Lead extends Model
         return $this->hasMany(LeadSalesOrder::class);
     }
 
+    public function syncRealizedAmount(): void
+    {
+        $this->update([
+            'realized_closing_amount' => $this->salesOrders()
+                ->where('order_type', 'new')
+                ->whereIn('order_status', ['confirmed', 'closed'])
+                ->sum('total_amount')
+        ]);
+    }
+
     public function commissionAllocations(): HasMany
     {
         return $this->hasMany(LeadCommissionAllocation::class);

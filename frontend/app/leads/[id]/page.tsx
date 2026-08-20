@@ -405,11 +405,11 @@ function ContactFormModal({
             <input value={form.title} onChange={set('title')} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <label className="text-xs font-medium text-muted-foreground">PIC Email</label>
             <input type="email" value={form.email} onChange={set('email')} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Phone</label>
+            <label className="text-xs font-medium text-muted-foreground">PIC Phone</label>
             <input type="tel" value={form.phone} onChange={set('phone')} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div>
@@ -512,11 +512,11 @@ function AddContactModal({
               <Input value={form.title} onChange={set('title')} />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">PIC Email</label>
               <Input type="email" value={form.email} onChange={set('email')} />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">PIC Phone</label>
               <Input type="tel" value={form.phone} onChange={set('phone')} />
             </div>
             <div className="sm:col-span-2">
@@ -2024,8 +2024,8 @@ export default function LeadDetailPage() {
                   <div><span className="text-muted-foreground">Business Category:</span> {leadData.businessCategory.name}</div>
                 )}
                 <div><span className="text-muted-foreground">Company Size:</span> {leadData.company_size_estimate || '—'}</div>
-                <div><span className="text-muted-foreground">Email:</span> {leadData.email || '—'}</div>
-                <div><span className="text-muted-foreground">Phone:</span> {leadData.phone || '—'}</div>
+                <div><span className="text-muted-foreground">Company Email:</span> {leadData.email || '—'}</div>
+                <div><span className="text-muted-foreground">Company Phone:</span> {leadData.phone || '—'}</div>
                 <div>
                   <span className="text-muted-foreground">Website:</span>{' '}
                   {leadData.website ? (
@@ -2060,7 +2060,7 @@ export default function LeadDetailPage() {
                           {c.is_primary && <Star className="h-3 w-3 fill-[var(--status-warning)] text-[var(--status-warning)]" />}
                         </div>
                         {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
-                        {c.email && <p className="truncate text-xs text-muted-foreground">{c.email}</p>}
+                        {c.email && <p className="truncate text-xs text-muted-foreground">PIC Email: {c.email}</p>}
                       </div>
                     </div>
                   ))}
@@ -2433,7 +2433,7 @@ export default function LeadDetailPage() {
                             href={`mailto:${contact.email}`}
                             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                           >
-                            <Mail className="h-3 w-3" /> {contact.email}
+                            <Mail className="h-3 w-3" /> PIC Email: {contact.email}
                           </a>
                         )}
                         {contact.phone && (
@@ -2441,7 +2441,7 @@ export default function LeadDetailPage() {
                             href={`tel:${contact.phone}`}
                             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                           >
-                            <Phone className="h-3 w-3" /> {contact.phone}
+                            <Phone className="h-3 w-3" /> PIC Phone: {contact.phone}
                           </a>
                         )}
                       </div>

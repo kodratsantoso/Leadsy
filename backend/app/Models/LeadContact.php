@@ -12,6 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $title
  * @property string|null $email
  * @property string|null $phone
+ * @property bool $email_verified
+ * @property string|null $email_source
+ * @property string|null $department
+ * @property string|null $seniority_level
  * @property string|null $linkedin_url
  * @property int|null $contact_source_id
  * @property string $confidence
@@ -51,6 +55,7 @@ class LeadContact extends Model
 {
     protected $fillable = [
         'lead_id', 'name', 'title', 'email', 'phone',
+        'email_verified', 'email_source', 'department', 'seniority_level',
         'linkedin_url', 'contact_source_id', 'confidence',
         'last_verified_at', 'do_not_contact',
         'is_primary', 'source', 'confidence_score',
@@ -58,6 +63,7 @@ class LeadContact extends Model
 
     protected $casts = [
         'do_not_contact' => 'boolean',
+        'email_verified' => 'boolean',
         'last_verified_at' => 'date',
         'is_primary' => 'boolean',
     ];

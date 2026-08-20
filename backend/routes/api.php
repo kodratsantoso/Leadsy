@@ -221,6 +221,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/contact-enrichment/linkedin/search', [ContactEnrichmentController::class, 'searchLinkedin'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contact-enrichment/linkedin/candidates/{candidate}/add-contact', [ContactEnrichmentController::class, 'addLinkedinCandidateToContact'])->middleware('permission:leads.edit');
 
+    // Deep Search by Google (scraping)
+    Route::get('leads/{lead}/contact-enrichment/google-deep/candidates', [ContactEnrichmentController::class, 'deepSearchCandidates'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/contact-enrichment/google-deep/search', [ContactEnrichmentController::class, 'deepSearchGoogle'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/contact-enrichment/google-deep/candidates/{candidate}/add-contact', [ContactEnrichmentController::class, 'addDeepSearchCandidateToContact'])->middleware('permission:leads.edit');
+
+
     // Lead Role Assignments
     Route::get('leads/{lead}/role-assignments', [\App\Http\Controllers\Api\LeadRoleAssignmentController::class, 'index'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/role-assignments', [\App\Http\Controllers\Api\LeadRoleAssignmentController::class, 'store'])->middleware('permission:leads.edit');

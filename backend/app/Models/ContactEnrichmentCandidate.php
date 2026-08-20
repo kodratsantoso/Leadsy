@@ -64,6 +64,12 @@ class ContactEnrichmentCandidate extends Model
         'title',
         'company_name',
         'company_domain',
+        'email',
+        'phone',
+        'email_verified',
+        'department',
+        'seniority_level',
+        'search_depth',
         'has_email',
         'has_phone',
         'reveal_email_credits',
@@ -71,6 +77,7 @@ class ContactEnrichmentCandidate extends Model
         'status',
         'raw_preview',
         'raw_reveal',
+        'validation_log',
         'expires_at',
         'revealed_at',
     ];
@@ -78,8 +85,10 @@ class ContactEnrichmentCandidate extends Model
     protected $casts = [
         'has_email' => 'boolean',
         'has_phone' => 'boolean',
+        'email_verified' => 'boolean',
         'raw_preview' => 'array',
         'raw_reveal' => 'array',
+        'validation_log' => 'array',
         'expires_at' => 'datetime',
         'revealed_at' => 'datetime',
     ];

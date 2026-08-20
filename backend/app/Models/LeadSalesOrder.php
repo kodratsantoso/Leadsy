@@ -199,6 +199,17 @@ class LeadSalesOrder extends Model
         'cancelled_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function ($order) {
+            $order->lead?->syncRealizedAmount();
+        });
+
+        static::deleted(function ($order) {
+            $order->lead?->syncRealizedAmount();
+        });
+    }
+
     public function lead()
     {
         return $this->belongsTo(Lead::class);

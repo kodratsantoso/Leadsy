@@ -2436,7 +2436,7 @@ export default function LeadsPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Phone</label>
+              <label className="text-sm font-medium">Company Phone</label>
               <Input
                 value={formState.phone}
                 onChange={(e) => setFormState((s) => ({ ...s, phone: e.target.value }))}
@@ -2444,7 +2444,7 @@ export default function LeadsPage() {
               />
             </div>
             <div className="grid gap-2">
-              <label className="text-sm font-medium">Email</label>
+              <label className="text-sm font-medium">Company Email</label>
               <Input
                 type="email"
                 value={formState.email}

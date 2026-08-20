@@ -545,7 +545,7 @@ export function EditLeadModal({
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">2. Contact Info</p>
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Phone</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company Phone</label>
                 <Input
                   type="tel"
                   value={companyForm.phone}
@@ -555,7 +555,7 @@ export function EditLeadModal({
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Email</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company Email</label>
                 <Input
                   type="email"
                   value={companyForm.email}

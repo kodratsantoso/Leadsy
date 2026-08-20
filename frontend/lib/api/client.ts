@@ -217,6 +217,10 @@ export type LeadContact = {
   title?: string | null;
   email?: string | null;
   phone?: string | null;
+  email_verified?: boolean;
+  email_source?: string | null;
+  department?: string | null;
+  seniority_level?: string | null;
   linkedin_url?: string | null;
   confidence?: "high" | "medium" | "low" | null;
   confidence_score?: number | null;

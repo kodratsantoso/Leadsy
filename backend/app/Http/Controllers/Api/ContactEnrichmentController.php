@@ -9,6 +9,7 @@ use App\Models\Lead;
 use App\Models\LeadContact;
 use App\Services\AuditService;
 use App\Services\Enrichment\Providers\LushaProvider;
+use App\Services\Lead\ContactDeepSearchService;
 use App\Services\Lead\LeadContactGoogleSearchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -225,6 +226,112 @@ class ContactEnrichmentController extends Controller
 
         return response()->json([
             'message' => 'LinkedIn search candidate added to this lead contact.',
+            'data' => [
+                'contact' => $contact->fresh('payloads'),
+                'candidate' => $this->candidatePayload($candidate->fresh()),
+            ],
+        ]);
+    }
+
+    /* ── Deep Search by Google (scraping) ───────────────────────────── */
+
+    public function deepSearchCandidates(Request $request, Lead $lead): JsonResponse
+    {
+        $candidates = $lead->contactEnrichmentCandidates()
+            ->where('provider', 'GOOGLE_DEEP_SEARCH')
+            ->whereIn('status', ['previewed', 'added'])
+            ->latest()
+            ->limit(30)
+            ->get()
+            ->map(fn (ContactEnrichmentCandidate $candidate): array => $this->candidatePayload($candidate));
+
+        return response()->json(['data' => $candidates]);
+    }
+
+    public function deepSearchGoogle(Request $request, Lead $lead, ContactDeepSearchService $service): JsonResponse
+    {
+        if (empty($lead->company_name)) {
+            return response()->json(['message' => 'Lead company name is required before deep search.'], 422);
+        }
+
+        $result = $service->search($lead);
+        if (! $result['success']) {
+            return response()->json(['message' => $result['error'] ?? 'Deep search failed.'], 422);
+        }
+
+        $candidates = collect($result['candidates'] ?? [])->map(function (array $candidate) use ($lead, $request) {
+            $model = ContactEnrichmentCandidate::updateOrCreate(
+                [
+                    'lead_id' => $lead->id,
+                    'provider' => 'GOOGLE_DEEP_SEARCH',
+                    'provider_candidate_id' => $candidate['provider_candidate_id'],
+                ],
+                [
+                    'created_by' => $request->user()?->id,
+                    'name' => $candidate['name'],
+                    'title' => $candidate['title'] ?: null,
+                    'company_name' => $candidate['company_name'] ?: $lead->company_name,
+                    'company_domain' => $candidate['company_domain'] ?: null,
+                    'email' => $candidate['email'] ?: null,
+                    'phone' => null, // Phone handled by Lusha
+                    'email_verified' => $candidate['email_verified'] ?? false,
+                    'department' => $candidate['department'] ?: null,
+                    'seniority_level' => $candidate['seniority_level'] ?: null,
+                    'search_depth' => 'deep',
+                    'has_email' => ! empty($candidate['email']),
+                    'has_phone' => false,
+                    'reveal_email_credits' => 0,
+                    'reveal_phone_credits' => 0,
+                    'status' => 'previewed',
+                    'raw_preview' => $candidate['raw_preview'] ?? $candidate,
+                    'validation_log' => $candidate['validation_log'] ?? null,
+                    'expires_at' => now()->addDays(14),
+                ]
+            );
+
+            return $this->candidatePayload($model);
+        })->values();
+
+        AuditService::log('google_deep_search_contact_search', 'leads', $lead, null, [
+            'candidate_count' => $candidates->count(),
+            'queries' => $result['queries'] ?? [],
+        ]);
+
+        return response()->json([
+            'message' => $result['message'] ?? 'Deep search contact candidates loaded.',
+            'data' => $candidates,
+            'meta' => [
+                'queries' => $result['queries'] ?? [],
+            ],
+        ]);
+    }
+
+    public function addDeepSearchCandidateToContact(
+        Request $request,
+        Lead $lead,
+        ContactEnrichmentCandidate $candidate
+    ): JsonResponse {
+        if ((int) $candidate->lead_id !== (int) $lead->id || $candidate->provider !== 'GOOGLE_DEEP_SEARCH') {
+            return response()->json(['message' => 'Contact candidate does not belong to this lead.'], 404);
+        }
+
+        if ($candidate->expires_at && $candidate->expires_at->isPast()) {
+            return response()->json(['message' => 'This deep search candidate expired. Run deep search again before adding it.'], 422);
+        }
+
+        $contact = $this->mergeDeepSearchContact($lead, $candidate);
+        $candidate->update([
+            'status' => 'added',
+            'revealed_at' => now(),
+        ]);
+
+        AuditService::log('google_deep_search_contact_added', 'lead_contacts', $contact, null, [
+            'lead_id' => $lead->id,
+            'candidate_id' => $candidate->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Deep search candidate added to this lead contact.',
             'data' => [
                 'contact' => $contact->fresh('payloads'),
                 'candidate' => $this->candidatePayload($candidate->fresh()),
@@ -499,6 +606,54 @@ class ContactEnrichmentController extends Controller
         return $contact;
     }
 
+    private function mergeDeepSearchContact(Lead $lead, ContactEnrichmentCandidate $candidate): LeadContact
+    {
+        $raw = $candidate->raw_preview ?? [];
+        $linkedinUrl = $raw['linkedin_url'] ?? $candidate->raw_preview['linkedin_url'] ?? null;
+
+        $query = $lead->contacts();
+        if (! empty($linkedinUrl)) {
+            $query->where('linkedin_url', $linkedinUrl);
+        } elseif (! empty($candidate->email)) {
+            $query->where('email', $candidate->email);
+        } else {
+            $query->where('name', $candidate->name);
+        }
+
+        $contact = $query->first();
+        $confidenceScore = $raw['confidence_score'] ?? $candidate->raw_preview['confidence_score'] ?? 70;
+        $values = [
+            'name' => $candidate->name,
+            'title' => $candidate->title,
+            'email' => $candidate->email,
+            'email_verified' => $candidate->email_verified ?? false,
+            'email_source' => 'deep_search',
+            'department' => $candidate->department,
+            'seniority_level' => $candidate->seniority_level,
+            'linkedin_url' => $linkedinUrl,
+            'confidence_score' => $confidenceScore,
+            'confidence' => $confidenceScore >= 80 ? 'high' : 'medium',
+            'source' => 'GOOGLE_DEEP_SEARCH',
+        ];
+
+        if ($contact) {
+            $contact->update(collect($values)
+                ->filter(fn ($value, string $key): bool => $value !== null && empty($contact->{$key}))
+                ->all());
+        } else {
+            $contact = $lead->contacts()->create($values + [
+                'is_primary' => ! $lead->contacts()->where('is_primary', true)->exists(),
+            ]);
+        }
+
+        $contact->payloads()->create([
+            'source_type' => 'GOOGLE_DEEP_SEARCH',
+            'raw_payload' => $raw,
+        ]);
+
+        return $contact;
+    }
+
     private function authorizeLushaGate(Lead $lead): void
     {
         abort_if($this->currentScore($lead) < self::MIN_LUSHA_SCORE, 422, 'Lusha enrichment is available after the lead reaches an initial score of 60.');
@@ -527,6 +682,12 @@ class ContactEnrichmentController extends Controller
             'title' => $candidate->title,
             'company_name' => $candidate->company_name,
             'company_domain' => $candidate->company_domain,
+            'email' => $candidate->email,
+            'phone' => $candidate->phone,
+            'email_verified' => (bool) $candidate->email_verified,
+            'department' => $candidate->department,
+            'seniority_level' => $candidate->seniority_level,
+            'search_depth' => $candidate->search_depth ?? 'shallow',
             'has_email' => $candidate->has_email,
             'has_phone' => $candidate->has_phone,
             'reveal_email_credits' => $candidate->reveal_email_credits,
@@ -539,6 +700,7 @@ class ContactEnrichmentController extends Controller
             'confidence_score' => $candidate->raw_preview['confidence_score'] ?? null,
             'relevance_reason' => $candidate->raw_preview['relevance_reason'] ?? null,
             'evidence' => $candidate->raw_preview['evidence'] ?? null,
+            'validation_log' => $candidate->validation_log,
         ];
     }
 
