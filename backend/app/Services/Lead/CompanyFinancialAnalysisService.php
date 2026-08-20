@@ -154,10 +154,8 @@ class CompanyFinancialAnalysisService
 
         try {
             $response = $this->ai->call('lead_icp_matching', $prompt, ['temperature' => 0.2]);
-            if (is_array($response)) {
-                return $response;
-            }
-            $parsed = json_decode($response, true);
+            $contentStr = is_array($response) ? ($response['content'] ?? '') : $response;
+            $parsed = json_decode($contentStr, true);
             if (is_array($parsed)) {
                 return $parsed;
             }
