@@ -23,6 +23,9 @@ class CompanyFinancialAnalysisService
     public function analyzeFinancials(Lead $lead): void
     {
         DB::transaction(function () use ($lead) {
+            // Delete old signals to ensure cleanliness
+            $lead->intelligenceSignals()->delete();
+
             // 1. Seed financial snapshots from IDX cache if lead has a profile
             $this->seedSnapshotsFromProfile($lead);
 
