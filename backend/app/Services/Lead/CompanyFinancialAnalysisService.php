@@ -5,14 +5,14 @@ namespace App\Services\Lead;
 use App\Models\Lead;
 use App\Models\CompanyFinancialSnapshot;
 use App\Models\CompanyIntelligenceSignal;
-use App\Services\AI\AIService;
+use App\Services\AI\AiOrchestrationService;
 use Illuminate\Support\Facades\DB;
 
 class CompanyFinancialAnalysisService
 {
-    protected AIService $ai;
+    protected AiOrchestrationService $ai;
 
-    public function __construct(AIService $ai)
+    public function __construct(AiOrchestrationService $ai)
     {
         $this->ai = $ai;
     }

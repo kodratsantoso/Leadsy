@@ -6,14 +6,14 @@ use App\Models\Lead;
 use App\Models\CompanyVerification;
 use App\Models\CompanyVerificationEvidence;
 use App\Models\IdxCompanyCache;
-use App\Services\AI\AIService;
+use App\Services\AI\AiOrchestrationService;
 use Illuminate\Support\Facades\DB;
 
 class CompanyVerificationService
 {
-    protected AIService $ai;
+    protected AiOrchestrationService $ai;
 
-    public function __construct(AIService $ai)
+    public function __construct(AiOrchestrationService $ai)
     {
         $this->ai = $ai;
     }
