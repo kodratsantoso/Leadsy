@@ -394,6 +394,31 @@ class Lead extends Model
         return $this->hasMany(ContactEnrichmentCandidate::class);
     }
 
+    public function verifications(): HasMany
+    {
+        return $this->hasMany(CompanyVerification::class);
+    }
+
+    public function aliases(): HasMany
+    {
+        return $this->hasMany(CompanyAlias::class);
+    }
+
+    public function idxCompanyProfile(): HasOne
+    {
+        return $this->hasOne(IdxCompanyProfile::class);
+    }
+
+    public function financialSnapshots(): HasMany
+    {
+        return $this->hasMany(CompanyFinancialSnapshot::class);
+    }
+
+    public function intelligenceSignals(): HasMany
+    {
+        return $this->hasMany(CompanyIntelligenceSignal::class);
+    }
+
     public function sources(): HasMany
     {
         return $this->hasMany(LeadSource::class);

@@ -29,7 +29,11 @@ class PreMeetingBriefService
             'activities' => fn($q) => $q->latest()->take(10),
             'transcripts' => fn($q) => $q->latest()->take(5),
             'aiEvaluations' => fn($q) => $q->latest()->take(5),
-            'productMatches' => fn($q) => $q->with('product.questionGuide')->orderBy('match_score', 'desc')->take(3)
+            'productMatches' => fn($q) => $q->with('product.questionGuide')->orderBy('match_score', 'desc')->take(3),
+            'idxCompanyProfile',
+            'financialSnapshots',
+            'intelligenceSignals',
+            'verifications.evidences',
         ]);
         
         // Load WhatsApp Conversations (through WhatsappContact)
@@ -81,6 +85,28 @@ class PreMeetingBriefService
                 'Sub-Industry' => $lead->subIndustry?->name,
                 'Business Category' => $lead->businessCategory?->name ?? $lead->business_category,
                 'Business Type' => $lead->business_type,
+            ],
+            'Company Intelligence & Verification' => [
+                'Verification Status' => $lead->verifications->first()?->legal_status ?? 'UNVERIFIED',
+                'Legal Name Resolved' => $lead->verifications->first()?->legal_name_resolved,
+                'Match Confidence' => $lead->verifications->first()?->entity_match_confidence ?? 0,
+                'Listing Ticker' => $lead->idxCompanyProfile?->ticker,
+                'Listing Board' => $lead->idxCompanyProfile?->listing_status,
+                'Shares Outstanding' => $lead->idxCompanyProfile?->shares_outstanding,
+                'Controlling Shareholder' => $lead->idxCompanyProfile?->controlling_shareholder,
+                'Financial Snapshots' => $lead->financialSnapshots->map(fn($f) => [
+                    'year' => $f->fiscal_year,
+                    'period' => $f->period_type,
+                    'metric' => $f->metric,
+                    'value' => $f->raw_value,
+                    'currency' => $f->currency,
+                ])->toArray(),
+                'Intelligence Signals' => $lead->intelligenceSignals->map(fn($s) => [
+                    'type' => $s->signal_type,
+                    'level' => $s->level,
+                    'score' => $s->score,
+                    'evidence' => $s->evidence_summary,
+                ])->toArray(),
             ],
             'Recent Activities' => $lead->activities->map(fn($a) => [
                 'type' => $a->activity_type,

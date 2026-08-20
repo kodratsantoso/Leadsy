@@ -791,6 +791,49 @@ export default function LeadDetailPage() {
     enabled: !!lead,
   });
 
+  const { data: financialsData, refetch: refetchFinancials } = useQuery({
+    queryKey: ['company-financials', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/financials`).then((r) => r.json()),
+    enabled: activeTab === 'intelligence',
+  });
+
+  const runVerificationMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/verification/run`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to run company verification');
+      return json;
+    },
+    onSuccess: () => {
+      refetchVerification();
+      refetchFinancials();
+      invalidateLead();
+    }
+  });
+
+  const resolveConflictMutation = useMutation({
+    mutationFn: async (payload: { override_value: string; override_type: string; justification?: string }) => {
+      const res = await apiFetch(`/leads/${leadId}/verification/resolve-conflict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to resolve conflict');
+      return json;
+    },
+    onSuccess: () => {
+      refetchVerification();
+      invalidateLead();
+      setShowConflictModal(false);
+    }
+  });
+
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [overrideValue, setOverrideValue] = useState('');
+  const [overrideType, setOverrideType] = useState('legal_name');
+  const [overrideJustification, setOverrideJustification] = useState('');
+
   const { data: confidentiality, refetch: refetchConfidentiality } = useQuery({
     queryKey: ['lead-confidentiality', leadId],
     queryFn: () => apiFetch(`/confidentiality/assessments/lead/${leadId}`)
@@ -2491,6 +2534,192 @@ export default function LeadDetailPage() {
       {activeTab === 'intelligence' && (
         <div className="space-y-6">
 
+          {/* ── COMPANY INTELLIGENCE & VERIFICATION SECTION ── */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Company Verification Card */}
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+              <div className="flex items-start justify-between border-b pb-3">
+                <div>
+                  <h3 className="font-semibold text-lg flex items-center gap-1.5">
+                    <Building2 className="h-5 w-5 text-[var(--brand)]" />
+                    Company Identity Verification
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Entity resolution, registration validation, and operational check.</p>
+                </div>
+                <Badge variant={
+                  verificationData?.data?.verification?.legal_status === 'VERIFIED' ? 'success' :
+                  verificationData?.data?.verification?.legal_status === 'PARTIALLY_VERIFIED' ? 'warning' : 'outline'
+                }>
+                  {verificationData?.data?.verification?.legal_status ?? 'UNVERIFIED'}
+                </Badge>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between border-b border-border/40 pb-2">
+                  <span className="text-muted-foreground">Resolved Legal Name</span>
+                  <span className="font-semibold text-foreground">{verificationData?.data?.verification?.legal_name_resolved || '—'}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 pt-2 text-center">
+                  <div className="bg-muted/30 p-2 rounded-lg">
+                    <span className="text-[10px] text-muted-foreground block uppercase">Legal Reg</span>
+                    <span className="font-bold text-sm">{verificationData?.data?.verification?.legal_confidence ?? 0}%</span>
+                  </div>
+                  <div className="bg-muted/30 p-2 rounded-lg">
+                    <span className="text-[10px] text-muted-foreground block uppercase">Match fit</span>
+                    <span className="font-bold text-sm">{verificationData?.data?.verification?.entity_match_confidence ?? 0}%</span>
+                  </div>
+                  <div className="bg-muted/30 p-2 rounded-lg">
+                    <span className="text-[10px] text-muted-foreground block uppercase">Operational</span>
+                    <span className="font-bold text-sm">{verificationData?.data?.verification?.operational_confidence ?? 0}%</span>
+                  </div>
+                </div>
+
+                {/* Evidence logs */}
+                <div className="pt-3">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2">Collected Evidence logs</span>
+                  {verificationData?.data?.verification?.evidences?.length > 0 ? (
+                    <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1">
+                      {verificationData.data.verification.evidences.map((ev: any) => (
+                        <div key={ev.id} className="text-xs bg-muted/20 p-2 rounded border border-border/40 flex justify-between items-start gap-2">
+                          <div>
+                            <span className="font-semibold text-foreground block">{ev.source_name} ({ev.source_type})</span>
+                            <span className="text-muted-foreground text-[10px]">{ev.normalized_value}</span>
+                          </div>
+                          <Badge variant="outline" className="text-[9px] shrink-0">{ev.confidence}% conf</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No verification evidence logs recorded yet. Run verification above.</p>
+                  )}
+                </div>
+
+                {/* Conflict override trigger */}
+                <div className="pt-2 flex justify-end">
+                  <Button variant="ghost" size="sm" className="text-xs text-[var(--brand)] flex items-center gap-1" onClick={() => {
+                    setOverrideValue(verificationData?.data?.verification?.legal_name_resolved || leadData.company_name);
+                    setShowConflictModal(true);
+                  }}>
+                    <Pencil className="h-3 w-3" /> Resolve Name Match Conflict
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Public Company Profile Card */}
+            <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+              <div className="flex items-start justify-between border-b pb-3">
+                <div>
+                  <h3 className="font-semibold text-lg flex items-center gap-1.5">
+                    <Sparkles className="h-5 w-5 text-yellow-500" />
+                    Public Company Intelligence
+                  </h3>
+                  <p className="text-xs text-muted-foreground">Listing validation on Bursa Efek Indonesia (IDX) and KSEI.</p>
+                </div>
+                <Badge variant={verificationData?.data?.idx_profile ? 'brand' : 'outline'}>
+                  {verificationData?.data?.idx_profile ? 'IDX TBK LISTED' : 'NOT LISTED'}
+                </Badge>
+              </div>
+
+              {verificationData?.data?.idx_profile ? (
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between border-b border-border/40 pb-2">
+                    <span className="text-muted-foreground">Ticker Symbol</span>
+                    <span className="font-bold text-foreground">{verificationData.data.idx_profile.ticker}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/40 pb-2">
+                    <span className="text-muted-foreground">ISIN Code</span>
+                    <span className="font-medium text-foreground">{verificationData.data.idx_profile.isin || '—'}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/40 pb-2">
+                    <span className="text-muted-foreground">Listing Board</span>
+                    <span className="font-medium text-foreground">{verificationData.data.idx_profile.listing_status || '—'}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/40 pb-2">
+                    <span className="text-muted-foreground">Shares Outstanding</span>
+                    <span className="font-medium text-foreground">{verificationData.data.idx_profile.shares_outstanding ? Number(verificationData.data.idx_profile.shares_outstanding).toLocaleString() : '—'}</span>
+                  </div>
+                  <div className="flex justify-between pb-1">
+                    <span className="text-muted-foreground">Controlling Shareholder</span>
+                    <span className="font-medium text-foreground text-right max-w-[180px] truncate" title={verificationData.data.idx_profile.controlling_shareholder}>{verificationData.data.idx_profile.controlling_shareholder || '—'}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground space-y-2">
+                  <Building2 className="h-8 w-8 text-muted-foreground/30 animate-pulse" />
+                  <p className="text-sm">No verified public emittent mapping found for this entity.</p>
+                  <p className="text-xs max-w-[280px]">If this is a listed company under a different name, use the resolve button on the left to manually update its mapping.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Financial Snapshots & Signals Card */}
+          <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-5">
+            <div>
+              <h3 className="font-semibold text-lg flex items-center gap-1.5">
+                <DollarSign className="h-5 w-5 text-emerald-500" />
+                Financial Capacity & Strategic Signals
+              </h3>
+              <p className="text-xs text-muted-foreground">Historical metrics mapped against inferred capacity levels and Why Now trigger opportunities.</p>
+            </div>
+
+            {/* Signals Indicators */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {financialsData?.data?.signals?.map((sig: any) => (
+                <div key={sig.id} className="bg-muted/15 p-4 rounded-xl border border-border/50 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground">{sig.signal_type.replace('_', ' ')}</span>
+                    <Badge variant={
+                      sig.level === 'HIGH' || sig.level === 'VERY_HIGH' ? 'success' :
+                      sig.level === 'MEDIUM' ? 'warning' : 'outline'
+                    } className="text-[10px] px-1.5 py-0.5">{sig.level}</Badge>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-foreground">{sig.score}%</span>
+                    <span className="text-[10px] text-muted-foreground">score / {sig.confidence}% conf</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-2 border-t border-border/30 whitespace-pre-line leading-relaxed">{sig.evidence_summary}</p>
+                </div>
+              )) ?? (
+                <p className="text-xs text-muted-foreground col-span-3 text-center">No strategic signals populated. Run company verification above.</p>
+              )}
+            </div>
+
+            {/* Snapshots Table */}
+            <div className="pt-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-3">Historical Financial Snapshots Timeline</span>
+              {financialsData?.data?.snapshots?.length > 0 ? (
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead>
+                      <tr className="bg-muted/40 text-muted-foreground font-medium text-xs border-b">
+                        <th className="p-3">Fiscal Year</th>
+                        <th className="p-3">Period</th>
+                        <th className="p-3">Metric</th>
+                        <th className="p-3 text-right">Value ({financialsData.data.snapshots[0]?.currency || 'IDR'})</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y text-xs">
+                      {financialsData.data.snapshots.map((snap: any) => (
+                        <tr key={snap.id} className="hover:bg-muted/10">
+                          <td className="p-3 font-semibold text-foreground">{snap.fiscal_year}</td>
+                          <td className="p-3 text-muted-foreground">{snap.period_type}</td>
+                          <td className="p-3 font-medium text-foreground uppercase">{snap.metric.replace('_', ' ')}</td>
+                          <td className="p-3 text-right font-mono text-emerald-600 font-semibold">
+                            Rp {Number(snap.raw_value).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No financial snapshot historical records populated. Run company verification above.</p>
+              )}
+            </div>
+          </div>
+
           {/* ── Action bar ── */}
           <div className="rounded-xl border border-border bg-card p-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Run Intelligence Functions</p>
@@ -2513,6 +2742,15 @@ export default function LeadDetailPage() {
                 {profilingStrategyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5 text-[var(--status-info)]" />}
                 {profilingStrategyMutation.isPending ? 'Profiling…' : 'Run AI Profiling & Strategy'}
               </Button>
+              <Button
+                onClick={() => runVerificationMutation.mutate()}
+                disabled={runVerificationMutation.isPending}
+                variant="outline"
+                size="sm"
+              >
+                {runVerificationMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Building2 className="h-3.5 w-3.5 text-[var(--brand)]" />}
+                {runVerificationMutation.isPending ? 'Verifying…' : 'Run Company Verification'}
+              </Button>
             </div>
             {scoreMutation.isSuccess && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
@@ -2532,6 +2770,16 @@ export default function LeadDetailPage() {
             {profilingStrategyMutation.isError && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
                 <AlertCircle className="h-3.5 w-3.5" /> AI Profiling & Strategy failed. Check AI settings.
+              </p>
+            )}
+            {runVerificationMutation.isSuccess && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
+                <CheckCircle className="h-3.5 w-3.5" /> Company identity verification and financial analysis run complete.
+              </p>
+            )}
+            {runVerificationMutation.isError && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
+                <AlertCircle className="h-3.5 w-3.5" /> Verification failed. Check local emittent cache or API routes.
               </p>
             )}
             <p className="mt-3 text-xs text-muted-foreground">
@@ -4052,6 +4300,64 @@ export default function LeadDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ── Resolve Match Conflict Override Modal ── */}
+      <Modal
+        open={showConflictModal}
+        onOpenChange={setShowConflictModal}
+        title="Resolve Legal Entity Name Match Conflict"
+        description="Override automatically resolved brand/legal company mapping names."
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowConflictModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => resolveConflictMutation.mutate({
+                override_value: overrideValue,
+                override_type: overrideType,
+                justification: overrideJustification
+              })}
+              disabled={resolveConflictMutation.isPending || !overrideValue}
+            >
+              {resolveConflictMutation.isPending ? 'Resolving…' : 'Apply Override'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase">Override Type</label>
+            <select
+              value={overrideType}
+              onChange={(e) => setOverrideType(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+            >
+              <option value="legal_name">Legal Entity Name (PT/CV)</option>
+              <option value="brand">Brand / Trading Name</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase">Override Value</label>
+            <Input
+              type="text"
+              value={overrideValue}
+              onChange={(e) => setOverrideValue(e.target.value)}
+              placeholder="e.g. PT Example Indonesia Tbk"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase">Auditor Justification Notes</label>
+            <Input
+              type="text"
+              value={overrideJustification}
+              onChange={(e) => setOverrideJustification(e.target.value)}
+              placeholder="Provide evidence sources or validation notes"
+            />
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Edit Lead Information Modal (Unified) ── */}
       <EditLeadModal

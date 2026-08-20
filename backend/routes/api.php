@@ -233,6 +233,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('leads/{lead}/role-assignments/{assignmentId}', [\App\Http\Controllers\Api\LeadRoleAssignmentController::class, 'update'])->middleware('permission:leads.edit');
     Route::delete('leads/{lead}/role-assignments/{assignmentId}', [\App\Http\Controllers\Api\LeadRoleAssignmentController::class, 'destroy'])->middleware('permission:leads.edit');
 
+    // Company Intelligence & Verification API Routes
+    Route::get('leads/{lead}/verification', [\App\Http\Controllers\Api\CompanyIntelligenceController::class, 'getVerification'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/verification/run', [\App\Http\Controllers\Api\CompanyIntelligenceController::class, 'runVerification'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/financials', [\App\Http\Controllers\Api\CompanyIntelligenceController::class, 'getFinancials'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/verification/resolve-conflict', [\App\Http\Controllers\Api\CompanyIntelligenceController::class, 'resolveConflict'])->middleware('permission:leads.edit');
+
     // Lead Order-to-Cash (Quotations)
     Route::get('leads/{lead}/quotations', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'getQuotations'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/quotations', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'storeQuotation'])->middleware('permission:leads.edit');
