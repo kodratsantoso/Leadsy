@@ -448,8 +448,8 @@ function AddContactModal({
   onClose,
   onSaveManual,
 }: {
-  mode: 'manual' | 'google' | 'linkedin';
-  setMode: (mode: 'manual' | 'google' | 'linkedin') => void;
+  mode: 'manual' | 'google' | 'linkedin' | 'deep';
+  setMode: (mode: 'manual' | 'google' | 'linkedin' | 'deep') => void;
   candidates: GoogleContactCandidate[];
   feedback: { type: 'success' | 'error'; msg: string } | null;
   searching: boolean;
@@ -485,7 +485,7 @@ function AddContactModal({
             <Button variant="outline" onClick={onClose}>Close</Button>
             <Button onClick={onSearch} disabled={searching}>
               {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              {mode === 'google' ? 'Search by Google' : 'LinkedIn Search'}
+              {mode === 'google' ? 'Search by Google' : (mode === 'linkedin' ? 'LinkedIn Search' : 'Deep Search (Yahoo/AI)')}
             </Button>
           </>
         )
@@ -494,10 +494,11 @@ function AddContactModal({
       <div className="space-y-4">
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Add Method</label>
-          <Select value={mode} onChange={(e) => setMode(e.target.value as 'manual' | 'google' | 'linkedin')}>
+          <Select value={mode} onChange={(e) => setMode(e.target.value as 'manual' | 'google' | 'linkedin' | 'deep')}>
             <option value="manual">Manual Add</option>
             <option value="google">Search by Google</option>
             <option value="linkedin">LinkedIn Search</option>
+            <option value="deep">Deep Search (Yahoo/AI)</option>
           </Select>
         </div>
 
@@ -529,8 +530,10 @@ function AddContactModal({
             <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
               {mode === 'google' ? (
                 <>Google Search uses the keyword template in Settings &gt; AI Default &gt; Prompt Templates under <strong>Lead Contact Google Search Keyword</strong>.</>
-              ) : (
+              ) : mode === 'linkedin' ? (
                 <>LinkedIn search discovers matching public profiles scoped under the LINKEDIN provider using Google search engine scoped to site:linkedin.com/in.</>
+              ) : (
+                <>Deep Search scans global search engines (Google, Bing, Yahoo) using AI Web Search to discover decision-maker LinkedIn profiles and PIC names.</>
               )}
             </div>
 
@@ -600,7 +603,9 @@ function AddContactModal({
               <p className="text-xs text-muted-foreground">
                 {mode === 'google'
                   ? 'Run Search by Google to find public LinkedIn profile results by company name and role keywords.'
-                  : 'Run LinkedIn Search to discover PIC profiles using the LinkedIn integration.'}
+                  : mode === 'linkedin'
+                  ? 'Run LinkedIn Search to discover PIC profiles using the LinkedIn integration.'
+                  : 'Run Deep Search (Yahoo/AI) to find PIC profiles across global search engines.'}
               </p>
             )}
           </div>
@@ -672,7 +677,7 @@ export default function LeadDetailPage() {
 
   // Contact UI state
   const [showAddContact, setShowAddContact]       = useState(false);
-  const [addContactMode, setAddContactMode]       = useState<'manual' | 'google' | 'linkedin'>('manual');
+  const [addContactMode, setAddContactMode]       = useState<'manual' | 'google' | 'linkedin' | 'deep'>('manual');
   const [editingContact, setEditingContact]       = useState<any | null>(null);
   const [deletingContactId, setDeletingContactId] = useState<number | null>(null);
   const [showEnrichModal, setShowEnrichModal]     = useState(false);
@@ -1217,6 +1222,45 @@ export default function LeadDetailPage() {
     },
     onError: (error: any) => {
       setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add LinkedIn candidate' });
+    },
+  });
+
+  const { data: deepContactCandidatesData, refetch: refetchDeepContactCandidates } = useQuery({
+    queryKey: ['lead-deep-contact-candidates', leadId],
+    queryFn: () => apiFetch(`/leads/${leadId}/contact-enrichment/google-deep/candidates`).then((r) => r.json()),
+    enabled: showAddContact && addContactMode === 'deep',
+  });
+
+  const searchDeepContactsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-deep/search`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to perform deep search');
+      return json;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['lead-deep-contact-candidates', leadId] });
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Deep search candidates loaded' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to perform deep search' });
+    },
+  });
+
+  const addDeepCandidateMutation = useMutation({
+    mutationFn: async (candidateId: number) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-deep/candidates/${candidateId}/add-contact`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.message || 'Failed to add deep search candidate');
+      return json;
+    },
+    onSuccess: (data) => {
+      invalidateLead();
+      refetchDeepContactCandidates();
+      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Candidate added to contacts' });
+    },
+    onError: (error: any) => {
+      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to add deep search candidate' });
     },
   });
 
@@ -4164,16 +4208,42 @@ export default function LeadDetailPage() {
             setAddContactMode(mode);
             setEnrichmentFeedback(null);
           }}
-          candidates={addContactMode === 'google' ? googleContactCandidates : (addContactMode === 'linkedin' ? linkedinContactCandidates : [])}
+          candidates={
+            addContactMode === 'google'
+              ? googleContactCandidates
+              : addContactMode === 'linkedin'
+              ? linkedinContactCandidates
+              : addContactMode === 'deep'
+              ? (deepContactCandidatesData?.data || [])
+              : []
+          }
           feedback={enrichmentFeedback}
-          searching={addContactMode === 'google' ? searchGoogleContactsMutation.isPending : (addContactMode === 'linkedin' ? searchLinkedinContactsMutation.isPending : false)}
-          adding={addContactMode === 'google' ? addGoogleCandidateMutation.isPending : (addContactMode === 'linkedin' ? addLinkedinCandidateMutation.isPending : false)}
+          searching={
+            addContactMode === 'google'
+              ? searchGoogleContactsMutation.isPending
+              : addContactMode === 'linkedin'
+              ? searchLinkedinContactsMutation.isPending
+              : addContactMode === 'deep'
+              ? searchDeepContactsMutation.isPending
+              : false
+          }
+          adding={
+            addContactMode === 'google'
+              ? addGoogleCandidateMutation.isPending
+              : addContactMode === 'linkedin'
+              ? addLinkedinCandidateMutation.isPending
+              : addContactMode === 'deep'
+              ? addDeepCandidateMutation.isPending
+              : false
+          }
           saving={addContactMutation.isPending}
           onSearch={() => {
             if (addContactMode === 'google') {
               searchGoogleContactsMutation.mutate();
             } else if (addContactMode === 'linkedin') {
               searchLinkedinContactsMutation.mutate();
+            } else if (addContactMode === 'deep') {
+              searchDeepContactsMutation.mutate();
             }
           }}
           onAddCandidate={(candidateId) => {
@@ -4181,6 +4251,8 @@ export default function LeadDetailPage() {
               addGoogleCandidateMutation.mutate(candidateId);
             } else if (addContactMode === 'linkedin') {
               addLinkedinCandidateMutation.mutate(candidateId);
+            } else if (addContactMode === 'deep') {
+              addDeepCandidateMutation.mutate(candidateId);
             }
           }}
           onClose={() => {

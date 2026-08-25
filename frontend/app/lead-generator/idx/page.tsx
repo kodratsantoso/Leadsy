@@ -102,6 +102,26 @@ export default function IdxGeneratorPage() {
   const companies = data?.data || [];
   const meta = data?.meta;
 
+  const getPageNumbers = () => {
+    if (!meta) return [];
+    const totalPages = meta.last_page;
+    const currentPage = meta.current_page;
+    const maxVisible = 5;
+
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    const pages = [];
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       const importable = companies.filter((c: any) => !c.is_duplicate).map((c: any) => c.idx_code);
@@ -317,7 +337,7 @@ export default function IdxGeneratorPage() {
           <p className="text-sm text-muted-foreground">
             Showing page {meta.current_page} of {meta.last_page} ({meta.total} total)
           </p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
@@ -326,6 +346,20 @@ export default function IdxGeneratorPage() {
             >
               Previous
             </Button>
+            
+            {getPageNumbers().map((pageNumber) => (
+              <Button
+                key={pageNumber}
+                variant={page === pageNumber ? "default" : "outline"}
+                size="sm"
+                className="w-9 h-8 p-0"
+                onClick={() => setPage(pageNumber)}
+                disabled={isLoading}
+              >
+                {pageNumber}
+              </Button>
+            ))}
+
             <Button
               variant="outline"
               size="sm"

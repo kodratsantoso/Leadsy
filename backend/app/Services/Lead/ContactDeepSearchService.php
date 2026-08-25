@@ -53,28 +53,82 @@ class ContactDeepSearchService
         }
 
         $domain = $lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST);
-
-        // Step 1: Build search queries
-        $queries = $this->buildQueries($lead->company_name, $domain);
-
-        // Step 2 + 3: Scrape Yahoo and parse results
         $rawResults = [];
-        foreach ($queries as $query) {
-            $html = $this->scrapeYahoo($query);
-            if ($html !== null) {
-                $parsed = $this->parseYahooHtml($html, $query);
-                $rawResults = array_merge($rawResults, $parsed);
+        $queries = [];
+
+        // Step 1: Attempt AI Web Search using global search engines (Google, Bing, Yahoo)
+        try {
+            $ai = app(\App\Services\AI\AiOrchestrationService::class);
+            $userPrompt = "Find as many public LinkedIn profile pages or contact information as possible (aim for at least 25 candidates) for any staff, employees, or decision-makers working at \"{$lead->company_name}\" (domain: \"{$domain}\").
+Include ALL organizational levels: executives, managers, directors, engineers, IT staff, operations, sales, marketing, procurement, HR, finance, admin, and general staff or PICs.
+You MUST search exhaustively using Google, Bing, Yahoo, and LinkedIn directory via Web Search. Do not stop at the top results; scan deeply to list up to 30 people if found.
+Return a JSON array containing candidates under the \"candidates\" key. Format each candidate precisely as:
+{
+  \"name\": \"Full Name\",
+  \"title\": \"Job Title / Designation\",
+  \"linkedin_url\": \"https://www.linkedin.com/in/profile-id\",
+  \"snippet\": \"Short context/evidence snippet showing they work at {$lead->company_name}\"
+}
+If no profiles are found, return { \"candidates\": [] }.";
+
+            $aiResult = $ai->call('lead_contact_google_search_keyword', $userPrompt, [
+                'web_search' => true,
+                'company_name' => $lead->company_name,
+                'company_domain' => $domain,
+                'website' => $lead->website,
+                'industry' => $lead->industry?->name,
+            ]);
+
+            if ($aiResult['success'] && !empty($aiResult['content'])) {
+                // Parse AI response content
+                $parsedContent = json_decode($aiResult['content'], true);
+                if (isset($parsedContent['candidates']) && is_array($parsedContent['candidates'])) {
+                    foreach ($parsedContent['candidates'] as $candidate) {
+                        if (!empty($candidate['name']) && !empty($candidate['linkedin_url'])) {
+                            // Extract LinkedIn ID
+                            $path = parse_url($candidate['linkedin_url'], PHP_URL_PATH) ?: '';
+                            $linkedinId = '';
+                            if (preg_match('#^/in/([A-Za-z0-9._%-]+)/?$#', $path, $idMatch)) {
+                                $linkedinId = strtolower($idMatch[1]);
+                            }
+
+                            $rawResults[] = [
+                                'name' => $candidate['name'],
+                                'title' => $candidate['title'] ?? null,
+                                'linkedin_url' => $candidate['linkedin_url'],
+                                'linkedin_id' => $linkedinId ?: hash('sha256', strtolower($candidate['linkedin_url'])),
+                                'snippet' => $candidate['snippet'] ?? '',
+                                'snippet_emails' => [],
+                                'source_query' => 'AI Web Search (Google/Bing/Yahoo)',
+                                'source_type' => 'linkedin',
+                            ];
+                        }
+                    }
+                }
             }
-            // Rate limit between requests
-            usleep(self::REQUEST_DELAY_MS * 1000);
+        } catch (\Throwable $e) {
+            Log::warning("[DeepSearch] AI Web Search failed: {$e->getMessage()}. Falling back to scraping.");
+        }
+
+        // Step 2: Fallback to Yahoo scraping if AI returned empty results
+        if (empty($rawResults)) {
+            $queries = $this->buildQueries($lead->company_name, $domain);
+            foreach ($queries as $query) {
+                $html = $this->scrapeYahoo($query);
+                if ($html !== null) {
+                    $parsed = $this->parseYahooHtml($html, $query);
+                    $rawResults = array_merge($rawResults, $parsed);
+                }
+                usleep(self::REQUEST_DELAY_MS * 1000);
+            }
         }
 
         if (empty($rawResults)) {
             return [
                 'success' => true,
                 'candidates' => [],
-                'queries' => $queries,
-                'message' => 'Deep search did not discover any contact candidates. Yahoo may have returned no results or blocked the request.',
+                'queries' => $queries ?: ['AI Web Search'],
+                'message' => 'Deep search did not discover any contact candidates. Global search engines returned no profiles or blocked the request.',
             ];
         }
 
