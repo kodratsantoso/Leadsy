@@ -168,6 +168,12 @@ class AiOrchestrationService
 
             $decoded = json_decode($response, true);
 
+            if (!is_array($decoded)) {
+                $this->logRequest($model, $functionName, null, null, 0, $latencyMs, 'failure', $response, $isFallback);
+
+                return $this->fail("Malformed JSON response from AI provider (HTTP {$httpStatus}). Raw response preview: " . substr(strip_tags($response), 0, 150));
+            }
+
             if ($httpStatus < 200 || $httpStatus >= 300) {
                 $this->logRequest($model, $functionName, null, null, 0, $latencyMs, 'failure', $response, $isFallback);
 
