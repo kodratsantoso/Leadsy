@@ -850,6 +850,13 @@ export default function LeadsPage() {
     setMapsEnabled(settings.GOOGLE_MAPS_ENABLED === undefined || settings.GOOGLE_MAPS_ENABLED === true || settings.GOOGLE_MAPS_ENABLED === "true");
   }, [publicSettingsData]);
 
+  useEffect(() => {
+    // Default filter to the logged-in user if owner_id is not explicitly specified in the query parameters
+    if (user?.id && !searchParams.has("owner_id")) {
+      setOwnerFilter(String(user.id));
+    }
+  }, [user, searchParams]);
+
   const resetForm = () => {
     setFormState(emptyForm);
     setLocationSearch("");
