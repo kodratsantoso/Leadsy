@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.14.0',
-    'released_at' => '2026-07-11',
+    'version' => '1.22.0',
+    'released_at' => '2026-08-25',
     'type' => 'minor',
-    'notes' => 'Added API Documentation and Token Generator UI.',
+    'notes' => 'Added Lark Meeting Transcript Import, IDX Public Company Search, Financial Snapshots, and Enhanced AI Contact Deep Search.',
 ];
