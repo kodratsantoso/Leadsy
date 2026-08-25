@@ -167,12 +167,12 @@ function pipelineGateWarnings(params: {
 
   if (params.score == null) {
     warnings.push('Lead score must be calculated before pipeline entry.');
-  } else if (params.score < 60) {
-    warnings.push('Lead score is below the minimum pipeline threshold of 60.');
+  } else if (params.score < 40) {
+    warnings.push('Lead score is below the minimum pipeline entry threshold of 40.');
   }
 
   if (!['eligible', 'potential'].includes(params.qualificationStatus ?? '')) {
-    warnings.push('Qualification must be eligible or potential before entering the pipeline.');
+    warnings.push('Qualification status must be eligible or potential before entering the pipeline.');
   }
 
   if (params.reviewBlocked) {
