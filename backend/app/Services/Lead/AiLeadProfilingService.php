@@ -110,14 +110,14 @@ class AiLeadProfilingService
             $mapsDetails = $this->discovery->getPlaceDetails($geocodeResult['place_id']);
         }
 
-        // Merge maps details if resolved
+        // Merge maps details if resolved (only overwrite if the resolved values are non-empty)
         if ($mapsDetails) {
-            $profileData['address'] = $mapsDetails['address'] ?? $profileData['address'];
-            $profileData['phone'] = $mapsDetails['phone'] ?? $profileData['phone'];
-            $profileData['website'] = $mapsDetails['website'] ?? $profileData['website'];
-            $profileData['lat'] = $mapsDetails['lat'] ?? null;
-            $profileData['lng'] = $mapsDetails['lng'] ?? null;
-            $profileData['external_place_id'] = $mapsDetails['external_place_id'] ?? null;
+            $profileData['address'] = !empty($mapsDetails['address']) ? $mapsDetails['address'] : ($profileData['address'] ?? null);
+            $profileData['phone'] = !empty($mapsDetails['phone']) ? $mapsDetails['phone'] : ($profileData['phone'] ?? null);
+            $profileData['website'] = !empty($mapsDetails['website']) ? $mapsDetails['website'] : ($profileData['website'] ?? null);
+            $profileData['lat'] = $mapsDetails['lat'] ?? ($profileData['lat'] ?? null);
+            $profileData['lng'] = $mapsDetails['lng'] ?? ($profileData['lng'] ?? null);
+            $profileData['external_place_id'] = $mapsDetails['external_place_id'] ?? ($profileData['external_place_id'] ?? null);
         }
 
         // 4. Map to Leadsy master taxonomies
