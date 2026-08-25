@@ -66,11 +66,31 @@ class LeadQualificationService
             'no' => 'not_eligible',
         ];
 
-        $lead->update([
-            'qualification_status' => $finalQualification['classification'] === 'need_review'
-                ? 'pending'
-                : ($statusMap[$finalQualification['qualified']] ?? 'pending'),
-        ]);
+        $qualificationStatus = $finalQualification['classification'] === 'need_review'
+            ? 'pending'
+            : ($statusMap[$finalQualification['qualified']] ?? 'pending');
+
+        $updateData = [
+            'qualification_status' => $qualificationStatus,
+        ];
+
+        // Auto-Route Funnel Stage based on AI Qualification:
+        // - 'eligible' (yes) -> promote to Qualified (SQL) (ID 3)
+        // - 'potential' (maybe) -> promote to Contacted (ID 2)
+        // - 'not_eligible' (no) -> move to Nurture / Hold (ID 11)
+        if (is_null($lead->funnel_stage_id) || $lead->funnel_stage_id == 1) {
+            $stageMap = [
+                'eligible' => 3,     // Qualified (SQL)
+                'potential' => 2,    // Contacted
+                'not_eligible' => 11, // Nurture / Hold
+            ];
+            if (isset($stageMap[$qualificationStatus])) {
+                $updateData['funnel_stage_id'] = $stageMap[$qualificationStatus];
+                \Illuminate\Support\Facades\Log::info("[AutoRoute] Promoting Lead {$lead->id} to funnel stage {$stageMap[$qualificationStatus]} based on qualification: {$qualificationStatus}");
+            }
+        }
+
+        $lead->update($updateData);
 
         return $qualification;
     }

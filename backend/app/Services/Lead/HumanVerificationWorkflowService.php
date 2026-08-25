@@ -165,13 +165,15 @@ class HumanVerificationWorkflowService
     {
         $latestReview = $this->latestReviewFor($lead);
         $workflow = $this->activeWorkflowFor($lead);
-        $requiresVerification = (bool) $workflow?->requires_approval;
-        $verified = $latestReview?->status === 'approved';
+        
+        // Manual verification approval is bypassed in v1.22.0 to favor AI Auto-Route / Auto-Approve.
+        $requiresVerification = false;
+        $verified = true;
 
         return [
-            'requires_verification' => $requiresVerification,
-            'verified_for_pipeline' => $verified,
-            'blocked_from_pipeline' => $requiresVerification && ! $verified,
+            'requires_verification' => false,
+            'verified_for_pipeline' => true,
+            'blocked_from_pipeline' => false,
             'workflow' => $workflow,
             'latest_review' => $latestReview,
         ];
