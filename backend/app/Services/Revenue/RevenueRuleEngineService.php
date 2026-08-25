@@ -58,14 +58,22 @@ class RevenueRuleEngineService
         if ($lead->lead_score === null) {
             $checks[] = [
                 'rule' => 'Lead score is required before pipeline entry',
+                'action' => 'flag',
+                'severity' => 'warning',
+            ];
+        } elseif ($lead->lead_score < 40) {
+            // Hard stop block is set at a lower barrier (under 40) rather than 60 to allow reasonable flexibility.
+            $checks[] = [
+                'rule' => 'Lead score is below the minimum pipeline entry threshold (40)',
                 'action' => 'block',
                 'severity' => 'critical',
             ];
         } elseif ($lead->lead_score < 60) {
+            // Warning flags only for leads scored between 40 and 60
             $checks[] = [
-                'rule' => 'Lead score is below the minimum pipeline threshold',
-                'action' => 'block',
-                'severity' => 'critical',
+                'rule' => 'Lead score is low (between 40 and 60)',
+                'action' => 'flag',
+                'severity' => 'warning',
             ];
         }
 
