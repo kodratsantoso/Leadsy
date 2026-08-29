@@ -394,6 +394,14 @@ class LarkBaseService extends LarkService
         try {
             $lead->loadMissing(['industry', 'funnelStage', 'owner', 'presalesOwner', 'csmOwner', 'amOwner', 'contacts', 'activities', 'aiEvaluations', 'confidentialityAssessment']);
 
+            if (empty($fieldDefinitions)) {
+                try {
+                    $fieldDefinitions = $this->listFields($baseTable->app_token, $baseTable->table_id)['items'] ?? [];
+                } catch (\Exception $e) {
+                    Log::warning('Failed to list Lark Base fields during upsert', ['error' => $e->getMessage()]);
+                }
+            }
+
             $fields = self::mapLeadToBaseFields(
                 $lead,
                 $baseTable->field_mapping ?: self::DEFAULT_LEAD_FIELD_MAPPING,
@@ -815,7 +823,8 @@ class LarkBaseService extends LarkService
             ->mapWithKeys(fn ($larkField, $leadsyField) => [$larkField => $values[$leadsyField] ?? null])
             ->map(fn ($value, string $larkField) => self::normalizeLeadValueForBaseField(
                 $value,
-                self::findBaseFieldDefinition($larkField, $fieldDefinitions)
+                self::findBaseFieldDefinition($larkField, $fieldDefinitions),
+                !empty($fieldDefinitions)
             ))
             ->filter(fn ($value): bool => $value !== null)
             ->all();
@@ -836,9 +845,14 @@ class LarkBaseService extends LarkService
         return null;
     }
 
-    private static function normalizeLeadValueForBaseField($value, ?array $fieldDefinition)
+    private static function normalizeLeadValueForBaseField($value, ?array $fieldDefinition, bool $hasFieldDefinitions = false)
     {
         if ($value === null || $value === '') {
+            return null;
+        }
+
+        // If field definitions are available and this field is not in the Lark table, skip it to prevent FieldNameNotFound error
+        if ($hasFieldDefinitions && $fieldDefinition === null) {
             return null;
         }
 
