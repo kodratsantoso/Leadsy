@@ -41,38 +41,56 @@ class LarkDriveService extends LarkService
      */
     public function getOrCreateLeadFolder(string $parentFolderToken, string $leadFolderName): string
     {
-        // 1. List files in parent folder to check if it already exists
-        try {
-            $listResponse = $this->request('GET', "/drive/v1/files", [], [
-                'folder_token' => $parentFolderToken,
-                'page_size' => 100
-            ]);
+        $cacheKey = "lark_lead_folder_" . md5("{$parentFolderToken}_{$leadFolderName}");
+        $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+        if (!empty($cached)) {
+            return $cached;
+        }
 
-            $files = $listResponse['data']['files'] ?? [];
-            foreach ($files as $file) {
-                if ($file['name'] === $leadFolderName && $file['type'] === 'folder') {
-                    return $file['token'];
-                }
+        // Use atomic lock to prevent race conditions when jobs run concurrently
+        $lockKey = "lock_lark_lead_folder_" . md5("{$parentFolderToken}_{$leadFolderName}");
+        return \Illuminate\Support\Facades\Cache::lock($lockKey, 30)->get(function () use ($parentFolderToken, $leadFolderName, $cacheKey) {
+            $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+            if (!empty($cached)) {
+                return $cached;
             }
-        } catch (Exception $e) {
-            Log::warning('Failed to list files in Lark parent folder, attempting creation directly', [
-                'parent_token' => $parentFolderToken,
-                'error' => $e->getMessage()
+
+            // 1. List files in parent folder to check if it already exists
+            try {
+                $listResponse = $this->request('GET', "/drive/v1/files", [], [
+                    'folder_token' => $parentFolderToken,
+                    'page_size' => 100
+                ]);
+
+                $files = $listResponse['data']['files'] ?? [];
+                foreach ($files as $file) {
+                    if ($file['name'] === $leadFolderName && $file['type'] === 'folder') {
+                        \Illuminate\Support\Facades\Cache::put($cacheKey, $file['token'], 86400);
+                        return $file['token'];
+                    }
+                }
+            } catch (Exception $e) {
+                Log::warning('Failed to list files in Lark parent folder, attempting creation directly', [
+                    'parent_token' => $parentFolderToken,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // 2. Create the folder if not found
+            $createResponse = $this->request('POST', "/drive/v1/files/create_folder", [
+                'name' => $leadFolderName,
+                'folder_token' => $parentFolderToken
             ]);
-        }
 
-        // 2. Create the folder if not found
-        $createResponse = $this->request('POST', "/drive/v1/files/create_folder", [
-            'name' => $leadFolderName,
-            'folder_token' => $parentFolderToken
-        ]);
+            $token = $createResponse['token'] ?? $createResponse['data']['token'] ?? null;
+            if (empty($token)) {
+                throw new Exception('Failed to create Lark Drive folder for lead: ' . json_encode($createResponse));
+            }
 
-        $token = $createResponse['token'] ?? $createResponse['data']['token'] ?? null;
-        if (empty($token)) {
-            throw new Exception('Failed to create Lark Drive folder for lead: ' . json_encode($createResponse));
-        }
+            \Illuminate\Support\Facades\Cache::put($cacheKey, $token, 86400);
 
-        return $token;
+            return $token;
+        });
     }
 
     /**

@@ -47,15 +47,5 @@ class SyncLeadToLarkBaseJob implements ShouldQueue
             }
             $larkBaseService->upsertLeadWithResult($lead, $baseTable, $fieldDefinitions);
         }
-
-        // Also sync the latest PDF document if available
-        $latestDocument = \App\Models\MeetingSummaryDocument::where('lead_id', $this->leadId)
-            ->where('generation_status', 'success')
-            ->latest()
-            ->first();
-
-        if ($latestDocument && $latestDocument->transcript_id) {
-            \App\Jobs\SyncMeetingSummaryToLarkJob::dispatchSync($latestDocument->transcript_id);
-        }
     }
 }
