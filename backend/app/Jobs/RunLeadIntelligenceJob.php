@@ -10,9 +10,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Services\Revenue\RevenueIntelligenceAnalysisService;
 use App\Services\Lead\LeadAIAnalysisService;
-use App\Services\Lead\ConversionPredictionService;
-use App\Services\Lead\RevenueRuleEngineService;
-use App\Services\Audit\AuditService;
+use App\Services\Revenue\ConversionPredictionService;
+use App\Services\Revenue\RevenueRuleEngineService;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
