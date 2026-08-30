@@ -451,8 +451,8 @@ class LarkDocsRenderer
             ['text_color' => 7]
         );
 
-        // Batch send document blocks creation in chunks of max 50 blocks
-        $chunks = array_chunk($children, 50);
+        // Batch send document blocks creation in chunks of max 25 blocks
+        $chunks = array_chunk($children, 25);
         foreach ($chunks as $chunkIdx => $chunk) {
             $this->driveService->request('POST', "/docx/v1/documents/{$documentId}/blocks/{$rootBlockId}/children", [
                 'children' => $chunk,
@@ -460,7 +460,7 @@ class LarkDocsRenderer
             ]);
             // Rate limit: 3 edits/sec for a single document
             if ($chunkIdx < count($chunks) - 1) {
-                usleep(400000); // 400ms delay between chunks
+                usleep(300000); // 300ms delay between chunks
             }
         }
 

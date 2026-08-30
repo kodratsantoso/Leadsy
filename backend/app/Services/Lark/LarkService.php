@@ -139,10 +139,12 @@ class LarkService
 
             for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
                 try {
-                    $pending = Http::withHeaders([
-                        'Authorization' => 'Bearer '.$this->accessToken,
-                        'Content-Type' => 'application/json; charset=utf-8',
-                    ]);
+                    $pending = Http::timeout(60)
+                        ->connectTimeout(15)
+                        ->withHeaders([
+                            'Authorization' => 'Bearer '.$this->accessToken,
+                            'Content-Type' => 'application/json; charset=utf-8',
+                        ]);
 
                     if (!empty($query)) {
                         $urlWithQuery = $url . (parse_url($url, PHP_URL_QUERY) ? '&' : '?') . http_build_query($query);
@@ -204,8 +206,10 @@ class LarkService
 
                 } catch (Exception $e) {
                     $isRpcError = (stripos($e->getMessage(), 'RpcError') !== false || stripos($e->getMessage(), '1255002') !== false);
-                    if ($isRpcError && $attempt < $maxRetries) {
-                        Log::warning("Lark API request failed with RpcError (attempt {$attempt}/{$maxRetries}). Retrying in {$retryDelay}s... Error: " . $e->getMessage());
+                    $isTimeout = (stripos($e->getMessage(), 'timed out') !== false || stripos($e->getMessage(), 'cURL error 28') !== false);
+                    
+                    if (($isRpcError || $isTimeout) && $attempt < $maxRetries) {
+                        Log::warning("Lark API request failed with retryable error (attempt {$attempt}/{$maxRetries}). Retrying in {$retryDelay}s... Error: " . $e->getMessage());
                         usleep((int)($retryDelay * 1000000));
                         $retryDelay *= 2.0;
                         continue;

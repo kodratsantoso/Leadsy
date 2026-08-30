@@ -227,54 +227,56 @@ class SyncMeetingSummaryToLarkJob implements ShouldQueue
             $docFieldId = $mapping['doc_field_id'] ?? null;
             $docFieldName = $mapping['doc_field_name'] ?? null;
             if ($docFieldId || $docFieldName) {
-                $targetField = $fieldsById[$docFieldId] ?? $fieldsByName[$docFieldName] ?? null;
-                if (!$targetField) {
-                    throw new Exception("Meeting Summary Lark Docs mapping is no longer valid. The configured Lark Base field could not be found. Please review Lark Integration Settings.");
-                }
+                try {
+                    $targetField = $fieldsById[$docFieldId] ?? $fieldsByName[$docFieldName] ?? null;
+                    if ($targetField) {
+                        $docId = $transcript->lark_doc_id;
+                        $docUrl = $transcript->lark_doc_url;
 
-                $docId = $transcript->lark_doc_id;
-                $docUrl = $transcript->lark_doc_url;
+                        $needCreation = empty($docId);
 
-                $needCreation = empty($docId);
+                        if (!$needCreation) {
+                            try {
+                                // Verify existence by fetching root doc info
+                                $larkDriveService->request('GET', "/docx/v1/documents/{$docId}");
+                            } catch (Exception $e) {
+                                if (str_contains($e->getMessage(), 'resource deleted') || str_contains($e->getMessage(), '1770003')) {
+                                    $needCreation = true;
+                                } else {
+                                    throw $e;
+                                }
+                            }
+                        }
 
-                if (!$needCreation) {
-                    try {
-                        // Verify existence by fetching root doc info
-                        $larkDriveService->request('GET', "/docx/v1/documents/{$docId}");
-                    } catch (Exception $e) {
-                        if (str_contains($e->getMessage(), 'resource deleted') || str_contains($e->getMessage(), '1770003')) {
-                            $needCreation = true;
+                        if ($needCreation) {
+                            $meetingDate = $transcript->created_at ? $transcript->created_at->format('Y-m-d') : date('Y-m-d');
+                            $leadDisplayName = $lead->company_name ?? $lead->name ?? 'Unknown Lead';
+                            $docTitle = "Meeting Summary | {$leadDisplayName} | {$transcript->meeting_type} | {$meetingDate}";
+                            $docData = $larkDriveService->createDoc($folderToken, $docTitle);
+                            $docId = $docData['document_id'];
+                            $docUrl = $docData['url'];
+
+                            // Persist document info immediately
+                            $transcript->lark_doc_id = $docId;
+                            $transcript->lark_doc_url = $docUrl;
+                            $transcript->save();
+                        }
+
+                        $renderer = new \App\Services\Lark\LarkDocsRenderer($larkDriveService);
+                        $renderer->renderDoc($docId, $transcript, $lead, $imgFileToken ?? null);
+
+                        // If Bitable field is type 15 (Url), format payload, otherwise write text
+                        if ((int) ($targetField['type'] ?? 0) === 15) {
+                            $updateFields[$targetField['field_name']] = [
+                                'link' => $docUrl,
+                                'text' => 'View Lark Doc Summary'
+                            ];
                         } else {
-                            throw $e;
+                            $updateFields[$targetField['field_name']] = $docUrl;
                         }
                     }
-                }
-
-                if ($needCreation) {
-                    $meetingDate = $transcript->created_at ? $transcript->created_at->format('Y-m-d') : date('Y-m-d');
-                    $leadDisplayName = $lead->company_name ?? $lead->name ?? 'Unknown Lead';
-                    $docTitle = "Meeting Summary | {$leadDisplayName} | {$transcript->meeting_type} | {$meetingDate}";
-                    $docData = $larkDriveService->createDoc($folderToken, $docTitle);
-                    $docId = $docData['document_id'];
-                    $docUrl = $docData['url'];
-
-                    // Persist document info immediately
-                    $transcript->lark_doc_id = $docId;
-                    $transcript->lark_doc_url = $docUrl;
-                    $transcript->save();
-                }
-
-                $renderer = new \App\Services\Lark\LarkDocsRenderer($larkDriveService);
-                $renderer->renderDoc($docId, $transcript, $lead, $imgFileToken ?? null);
-
-                // If Bitable field is type 15 (Url), format payload, otherwise write text
-                if ((int) ($targetField['type'] ?? 0) === 15) {
-                    $updateFields[$targetField['field_name']] = [
-                        'link' => $docUrl,
-                        'text' => 'View Lark Doc Summary'
-                    ];
-                } else {
-                    $updateFields[$targetField['field_name']] = $docUrl;
+                } catch (Exception $e) {
+                    Log::warning('Lark Doc generation/rendering encountered an issue, proceeding with attachment sync: ' . $e->getMessage());
                 }
             }
 
