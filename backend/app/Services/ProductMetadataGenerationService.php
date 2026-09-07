@@ -100,8 +100,12 @@ class ProductMetadataGenerationService
     private function fetchUrlContent(string $url): ?string
     {
         try {
-            $response = Http::timeout(15)
-                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (compatible; LeadsyBot/1.0)'])
+            $response = Http::timeout(20)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language' => 'en-US,en;q=0.9,id;q=0.8',
+                ])
                 ->get($url);
 
             if (! $response->successful()) {
@@ -126,26 +130,60 @@ class ProductMetadataGenerationService
 
     private function extractTextFromHtml(string $html): string
     {
-        // Remove scripts, styles, and hidden elements
-        $html = preg_replace('/<(script|style|noscript|iframe)[^>]*>.*?<\/\1>/is', '', $html);
-        $html = preg_replace('/<!--.*?-->/s', '', $html);
+        $metaPieces = [];
 
-        // Extract meta description for extra context
-        $metaDesc = '';
-        if (preg_match('/<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']/i', $html, $m)) {
-            $metaDesc = $m[1]."\n\n";
+        // 1. Page Title
+        if (preg_match('/<title[^>]*>(.*?)<\/title>/is', $html, $m)) {
+            $title = trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            if (!empty($title)) {
+                $metaPieces[] = "PAGE TITLE: {$title}";
+            }
         }
 
-        // Strip remaining tags and decode entities
-        $text = strip_tags($html);
+        // 2. Meta description & Open Graph description
+        if (preg_match('/<meta[^>]+(?:name|property)=["\'](?:description|og:description)["\'][^>]+content=["\'](.*?)["\']/i', $html, $m)) {
+            $desc = trim(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            if (!empty($desc)) {
+                $metaPieces[] = "META DESCRIPTION: {$desc}";
+            }
+        }
+
+        // 3. Open Graph title & Keywords
+        if (preg_match('/<meta[^>]+(?:name|property)=["\'](?:og:title|keywords)["\'][^>]+content=["\'](.*?)["\']/i', $html, $m)) {
+            $kw = trim(html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            if (!empty($kw)) {
+                $metaPieces[] = "KEYWORDS/OG: {$kw}";
+            }
+        }
+
+        // 4. Extract structured JSON-LD (e.g. SoftwareApplication, Organization, Product)
+        if (preg_match_all('/<script[^>]+type=["\']application\/ld\+json["\'][^>]*>(.*?)<\/script>/is', $html, $ldMatches)) {
+            foreach ($ldMatches[1] as $ldJson) {
+                $decoded = json_decode(trim($ldJson), true);
+                if ($decoded && is_array($decoded)) {
+                    $jsonSummary = json_encode($decoded, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    if ($jsonSummary) {
+                        $metaPieces[] = "STRUCTURED DATA: " . mb_substr($jsonSummary, 0, 1500);
+                    }
+                }
+            }
+        }
+
+        // 5. Remove scripts, styles, iframes, comments
+        $cleanHtml = preg_replace('/<(script|style|noscript|iframe)[^>]*>.*?<\/\1>/is', '', $html);
+        $cleanHtml = preg_replace('/<!--.*?-->/s', '', $cleanHtml);
+
+        // 6. Strip remaining tags and decode entities
+        $text = strip_tags($cleanHtml);
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        // Collapse whitespace
+        // 7. Collapse whitespace
         $text = preg_replace('/[ \t]+/', ' ', $text);
         $text = preg_replace('/\n{3,}/', "\n\n", $text);
-        $text = trim($metaDesc.$text);
 
-        return mb_substr($text, 0, self::MAX_CONTENT_CHARS);
+        $combined = implode("\n\n", array_filter(array_merge($metaPieces, [trim($text)])));
+
+        return mb_substr($combined, 0, self::MAX_CONTENT_CHARS);
     }
 
     private function extractPdfText(string $path): ?string

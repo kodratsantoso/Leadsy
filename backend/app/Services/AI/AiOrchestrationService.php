@@ -60,7 +60,8 @@ class AiOrchestrationService
             }
 
             for ($attempt = 0; $attempt <= ($route->max_retries ?? 1); $attempt++) {
-                $result = $this->tryModel($route, $functionName, $promptContent, $context, $route->timeout_seconds, $isFallback);
+                $effectiveTimeout = max((int) ($route->timeout_seconds ?: 60), 60);
+                $result = $this->tryModel($route, $functionName, $promptContent, $context, $effectiveTimeout, $isFallback);
                 if ($result['success']) {
                     $this->putCachedResult($functionName, $promptContent, $context, $route->cache_ttl_minutes, $result);
 
@@ -145,12 +146,15 @@ class AiOrchestrationService
             $baseUrl = $provider->base_url ?? $this->defaultBaseUrl($provider->slug);
             $body = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $route->max_tokens ?? $provider->max_tokens_default, $context);
 
+            $effectiveTimeout = max($timeout, (int) ($provider->timeout_seconds ?? 60), 60);
+
             $ch = curl_init();
             curl_setopt_array($ch, [
                 CURLOPT_URL => $this->chatEndpoint($provider->provider_type ?: $provider->slug, $baseUrl, $model->name),
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST => true,
-                CURLOPT_TIMEOUT => $timeout,
+                CURLOPT_TIMEOUT => $effectiveTimeout,
+                CURLOPT_CONNECTTIMEOUT => 15,
                 CURLOPT_POSTFIELDS => json_encode($body),
                 CURLOPT_HTTPHEADER => $this->headers($provider->provider_type ?: $provider->slug, $apiKey),
             ]);
