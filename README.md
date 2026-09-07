@@ -6,8 +6,9 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 Current release: **v1.23.0** — 2026-09-07
 
-## What's New in v1.23.0 (BytePlus ModelArk AI Provider Integration)
+## What's New in v1.23.0 (BytePlus ModelArk & One-Click AI Pre-Meeting Screening)
 
+- **One-Click Superadmin AI Pre-Meeting Screening & Qualification Engine** — Added a 5-stage sequential AI screening pipeline (`PreMeetingAiScreeningOrchestratorService`) to evaluate whether leads are genuinely eligible for sales meetings before scheduling. Features include single-lead execution, selected-lead batch processing, global "Screen All Unassessed Leads" background queue dispatch, and strict superadmin role-gating.
 - **BytePlus ModelArk AI Provider** — Added native support for BytePlus ModelArk (`https://docs.byteplus.com/en/docs/ModelArk/1330310`) with full OpenAI-compatible protocol orchestration.
 - **Model Catalog & Dedicated Endpoints** — Pre-populated popular BytePlus LLMs (Doubao 1.5 Pro/Lite/Vision, DeepSeek R1/V3, Skylark 2 Pro, GLM 4, Qwen 2.5 72B, Moonshot v1) with support for custom BytePlus Model Endpoint IDs (`ep-*`).
 - **Flexible Region & Coding Plan Endpoints** — Integrated support for Standard API endpoints (`https://ark.ap-southeast.bytepluses.com/api/v3` or `https://ark.eu-west.bytepluses.com/api/v3`) and ModelArk Coding Plan (`https://ark.ap-southeast.bytepluses.com/api/coding/v3`).

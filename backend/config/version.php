@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.22.0',
-    'released_at' => '2026-08-25',
+    'version' => '1.23.0',
+    'released_at' => '2026-09-07',
     'type' => 'minor',
-    'notes' => 'Added Lark Meeting Transcript Import, IDX Public Company Search, Financial Snapshots, and Enhanced AI Contact Deep Search.',
+    'notes' => 'Added BytePlus ModelArk AI Provider Integration and Superadmin One-Click AI Pre-Meeting Screening & Qualification Engine.',
 ];

@@ -1,7 +1,7 @@
 {
-  "version": "1.21.0",
-  "codename": "ps-psa-lite",
-  "last_updated": "2026-07-30",
+  "version": "1.23.0",
+  "codename": "byteplus-premeeting-screener",
+  "last_updated": "2026-09-07",
   "type": "minor",
-  "notes": "Added Professional Services PSA Lite execution tracking."
+  "notes": "Added BytePlus ModelArk AI Provider Integration and Superadmin One-Click AI Pre-Meeting Screening & Qualification Engine."
 }
