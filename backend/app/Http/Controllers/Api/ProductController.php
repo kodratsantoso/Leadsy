@@ -11,6 +11,7 @@ use App\Services\ProductMetadataGenerationService;
 use App\Services\ProductQuestionGenerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {

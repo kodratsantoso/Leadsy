@@ -212,7 +212,8 @@ export default function ProductDetailPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to upload product logo");
+        const msg = err.errors?.logo?.[0] || err.message || err.error || "Failed to upload product logo";
+        throw new Error(msg);
       }
       return res.json();
     },
