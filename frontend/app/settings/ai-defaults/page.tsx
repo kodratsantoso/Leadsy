@@ -563,6 +563,43 @@ export default function AiDefaultsPage() {
     onSuccess: (payload) => setCompiledPrompt(payload.data.compiled_prompt),
   });
 
+  const handleProviderTypeChange = (newType: string) => {
+    setProviderForm((current) => {
+      let updatedBaseUrl = current.base_url;
+      let updatedName = current.name;
+      let updatedSlug = current.slug;
+      let updatedDefaultModel = current.default_model;
+
+      if (!current.id) {
+        if (newType === "byteplus") {
+          if (!updatedName || updatedName === "OpenAI" || updatedName === "Anthropic" || updatedName === "Google Gemini") updatedName = "BytePlus ModelArk";
+          if (!updatedSlug || updatedSlug === "openai" || updatedSlug === "anthropic" || updatedSlug === "google") updatedSlug = "byteplus";
+          if (!updatedBaseUrl || updatedBaseUrl.includes("openai.com") || updatedBaseUrl.includes("anthropic.com") || updatedBaseUrl.includes("googleapis.com")) {
+            updatedBaseUrl = "https://ark.ap-southeast.bytepluses.com/api/v3";
+          }
+          if (!updatedDefaultModel) updatedDefaultModel = "doubao-1.5-pro-32k";
+        } else if (newType === "openai") {
+          if (!updatedBaseUrl || updatedBaseUrl.includes("bytepluses.com")) updatedBaseUrl = "https://api.openai.com/v1";
+        } else if (newType === "anthropic") {
+          if (!updatedBaseUrl || updatedBaseUrl.includes("bytepluses.com")) updatedBaseUrl = "https://api.anthropic.com/v1";
+        } else if (newType === "gemini") {
+          if (!updatedBaseUrl || updatedBaseUrl.includes("bytepluses.com")) updatedBaseUrl = "https://generativelanguage.googleapis.com/v1beta";
+        } else if (newType === "openrouter") {
+          if (!updatedBaseUrl || updatedBaseUrl.includes("bytepluses.com")) updatedBaseUrl = "https://openrouter.ai/api/v1";
+        }
+      }
+
+      return {
+        ...current,
+        provider_type: newType,
+        name: updatedName,
+        slug: updatedSlug,
+        base_url: updatedBaseUrl,
+        default_model: updatedDefaultModel,
+      };
+    });
+  };
+
   const openCreateProvider = () => {
     setProviderForm(emptyProviderForm);
     setProviderError("");
@@ -820,7 +857,11 @@ export default function AiDefaultsPage() {
                           </div>
                           {addingModelFor === provider.id && (
                             <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-background p-4 md:grid-cols-[1fr_180px_auto]">
-                              <Input value={newModelName} onChange={(e) => setNewModelName(e.target.value)} placeholder="e.g. gpt-4.1-mini" />
+                              <Input
+                                value={newModelName}
+                                onChange={(e) => setNewModelName(e.target.value)}
+                                placeholder={provider.slug === "byteplus" ? "e.g. doubao-1.5-pro-32k, deepseek-r1, or ep-..." : "e.g. gpt-4.1-mini"}
+                              />
                               <Select value={newModelTier} onChange={(e) => setNewModelTier(e.target.value)}>
                                 <option value="low">Low cost</option>
                                 <option value="medium">Medium cost</option>
@@ -1361,10 +1402,11 @@ export default function AiDefaultsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <Input placeholder="Provider name" value={providerForm.name} onChange={(e) => setProviderForm((current) => ({ ...current, name: e.target.value }))} />
               <Input placeholder="Slug" value={providerForm.slug} onChange={(e) => setProviderForm((current) => ({ ...current, slug: e.target.value }))} disabled={Boolean(providerForm.id)} />
-              <Select value={providerForm.provider_type} onChange={(e) => setProviderForm((current) => ({ ...current, provider_type: e.target.value }))}>
+              <Select value={providerForm.provider_type} onChange={(e) => handleProviderTypeChange(e.target.value)}>
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic / Claude</option>
                 <option value="gemini">Google Gemini</option>
+                <option value="byteplus">BytePlus ModelArk</option>
                 <option value="openrouter">OpenRouter</option>
                 <option value="custom">Custom / Local</option>
               </Select>
@@ -1372,11 +1414,18 @@ export default function AiDefaultsPage() {
                 <option value="active">Enabled</option>
                 <option value="inactive">Disabled</option>
               </Select>
-              <Input placeholder="Base URL" value={providerForm.base_url} onChange={(e) => setProviderForm((current) => ({ ...current, base_url: e.target.value }))} />
+              <div className="md:col-span-2 space-y-1">
+                <Input placeholder="Base URL" value={providerForm.base_url} onChange={(e) => setProviderForm((current) => ({ ...current, base_url: e.target.value }))} />
+                {providerForm.provider_type === "byteplus" && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Default: <code className="text-foreground">https://ark.ap-southeast.bytepluses.com/api/v3</code> (Standard) or <code className="text-foreground">https://ark.ap-southeast.bytepluses.com/api/coding/v3</code> (Coding Plan).
+                  </p>
+                )}
+              </div>
               <Input placeholder={providerForm.id ? "New API key (leave blank to keep current)" : "API key"} value={providerForm.api_key} onChange={(e) => setProviderForm((current) => ({ ...current, api_key: e.target.value }))} />
               <Input placeholder="Organization ID" value={providerForm.organization_id} onChange={(e) => setProviderForm((current) => ({ ...current, organization_id: e.target.value }))} />
               <Input placeholder="Project ID" value={providerForm.project_id} onChange={(e) => setProviderForm((current) => ({ ...current, project_id: e.target.value }))} />
-              <Input placeholder="Default model" value={providerForm.default_model} onChange={(e) => setProviderForm((current) => ({ ...current, default_model: e.target.value }))} />
+              <Input placeholder="Default model (e.g. doubao-1.5-pro-32k or ep-...)" value={providerForm.default_model} onChange={(e) => setProviderForm((current) => ({ ...current, default_model: e.target.value }))} />
               <Select value={providerForm.cost_sensitivity} onChange={(e) => setProviderForm((current) => ({ ...current, cost_sensitivity: e.target.value }))}>
                 <option value="balanced">Balanced</option>
                 <option value="cost_first">Cost first</option>

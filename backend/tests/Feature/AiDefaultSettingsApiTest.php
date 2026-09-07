@@ -39,10 +39,13 @@ class AiDefaultSettingsApiTest extends TestCase
         $viewer = $this->makeUser('viewer');
         $admin = $this->makeUser('admin');
 
-        $this->actingAs($viewer)
+        $response = $this->actingAs($viewer)
             ->getJson('/api/settings/ai-default')
-            ->assertOk()
-            ->assertJsonPath('data.providers.0.api_key_masked', 'sk-****-****-1234');
+            ->assertOk();
+
+        $providerData = collect($response->json('data.providers'))->firstWhere('id', $provider->id);
+        $this->assertNotNull($providerData);
+        $this->assertSame('sk-****-****-1234', $providerData['api_key_masked']);
 
         $this->actingAs($viewer)
             ->postJson("/api/settings/ai-default/providers/{$provider->id}/reveal-key")

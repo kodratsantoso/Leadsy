@@ -99,6 +99,26 @@ class AiProviderSeeder extends Seeder
                     ['name' => 'deepseek-reasoner', 'cost_tier' => 'low', 'context_window' => 64000],
                 ],
             ],
+            [
+                'name' => 'BytePlus ModelArk',
+                'slug' => 'byteplus',
+                'provider_type' => 'byteplus',
+                'base_url' => 'https://ark.ap-southeast.bytepluses.com/api/v3',
+                'api_key_encrypted' => 'PLACEHOLDER_CONFIGURE_IN_SETTINGS',
+                'status' => 'inactive',
+                'default_model' => 'doubao-1.5-pro-32k',
+                'models' => [
+                    ['name' => 'doubao-1.5-pro-32k',        'cost_tier' => 'medium', 'context_window' => 32768],
+                    ['name' => 'doubao-1.5-lite-32k',       'cost_tier' => 'low',    'context_window' => 32768],
+                    ['name' => 'doubao-1.5-vision-pro-32k', 'cost_tier' => 'medium', 'context_window' => 32768],
+                    ['name' => 'deepseek-r1',               'cost_tier' => 'medium', 'context_window' => 64000],
+                    ['name' => 'deepseek-v3',               'cost_tier' => 'low',    'context_window' => 64000],
+                    ['name' => 'skylark2-pro-4k',           'cost_tier' => 'medium', 'context_window' => 4096],
+                    ['name' => 'glm-4-9b-chat',             'cost_tier' => 'low',    'context_window' => 32768],
+                    ['name' => 'qwen2.5-72b-instruct',      'cost_tier' => 'medium', 'context_window' => 32768],
+                    ['name' => 'moonshot-v1-8k',            'cost_tier' => 'low',    'context_window' => 8192],
+                ],
+            ],
         ];
 
         foreach ($providers as $providerData) {

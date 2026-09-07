@@ -4,7 +4,14 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.22.0** — 2026-08-01
+Current release: **v1.23.0** — 2026-09-07
+
+## What's New in v1.23.0 (BytePlus ModelArk AI Provider Integration)
+
+- **BytePlus ModelArk AI Provider** — Added native support for BytePlus ModelArk (`https://docs.byteplus.com/en/docs/ModelArk/1330310`) with full OpenAI-compatible protocol orchestration.
+- **Model Catalog & Dedicated Endpoints** — Pre-populated popular BytePlus LLMs (Doubao 1.5 Pro/Lite/Vision, DeepSeek R1/V3, Skylark 2 Pro, GLM 4, Qwen 2.5 72B, Moonshot v1) with support for custom BytePlus Model Endpoint IDs (`ep-*`).
+- **Flexible Region & Coding Plan Endpoints** — Integrated support for Standard API endpoints (`https://ark.ap-southeast.bytepluses.com/api/v3` or `https://ark.eu-west.bytepluses.com/api/v3`) and ModelArk Coding Plan (`https://ark.ap-southeast.bytepluses.com/api/coding/v3`).
+- **AI Defaults UI Enhancements** — Enhanced Settings → AI Defaults with provider auto-filling, endpoint tips, connection health checks, and global feature routing support.
 
 ## What's New in v1.22.0 (Lark Meeting Transcript Import)
 
