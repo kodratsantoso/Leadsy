@@ -99,11 +99,11 @@ export function PreMeetingScreeningModal({
               <Zap className="h-8 w-8 text-[var(--brand)] shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-semibold text-foreground">5-Stage Sequential Pipeline</h4>
+                  <h4 className="text-sm font-semibold text-foreground">Complete AI Pre-Meeting Pipeline</h4>
                   <Badge variant="brand">Superadmin</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Evaluates entity legitimacy, matches ICP & product fit, inspects inbound buying intent, assigns BANTC eligibility (Eligible / Potential / Unqualified), and generates a pre-meeting strategy brief.
+                  Sequentially runs Deep AI Profiling (Brand, Contact, Taxonomy), Company Legal & IDX Verification, AI Profiling & Strategy, ICP & Product Fit Matching, Lead Scoring, BANTC Qualification (Eligible / Potential / Unqualified), and generates a Pre-Meeting Strategy Brief.
                 </p>
               </div>
             </div>

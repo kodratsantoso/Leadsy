@@ -9,7 +9,9 @@ use App\Services\AI\AiOrchestrationService;
 use App\Services\Enrichment\LeadEnrichmentAiOrchestrator;
 use App\Services\Enrichment\LeadMasterDataMapperService;
 use App\Services\Lead\AiLeadProfilingService;
+use App\Services\Lead\CompanyVerificationService;
 use App\Services\Lead\LeadDiscoveryService;
+use App\Services\Lead\LeadProfilingAndStrategyService;
 use App\Services\Lead\LeadQualificationService;
 use App\Services\Lead\LeadScoringService;
 use App\Services\Revenue\ICPMatchingService;
@@ -25,6 +27,8 @@ class PreMeetingAiScreeningOrchestratorService
         private readonly LeadMasterDataMapperService $mapper,
         private readonly LeadEnrichmentAiOrchestrator $enrichmentOrchestrator,
         private readonly AiLeadProfilingService $profilingService,
+        private readonly CompanyVerificationService $companyVerificationService,
+        private readonly LeadProfilingAndStrategyService $profilingStrategyService,
         private readonly ICPMatchingService $icpMatchingService,
         private readonly LeadScoringService $scoringService,
         private readonly LeadQualificationService $qualificationService,
@@ -67,8 +71,26 @@ class PreMeetingAiScreeningOrchestratorService
             }
 
             // =========================================================================
-            // STAGE 2: ICP & Solution Matching
+            // STAGE 1.5: Company Verification (Legal Entity, IDX Listing & Operational Evidence)
             // =========================================================================
+            try {
+                $this->companyVerificationService->verifyLead($lead);
+                $lead = $lead->fresh();
+                $stagesExecuted[] = 'company_verification';
+            } catch (\Throwable $e) {
+                Log::warning("[PreMeetingAiScreening] Company verification warning for Lead {$lead->id}: " . $e->getMessage());
+            }
+
+            // =========================================================================
+            // STAGE 2: AI Profiling & Strategy + ICP & Solution Matching
+            // =========================================================================
+            try {
+                $this->profilingStrategyService->profileAndStrategize($lead, $userId);
+                $stagesExecuted[] = 'profiling_and_strategy';
+            } catch (\Throwable $e) {
+                Log::warning("[PreMeetingAiScreening] Profiling & Strategy warning for Lead {$lead->id}: " . $e->getMessage());
+            }
+
             $icpResult = null;
             try {
                 $icpResult = $this->icpMatchingService->evaluateLead($lead);
@@ -120,7 +142,7 @@ class PreMeetingAiScreeningOrchestratorService
             LeadActivity::create([
                 'lead_id' => $lead->id,
                 'activity_type' => 'system',
-                'description' => "AI Pre-Meeting Screening completed by Superadmin: Qualification [{$qualificationStatus}], Score [{$lead->lead_score}]",
+                'description' => "AI Pre-Meeting Screening completed by Superadmin: Verification [{$lead->verifications()->latest()->first()?->legal_status}], Qualification [{$qualificationStatus}], Score [{$lead->lead_score}]",
                 'activity_date' => Carbon::now(),
             ]);
 
