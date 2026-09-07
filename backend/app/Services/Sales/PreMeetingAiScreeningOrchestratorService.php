@@ -8,6 +8,7 @@ use App\Models\LeadPreMeetingBrief;
 use App\Services\AI\AiOrchestrationService;
 use App\Services\Enrichment\LeadEnrichmentAiOrchestrator;
 use App\Services\Enrichment\LeadMasterDataMapperService;
+use App\Services\Lead\AiLeadProfilingService;
 use App\Services\Lead\LeadDiscoveryService;
 use App\Services\Lead\LeadQualificationService;
 use App\Services\Lead\LeadScoringService;
@@ -23,6 +24,7 @@ class PreMeetingAiScreeningOrchestratorService
         private readonly LeadDiscoveryService $discovery,
         private readonly LeadMasterDataMapperService $mapper,
         private readonly LeadEnrichmentAiOrchestrator $enrichmentOrchestrator,
+        private readonly AiLeadProfilingService $profilingService,
         private readonly ICPMatchingService $icpMatchingService,
         private readonly LeadScoringService $scoringService,
         private readonly LeadQualificationService $qualificationService,
@@ -48,31 +50,20 @@ class PreMeetingAiScreeningOrchestratorService
         try {
             // =========================================================================
             // STAGE 1: Entity Legitimacy, Deep Profiling & Standardization
+            // (Discovers Brand, Website, Phone, Email, HQ Address, Industry, Sub-Industry,
+            // Business Category, Company Size, Customer Story & Coordinates)
             // =========================================================================
-            if (empty($lead->industry_id) || empty($lead->business_category_id) || empty($lead->company_size_estimate) || empty($lead->address)) {
-                $placeDetails = null;
-                if (!empty($lead->external_place_id)) {
-                    $placeDetails = $this->discovery->getPlaceDetails($lead->external_place_id);
-                } elseif (!empty($lead->company_name)) {
-                    $geo = $this->discovery->geocodeArea($lead->company_name);
-                    if (!empty($geo['place_id'])) {
-                        $placeDetails = $this->discovery->getPlaceDetails($geo['place_id']);
-                        if ($placeDetails) {
-                            $lead->update([
-                                'external_place_id' => $placeDetails['external_place_id'] ?? null,
-                                'address' => $lead->address ?: ($placeDetails['address'] ?? null),
-                                'phone' => $lead->phone ?: ($placeDetails['phone'] ?? null),
-                                'website' => $lead->website ?: ($placeDetails['website'] ?? null),
-                                'lat' => $lead->lat ?: ($placeDetails['lat'] ?? null),
-                                'lng' => $lead->lng ?: ($placeDetails['lng'] ?? null),
-                            ]);
-                        }
-                    }
-                }
-
-                $this->enrichmentOrchestrator->runEnrichment($lead, $placeDetails);
+            try {
+                $this->profilingService->profileAndEnrichLead($lead);
                 $lead = $lead->fresh();
                 $stagesExecuted[] = 'profiling_and_enrichment';
+            } catch (\Throwable $e) {
+                Log::warning("[PreMeetingAiScreening] Deep profiling warning for Lead {$lead->id}: " . $e->getMessage());
+                if (empty($lead->industry_id) || empty($lead->business_category_id) || empty($lead->company_size_estimate) || empty($lead->address)) {
+                    $this->enrichmentOrchestrator->runEnrichment($lead);
+                    $lead = $lead->fresh();
+                    $stagesExecuted[] = 'profiling_and_enrichment';
+                }
             }
 
             // =========================================================================

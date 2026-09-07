@@ -189,6 +189,35 @@ class AIPromptTemplateService
     protected function defaultTemplates(): array
     {
         return [
+            'lead_ai_profiling' => $this->featureTemplate(
+                'Lead AI Company Profiling',
+                'Deeply research, discover, profile, and standardize comprehensive B2B company intelligence for an Indonesian business or enterprise.',
+                'You are an expert commercial enterprise researcher. Given the company name "{{company_name}}", search and extract:
+1. Legal entity company name and commercial brand name (e.g. PT X, Brand Y).
+2. Primary official website domain / URL.
+3. Official corporate contact details (HQ phone number, general/corporate contact email, complete street address).
+4. Most suitable Industry from available list: [{{available_industries}}]
+5. Most suitable Sub-Industry from available list: [{{available_sub_industries}}]
+6. Most suitable Business Category from available list: [{{available_business_categories}}]
+7. Estimated Company Size / Employee Range (choose from: 1-10, 11-50, 51-200, 201-500, 501-1000, 1001-5000, 5000+).
+8. Brief customer story / business background overview.
+9. Sources / URLs found.',
+                'Return ONLY a valid raw JSON object with no markdown fences:
+{
+  "company_name": "Full Legal Company Name",
+  "brand": "Commercial Brand Name",
+  "website": "https://www.example.com",
+  "phone": "+62...",
+  "email": "contact@example.com",
+  "address": "Complete HQ Address",
+  "industry": "Selected Industry",
+  "sub_industry": "Selected Sub-Industry",
+  "business_category": "Selected Business Category",
+  "company_size": "51-200",
+  "customer_story": "2-3 sentences overview of their core business and operations in Indonesia",
+  "sources": ["https://..."]
+}'
+            ),
             'lead_analysis' => $this->featureTemplate(
                 'Lead Analysis',
                 'Analyze a lead/company profile and produce concise sales intelligence for Indonesian B2B users.',
