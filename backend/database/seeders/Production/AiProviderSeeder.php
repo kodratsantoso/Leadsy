@@ -128,22 +128,17 @@ class AiProviderSeeder extends Seeder
             $provider = AiProvider::where('slug', $providerData['slug'])->first();
 
             if ($provider) {
+                // Preserve user-configured settings (default_model, base_url, timeout_seconds, retry_limit, status, api_key_encrypted)
                 $provider->forceFill(collect($providerData)
-                    ->except(['api_key_encrypted', 'status'])
+                    ->except(['api_key_encrypted', 'status', 'default_model', 'base_url', 'timeout_seconds', 'retry_limit'])
                     ->all())->save();
             } else {
                 $provider = AiProvider::create($providerData);
             }
 
-            $currentModelNames = collect($models)->pluck('name')->toArray();
-            
-            // Remove obsolete models that are no longer supported
-            AiModel::where('ai_provider_id', $provider->id)
-                ->whereNotIn('name', $currentModelNames)
-                ->delete();
-
+            // Seed/update standard models without deleting user-created custom model endpoints
             foreach ($models as $model) {
-                AiModel::updateOrCreate(
+                AiModel::firstOrCreate(
                     ['ai_provider_id' => $provider->id, 'name' => $model['name']],
                     array_merge($model, ['status' => 'active'])
                 );

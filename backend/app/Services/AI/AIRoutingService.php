@@ -45,12 +45,17 @@ class AIRoutingService
         'meeting_summary' => 'Meeting Summary Generation',
     ];
 
-    public function listRoutes(): Collection
+    public function listRoutes(?string $featureName = null): Collection
     {
-        return AiFeatureRoute::with(['aiModel.provider'])
-            ->where('feature_name', 'global')
-            ->orderBy('priority')
-            ->get();
+        $query = AiFeatureRoute::with(['aiModel.provider'])
+            ->orderBy('feature_name')
+            ->orderBy('priority');
+
+        if ($featureName) {
+            $query->where('feature_name', $featureName);
+        }
+
+        return $query->get();
     }
 
     public function featureCatalog(): array
@@ -85,7 +90,7 @@ class AIRoutingService
                 ]);
             }
 
-            return $this->listRoutes()->where('feature_name', $featureName)->values();
+            return $this->listRoutes($featureName);
         });
     }
 }
