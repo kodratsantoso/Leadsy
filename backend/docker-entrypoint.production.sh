@@ -146,7 +146,10 @@ php artisan config:cache  || log "WARNING: config:cache failed (non-fatal)."
 php artisan route:cache   || log "WARNING: route:cache failed (non-fatal)."
 php artisan view:cache    || log "WARNING: view:cache failed (non-fatal)."
 
-# ── 10. Start server or custom command ────────────────────────────────────────
+# ── 10. Start queue worker in background & Start server ────────────────────────
+log "Starting background queue worker..."
+php artisan queue:work --sleep=3 --tries=3 --timeout=180 &
+
 if [ "$#" -gt 0 ]; then
     log "Running command: $*"
     exec "$@"
