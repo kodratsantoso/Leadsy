@@ -90,6 +90,25 @@ class AiPreMeetingScreeningTest extends TestCase
         Queue::assertPushed(\App\Jobs\RunPreMeetingAiScreeningJob::class, 2);
     }
 
+    public function test_superadmin_can_get_stats_and_pending_leads(): void
+    {
+        $superAdmin = $this->makeUser('super_admin');
+
+        Lead::create([
+            'company_name' => 'PT Lead Pending',
+            'qualification_status' => 'pending',
+            'lead_score' => null,
+        ]);
+
+        $statsRes = $this->actingAs($superAdmin)->getJson('/api/leads/ai-screening/stats');
+        $statsRes->assertStatus(200);
+        $statsRes->assertJsonStructure(['success', 'total_leads', 'assessed_count', 'unassessed_count']);
+
+        $pendingRes = $this->actingAs($superAdmin)->getJson('/api/leads/ai-screening/pending-leads');
+        $pendingRes->assertStatus(200);
+        $pendingRes->assertJsonStructure(['success', 'total_unassessed', 'data']);
+    }
+
     private function makeUser(string $roleName): User
     {
         $tenant = Tenant::firstOrCreate(

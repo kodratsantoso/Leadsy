@@ -1144,6 +1144,31 @@ export default function LeadsPage() {
     },
   });
 
+  const singleScreenMutation = useMutation({
+    mutationFn: async (leadId: number) => {
+      const response = await apiFetch(`/leads/${leadId}/ai-screening`, {
+        method: "POST",
+      });
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || json.message || "Failed to screen lead.");
+      }
+      return json;
+    },
+    onSuccess: (json) => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["unassessed-leads-count"] });
+      refetchUnassessedCount();
+      const data = json?.data || {};
+      setFeedback(
+        `AI Screening Completed for ${data.company_name || "Lead"}! Score: ${data.lead_score ?? "—"} (${data.qualification_status ?? "eligible"}).`
+      );
+    },
+    onError: (error: Error) => {
+      setFeedback(`AI Screening Error: ${error.message}`);
+    },
+  });
+
   const openEdit = (lead: LeadRecord) => {
     setEditLead(lead);
     setFormError("");
@@ -1543,6 +1568,79 @@ export default function LeadsPage() {
       </Card>
 
       <div data-tour="leads-filters" className="space-y-3">
+        {/* Quick Assessment Status Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant={!qualificationFilter ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-8 rounded-xl font-medium"
+            onClick={() => {
+              setQualificationFilter("");
+              setPage(1);
+            }}
+          >
+            All Leads
+          </Button>
+          <Button
+            type="button"
+            variant={qualificationFilter === "pending" ? "default" : "outline"}
+            size="sm"
+            className={`text-xs h-8 rounded-xl font-medium ${
+              qualificationFilter === "pending"
+                ? "bg-[var(--brand)] text-white"
+                : "border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 dark:text-amber-400"
+            }`}
+            onClick={() => {
+              setQualificationFilter(qualificationFilter === "pending" ? "" : "pending");
+              setPage(1);
+            }}
+          >
+            <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-500" />
+            Unassessed ({unassessedCount})
+          </Button>
+          <Button
+            type="button"
+            variant={qualificationFilter === "eligible" ? "default" : "outline"}
+            size="sm"
+            className={`text-xs h-8 rounded-xl font-medium ${
+              qualificationFilter === "eligible"
+                ? "bg-emerald-600 text-white"
+                : "border-emerald-500/30 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 dark:text-emerald-400"
+            }`}
+            onClick={() => {
+              setQualificationFilter(qualificationFilter === "eligible" ? "" : "eligible");
+              setPage(1);
+            }}
+          >
+            Eligible
+          </Button>
+          <Button
+            type="button"
+            variant={qualificationFilter === "potential" ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-8 rounded-xl font-medium"
+            onClick={() => {
+              setQualificationFilter(qualificationFilter === "potential" ? "" : "potential");
+              setPage(1);
+            }}
+          >
+            Potential
+          </Button>
+          <Button
+            type="button"
+            variant={qualificationFilter === "not_eligible" ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-8 rounded-xl font-medium"
+            onClick={() => {
+              setQualificationFilter(qualificationFilter === "not_eligible" ? "" : "not_eligible");
+              setPage(1);
+            }}
+          >
+            Not Eligible
+          </Button>
+        </div>
+
         <FilterBar>
           <FilterBarSearch
             value={search}
@@ -1847,14 +1945,22 @@ export default function LeadsPage() {
                       })()}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={scoreVariant(lead.lead_score)}>{lead.lead_score ?? "—"}</Badge>
+                      {lead.lead_score !== null && lead.lead_score !== undefined ? (
+                        <Badge variant={scoreVariant(lead.lead_score)}>{lead.lead_score}</Badge>
+                      ) : (
+                        <Badge variant="warning" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30 font-medium">
+                          Unassessed
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant={gradeVariant(lead.lead_score)}>{scoreGrade(lead.lead_score)}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={qualificationVariant(lead.qualification_status)}>
-                        {(lead.qualification_status || "pending").replace("_", " ")}
+                        {lead.qualification_status === "pending" || !lead.qualification_status
+                          ? "Unassessed"
+                          : lead.qualification_status.replace("_", " ")}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -1892,6 +1998,22 @@ export default function LeadsPage() {
 
                         return (
                           <div className="flex items-center gap-1 whitespace-nowrap">
+                            {isSuperAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => singleScreenMutation.mutate(lead.id)}
+                                disabled={singleScreenMutation.isPending}
+                                tooltip="Run AI Pre-Meeting Screening"
+                                className="text-[var(--brand)] hover:bg-[var(--brand)]/10"
+                              >
+                                {singleScreenMutation.isPending && (singleScreenMutation.variables as unknown as number) === lead.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Sparkles className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon-sm"

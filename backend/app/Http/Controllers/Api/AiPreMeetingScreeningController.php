@@ -30,6 +30,59 @@ class AiPreMeetingScreeningController extends Controller
     }
 
     /**
+     * GET /api/v1/leads/ai-screening/stats
+     * Returns overall screening counts (total, assessed, unassessed, eligible, potential, not_eligible).
+     */
+    public function stats(Request $request): JsonResponse
+    {
+        $unassessedCount = $this->orchestrator->getUnassessedLeadsCount();
+        $totalCount = Lead::whereNull('deleted_at')->count();
+        $assessedCount = max(0, $totalCount - $unassessedCount);
+
+        $eligibleCount = Lead::whereNull('deleted_at')->where('qualification_status', 'eligible')->count();
+        $potentialCount = Lead::whereNull('deleted_at')->where('qualification_status', 'potential')->count();
+        $notEligibleCount = Lead::whereNull('deleted_at')->whereIn('qualification_status', ['not_eligible', 'disqualified'])->count();
+
+        return response()->json([
+            'success' => true,
+            'total_leads' => $totalCount,
+            'assessed_count' => $assessedCount,
+            'unassessed_count' => $unassessedCount,
+            'eligible_count' => $eligibleCount,
+            'potential_count' => $potentialCount,
+            'not_eligible_count' => $notEligibleCount,
+        ]);
+    }
+
+    /**
+     * GET /api/v1/leads/ai-screening/pending-leads
+     * Returns list of unassessed leads for live processing HUD.
+     */
+    public function pendingLeads(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+        $limit = min((int) $request->query('limit', 500), 1000);
+        $leads = $this->orchestrator->getUnassessedLeads($limit);
+
+        return response()->json([
+            'success' => true,
+            'total_unassessed' => $this->orchestrator->getUnassessedLeadsCount(),
+            'data' => $leads->map(function ($lead) {
+                return [
+                    'id' => $lead->id,
+                    'company_name' => $lead->company_name,
+                    'contact_name' => $lead->contact_name,
+                    'email' => $lead->email,
+                    'phone' => $lead->phone,
+                    'website' => $lead->website,
+                    'lead_score' => $lead->lead_score,
+                    'qualification_status' => $lead->qualification_status,
+                ];
+            }),
+        ]);
+    }
+
+    /**
      * POST /api/v1/leads/{id}/ai-screening
      * Runs sequential screening synchronously for a single lead.
      */
