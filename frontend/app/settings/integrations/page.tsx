@@ -3050,7 +3050,6 @@ export default function IntegrationsSettingsPage() {
         </div>
       )}
 
-      {false && (
       <Modal
         open={baseSyncDialog.open}
         onOpenChange={(open) => setBaseSyncDialog((current) => ({ ...current, open }))}
@@ -3166,7 +3165,6 @@ export default function IntegrationsSettingsPage() {
           ) : null}
         </div>
       </Modal>
-      )}
     </div>
   );
 }

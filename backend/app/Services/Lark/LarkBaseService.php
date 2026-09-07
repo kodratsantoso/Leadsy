@@ -680,11 +680,12 @@ class LarkBaseService extends LarkService
                     ]
                 );
 
-                \App\Models\LeadSource::create([
+                \App\Models\LeadSource::updateOrCreate([
                     'lead_id' => $lead->id,
                     'source_type' => $sourceType->slug,
                     'lark_app_token' => $baseTable->app_token,
                     'lark_table_id' => $baseTable->table_id,
+                ], [
                     'channel_type_id' => $channelType->id,
                     'confidence' => 'high',
                     'last_verified_at' => now(),
@@ -699,11 +700,13 @@ class LarkBaseService extends LarkService
                 }
                 if ($contactName) {
                     $contactName = substr(trim($contactName), 0, 255);
+                    $contactAttributes['name'] = $contactName;
                     $lead->contacts()->updateOrCreate(
                         ['name' => $contactName],
                         $contactAttributes
                     );
                 } elseif ($contactPhone) {
+                    $contactAttributes['name'] = 'Contact (' . $contactPhone . ')';
                     $lead->contacts()->updateOrCreate(
                         ['phone' => $contactPhone],
                         $contactAttributes
