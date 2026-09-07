@@ -91,6 +91,16 @@ type LeadRecord = {
   lark_base_id?: string | null;
   lark_table_id?: string | null;
   external_id?: string | null;
+  contacts?: LeadContact[];
+};
+
+type LeadContact = {
+  id: number;
+  name: string;
+  title?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  is_primary?: boolean;
 };
 
 type FunnelStage = { id: number; name: string; sequence: number };
@@ -1762,10 +1772,37 @@ export default function LeadsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1 text-xs">
-                        <p>{lead.email || "—"}</p>
-                        <p className="text-muted-foreground">{lead.phone || "No phone"}</p>
-                      </div>
+                      {(() => {
+                        const primaryContact = lead.contacts?.find((c) => c.is_primary) || lead.contacts?.[0];
+                        const contactName = primaryContact?.name || null;
+                        const contactPhone = primaryContact?.phone || lead.phone || null;
+                        const contactEmail = primaryContact?.email || lead.email || null;
+
+                        return (
+                          <div className="space-y-0.5 text-xs">
+                            {contactName ? (
+                              <div className="flex items-center gap-1.5 font-medium">
+                                <span className="truncate max-w-[150px]" title={contactName}>{contactName}</span>
+                                {primaryContact?.is_primary && (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-brand/5 text-brand border-brand/20">PIC</Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="font-medium text-foreground">{contactEmail || "—"}</p>
+                            )}
+                            <div className="text-muted-foreground flex flex-col gap-0.5">
+                              {contactPhone ? (
+                                <span className="font-mono text-[11px] text-foreground/90">{contactPhone}</span>
+                              ) : (
+                                <span>No phone</span>
+                              )}
+                              {contactName && contactEmail && contactEmail !== contactName && (
+                                <span className="truncate max-w-[150px] text-[11px] text-muted-foreground/80" title={contactEmail}>{contactEmail}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Badge variant={scoreVariant(lead.lead_score)}>{lead.lead_score ?? "—"}</Badge>
@@ -1862,7 +1899,10 @@ export default function LeadsPage() {
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              onClick={() => handleWhatsApp(lead.phone)}
+                              onClick={() => {
+                                const targetPhone = lead.phone || lead.contacts?.find((c) => c.phone)?.phone || lead.contacts?.[0]?.phone;
+                                handleWhatsApp(targetPhone);
+                              }}
                               tooltip="Open WhatsApp"
                             >
                               <MessageSquare className="h-4 w-4" />

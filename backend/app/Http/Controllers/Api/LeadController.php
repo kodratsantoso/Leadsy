@@ -46,7 +46,13 @@ class LeadController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Lead::visibleTo($request->user())
-            ->with(['industry', 'subIndustry', 'businessCategory', 'funnelStage', 'owner', 'presalesOwner', 'amOwner', 'csmOwner', 'territory', 'product', 'sources.channelType', 'parentLead:id,company_name']);
+            ->with([
+                'industry', 'subIndustry', 'businessCategory', 'funnelStage',
+                'owner', 'presalesOwner', 'amOwner', 'csmOwner',
+                'territory', 'product', 'sources.channelType',
+                'parentLead:id,company_name',
+                'contacts' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
+            ]);
 
         // Filters
         if ($request->filled('industry_id')) {
