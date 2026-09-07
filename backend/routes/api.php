@@ -464,6 +464,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('transcripts/meeting-summary/generate', [MeetingSummaryPdfController::class, 'generate'])->middleware('permission:leads.edit');
     Route::get('transcripts/{transcript}/meeting-summary/download', [MeetingSummaryPdfController::class, 'download'])->middleware('permission:leads.view');
     
+    // Pre-Meeting AI Screening & Qualification (Superadmin)
+    Route::get('leads/ai-screening/unassessed-count', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'unassessedCount']);
+    Route::post('leads/ai-screening/bulk-unassessed', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'screenAllUnassessed']);
+    Route::post('leads/ai-screening/bulk-selected', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'screenSelected']);
+    Route::post('leads/{lead}/ai-screening', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'screenSingle']);
+
     Route::get('/leads/{lead}/pre-meeting-brief', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'show'])->middleware('permission:leads.view');
     Route::get('/leads/{lead}/pre-meeting-brief/available-products', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'availableProducts'])->middleware('permission:leads.view');
     Route::post('/leads/{lead}/pre-meeting-brief/generate', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'generate'])->middleware('permission:leads.edit');

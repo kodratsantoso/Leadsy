@@ -26,7 +26,9 @@ import {
   UserCheck,
   UserPlus,
   X,
-  BrainCircuit
+  BrainCircuit,
+  Sparkles,
+  Zap
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -56,6 +58,7 @@ import { cn } from "@/lib/utils";
 import { CreateNewModal } from "@/components/ui/CreateNewModal";
 import { EditLeadModal } from "@/components/leads/EditLeadModal";
 import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
+import { PreMeetingScreeningModal } from "@/components/leads/PreMeetingScreeningModal";
 
 type LeadRecord = {
   id: number;
@@ -714,8 +717,21 @@ export default function LeadsPage() {
   const [parentLeadSearching, setParentLeadSearching] = useState(false);
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [screeningModalOpen, setScreeningModalOpen] = useState(false);
+  const [screeningMode, setScreeningMode] = useState<"unassessed" | "selected">("unassessed");
 
   const user = useAuthStore((s) => s.user);
+  const isSuperAdmin = user?.role?.name === "super_admin" || user?.role?.name === "superadmin";
+
+  const { data: unassessedCount = 0, refetch: refetchUnassessedCount } = useQuery({
+    queryKey: ["unassessed-leads-count"],
+    queryFn: async () => {
+      const res = await apiFetch("/leads/ai-screening/unassessed-count");
+      const json = await res.json();
+      return json?.unassessed_count ?? 0;
+    },
+    enabled: isSuperAdmin,
+  });
 
 
 
@@ -1457,6 +1473,19 @@ export default function LeadsPage() {
               <Upload className="h-4 w-4" />
               Import
             </Button>
+            {isSuperAdmin && (
+              <Button
+                variant="outline"
+                className="bg-[color-mix(in_oklch,var(--brand)_12%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white font-medium"
+                onClick={() => {
+                  setScreeningMode("unassessed");
+                  setScreeningModalOpen(true);
+                }}
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                Screen Unassessed ({unassessedCount})
+              </Button>
+            )}
             {user?.role?.name === "super_admin" && selectedLeads.length > 0 && (
               <Button
                 variant="destructive"
@@ -1464,6 +1493,19 @@ export default function LeadsPage() {
               >
                 <Trash2 className="h-4 w-4" />
                 Delete Selected ({selectedLeads.length})
+              </Button>
+            )}
+            {isSuperAdmin && selectedLeads.length > 0 && (
+              <Button
+                variant="outline"
+                className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-600 hover:text-white dark:text-emerald-400 font-medium"
+                onClick={() => {
+                  setScreeningMode("selected");
+                  setScreeningModalOpen(true);
+                }}
+              >
+                <Sparkles className="h-4 w-4 mr-1.5" />
+                Screen Selected ({selectedLeads.length})
               </Button>
             )}
             {selectedLeads.length > 0 && (
@@ -2862,6 +2904,20 @@ export default function LeadsPage() {
           payloadKey={createNewModalConfig.payloadKey}
           additionalPayload={createNewModalConfig.additionalPayload}
           onSuccess={createNewModalConfig.onSuccess}
+        />
+      )}
+
+      {isSuperAdmin && (
+        <PreMeetingScreeningModal
+          open={screeningModalOpen}
+          onOpenChange={setScreeningModalOpen}
+          targetCount={screeningMode === "unassessed" ? unassessedCount : selectedLeads.length}
+          mode={screeningMode}
+          selectedLeadIds={selectedLeads}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["leads"] });
+            refetchUnassessedCount();
+          }}
         />
       )}
     </div>
