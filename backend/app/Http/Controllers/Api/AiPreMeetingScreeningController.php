@@ -58,7 +58,7 @@ class AiPreMeetingScreeningController extends Controller
         $dispatchedCount = 0;
 
         foreach ($leads as $lead) {
-            RunPreMeetingAiScreeningJob::dispatch($lead->id, $request->user()->id)->onQueue('intelligence');
+            RunPreMeetingAiScreeningJob::dispatch($lead->id, $request->user()->id);
             $dispatchedCount++;
         }
 
@@ -86,7 +86,7 @@ class AiPreMeetingScreeningController extends Controller
         $dispatchedCount = 0;
 
         foreach ($leadIds as $leadId) {
-            RunPreMeetingAiScreeningJob::dispatch((int) $leadId, $request->user()->id)->onQueue('intelligence');
+            RunPreMeetingAiScreeningJob::dispatch((int) $leadId, $request->user()->id);
             $dispatchedCount++;
         }
 
