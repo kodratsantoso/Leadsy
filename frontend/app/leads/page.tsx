@@ -813,19 +813,39 @@ export default function LeadsPage() {
     },
   });
 
-  const funnelStages: FunnelStage[] = stagesData?.data ?? stagesData ?? [];
+  const funnelStages: FunnelStage[] = Array.isArray(stagesData?.data)
+    ? stagesData.data
+    : Array.isArray(stagesData)
+      ? stagesData
+      : [];
   const allIndustries: { id: number; name: string; sub_industries: { id: number; name: string }[] }[] =
-    industriesData?.data ?? [];
+    Array.isArray(industriesData?.data)
+      ? industriesData.data
+      : Array.isArray(industriesData)
+        ? industriesData
+        : [];
   const selectedSubIndustries =
     allIndustries.find((i) => String(i.id) === formState.industry_id)?.sub_industries ?? [];
-  const leads: LeadRecord[] = data?.data ?? [];
-  const products: ProductOption[] = productsData?.data ?? [];
-  const assignableUsers: AssignableUser[] = assignableUsersData?.data ?? [];
-  const leadSources: LeadSourceType[] = leadSourcesData?.data ?? [];
-  const activeLeadSources = leadSources.filter((source) => source.is_active);
+  const leads: LeadRecord[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+  const products: ProductOption[] = Array.isArray(productsData?.data)
+    ? productsData.data
+    : Array.isArray(productsData)
+      ? productsData
+      : [];
+  const assignableUsers: AssignableUser[] = Array.isArray(assignableUsersData?.data)
+    ? assignableUsersData.data
+    : Array.isArray(assignableUsersData)
+      ? assignableUsersData
+      : [];
+  const leadSources: LeadSourceType[] = Array.isArray(leadSourcesData?.data)
+    ? leadSourcesData.data
+    : Array.isArray(leadSourcesData)
+      ? leadSourcesData
+      : [];
+  const activeLeadSources = Array.isArray(leadSources) ? leadSources.filter((source) => source?.is_active) : [];
   const activeLeadChannels = activeLeadSources.flatMap((source) =>
-    (source.channels ?? [])
-      .filter((channel) => channel.is_active)
+    (Array.isArray(source?.channels) ? source.channels : [])
+      .filter((channel) => channel?.is_active)
       .map((channel) => ({ ...channel, source_name: source.name, source_slug: source.slug }))
   );
   const selectedLeadChannels = activeLeadChannels.filter((channel) => {
@@ -840,7 +860,7 @@ export default function LeadsPage() {
     if (!sourceFilter) return true;
     return channel.source_slug === sourceFilter;
   });
-  const sourceNameBySlug = new globalThis.Map(leadSources.map((source) => [source.slug, source.name]));
+  const sourceNameBySlug = new globalThis.Map(activeLeadSources.map((source) => [source.slug, source.name]));
   const channelNameById = new globalThis.Map(activeLeadChannels.map((channel) => [channel.id, channel.name]));
 
   const getPageNumbers = () => {
