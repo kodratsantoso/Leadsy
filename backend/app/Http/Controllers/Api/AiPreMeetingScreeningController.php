@@ -83,12 +83,103 @@ class AiPreMeetingScreeningController extends Controller
     }
 
     /**
+     * POST /api/v1/leads/{lead}/ai-screening/dispatch
+     * Dispatches AI screening to queue worker for background processing.
+     */
+    public function dispatchSingle(Request $request, Lead $lead): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
+        \Illuminate\Support\Facades\Cache::put("lead_screening_{$lead->id}", [
+            'status' => 'processing',
+            'lead_id' => $lead->id,
+            'company_name' => $lead->company_name,
+            'started_at' => now()->toIso8601String(),
+        ], 600);
+
+        RunPreMeetingAiScreeningJob::dispatch($lead->id, $request->user()->id);
+
+        return response()->json([
+            'success' => true,
+            'status' => 'processing',
+            'lead_id' => $lead->id,
+            'company_name' => $lead->company_name,
+            'message' => 'AI pre-meeting screening job dispatched.',
+        ]);
+    }
+
+    /**
+     * GET /api/v1/leads/{lead}/ai-screening/status
+     * Returns real-time status of lead screening from cache and database.
+     */
+    public function statusSingle(Request $request, Lead $lead): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
+        $cacheData = \Illuminate\Support\Facades\Cache::get("lead_screening_{$lead->id}");
+        $lead = $lead->fresh();
+
+        $isCompletedInDb = $lead->lead_score !== null 
+            && !empty($lead->qualification_status) 
+            && !in_array($lead->qualification_status, ['pending', 'unassessed']);
+
+        if ($isCompletedInDb || ($cacheData['status'] ?? '') === 'completed') {
+            $score = $lead->lead_score ?? ($cacheData['lead_score'] ?? 50);
+            $status = $lead->qualification_status ?? ($cacheData['qualification_status'] ?? 'potential');
+            $grade = $score >= 80 ? 'Grade A' : ($score >= 60 ? 'Grade B' : 'Grade C');
+
+            return response()->json([
+                'success' => true,
+                'status' => 'completed',
+                'data' => [
+                    'lead_id' => $lead->id,
+                    'company_name' => $lead->company_name,
+                    'lead_score' => $score,
+                    'qualification_status' => $status,
+                    'grade' => $grade,
+                    'brand' => $lead->brand,
+                    'website' => $lead->website,
+                    'phone' => $lead->phone,
+                    'email' => $lead->email,
+                    'industry' => $lead->industry?->name,
+                    'sub_industry' => $lead->subIndustry?->name,
+                    'business_category' => $lead->business_category,
+                    'company_size' => $lead->company_size,
+                    'elapsed_seconds' => $cacheData['elapsed_seconds'] ?? null,
+                ],
+            ]);
+        }
+
+        if (($cacheData['status'] ?? '') === 'failed') {
+            return response()->json([
+                'success' => false,
+                'status' => 'failed',
+                'error' => $cacheData['error'] ?? 'AI Screening failed.',
+                'lead_id' => $lead->id,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => ($cacheData['status'] ?? 'processing'),
+            'lead_id' => $lead->id,
+            'company_name' => $lead->company_name,
+        ]);
+    }
+
+    /**
      * POST /api/v1/leads/{lead}/ai-screening
-     * Runs sequential screening synchronously for a single lead.
+     * Runs sequential screening synchronously or dispatches if async=1.
      */
     public function screenSingle(Request $request, Lead $lead): JsonResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
+        if ($request->boolean('async')) {
+            return $this->dispatchSingle($request, $lead);
+        }
+
+        @set_time_limit(180);
 
         $result = $this->orchestrator->screenLead($lead, $request->user()->id);
 

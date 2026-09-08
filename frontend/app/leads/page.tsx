@@ -1159,14 +1159,35 @@ export default function LeadsPage() {
 
   const singleScreenMutation = useMutation({
     mutationFn: async (leadId: number) => {
-      const response = await apiFetch(`/leads/${leadId}/ai-screening`, {
+      const response = await apiFetch(`/leads/${leadId}/ai-screening/dispatch`, {
         method: "POST",
       });
       const json = await response.json();
       if (!response.ok || !json.success) {
-        throw new Error(json.error || json.message || "Failed to screen lead.");
+        throw new Error(json.error || json.message || "Failed to start screening.");
       }
-      return json;
+
+      // Poll status until complete
+      let isDone = false;
+      let pollAttempts = 0;
+      const maxAttempts = 90;
+
+      while (!isDone && pollAttempts < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 2000));
+        pollAttempts++;
+
+        const statusRes = await apiFetch(`/leads/${leadId}/ai-screening/status`);
+        if (statusRes.ok) {
+          const statusJson = await statusRes.json();
+          if (statusJson.status === "completed" && statusJson.data) {
+            return statusJson;
+          } else if (statusJson.status === "failed") {
+            throw new Error(statusJson.error || "Screening failed on server.");
+          }
+        }
+      }
+
+      throw new Error("Screening timed out after 180 seconds.");
     },
     onSuccess: (json) => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });

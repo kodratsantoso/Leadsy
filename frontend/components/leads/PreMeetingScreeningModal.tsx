@@ -199,17 +199,53 @@ export function PreMeetingScreeningModal({
       let resultItem: ProcessedLeadResult;
 
       try {
-        const response = await apiFetch(`/leads/${lead.id}/ai-screening`, {
+        // Dispatch background job (near-instant response, no Cloudflare 100s timeout)
+        const dispatchRes = await apiFetch(`/leads/${lead.id}/ai-screening/dispatch`, {
           method: "POST",
         });
-        const json = await response.json();
+        const dispatchJson = await dispatchRes.json();
+
+        if (!dispatchRes.ok || !dispatchJson.success) {
+          throw new Error(dispatchJson?.error || dispatchJson?.message || `Failed to start screening (${dispatchRes.status})`);
+        }
+
+        // Poll status every 2 seconds until completed or max timeout (180 seconds)
+        let isDone = false;
+        let pollAttempts = 0;
+        const maxAttempts = 90; // 90 * 2000ms = 180s
+        let completedData: any = null;
+
+        while (!isDone && pollAttempts < maxAttempts) {
+          if (stopRequestedRef.current) {
+            break;
+          }
+
+          await new Promise((r) => setTimeout(r, 2000));
+          pollAttempts++;
+
+          try {
+            const statusRes = await apiFetch(`/leads/${lead.id}/ai-screening/status`);
+            if (statusRes.ok) {
+              const statusJson = await statusRes.json();
+              if (statusJson.status === "completed") {
+                isDone = true;
+                completedData = statusJson.data;
+                break;
+              } else if (statusJson.status === "failed") {
+                throw new Error(statusJson.error || "AI Screening failed on server.");
+              }
+            }
+          } catch (pollErr: any) {
+            if (pollAttempts >= maxAttempts) throw pollErr;
+          }
+        }
+
         clearInterval(stageInterval);
         const duration = Math.round((performance.now() - startTime) / 100) / 10;
 
-        if (response.ok && json.success) {
-          const data = json.data || {};
-          const score = data.lead_score ?? null;
-          const status = data.qualification_status ?? "potential";
+        if (isDone && completedData) {
+          const score = completedData.lead_score ?? null;
+          const status = completedData.qualification_status ?? "potential";
           const grade = score !== null ? (score >= 80 ? "Grade A" : score >= 60 ? "Grade B" : "Grade C") : null;
 
           if (status === "eligible") localEligible++;
@@ -218,20 +254,22 @@ export function PreMeetingScreeningModal({
 
           resultItem = {
             id: lead.id,
-            company_name: data.company_name || lead.company_name,
+            company_name: completedData.company_name || lead.company_name,
             score,
             grade,
             status,
             success: true,
             elapsed_seconds: duration,
           };
+        } else if (stopRequestedRef.current) {
+          break;
         } else {
           localErrors++;
           resultItem = {
             id: lead.id,
             company_name: lead.company_name,
             success: false,
-            error: json?.error || json?.message || `Server error (${response.status})`,
+            error: "Screening timed out after 180s.",
             elapsed_seconds: duration,
           };
         }
@@ -243,7 +281,7 @@ export function PreMeetingScreeningModal({
           id: lead.id,
           company_name: lead.company_name,
           success: false,
-          error: err?.message || "Network error",
+          error: err?.message || "Screening error",
           elapsed_seconds: duration,
         };
       }

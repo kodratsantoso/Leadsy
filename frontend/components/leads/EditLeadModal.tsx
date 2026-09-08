@@ -63,22 +63,51 @@ export function EditLeadModal({
   const handleRunPreMeetingScreening = async () => {
     if (!lead?.id) return;
     setScreeningLoading(true);
-    setScreeningFeedback(null);
+    setScreeningFeedback("Memulai AI Screening...");
     try {
-      const res = await apiFetch(`/leads/${lead.id}/ai-screening`, {
+      const res = await apiFetch(`/leads/${lead.id}/ai-screening/dispatch`, {
         method: "POST",
       });
       const json = await res.json();
-      if (res.ok && json?.success && json.data) {
-        setScreeningFeedback(`Pre-Meeting Screened: ${json.data.qualification_status?.toUpperCase()} (Score: ${json.data.lead_score ?? '-'})`);
-        if (json.data.qualification_status) {
-          setCompanyForm((f) => ({ ...f, qualification_status: json.data.qualification_status }));
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || json?.message || "Gagal memulai screening.");
+      }
+
+      // Poll status every 2 seconds
+      let isDone = false;
+      let pollAttempts = 0;
+      const maxAttempts = 90;
+
+      while (!isDone && pollAttempts < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 2000));
+        pollAttempts++;
+        setScreeningFeedback(`Menjalankan AI Screening (${pollAttempts * 2}s)...`);
+
+        const statusRes = await apiFetch(`/leads/${lead.id}/ai-screening/status`);
+        if (statusRes.ok) {
+          const statusJson = await statusRes.json();
+          if (statusJson.status === "completed" && statusJson.data) {
+            isDone = true;
+            const data = statusJson.data;
+            setScreeningFeedback(
+              `Pre-Meeting Screened: ${data.qualification_status?.toUpperCase()} (Score: ${data.lead_score ?? "-"})`
+            );
+            if (data.qualification_status) {
+              setCompanyForm((f) => ({ ...f, qualification_status: data.qualification_status }));
+            }
+            qc.invalidateQueries({ queryKey: ["leads"] });
+            qc.invalidateQueries({ queryKey: ["unassessed-leads-count"] });
+            if (onSuccess) onSuccess();
+            break;
+          } else if (statusJson.status === "failed") {
+            throw new Error(statusJson.error || "Screening failed on server.");
+          }
         }
+      }
+
+      if (!isDone) {
+        setScreeningFeedback("Screening masih diproses di latar belakang. Silakan refresh sebentar lagi.");
         qc.invalidateQueries({ queryKey: ["leads"] });
-        qc.invalidateQueries({ queryKey: ["unassessed-leads-count"] });
-        if (onSuccess) onSuccess();
-      } else {
-        setScreeningFeedback(json?.error || json?.message || "Screening did not return success.");
       }
     } catch (err: any) {
       setScreeningFeedback(err?.message || "Screening failed");
