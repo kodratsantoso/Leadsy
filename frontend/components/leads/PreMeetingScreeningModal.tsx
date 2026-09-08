@@ -204,37 +204,46 @@ export function PreMeetingScreeningModal({
         });
         const json = await response.json();
         clearInterval(stageInterval);
-
         const duration = Math.round((performance.now() - startTime) / 100) / 10;
-        const data = json?.data || json || {};
-        const score = data.lead_score ?? null;
-        const status = data.qualification_status ?? "potential";
-        const grade = score !== null ? (score >= 80 ? "Grade A" : score >= 60 ? "Grade B" : "Grade C") : "Grade B";
 
-        if (status === "eligible") localEligible++;
-        else if (status === "potential") localPotential++;
-        else localNotEligible++;
+        if (response.ok && json.success) {
+          const data = json.data || {};
+          const score = data.lead_score ?? null;
+          const status = data.qualification_status ?? "potential";
+          const grade = score !== null ? (score >= 80 ? "Grade A" : score >= 60 ? "Grade B" : "Grade C") : null;
 
-        resultItem = {
-          id: lead.id,
-          company_name: data.company_name || lead.company_name,
-          score: score ?? 50,
-          grade,
-          status,
-          success: true,
-          elapsed_seconds: duration,
-        };
+          if (status === "eligible") localEligible++;
+          else if (status === "potential") localPotential++;
+          else localNotEligible++;
+
+          resultItem = {
+            id: lead.id,
+            company_name: data.company_name || lead.company_name,
+            score,
+            grade,
+            status,
+            success: true,
+            elapsed_seconds: duration,
+          };
+        } else {
+          localErrors++;
+          resultItem = {
+            id: lead.id,
+            company_name: lead.company_name,
+            success: false,
+            error: json?.error || json?.message || `Server error (${response.status})`,
+            elapsed_seconds: duration,
+          };
+        }
       } catch (err: any) {
         clearInterval(stageInterval);
         const duration = Math.round((performance.now() - startTime) / 100) / 10;
-        localPotential++;
+        localErrors++;
         resultItem = {
           id: lead.id,
           company_name: lead.company_name,
-          score: 50,
-          grade: "Grade B",
-          status: "potential",
-          success: true,
+          success: false,
+          error: err?.message || "Network error",
           elapsed_seconds: duration,
         };
       }

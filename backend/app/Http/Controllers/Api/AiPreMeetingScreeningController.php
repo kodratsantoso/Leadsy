@@ -83,14 +83,13 @@ class AiPreMeetingScreeningController extends Controller
     }
 
     /**
-     * POST /api/v1/leads/{id}/ai-screening
+     * POST /api/v1/leads/{lead}/ai-screening
      * Runs sequential screening synchronously for a single lead.
      */
-    public function screenSingle(Request $request, int $id): JsonResponse
+    public function screenSingle(Request $request, Lead $lead): JsonResponse
     {
         abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
 
-        $lead = Lead::findOrFail($id);
         $result = $this->orchestrator->screenLead($lead, $request->user()->id);
 
         return response()->json([
