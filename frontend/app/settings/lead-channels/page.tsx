@@ -88,18 +88,28 @@ export default function LeadChannelsSettingsPage() {
     },
   });
 
-  const sources: LeadSourceType[] = sourcesData?.data ?? [];
-  const activeSources = sources.filter((source) => source.is_active);
-  const channels: LeadChannelType[] = channelsData?.data ?? [];
-  const filteredChannels = channels.filter((channel) => {
-    const term = search.toLowerCase();
-    return (
-      channel.name.toLowerCase().includes(term) ||
-      channel.slug.toLowerCase().includes(term) ||
-      (channel.description ?? "").toLowerCase().includes(term) ||
-      (channel.source_type?.name ?? "").toLowerCase().includes(term)
-    );
-  });
+  const sources: LeadSourceType[] = Array.isArray(sourcesData?.data)
+    ? sourcesData.data
+    : Array.isArray(sourcesData)
+      ? sourcesData
+      : [];
+  const activeSources = Array.isArray(sources) ? sources.filter((source) => source?.is_active) : [];
+  const channels: LeadChannelType[] = Array.isArray(channelsData?.data)
+    ? channelsData.data
+    : Array.isArray(channelsData)
+      ? channelsData
+      : [];
+  const filteredChannels = Array.isArray(channels)
+    ? channels.filter((channel) => {
+        const term = search.toLowerCase();
+        return (
+          (channel.name ?? "").toLowerCase().includes(term) ||
+          (channel.slug ?? "").toLowerCase().includes(term) ||
+          (channel.description ?? "").toLowerCase().includes(term) ||
+          (channel.source_type?.name ?? "").toLowerCase().includes(term)
+        );
+      })
+    : [];
 
   const resetForm = () => setForm(emptyForm);
 

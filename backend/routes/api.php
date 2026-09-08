@@ -184,8 +184,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('leads/{lead}/enrich', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'enrich'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/enrich/retry', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'retry'])->middleware('permission:leads.edit');
-    Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['show'])->middleware('permission:leads.edit');
-    Route::apiResource('settings/lead-channels', LeadChannelTypeController::class)->except(['show'])->middleware('permission:leads.edit');
+    Route::get('settings/lead-sources', [LeadSourceTypeController::class, 'index'])->middleware('permission:leads.view');
+    Route::apiResource('settings/lead-sources', LeadSourceTypeController::class)->except(['index', 'show'])->middleware('permission:leads.edit');
+    Route::get('settings/lead-channels', [LeadChannelTypeController::class, 'index'])->middleware('permission:leads.view');
+    Route::apiResource('settings/lead-channels', LeadChannelTypeController::class)->except(['index', 'show'])->middleware('permission:leads.edit');
     Route::get('settings/currency-format', [CurrencySettingController::class, 'format']);
     Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
     Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');

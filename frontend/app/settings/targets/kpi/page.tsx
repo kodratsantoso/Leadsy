@@ -53,7 +53,7 @@ export default function KpiTargetsPage() {
       }
       if (usersRes.ok) {
         const d = await usersRes.json();
-        setUsers(d.data || d);
+        setUsers(Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : []);
       }
     } catch (err) {
       console.error(err);
@@ -155,10 +155,12 @@ export default function KpiTargetsPage() {
   }
 
   // Filter users by role
-  const filteredUsers = users.filter(u => {
-    if (roleFilter === "all") return true;
-    return u.role?.name?.toLowerCase() === roleFilter;
-  });
+  const filteredUsers = Array.isArray(users)
+    ? users.filter((u) => {
+        if (roleFilter === "all") return true;
+        return u.role?.name?.toLowerCase() === roleFilter;
+      })
+    : [];
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

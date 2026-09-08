@@ -924,12 +924,26 @@ export default function LeadDetailPage() {
     queryKey: ['lead-source-types'],
     queryFn: () => apiFetch('/settings/lead-sources').then((r) => r.json()),
   });
-  const allIndustries: any[] = industriesData?.data ?? [];
-  const products: any[] = productsData?.data ?? [];
-  const leadSources: any[] = leadSourcesData?.data ?? [];
-  const activeLeadSources = leadSources.filter((s: any) => s.is_active);
+  const allIndustries: any[] = Array.isArray(industriesData?.data)
+    ? industriesData.data
+    : Array.isArray(industriesData)
+      ? industriesData
+      : [];
+  const products: any[] = Array.isArray(productsData?.data)
+    ? productsData.data
+    : Array.isArray(productsData)
+      ? productsData
+      : [];
+  const leadSources: any[] = Array.isArray(leadSourcesData?.data)
+    ? leadSourcesData.data
+    : Array.isArray(leadSourcesData)
+      ? leadSourcesData
+      : [];
+  const activeLeadSources = Array.isArray(leadSources) ? leadSources.filter((s: any) => s?.is_active) : [];
   const activeLeadChannels = activeLeadSources.flatMap((s: any) =>
-    (s.channels ?? []).filter((c: any) => c.is_active).map((c: any) => ({ ...c, source_slug: s.slug }))
+    (Array.isArray(s?.channels) ? s.channels : [])
+      .filter((c: any) => c?.is_active)
+      .map((c: any) => ({ ...c, source_slug: s.slug }))
   );
   const selectedLeadChannels = activeLeadChannels.filter((c: any) =>
     !companyForm.source_type || c.source_slug === companyForm.source_type
@@ -943,7 +957,11 @@ export default function LeadDetailPage() {
     queryFn: () => apiFetch('/leads/assignable-users').then((r) => r.json()),
   });
 
-  const usersList = assignableUsersData?.data || [];
+  const usersList = Array.isArray(assignableUsersData?.data)
+    ? assignableUsersData.data
+    : Array.isArray(assignableUsersData)
+      ? assignableUsersData
+      : [];
   const salesUsers = usersList.filter((u: any) =>
     ["sales_exec", "sales_manager", "admin", "super_admin"].includes(u.role?.name)
   );

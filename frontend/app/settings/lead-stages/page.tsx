@@ -67,16 +67,22 @@ export default function LeadStagesSettingsPage() {
     },
   });
 
-  const stages: FunnelStage[] = data?.data ?? [];
-  const filteredStages = stages.filter((stage) => {
-    const matchesSearch = stage.name.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus =
-      statusFilter === "" ||
-      (statusFilter === "active" && stage.is_active) ||
-      (statusFilter === "inactive" && !stage.is_active);
+  const stages: FunnelStage[] = Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data)
+      ? data
+      : [];
+  const filteredStages = Array.isArray(stages)
+    ? stages.filter((stage) => {
+        const matchesSearch = (stage.name ?? "").toLowerCase().includes(search.toLowerCase());
+        const matchesStatus =
+          statusFilter === "" ||
+          (statusFilter === "active" && stage.is_active) ||
+          (statusFilter === "inactive" && !stage.is_active);
 
-    return matchesSearch && matchesStatus;
-  });
+        return matchesSearch && matchesStatus;
+      })
+    : [];
 
   const resetForm = () => setForm(emptyForm);
 

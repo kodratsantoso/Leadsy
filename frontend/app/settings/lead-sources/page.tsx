@@ -66,15 +66,21 @@ export default function LeadSourcesSettingsPage() {
     },
   });
 
-  const sources: LeadSourceType[] = data?.data ?? [];
-  const filteredSources = sources.filter((source) => {
-    const term = search.toLowerCase();
-    return (
-      source.name.toLowerCase().includes(term) ||
-      source.slug.toLowerCase().includes(term) ||
-      (source.description ?? "").toLowerCase().includes(term)
-    );
-  });
+  const sources: LeadSourceType[] = Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data)
+      ? data
+      : [];
+  const filteredSources = Array.isArray(sources)
+    ? sources.filter((source) => {
+        const term = search.toLowerCase();
+        return (
+          (source.name ?? "").toLowerCase().includes(term) ||
+          (source.slug ?? "").toLowerCase().includes(term) ||
+          (source.description ?? "").toLowerCase().includes(term)
+        );
+      })
+    : [];
 
   const resetForm = () => setForm(emptyForm);
 
