@@ -876,13 +876,6 @@ export default function LeadsPage() {
     setMapsEnabled(settings.GOOGLE_MAPS_ENABLED === undefined || settings.GOOGLE_MAPS_ENABLED === true || settings.GOOGLE_MAPS_ENABLED === "true");
   }, [publicSettingsData]);
 
-  useEffect(() => {
-    // Default filter to the logged-in user if owner_id is not explicitly specified in the query parameters
-    if (user?.id && !searchParams.has("owner_id")) {
-      setOwnerFilter(String(user.id));
-    }
-  }, [user, searchParams]);
-
   const resetForm = () => {
     setFormState(emptyForm);
     setLocationSearch("");
@@ -1572,27 +1565,47 @@ export default function LeadsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant={!qualificationFilter ? "default" : "outline"}
+            variant={!qualificationFilter && !ownerFilter ? "default" : "outline"}
             size="sm"
             className="text-xs h-8 rounded-xl font-medium"
             onClick={() => {
               setQualificationFilter("");
+              setOwnerFilter("");
               setPage(1);
             }}
           >
             All Leads
           </Button>
+          {user?.id && (
+            <Button
+              type="button"
+              variant={ownerFilter === String(user.id) ? "default" : "outline"}
+              size="sm"
+              className={`text-xs h-8 rounded-xl font-medium ${
+                ownerFilter === String(user.id)
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "border-blue-500/30 text-blue-600 bg-blue-500/5 hover:bg-blue-500/10 dark:text-blue-400"
+              }`}
+              onClick={() => {
+                setOwnerFilter(ownerFilter === String(user.id) ? "" : String(user.id));
+                setPage(1);
+              }}
+            >
+              <UserCheck className="h-3.5 w-3.5 mr-1" />
+              My Leads
+            </Button>
+          )}
           <Button
             type="button"
-            variant={qualificationFilter === "pending" ? "default" : "outline"}
+            variant={qualificationFilter === "unassessed" ? "default" : "outline"}
             size="sm"
             className={`text-xs h-8 rounded-xl font-medium ${
-              qualificationFilter === "pending"
-                ? "bg-[var(--brand)] text-white"
+              qualificationFilter === "unassessed"
+                ? "bg-[var(--brand)] text-white hover:opacity-90"
                 : "border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 dark:text-amber-400"
             }`}
             onClick={() => {
-              setQualificationFilter(qualificationFilter === "pending" ? "" : "pending");
+              setQualificationFilter(qualificationFilter === "unassessed" ? "" : "unassessed");
               setPage(1);
             }}
           >
@@ -1605,7 +1618,7 @@ export default function LeadsPage() {
             size="sm"
             className={`text-xs h-8 rounded-xl font-medium ${
               qualificationFilter === "eligible"
-                ? "bg-emerald-600 text-white"
+                ? "bg-emerald-600 text-white hover:bg-emerald-700"
                 : "border-emerald-500/30 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 dark:text-emerald-400"
             }`}
             onClick={() => {
@@ -1693,6 +1706,7 @@ export default function LeadsPage() {
               }}
               placeholder="All qualifications"
             >
+              <option value="unassessed">Unassessed (Needs Screening)</option>
               <option value="pending">Pending</option>
               <option value="eligible">Eligible</option>
               <option value="potential">Potential</option>

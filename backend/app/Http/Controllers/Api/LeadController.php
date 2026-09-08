@@ -71,7 +71,15 @@ class LeadController extends Controller
                 ->where('name', '!=', 'Nurture / Hold'));
         }
         if ($request->filled('qualification_status')) {
-            $query->where('qualification_status', $request->qualification_status);
+            if ($request->qualification_status === 'unassessed') {
+                $query->where(function ($q) {
+                    $q->whereNull('qualification_status')
+                        ->orWhere('qualification_status', 'pending')
+                        ->orWhereNull('lead_score');
+                })->whereNotIn('qualification_status', ['not_eligible', 'disqualified']);
+            } else {
+                $query->where('qualification_status', $request->qualification_status);
+            }
         }
         if ($request->get('product_id') === 'unassigned') {
             $query->whereNull('product_id')
@@ -1039,7 +1047,15 @@ class LeadController extends Controller
             $query->where('industry_id', $request->industry_id);
         }
         if ($request->filled('qualification_status')) {
-            $query->where('qualification_status', $request->qualification_status);
+            if ($request->qualification_status === 'unassessed') {
+                $query->where(function ($q) {
+                    $q->whereNull('qualification_status')
+                        ->orWhere('qualification_status', 'pending')
+                        ->orWhereNull('lead_score');
+                })->whereNotIn('qualification_status', ['not_eligible', 'disqualified']);
+            } else {
+                $query->where('qualification_status', $request->qualification_status);
+            }
         }
 
         $leads = $query->orderBy('lead_score', 'desc')->get();
