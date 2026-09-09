@@ -54,6 +54,23 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    const ssoToken = searchParams.get("sso_token");
+    const existingToken = useAuthStore.getState().token;
+    if (!existingToken || ssoToken) {
+      const probeUrl = ssoToken ? `/api/auth/sso/probe?sso_token=${encodeURIComponent(ssoToken)}` : "/api/auth/sso/probe";
+      fetch(probeUrl, { credentials: "include", headers: { Accept: "application/json" } })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.token && data?.user) {
+            setAuth(data.token, data.user);
+            router.replace("/");
+          }
+        })
+        .catch(() => {});
+    }
+  }, [searchParams, setAuth, router]);
+
+  useEffect(() => {
     const queryTenantId = searchParams.get("tenant_id");
     const savedTenantId = typeof window !== "undefined" ? window.localStorage.getItem("lark_tenant_id") : null;
     const effectiveTenantId = queryTenantId ?? savedTenantId;

@@ -198,6 +198,14 @@ class AuthController extends Controller
             $frontendUrl = env('FRONTEND_URL', env('NEXT_PUBLIC_APP_URL', config('app.url')));
             $redirectUri = rtrim($frontendUrl, '/').'/auth/lark/callback';
 
+            if ($request->query('direct') !== 'true') {
+                $gatewayUrl = 'https://assistant.virtuenet.space/api/auth/lark/login?return_to='.urlencode($redirectUri);
+                return response()->json([
+                    'auth_url' => $gatewayUrl,
+                    'tenant_id' => $integration->tenant_id,
+                ]);
+            }
+
             $state = Str::random(48);
             Cache::put('lark_oauth_state:'.$state, [
                 'tenant_id' => $integration->tenant_id,
@@ -294,6 +302,78 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Lark authentication failed: '.$e->getMessage(),
             ], 500);
+        }
+    }
+
+    /** GET|POST /api/auth/sso/probe — Auto-login via Virtuenet SSO */
+    public function ssoProbe(Request $request): JsonResponse
+    {
+        $ssoJwt = $request->cookie('virtuenet_sso_jwt')
+            ?? $request->query('sso_token')
+            ?? $request->input('sso_token')
+            ?? $request->bearerToken();
+
+        if (!$ssoJwt) {
+            return response()->json(['message' => 'No SSO token'], 401);
+        }
+
+        try {
+            $ssoVerifyUrl = env('SSO_VERIFY_URL', 'https://assistant.virtuenet.space/api/auth/sso/verify');
+            $response = \Illuminate\Support\Facades\Http::timeout(5)->get($ssoVerifyUrl, [
+                'token' => $ssoJwt,
+            ]);
+
+            if (!$response->successful() || !$response->json('valid')) {
+                return response()->json(['message' => 'Invalid SSO token'], 401);
+            }
+
+            $ssoUser = $response->json('user');
+            $email = strtolower(trim($ssoUser['email'] ?? ''));
+            if (!$email && ($ssoUser['open_id'] ?? '') === 'ou_5978bc3e371ea20b33ddf24dc99acc95') {
+                $email = 'ubai@prasetia.co.id';
+            }
+
+            if (!$email) {
+                return response()->json(['message' => 'SSO user has no email'], 400);
+            }
+
+            $tenant = Tenant::first();
+            if (!$tenant) {
+                return response()->json(['message' => 'No tenant configured'], 500);
+            }
+
+            $isSuper = $email === 'ubai@prasetia.co.id' || ($ssoUser['role'] ?? '') === 'administrator';
+            $defaultRoleName = $isSuper ? 'super_admin' : 'sales_exec';
+
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                $roleModel = Role::where('name', $defaultRoleName)->first() ?? Role::first();
+                $user = User::create([
+                    'tenant_id' => $tenant->id,
+                    'name' => $ssoUser['name'] ?? 'Lark User',
+                    'email' => $email,
+                    'password' => Hash::make(Str::random(32)),
+                    'role_id' => $roleModel?->id,
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]);
+            } else if ($isSuper && $user->role?->name !== 'super_admin') {
+                $superRole = Role::where('name', 'super_admin')->first();
+                if ($superRole) {
+                    $user->update(['role_id' => $superRole->id]);
+                }
+            }
+
+            $token = $user->createToken('api')->plainTextToken;
+            AuditService::log('sso_login', 'auth', $user);
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user->load('role.permissions'),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Leadsy SSO probe error: ' . $e->getMessage());
+            return response()->json(['message' => 'SSO failed: ' . $e->getMessage()], 500);
         }
     }
 

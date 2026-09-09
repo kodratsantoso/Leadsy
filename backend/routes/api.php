@@ -73,6 +73,7 @@ Route::prefix('auth')->group(function () {
     Route::get('lark/tenants', [AuthController::class, 'getLarkTenants']);
     Route::get('lark/auth-url', [AuthController::class, 'getLarkAuthUrl']);
     Route::post('lark/callback', [AuthController::class, 'handleLarkCallback']);
+    Route::match(['get', 'post'], 'sso/probe', [AuthController::class, 'ssoProbe']);
 });
 
 // ── Public Integrations (e.g. Browser Maps Key, APP_NAME, APP_ENV) ──
