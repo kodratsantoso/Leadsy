@@ -4,7 +4,14 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.23.0** — 2026-09-07
+Current release: **v1.24.0** — 2026-09-09
+
+## What's New in v1.24.0 (Sprint 1 AI Lifecycle Quick Wins — Automated Enrichment & Interaction Re-Scoring)
+
+- **G1.1 Automated Lead Creation Enrichment** — Integrated `LeadEnrichmentTriggerService` into `MapDiscoveryController::addToLeads` and `WhatsAppController::convertToLead`. Leads sourced from Google Maps place discovery or WhatsApp conversations are now automatically enriched with Google Maps metadata, contact discovery, deterministic scoring, and ICP profiling upon creation.
+- **G2.1 Automated Interaction Re-Score & Intelligence Engine** — Created `LeadInteractionRescoreService` to orchestrate deterministic lead re-scoring (`ScoreLeadJob`), qualification assessment (`QualifyLeadJob`), ICP match evaluation (`ICPMatchLeadJob`), and revenue intelligence recalculation (`RunLeadIntelligenceJob`).
+- **Activity & Transcript Lifecycle Hooks** — Automatically trigger the interaction re-score engine whenever a sales activity is logged (`LeadActivityService`), manual activity is created, meeting transcripts are analyzed via AI (`AnalyzeTranscriptJob`), or transcript BANTC extractions are saved (`SaveTranscriptAnalysisJob`).
+- **Cross-Database Deduplication Compatibility** — Enhanced phone deduplication in `DeduplicationService` to support in-memory/SQLite testing seamlessly alongside PostgreSQL/MySQL production regex functions.
 
 ## What's New in v1.23.0 (BytePlus ModelArk & One-Click AI Pre-Meeting Screening)
 

@@ -139,6 +139,9 @@ class SaveTranscriptAnalysisJob implements ShouldQueue
                 'competitor' => $competitor ?? $lead->competitor,
             ]);
         }
+
+        // Auto re-score and re-qualify lead with updated transcript/BANTC signals
+        app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($lead, 'transcript_analysis');
         
         Log::info("Transcript analysis saved successfully for transcript ID {$this->transcriptId}");
     }

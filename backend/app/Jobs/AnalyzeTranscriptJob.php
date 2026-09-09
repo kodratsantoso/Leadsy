@@ -59,6 +59,9 @@ class AnalyzeTranscriptJob implements ShouldQueue
                 'created_at' => now(),
             ]);
             Log::info("AI analysis completed successfully for transcript ID {$transcript->id}");
+
+            // Trigger rescoring and qualification update post-transcript analysis
+            app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($transcript->lead, 'transcript_analyzed');
         } catch (\Exception $e) {
             $transcript->update(['evaluation_status' => 'failed']);
             Log::error("AI analysis failed for transcript ID {$transcript->id}: " . $e->getMessage());

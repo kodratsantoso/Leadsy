@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Lead;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Deduplication Engine — BRD §3.7
@@ -94,8 +95,19 @@ class DeduplicationService
         if (! empty($payload['phone'])) {
             $digits = preg_replace('/\D/', '', $payload['phone']);
             if (strlen($digits) >= 8) {
-                $match = Lead::whereRaw("regexp_replace(phone, '\\D', '', 'g') LIKE ?", ['%'.$digits])
-                    ->first();
+                $driver = DB::connection()->getDriverName();
+                if ($driver === 'sqlite') {
+                    $match = Lead::whereNotNull('phone')
+                        ->get()
+                        ->first(function ($lead) use ($digits) {
+                            $leadDigits = preg_replace('/\D/', '', (string) $lead->phone);
+                            return str_ends_with($leadDigits, $digits) || str_ends_with($digits, $leadDigits);
+                        });
+                } else {
+                    $match = Lead::whereRaw("regexp_replace(phone, '\\D', '', 'g') LIKE ?", ['%'.$digits])
+                        ->first();
+                }
+
                 if ($match) {
                     return DedupResult::probableDuplicate($match->id, 'phone');
                 }

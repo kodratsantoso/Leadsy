@@ -59,6 +59,9 @@ class LeadActivityService
             'user_id' => $userId ?? Auth::id(),
         ]);
 
+        // Auto re-score & update intelligence on customer interaction activities
+        app(LeadInteractionRescoreService::class)->triggerRescore($lead, "activity:{$activityType}");
+
         return $activity;
     }
 

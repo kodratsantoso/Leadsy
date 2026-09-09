@@ -719,6 +719,9 @@ class WhatsAppController extends Controller
 
         $contact->update(['linked_lead_id' => $lead->id]);
 
+        // Auto-trigger enrichment, scoring, and qualification
+        app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'whatsapp');
+
         return response()->json([
             'success' => true,
             'message' => 'Conversation contact successfully converted to Lead.',

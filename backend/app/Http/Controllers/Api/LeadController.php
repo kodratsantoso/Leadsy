@@ -769,7 +769,7 @@ class LeadController extends Controller
             'activity_type' => $data['activity_type'],
         ]);
 
-        \App\Jobs\RunLeadIntelligenceJob::dispatch($lead->id);
+        app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($lead, "manual_activity:{$data['activity_type']}");
 
         return response()->json(['data' => $activity->load('user')], 201);
     }

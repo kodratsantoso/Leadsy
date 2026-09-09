@@ -324,6 +324,9 @@ class MapDiscoveryController extends Controller
             ]
         );
 
+        // Auto-trigger enrichment, scoring, and qualification
+        app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'map_discovery');
+
         return response()->json([
             'data' => $lead,
             'duplicate' => $dedupResult->toArray(),
