@@ -399,6 +399,18 @@ class AIPromptTemplateService
                 'Analyze our competitive advantages, competitor vulnerabilities, tactical objection counters, talking tracks, and pricing positioning.',
                 'Return ONLY valid JSON with keys: competitor_name (string), advantages (array of strings), weaknesses (array of strings), counter_tactics (array of strings), key_talking_points (array of strings), pricing_intelligence (array of strings).'
             ),
+            'ai_account_review_generator' => $this->featureTemplate(
+                'Customer Account Review & QBR Generator',
+                'Generate a comprehensive, executive-ready Quarterly or Monthly Business Review for B2B client leadership.',
+                'Synthesize account milestones, value realized, health trends, risk mitigation, and a proactive 90-day forward growth roadmap.',
+                'Return ONLY valid JSON with keys: executive_summary (string), value_delivered (array of strings), milestone_recap (array of strings), issues_and_mitigations (array of strings), forward_roadmap (array of strings), expansion_recommendations (string).'
+            ),
+            'cs_playbook_ai' => $this->featureTemplate(
+                'Customer Success Tactical Playbook AI',
+                'Generate an actionable, step-by-step tactical playbook for Customer Success Managers facing client risk or growth scenarios.',
+                'Provide prioritized actions (first 24 hours, 72 hours, 7 days), diagnostic questions, stakeholder talking points, and tailored communication drafts.',
+                'Return ONLY valid JSON with keys: scenario_title (string), immediate_actions (array of strings), diagnostic_questions (array of strings), stakeholder_talking_points (array of strings), outreach_message_draft (string), expected_outcome (string).'
+            ),
         ];
     }
 

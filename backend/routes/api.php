@@ -231,6 +231,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/{lead}/feedbacks', [\App\Http\Controllers\Api\Sprint4CustomerSuccessAdvancedController::class, 'getFeedbacks'])->middleware('permission:leads.view');
     Route::get('customer-success/proactive-alerts', [\App\Http\Controllers\Api\Sprint4CustomerSuccessAdvancedController::class, 'getProactiveAlerts'])->middleware('permission:leads.view');
 
+    // Sprint 5: Polish & Source Quality Routes (G3.7, G3.8, G1.2)
+    Route::post('leads/{lead}/account-review/generate', [\App\Http\Controllers\Api\Sprint5PolishController::class, 'generateAccountReview'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/cs-playbook/generate', [\App\Http\Controllers\Api\Sprint5PolishController::class, 'generateCsPlaybook'])->middleware('permission:leads.view');
+    Route::get('analytics/lead-source-quality', [\App\Http\Controllers\Api\Sprint5PolishController::class, 'getLeadSourceQualityReport'])->middleware('permission:leads.view');
+
     Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/meetings', [LeadController::class, 'logMeeting'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts', [LeadController::class, 'addContact'])->middleware('permission:leads.edit');

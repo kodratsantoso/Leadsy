@@ -4,8 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.27.0** — 2026-09-09
+Current release: **v1.28.0** — 2026-09-09
  
+## What's New in v1.28.0 (Sprint 5 AI Polish & Source Quality — 100% AI Roadmap Completion)
+
+- **G3.7 Executive Account Review Generator (QBR / Monthly Review)** — Created `AccountReviewGeneratorService` hooked into `AiOrchestrationService` (`feature: ai_account_review_generator`). Synthesizes account health metrics, milestone completions, satisfaction feedback, and forward expansion roadmaps into executive-ready business reviews. Exposed `POST /api/leads/{lead}/account-review/generate`.
+- **G3.8 Context-Aware Customer Success Playbook AI** — Built `CustomerSuccessPlaybookService` hooked into `AiOrchestrationService` (`feature: cs_playbook_ai`). Generates step-by-step tactical guidance for CSMs facing account risk scenarios (churn recovery, onboarding unblocking, executive departure, unresolved complaints, or expansion pitches), including tailored Indonesian B2B outreach drafts. Exposed `POST /api/leads/{lead}/cs-playbook/generate`.
+- **G1.2 Lead Source Quality Analytics Engine** — Implemented `LeadSourceQualityService` to continuously evaluate, score, and rank acquisition channels (Google Maps Discovery, WhatsApp, IDX, CSV Import, Manual) based on average lead score, qualification conversion rate, and win rate with strategic scaling recommendations. Exposed `GET /api/analytics/lead-source-quality`.
+- **100% AI Roadmap Lifecycle Coverage** — Marked all 14 AI roadmap functions across Phase 1, Phase 2, and Phase 3 as complete in `ai_functions_audit.md`.
+
 ## What's New in v1.27.0 (Sprint 4 AI Customer Success Advanced — Renewal Intel, NPS/CSAT Tracking & CSM Alerts)
 
 - **G3.4 Contract Renewal & Upsell/Cross-Sell Intelligence** — Created `CustomerRenewalIntelligenceService`, `customer_renewal_opportunities` schema, and `CustomerRenewalOpportunity` model. Continuously scans active client sales orders for renewal windows (flagging critical <= 30 days and high <= 60 days) and identifies whitespace cross-sell opportunities from the Leadsy product catalog with talking points. Exposed `GET /api/customer-success/renewals` and `GET /api/leads/{lead}/renewal-intelligence`.
