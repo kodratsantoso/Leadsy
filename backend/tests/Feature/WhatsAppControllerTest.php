@@ -505,6 +505,61 @@ class WhatsAppControllerTest extends TestCase
         ]);
     }
 
+    public function test_send_message_local_baileys_supports_lid_and_jid(): void
+    {
+        $user = $this->makeUser();
+
+        // Create contact & conversation with @lid
+        $lid = '145363235283191@lid';
+        $contact = WhatsappContact::create([
+            'phone_number' => $lid,
+            'normalized_phone_number' => '145363235283191',
+            'is_relevant' => true,
+            'user_id' => $user->id,
+        ]);
+
+        $conv = WhatsappConversation::create([
+            'contact_id' => $contact->id,
+            'external_chat_id' => $lid,
+            'platform' => 'whatsapp',
+            'approved_for_sync' => true,
+            'last_message_at' => now(),
+            'user_id' => $user->id,
+        ]);
+
+        // Mock Baileys sidecar send message endpoint
+        Http::fake([
+            '*/messages/send' => Http::response([
+                'success' => true,
+                'external_id' => 'baileys-out-999',
+            ]),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/whatsapp/messages/send', [
+                'phone' => $lid,
+                'text' => 'Halo Pak Ari, ada yang bisa kami bantu?',
+                'platform' => 'whatsapp',
+            ])
+            ->assertOk();
+
+        $this->assertTrue($response->json('success'));
+
+        // Verify sent directly to the @lid without mutating it to @s.whatsapp.net
+        Http::assertSent(function ($request) use ($lid) {
+            return str_contains($request->url(), 'messages/send') &&
+                   $request['jid'] === $lid &&
+                   $request['text'] === 'Halo Pak Ari, ada yang bisa kami bantu?';
+        });
+
+        // Verify recorded in DB
+        $this->assertDatabaseHas('whatsapp_messages', [
+            'conversation_id' => $conv->id,
+            'external_message_id' => 'baileys-out-999',
+            'direction' => 'outbound',
+        ]);
+    }
+
     private function saveConfig(User $user, string $key, string $value, bool $secret = true): void
     {
         IntegrationConfig::create([

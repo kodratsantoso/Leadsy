@@ -56,6 +56,7 @@ export default function LocalWhatsAppPage() {
   const [showDetails, setShowDetails] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [newTagInput, setNewTagInput] = useState("");
 
   // ── Session State ──
@@ -223,10 +224,12 @@ export default function LocalWhatsAppPage() {
 
   // Chat message composer send handler
   const handleSendReply = async () => {
-    if (!activeConv || !replyText.trim() || !activeConv.contact?.phone_number) return;
+    const targetRecipient = activeConv?.contact?.phone_number || activeConv?.external_chat_id;
+    if (!activeConv || !replyText.trim() || !targetRecipient) return;
     setSendingReply(true);
+    setSendError(null);
     try {
-      const result = await sendMessage(activeConv.contact.phone_number, replyText.trim());
+      const result = await sendMessage(targetRecipient, replyText.trim(), "whatsapp");
       if (result) {
         const newMsg: WaMessage = {
           id: Date.now(),
@@ -238,6 +241,7 @@ export default function LocalWhatsAppPage() {
         };
         setActiveMessages(prev => [...prev, newMsg]);
         setReplyText("");
+        setSendError(null);
         
         // Update last message in local list preview
         setConversations(prev => prev.map(c => {
@@ -249,9 +253,13 @@ export default function LocalWhatsAppPage() {
           }
           return c;
         }));
+      } else {
+        setSendError("Gagal mengirim pesan ke WhatsApp. Pastikan sesi Baileys Engine terhubung aktif.");
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to send message:", err);
+      const msg = err instanceof Error ? err.message : "Gagal mengirim pesan.";
+      setSendError(msg);
     } finally {
       setSendingReply(false);
     }
@@ -700,6 +708,18 @@ export default function LocalWhatsAppPage() {
                         </button>
                       ))}
                     </div>
+
+                    {sendError && (
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[11px] border border-destructive/20">
+                        <div className="flex items-center gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span>{sendError}</span>
+                        </div>
+                        <button onClick={() => setSendError(null)} className="font-bold text-[10px] hover:underline">
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-2">
                       <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-lg shrink-0">

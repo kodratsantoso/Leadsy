@@ -265,9 +265,18 @@ class WhatsAppController extends Controller
         // Default Local WhatsApp (Baileys)
         $sessionName = $this->getSessionName($userId);
 
-        // Normalize phone → JID
-        $phone = preg_replace('/[^0-9]/', '', $data['phone']);
-        $jid = "{$phone}@s.whatsapp.net";
+        // Resolve destination JID properly (handling @lid, @s.whatsapp.net, @g.us, or raw phone numbers)
+        $rawTarget = trim($data['phone']);
+        if (str_contains($rawTarget, '@')) {
+            $jid = $rawTarget;
+            $phone = preg_replace('/[^0-9]/', '', explode('@', $rawTarget)[0]);
+        } elseif ($conversation && str_contains($conversation->external_chat_id, '@')) {
+            $jid = $conversation->external_chat_id;
+            $phone = preg_replace('/[^0-9]/', '', explode('@', $jid)[0]);
+        } else {
+            $phone = preg_replace('/[^0-9]/', '', $rawTarget);
+            $jid = "{$phone}@s.whatsapp.net";
+        }
 
         try {
             [$res, $engineUrl] = $this->requestEngine('post', 'messages/send', [
@@ -279,33 +288,35 @@ class WhatsAppController extends Controller
                 return response()->json(['error' => $res->json('error', 'Send failed')], $res->status());
             }
 
-            // Log outbound message to DB using the correct schema
-            $contact = WhatsappContact::firstOrCreate(
-                [
-                    'phone_number' => $jid,
-                    'user_id' => $userId,
-                ],
-                [
-                    'name' => null,
-                    'normalized_phone_number' => $phone,
-                    'is_relevant' => true,
-                    'relevance_reason' => 'outbound_message',
-                ]
-            );
+            // Log outbound message to DB using the resolved contact & conversation
+            if (! $conversation) {
+                $contact = WhatsappContact::firstOrCreate(
+                    [
+                        'phone_number' => $jid,
+                        'user_id' => $userId,
+                    ],
+                    [
+                        'name' => null,
+                        'normalized_phone_number' => $phone,
+                        'is_relevant' => true,
+                        'relevance_reason' => 'outbound_message',
+                    ]
+                );
 
-            $conversation = WhatsappConversation::firstOrCreate(
-                [
-                    'external_chat_id' => $jid,
-                    'user_id' => $userId,
-                ],
-                [
-                    'contact_id' => $contact->id,
-                    'sync_status' => 'active',
-                    'relevance_status' => 'high',
-                    'approved_for_sync' => true,
-                    'platform' => 'whatsapp',
-                ]
-            );
+                $conversation = WhatsappConversation::firstOrCreate(
+                    [
+                        'external_chat_id' => $jid,
+                        'user_id' => $userId,
+                    ],
+                    [
+                        'contact_id' => $contact->id,
+                        'sync_status' => 'active',
+                        'relevance_status' => 'high',
+                        'approved_for_sync' => true,
+                        'platform' => 'whatsapp',
+                    ]
+                );
+            }
 
             WhatsappMessage::create([
                 'conversation_id' => $conversation->id,
