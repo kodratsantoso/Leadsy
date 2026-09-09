@@ -224,6 +224,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('onboarding-milestones/{milestone}', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'updateMilestone'])->middleware('permission:leads.edit');
     Route::get('customer-success/churn-risks', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'getChurnRisks'])->middleware('permission:leads.view');
 
+    // Sprint 4: Customer Success Advanced Routes (G3.4, G3.5, G3.6)
+    Route::get('customer-success/renewals', [\App\Http\Controllers\Api\Sprint4CustomerSuccessAdvancedController::class, 'getRenewalOpportunities'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/renewal-intelligence', [\App\Http\Controllers\Api\Sprint4CustomerSuccessAdvancedController::class, 'getLeadRenewalIntelligence'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/feedbacks', [\App\Http\Controllers\Api\Sprint4CustomerSuccessAdvancedController::class, 'recordFeedback'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/feedbacks', [\App\Http\Controllers\Api\Sprint4CustomerSuccessAdvancedController::class, 'getFeedbacks'])->middleware('permission:leads.view');
+    Route::get('customer-success/proactive-alerts', [\App\Http\Controllers\Api\Sprint4CustomerSuccessAdvancedController::class, 'getProactiveAlerts'])->middleware('permission:leads.view');
+
     Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/meetings', [LeadController::class, 'logMeeting'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts', [LeadController::class, 'addContact'])->middleware('permission:leads.edit');

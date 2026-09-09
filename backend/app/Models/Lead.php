@@ -589,6 +589,16 @@ class Lead extends Model
         return $this->hasMany(CustomerOnboardingMilestone::class)->orderBy('sequence');
     }
 
+    public function feedbacks(): HasMany
+    {
+        return $this->hasMany(CustomerFeedback::class);
+    }
+
+    public function renewalOpportunities(): HasMany
+    {
+        return $this->hasMany(CustomerRenewalOpportunity::class);
+    }
+
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
         if (! $user || $user->isSuperAdmin() || $user->isExecutive()) {

@@ -4,8 +4,14 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.26.0** — 2026-09-09
+Current release: **v1.27.0** — 2026-09-09
  
+## What's New in v1.27.0 (Sprint 4 AI Customer Success Advanced — Renewal Intel, NPS/CSAT Tracking & CSM Alerts)
+
+- **G3.4 Contract Renewal & Upsell/Cross-Sell Intelligence** — Created `CustomerRenewalIntelligenceService`, `customer_renewal_opportunities` schema, and `CustomerRenewalOpportunity` model. Continuously scans active client sales orders for renewal windows (flagging critical <= 30 days and high <= 60 days) and identifies whitespace cross-sell opportunities from the Leadsy product catalog with talking points. Exposed `GET /api/customer-success/renewals` and `GET /api/leads/{lead}/renewal-intelligence`.
+- **G3.5 NPS/CSAT Tracking & Sentiment Monitoring** — Built `CustomerFeedbackService`, `customer_feedbacks` schema, and `CustomerFeedback` model. Automatically categorizes NPS (0–10) and CSAT (1–5) survey responses, evaluates sentiment, and flags dissatisfied detractor responses with automated critical alerts. Exposed `POST /api/leads/{lead}/feedbacks` and `GET /api/leads/{lead}/feedbacks`.
+- **G3.6 Proactive CSM Alert System** — Created `CsmProactiveAlertService` and Artisan console command `leadsy:detect-csm-alerts` scheduled daily at 09:00 in `routes/console.php`. Dispatches actionable `AiAttentionHighlight` alerts for renewal proximity, detractor customer feedback, and health drops. Exposed `GET /api/customer-success/proactive-alerts`.
+
 ## What's New in v1.26.0 (Sprint 3 AI Customer Success Foundation — Health Scoring, Onboarding Workflow & Churn Detection)
 
 - **G3.1 Multi-Factor Customer Health Score Engine** — Introduced `CustomerHealthScoreService`, `customer_health_scores` schema, and `CustomerHealthScore` model. Evaluates active/won clients across 4 weighted dimensions: Activity Recency & Frequency (30%), Onboarding Milestone Execution (25%), AI Evaluation Sentiment & Objections (25%), and Relationship Stability (20%). Categorizes accounts into `thriving`, `healthy`, `at_risk`, and `critical` with automated trend analysis. Exposed endpoints `GET /api/customer-success/health-scores`, `GET /api/leads/{lead}/health-score`, and `POST /api/leads/{lead}/health-score/recalculate`.

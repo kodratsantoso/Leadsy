@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 \Illuminate\Support\Facades\Schedule::command('leadsy:lark-pull')->hourly();
 \Illuminate\Support\Facades\Schedule::command('leadsy:detect-stalled-deals')->dailyAt('08:00');
 \Illuminate\Support\Facades\Schedule::command('leadsy:detect-churn-risks')->dailyAt('08:30');
+\Illuminate\Support\Facades\Schedule::command('leadsy:detect-csm-alerts')->dailyAt('09:00');
