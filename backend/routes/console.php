@@ -8,3 +8,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 \Illuminate\Support\Facades\Schedule::command('leadsy:lark-pull')->hourly();
+\Illuminate\Support\Facades\Schedule::command('leadsy:detect-stalled-deals')->dailyAt('08:00');

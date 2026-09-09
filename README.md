@@ -4,7 +4,14 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.24.0** — 2026-09-09
+Current release: **v1.25.0** — 2026-09-09
+ 
+## What's New in v1.25.0 (Sprint 2 AI Engagement Hardening — Stalled Deals, Funnel Stage Recommendation & Battle Cards)
+
+- **G2.2 Stalled Deal Detection & Automated Alerts** — Implemented `StalledDealDetectionService` to proactively monitor deals across all open pipeline stages that exceed inactivity thresholds (default 14 days, customized to 7 days for proposal/negotiation stages). Generates `AiAttentionHighlight` records with high/critical severity and structured recovery playbooks (executive alignment, ROI proofs, multi-channel check-ins).
+- **Automated Inactivity Scan Command** — Added the Artisan command `leadsy:detect-stalled-deals` scheduled daily at 08:00 in `routes/console.php` with custom threshold day support (`--days=`). Exposed `GET /api/deals/stalled` and `POST /api/deals/stalled/check`.
+- **G2.4 AI-Powered Funnel Stage Recommendation** — Created `FunnelStageRecommendationService` evaluating lead score, BANT-C validation completeness, AI evaluation sentiment, and stage sequence prerequisites to guide sales teams on when to advance, hold, or close deals. Exposed endpoints `GET /api/leads/{lead}/stage-recommendation` and `POST /api/leads/{lead}/apply-stage-recommendation` (recording stage audit trails in `lead_funnel_history`).
+- **G2.3 AI Competitive Battle Card Generation** — Added `lead_battle_cards` schema, `LeadBattleCard` model, and `CompetitiveBattleCardService` hooked into `AiOrchestrationService` (`feature: competitive_battle_card`). Automatically generates competitive strengths, vulnerabilities, tactical objection counters, talking tracks, and pricing intelligence when competitors are identified. Exposed `GET /api/leads/{lead}/battle-cards` and `POST /api/leads/{lead}/battle-cards/generate`.
 
 ## What's New in v1.24.0 (Sprint 1 AI Lifecycle Quick Wins — Automated Enrichment & Interaction Re-Scoring)
 

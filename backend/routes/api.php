@@ -206,6 +206,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/assign', [LeadController::class, 'assign'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/rescore', [LeadController::class, 'rescore'])->middleware('permission:leads.edit');
+    
+    // Sprint 2: Engagement Hardening Routes (G2.2, G2.4, G2.3)
+    Route::get('deals/stalled', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'getStalledDeals'])->middleware('permission:leads.view');
+    Route::post('deals/stalled/check', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'runStalledDealCheck'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/stage-recommendation', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'getStageRecommendation'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/apply-stage-recommendation', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'applyStageRecommendation'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/battle-cards', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'getBattleCards'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/battle-cards/generate', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'generateBattleCard'])->middleware('permission:leads.edit');
+
     Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/meetings', [LeadController::class, 'logMeeting'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts', [LeadController::class, 'addContact'])->middleware('permission:leads.edit');

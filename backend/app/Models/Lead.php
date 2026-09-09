@@ -569,6 +569,11 @@ class Lead extends Model
             ->where('leadsy_entity_type', 'lead');
     }
 
+    public function battleCards(): HasMany
+    {
+        return $this->hasMany(LeadBattleCard::class);
+    }
+
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
         if (! $user || $user->isSuperAdmin() || $user->isExecutive()) {

@@ -393,6 +393,12 @@ class AIPromptTemplateService
                 'Focus on transition details, implementation roadmap, onboarding plans, adoption risks, and CSM priority tasks.',
                 'Return a JSON object containing keys: agreed_scope (string), customer_expectation (string), key_stakeholders (array of strings), success_criteria (string), implementation_notes (string), adoption_risk (array of strings), pending_sales_commitment (array of strings), csm_attention_points (array of strings), recommended_onboarding_action (string).'
             ),
+            'competitive_battle_card' => $this->featureTemplate(
+                'Competitive Battle Card Intelligence',
+                'Generate a structured sales battle card against a named competitor to empower Indonesian B2B sales reps.',
+                'Analyze our competitive advantages, competitor vulnerabilities, tactical objection counters, talking tracks, and pricing positioning.',
+                'Return ONLY valid JSON with keys: competitor_name (string), advantages (array of strings), weaknesses (array of strings), counter_tactics (array of strings), key_talking_points (array of strings), pricing_intelligence (array of strings).'
+            ),
         ];
     }
 
