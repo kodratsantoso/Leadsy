@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   ArrowLeft, Plus, Zap, TrendingUp, MessageSquare, Calendar,
-  AlertCircle, CheckCircle, Clock, User, FileText, Loader2,
+  AlertCircle, CheckCircle, XCircle, Clock, User, FileText, Loader2,
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
@@ -133,6 +133,22 @@ function gradeVariant(grade?: string | null) {
   if (normalized === 'hot') return 'success';
   if (normalized === 'warm') return 'warning';
   return 'neutral';
+}
+
+function qualificationVariant(status?: string | null): "success" | "warning" | "danger" | "outline" {
+  if (status === 'eligible') return 'success';
+  if (status === 'potential') return 'warning';
+  if (status === 'not_eligible' || status === 'disqualified') return 'danger';
+  return 'outline';
+}
+
+function formatQualificationStatus(status?: string | null): string {
+  if (!status || status === 'pending' || status === 'unassessed') return 'Unassessed';
+  if (status === 'eligible') return 'Eligible';
+  if (status === 'potential') return 'Potential';
+  if (status === 'not_eligible') return 'Not Eligible';
+  if (status === 'disqualified') return 'Disqualified';
+  return status.replace(/_/g, ' ');
 }
 
 function qualificationLabel(value?: string | null) {
@@ -977,6 +993,61 @@ export default function LeadDetailPage() {
 
   const invalidateLead = () => qc.invalidateQueries({ queryKey: ['lead', leadId] });
 
+  const [screeningLoading, setScreeningLoading] = useState(false);
+  const [screeningFeedback, setScreeningFeedback] = useState<string | null>(null);
+
+  const handleRunPreMeetingScreening = async () => {
+    if (!leadId) return;
+    setScreeningLoading(true);
+    setScreeningFeedback("Memulai AI Screening...");
+    try {
+      const res = await apiFetch(`/leads/${leadId}/ai-screening/dispatch`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || json?.message || "Gagal memulai screening.");
+      }
+
+      // Poll status every 2 seconds
+      let isDone = false;
+      let pollAttempts = 0;
+      const maxAttempts = 90;
+
+      while (!isDone && pollAttempts < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 2000));
+        pollAttempts++;
+        setScreeningFeedback(`Menjalankan AI Screening (${pollAttempts * 2}s)...`);
+
+        const statusRes = await apiFetch(`/leads/${leadId}/ai-screening/status`);
+        if (statusRes.ok) {
+          const statusJson = await statusRes.json();
+          if (statusJson.status === "completed" && statusJson.data) {
+            isDone = true;
+            invalidateLead();
+            qc.invalidateQueries({ queryKey: ["leads"] });
+            qc.invalidateQueries({ queryKey: ["unassessed-leads-count"] });
+            setScreeningFeedback(
+              `AI Screening Selesai: ${statusJson.data.qualification_status?.toUpperCase()} (Skor: ${statusJson.data.lead_score ?? "-"})`
+            );
+            break;
+          } else if (statusJson.status === "failed") {
+            throw new Error(statusJson.error || "Screening gagal di server.");
+          }
+        }
+      }
+
+      if (!isDone) {
+        setScreeningFeedback("Screening diproses di latar belakang.");
+        invalidateLead();
+      }
+    } catch (err: any) {
+      setScreeningFeedback(err?.message || "Screening error");
+    } finally {
+      setScreeningLoading(false);
+    }
+  };
+
   // Update lead company info mutation
   const enrichMutation = useMutation({
     mutationFn: async () => {
@@ -1784,13 +1855,29 @@ export default function LeadDetailPage() {
             </span>
           </Link>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-3xl font-bold">{leadData.company_name}</h1>
               {leadData.brand && (
                 <Badge variant="outline" className="text-xs bg-slate-100 text-slate-800 border-slate-300">
                   {leadData.brand}
                 </Badge>
               )}
+              {/* Prominent Eligibility Status Badge */}
+              <Badge
+                variant={qualificationVariant(leadData.qualification_status)}
+                className="text-xs px-2.5 py-1 font-semibold uppercase tracking-wider flex items-center gap-1.5 shadow-xs"
+              >
+                {leadData.qualification_status === 'eligible' ? (
+                  <CheckCircle className="w-3.5 h-3.5" />
+                ) : leadData.qualification_status === 'potential' ? (
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                ) : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified' ? (
+                  <XCircle className="w-3.5 h-3.5" />
+                ) : (
+                  <Clock className="w-3.5 h-3.5" />
+                )}
+                Eligibility: {formatQualificationStatus(leadData.qualification_status)}
+              </Badge>
             </div>
             <p className="text-sm text-muted-foreground">{leadData.address}</p>
           </div>
@@ -1835,43 +1922,99 @@ export default function LeadDetailPage() {
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">SCORE</span>
-            <Zap className="h-4 w-4 text-yellow-500" />
+        <div className="rounded-lg border border-border bg-card p-4 flex flex-col justify-between">
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">SCORE</span>
+              <Zap className="h-4 w-4 text-yellow-500" />
+            </div>
+            <div className="text-2xl font-bold">{latestScore?.score ?? '—'}</div>
+            <div className="mt-2 flex items-center gap-2">
+              <Badge variant={gradeVariant(latestScore?.grade)}>{latestScore?.grade ?? 'No grade'}</Badge>
+              {latestScore?.calculated_at ? (
+                <span className="text-xs text-muted-foreground">
+                  {new Date(latestScore.calculated_at).toLocaleDateString()}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{leadData.ai_explanation || 'No scoring explanation yet.'}</p>
           </div>
-          <div className="text-2xl font-bold">{latestScore?.score ?? '—'}</div>
-          <div className="mt-2 flex items-center gap-2">
-            <Badge variant={gradeVariant(latestScore?.grade)}>{latestScore?.grade ?? 'No grade'}</Badge>
-            {latestScore?.calculated_at ? (
-              <span className="text-xs text-muted-foreground">
-                {new Date(latestScore.calculated_at).toLocaleDateString()}
-              </span>
-            ) : null}
+          <div className="pt-3">
+            <Button
+              onClick={() => scoreMutation.mutate()}
+              disabled={scoreMutation.isPending}
+              variant="outline"
+              size="xs"
+              className="w-full"
+            >
+              {scoreMutation.isPending ? 'Scoring...' : 'Rescore'}
+            </Button>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">{leadData.ai_explanation || 'No scoring explanation yet.'}</p>
-          <Button
-            onClick={() => scoreMutation.mutate()}
-            disabled={scoreMutation.isPending}
-            variant="outline"
-            size="xs"
-            className="mt-3"
-          >
-            {scoreMutation.isPending ? 'Scoring...' : 'Rescore'}
-          </Button>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">QUALIFICATION</span>
-            <CheckCircle className="h-4 w-4 text-[var(--status-success)]" />
+        <div className="rounded-lg border border-border bg-card p-4 flex flex-col justify-between">
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">ELIGIBILITY & QUALIFICATION</span>
+              {leadData.qualification_status === 'eligible' ? (
+                <CheckCircle className="h-4 w-4 text-[var(--status-success)]" />
+              ) : leadData.qualification_status === 'potential' ? (
+                <Sparkles className="h-4 w-4 text-amber-500" />
+              ) : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified' ? (
+                <XCircle className="h-4 w-4 text-[var(--status-danger)]" />
+              ) : (
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <div className="text-2xl font-bold capitalize flex items-center gap-2">
+              {formatQualificationStatus(leadData.qualification_status)}
+            </div>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <Badge variant={qualificationVariant(leadData.qualification_status)}>
+                {leadData.qualification_status === 'eligible'
+                  ? 'Funnel: Qualified (SQL)'
+                  : leadData.qualification_status === 'potential'
+                    ? 'Funnel: Contacted'
+                    : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified'
+                      ? 'Funnel: Nurture / Hold'
+                      : 'Awaiting Assessment'}
+              </Badge>
+              {latestQual?.business_type && (
+                <span className="text-[11px] text-muted-foreground font-medium uppercase bg-muted/50 px-1.5 py-0.5 rounded">
+                  {latestQual.business_type}
+                </span>
+              )}
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground line-clamp-2" title={latestQual?.qualification_reason || undefined}>
+              {latestQual?.qualification_reason || (leadData.qualification_status && leadData.qualification_status !== 'pending' ? `Lead diklasifikasikan sebagai ${formatQualificationStatus(leadData.qualification_status)}.` : 'Belum dilakukan asesmen kualifikasi.')}
+            </p>
           </div>
-          <div className="text-2xl font-bold capitalize">{latestQual?.qualified ?? '—'}</div>
-          <div className="mt-2 flex items-center gap-2">
-            <Badge variant="outline">{qualificationLabel(latestQual?.qualified)}</Badge>
-            <span className="text-xs text-muted-foreground">{latestQual?.business_type || 'Unknown'}</span>
+          <div className="pt-3">
+            <Button
+              onClick={handleRunPreMeetingScreening}
+              disabled={screeningLoading}
+              variant="outline"
+              size="xs"
+              className="w-full flex items-center justify-center gap-1.5"
+            >
+              {screeningLoading ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Screening AI...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3 w-3 text-[var(--brand)]" />
+                  {leadData.qualification_status && leadData.qualification_status !== 'pending' ? 'Re-Screen AI' : 'Run Screening AI'}
+                </>
+              )}
+            </Button>
+            {screeningFeedback && (
+              <p className="text-[10px] text-muted-foreground mt-1 truncate" title={screeningFeedback}>
+                {screeningFeedback}
+              </p>
+            )}
           </div>
-
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4">
@@ -2241,16 +2384,17 @@ export default function LeadDetailPage() {
                   {leadData.funnelStage?.name || leadData.current_funnel_stage?.name || '—'}
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Qualification:</span>{' '}
-                  <span className={`font-medium capitalize ${
-                    leadData.qualification_status === 'eligible' ? 'text-[var(--status-success)]' :
-                    leadData.qualification_status === 'potential' ? 'text-[var(--status-warning)]' :
-                    leadData.qualification_status === 'not_eligible' ? 'text-[var(--status-danger)]' :
-                    'text-muted-foreground'
-                  }`}>
-                    {leadData.qualification_status?.replace(/_/g, ' ') || 'pending'}
-                  </span>
+                  <span className="text-muted-foreground">Eligibility Status:</span>{' '}
+                  <Badge variant={qualificationVariant(leadData.qualification_status)} className="ml-1 text-xs font-semibold uppercase">
+                    {formatQualificationStatus(leadData.qualification_status)}
+                  </Badge>
                 </div>
+                {latestQual?.qualification_reason && (
+                  <div className="text-xs bg-muted/30 p-2.5 rounded-lg border border-border/40 mt-1">
+                    <span className="font-semibold text-foreground block mb-0.5">Alasan Kualifikasi AI:</span>
+                    <span className="text-muted-foreground leading-relaxed">{latestQual.qualification_reason}</span>
+                  </div>
+                )}
                 {leadData.estimated_closing_amount != null && (
                   <div>
                     <span className="text-muted-foreground">Est. Closing:</span>{' '}
@@ -2595,6 +2739,107 @@ export default function LeadDetailPage() {
       {/* ── INTELLIGENCE TAB ── */}
       {activeTab === 'intelligence' && (
         <div className="space-y-6">
+
+          {/* ── BANTC QUALIFICATION & ELIGIBILITY STATUS HERO CARD ── */}
+          <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+              <div>
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-[var(--brand)]" />
+                  AI BANTC Qualification & Eligibility Status
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Evaluasi kelayakan lead berdasarkan Framework BANTC (Budget, Authority, Need, Timeline, Competitor Fit) & Rule Engine.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={qualificationVariant(leadData.qualification_status)}
+                  className="text-xs px-3 py-1 font-bold uppercase tracking-wider shadow-xs"
+                >
+                  {formatQualificationStatus(leadData.qualification_status)}
+                </Badge>
+                <Button
+                  onClick={handleRunPreMeetingScreening}
+                  disabled={screeningLoading}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs flex items-center gap-1.5"
+                >
+                  {screeningLoading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Screening...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
+                      Run AI Pre-Meeting Screening
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Status Kelayakan</span>
+                <span className="text-base font-bold text-foreground capitalize mt-0.5 block">
+                  {formatQualificationStatus(leadData.qualification_status)}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {leadData.qualification_status === 'eligible'
+                    ? 'Memenuhi syarat pipeline SQL'
+                    : leadData.qualification_status === 'potential'
+                      ? 'Perlu eksplorasi kebutuhan sales'
+                      : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified'
+                        ? 'Tidak memenuhi kriteria'
+                        : 'Belum dinilai AI'}
+                </span>
+              </div>
+
+              <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Klasifikasi Bisnis</span>
+                <span className="text-base font-bold text-foreground mt-0.5 block">
+                  {latestQual?.business_type || leadData.business_category?.name || 'B2B Enterprise'}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Ukuran: {latestQual?.company_size_band || leadData.company_size || 'Enterprise / Mid-Market'}
+                </span>
+              </div>
+
+              <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Rekomendasi Funnel</span>
+                <span className="text-base font-bold text-[var(--brand)] mt-0.5 block">
+                  {leadData.funnelStage?.name || leadData.current_funnel_stage?.name || 'Tahap SQL'}
+                </span>
+                <span className="text-[11px] text-muted-foreground">Otomatisasi AI Pipeline</span>
+              </div>
+
+              <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Skor AI & Grade</span>
+                <span className="text-base font-bold text-foreground mt-0.5 flex items-center gap-1.5">
+                  {latestScore?.score ?? '—'} <Badge variant={gradeVariant(latestScore?.grade)} className="text-[10px] px-1.5 py-0">{latestScore?.grade ?? 'N/A'}</Badge>
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {latestScore?.calculated_at ? new Date(latestScore.calculated_at).toLocaleDateString() : 'Belum dinilai'}
+                </span>
+              </div>
+            </div>
+
+            {/* AI Qualification Reason & Strategic Context */}
+            {latestQual?.qualification_reason ? (
+              <div className="bg-muted/30 p-3.5 rounded-lg border border-border/60 space-y-1">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 text-[var(--brand)]" />
+                  Alasan & Justifikasi Kualifikasi AI:
+                </span>
+                <p className="text-xs text-muted-foreground leading-relaxed pl-5 whitespace-pre-line">
+                  {latestQual.qualification_reason}
+                </p>
+              </div>
+            ) : null}
+          </div>
 
           {/* ── COMPANY INTELLIGENCE & VERIFICATION SECTION ── */}
           <div className="grid gap-6 lg:grid-cols-2">
