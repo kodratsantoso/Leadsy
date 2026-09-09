@@ -675,6 +675,7 @@ export default function LeadsPage() {
   const [qualificationFilter, setQualificationFilter] = useState(
     searchParams.get("qualification_status") ?? ""
   );
+  const [gradeFilter, setGradeFilter] = useState(searchParams.get("grade") ?? "");
   const [duplicateFilter, setDuplicateFilter] = useState(searchParams.get("duplicate_status") ?? "");
   const [sourceFilter, setSourceFilter] = useState(searchParams.get("source_type") ?? "");
   const [channelFilter, setChannelFilter] = useState(searchParams.get("channel_type_id") ?? "");
@@ -794,13 +795,14 @@ export default function LeadsPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["leads", page, perPage, search, funnelStageId, funnelMinSequence, qualificationFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, ownerFilter, ownerRoleFilter, minScore, maxScore],
+    queryKey: ["leads", page, perPage, search, funnelStageId, funnelMinSequence, qualificationFilter, gradeFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, ownerFilter, ownerRoleFilter, minScore, maxScore],
     queryFn: async () => {
       const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
       if (search) params.set("search", search);
       if (funnelStageId) params.set("funnel_stage_id", funnelStageId);
       if (funnelMinSequence) params.set("funnel_min_sequence", funnelMinSequence);
       if (qualificationFilter) params.set("qualification_status", qualificationFilter);
+      if (gradeFilter) params.set("grade", gradeFilter);
       if (duplicateFilter) params.set("duplicate_status", duplicateFilter);
       if (sourceFilter) params.set("source_type", sourceFilter);
       if (channelFilter) params.set("channel_type_id", channelFilter);
@@ -1238,6 +1240,7 @@ export default function LeadsPage() {
     setSearch("");
     setFunnelStageId("");
     setQualificationFilter("");
+    setGradeFilter("");
     setDuplicateFilter("");
     setSourceFilter("");
     setChannelFilter("");
@@ -1483,7 +1486,7 @@ export default function LeadsPage() {
   };
 
   const hasActiveFilter = Boolean(
-    search || funnelStageId || funnelMinSequence || qualificationFilter || duplicateFilter || sourceFilter || channelFilter || ownerFilter || minScore || maxScore
+    search || funnelStageId || funnelMinSequence || qualificationFilter || gradeFilter || duplicateFilter || sourceFilter || channelFilter || ownerFilter || minScore || maxScore
   );
 
   const openAssign = (lead: LeadRecord) => {
@@ -1602,15 +1605,16 @@ export default function LeadsPage() {
       </Card>
 
       <div data-tour="leads-filters" className="space-y-3">
-        {/* Quick Assessment Status Filter Pills */}
+        {/* Quick Assessment Status & Grade Filter Pills */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant={!qualificationFilter && !ownerFilter ? "default" : "outline"}
+            variant={!qualificationFilter && !gradeFilter && !ownerFilter ? "default" : "outline"}
             size="sm"
             className="text-xs h-8 rounded-xl font-medium"
             onClick={() => {
               setQualificationFilter("");
+              setGradeFilter("");
               setOwnerFilter("");
               setPage(1);
             }}
@@ -1636,6 +1640,10 @@ export default function LeadsPage() {
               My Leads
             </Button>
           )}
+
+          <div className="h-4 w-px bg-border/60 mx-0.5" />
+
+          {/* Qualification Status Pills */}
           <Button
             type="button"
             variant={qualificationFilter === "unassessed" ? "default" : "outline"}
@@ -1692,6 +1700,76 @@ export default function LeadsPage() {
             }}
           >
             Not Eligible
+          </Button>
+
+          <div className="h-4 w-px bg-border/60 mx-0.5" />
+
+          {/* Grade Filter Pills */}
+          <Button
+            type="button"
+            variant={gradeFilter === "hot" ? "default" : "outline"}
+            size="sm"
+            className={`text-xs h-8 rounded-xl font-medium ${
+              gradeFilter === "hot"
+                ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+                : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+            }`}
+            onClick={() => {
+              setGradeFilter(gradeFilter === "hot" ? "" : "hot");
+              setPage(1);
+            }}
+          >
+            <Zap className="h-3.5 w-3.5 mr-1 fill-emerald-500 text-emerald-500" />
+            Hot (≥ 80)
+          </Button>
+          <Button
+            type="button"
+            variant={gradeFilter === "warm" ? "default" : "outline"}
+            size="sm"
+            className={`text-xs h-8 rounded-xl font-medium ${
+              gradeFilter === "warm"
+                ? "bg-amber-600 text-white hover:bg-amber-700 shadow-xs"
+                : "border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+            }`}
+            onClick={() => {
+              setGradeFilter(gradeFilter === "warm" ? "" : "warm");
+              setPage(1);
+            }}
+          >
+            <Zap className="h-3.5 w-3.5 mr-1 fill-amber-500 text-amber-500" />
+            Warm (60 - 79)
+          </Button>
+          <Button
+            type="button"
+            variant={gradeFilter === "cold" ? "default" : "outline"}
+            size="sm"
+            className={`text-xs h-8 rounded-xl font-medium ${
+              gradeFilter === "cold"
+                ? "bg-slate-700 text-white hover:bg-slate-800 shadow-xs"
+                : "border-slate-400/30 text-slate-700 dark:text-slate-300 bg-slate-500/10 hover:bg-slate-500/20"
+            }`}
+            onClick={() => {
+              setGradeFilter(gradeFilter === "cold" ? "" : "cold");
+              setPage(1);
+            }}
+          >
+            Cold (&lt; 60)
+          </Button>
+          <Button
+            type="button"
+            variant={gradeFilter === "unscored" ? "default" : "outline"}
+            size="sm"
+            className={`text-xs h-8 rounded-xl font-medium ${
+              gradeFilter === "unscored"
+                ? "bg-zinc-600 text-white hover:bg-zinc-700"
+                : "border-zinc-300 text-muted-foreground hover:bg-muted/40"
+            }`}
+            onClick={() => {
+              setGradeFilter(gradeFilter === "unscored" ? "" : "unscored");
+              setPage(1);
+            }}
+          >
+            Unscored
           </Button>
         </div>
 
@@ -1752,6 +1830,19 @@ export default function LeadsPage() {
               <option value="eligible">Eligible</option>
               <option value="potential">Potential</option>
               <option value="not_eligible">Not eligible</option>
+            </Select>
+            <Select
+              value={gradeFilter}
+              onChange={(event) => {
+                setGradeFilter(event.target.value);
+                setPage(1);
+              }}
+              placeholder="All grades"
+            >
+              <option value="hot">Hot (Score ≥ 80)</option>
+              <option value="warm">Warm (Score 60 - 79)</option>
+              <option value="cold">Cold (Score &lt; 60)</option>
+              <option value="unscored">Unscored / No Grade</option>
             </Select>
             <Select
               value={duplicateFilter}

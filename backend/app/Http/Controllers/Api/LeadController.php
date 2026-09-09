@@ -143,6 +143,18 @@ class LeadController extends Controller
         if ($request->filled('max_score')) {
             $query->where('lead_score', '<=', (int) $request->max_score);
         }
+        if ($request->filled('grade')) {
+            $grade = strtolower($request->grade);
+            if ($grade === 'hot' || $grade === 'a') {
+                $query->where('lead_score', '>=', 80);
+            } elseif ($grade === 'warm' || $grade === 'b') {
+                $query->whereBetween('lead_score', [60, 79]);
+            } elseif ($grade === 'cold' || $grade === 'c') {
+                $query->where('lead_score', '<', 60)->whereNotNull('lead_score');
+            } elseif ($grade === 'unscored' || $grade === 'none' || $grade === 'unassessed') {
+                $query->whereNull('lead_score');
+            }
+        }
         if ($request->get('filter') === 'prospects') {
             $query->whereIn('qualification_status', ['eligible', 'potential']);
         }
@@ -1055,6 +1067,18 @@ class LeadController extends Controller
                 })->whereNotIn('qualification_status', ['not_eligible', 'disqualified']);
             } else {
                 $query->where('qualification_status', $request->qualification_status);
+            }
+        }
+        if ($request->filled('grade')) {
+            $grade = strtolower($request->grade);
+            if ($grade === 'hot' || $grade === 'a') {
+                $query->where('lead_score', '>=', 80);
+            } elseif ($grade === 'warm' || $grade === 'b') {
+                $query->whereBetween('lead_score', [60, 79]);
+            } elseif ($grade === 'cold' || $grade === 'c') {
+                $query->where('lead_score', '<', 60)->whereNotNull('lead_score');
+            } elseif ($grade === 'unscored' || $grade === 'none' || $grade === 'unassessed') {
+                $query->whereNull('lead_score');
             }
         }
 
