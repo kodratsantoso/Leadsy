@@ -55,6 +55,8 @@ export default function MekariQontakPage() {
   const [sendingMsg, setSendingMsg] = useState(false);
   const [isSendingLocal, setIsSendingLocal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncingHistory, setIsSyncingHistory] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
 
 
@@ -188,12 +190,32 @@ export default function MekariQontakPage() {
 
 
 
-  // Send message locally and optionally via API
+  const handleRefreshActiveMessages = async () => {
+    if (!activeConv) return;
+    setIsSyncingHistory(true);
+    setSendError(null);
+    try {
+      const msgs = await getMessages(activeConv.id, true);
+      setActiveMessages(msgs);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal memuat history chat dari Qontak";
+      setSendError(msg);
+    } finally {
+      setIsSyncingHistory(false);
+    }
+  };
+
+  // Send message locally and via Qontak API
   const handleSendMessage = async () => {
     if (!activeConv || !replyText.trim()) return;
-    const phone = activeConv.contact?.phone_number || activeConv.external_chat_id;
-    const body = replyText;
+    const targetRecipient = activeConv.external_chat_id || activeConv.contact?.phone_number;
+    if (!targetRecipient) {
+      setSendError("Recipient phone number or room ID is missing");
+      return;
+    }
+    const body = replyText.trim();
     setReplyText("");
+    setSendError(null);
     setIsSendingLocal(true);
 
     // Dynamic local append for instant reactivity
@@ -210,11 +232,19 @@ export default function MekariQontakPage() {
     setActiveMessages(prev => [...prev, tempMsg]);
 
     try {
-      const res = await sendMessage(phone, body, "mekari_qontak");
+      const res = await sendMessage(targetRecipient, body, "mekari_qontak");
       if (!res || !res.success) {
-        console.warn("Message sent locally; direct delivery skipped or failed.");
+        setSendError(res?.error || "Gagal mengirim pesan ke Qontak. Periksa kredensial atau token Mekari Qontak.");
+      } else {
+        // Refresh messages after brief delay to pull synced record
+        setTimeout(async () => {
+          const fresh = await getMessages(activeConv.id);
+          if (fresh.length > 0) setActiveMessages(fresh);
+        }, 1500);
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "API messaging error";
+      setSendError(msg);
       console.warn("API messaging error:", err);
     } finally {
       setIsSendingLocal(false);
@@ -572,6 +602,18 @@ export default function MekariQontakPage() {
                 )}
 
                 <Button
+                  onClick={handleRefreshActiveMessages}
+                  disabled={isSyncingHistory}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[10px] font-bold"
+                  title="Sync complete conversation history from Qontak"
+                >
+                  <RefreshCw className={cn("h-3 w-3", isSyncingHistory && "animate-spin")} />
+                  <span>Sync History</span>
+                </Button>
+
+                <Button
                   onClick={handleToggleResolve}
                   variant={activeConv?.is_resolved ? "default" : "outline"}
                   size="sm"
@@ -585,7 +627,15 @@ export default function MekariQontakPage() {
               </div>
             </div>
 
-            {/* Error banner inside active screen */}
+            {/* Error banners inside active screen */}
+            {sendError && (
+              <div className="flex items-center gap-2 border-b border-[var(--status-danger)]/20 bg-[var(--status-danger)]/5 px-4 py-2 text-xs text-[var(--status-danger)] select-none">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span className="font-semibold">{sendError}</span>
+                <button onClick={() => setSendError(null)} className="ml-auto underline font-bold text-[10px]">Dismiss</button>
+              </div>
+            )}
+
             {error && (
               <div className="flex items-center gap-2 border-b border-[var(--status-danger)]/20 bg-[var(--status-danger)]/5 px-4 py-2 text-xs text-[var(--status-danger)] select-none">
                 <AlertCircle className="h-3.5 w-3.5" />

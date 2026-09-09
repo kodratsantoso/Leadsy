@@ -172,9 +172,12 @@ export function useWhatsApp() {
     }
   }, []);
 
-  const getMessages = useCallback(async (convId: number): Promise<WaMessage[]> => {
+  const getMessages = useCallback(async (convId: number, forceSync: boolean = false): Promise<WaMessage[]> => {
     try {
-      const res = await apiFetch(`/whatsapp/conversations/${convId}/messages`);
+      const url = forceSync
+        ? `/whatsapp/conversations/${convId}/messages?force_sync=true`
+        : `/whatsapp/conversations/${convId}/messages`;
+      const res = await apiFetch(url);
       const data = await res.json();
       return data.data || [];
     } catch {

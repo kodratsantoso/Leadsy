@@ -570,9 +570,11 @@ class WhatsAppController extends Controller
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
+        $forceSync = $request->boolean('force_sync');
+
         if ($conversation->platform === 'mekari_qontak') {
             $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
-            resolve(MekariQontakService::class)->syncRoomMessages($conversation->external_chat_id, $tenantId);
+            resolve(MekariQontakService::class)->syncRoomMessages($conversation->external_chat_id, $tenantId, $forceSync);
         }
 
         $messages = WhatsappMessage::where('conversation_id', $id)

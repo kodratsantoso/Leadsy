@@ -264,7 +264,7 @@ class AiOrchestrationService
         return match ($slug) {
             'anthropic' => array_filter([
                 'model' => $modelName,
-                'max_tokens' => $maxTokens ?? 1024,
+                'max_tokens' => $maxTokens ?? 4096,
                 'system' => $systemPrompt,
                 'messages' => [['role' => 'user', 'content' => $userPrompt]],
             ], fn ($value) => $value !== null),
@@ -274,6 +274,7 @@ class AiOrchestrationService
                 'tools' => ($context['web_search'] ?? false) ? [['googleSearch' => new \stdClass()]] : null,
                 'generationConfig' => [
                     'responseMimeType' => 'application/json',
+                    'maxOutputTokens' => $maxTokens ?? 4096,
                 ],
             ], fn ($value) => $value !== null),
             default => array_filter([ // openai-compatible
@@ -283,9 +284,8 @@ class AiOrchestrationService
                     ['role' => 'user',   'content' => $userPrompt],
                 ],
                 'response_format' => ['type' => 'json_object'],
-                'max_tokens' => $maxTokens,
-                // If it is our profiling feature and it is OpenAI (or supports tools/web search), we can append web search capability
-                'tools' => ($modelName === 'gpt-4o' || str_contains($modelName, 'gpt-4')) ? [['type' => 'web_search']] : null,
+                'max_tokens' => $maxTokens ?? 4096,
+                'tools' => ($context['web_search'] ?? false) ? [['type' => 'web_search']] : null,
             ], fn ($value) => $value !== null),
         };
     }

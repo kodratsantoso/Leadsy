@@ -56,6 +56,7 @@ export default function LocalWhatsAppPage() {
   const [showDetails, setShowDetails] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const [refreshingMessages, setRefreshingMessages] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [newTagInput, setNewTagInput] = useState("");
 
@@ -170,17 +171,16 @@ export default function LocalWhatsAppPage() {
   const loadConversations = useCallback((forceSync: boolean = false) => {
     getConversations("whatsapp", forceSync).then(res => {
       setConversations(res);
-      // Auto-assign random metadata to mock rooms if not present
+      // Initialize metadata preserving real conversation state
       setLocalRoomsMeta(prev => {
         const next = { ...prev };
-        res.forEach((c, index) => {
+        res.forEach((c) => {
           if (!next[c.id]) {
-            const mockAssignee = index % 3 === 0 ? "" : (index % 3 === 1 ? "Prasetia Sales" : "Sales Team B");
             next[c.id] = {
-              assignee: mockAssignee,
-              resolved: index % 6 === 0,
-              notes: "",
-              tags: index % 2 === 0 ? ["Hot Lead", "Q2 Outreach"] : ["Follow up"]
+              assignee: c.assignee_id ? `User #${c.assignee_id}` : "",
+              resolved: Boolean(c.is_resolved),
+              notes: c.notes || "",
+              tags: c.tags || []
             };
           }
         });
@@ -296,6 +296,17 @@ export default function LocalWhatsAppPage() {
     setActiveMessages(msgs);
   };
 
+  const handleRefreshActiveMessages = async () => {
+    if (!activeConv) return;
+    setRefreshingMessages(true);
+    try {
+      const msgs = await getMessages(activeConv.id, true);
+      setActiveMessages(msgs);
+    } finally {
+      setRefreshingMessages(false);
+    }
+  };
+
   const handleAnalyze = async (convId: number) => {
     await analyzeConversation(convId);
     setTimeout(() => {
@@ -398,7 +409,7 @@ export default function LocalWhatsAppPage() {
         return resolved;
       case "all":
       default:
-        return !resolved;
+        return true;
     }
   });
 
@@ -631,6 +642,16 @@ export default function LocalWhatsAppPage() {
                         </button>
                       )}
                       
+                      <button 
+                        onClick={handleRefreshActiveMessages}
+                        disabled={refreshingMessages}
+                        title="Sync Chat History"
+                        className="flex items-center gap-1 rounded-lg bg-accent/30 px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground hover:bg-accent/50 disabled:opacity-50"
+                      >
+                        <RefreshCw className={cn("h-3.5 w-3.5", refreshingMessages && "animate-spin")} />
+                        <span>Sync History</span>
+                      </button>
+
                       <button 
                         onClick={() => handleAnalyze(activeConv.id)}
                         title="AI Lead Evaluation"

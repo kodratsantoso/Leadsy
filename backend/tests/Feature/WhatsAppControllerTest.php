@@ -560,6 +560,50 @@ class WhatsAppControllerTest extends TestCase
         ]);
     }
 
+    public function test_get_conversation_messages_with_force_sync_queries_api(): void
+    {
+        $user = $this->makeUser();
+
+        $this->saveConfig($user, 'MEKARI_QONTAK_ENABLED', '1', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_BASE_URL', 'https://api.mekari.com', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_ID', 'test-client-id', false);
+        $this->saveConfig($user, 'MEKARI_QONTAK_CLIENT_SECRET', 'test-client-secret', true);
+
+        $contact = WhatsappContact::create([
+            'phone_number' => 'qontak-room-sync-test',
+            'normalized_phone_number' => 'qontakroomsynctest',
+            'is_relevant' => true,
+        ]);
+
+        $conv = WhatsappConversation::create([
+            'contact_id' => $contact->id,
+            'external_chat_id' => 'qontak-room-sync-test',
+            'platform' => 'mekari_qontak',
+            'approved_for_sync' => true,
+            'last_message_at' => now(),
+        ]);
+
+        Http::fake([
+            'api.mekari.com/qontak/chat/v1/rooms/qontak-room-sync-test/messages*' => Http::response([
+                'data' => [
+                    [
+                        'id' => 'msg-sync-1',
+                        'text' => 'Historical message',
+                        'created_at' => '2026-05-31T08:00:00Z',
+                        'sender_type' => 'Contact',
+                    ],
+                ],
+            ]),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson("/api/whatsapp/conversations/{$conv->id}/messages?force_sync=true")
+            ->assertOk();
+
+        $this->assertCount(1, $response->json('data'));
+        $this->assertEquals('msg-sync-1', $response->json('data.0.external_message_id'));
+    }
+
     private function saveConfig(User $user, string $key, string $value, bool $secret = true): void
     {
         IntegrationConfig::create([

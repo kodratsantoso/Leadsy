@@ -12,6 +12,15 @@ class AIPromptTemplateService
     public function ensureDefaults(): void
     {
         foreach ($this->defaultTemplates() as $featureName => $content) {
+            $existing = AiPromptTemplate::where('feature_name', $featureName)
+                ->where('is_active', true)
+                ->whereHas('activeVersion', fn ($q) => $q->where('is_enabled', true))
+                ->exists();
+
+            if ($existing) {
+                continue;
+            }
+
             $template = AiPromptTemplate::firstOrCreate(
                 ['feature_name' => $featureName, 'template_name' => 'Default'],
                 ['description' => 'System-managed default prompt wrapper', 'is_active' => true]
@@ -191,31 +200,103 @@ class AIPromptTemplateService
         return [
             'lead_ai_profiling' => $this->featureTemplate(
                 'Lead AI Company Profiling',
-                'Deeply research, discover, profile, and standardize comprehensive B2B company intelligence for an Indonesian business or enterprise.',
-                'You are an expert commercial enterprise researcher. Given the company name "{{company_name}}", search and extract:
-1. Legal entity company name and commercial brand name (e.g. PT X, Brand Y).
-2. Primary official website domain / URL.
-3. Official corporate contact details (HQ phone number, general/corporate contact email, complete street address).
-4. Most suitable Industry from available list: [{{available_industries}}]
-5. Most suitable Sub-Industry from available list: [{{available_sub_industries}}]
-6. Most suitable Business Category from available list: [{{available_business_categories}}]
-7. Estimated Company Size / Employee Range (choose from: 1-10, 11-50, 51-200, 201-500, 501-1000, 1001-5000, 5000+).
-8. Brief customer story / business background overview.
-9. Sources / URLs found.',
-                'Return ONLY a valid raw JSON object with no markdown fences:
+                'Deeply research, discover, profile, and standardize comprehensive B2B company intelligence for an Indonesian business or enterprise. You must cross-reference multiple public sources (official website, business directories, government registries like Kemendag, job platforms like JobStreet/LinkedIn, news articles) to build a verified, multi-dimensional company profile.',
+                'You are an expert senior commercial intelligence researcher specializing in Indonesian B2B enterprise profiling. Given the company name "{{company_name}}", perform a thorough multi-source web search and extract ALL of the following intelligence fields. Cross-reference at least 2-3 independent sources before asserting facts. If a field cannot be verified from public sources, set it to null rather than guessing.
+
+RESEARCH METHODOLOGY:
+1. First search for the official company website and extract primary data.
+2. Cross-check with Indonesian business registries (Kemendag, Companies House Indonesia, AHU Online).
+3. Verify employee count and company details from job platforms (JobStreet, Glints, LinkedIn).
+4. Look for news articles, press releases, or industry reports for additional context.
+5. Note any discrepancies between sources and reflect confidence levels accordingly.
+
+EXTRACT THESE FIELDS:
+
+A. CORE IDENTITY
+- legal_name: Full legal entity name (e.g. "PT Hanampi Sejahtera Kahuripan")
+- brand: Commercial/brand names including product brands (e.g. "Hanampi / PT HSK / Haracoat / Buamax")
+- abbreviation: Common abbreviation or acronym (e.g. "PT HSK")
+- year_established: Founding year as string (e.g. "2009") or null
+- ownership_type: Ownership structure (e.g. "Private Company", "Joint Venture", "Publicly Listed (Tbk)", "State-Owned (BUMN)", "Foreign Investment (PMA)")
+- website: Primary official website URL with https://
+
+B. CONTACT & LOCATION
+- address: Complete HQ street address (full format with city, province, postal code)
+- city: Primary city/regency (e.g. "Gresik")
+- province: Province (e.g. "Jawa Timur")
+- phone: Primary office phone number(s), can include multiple separated by " / "
+- whatsapp: WhatsApp contact number if found separately from phone
+- email: Primary corporate/business email
+- lat: Approximate latitude if known, otherwise null
+- lng: Approximate longitude if known, otherwise null
+
+C. INDUSTRY CLASSIFICATION
+- industry: Most suitable Industry from available list: [{{available_industries}}]
+- sub_industry: Most suitable Sub-Industry from available list: [{{available_sub_industries}}]
+- business_category: Most suitable Business Category from available list: [{{available_business_categories}}]
+- primary_sector: Broad economic sector (e.g. "Manufacturing", "Services", "Trading", "Construction", "Mining", "Agriculture", "Technology", "Finance", "Logistics")
+- vertical: Specific vertical/segment (e.g. "Agriculture / Plantation / Agroindustry")
+- core_product: Main product/service category (e.g. "Fertilizer")
+- specialization: Detailed specialization (e.g. "Controlled-release & specialty fertilizers")
+
+D. COMPANY SCALE
+- company_size: Employee range (choose from: 1-10, 11-50, 51-200, 201-500, 501-1000, 1001-5000, 5000+)
+- company_size_estimate: Estimated employee count with source context (e.g. "±51-100 employees (per JobStreet)")
+- operational_area_type: Type of operational area (e.g. "Kawasan Industri", "CBD Office", "Industrial Estate", "Ruko/Shop Office")
+- branch_count: Number of branches/locations if known, otherwise null
+
+E. BUSINESS INTELLIGENCE
+- business_model: Primary business model (e.g. "B2B Manufacturer", "B2B Distributor", "B2B Service Provider", "B2C Retailer", "B2B2C", "E-commerce")
+- target_market: Description of target customers/markets (e.g. "Pertanian dan perkebunan kelapa sawit, padi, jagung")
+- corporate_structure: Parent company, group affiliation, or JV partners if known (e.g. "Joint venture between MAKIN Group, Group Sejahtera, and SAGA Group")
+- manufacturing_capability: For manufacturers, list production capabilities/product lines
+- product_brands: Array of product brand names (e.g. ["Haracoat", "Buamax", "Mikrozibor"])
+- certifications_or_registrations: Notable certifications, government registrations, or BPOM/ISO listings if found
+
+F. NARRATIVE & STRATEGY
+- customer_story: 3-5 sentence comprehensive overview of the company: who they are, what they do, their market position, key capabilities, and operational scope in Indonesia. Be specific and factual.
+- presales_perspective: 2-4 sentence presales/sales intelligence perspective: what departments/functions likely exist (e.g. production, QC, R&D, maintenance, procurement, sales, HR), what digital transformation use cases might be relevant, and potential entry points for sales engagement.
+- confidence: Overall confidence level for this profile: "high", "medium", or "low" based on source quality and corroboration.
+
+G. SOURCES
+- sources: Array of verified source URLs used (include official website, directories, government databases, news articles). List at least 2-3 sources when available.',
+                'Return ONLY a valid raw JSON object with no markdown fences, no code blocks, no explanation text. The JSON must conform exactly to this structure:
 {
-  "company_name": "Full Legal Company Name",
-  "brand": "Commercial Brand Name",
+  "legal_name": "Full Legal Entity Name",
+  "brand": "Brand Names / Commercial Names",
+  "abbreviation": "Common Abbreviation or null",
+  "year_established": "YYYY or null",
+  "ownership_type": "Ownership type description or null",
   "website": "https://www.example.com",
-  "phone": "+62...",
-  "email": "contact@example.com",
-  "address": "Complete HQ Address",
-  "industry": "Selected Industry",
-  "sub_industry": "Selected Sub-Industry",
-  "business_category": "Selected Business Category",
+  "address": "Complete HQ street address, city, province, postal code",
+  "city": "City/Regency name",
+  "province": "Province name",
+  "phone": "+62-xx-xxxxxxx / +62-xx-xxxxxxx",
+  "whatsapp": "+62-xxx-xxxx-xxxx or null",
+  "email": "corporate@example.com",
+  "lat": null,
+  "lng": null,
+  "industry": "Selected Industry from available list",
+  "sub_industry": "Selected Sub-Industry from available list",
+  "business_category": "Selected Business Category from available list",
+  "primary_sector": "Broad sector name",
+  "vertical": "Specific vertical",
+  "core_product": "Main product/service",
+  "specialization": "Detailed specialization",
   "company_size": "51-200",
-  "customer_story": "2-3 sentences overview of their core business and operations in Indonesia",
-  "sources": ["https://..."]
+  "company_size_estimate": "±51-100 employees (source context)",
+  "operational_area_type": "Area type or null",
+  "branch_count": null,
+  "business_model": "B2B Manufacturer",
+  "target_market": "Description of target customers",
+  "corporate_structure": "Group/parent info or null",
+  "manufacturing_capability": "Production capabilities or null",
+  "product_brands": ["Brand1", "Brand2"],
+  "certifications_or_registrations": "Notable certs or null",
+  "customer_story": "3-5 sentence factual overview of the company operations, market position, and capabilities in Indonesia.",
+  "presales_perspective": "2-4 sentence sales intelligence: likely departments, digital use cases, and potential entry points.",
+  "confidence": "high",
+  "sources": ["https://www.example.com", "https://directory.example.com/company"]
 }'
             ),
             'lead_analysis' => $this->featureTemplate(
