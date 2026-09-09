@@ -2340,9 +2340,36 @@ export default function LeadDetailPage() {
                   <span className="font-medium">{leadData.last_enriched_at ? new Date(leadData.last_enriched_at).toLocaleString() : 'Never'}</span>
                 </div>
                 {leadData.enrichment_metadata && typeof leadData.enrichment_metadata === 'object' && (
-                  <div className="mt-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-                    <span className="font-semibold block mb-1">Metadata</span>
-                    {JSON.stringify(leadData.enrichment_metadata, null, 2)}
+                  <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-foreground text-xs">Hasil Pengayaan Data</span>
+                      {leadData.enrichment_metadata.source && (
+                        <Badge variant="outline" className="text-[10px] uppercase font-semibold">
+                          Sumber: {String(leadData.enrichment_metadata.source).replace(/_/g, ' ')}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {Array.isArray(leadData.enrichment_metadata.fields_updated) && leadData.enrichment_metadata.fields_updated.length > 0 ? (
+                      <div>
+                        <span className="text-muted-foreground text-[11px] block mb-1">Kolom yang Diperbarui:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {leadData.enrichment_metadata.fields_updated.map((field: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="bg-background text-[11px] font-medium capitalize">
+                              ✓ {field.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : leadData.enrichment_metadata.message ? (
+                      <p className="text-muted-foreground">{leadData.enrichment_metadata.message}</p>
+                    ) : null}
+
+                    {leadData.enrichment_metadata.orchestrated_by_ai && (
+                      <div className="pt-1 flex items-center gap-1.5 text-[11px] text-[var(--brand)] font-medium">
+                        <Sparkles className="h-3 w-3" /> Diproses otomatis oleh AI Orchestrator
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="mt-2 flex justify-end">
