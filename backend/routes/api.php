@@ -215,6 +215,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('leads/{lead}/battle-cards', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'getBattleCards'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/battle-cards/generate', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'generateBattleCard'])->middleware('permission:leads.edit');
 
+    // Sprint 3: Customer Success Foundation Routes (G3.1, G3.3, G3.2)
+    Route::get('customer-success/health-scores', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'getHealthScores'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/health-score', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'getLeadHealthScore'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/health-score/recalculate', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'recalculateHealthScore'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/onboarding-milestones', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'getOnboardingMilestones'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/onboarding/generate', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'generateOnboardingWorkflow'])->middleware('permission:leads.edit');
+    Route::put('onboarding-milestones/{milestone}', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'updateMilestone'])->middleware('permission:leads.edit');
+    Route::get('customer-success/churn-risks', [\App\Http\Controllers\Api\Sprint3CustomerSuccessController::class, 'getChurnRisks'])->middleware('permission:leads.view');
+
     Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/meetings', [LeadController::class, 'logMeeting'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts', [LeadController::class, 'addContact'])->middleware('permission:leads.edit');

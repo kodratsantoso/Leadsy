@@ -574,6 +574,21 @@ class Lead extends Model
         return $this->hasMany(LeadBattleCard::class);
     }
 
+    public function healthScores(): HasMany
+    {
+        return $this->hasMany(CustomerHealthScore::class);
+    }
+
+    public function latestHealthScore(): HasOne
+    {
+        return $this->hasOne(CustomerHealthScore::class)->latestOfMany('calculated_at');
+    }
+
+    public function onboardingMilestones(): HasMany
+    {
+        return $this->hasMany(CustomerOnboardingMilestone::class)->orderBy('sequence');
+    }
+
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
         if (! $user || $user->isSuperAdmin() || $user->isExecutive()) {

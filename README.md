@@ -4,8 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.25.0** — 2026-09-09
+Current release: **v1.26.0** — 2026-09-09
  
+## What's New in v1.26.0 (Sprint 3 AI Customer Success Foundation — Health Scoring, Onboarding Workflow & Churn Detection)
+
+- **G3.1 Multi-Factor Customer Health Score Engine** — Introduced `CustomerHealthScoreService`, `customer_health_scores` schema, and `CustomerHealthScore` model. Evaluates active/won clients across 4 weighted dimensions: Activity Recency & Frequency (30%), Onboarding Milestone Execution (25%), AI Evaluation Sentiment & Objections (25%), and Relationship Stability (20%). Categorizes accounts into `thriving`, `healthy`, `at_risk`, and `critical` with automated trend analysis. Exposed endpoints `GET /api/customer-success/health-scores`, `GET /api/leads/{lead}/health-score`, and `POST /api/leads/{lead}/health-score/recalculate`.
+- **G3.3 Post-Won Automated Onboarding Workflow** — Built `CustomerOnboardingWorkflowService`, `customer_onboarding_milestones` schema, and `CustomerOnboardingMilestone` model. Automatically provisions tailored onboarding milestones (Kickoff, Technical Setup, Training, Go-Live Verification, QBR) with deliverables and timelines upon deal closing. Exposed `GET /api/leads/{lead}/onboarding-milestones`, `POST /api/leads/{lead}/onboarding/generate`, and `PUT /api/onboarding-milestones/{milestone}`.
+- **G3.2 Proactive Churn Risk Detection & Early Warning Alert** — Created `ChurnRiskDetectionService` and Artisan command `leadsy:detect-churn-risks` scheduled daily at 08:30 in `routes/console.php`. Proactively flags clients suffering from communication lulls (>14/30 days), delayed onboarding, or health drops, creating `AiAttentionHighlight` alerts with specific CSM intervention tactics. Exposed `GET /api/customer-success/churn-risks`.
+- **Updated Lifecycle Coverage Visualization** — Fully refreshed the Mermaid lifecycle coverage architecture diagram in `ai_functions_audit.md` reflecting completed gaps across Phases 1, 2, and 3.
+
 ## What's New in v1.25.0 (Sprint 2 AI Engagement Hardening — Stalled Deals, Funnel Stage Recommendation & Battle Cards)
 
 - **G2.2 Stalled Deal Detection & Automated Alerts** — Implemented `StalledDealDetectionService` to proactively monitor deals across all open pipeline stages that exceed inactivity thresholds (default 14 days, customized to 7 days for proposal/negotiation stages). Generates `AiAttentionHighlight` records with high/critical severity and structured recovery playbooks (executive alignment, ROI proofs, multi-channel check-ins).
