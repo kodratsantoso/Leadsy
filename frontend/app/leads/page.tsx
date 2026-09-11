@@ -710,6 +710,7 @@ export default function LeadsPage() {
     leads: { id: number; company_name: string; duplicate_status: string }[];
   } | null>(null);
   const [editLead, setEditLead] = useState<LeadRecord | null>(null);
+  const [inlineSavingKey, setInlineSavingKey] = useState<string | null>(null);
   const [deleteLead, setDeleteLead] = useState<LeadRecord | null>(null);
   const [assignLead, setAssignLead] = useState<LeadRecord | null>(null);
   const [assignOwnerId, setAssignOwnerId] = useState("");
@@ -982,6 +983,36 @@ export default function LeadsPage() {
       setFeedback(err.message);
     },
   });
+
+  const inlineUpdateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: Record<string, unknown> }) => {
+      const res = await apiFetch(`/leads/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(formatApiError(body, `Failed to update lead (${res.status})`));
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setFeedback("Lead updated successfully.");
+    },
+    onError: (err: Error) => {
+      setFeedback(err.message);
+    },
+    onSettled: () => {
+      setInlineSavingKey(null);
+    },
+  });
+
+  const updateLeadField = (lead: LeadRecord, field: string, payload: Record<string, unknown>) => {
+    setInlineSavingKey(`${lead.id}:${field}`);
+    inlineUpdateMutation.mutate({ id: lead.id, payload });
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => apiFetch(`/leads/${id}`, { method: "DELETE" }),
@@ -2047,30 +2078,86 @@ export default function LeadsPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="neutral">{lead.industry?.name ?? ((Array.isArray(businessCategories) ? businessCategories : []).find((bc: any) => bc.id === lead.business_category_id)?.name) ?? "Unknown"}</Badge>
+                      <Select
+                        value={lead.industry_id != null ? String(lead.industry_id) : ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === String(lead.industry_id ?? "")) return;
+                          updateLeadField(lead, "industry", { industry_id: value ? Number(value) : null });
+                        }}
+                        disabled={inlineSavingKey === `${lead.id}:industry`}
+                        placeholder="Unknown"
+                        className="h-8 min-w-[110px] text-xs"
+                      >
+                        {allIndustries.map((industry) => (
+                          <option key={industry.id} value={String(industry.id)}>{industry.name}</option>
+                        ))}
+                      </Select>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={lead.product ? "info" : "neutral"}>
-                        {lead.product?.name ?? "Unassigned"}
-                      </Badge>
+                      <Select
+                        value={lead.product_id != null ? String(lead.product_id) : ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === String(lead.product_id ?? "")) return;
+                          updateLeadField(lead, "product", { product_id: value ? Number(value) : null });
+                        }}
+                        disabled={inlineSavingKey === `${lead.id}:product`}
+                        placeholder="Unassigned"
+                        className="h-8 min-w-[120px] text-xs"
+                      >
+                        {products.map((product) => (
+                          <option key={product.id} value={String(product.id)}>{product.name}</option>
+                        ))}
+                      </Select>
                     </TableCell>
                     <TableCell>
-                      {primarySourceSlug(lead) ? (
-                        <Badge variant="brand">
-                          {sourceNameBySlug.get(primarySourceSlug(lead)) ?? primarySourceSlug(lead)}
-                        </Badge>
-                      ) : (
-                        <Badge variant="neutral">Unclassified</Badge>
-                      )}
+                      <Select
+                        value={primarySourceSlug(lead) || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === (primarySourceSlug(lead) || "")) return;
+                          // Changing the source invalidates the previously selected channel,
+                          // matching the behavior of the full lead edit form.
+                          updateLeadField(lead, "source", { source_type: value || null, channel_type_id: null });
+                        }}
+                        disabled={inlineSavingKey === `${lead.id}:source`}
+                        placeholder="Unclassified"
+                        className="h-8 min-w-[110px] text-xs"
+                      >
+                        {activeLeadSources.map((source) => (
+                          <option key={source.id} value={source.slug}>{source.name}</option>
+                        ))}
+                      </Select>
                     </TableCell>
                     <TableCell>
-                      {primaryChannelId(lead) ? (
-                        <Badge variant="info">
-                          {channelNameById.get(primaryChannelId(lead) as number) ?? lead.sources?.[0]?.channel_type?.name ?? "Channel"}
-                        </Badge>
-                      ) : (
-                        <Badge variant="neutral">Unclassified</Badge>
-                      )}
+                      {(() => {
+                        const leadSourceSlug = primarySourceSlug(lead);
+                        const leadChannelOptions = activeLeadChannels.filter(
+                          (channel) => !leadSourceSlug || channel.source_slug === leadSourceSlug
+                        );
+                        const currentChannelId = primaryChannelId(lead);
+                        return (
+                          <Select
+                            value={currentChannelId != null ? String(currentChannelId) : ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === String(currentChannelId ?? "")) return;
+                              updateLeadField(lead, "channel", {
+                                source_type: leadSourceSlug || null,
+                                channel_type_id: value ? Number(value) : null,
+                              });
+                            }}
+                            disabled={inlineSavingKey === `${lead.id}:channel` || !leadSourceSlug}
+                            placeholder={leadSourceSlug ? "Unclassified" : "Select source first"}
+                            className="h-8 min-w-[120px] text-xs"
+                          >
+                            {leadChannelOptions.map((channel) => (
+                              <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+                            ))}
+                          </Select>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       {lead.lark_base_id ? (
