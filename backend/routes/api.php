@@ -173,6 +173,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/discover', [LeadController::class, 'discover'])->middleware('permission:leads.create');
     Route::post('leads/bulk-import', [LeadController::class, 'bulkImport'])->middleware('permission:leads.create');
     Route::post('leads/batch-delete', [LeadController::class, 'batchDelete']);
+    Route::get('leads/trash', [LeadController::class, 'trash'])->middleware('permission:leads.view');
+    Route::post('leads/batch-restore', [LeadController::class, 'batchRestore'])->middleware('permission:leads.edit');
+    Route::post('leads/batch-force-delete', [LeadController::class, 'batchForceDelete'])->middleware('permission:leads.edit');
+    Route::post('leads/purge-expired', [LeadController::class, 'purgeExpired'])->middleware('permission:leads.edit');
+    Route::post('leads/{id}/restore', [LeadController::class, 'restore'])->middleware('permission:leads.edit');
+    Route::delete('leads/{id}/force-delete', [LeadController::class, 'forceDelete'])->middleware('permission:leads.edit');
     Route::post('leads/ai-profiling/start', [AiLeadProfilingController::class, 'start'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/ai-profiling/{id}/status', [AiLeadProfilingController::class, 'status'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');

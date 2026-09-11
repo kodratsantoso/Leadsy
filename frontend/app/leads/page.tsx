@@ -734,6 +734,17 @@ export default function LeadsPage() {
     enabled: isSuperAdmin,
   });
 
+  const { data: trashSummaryData } = useQuery({
+    queryKey: ["leads-trash-summary"],
+    queryFn: async () => {
+      const res = await apiFetch("/leads/trash?per_page=1");
+      if (!res.ok) return { summary: { total_deleted: 0 } };
+      return res.json();
+    },
+    staleTime: 30000,
+  });
+  const trashCount = trashSummaryData?.summary?.total_deleted ?? 0;
+
 
 
   const { data: stagesData } = useQuery({
@@ -1519,6 +1530,20 @@ export default function LeadsPage() {
             <Link href="/qualification/reviews">
               <Button variant="outline">
                 Review Queue
+              </Button>
+            </Link>
+            <Link href="/leads/trash">
+              <Button
+                variant="outline"
+                className="border-border hover:border-destructive/40 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
+                Keranjang Sampah
+                {trashCount > 0 && (
+                  <Badge variant="neutral" className="ml-1.5 bg-muted text-xs px-1.5 py-0.5">
+                    {trashCount}
+                  </Badge>
+                )}
               </Button>
             </Link>
             <Button variant="outline" onClick={handleExport}>
