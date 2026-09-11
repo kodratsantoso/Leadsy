@@ -1,0 +1,23 @@
+# Leadsy — Mandatory Operational Rules (Cursor)
+# Lihat juga: AGENTS.md, CLAUDE.md, frontend/AGENTS.md
+
+## 1. Pre-Flight Git (SELALU PULL DULU)
+- Sebelum membaca/mengubah kode apa pun: `git fetch origin` lalu `git pull origin <branch_aktif>`, cek `git status`.
+- DILARANG KERAS force push (`git push -f` / `--force`).
+- DILARANG KERAS `git rebase` yang menimpa commit anggota tim lain (termasuk commit master release `virtuenet-tech` / `rizub`).
+- Conflict saat pull diselesaikan dengan merge aman tanpa menghilangkan perubahan upstream.
+
+## 2. Perlindungan Database & Volume Persistence
+- Database Leadsy = Single Source of Truth: data operasional riil (±1.073 leads, user tim, audit, pesan WhatsApp) di Persistent Volume (PV/PVC).
+- DILARANG KERAS:
+  1. `php artisan migrate:fresh`, `php artisan db:wipe`, truncate tabel.
+  2. Menjalankan `ProductionSeeder` / `DatabaseSeeder` sembarangan yang menimpa akun admin atau mereset tabel.
+  3. Membuat DB container baru kosong / mengarahkan aplikasi ke DB tanpa volume persisten.
+  4. `docker compose down -v` (menghapus named volumes = kehilangan data).
+- Selalu pakai persistent volume yang sama; jangan ubah nama database/volume/skema migration berjalan tanpa persetujuan eksplisit.
+- Migrasi baru wajib backward-compatible (tambah saja; jangan drop kolom/tabel berisi data).
+
+## 3. Standar Pengembangan & Release
+- Branch pengembangan/integrasi: `virtuenet`; branch produksi: `main`. Feature branch pendek → pull terbaru dari `virtuenet` sebelum merge.
+- Sebelum push: lint & typecheck lulus (`npm run build`, `cd frontend && npx tsc --noEmit`); syntax endpoint backend tervalidasi.
+- Push ke kedua remote: `origin` (Production) dan `leadsy-backup` (Backup).

@@ -220,6 +220,8 @@ export function EditLeadModal({
   const parentLeadResults = parentLeadSearchData?.data ?? parentLeadSearchData ?? [];
   
   const activeLeadSources = leadSources.filter((s: any) => s.is_active);
+  const selectedLeadSource = activeLeadSources.find((s: any) => s.slug === companyForm.source_type);
+  const activeLeadChannels: any[] = (selectedLeadSource?.channels ?? []).filter((c: any) => c.is_active);
   const selectedIndustrySubIndustries: any[] =
     allIndustries.find((i: any) => String(i.id) === companyForm.industry_id)?.sub_industries ?? [];
 
@@ -780,9 +782,41 @@ export function EditLeadModal({
                   <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
                 </Select>
               </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Lead Channel</label>
+                <Select
+                  value={companyForm.channel_type_id}
+                  onChange={(e) => {
+                    if (e.target.value === '__CREATE_NEW__') {
+                      setCreateNewModalConfig({
+                        isOpen: true,
+                        title: 'Create New Lead Channel',
+                        endpoint: '/settings/lead-channels',
+                        additionalPayload: selectedLeadSource ? { lead_source_type_id: selectedLeadSource.id } : undefined,
+                        onSuccess: (newItem) => {
+                          qc.invalidateQueries({ queryKey: ['lead-source-types'] });
+                          setCompanyForm((f) => ({ ...f, channel_type_id: String(newItem.id) }));
+                        }
+                      });
+                    } else {
+                      setCompanyForm((f) => ({ ...f, channel_type_id: e.target.value }));
+                    }
+                  }}
+                  placeholder={companyForm.source_type ? "— Select channel —" : "— Select a source first —"}
+                  disabled={!companyForm.source_type}
+                >
+                  {activeLeadChannels.map((ch: any) => (
+                    <option key={ch.id} value={String(ch.id)}>{ch.name}</option>
+                  ))}
+                  {companyForm.source_type && (
+                    <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
+                  )}
+                </Select>
+              </div>
             </div>
           </div>
-          
+
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">4. Ownership Roles</p>
             <div className="grid gap-4 sm:grid-cols-2">
