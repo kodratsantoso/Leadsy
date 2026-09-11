@@ -2,6 +2,8 @@
 
 namespace App\Services\AI;
 
+use App\Models\AiFeatureRoute;
+use App\Models\AiModel;
 use App\Models\AiRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -131,7 +133,7 @@ class AiOrchestrationService
     /*  PRIVATE */
     /* ──────────────────────────────────────────── */
 
-    private function tryModel($route, string $functionName, string|array $prompt, array $context, int $timeout, ?bool $isFallback = false): array
+    private function tryModel(AiFeatureRoute $route, string $functionName, string|array $prompt, array $context, int $timeout, ?bool $isFallback = false): array
     {
         $model = $route->aiModel()->with('provider')->first();
         if (! $model || ! $model->provider) {
@@ -351,7 +353,7 @@ class AiOrchestrationService
     }
 
     private function logRequest(
-        $model,
+        AiModel $model,
         string $functionName,
         ?int $promptTokens,
         ?int $completionTokens,
