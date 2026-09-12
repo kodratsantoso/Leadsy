@@ -50,7 +50,8 @@ class AiRequest extends Model
         'ai_model_id', 'user_id', 'function_name',
         'prompt_metadata', 'response_metadata',
         'prompt_tokens', 'completion_tokens',
-        'estimated_cost_usd', 'latency_ms', 'status', 'error_message', 'fallback_used',
+        'estimated_cost_usd', 'cost_currency_code', 'cost_converted', 'exchange_rate_snapshot',
+        'latency_ms', 'status', 'error_message', 'fallback_used',
     ];
 
     protected $casts = [
@@ -59,6 +60,8 @@ class AiRequest extends Model
         'prompt_tokens' => 'integer',
         'completion_tokens' => 'integer',
         'estimated_cost_usd' => 'float',
+        'cost_converted' => 'float',
+        'exchange_rate_snapshot' => 'float',
         'latency_ms' => 'integer',
         'fallback_used' => 'boolean',
     ];

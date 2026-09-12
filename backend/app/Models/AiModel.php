@@ -40,12 +40,27 @@ class AiModel extends Model
     protected $fillable = [
         'ai_provider_id', 'name', 'context_window',
         'capabilities', 'cost_tier', 'default_usage_type', 'status',
+        'cost_per_million_input_tokens', 'cost_per_million_output_tokens',
+        'pricing_source', 'pricing_synced_at',
     ];
 
     protected $casts = [
         'capabilities' => 'array',
         'context_window' => 'integer',
+        'cost_per_million_input_tokens' => 'float',
+        'cost_per_million_output_tokens' => 'float',
+        'pricing_synced_at' => 'datetime',
     ];
+
+    /**
+     * Whether this model has real per-token pricing configured (auto-fetched
+     * or manually entered), as opposed to only the coarse cost_tier guess.
+     */
+    public function hasRealPricing(): bool
+    {
+        return $this->cost_per_million_input_tokens !== null
+            && $this->cost_per_million_output_tokens !== null;
+    }
 
     public function provider(): BelongsTo
     {

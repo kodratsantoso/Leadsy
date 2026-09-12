@@ -189,7 +189,7 @@ class AiOrchestrationService
             // Extract content & tokens based on provider
             [$content, $promptTokens, $completionTokens] = $this->parseResponse($provider->provider_type ?: $provider->slug, $decoded);
 
-            $cost = $this->estimateCost($model->cost_tier, $promptTokens, $completionTokens);
+            $cost = $this->estimateCost($model, $promptTokens, $completionTokens);
 
             $this->logRequest($model, $functionName, $promptTokens, $completionTokens, $cost, $latencyMs, 'success', null, $isFallback);
 
@@ -321,10 +321,21 @@ class AiOrchestrationService
         };
     }
 
-    private function estimateCost(string $costTier, int $promptTokens, int $completionTokens): float
+    private function estimateCost(AiModel $model, int $promptTokens, int $completionTokens): float
     {
-        // Rough cost per 1M tokens (USD)
-        $rates = match ($costTier) {
+        // Prefer the model's real, per-token pricing (auto-fetched from OpenRouter,
+        // or manually entered for providers that don't expose pricing via their API).
+        if ($model->hasRealPricing()) {
+            return round(
+                ($promptTokens * $model->cost_per_million_input_tokens
+                    + $completionTokens * $model->cost_per_million_output_tokens) / 1_000_000,
+                6,
+            );
+        }
+
+        // Fallback: rough cost per 1M tokens (USD) by coarse tier, for models that
+        // haven't had real pricing configured yet.
+        $rates = match ($model->cost_tier) {
             'low' => ['prompt' => 0.15,  'completion' => 0.60],
             'medium' => ['prompt' => 3.00,  'completion' => 15.00],
             'high' => ['prompt' => 5.00,  'completion' => 15.00],
@@ -335,6 +346,36 @@ class AiOrchestrationService
             ($promptTokens * $rates['prompt'] + $completionTokens * $rates['completion']) / 1_000_000,
             6,
         );
+    }
+
+    /**
+     * Convert a USD cost to the tenant's currently active currency, using the
+     * exchange rate as it stands right now. The caller is expected to persist
+     * the result immediately (see logRequest()) so the conversion is frozen
+     * at the moment the activity ran, rather than recomputed later with a
+     * (by then different) exchange rate.
+     *
+     * @return array{code: string, converted: float, rate: float}
+     */
+    private function snapshotCurrencyConversion(float $costUsd): array
+    {
+        $usdCurrency = \App\Models\Currency::where('code', 'USD')->first();
+        $activeCurrency = \App\Models\CurrencySetting::with('currency')->first()?->currency;
+
+        if (! $usdCurrency || ! $activeCurrency || $usdCurrency->code === $activeCurrency->code) {
+            return ['code' => $usdCurrency?->code ?? 'USD', 'converted' => $costUsd, 'rate' => 1.0];
+        }
+
+        // exchange_rate columns are "units of base currency (IDR) per 1 unit of this currency".
+        $idrPerUsd = (float) $usdCurrency->exchange_rate;
+        $idrPerTarget = (float) $activeCurrency->exchange_rate;
+        $rate = $idrPerTarget > 0 ? $idrPerUsd / $idrPerTarget : 1.0;
+
+        return [
+            'code' => $activeCurrency->code,
+            'converted' => round($costUsd * $rate, 6),
+            'rate' => $rate,
+        ];
     }
 
     private function logRequest(
@@ -348,6 +389,8 @@ class AiOrchestrationService
         ?string $error = null,
         ?bool $isFallback = false
     ): void {
+        $currencySnapshot = $this->snapshotCurrencyConversion($cost);
+
         AiRequest::create([
             'ai_model_id' => $model->id,
             'user_id' => auth()->id(),
@@ -355,6 +398,9 @@ class AiOrchestrationService
             'prompt_tokens' => $promptTokens,
             'completion_tokens' => $completionTokens,
             'estimated_cost_usd' => $cost,
+            'cost_currency_code' => $currencySnapshot['code'],
+            'cost_converted' => $currencySnapshot['converted'],
+            'exchange_rate_snapshot' => $currencySnapshot['rate'],
             'latency_ms' => $latencyMs,
             'status' => $status,
             'error_message' => $error,

@@ -15,6 +15,36 @@ class AIUsageLogService
         $endDateParam = is_array($filters) ? ($filters['end_date'] ?? null) : null;
         $featureFilter = is_array($filters) ? ($filters['feature_name'] ?? null) : null;
 
+        // Each ai_requests row already carries its own frozen USD -> tenant-currency
+        // conversion (cost_converted / cost_currency_code), captured at the moment
+        // that AI activity ran — so historical reports never drift when today's
+        // exchange rate changes. `$legacyFallbackRate` is only used for rows written
+        // before that snapshot existed (cost_converted is null).
+        $usdCurrency = \App\Models\Currency::where('code', 'USD')->first();
+        $userCurrency = \App\Models\CurrencySetting::with('currency')->first()?->currency;
+
+        $legacyFallbackRate = 1.0;
+        $isConverted = false;
+
+        if ($usdCurrency && $userCurrency && $usdCurrency->code !== $userCurrency->code) {
+            $isConverted = true;
+            // The database exchange_rate column represents: How many units of base currency (e.g. IDR) is 1 unit of this currency.
+            // So: $usdCurrency->exchange_rate is IDR per 1 USD (approx 16000 IDR).
+            // $userCurrency->exchange_rate is IDR per 1 target currency.
+            // Thus, to convert USD to Target Currency:
+            // TargetAmount = UsdAmount * (IDR per USD) / (IDR per Target)
+            $idrPerUsd = (float) $usdCurrency->exchange_rate;
+            $idrPerTarget = (float) $userCurrency->exchange_rate;
+
+            if ($idrPerTarget > 0) {
+                $legacyFallbackRate = $idrPerUsd / $idrPerTarget;
+            }
+        }
+
+        // SQL-safe: $legacyFallbackRate is a PHP-computed float, never user input.
+        $convertedExpr = 'COALESCE(SUM(ai_requests.cost_converted), 0) + '
+            ."COALESCE(SUM(CASE WHEN ai_requests.cost_converted IS NULL THEN ai_requests.estimated_cost_usd ELSE 0 END), 0) * {$legacyFallbackRate}";
+
         $perProviderQuery = DB::table('ai_requests')
             ->join('ai_models', 'ai_requests.ai_model_id', '=', 'ai_models.id')
             ->join('ai_providers', 'ai_models.ai_provider_id', '=', 'ai_providers.id')
@@ -24,6 +54,7 @@ class AIUsageLogService
                 'ai_providers.slug as provider_slug',
                 DB::raw('COUNT(*) as total_calls'),
                 DB::raw('COALESCE(SUM(ai_requests.estimated_cost_usd), 0) as total_cost_usd'),
+                DB::raw("{$convertedExpr} as total_cost_converted"),
                 DB::raw('AVG(ai_requests.latency_ms) as avg_latency_ms'),
                 DB::raw("SUM(CASE WHEN ai_requests.status = 'success' THEN 1 ELSE 0 END) as success_count"),
                 DB::raw('SUM(CASE WHEN ai_requests.fallback_used IS TRUE THEN 1 ELSE 0 END) as fallback_count'),
@@ -35,7 +66,8 @@ class AIUsageLogService
             ->select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('COUNT(*) as total_calls'),
-                DB::raw('COALESCE(SUM(estimated_cost_usd), 0) as total_cost_usd')
+                DB::raw('COALESCE(SUM(estimated_cost_usd), 0) as total_cost_usd'),
+                DB::raw("{$convertedExpr} as total_cost_converted")
             )
             ->groupBy(DB::raw('DATE(created_at)'))
             ->orderBy('date', 'asc');
@@ -96,36 +128,14 @@ class AIUsageLogService
         $totalCalls = (int) $perProvider->sum('total_calls');
         $successCount = (int) $perProvider->sum('success_count');
         $totalCostUsd = (float) $perProvider->sum('total_cost_usd');
+        $totalCostConverted = (float) $perProvider->sum('total_cost_converted');
         $fallbackCount = (int) $perProvider->sum('fallback_count');
-
-        // Retrieve currency conversion
-        $usdCurrency = \App\Models\Currency::where('code', 'USD')->first();
-        $userCurrency = \App\Models\CurrencySetting::with('currency')->first()?->currency;
-        
-        $exchangeRateToUserCurrency = 1.0;
-        $isConverted = false;
-
-        // If USD is not the user's active currency, we need to convert it.
-        if ($usdCurrency && $userCurrency && $usdCurrency->code !== $userCurrency->code) {
-            $isConverted = true;
-            // The database exchange_rate column represents: How many units of base currency (e.g. IDR) is 1 unit of this currency.
-            // So: $usdCurrency->exchange_rate is IDR per 1 USD (approx 16000 IDR).
-            // $userCurrency->exchange_rate is IDR per 1 target currency.
-            // Thus, to convert USD to Target Currency: 
-            // TargetAmount = UsdAmount * (IDR per USD) / (IDR per Target)
-            $idrPerUsd = (float) $usdCurrency->exchange_rate;
-            $idrPerTarget = (float) $userCurrency->exchange_rate;
-            
-            if ($idrPerTarget > 0) {
-                $exchangeRateToUserCurrency = $idrPerUsd / $idrPerTarget;
-            }
-        }
 
         return [
             'summary' => [
                 'total_calls' => $totalCalls,
                 'total_cost_usd' => round($totalCostUsd, 4),
-                'total_cost_converted' => round($totalCostUsd * $exchangeRateToUserCurrency, 4),
+                'total_cost_converted' => round($totalCostConverted, 4),
                 'is_converted' => $isConverted,
                 'currency_code' => $userCurrency?->code ?? 'USD',
                 'success_rate' => $totalCalls > 0 ? round(($successCount / $totalCalls) * 100, 1) : null,
@@ -142,7 +152,7 @@ class AIUsageLogService
                 'provider_slug' => $row->provider_slug,
                 'total_calls' => (int) $row->total_calls,
                 'total_cost_usd' => round((float) $row->total_cost_usd, 4),
-                'total_cost_converted' => round((float) $row->total_cost_usd * $exchangeRateToUserCurrency, 4),
+                'total_cost_converted' => round((float) $row->total_cost_converted, 4),
                 'avg_latency_ms' => $row->avg_latency_ms ? round((float) $row->avg_latency_ms) : null,
                 'success_rate' => $row->total_calls > 0 ? round(($row->success_count / $row->total_calls) * 100, 1) : null,
                 'fallback_count' => (int) $row->fallback_count,
@@ -152,7 +162,7 @@ class AIUsageLogService
                 'date' => $row->date,
                 'total_calls' => (int) $row->total_calls,
                 'total_cost_usd' => round((float) $row->total_cost_usd, 4),
-                'total_cost_converted' => round((float) $row->total_cost_usd * $exchangeRateToUserCurrency, 4),
+                'total_cost_converted' => round((float) $row->total_cost_converted, 4),
             ])->values()->all(),
             'recent_logs' => AiRequest::with('aiModel.provider')
                 ->latest()
@@ -170,7 +180,9 @@ class AIUsageLogService
                     'completion_tokens' => $req->completion_tokens ?? 0,
                     'total_tokens' => ($req->prompt_tokens ?? 0) + ($req->completion_tokens ?? 0),
                     'cost_usd' => round($req->estimated_cost_usd, 5),
-                    'cost_converted' => round($req->estimated_cost_usd * $exchangeRateToUserCurrency, 4),
+                    // Frozen at call time; only recomputed live for rows predating the snapshot columns.
+                    'cost_converted' => round($req->cost_converted ?? ($req->estimated_cost_usd * $legacyFallbackRate), 4),
+                    'currency_code' => $req->cost_currency_code ?? ($userCurrency?->code ?? 'USD'),
                     'latency_ms' => $req->latency_ms,
                     'status' => $req->status,
                     'error_message' => $req->error_message,
