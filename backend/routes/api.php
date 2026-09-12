@@ -107,9 +107,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // The old ai_usage_logs-backed endpoint was retired 2026-09-12; the
     // ai_usage_logs table/model are kept for historical data only.
 
-    // Custom Workflow Engine
-    Route::apiResource('workflows', \App\Http\Controllers\Api\WorkflowDefinitionController::class);
-    Route::post('workflows/{workflow}/activate', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'activate']);
+    // Custom Workflow Engine — gated on users.manage (admin-level process config).
+    // Was fully unguarded (2026-09-13 audit).
+    Route::middleware('permission:users.manage')->group(function () {
+        Route::get('workflows', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'index']);
+        Route::post('workflows', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'store']);
+        Route::get('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'show']);
+        Route::put('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'update']);
+        Route::delete('workflows/{workflow}', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'destroy']);
+        Route::post('workflows/{workflow}/activate', [\App\Http\Controllers\Api\WorkflowDefinitionController::class, 'activate']);
+    });
     
     // Custom Workflow Engine for Quotations
     Route::get('quotations/{quotation}/workflow-transitions', [\App\Http\Controllers\Api\QuotationWorkflowController::class, 'getTransitions']);
@@ -183,8 +190,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('leads/ai-profiling/start', [AiLeadProfilingController::class, 'start'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/ai-profiling/{id}/status', [AiLeadProfilingController::class, 'status'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');
-    Route::apiResource('leads', LeadController::class);
-    Route::apiResource('business-categories', \App\Http\Controllers\Api\BusinessCategoryController::class);
+    // Split from Route::apiResource() so each verb carries its own permission —
+    // the resource previously had no permission gate at all (2026-09-13 audit).
+    Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('leads', [LeadController::class, 'store'])->middleware('permission:leads.create');
+    Route::get('leads/{lead}', [LeadController::class, 'show'])->middleware('permission:leads.view');
+    Route::put('leads/{lead}', [LeadController::class, 'update'])->middleware('permission:leads.edit');
+    Route::patch('leads/{lead}', [LeadController::class, 'update'])->middleware('permission:leads.edit');
+    Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->middleware('permission:leads.delete');
+    // business-categories: same gap — read stays open (matches the funnel/stages
+    // reference-data precedent), writes require leads.edit.
+    Route::get('business-categories', [\App\Http\Controllers\Api\BusinessCategoryController::class, 'index']);
+    Route::get('business-categories/{business_category}', [\App\Http\Controllers\Api\BusinessCategoryController::class, 'show']);
+    Route::post('business-categories', [\App\Http\Controllers\Api\BusinessCategoryController::class, 'store'])->middleware('permission:leads.edit');
+    Route::put('business-categories/{business_category}', [\App\Http\Controllers\Api\BusinessCategoryController::class, 'update'])->middleware('permission:leads.edit');
+    Route::delete('business-categories/{business_category}', [\App\Http\Controllers\Api\BusinessCategoryController::class, 'destroy'])->middleware('permission:leads.edit');
     // Unified AI Triggers
     Route::post('leads/bulk-intelligence', [LeadController::class, 'bulkIntelligence'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/run-proofing-strategy', [LeadController::class, 'runProofingStrategy'])->middleware('permission:leads.edit');
@@ -203,13 +223,24 @@ Route::middleware('auth:sanctum')->group(function () {
     // Targets
     Route::get('targets/config', [TargetConfigController::class, 'config']);
     
-    // Revenue Targets
-    Route::apiResource('revenue-targets', \App\Http\Controllers\Api\RevenueTargetController::class);
-    Route::post('revenue-targets/{id}/cascade', [\App\Http\Controllers\Api\RevenueTargetController::class, 'cascade']);
+    // Revenue Targets — gated on users.manage, matching the frontend's own nav gate for
+    // /settings/targets. Was fully unguarded (2026-09-13 audit).
+    Route::middleware('permission:users.manage')->group(function () {
+        Route::get('revenue-targets', [\App\Http\Controllers\Api\RevenueTargetController::class, 'index']);
+        Route::post('revenue-targets', [\App\Http\Controllers\Api\RevenueTargetController::class, 'store']);
+        Route::get('revenue-targets/{revenue_target}', [\App\Http\Controllers\Api\RevenueTargetController::class, 'show']);
+        Route::put('revenue-targets/{revenue_target}', [\App\Http\Controllers\Api\RevenueTargetController::class, 'update']);
+        Route::delete('revenue-targets/{revenue_target}', [\App\Http\Controllers\Api\RevenueTargetController::class, 'destroy']);
+        Route::post('revenue-targets/{id}/cascade', [\App\Http\Controllers\Api\RevenueTargetController::class, 'cascade']);
 
-    // KPI Targets
-    Route::post('kpi-targets/bulk', [\App\Http\Controllers\Api\KpiTargetController::class, 'bulkStore']);
-    Route::apiResource('kpi-targets', \App\Http\Controllers\Api\KpiTargetController::class);
+        // KPI Targets — same gate, same reasoning.
+        Route::post('kpi-targets/bulk', [\App\Http\Controllers\Api\KpiTargetController::class, 'bulkStore']);
+        Route::get('kpi-targets', [\App\Http\Controllers\Api\KpiTargetController::class, 'index']);
+        Route::post('kpi-targets', [\App\Http\Controllers\Api\KpiTargetController::class, 'store']);
+        Route::get('kpi-targets/{kpi_target}', [\App\Http\Controllers\Api\KpiTargetController::class, 'show']);
+        Route::put('kpi-targets/{kpi_target}', [\App\Http\Controllers\Api\KpiTargetController::class, 'update']);
+        Route::delete('kpi-targets/{kpi_target}', [\App\Http\Controllers\Api\KpiTargetController::class, 'destroy']);
+    });
     Route::post('leads/{lead}/push-to-funnel', [LeadController::class, 'pushToFunnel'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/assign', [LeadController::class, 'assign'])->middleware('permission:leads.edit');
@@ -528,12 +559,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('sales-visits/{visit}/clock-out', [SalesVisitController::class, 'clockOut'])->middleware('permission:leads.edit');
     Route::post('sales-visits/{visit}/media', [SalesVisitController::class, 'uploadMedia'])->middleware('permission:leads.edit');
 
-    // Territories
-    Route::apiResource('territories', TerritoryController::class);
+    // Territories — no dedicated permission exists; gated on maps.view (2026-09-13, was fully unguarded).
+    Route::get('territories', [TerritoryController::class, 'index'])->middleware('permission:maps.view');
+    Route::get('territories/{territory}', [TerritoryController::class, 'show'])->middleware('permission:maps.view');
+    Route::post('territories', [TerritoryController::class, 'store'])->middleware('permission:maps.view');
+    Route::put('territories/{territory}', [TerritoryController::class, 'update'])->middleware('permission:maps.view');
+    Route::delete('territories/{territory}', [TerritoryController::class, 'destroy'])->middleware('permission:maps.view');
 
-    // Products — ai-generate must be before apiResource to avoid {product} collision
+    // Products — ai-generate must stay before the read/write split to avoid {product} collision.
     Route::post('products/ai-generate', [ProductController::class, 'aiGenerate'])->middleware('permission:products.edit');
-    Route::apiResource('products', ProductController::class);
+    // Split from Route::apiResource() — was fully unguarded (2026-09-13 audit).
+    Route::get('products', [ProductController::class, 'index'])->middleware('permission:products.view');
+    Route::get('products/{product}', [ProductController::class, 'show'])->middleware('permission:products.view');
+    Route::post('products', [ProductController::class, 'store'])->middleware('permission:products.edit');
+    Route::put('products/{product}', [ProductController::class, 'update'])->middleware('permission:products.edit');
+    Route::delete('products/{product}', [ProductController::class, 'destroy'])->middleware('permission:products.edit');
  
     // Product Tiers
     Route::get('products/{product}/tiers', [\App\Http\Controllers\Api\ProductTierController::class, 'getTiers']);
@@ -549,10 +589,16 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Industries
-    Route::apiResource('industries', IndustryController::class)->except(['show']);
-    Route::post('industries/{industry}/sub-industries', [IndustryController::class, 'storeSub']);
-    Route::put('industries/{industry}/sub-industries/{sub}', [IndustryController::class, 'updateSub']);
-    Route::delete('industries/{industry}/sub-industries/{sub}', [IndustryController::class, 'destroySub']);
+    // Split from Route::apiResource() — was fully unguarded (2026-09-13 audit).
+    // Read stays open (matches the funnel/stages reference-data precedent), writes require leads.edit.
+    Route::get('industries', [IndustryController::class, 'index']);
+    Route::post('industries', [IndustryController::class, 'store'])->middleware('permission:leads.edit');
+    Route::put('industries/{industry}', [IndustryController::class, 'update'])->middleware('permission:leads.edit');
+    Route::delete('industries/{industry}', [IndustryController::class, 'destroy'])->middleware('permission:leads.edit');
+    // Same gap as the parent industries resource above (2026-09-13 audit) — also unguarded.
+    Route::post('industries/{industry}/sub-industries', [IndustryController::class, 'storeSub'])->middleware('permission:leads.edit');
+    Route::put('industries/{industry}/sub-industries/{sub}', [IndustryController::class, 'updateSub'])->middleware('permission:leads.edit');
+    Route::delete('industries/{industry}/sub-industries/{sub}', [IndustryController::class, 'destroySub'])->middleware('permission:leads.edit');
 
     // O2C Settings: Tax, WHT, and Item settings
     Route::prefix('settings/o2c')->group(function () {
@@ -656,7 +702,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class)->middleware('permission:users.manage');
     Route::post('users/{user}/signature', [UserController::class, 'uploadSignature'])->middleware('permission:users.manage');
     Route::delete('users/{user}/signature', [UserController::class, 'deleteSignature'])->middleware('permission:users.manage');
-    Route::get('roles', [UserController::class, 'roles']);
+    // Was unguarded (2026-09-13 audit) — leaked every role's full permission set to any authenticated user.
+    Route::get('roles', [UserController::class, 'roles'])->middleware('permission:users.manage');
     Route::get('permissions', [UserController::class, 'permissions'])->middleware('permission:users.manage');
     Route::post('roles', [UserController::class, 'storeRole'])->middleware('permission:users.manage');
     Route::put('roles/{role}', [UserController::class, 'updateRole'])->middleware('permission:users.manage');
