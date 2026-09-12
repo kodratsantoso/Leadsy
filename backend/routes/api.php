@@ -695,8 +695,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('whatsapp/campaigns/{campaign}', [WhatsAppController::class, 'destroyCampaign'])->middleware('permission:whatsapp.qontak');
 
     // WhatsApp — Sync Rules (Qontak)
-    Route::get('whatsapp/sync-rules', [WhatsAppController::class, 'getSyncRules'])->middleware('permission:whatsapp.qontak');
-    Route::post('whatsapp/sync-rules', [WhatsAppController::class, 'updateSyncRules'])->middleware('permission:whatsapp.qontak');
+    Route::get('whatsapp/sync-rules', [WhatsAppController::class, 'getSyncRules'])->middleware('permission:whatsapp.personal');
+    Route::post('whatsapp/sync-rules', [WhatsAppController::class, 'updateSyncRules'])->middleware('permission:whatsapp.personal');
 
     // Users & Roles — restricted to admin
     Route::apiResource('users', UserController::class)->middleware('permission:users.manage');
