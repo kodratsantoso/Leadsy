@@ -6,19 +6,23 @@ use App\Models\PsEstimation;
 use App\Models\PsRole;
 use App\Models\PsComplexityLevel;
 use App\Models\PsTemplateComponent;
+use App\Services\AI\AiOrchestrationService;
 use Illuminate\Support\Facades\Http;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
 class PsTaskBreakdownAiService
 {
+    public function __construct(
+        private AiOrchestrationService $aiOrchestrator,
+    ) {}
+
     /**
-     * Call the internal AiOutputController or similar AI framework to generate the breakdown.
-     * Since we might not have a direct service for the AI Routing, we will mock the AI call structure 
-     * based on standard Leadsy AI practices, or call the provider directly if we must.
-     * 
-     * Assuming we use the standard approach, we'd normally dispatch an AiRequest. 
-     * For now, we'll implement a direct parser/generator method assuming we get the JSON back.
+     * Generate an AI task/subtask breakdown for a Professional Services estimation.
+     *
+     * Calls the `ps_task_breakdown_generation` AI feature route. If no route is configured
+     * yet (Settings → AI Defaults) or the AI response cannot be parsed, falls back to a
+     * deterministic template-based breakdown so the feature never hard-fails.
      */
     public function generateBreakdown(PsEstimation $estimation): array
     {
@@ -52,14 +56,62 @@ class PsTaskBreakdownAiService
             'available_template_components_json' => $components->toJson(),
         ];
 
-        // 2. Mocking the AI Response for now since we don't have the full internal AI SDK booted in this context.
-        // In reality, this would hit the `AiFeatureRoute` and get a parsed response.
-        
-        // Let's create a simulated realistic response based on the context
-        return $this->simulateAiResponse($context);
+        // 2. Ask the AI to produce the breakdown, constrained to the roles/complexity levels/
+        // template components actually configured for this account.
+        try {
+            $prompt = $this->buildPrompt($context);
+            $aiResult = $this->aiOrchestrator->call('ps_task_breakdown_generation', $prompt, [
+                'estimation_id' => $estimation->id,
+            ]);
+
+            if (!empty($aiResult['success']) && !empty($aiResult['content'])) {
+                $parsed = $this->parseAiContent($aiResult['content']);
+                if ($parsed && !empty($parsed['task_breakdown'])) {
+                    return $parsed;
+                }
+            }
+        } catch (Exception $e) {
+            Log::warning('[PsTaskBreakdownAiService] AI breakdown fallback for estimation '.$estimation->id.': '.$e->getMessage());
+        }
+
+        // 3. Fall back to a deterministic template-based breakdown if AI is not configured
+        // or the response could not be parsed, so the feature never hard-fails.
+        return $this->buildFallbackBreakdown($context);
     }
-    
-    private function simulateAiResponse(array $context): array
+
+    private function buildPrompt(array $context): string
+    {
+        return "You are a Professional Services delivery lead. Break the project below into an implementation "
+            ."task/subtask plan with man-day estimates.\n\n"
+            ."Rules:\n"
+            ."- Only use role_id values that exist in available_roles_json, and complexity_id values that exist in "
+            ."available_complexity_levels_json — never invent new ids.\n"
+            ."- If available_template_components_json is non-empty, base the task breakdown on those components "
+            ."(same task names/order) instead of inventing an unrelated structure.\n"
+            ."- Respond with strict JSON only (no markdown fences) matching exactly this shape:\n"
+            .'{"task_breakdown":[{"task_name":"","description":"","deliverable":"","acceptance_criteria":[""],'
+            .'"suggested_role":{"role_id":0,"role_name":"","confidence":"high|medium|low"},'
+            .'"complexity":{"complexity_id":0,"complexity_name":"","reason":""},'
+            .'"base_mandays":0,"dependency_notes":[""],"risk_notes":[""],"ai_confidence":"high|medium|low",'
+            .'"subtasks":[{"subtask_name":"","description":"","deliverable":"","acceptance_criteria":[""],'
+            .'"suggested_role":{"role_id":0,"role_name":"","confidence":"high|medium|low"},'
+            .'"base_mandays":0,"dependency_notes":[""],"risk_notes":[""],"ai_confidence":"high|medium|low"}]}],'
+            .'"summary":{"total_base_mandays":0,"confidence_level":"high|medium|low","pm_review_notes":[""],'
+            .'"missing_information_affecting_estimation":[""]}}'."\n\n"
+            ."Project context:\n".json_encode($context, JSON_PRETTY_PRINT);
+    }
+
+    private function parseAiContent(string $content): ?array
+    {
+        $clean = preg_replace('/^```(?:json)?\s*/i', '', trim($content));
+        $clean = preg_replace('/\s*```$/', '', $clean);
+
+        $decoded = json_decode($clean, true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function buildFallbackBreakdown(array $context): array
     {
         $roleId = json_decode($context['available_roles_json'], true)[0]['id'] ?? 1;
         $complexityId = json_decode($context['available_complexity_levels_json'], true)[0]['id'] ?? 1;

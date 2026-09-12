@@ -1067,7 +1067,7 @@ export default function LeadDetailPage() {
       const response = await apiFetch(`/leads/${params.id}/run-proofing-strategy`, { method: "POST" });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body.message ?? "Failed to run Proofing & Strategy");
+        throw new Error(body.message ?? "Failed to refresh score, ICP & qualification");
       }
       return response.json();
     },
@@ -1896,7 +1896,7 @@ export default function LeadDetailPage() {
             disabled={runProofingMutation.isPending}
           >
             {runProofingMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-            Run AI Proofing & Strategy
+            Refresh Score, ICP & Qualification
           </Button>
           <Button
             variant="outline"
@@ -3175,7 +3175,7 @@ export default function LeadDetailPage() {
                     gradient="var(--brand)"
                   />
                   <p className="text-sm text-muted-foreground">
-                    {icpReasoning || 'Run AI Proofing & Strategy to evaluate this lead against your configured ICP.'}
+                    {icpReasoning || 'Run Refresh Score, ICP & Qualification to evaluate this lead against your configured ICP.'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Profile: {icpMatch.icp_profile || 'Lead ICP Config'}
@@ -3183,7 +3183,7 @@ export default function LeadDetailPage() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  No ICP match yet. Click <strong>Run AI Proofing & Strategy</strong> above to evaluate this lead.
+                  No ICP match yet. Click <strong>Refresh Score, ICP & Qualification</strong> above to evaluate this lead.
                 </p>
               )}
             </div>
@@ -3633,7 +3633,7 @@ export default function LeadDetailPage() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">No ICP match yet. Click "Run AI Proofing & Strategy" to evaluate.</p>
+                    <p className="text-xs text-muted-foreground">No ICP match yet. Click "Refresh Score, ICP & Qualification" to evaluate.</p>
                   )}
                 </div>
 

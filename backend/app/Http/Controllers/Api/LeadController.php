@@ -2178,7 +2178,7 @@ class LeadController extends Controller
         EnrichLeadJob::dispatch($lead->id);
 
         return response()->json([
-            'message' => 'AI Proofing & Strategy completed successfully (Enrichment running in background).',
+            'message' => 'Score, ICP & Qualification refreshed successfully (Enrichment running in background).',
         ]);
     }
 

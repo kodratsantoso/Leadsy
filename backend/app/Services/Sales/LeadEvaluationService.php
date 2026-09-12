@@ -179,7 +179,7 @@ class LeadEvaluationService
                 'intent_level' => $latestEval->intent_level,
                 'interest_level' => $latestEval->interest_level,
                 'buying_signals' => $latestEval->buying_signals,
-                'bantc_extracted' => $latestEval->bantc_data,
+                'bantc_extracted' => $latestEval->bantc_extracted,
                 'next_best_action' => $latestEval->next_best_action,
                 'confidence_score' => $latestEval->confidence_score,
             ] : null,

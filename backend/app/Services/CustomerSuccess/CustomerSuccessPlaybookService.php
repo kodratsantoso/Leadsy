@@ -34,9 +34,17 @@ class CustomerSuccessPlaybookService
             'notes' => $lead->needs ?? 'Enterprise CRM workflow',
         ];
 
+        $prompt = "You are a Customer Success strategist. Given the account context below, produce a tactical playbook "
+            ."as strict JSON with keys: scenario_title (string), immediate_actions (string[]), diagnostic_questions (string[]), "
+            ."stakeholder_talking_points (string[]), outreach_message_draft (string), expected_outcome (string). "
+            ."Respond with JSON only, no markdown fences.\n\nAccount context:\n"
+            .json_encode($contextPayload, JSON_PRETTY_PRINT);
+
         try {
-            $response = $this->aiOrchestrator->orchestrate('cs_playbook_ai', $contextPayload);
-            $parsed = $this->parseResponse($response);
+            $aiResult = $this->aiOrchestrator->call('cs_playbook_ai', $prompt, ['lead_id' => $lead->id]);
+            $parsed = (!empty($aiResult['success']) && !empty($aiResult['content']))
+                ? $this->parseResponse($aiResult['content'])
+                : [];
 
             if (!empty($parsed['scenario_title'])) {
                 return array_merge(['scenario_key' => $scenario, 'company_name' => $company], $parsed);
@@ -55,7 +63,9 @@ class CustomerSuccessPlaybookService
         }
 
         if (is_string($response)) {
-            $decoded = json_decode($response, true);
+            $clean = preg_replace('/^```(?:json)?\s*/i', '', trim($response));
+            $clean = preg_replace('/\s*```$/', '', $clean);
+            $decoded = json_decode($clean, true);
             if (is_array($decoded)) {
                 return $decoded;
             }

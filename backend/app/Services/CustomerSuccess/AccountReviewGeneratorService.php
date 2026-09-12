@@ -51,9 +51,17 @@ class AccountReviewGeneratorService
             'renewal_insights' => $renewals,
         ];
 
+        $prompt = "You are a Customer Success executive writer. Given the account context below, produce a business review "
+            ."as strict JSON with keys: executive_summary (string), value_delivered (string[]), milestone_recap (string[]), "
+            ."issues_and_mitigations (string[]), forward_roadmap (string[]), expansion_recommendations (string). "
+            ."Respond with JSON only, no markdown fences.\n\nAccount context:\n"
+            .json_encode($contextPayload, JSON_PRETTY_PRINT);
+
         try {
-            $response = $this->aiOrchestrator->orchestrate('ai_account_review_generator', $contextPayload);
-            $parsed = $this->parseResponse($response);
+            $aiResult = $this->aiOrchestrator->call('ai_account_review_generator', $prompt, ['lead_id' => $lead->id]);
+            $parsed = (!empty($aiResult['success']) && !empty($aiResult['content']))
+                ? $this->parseResponse($aiResult['content'])
+                : [];
 
             if (!empty($parsed['executive_summary'])) {
                 return array_merge(['period' => $reviewPeriod, 'company_name' => $company], $parsed);
@@ -72,7 +80,9 @@ class AccountReviewGeneratorService
         }
 
         if (is_string($response)) {
-            $decoded = json_decode($response, true);
+            $clean = preg_replace('/^```(?:json)?\s*/i', '', trim($response));
+            $clean = preg_replace('/\s*```$/', '', $clean);
+            $decoded = json_decode($clean, true);
             if (is_array($decoded)) {
                 return $decoded;
             }
