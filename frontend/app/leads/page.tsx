@@ -1558,11 +1558,6 @@ export default function LeadsPage() {
             <CardDescription>Discovered and enriched leads with one standardized admin workflow.</CardDescription>
           </div>
           <div className="flex items-center gap-2" data-tour="leads-actions">
-            <Link href="/qualification/reviews">
-              <Button variant="outline">
-                Review Queue
-              </Button>
-            </Link>
             <Link href="/leads/trash">
               <Button
                 variant="outline"

@@ -1,5 +1,6 @@
 'use client';
 import { EditLeadModal } from "@/components/leads/EditLeadModal";
+import { useAuthStore } from "@/store/useAuthStore";
 
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -172,30 +173,6 @@ function icpLabel(status?: string | null) {
 
 function clampPercent(value?: number | null) {
   return Math.max(0, Math.min(100, value ?? 0));
-}
-
-function pipelineGateWarnings(params: {
-  score?: number | null;
-  qualificationStatus?: string | null;
-  reviewBlocked?: boolean;
-}) {
-  const warnings: string[] = [];
-
-  if (params.score == null) {
-    warnings.push('Lead score must be calculated before pipeline entry.');
-  } else if (params.score < 40) {
-    warnings.push('Lead score is below the minimum pipeline entry threshold of 40.');
-  }
-
-  if (!['eligible', 'potential'].includes(params.qualificationStatus ?? '')) {
-    warnings.push('Qualification status must be eligible or potential before entering the pipeline.');
-  }
-
-  if (params.reviewBlocked) {
-    warnings.push('Human review approval is required before this lead can be pushed into the pipeline.');
-  }
-
-  return warnings;
 }
 
 function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
@@ -637,6 +614,9 @@ export default function LeadDetailPage() {
   const params = useParams();
   const leadId = params.id as string;
   const qc = useQueryClient();
+  const authUser = useAuthStore((s) => s.user);
+  const isSuperAdmin = authUser?.role?.name === "super_admin" || authUser?.role?.name === "superadmin";
+  const currentUserId = authUser?.id;
   const { formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
   const [createNewModalConfig, setCreateNewModalConfig] = useState<{
@@ -1617,17 +1597,9 @@ export default function LeadDetailPage() {
     enabled: !!lead,
   });
 
-  const requestVerificationMutation = useMutation({
-    mutationFn: () =>
-      apiFetch(`/leads/${leadId}/verification/request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          justification: 'Manual verification requested from lead detail.',
-        }),
-      }),
+  const markEligibleMutation = useMutation({
+    mutationFn: () => apiFetch(`/leads/${leadId}/mark-eligible`, { method: 'POST' }),
     onSuccess: () => {
-      refetchVerification();
       qc.invalidateQueries({ queryKey: ['lead', leadId] });
       qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
     },
@@ -1721,13 +1693,7 @@ export default function LeadDetailPage() {
   const latestQual    = intelligence?.latest_qualification;
   const topProducts   = Array.isArray(intelligence?.recommended_products) ? intelligence.recommended_products : [];
   const latestAnalysis = intelligence?.latest_analysis;
-  const verification = verificationData?.data;
-  const latestVerificationReview = verification?.latest_review;
-  const entryWarnings = pipelineGateWarnings({
-    score: latestScore?.score ?? leadData.lead_score,
-    qualificationStatus: leadData.qualification_status,
-    reviewBlocked: verification?.blocked_from_pipeline,
-  });
+  const canMarkEligible = isSuperAdmin || (leadData.owner?.direct_manager_id != null && leadData.owner.direct_manager_id === currentUserId);
   const scoreBreakdown = Array.isArray(latestScore?.score_breakdown) ? latestScore.score_breakdown : [];
   const icpMatch = revenueIntel?.data?.icp_match;
   const icpBreakdown = Array.isArray(icpMatch?.score_breakdown)
@@ -2154,63 +2120,22 @@ export default function LeadDetailPage() {
         </div>
       </div>
 
-      {verification?.requires_verification ? (
+      {!['eligible', 'potential'].includes(leadData.qualification_status ?? '') && canMarkEligible ? (
         <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-[var(--brand)]" />
-                <h2 className="font-semibold">Human Verification</h2>
-                <Badge variant={verification.verified_for_pipeline ? 'success' : 'warning'}>
-                  {verification.verified_for_pipeline ? 'Verified for pipeline' : 'Verification required'}
-                </Badge>
+                <ShieldCheck className="h-4 w-4 text-[var(--brand)]" />
+                <h2 className="font-semibold">Eligibility Override</h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                {latestVerificationReview
-                  ? `Latest review is ${latestVerificationReview.status.replace(/_/g, ' ')}.`
-                  : 'No human review has been requested for this lead yet.'}
+                Current qualification is <b>{formatQualificationStatus(leadData.qualification_status)}</b>, which keeps this lead out of the pipeline.{' '}
+                {isSuperAdmin ? 'As a super admin, y' : "As this lead owner's direct manager, y"}ou can mark it Eligible directly.
               </p>
-              {latestVerificationReview?.decision_reason ? (
-                <p className="text-sm text-muted-foreground">{latestVerificationReview.decision_reason}</p>
-              ) : null}
-              {latestVerificationReview?.reviewer?.name ? (
-                <p className="text-xs text-muted-foreground">
-                  Reviewer: {latestVerificationReview.reviewer.name}
-                  {latestVerificationReview.reviewed_at ? ` on ${new Date(latestVerificationReview.reviewed_at).toLocaleString()}` : ''}
-                </p>
-              ) : null}
             </div>
-            <div className="flex items-center gap-2">
-              <Link href="/qualification/reviews" className={cn(buttonVariants({ variant: 'outline' }))}>
-                Open Queue
-              </Link>
-              <Button
-                variant="outline"
-                onClick={() => requestVerificationMutation.mutate()}
-                disabled={requestVerificationMutation.isPending}
-              >
-                {requestVerificationMutation.isPending ? 'Requesting...' : 'Request Review'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {entryWarnings.length > 0 ? (
-        <div className="rounded-lg border border-[var(--warning)]/30 bg-[var(--warning-soft)]/70 p-4">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-[var(--warning)]" />
-            <h2 className="font-semibold">Pipeline Entry Warning</h2>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Pipeline = filtered entry. This lead cannot move forward until the following gates are cleared:
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {entryWarnings.map((warning) => (
-              <Badge key={warning} variant="warning">
-                {warning}
-              </Badge>
-            ))}
+            <Button onClick={() => markEligibleMutation.mutate()} disabled={markEligibleMutation.isPending}>
+              {markEligibleMutation.isPending ? 'Marking...' : 'Mark as Eligible'}
+            </Button>
           </div>
         </div>
       ) : null}

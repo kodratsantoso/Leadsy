@@ -147,21 +147,8 @@ export const runRevenueAnalysis = (leadId: number) =>
   api.post<{ data: RevenueAnalysis }>(`/api/leads/${leadId}/revenue-analysis`);
 export const fetchRevenueAnalysis = (leadId: number) =>
   api.get<{ data: RevenueAnalysis | null }>(`/api/leads/${leadId}/revenue-analysis`);
-export const fetchVerificationQueue = (params?: string) =>
-  api.get<{ data: QualificationWorkflowReview[] }>(`/api/qualification/reviews${params ? `?${params}` : ""}`);
-export const decideVerificationReview = (
-  reviewId: number,
-  data: {
-    decision: "approve" | "reject" | "hold" | "override_score";
-    reason: string;
-    final_status?: "pending" | "eligible" | "potential" | "not_eligible";
-    score_override?: number;
-  }
-) => api.post<{ data: QualificationWorkflowReview }>(`/api/qualification/reviews/${reviewId}/decision`, data);
-export const requestLeadVerification = (
-  leadId: number,
-  data?: { justification?: string; recommended_status?: "pending" | "eligible" | "potential" | "not_eligible" }
-) => api.post<{ data: QualificationWorkflowReview }>(`/api/leads/${leadId}/verification/request`, data);
+export const markLeadEligible = (leadId: number) =>
+  api.post<{ data: unknown }>(`/api/leads/${leadId}/mark-eligible`, {});
 export const fetchLeadVerification = (leadId: number) =>
   api.get<{ data: LeadVerificationSnapshot }>(`/api/leads/${leadId}/verification`);
 

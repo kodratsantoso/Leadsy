@@ -908,12 +908,8 @@ class LeadController extends Controller
             
             // 3. Qualification
             $qualResult = app(LeadQualificationService::class)->qualifyLead($lead, useAi: true);
-            if ($qualResult->classification === 'need_review' && $request = request()) {
-                app(HumanVerificationWorkflowService::class)->requestReview($lead->fresh('funnelStage'), $request->user(), [
-                    'justification' => $qualResult->qualification_reason,
-                    'recommended_status' => 'pending',
-                ]);
-            }
+            // Ambiguous ("need_review") cases used to route through the Human
+            // Verification Queue (decommissioned 2026-09-12; see markEligible()).
             AuditService::log('qualify', 'leads', $lead, $lead->toArray(), [
                 'qualified' => $qualResult->qualified,
                 'business_type' => $qualResult->business_type,
@@ -1347,19 +1343,44 @@ class LeadController extends Controller
         $service = app(LeadQualificationService::class);
         $result = $service->qualifyLead($lead, useAi: true);
 
-        if ($result->classification === 'need_review' && $request = request()) {
-            app(HumanVerificationWorkflowService::class)->requestReview($lead->fresh('funnelStage'), $request->user(), [
-                'justification' => $result->qualification_reason,
-                'recommended_status' => 'pending',
-            ]);
-        }
-
+        // Ambiguous ("need_review") cases used to route through the Human
+        // Verification Queue. That queue is decommissioned (2026-09-12) in
+        // favor of the lead owner's Direct Manager (or a super admin) marking
+        // the lead Eligible directly — see LeadController::markEligible().
         AuditService::log('qualify', 'leads', $lead, $lead->toArray(), [
             'qualified' => $result->qualified,
             'business_type' => $result->business_type,
         ]);
 
         return response()->json(['data' => $result], 201);
+    }
+
+    /**
+     * POST /api/leads/{lead}/mark-eligible
+     *
+     * Replaces the decommissioned Human Verification Queue: instead of an
+     * ambiguous ("need_review") lead sitting in a shared queue for any
+     * reviewer, only the lead owner's Direct Manager — or a super admin,
+     * who always has full access — can override its qualification status
+     * straight to "eligible".
+     */
+    public function markEligible(Request $request, Lead $lead): JsonResponse
+    {
+        $actor = $request->user();
+        $isDirectManager = $actor && $lead->owner && $lead->owner->direct_manager_id === $actor->id;
+
+        abort_unless(
+            $actor?->isSuperAdmin() || $isDirectManager,
+            403,
+            "Only this lead owner's direct manager or a super admin can mark it as Eligible."
+        );
+
+        $original = $lead->getAttributes();
+        $lead->update(['qualification_status' => 'eligible']);
+
+        AuditService::logUpdated('leads', $lead, $original);
+
+        return response()->json(['data' => $lead->fresh(['owner', 'funnelStage'])]);
     }
 
     /** POST /api/leads/{lead}/analyze — Analyze lead with AI */
@@ -2129,32 +2150,18 @@ class LeadController extends Controller
 
     private function ensureLeadReadyForPipeline(Request $request, Lead $lead): void
     {
-        $verification = app(HumanVerificationWorkflowService::class)->verificationSnapshot($lead);
+        // The human-verification gate (HumanVerificationWorkflowService) was
+        // decommissioned 2026-09-12 — it already unconditionally reported
+        // "not blocked" since v1.22.0, so removing it changes no behavior.
+        // The revenue rule engine (score/qualification gate) remains active.
         $revenueCheck = app(RevenueRuleEngineService::class)->evaluate($lead);
-        $errors = [];
 
-        $latestReview = $verification['latest_review'];
-        if ($verification['blocked_from_pipeline']) {
-            $errors[] = 'Lead must be human-verified before entering the pipeline.';
-        }
-
-        if ($revenueCheck['blocked']) {
-            $errors[] = $revenueCheck['summary'];
-        }
-
-        if ($errors === []) {
+        if (! $revenueCheck['blocked']) {
             return;
         }
 
         abort(response()->json([
-            'message' => implode(' ', $errors),
-            'verification' => [
-                'requires_verification' => $verification['requires_verification'],
-                'verified_for_pipeline' => $verification['verified_for_pipeline'],
-                'latest_review_status' => $latestReview?->status,
-                'latest_review_decision' => $latestReview?->decision,
-                'latest_review_reason' => $latestReview?->decision_reason ?? $latestReview?->justification,
-            ],
+            'message' => $revenueCheck['summary'],
             'revenue_check' => $revenueCheck,
         ], 422));
     }

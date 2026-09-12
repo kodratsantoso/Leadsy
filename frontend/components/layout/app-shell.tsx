@@ -71,7 +71,6 @@ export const navItems: NavItem[] = [
     ],
   },
   { href: "/leads",                  icon: Building2,       label: "Leads" },
-  { href: "/qualification/reviews",  icon: ClipboardCheck,  label: "Review Queue" },
   { href: "/products",               icon: Package,         label: "Products" },
   {
     href: "/professional-services",
