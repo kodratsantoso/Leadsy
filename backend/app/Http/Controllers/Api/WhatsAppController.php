@@ -24,18 +24,6 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsAppController extends Controller
 {
-    /**
-     * Baileys sidecar URL.
-     * Uses env override first, then prefers Docker hostname in containers
-     * and localhost for host-based local development.
-     */
-    private string $defaultSession;
-
-    public function __construct()
-    {
-        $this->defaultSession = (string) env('WHATSAPP_SESSION_NAME', 'leads_platform_session');
-    }
-
     private function getSessionName(?int $userId = null): string
     {
         $id = $userId ?? auth()->id() ?? auth('sanctum')->id() ?? request()->user()?->id;

@@ -265,12 +265,6 @@ const googlePermissionLabel = (status: GooglePermissionStatus) => ({
   unknown: "Unknown",
 }[status] ?? "Unknown");
 
-const DEFAULT_WHATSAPP: Record<string, IntegrationConfig> = {
-  WHATSAPP_ENABLED:      { category: "whatsapp", key: "WHATSAPP_ENABLED",      value: "true",                  is_secret: false, is_active: true, value_type: "boolean" },
-  WHATSAPP_SESSION_NAME: { category: "whatsapp", key: "WHATSAPP_SESSION_NAME", value: "leads_platform_session", is_secret: false, is_active: true, value_type: "string"  },
-  WHATSAPP_WEBHOOK_URL:  { category: "whatsapp", key: "WHATSAPP_WEBHOOK_URL",  value: "",                      is_secret: false, is_active: true, value_type: "string"  },
-};
-
 const DEFAULT_LUSHA: Record<string, IntegrationConfig> = {
   LUSHA_ENABLED:              { category: "lusha", key: "LUSHA_ENABLED",              value: "false", is_secret: false, is_active: true, value_type: "boolean" },
   LUSHA_API_KEY:              { category: "lusha", key: "LUSHA_API_KEY",              value: "",      is_secret: true,  is_active: true, value_type: "string"  },
@@ -541,7 +535,6 @@ export default function IntegrationsSettingsPage() {
   });
 
   const [mapsConfig, setMapsConfig]         = useState<Record<string, IntegrationConfig>>(DEFAULT_MAPS);
-  const [whatsappConfig, setWhatsappConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_WHATSAPP);
   const [lushaConfig, setLushaConfig]       = useState<Record<string, IntegrationConfig>>(DEFAULT_LUSHA);
   const [leadPlatformsConfig, setLeadPlatformsConfig] = useState<Record<string, IntegrationConfig>>(createDefaultLeadPlatforms);
   const [linkedinConfig, setLinkedinConfig] = useState<Record<string, IntegrationConfig>>(DEFAULT_LINKEDIN);
@@ -721,17 +714,6 @@ export default function IntegrationsSettingsPage() {
             };
           });
           setMapsConfig(next);
-        }
-
-        if (json.data.whatsapp) {
-          const next = { ...DEFAULT_WHATSAPP };
-          (json.data.whatsapp as IntegrationConfig[]).forEach((c) => {
-            next[c.key] = {
-              ...c,
-              value: c.value_type === "boolean" ? asBooleanString(c.value) : asStringValue(c.value),
-            };
-          });
-          setWhatsappConfig(next);
         }
 
         if (json.data.lusha) {
@@ -2270,81 +2252,6 @@ export default function IntegrationsSettingsPage() {
       {/* ── WhatsApp ── */}
       {tab === "whatsapp" && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-1">WhatsApp Integration</h2>
-            <p className="text-xs text-muted-foreground mb-6">
-              Configure the WhatsApp session and webhook settings for the messaging module.
-            </p>
-
-            <div className="space-y-5">
-              <div className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3">
-                <div>
-                  <label className="text-sm font-medium">Enable WhatsApp Features</label>
-                  <p className="text-xs text-muted-foreground">Allows users to scan a QR code and sync session for direct messaging.</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={whatsappConfig.WHATSAPP_ENABLED.value === "true"}
-                  onChange={(e) => setWhatsappConfig({
-                    ...whatsappConfig,
-                    WHATSAPP_ENABLED: { ...whatsappConfig.WHATSAPP_ENABLED, value: e.target.checked ? "true" : "false" },
-                  })}
-                  className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Session Name</label>
-                <p className="text-xs text-muted-foreground mt-0.5">Identifies this WhatsApp session in the sidecar service.</p>
-                <input
-                  value={whatsappConfig.WHATSAPP_SESSION_NAME.value}
-                  onChange={(e) => setWhatsappConfig({
-                    ...whatsappConfig,
-                    WHATSAPP_SESSION_NAME: { ...whatsappConfig.WHATSAPP_SESSION_NAME, value: e.target.value },
-                  })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Webhook URL</label>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  URL the WhatsApp sidecar service sends events to (must be reachable from the sidecar container).
-                </p>
-                <input
-                  placeholder="http://backend:8000/api/webhooks/whatsapp"
-                  value={whatsappConfig.WHATSAPP_WEBHOOK_URL.value}
-                  onChange={(e) => setWhatsappConfig({
-                    ...whatsappConfig,
-                    WHATSAPP_WEBHOOK_URL: { ...whatsappConfig.WHATSAPP_WEBHOOK_URL, value: e.target.value },
-                  })}
-                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground/40"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center gap-3">
-              <button
-                onClick={() => handleSave("whatsapp", whatsappConfig)}
-                disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save WhatsApp Config
-              </button>
-              {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
-                  <CheckCircle2 className="h-4 w-4" /> {successMsg}
-                </span>
-              )}
-              {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
-                  <AlertCircle className="h-4 w-4" /> {errorMsg}
-                </span>
-              )}
-            </div>
-          </div>
-
           <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div>
