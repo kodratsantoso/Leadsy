@@ -22,17 +22,23 @@ class ProfessionalServiceDocumentService
      */
     public function generateDocument(int $estimationId, array $options, ?int $userId = null): PsDocument
     {
-        $estimation = PsEstimation::with(['lead', 'lines.role', 'lines.taskGroup', 'quotation', 'category', 'complexityLevel'])->findOrFail($estimationId);
+        // NOTE: this previously eager-loaded 'lines.taskGroup' and 'quotation', neither of
+        // which exist on these models (the real relation is convertedQuotation(), and there
+        // is no task-group concept — tasks/subtasks are a parent_task_id self-reference).
+        // That made every call throw RelationNotFoundException (2026-09-13 audit).
+        $estimation = PsEstimation::with(['lead', 'lines.role', 'lines.subtasks.role', 'convertedQuotation', 'category', 'complexityLevel'])->findOrFail($estimationId);
 
         $this->validateEligibility($estimation);
 
         $documentType = $options['document_type'] ?? 'estimation';
-        
+
         // Prepare data for the PDF view
         $data = [
             'estimation' => $estimation,
             'lead' => $estimation->lead,
-            'lines' => $estimation->lines->groupBy('task_group_id'),
+            // Top-level tasks only — each carries its own `subtasks` relation, which the
+            // view renders underneath it. Replaces the fictional task_group grouping.
+            'lines' => $estimation->lines->whereNull('parent_task_id')->sortBy('sort_order')->values(),
             'documentType' => $documentType,
             'documentTitle' => $this->getDocumentTitle($documentType),
             'includeCommercial' => $options['include_commercial'] ?? true,

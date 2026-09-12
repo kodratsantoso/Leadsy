@@ -158,31 +158,42 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($lines as $groupId => $groupLines)
-                @php
-                    $group = $groupLines->first()->taskGroup;
-                @endphp
+            @foreach($lines as $task)
                 <tr>
                     <td colspan="4" style="background-color: #e5e7eb; font-weight: bold;">
-                        {{ $group ? $group->name : 'General Tasks' }}
+                        {{ $task->task_name }}
                     </td>
                 </tr>
-                @foreach($groupLines as $line)
+                @if($task->subtasks->isEmpty())
+                    {{-- Leaf task: no subtasks, render the task itself as the single row. --}}
                     <tr>
+                        <td><strong>{{ $task->task_name }}</strong></td>
                         <td>
-                            <strong>{{ $line->task_name }}</strong><br>
-                            <span style="color: #666; font-size: 10px;">{{ $line->subtask_name }}</span>
-                        </td>
-                        <td>
-                            {{ $line->description }}
-                            @if($line->deliverable)
-                                <div style="margin-top: 4px; font-size: 10px; color: #4f46e5;"><strong>Deliverable:</strong> {{ $line->deliverable }}</div>
+                            {{ $task->description }}
+                            @if($task->deliverable)
+                                <div style="margin-top: 4px; font-size: 10px; color: #4f46e5;"><strong>Deliverable:</strong> {{ $task->deliverable }}</div>
                             @endif
                         </td>
-                        <td>{{ $line->role ? $line->role->name : 'N/A' }}</td>
-                        <td class="text-right">{{ number_format($line->final_mandays, 1) }}</td>
+                        <td>{{ $task->role ? $task->role->name : 'N/A' }}</td>
+                        <td class="text-right">{{ number_format($task->final_mandays, 1) }}</td>
                     </tr>
-                @endforeach
+                @else
+                    @foreach($task->subtasks as $line)
+                        <tr>
+                            <td>
+                                <span style="color: #666; font-size: 10px;">{{ $line->subtask_name ?? $line->task_name }}</span>
+                            </td>
+                            <td>
+                                {{ $line->description }}
+                                @if($line->deliverable)
+                                    <div style="margin-top: 4px; font-size: 10px; color: #4f46e5;"><strong>Deliverable:</strong> {{ $line->deliverable }}</div>
+                                @endif
+                            </td>
+                            <td>{{ $line->role ? $line->role->name : 'N/A' }}</td>
+                            <td class="text-right">{{ number_format($line->final_mandays, 1) }}</td>
+                        </tr>
+                    @endforeach
+                @endif
             @endforeach
         </tbody>
     </table>
