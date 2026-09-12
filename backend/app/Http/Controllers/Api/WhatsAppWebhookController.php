@@ -24,6 +24,21 @@ class WhatsAppWebhookController extends Controller
 
     public function handle(Request $request): JsonResponse
     {
+        // This endpoint is public (no user session) since it's called by the WhatsApp
+        // sidecar, not a browser — so it must verify a shared secret instead. Without
+        // this, anyone who finds the URL could forge inbound messages, QR payloads, or
+        // connection status for any session (2026-09-13 audit).
+        $expectedSecret = config('services.whatsapp.webhook_secret');
+        $providedSecret = $request->header('X-Webhook-Secret', '');
+
+        if (empty($expectedSecret) || ! hash_equals((string) $expectedSecret, (string) $providedSecret)) {
+            \Log::warning('WhatsApp webhook rejected — missing or invalid X-Webhook-Secret.', [
+                'ip' => $request->ip(),
+            ]);
+
+            return response()->json(['success' => false, 'message' => 'Invalid webhook secret.'], 401);
+        }
+
         $payload = $request->all();
         $action = $payload['action'] ?? null;
         $sessionName = $payload['session'] ?? 'default_session';

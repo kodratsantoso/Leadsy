@@ -70,6 +70,8 @@ services:
       SESSION_DRIVER: redis
       # ── WhatsApp sidecar ──────────────────────────────────────────────────────
       WHATSAPP_SIDECAR_URL: "http://leadsy-whatsapp-${COOLIFY_RESOURCE_UUID:-local}:3002"
+      # Set in Coolify dashboard — must match WHATSAPP_WEBHOOK_SECRET on the whatsapp-service below.
+      WHATSAPP_WEBHOOK_SECRET: "${WHATSAPP_WEBHOOK_SECRET}"
       WHATSAPP_SESSION_NAME: leads_platform_session
       LARK_OPEN_API_BASE_URLS: "${LARK_OPEN_API_BASE_URLS:-https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis}"
       LARK_ACCOUNTS_BASE_URL: "${LARK_ACCOUNTS_BASE_URL:-https://accounts.larksuite.com}"
@@ -136,6 +138,8 @@ services:
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: redis
       WHATSAPP_SIDECAR_URL: "http://leadsy-whatsapp-${COOLIFY_RESOURCE_UUID:-local}:3002"
+      # Set in Coolify dashboard — must match WHATSAPP_WEBHOOK_SECRET on the whatsapp-service below.
+      WHATSAPP_WEBHOOK_SECRET: "${WHATSAPP_WEBHOOK_SECRET}"
       WHATSAPP_SESSION_NAME: leads_platform_session
       LARK_OPEN_API_BASE_URLS: "${LARK_OPEN_API_BASE_URLS:-https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis}"
       LARK_ACCOUNTS_BASE_URL: "${LARK_ACCOUNTS_BASE_URL:-https://accounts.larksuite.com}"
@@ -213,6 +217,8 @@ services:
       NODE_ENV: production
       PORT: 3002
       LARAVEL_WEBHOOK_URL: "http://leadsy-backend-${COOLIFY_RESOURCE_UUID:-local}:8000/api/webhooks/whatsapp"
+      # Set in Coolify dashboard — must match WHATSAPP_WEBHOOK_SECRET on the backend above.
+      WEBHOOK_SECRET: "${WHATSAPP_WEBHOOK_SECRET}"
     depends_on:
       backend:
         condition: service_healthy

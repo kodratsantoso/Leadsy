@@ -64,6 +64,7 @@ services:
       FRONTEND_URL: http://localhost:3000
       WHATSAPP_SIDECAR_URL: http://whatsapp-service:3002
       WHATSAPP_SESSION_NAME: leads_platform_session
+      WHATSAPP_WEBHOOK_SECRET: ${WHATSAPP_WEBHOOK_SECRET:-dev-local-whatsapp-webhook-secret}
       LARK_OPEN_API_BASE_URLS: https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis
       LARK_ACCOUNTS_BASE_URL: https://accounts.larksuite.com
       LARK_OAUTH_SCOPES: auth:user.id:read
@@ -94,6 +95,7 @@ services:
       FRONTEND_URL: http://localhost:3000
       WHATSAPP_SIDECAR_URL: http://whatsapp-service:3002
       WHATSAPP_SESSION_NAME: leads_platform_session
+      WHATSAPP_WEBHOOK_SECRET: ${WHATSAPP_WEBHOOK_SECRET:-dev-local-whatsapp-webhook-secret}
       LARK_OPEN_API_BASE_URLS: https://open.larksuite.com/open-apis,https://open.larkoffice.com/open-apis
       LARK_ACCOUNTS_BASE_URL: https://accounts.larksuite.com
       LARK_OAUTH_SCOPES: auth:user.id:read
@@ -141,6 +143,8 @@ services:
     environment:
       PORT: 3002
       LARAVEL_WEBHOOK_URL: http://backend:8000/api/webhooks/whatsapp
+      # Must match WHATSAPP_WEBHOOK_SECRET on the backend service below.
+      WEBHOOK_SECRET: ${WHATSAPP_WEBHOOK_SECRET:-dev-local-whatsapp-webhook-secret}
     volumes:
       - ./whatsapp-service:/usr/src/app
       - /usr/src/app/node_modules # prevent overwrite

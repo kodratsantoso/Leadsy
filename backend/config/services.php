@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        // Shared secret between the WhatsApp sidecar (whatsapp-service/) and this
+        // backend, verified on the public /webhooks/whatsapp endpoint. Must match
+        // the sidecar's own WEBHOOK_SECRET env var exactly.
+        'webhook_secret' => env('WHATSAPP_WEBHOOK_SECRET'),
+    ],
+
 ];

@@ -55,6 +55,9 @@ app.use(cors());
 
 // LARAVEL URL
 const WEBHOOK_URL = process.env.LARAVEL_WEBHOOK_URL || 'http://backend:8000/api/webhooks/whatsapp';
+// Shared secret sent as X-Webhook-Secret so Laravel can verify this webhook actually
+// came from this sidecar (must match WHATSAPP_WEBHOOK_SECRET in the backend's .env).
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 const PORT = process.env.PORT || 3002;
 const AUTH_DIR = path.join(__dirname, 'baileys_auth_info');
 
@@ -278,7 +281,10 @@ async function connectToWhatsApp(sessionName) {
 
 async function sendWebhook(data) {
     try {
-        await axios.post(WEBHOOK_URL, data, { timeout: 5000 });
+        await axios.post(WEBHOOK_URL, data, {
+            timeout: 5000,
+            headers: { 'X-Webhook-Secret': WEBHOOK_SECRET },
+        });
     } catch (err) {
         console.error('Failed to dispatch webhook to Laravel:', err.message);
     }
