@@ -117,6 +117,23 @@ export type PsEstimation = {
   lines?: PsEstimationLine[];
 };
 
+export type PsTemplateComponent = {
+  id: number;
+  template_id: number;
+  role_id: number | null;
+  task_name: string;
+  description?: string | null;
+  base_mandays: number;
+  sort_order: number;
+  parent_component_id?: number | null;
+  component_type?: string | null;
+  deliverable?: string | null;
+  acceptance_criteria?: string[] | null;
+  is_complexity_sensitive?: boolean;
+  is_optional?: boolean;
+  role?: PsRole;
+};
+
 export type PsEstimationTemplate = {
   id: number;
   service_category_id: number;
@@ -124,7 +141,7 @@ export type PsEstimationTemplate = {
   description: string;
   is_active: boolean;
   serviceCategory?: PsServiceCategory;
-  components?: any[];
+  components?: PsTemplateComponent[];
 };
 
 export async function getPsConfig(): Promise<PsConfig> {

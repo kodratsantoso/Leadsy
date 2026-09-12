@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import {
   PsConfig, PsEstimation, PsEstimationLine, PsEstimationTemplate,
-  getPsConfig, getTemplates, createEstimation
+  getPsConfig, getTemplates, getTemplate, createEstimation
 } from "@/lib/api/professional-services";
 import { fetchLead, Lead } from "@/lib/api/leads";
 
@@ -69,10 +69,21 @@ export function EstimatorWizard() {
 
   const loadTemplate = async (tid: number) => {
     try {
-      setLines([
-        { task_name: "Requirements Gathering", base_mandays: 2, role_id: config?.roles?.[0]?.id, sort_order: 1, manual_adjustment: 0 },
-        { task_name: "Design & Architecture", base_mandays: 3, role_id: config?.roles?.[0]?.id, sort_order: 2, manual_adjustment: 0 },
-      ]);
+      const template = await getTemplate(tid);
+      const components = (template.components ?? []).filter(c => !c.is_optional);
+      setLines(
+        components
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((c, i) => ({
+            task_name: c.task_name,
+            description: c.description ?? undefined,
+            base_mandays: c.base_mandays,
+            role_id: c.role_id ?? config?.roles?.[0]?.id,
+            sort_order: i + 1,
+            manual_adjustment: 0,
+            deliverable: c.deliverable ?? undefined,
+          }))
+      );
     } catch (e) {
       console.error(e);
     }
