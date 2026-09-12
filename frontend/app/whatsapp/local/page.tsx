@@ -21,6 +21,8 @@ import {
   type WaSessionState, type WaConversation, type WaMessage,
   type WaCampaign, type WaSyncRule
 } from "@/lib/hooks/use-whatsapp";
+import { useAuthStore } from "@/store/useAuthStore";
+import { fetchAssignableUsers, type AssignableUser } from "@/lib/api/leads";
 
 type Tab = "session" | "direct" | "broadcast" | "conversations" | "settings";
 type FolderFilter = "all" | "my" | "unassigned" | "assigned" | "resolved";
@@ -43,10 +45,19 @@ export default function LocalWhatsAppPage() {
     createCampaign,
     executeCampaign,
     getSyncRules,
-    updateSyncRules
+    updateSyncRules,
+    updateConversationMeta
   } = useWhatsApp();
 
   const platform = "whatsapp";
+  const currentUserId = useAuthStore(state => state.user?.id) ?? null;
+  const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
+
+  useEffect(() => {
+    fetchAssignableUsers()
+      .then(setAssignableUsers)
+      .catch(err => console.warn("Failed to load assignable users:", err));
+  }, []);
   const [tab, setTab] = useState<Tab>("conversations");
   const [stages, setStages] = useState<{ id: number; name: string }[]>([]);
   
@@ -81,8 +92,8 @@ export default function LocalWhatsAppPage() {
   const [activeConv, setActiveConv] = useState<WaConversation | null>(null);
   const [activeMessages, setActiveMessages] = useState<WaMessage[]>([]);
   
-  // Local Rooms Metadata (Mock sync from Qontak pattern)
-  const [localRoomsMeta, setLocalRoomsMeta] = useState<Record<string, { assignee: string; resolved: boolean; notes: string; tags: string[] }>>({});
+  // Room metadata, persisted via PUT /whatsapp/conversations/{id}/meta
+  const [localRoomsMeta, setLocalRoomsMeta] = useState<Record<string, { assignee_id: number | null; resolved: boolean; notes: string; tags: string[] }>>({});
 
   // ── Sync Rules State ──
   const [syncRules, setSyncRules] = useState<WaSyncRule[]>([]);
@@ -175,14 +186,12 @@ export default function LocalWhatsAppPage() {
       setLocalRoomsMeta(prev => {
         const next = { ...prev };
         res.forEach((c) => {
-          if (!next[c.id]) {
-            next[c.id] = {
-              assignee: c.assignee_id ? `User #${c.assignee_id}` : "",
-              resolved: Boolean(c.is_resolved),
-              notes: c.notes || "",
-              tags: c.tags || []
-            };
-          }
+          next[c.id] = {
+            assignee_id: c.assignee_id,
+            resolved: Boolean(c.is_resolved),
+            notes: c.notes || "",
+            tags: c.tags || []
+          };
         });
         return next;
       });
@@ -320,55 +329,47 @@ export default function LocalWhatsAppPage() {
     }, 2000);
   };
 
-  // Local metadata managers
-  const handleSaveNotes = (convId: number, notesText: string) => {
-    setLocalRoomsMeta(prev => ({
-      ...prev,
-      [convId]: { ...prev[convId], notes: notesText }
-    }));
+  // Metadata managers — persist to the backend, then reflect the confirmed state locally
+  const persistMeta = async (convId: number, meta: { assignee_id?: number | null; is_resolved?: boolean; notes?: string; tags?: string[] }) => {
+    const res = await updateConversationMeta(convId, meta);
+    if (res?.success) {
+      setLocalRoomsMeta(prev => ({
+        ...prev,
+        [convId]: {
+          assignee_id: res.data.assignee_id,
+          resolved: Boolean(res.data.is_resolved),
+          notes: res.data.notes || "",
+          tags: res.data.tags || [],
+        }
+      }));
+      setConversations(prev => prev.map(c => c.id === convId ? { ...c, ...res.data } : c));
+    }
+    return res;
   };
 
-  const handleSaveAssignee = (convId: number, assigneeName: string) => {
-    setLocalRoomsMeta(prev => ({
-      ...prev,
-      [convId]: { ...prev[convId], assignee: assigneeName }
-    }));
+  const handleSaveNotes = (convId: number, notesText: string) => {
+    persistMeta(convId, { notes: notesText });
+  };
+
+  const handleSaveAssignee = (convId: number, assigneeId: number | null) => {
+    persistMeta(convId, { assignee_id: assigneeId });
   };
 
   const handleToggleResolved = (convId: number) => {
-    setLocalRoomsMeta(prev => ({
-      ...prev,
-      [convId]: { ...prev[convId], resolved: !prev[convId]?.resolved }
-    }));
+    persistMeta(convId, { is_resolved: !localRoomsMeta[convId]?.resolved });
   };
 
   const handleAddTag = (convId: number) => {
     if (!newTagInput.trim()) return;
-    setLocalRoomsMeta(prev => {
-      const current = prev[convId]?.tags || [];
-      if (current.includes(newTagInput.trim())) return prev;
-      return {
-        ...prev,
-        [convId]: {
-          ...prev[convId],
-          tags: [...current, newTagInput.trim()]
-        }
-      };
-    });
+    const current = localRoomsMeta[convId]?.tags || [];
+    if (current.includes(newTagInput.trim())) return;
+    persistMeta(convId, { tags: [...current, newTagInput.trim()] });
     setNewTagInput("");
   };
 
   const handleRemoveTag = (convId: number, tag: string) => {
-    setLocalRoomsMeta(prev => {
-      const current = prev[convId]?.tags || [];
-      return {
-        ...prev,
-        [convId]: {
-          ...prev[convId],
-          tags: current.filter(t => t !== tag)
-        }
-      };
-    });
+    const current = localRoomsMeta[convId]?.tags || [];
+    persistMeta(convId, { tags: current.filter(t => t !== tag) });
   };
 
   const handleSaveRules = async () => {
@@ -395,16 +396,16 @@ export default function LocalWhatsAppPage() {
     if (!matchesSearch) return false;
 
     const meta = localRoomsMeta[c.id];
-    const assignee = meta?.assignee || "";
+    const assigneeId = meta?.assignee_id ?? null;
     const resolved = meta?.resolved || false;
 
     switch (activeFolder) {
       case "my":
-        return assignee === "Prasetia Sales" && !resolved;
+        return assigneeId === currentUserId && !resolved;
       case "unassigned":
-        return !assignee && !resolved;
+        return !assigneeId && !resolved;
       case "assigned":
-        return !!assignee && !resolved;
+        return !!assigneeId && !resolved;
       case "resolved":
         return resolved;
       case "all":
@@ -600,9 +601,9 @@ export default function LocalWhatsAppPage() {
                               {conv.relevance_status}
                             </span>
 
-                            {meta?.assignee && (
+                            {meta?.assignee_id && (
                               <span className="rounded-full px-1.5 py-0.5 text-[8px] font-semibold bg-blue-500/10 text-blue-500 max-w-[80px] truncate">
-                                {meta.assignee}
+                                {meta.assignee_id === currentUserId ? "Me" : (assignableUsers.find(u => u.id === meta.assignee_id)?.name ?? `User #${meta.assignee_id}`)}
                               </span>
                             )}
                           </div>
@@ -883,14 +884,16 @@ export default function LocalWhatsAppPage() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider select-none">Assign Agent</label>
                     <Select
-                      value={localRoomsMeta[activeConv.id]?.assignee || ""}
-                      onChange={e => handleSaveAssignee(activeConv.id, e.target.value)}
+                      value={localRoomsMeta[activeConv.id]?.assignee_id ?? ""}
+                      onChange={e => handleSaveAssignee(activeConv.id, e.target.value ? parseInt(e.target.value) : null)}
                       className="h-8.5 text-xs bg-background border-border"
                     >
                       <option value="">Unassigned</option>
-                      <option value="Prasetia Sales">Prasetia Sales</option>
-                      <option value="Sales Team B">Sales Team B</option>
-                      <option value="Customer Care">Customer Care</option>
+                      {assignableUsers.map(u => (
+                        <option key={u.id} value={u.id}>
+                          {u.name}{u.id === currentUserId ? " (Me)" : ""}
+                        </option>
+                      ))}
                     </Select>
                   </div>
 
