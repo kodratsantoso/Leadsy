@@ -18,6 +18,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  RefreshCw,
   Save,
   Sparkles,
   TestTube2,
@@ -292,6 +293,12 @@ export default function AiDefaultsPage() {
   const [addingModelFor, setAddingModelFor] = useState<number | null>(null);
   const [newModelName, setNewModelName] = useState("");
   const [newModelTier, setNewModelTier] = useState("medium");
+  const [newModelInputPrice, setNewModelInputPrice] = useState("");
+  const [newModelOutputPrice, setNewModelOutputPrice] = useState("");
+  const [newModelPricingSource, setNewModelPricingSource] = useState<"manual" | "openrouter_api" | null>(null);
+  const [discoveredModels, setDiscoveredModels] = useState<{ id: string; name: string; input_price_per_million: number | null; output_price_per_million: number | null }[]>([]);
+  const [modelEntryMode, setModelEntryMode] = useState<"manual" | "discovered">("manual");
+  const [discoveryMessage, setDiscoveryMessage] = useState("");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["settings-ai-default", timelineFilter, startDateFilter, endDateFilter, selectedFeatureFilter],
@@ -452,11 +459,18 @@ export default function AiDefaultsPage() {
   });
 
   const addModelMutation = useMutation({
-    mutationFn: async ({ providerId, name, cost_tier }: { providerId: number; name: string; cost_tier: string }) => {
+    mutationFn: async ({ providerId, name, cost_tier, input_price, output_price, pricing_source }: { providerId: number; name: string; cost_tier: string; input_price?: string; output_price?: string; pricing_source?: string | null }) => {
       const response = await apiFetch(`/settings/ai-default/providers/${providerId}/models`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, cost_tier, status: "active" }),
+        body: JSON.stringify({
+          name,
+          cost_tier,
+          status: "active",
+          cost_per_million_input_tokens: input_price ? Number(input_price) : undefined,
+          cost_per_million_output_tokens: output_price ? Number(output_price) : undefined,
+          pricing_source: pricing_source || undefined,
+        }),
       });
       if (!response.ok) throw new Error("Unable to add model");
       return response.json();
@@ -466,6 +480,35 @@ export default function AiDefaultsPage() {
       setAddingModelFor(null);
       setNewModelName("");
       setNewModelTier("medium");
+      setNewModelInputPrice("");
+      setNewModelOutputPrice("");
+      setNewModelPricingSource(null);
+      setDiscoveredModels([]);
+      setDiscoveryMessage("");
+      setModelEntryMode("manual");
+    },
+  });
+
+  const discoverModelsMutation = useMutation({
+    mutationFn: async (providerId: number) => {
+      const response = await apiFetch(`/settings/ai-default/providers/${providerId}/available-models`);
+      return response.json();
+    },
+    onSuccess: (payload) => {
+      if (payload?.supported && (payload.models?.length ?? 0) > 0) {
+        setDiscoveredModels(payload.models);
+        setModelEntryMode("discovered");
+        setDiscoveryMessage(`Found ${payload.models.length} model(s) from this provider's API.`);
+      } else {
+        setDiscoveredModels([]);
+        setModelEntryMode("manual");
+        setDiscoveryMessage(payload?.message || "This provider doesn't support model auto-discovery — enter the model name manually.");
+      }
+    },
+    onError: () => {
+      setDiscoveredModels([]);
+      setModelEntryMode("manual");
+      setDiscoveryMessage("Could not fetch models — enter the model name manually.");
     },
   });
 
@@ -839,7 +882,16 @@ export default function AiDefaultsPage() {
                             </div>
                             <Button
                               variant="outline"
-                              onClick={() => setAddingModelFor(addingModelFor === provider.id ? null : provider.id)}
+                              onClick={() => {
+                                setAddingModelFor(addingModelFor === provider.id ? null : provider.id);
+                                setNewModelName("");
+                                setNewModelInputPrice("");
+                                setNewModelOutputPrice("");
+                                setNewModelPricingSource(null);
+                                setDiscoveredModels([]);
+                                setDiscoveryMessage("");
+                                setModelEntryMode("manual");
+                              }}
                             >
                               <Plus className="h-3.5 w-3.5" />
                               Add Model
@@ -862,20 +914,112 @@ export default function AiDefaultsPage() {
                             ))}
                           </div>
                           {addingModelFor === provider.id && (
-                            <div className="mt-4 grid gap-3 rounded-2xl border border-border bg-background p-4 md:grid-cols-[1fr_180px_auto]">
-                              <Input
-                                value={newModelName}
-                                onChange={(e) => setNewModelName(e.target.value)}
-                                placeholder={provider.slug === "byteplus" ? "e.g. doubao-1.5-pro-32k, deepseek-r1, or ep-..." : "e.g. gpt-4.1-mini"}
-                              />
-                              <Select value={newModelTier} onChange={(e) => setNewModelTier(e.target.value)}>
-                                <option value="low">Low cost</option>
-                                <option value="medium">Medium cost</option>
-                                <option value="high">High cost</option>
-                              </Select>
+                            <div className="mt-4 space-y-3 rounded-2xl border border-border bg-background p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-xs text-muted-foreground">
+                                  {discoveryMessage || "Fetch this provider's available models instead of typing the name by hand."}
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => discoverModelsMutation.mutate(provider.id)}
+                                  disabled={discoverModelsMutation.isPending}
+                                >
+                                  {discoverModelsMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                                  Fetch Available Models
+                                </Button>
+                              </div>
+
+                              <div className="grid gap-3 md:grid-cols-[1fr_140px]">
+                                {modelEntryMode === "discovered" && discoveredModels.length > 0 ? (
+                                  <Select
+                                    value={newModelName}
+                                    onChange={(e) => {
+                                      const picked = discoveredModels.find((m) => m.id === e.target.value);
+                                      setNewModelName(e.target.value);
+                                      if (picked?.input_price_per_million != null && picked?.output_price_per_million != null) {
+                                        setNewModelInputPrice(String(picked.input_price_per_million));
+                                        setNewModelOutputPrice(String(picked.output_price_per_million));
+                                        setNewModelPricingSource("openrouter_api");
+                                      } else {
+                                        setNewModelInputPrice("");
+                                        setNewModelOutputPrice("");
+                                        setNewModelPricingSource(null);
+                                      }
+                                    }}
+                                    placeholder="— Select a model —"
+                                  >
+                                    {discoveredModels.map((m) => (
+                                      <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                    <option value="__manual__">Type a model name manually…</option>
+                                  </Select>
+                                ) : (
+                                  <Input
+                                    value={newModelName}
+                                    onChange={(e) => setNewModelName(e.target.value)}
+                                    placeholder={provider.slug === "byteplus" ? "e.g. doubao-1.5-pro-32k, deepseek-r1, or ep-..." : "e.g. gpt-4.1-mini"}
+                                  />
+                                )}
+                                <Select value={newModelTier} onChange={(e) => setNewModelTier(e.target.value)}>
+                                  <option value="low">Low cost</option>
+                                  <option value="medium">Medium cost</option>
+                                  <option value="high">High cost</option>
+                                </Select>
+                              </div>
+
+                              {modelEntryMode === "discovered" && newModelName === "__manual__" && (
+                                <Input
+                                  value={newModelName === "__manual__" ? "" : newModelName}
+                                  onChange={(e) => setNewModelName(e.target.value)}
+                                  placeholder="Type the model name"
+                                />
+                              )}
+
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div>
+                                  <label className="mb-1 block text-xs text-muted-foreground">
+                                    Input price (USD / 1M tokens) {newModelPricingSource === "openrouter_api" && <span className="text-[var(--brand)]">· auto-fetched</span>}
+                                  </label>
+                                  <Input
+                                    type="number"
+                                    step="0.0001"
+                                    min="0"
+                                    value={newModelInputPrice}
+                                    onChange={(e) => { setNewModelInputPrice(e.target.value); setNewModelPricingSource(e.target.value ? "manual" : null); }}
+                                    placeholder="e.g. 2.50 — leave blank to use the cost tier estimate"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs text-muted-foreground">
+                                    Output price (USD / 1M tokens) {newModelPricingSource === "openrouter_api" && <span className="text-[var(--brand)]">· auto-fetched</span>}
+                                  </label>
+                                  <Input
+                                    type="number"
+                                    step="0.0001"
+                                    min="0"
+                                    value={newModelOutputPrice}
+                                    onChange={(e) => { setNewModelOutputPrice(e.target.value); setNewModelPricingSource(e.target.value ? "manual" : null); }}
+                                    placeholder="e.g. 10.00 — leave blank to use the cost tier estimate"
+                                  />
+                                </div>
+                              </div>
+                              {provider.slug !== "openrouter" && (
+                                <p className="text-[11px] text-muted-foreground">
+                                  {provider.name} doesn't publish pricing through its API — enter it manually from the provider's pricing page. OpenRouter models fetch pricing automatically.
+                                </p>
+                              )}
+
                               <Button
-                                onClick={() => addModelMutation.mutate({ providerId: provider.id, name: newModelName, cost_tier: newModelTier })}
-                                disabled={!newModelName || addModelMutation.isPending}
+                                onClick={() => addModelMutation.mutate({
+                                  providerId: provider.id,
+                                  name: newModelName === "__manual__" ? "" : newModelName,
+                                  cost_tier: newModelTier,
+                                  input_price: newModelInputPrice,
+                                  output_price: newModelOutputPrice,
+                                  pricing_source: newModelPricingSource,
+                                })}
+                                disabled={!newModelName || newModelName === "__manual__" || addModelMutation.isPending}
                               >
                                 {addModelMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                                 Save

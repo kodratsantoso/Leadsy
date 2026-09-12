@@ -146,11 +146,30 @@ class AiSettingsController extends Controller
             'cost_tier' => 'nullable|in:low,medium,high',
             'default_usage_type' => 'nullable|string|max:255',
             'status' => 'nullable|in:active,deprecated',
+            'cost_per_million_input_tokens' => 'nullable|numeric|min:0',
+            'cost_per_million_output_tokens' => 'nullable|numeric|min:0',
+            'pricing_source' => 'nullable|in:openrouter_api,manual',
         ]);
+
+        if (isset($data['cost_per_million_input_tokens']) || isset($data['cost_per_million_output_tokens'])) {
+            $data['pricing_source'] = $data['pricing_source'] ?? 'manual';
+            $data['pricing_synced_at'] = now();
+        }
 
         $model = $this->providers->addModel($aiProvider, $data);
 
         return response()->json(['data' => $model], 201);
+    }
+
+    /**
+     * List models actually available to this provider's configured API key,
+     * for the "Add Model" dropdown. Falls back gracefully (supported: false)
+     * for providers/keys where that isn't possible — the frontend then keeps
+     * the manual name entry.
+     */
+    public function discoverModels(AiProvider $aiProvider): JsonResponse
+    {
+        return response()->json($this->connectionTests->listModels($aiProvider));
     }
 
     public function destroyModel(AiProvider $aiProvider, AiModel $model): JsonResponse

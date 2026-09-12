@@ -595,6 +595,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('providers/{aiProvider}/copy-key-audit', [AiSettingsController::class, 'auditCopyKey']);
         Route::post('providers/{aiProvider}/models', [AiSettingsController::class, 'storeModel']);
         Route::delete('providers/{aiProvider}/models/{model}', [AiSettingsController::class, 'destroyModel']);
+        Route::get('providers/{aiProvider}/available-models', [AiSettingsController::class, 'discoverModels']);
         Route::put('feature-routes/{featureName}', [AiSettingsController::class, 'saveFeatureRoutes']);
         Route::get('prompt-templates', [AiSettingsController::class, 'promptTemplates']);
         Route::post('prompt-templates/versions', [AiSettingsController::class, 'createPromptVersion']);
