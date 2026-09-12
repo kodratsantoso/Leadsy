@@ -23,11 +23,15 @@ type LarkBaseMapping = {
   table_name?: string;
   sync_direction: "leadsy_to_lark" | "lark_to_leadsy" | "two_way";
   field_mapping: Record<string, string>;
+  default_source_type?: string | null;
+  default_channel_type_id?: number | null;
   is_active: boolean;
   record_mappings_count?: number;
   last_pull_at?: string | null;
   last_push_at?: string | null;
 };
+type LeadChannelOption = { id: number; name: string; slug: string; is_active: boolean };
+type LeadSourceOption = { id: number; name: string; slug: string; is_active: boolean; channels?: LeadChannelOption[] };
 type LarkBaseSyncDirection = "push" | "pull";
 type LarkBaseSyncResultItem = { status: "success" | "skipped" | "failed"; action: "added" | "updated" | "deleted" | "skipped" | "failed"; lead_id?: number | string | null; record_id?: string | null; lark_record_id?: string | null; company_name?: string | null; reason?: string | null; };
 type LarkBaseSyncResult = { success: boolean; message?: string; synced_count: number; attempted_count: number; skipped_count: number; added_count: number; updated_count: number; deleted_count: number; failed_count: number; error_count: number; errors?: { message?: string; company_name?: string; record_id?: string | null; lead_id?: number | string | null }[]; results?: LarkBaseSyncResultItem[]; };
@@ -187,6 +191,8 @@ export default function LarkBaseSettingsPage() {
   const [selectedBaseTable, setSelectedBaseTable] = useState<LarkBaseTable | null>(null);
   const [baseSyncDirection, setBaseSyncDirection] = useState<"leadsy_to_lark" | "lark_to_leadsy" | "two_way">("two_way");
   const [baseFieldMapping, setBaseFieldMapping] = useState<Record<string, string>>(DEFAULT_LARK_BASE_FIELD_MAPPING);
+  const [baseDefaultSourceType, setBaseDefaultSourceType] = useState("");
+  const [baseDefaultChannelTypeId, setBaseDefaultChannelTypeId] = useState("");
   const [baseSyncDialog, setBaseSyncDialog] = useState<LarkBaseSyncDialogState>({ open: false, status: "running", direction: "pull", mappingName: "" });
 
   // Meeting Summary Mapping State
@@ -214,6 +220,13 @@ export default function LarkBaseSettingsPage() {
     },
   });
   const baseMappings: LarkBaseMapping[] = baseMappingsData?.data || [];
+
+  const { data: leadSourcesData } = useQuery({
+    queryKey: ['lead-source-types'],
+    queryFn: () => apiFetch('/settings/lead-sources').then((r) => r.json()),
+  });
+  const leadSources: LeadSourceOption[] = (leadSourcesData?.data ?? leadSourcesData ?? []).filter((s: LeadSourceOption) => s.is_active);
+  const leadChannelsForSelectedSource: LeadChannelOption[] = (leadSources.find((s) => s.slug === baseDefaultSourceType)?.channels ?? []).filter((c) => c.is_active);
 
   const { data: sumMappingData } = useQuery({
     queryKey: ['lark-sum-mapping'],
@@ -331,6 +344,8 @@ export default function LarkBaseSettingsPage() {
         table_name: selectedBaseTable?.name,
         sync_direction: baseSyncDirection,
         field_mapping: Object.fromEntries(Object.entries(baseFieldMapping).filter(([k, v]) => Boolean(v))),
+        default_source_type: baseDefaultSourceType || null,
+        default_channel_type_id: baseDefaultChannelTypeId ? Number(baseDefaultChannelTypeId) : null,
         is_active: true,
       };
       const res = await apiFetch('/api/lark/base/mappings', {
@@ -348,6 +363,8 @@ export default function LarkBaseSettingsPage() {
       setTimeout(() => setSuccessMsg(''), 4000);
       setBaseAppToken("");
       setSelectedBaseTable(null);
+      setBaseDefaultSourceType("");
+      setBaseDefaultChannelTypeId("");
     },
     onError: (err: any) => { setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000); }
   });
@@ -521,6 +538,8 @@ export default function LarkBaseSettingsPage() {
     setSelectedBaseTable({ table_id: mapping.table_id, name: mapping.table_name });
     setBaseSyncDirection(mapping.sync_direction);
     setBaseFieldMapping(mapping.field_mapping || DEFAULT_LARK_BASE_FIELD_MAPPING);
+    setBaseDefaultSourceType(mapping.default_source_type || "");
+    setBaseDefaultChannelTypeId(mapping.default_channel_type_id ? String(mapping.default_channel_type_id) : "");
     listBaseFieldsMutation.mutate({ appToken: mapping.app_token, tableId: mapping.table_id });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -833,6 +852,38 @@ export default function LarkBaseSettingsPage() {
                       <option value="leadsy_to_lark">Leadsy -&gt; Lark Only (Push)</option>
                       <option value="lark_to_leadsy">Lark -&gt; Leadsy Only (Pull)</option>
                     </Select>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Lead Source</label>
+                      <Select
+                        value={baseDefaultSourceType}
+                        onChange={(e) => {
+                          setBaseDefaultSourceType(e.target.value);
+                          setBaseDefaultChannelTypeId("");
+                        }}
+                        placeholder="— Auto (Lark) —"
+                      >
+                        {leadSources.map((source) => (
+                          <option key={source.id} value={source.slug}>{source.name}</option>
+                        ))}
+                      </Select>
+                      <p className="mt-1 text-xs text-muted-foreground">Leads synced through this mapping are tagged with this Source. Leave unset to keep the old auto-generated "Lark" source.</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Lead Channel</label>
+                      <Select
+                        value={baseDefaultChannelTypeId}
+                        onChange={(e) => setBaseDefaultChannelTypeId(e.target.value)}
+                        placeholder={baseDefaultSourceType ? "— Select channel —" : "— Select a source first —"}
+                        disabled={!baseDefaultSourceType}
+                      >
+                        {leadChannelsForSelectedSource.map((channel) => (
+                          <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+                        ))}
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="space-y-3">

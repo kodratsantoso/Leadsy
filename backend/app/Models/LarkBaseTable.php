@@ -55,6 +55,8 @@ class LarkBaseTable extends Model
         'leadsy_entity_type',
         'sync_direction',
         'field_mapping',
+        'default_source_type',
+        'default_channel_type_id',
         'is_active',
         'last_pull_at',
         'last_push_at',
@@ -80,6 +82,11 @@ class LarkBaseTable extends Model
     public function recordMappings(): HasMany
     {
         return $this->hasMany(LarkBaseRecordMapping::class);
+    }
+
+    public function defaultChannelType(): BelongsTo
+    {
+        return $this->belongsTo(LeadChannelType::class, 'default_channel_type_id');
     }
 
     public function allowsPush(): bool

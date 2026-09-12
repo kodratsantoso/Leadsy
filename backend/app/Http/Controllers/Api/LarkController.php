@@ -382,6 +382,16 @@ class LarkController extends Controller
             'table_name' => 'nullable|string',
             'sync_direction' => 'required|in:leadsy_to_lark,lark_to_leadsy,two_way',
             'field_mapping' => 'nullable|array',
+            'default_source_type' => 'nullable|string|exists:lead_source_types,slug',
+            'default_channel_type_id' => ['nullable', 'integer', 'exists:lead_channel_types,id', function ($attribute, $value, $fail) use ($request) {
+                if (! $value || ! $request->default_source_type) {
+                    return;
+                }
+                $channel = \App\Models\LeadChannelType::with('sourceType')->find($value);
+                if ($channel && $channel->sourceType?->slug !== $request->default_source_type) {
+                    $fail('The selected channel does not belong to the selected lead source.');
+                }
+            }],
             'is_active' => 'boolean',
         ]);
 
@@ -399,6 +409,8 @@ class LarkController extends Controller
                 'leadsy_entity_type' => 'lead',
                 'sync_direction' => $request->sync_direction,
                 'field_mapping' => $request->field_mapping ?: LarkBaseService::DEFAULT_LEAD_FIELD_MAPPING,
+                'default_source_type' => $request->default_source_type,
+                'default_channel_type_id' => $request->default_channel_type_id,
                 'is_active' => $request->boolean('is_active', true),
             ]
         );

@@ -607,31 +607,7 @@ class LarkBaseService extends LarkService
                 Lead::withoutEvents(fn () => $lead->update($attributes));
                 $wasModified = $lead->wasChanged();
 
-                $sourceType = \App\Models\LeadSourceType::firstOrCreate(
-                    ['slug' => 'lark'],
-                    [
-                        'name' => 'Lark',
-                        'description' => 'Lark Base sync',
-                        'sort_order' => 50,
-                        'is_active' => true,
-                    ]
-                );
-
-                $channelSlug = \Illuminate\Support\Str::slug($baseTable->table_name);
-                if (empty($channelSlug)) {
-                    $channelSlug = 'lark-table-' . strtolower($baseTable->table_id);
-                }
-                
-                $channelType = \App\Models\LeadChannelType::firstOrCreate(
-                    ['slug' => $channelSlug],
-                    [
-                        'lead_source_type_id' => $sourceType->id,
-                        'name' => $baseTable->table_name,
-                        'description' => 'Synced from Lark Base',
-                        'sort_order' => 10,
-                        'is_active' => true,
-                    ]
-                );
+                [$sourceType, $channelType] = self::resolveMappingSourceAndChannel($baseTable);
 
                 \App\Models\LeadSource::updateOrCreate([
                     'lead_id' => $lead->id,
@@ -639,7 +615,7 @@ class LarkBaseService extends LarkService
                     'lark_app_token' => $baseTable->app_token,
                     'lark_table_id' => $baseTable->table_id,
                 ], [
-                    'channel_type_id' => $channelType->id,
+                    'channel_type_id' => $channelType?->id,
                     'confidence' => 'high',
                     'last_verified_at' => now(),
                 ]);
@@ -654,31 +630,7 @@ class LarkBaseService extends LarkService
                     'lark_table_id' => $baseTable->table_id,
                 ])));
 
-                $sourceType = \App\Models\LeadSourceType::firstOrCreate(
-                    ['slug' => 'lark'],
-                    [
-                        'name' => 'Lark',
-                        'description' => 'Lark Base sync',
-                        'sort_order' => 50,
-                        'is_active' => true,
-                    ]
-                );
-
-                $channelSlug = \Illuminate\Support\Str::slug($baseTable->table_name);
-                if (empty($channelSlug)) {
-                    $channelSlug = 'lark-table-' . strtolower($baseTable->table_id);
-                }
-                
-                $channelType = \App\Models\LeadChannelType::firstOrCreate(
-                    ['slug' => $channelSlug],
-                    [
-                        'lead_source_type_id' => $sourceType->id,
-                        'name' => $baseTable->table_name,
-                        'description' => 'Synced from Lark Base',
-                        'sort_order' => 10,
-                        'is_active' => true,
-                    ]
-                );
+                [$sourceType, $channelType] = self::resolveMappingSourceAndChannel($baseTable);
 
                 \App\Models\LeadSource::updateOrCreate([
                     'lead_id' => $lead->id,
@@ -686,7 +638,7 @@ class LarkBaseService extends LarkService
                     'lark_app_token' => $baseTable->app_token,
                     'lark_table_id' => $baseTable->table_id,
                 ], [
-                    'channel_type_id' => $channelType->id,
+                    'channel_type_id' => $channelType?->id,
                     'confidence' => 'high',
                     'last_verified_at' => now(),
                 ]);
@@ -917,6 +869,61 @@ class LarkBaseService extends LarkService
         }
 
         return self::stringifyBaseScalar($value);
+    }
+
+    /**
+     * Resolve which Lead Source / Lead Channel a lead pulled through this
+     * mapping should be tagged with.
+     *
+     * If the admin picked a source/channel on the mapping (Settings ->
+     * Integrations -> Lark Base -> Add/Edit Mapping), use that. Otherwise,
+     * fall back to the legacy behavior: a generic "Lark" source with a
+     * channel auto-named after the Base table, so older mappings that
+     * predate this setting keep working unchanged.
+     *
+     * @return array{0: \App\Models\LeadSourceType, 1: \App\Models\LeadChannelType|null}
+     */
+    private static function resolveMappingSourceAndChannel(\App\Models\LarkBaseTable $baseTable): array
+    {
+        if ($baseTable->default_source_type) {
+            $sourceType = \App\Models\LeadSourceType::where('slug', $baseTable->default_source_type)->first();
+
+            if ($sourceType) {
+                $channelType = $baseTable->default_channel_type_id
+                    ? \App\Models\LeadChannelType::find($baseTable->default_channel_type_id)
+                    : null;
+
+                return [$sourceType, $channelType];
+            }
+        }
+
+        $sourceType = \App\Models\LeadSourceType::firstOrCreate(
+            ['slug' => 'lark'],
+            [
+                'name' => 'Lark',
+                'description' => 'Lark Base sync',
+                'sort_order' => 50,
+                'is_active' => true,
+            ]
+        );
+
+        $channelSlug = \Illuminate\Support\Str::slug($baseTable->table_name);
+        if (empty($channelSlug)) {
+            $channelSlug = 'lark-table-' . strtolower($baseTable->table_id);
+        }
+
+        $channelType = \App\Models\LeadChannelType::firstOrCreate(
+            ['slug' => $channelSlug],
+            [
+                'lead_source_type_id' => $sourceType->id,
+                'name' => $baseTable->table_name,
+                'description' => 'Synced from Lark Base',
+                'sort_order' => 10,
+                'is_active' => true,
+            ]
+        );
+
+        return [$sourceType, $channelType];
     }
 
     private static function stringifyBaseScalar($value): string
