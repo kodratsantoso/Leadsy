@@ -19,3 +19,15 @@ export async function fetchLead(id: string): Promise<Lead | null> {
     return null;
   }
 }
+
+export type AssignableUser = {
+  id: number;
+  name: string;
+  email: string;
+  role_id: number | null;
+};
+
+export async function fetchAssignableUsers(): Promise<AssignableUser[]> {
+  const json = await api.get<{ data: AssignableUser[] }>("/api/leads/assignable-users");
+  return json.data ?? [];
+}

@@ -21,6 +21,8 @@ import {
   type WaConversation, type WaMessage
 } from "@/lib/hooks/use-whatsapp";
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
+import { useAuthStore } from "@/store/useAuthStore";
+import { fetchAssignableUsers, type AssignableUser } from "@/lib/api/leads";
 
 type Folder = "all" | "my" | "unassigned" | "assigned" | "resolved";
 type SortOption = "newest" | "oldest" | "relevance";
@@ -38,12 +40,14 @@ export default function MekariQontakPage() {
     loading
   } = useWhatsApp();
   const platform = "mekari_qontak";
+  const currentUserId = useAuthStore(state => state.user?.id) ?? null;
 
   // ── States ──
   const [conversations, setConversations] = useState<WaConversation[]>([]);
   const [activeConv, setActiveConv] = useState<WaConversation | null>(null);
   const [activeMessages, setActiveMessages] = useState<WaMessage[]>([]);
   const [stages, setStages] = useState<{ id: number; name: string }[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
 
   // ── Search & Filter State ──
   const [activeFolder, setActiveFolder] = useState<Folder>("all");
@@ -87,7 +91,11 @@ export default function MekariQontakPage() {
       .catch(err => console.warn("Failed to load stages:", err));
   }, []);
 
-
+  useEffect(() => {
+    fetchAssignableUsers()
+      .then(setAssignableUsers)
+      .catch(err => console.warn("Failed to load assignable users:", err));
+  }, []);
 
   // ── Load rooms ──
   const loadConversations = async (forceSync: boolean = false) => {
@@ -263,7 +271,8 @@ export default function MekariQontakPage() {
 
   // Assign chat room to active user
   const handleAssignToMe = () => {
-    handleUpdateMeta({ assignee_id: 1 }); // Using 1 as current user for demo
+    if (!currentUserId) return;
+    handleUpdateMeta({ assignee_id: currentUserId });
   };
 
   // Toggle Resolution of room
@@ -303,7 +312,7 @@ export default function MekariQontakPage() {
     return conversations
       .filter(c => {
         // Folder selection
-        if (activeFolder === "my") return c.assignee_id === 1;
+        if (activeFolder === "my") return c.assignee_id === currentUserId;
         if (activeFolder === "unassigned") return !c.assignee_id;
         if (activeFolder === "assigned") return !!c.assignee_id;
         if (activeFolder === "resolved") return c.is_resolved;
@@ -334,20 +343,20 @@ export default function MekariQontakPage() {
         const tB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
         return tB - tA;
       });
-  }, [conversations, activeFolder, searchQuery, sortBy]);
+  }, [conversations, activeFolder, searchQuery, sortBy, currentUserId]);
 
   // Dynamic calculations for Inbox Navigation Sidebar folder badges
   const folderCounts = useMemo(() => {
     const counts = { all: 0, my: 0, unassigned: 0, assigned: 0, resolved: 0 };
     conversations.forEach(c => {
       counts.all++;
-      if (c.assignee_id === 1) counts.my++;
+      if (c.assignee_id === currentUserId) counts.my++;
       if (!c.assignee_id) counts.unassigned++;
       if (c.assignee_id) counts.assigned++;
       if (c.is_resolved) counts.resolved++;
     });
     return counts;
-  }, [conversations]);
+  }, [conversations, currentUserId]);
 
 
 
@@ -530,10 +539,10 @@ export default function MekariQontakPage() {
                   {/* Room status and assignee indicators */}
                   <div className="flex items-center justify-between text-[10px] border-t border-border/15 pt-2 mt-1">
                     <div className="flex items-center gap-1">
-                      {conv.assignee_id === 1 ? (
-                        <div className="flex items-center gap-1 text-[var(--brand)] font-bold">
+                      {conv.assignee_id ? (
+                        <div className={cn("flex items-center gap-1 font-bold", conv.assignee_id === currentUserId ? "text-[var(--brand)]" : "text-muted-foreground")}>
                           <User className="h-2.5 w-2.5" />
-                          <span>Me</span>
+                          <span>{conv.assignee_id === currentUserId ? "Me" : (assignableUsers.find(u => u.id === conv.assignee_id)?.name ?? `User #${conv.assignee_id}`)}</span>
                         </div>
                       ) : (
                         <span className="text-muted-foreground/60 italic font-semibold">Unassigned</span>
@@ -590,7 +599,7 @@ export default function MekariQontakPage() {
                   </Button>
                 )}
 
-                {activeConv?.assignee_id !== 1 && (
+                {activeConv?.assignee_id !== currentUserId && (
                   <Button
                     onClick={handleAssignToMe}
                     variant="outline"
@@ -990,16 +999,18 @@ export default function MekariQontakPage() {
           <div className="p-4 space-y-2">
             <h4 className="text-[10px] font-extrabold uppercase text-muted-foreground tracking-wider select-none">Assignee</h4>
             <select
-              value={activeConv?.assignee_id === 1 ? "Prasetia Sales" : ""}
+              value={activeConv?.assignee_id ?? ""}
               onChange={e => {
-                handleUpdateMeta({ assignee_id: e.target.value === "Prasetia Sales" ? 1 : null });
+                handleUpdateMeta({ assignee_id: e.target.value ? parseInt(e.target.value) : null });
               }}
               className="w-full text-[10px] h-8 rounded-lg border border-input bg-background px-2 font-bold text-foreground focus:ring-1 focus:ring-ring select-none"
             >
               <option value="">-- Select Assignee --</option>
-              <option value="Prasetia Sales">Prasetia Sales (Me)</option>
-              <option value="Sales Team B">Sales Team B</option>
-              <option value="Customer Support A">Customer Support A</option>
+              {assignableUsers.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.name}{u.id === currentUserId ? " (Me)" : ""}
+                </option>
+              ))}
             </select>
           </div>
         </aside>
