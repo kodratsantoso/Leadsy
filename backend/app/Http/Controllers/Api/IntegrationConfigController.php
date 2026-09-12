@@ -89,6 +89,24 @@ class IntegrationConfigController extends Controller
         return response()->json(['data' => $configs]);
     }
 
+    /**
+     * Real runtime environment info for the Settings > Environment page.
+     * Authenticated + integrations.manage-gated (unlike publicSettings())
+     * since DB/Redis ports are infrastructure detail, not safe for an
+     * unauthenticated endpoint.
+     */
+    public function environmentInfo(Request $request): JsonResponse
+    {
+        return response()->json(['data' => [
+            'app_name' => config('app.name', 'Leadsy'),
+            'app_env' => config('app.env', 'production'),
+            'app_url' => config('app.url'),
+            'db_connection' => config('database.default'),
+            'db_port' => config('database.connections.'.config('database.default').'.port'),
+            'redis_port' => config('database.redis.default.port'),
+        ]]);
+    }
+
     public function googlePermissions(Request $request): JsonResponse
     {
         $tenantId = $this->currentTenantId($request);

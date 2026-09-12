@@ -1,12 +1,24 @@
 "use client";
 import { Database, Globe, Loader2, Server } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/apiFetch";
 
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 
+function portFromUrl(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.port) return parsed.port;
+    return parsed.protocol === "https:" ? "443" : "80";
+  } catch {
+    return null;
+  }
+}
+
 export default function EnvironmentPage() {
   // Fetch APP_NAME and APP_ENV from public settings endpoint (no auth required)
-  const { data: publicData, isLoading } = useQuery({
+  const { data: publicData, isLoading: loadingPublic } = useQuery({
     queryKey: ["public-settings"],
     queryFn: async () => {
       const r = await fetch("/api/settings/public");
@@ -15,14 +27,30 @@ export default function EnvironmentPage() {
     },
   });
 
+  // Real infra ports — authenticated, since this is server topology detail
+  const { data: envInfo, isLoading: loadingEnvInfo } = useQuery({
+    queryKey: ["environment-info"],
+    queryFn: async () => {
+      const r = await apiFetch("/settings/environment-info");
+      const json = await r.json();
+      return json?.data || {};
+    },
+  });
+
+  const isLoading = loadingPublic || loadingEnvInfo;
+
+  const frontendPort = typeof window !== "undefined" && window.location.port
+    ? window.location.port
+    : (typeof window !== "undefined" ? (window.location.protocol === "https:" ? "443" : "80") : "—");
+
   const envItems = [
     { label: "App Name",       value: publicData?.APP_NAME ?? "Leadsy",  icon: Globe },
     { label: "Environment",    value: publicData?.APP_ENV ?? process.env.NODE_ENV ?? "—", icon: Server },
-    { label: "API Base URL",   value: process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001", icon: Database },
-    { label: "Frontend Port",  value: "3000",  icon: Server,   note: "Config" },
-    { label: "Backend Port",   value: "3001",  icon: Server,   note: "Config" },
-    { label: "DB Port (Host)", value: "5435",  icon: Database, note: "Config" },
-    { label: "Redis Port",     value: "6382",  icon: Database, note: "Config" },
+    { label: "API Base URL",   value: process.env.NEXT_PUBLIC_API_BASE_URL ?? envInfo?.app_url ?? "—", icon: Database },
+    { label: "Frontend Port",  value: frontendPort, icon: Server, note: "Live" },
+    { label: "Backend Port",   value: portFromUrl(envInfo?.app_url) ?? "—", icon: Server, note: "Live" },
+    { label: "DB Port (Host)", value: envInfo?.db_port ? String(envInfo.db_port) : "—", icon: Database, note: "Live" },
+    { label: "Redis Port",     value: envInfo?.redis_port ? String(envInfo.redis_port) : "—", icon: Database, note: "Live" },
   ];
 
   return (
