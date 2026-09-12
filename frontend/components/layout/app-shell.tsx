@@ -8,7 +8,8 @@ import {
   LayoutDashboard, Map, Building2, Package,
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
-  Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity
+  Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
+  HeartPulse, ArrowRightLeft
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -83,6 +84,15 @@ export const navItems: NavItem[] = [
       { href: "/settings/professional-services/roles", icon: Coins, label: "Rate Cards & Roles", group: "Configuration" },
       { href: "/settings/professional-services/complexity", icon: Layers, label: "Complexity Matrix", group: "Configuration" },
       { href: "/settings/professional-services/service-categories", icon: Package, label: "Categories", group: "Configuration" },
+    ],
+  },
+  {
+    href: "/customer-success",
+    icon: HeartPulse,
+    label: "Customer Success",
+    children: [
+      { href: "/customer-success", icon: HeartPulse, label: "Health Dashboard" },
+      { href: "/customer-success/renewals", icon: ArrowRightLeft, label: "Renewals" },
     ],
   },
   {
