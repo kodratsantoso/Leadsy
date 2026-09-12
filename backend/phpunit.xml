@@ -29,5 +29,6 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="WHATSAPP_WEBHOOK_SECRET" value="test-webhook-secret-do-not-use-in-production"/>
     </php>
 </phpunit>

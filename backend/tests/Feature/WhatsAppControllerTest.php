@@ -432,8 +432,9 @@ class WhatsAppControllerTest extends TestCase
             ],
         ];
 
-        $response = $this->postJson('/api/webhooks/whatsapp', $payload)
-            ->assertOk();
+        $response = $this->postJson('/api/webhooks/whatsapp', $payload, [
+            'X-Webhook-Secret' => config('services.whatsapp.webhook_secret'),
+        ])->assertOk();
 
         $this->assertTrue($response->json('success'));
 
