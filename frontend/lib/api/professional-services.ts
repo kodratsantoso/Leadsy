@@ -62,6 +62,7 @@ export type PsEstimationLine = {
   rate_snapshot?: number;
   estimated_fee?: number;
   sort_order: number;
+  parent_task_id?: number | null;
   task_type?: "task" | "subtask";
   subtask_name?: string;
   deliverable?: string;
