@@ -517,7 +517,7 @@ class WhatsAppController extends Controller
             $cacheKey = 'qontak_sync_limit_'.($tenantId ?? 'global');
             if ($forceSync || ! Cache::has($cacheKey)) {
                 Cache::put($cacheKey, true, 30);
-                resolve(MekariQontakService::class)->syncRooms($tenantId);
+                resolve(MekariQontakService::class)->syncRooms($tenantId, $forceSync);
             }
         }
 
