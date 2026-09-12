@@ -1,10 +1,18 @@
 "use client";
-import { Clock, Key, Lock, Shield } from "lucide-react";
+import { Shield } from "lucide-react";
 
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { TwoFactorAuthSettings } from "@/app/settings/_components/TwoFactorAuthSettings";
+import { ChangePasswordSettings } from "@/app/settings/_components/ChangePasswordSettings";
+import { SessionSecuritySettings } from "@/app/settings/_components/SessionSecuritySettings";
+import { useAuthStore } from "@/store/useAuthStore";
+import { getUserPermissionNames } from "@/lib/permissions";
 
 export default function SecurityPage() {
+  const user = useAuthStore(s => s.user);
+  const isSuperAdmin = user?.role?.name === "super_admin";
+  const canManageSecurityPolicy = isSuperAdmin || getUserPermissionNames(user).includes("integrations.manage");
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
@@ -12,21 +20,11 @@ export default function SecurityPage() {
         <div><h1 className="text-2xl font-bold tracking-tight">Security</h1><p className="text-sm text-muted-foreground">Authentication and session policies — BRD §6.1</p></div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3"><Clock className="h-4 w-4 text-indigo-500" /><h3 className="text-sm font-semibold">Session Timeout</h3></div>
-          <p className="text-xs text-muted-foreground mb-3">Auto-logout after inactivity period</p>
-          <select className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"><option>120 minutes</option><option>60 minutes</option><option>30 minutes</option><option>15 minutes</option></select>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-3"><Key className="h-4 w-4 text-amber-500" /><h3 className="text-sm font-semibold">Password Policy</h3></div>
-          <p className="text-xs text-muted-foreground mb-3">Minimum requirements for passwords</p>
-          <div className="space-y-2 text-xs">
-            <label className="flex items-center gap-2"><input type="checkbox" defaultChecked className="rounded" /> Minimum 8 characters</label>
-            <label className="flex items-center gap-2"><input type="checkbox" defaultChecked className="rounded" /> Require uppercase letter</label>
-            <label className="flex items-center gap-2"><input type="checkbox" defaultChecked className="rounded" /> Require special character</label>
-          </div>
-        </div>
+        <ChangePasswordSettings />
         <TwoFactorAuthSettings />
+
+        {canManageSecurityPolicy && <SessionSecuritySettings />}
+
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3"><Shield className="h-4 w-4 text-emerald-500" /><h3 className="text-sm font-semibold">Data Encryption</h3></div>
           <p className="text-xs text-muted-foreground">TLS/HTTPS enforced for all API traffic. Sensitive keys stored encrypted in integration_configs table.</p>

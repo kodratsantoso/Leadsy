@@ -35,7 +35,10 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/settings/api": { any: ["integrations.manage"] },
   "/settings/notifications": { any: ["integrations.manage"] },
   "/settings/environment": { any: ["integrations.manage"] },
-  "/settings/security": { any: ["integrations.manage"] },
+  // Every authenticated user can reach this page to change their own password;
+  // the Session Timeout / Password Policy panel inside it is conditionally
+  // rendered for integrations.manage holders only.
+  "/settings/security": { any: [] },
   "/settings/backup": { any: ["integrations.manage"] },
   "/settings": { any: ["users.manage", "ai.manage", "integrations.manage", "audit.view", "products.view", "products.edit", "leads.edit"] },
 };

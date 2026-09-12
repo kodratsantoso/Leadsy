@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EmailVerificationOtp;
 use App\Models\LarkIntegration;
 use App\Models\Role;
+use App\Models\SecuritySetting;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\AuditService;
@@ -18,7 +19,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
@@ -110,7 +110,7 @@ class AuthController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', SecuritySetting::resolve(null)->passwordRule()],
             'otp' => 'required|string|size:6',
         ]);
 
@@ -168,6 +168,35 @@ class AuthController extends Controller
         return response()->json([
             'data' => $request->user()->load('role.permissions'),
         ]);
+    }
+
+    /** PUT /api/auth/password — self-service password change */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'confirmed', SecuritySetting::resolve($user->tenant_id)->passwordRule()],
+        ]);
+
+        if (! Hash::check($data['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'The current password is incorrect.',
+                'errors' => ['current_password' => ['The current password is incorrect.']],
+            ], 422);
+        }
+
+        $user->update(['password' => $data['password']]);
+
+        // Revoke every other session so a compromised session is fully
+        // invalidated by a password change, keeping only the one making
+        // this request.
+        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+
+        AuditService::log('password_changed', 'auth', $user);
+
+        return response()->json(['message' => 'Password updated successfully.']);
     }
 
     /** GET /api/auth/lark/auth-url — Get Lark OAuth2 authorization URL */

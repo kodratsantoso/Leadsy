@@ -85,11 +85,14 @@ Route::prefix('webhooks')->group(function () {
 });
 
 // ── Protected routes ──
-Route::middleware('auth:sanctum')->group(function () {
+// session.timeout must run BEFORE auth:sanctum — see EnforceSessionTimeout's
+// class docblock for why order matters here.
+Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
 
     // Auth
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get('auth/me', [AuthController::class, 'me']);
+    Route::put('auth/password', [AuthController::class, 'changePassword']);
     Route::post('auth/token/generate', [AuthController::class, 'generateApiToken']);
     Route::get('auth/token/status', [AuthController::class, 'getApiTokenStatus']);
 
@@ -219,6 +222,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings/currency-format', [CurrencySettingController::class, 'format']);
     Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
     Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');
+    Route::get('settings/security', [\App\Http\Controllers\Api\SecuritySettingsController::class, 'index'])->middleware('permission:integrations.manage');
+    Route::put('settings/security', [\App\Http\Controllers\Api\SecuritySettingsController::class, 'update'])->middleware('permission:integrations.manage');
     Route::post('settings/currency/sync-rates', [CurrencySettingController::class, 'syncRates'])->middleware('permission:integrations.manage');
     // Targets
     Route::get('targets/config', [TargetConfigController::class, 'config']);

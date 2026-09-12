@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Lead;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\SecuritySetting;
 use App\Models\User;
 use App\Models\WhatsappSession;
 use App\Services\AuditService;
@@ -32,7 +33,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|string|min:8',
+            'password' => ['required', 'string', SecuritySetting::resolve($request->user()?->tenant_id)->passwordRule()],
             'role_id' => 'nullable|exists:roles,id',
             'direct_manager_id' => 'nullable|exists:users,id',
             'phone' => 'nullable|string|max:30',
@@ -56,7 +57,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,'.$user->id,
-            'password' => 'nullable|string|min:8',
+            'password' => ['nullable', 'string', SecuritySetting::resolve($request->user()?->tenant_id)->passwordRule()],
             'role_id' => 'nullable|exists:roles,id',
             'direct_manager_id' => 'nullable|exists:users,id',
             'phone' => 'nullable|string|max:30',

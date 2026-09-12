@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Middleware\CheckPermission;
+use App\Http\Middleware\EnforceSessionTimeout;
 use App\Models\Lead;
 use App\Models\LeadAiEvaluation;
 use App\Models\LeadFollowUp;
@@ -32,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register RBAC middleware alias
         Route::aliasMiddleware('permission', CheckPermission::class);
+        Route::aliasMiddleware('session.timeout', EnforceSessionTimeout::class);
 
         // Register model observers for Lark integration
         Lead::observe(LeadObserver::class);
