@@ -200,9 +200,24 @@ export default function IcpProfilesPage() {
     onSuccess: () => { invalidate(); setDeletingId(null); },
   });
 
+  const [batchMatchResult, setBatchMatchResult] = useState<{ profileId: number; message: string; isError: boolean } | null>(null);
+
   const batchMatchMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiFetch(`/icp-profiles/${id}/batch-match`, { method: "POST" }),
+    mutationFn: async (id: number) => {
+      const res = await apiFetch(`/icp-profiles/${id}/batch-match`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || `Server error (${res.status})`);
+      }
+      return { id, message: data.message as string };
+    },
+    onSuccess: ({ id, message }) => {
+      setBatchMatchResult({ profileId: id, message, isError: false });
+      invalidate();
+    },
+    onError: (err: Error, id) => {
+      setBatchMatchResult({ profileId: id, message: err.message || "Batch match failed.", isError: true });
+    },
   });
 
   const generateMutation = useMutation({
@@ -471,6 +486,12 @@ export default function IcpProfilesPage() {
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
+
+                {batchMatchResult && batchMatchResult.profileId === p.id && (
+                  <p className={`text-xs mt-2 ${batchMatchResult.isError ? "text-[var(--status-danger)]" : "text-[var(--status-success)]"}`}>
+                    {batchMatchResult.message}
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}
