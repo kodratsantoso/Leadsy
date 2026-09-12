@@ -76,59 +76,6 @@ class AiOrchestrationService
         return $this->fail("All AI feature routes exhausted for function: {$functionName}. Last error: {$lastError}");
     }
 
-    /**
-     * Score a lead: returns { score: 0-100, qualification_status, explanation }.
-     */
-    public function scoreLead(array $leadData, ?string $productReference = null): array
-    {
-        $prompt = $this->buildScoringPrompt($leadData, $productReference);
-        $result = $this->call('lead_scoring', $prompt, ['lead_id' => $leadData['id'] ?? null]);
-
-        if ($result['success'] && $result['content']) {
-            $parsed = json_decode($result['content'], true);
-
-            return [
-                'success' => true,
-                'score' => $parsed['score'] ?? 50,
-                'qualification_status' => $parsed['qualification_status'] ?? 'pending',
-                'explanation' => $parsed['explanation'] ?? '',
-                'tokens' => $result['tokens'],
-                'cost' => $result['cost'],
-            ];
-        }
-
-        return ['success' => false, 'error' => $result['error'] ?? 'AI call failed'];
-    }
-
-    /**
-     * Parse a product reference document/URL for AI-powered matching.
-     */
-    public function parseProductReference(string $content, string $sourceType = 'text'): array
-    {
-        $prompt = <<<PROMPT
-        Analyse the following product reference material and extract:
-        1. Target industries
-        2. Key pain points addressed
-        3. Ideal company profile (size, revenue, tech stack)
-        4. Buyer persona
-        5. Competitive advantages
-
-        Source type: {$sourceType}
-        Content:
-        {$content}
-
-        Return JSON with keys: target_industries, pain_points, ideal_company_profile, buyer_persona, competitive_advantages
-        PROMPT;
-
-        $result = $this->call('product_understanding', $prompt);
-
-        if ($result['success'] && $result['content']) {
-            return ['success' => true, 'data' => json_decode($result['content'], true)];
-        }
-
-        return ['success' => false, 'error' => $result['error'] ?? 'Parse failed'];
-    }
-
     /* ──────────────────────────────────────────── */
     /*  PRIVATE */
     /* ──────────────────────────────────────────── */
@@ -211,25 +158,6 @@ class AiOrchestrationService
 
             return $this->fail($e->getMessage());
         }
-    }
-
-    private function buildScoringPrompt(array $leadData, ?string $productRef): string
-    {
-        $leadJson = json_encode($leadData, JSON_PRETTY_PRINT);
-        $ref = $productRef ? "\n\nProduct Reference:\n{$productRef}" : '';
-
-        return <<<PROMPT
-        You are a lead qualification engine. Evaluate the following company and return a JSON object with:
-        - score: integer 0-100
-        - qualification_status: "eligible" | "potential" | "not_eligible"
-        - explanation: string (2-3 sentences explaining the score)
-
-        Company data:
-        {$leadJson}
-        {$ref}
-
-        Return ONLY valid JSON, no markdown.
-        PROMPT;
     }
 
     private function buildRequestBody(string $slug, string $modelName, string|array $prompt, ?int $maxTokens = null, array $context = []): array
