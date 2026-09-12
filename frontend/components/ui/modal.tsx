@@ -12,6 +12,8 @@ type ModalProps = {
   size?: "sm" | "md" | "lg" | "xl" | "5xl" | "7xl" | "full";
   footer?: React.ReactNode;
   children: React.ReactNode;
+  /** Blocks backdrop click, header X, and Escape from closing — e.g. while a background job is still running. */
+  preventClose?: boolean;
 };
 
 const sizeClasses = {
@@ -32,15 +34,16 @@ function Modal({
   size = "md",
   footer,
   children,
+  preventClose = false,
 }: ModalProps) {
   React.useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onOpenChange(false);
+      if (event.key === "Escape" && !preventClose) onOpenChange(false);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onOpenChange]);
+  }, [open, onOpenChange, preventClose]);
 
   if (!open) return null;
 
@@ -48,7 +51,7 @@ function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 backdrop-blur-sm">
       <div
         className="absolute inset-0"
-        onClick={() => onOpenChange(false)}
+        onClick={() => !preventClose && onOpenChange(false)}
         aria-hidden="true"
       />
       <div
@@ -62,14 +65,16 @@ function Modal({
             <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
             {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onOpenChange(false)}
-            aria-label="Close modal"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {!preventClose && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onOpenChange(false)}
+              aria-label="Close modal"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         <div className="px-6 py-5">{children}</div>
         {footer ? <div className="flex justify-end gap-2 border-t border-border px-6 py-4">{footer}</div> : null}

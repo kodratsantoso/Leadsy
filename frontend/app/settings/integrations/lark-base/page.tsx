@@ -194,6 +194,10 @@ export default function LarkBaseSettingsPage() {
   const [baseDefaultSourceType, setBaseDefaultSourceType] = useState("");
   const [baseDefaultChannelTypeId, setBaseDefaultChannelTypeId] = useState("");
   const [baseSyncDialog, setBaseSyncDialog] = useState<LarkBaseSyncDialogState>({ open: false, status: "running", direction: "pull", mappingName: "" });
+  // Tracks which specific mapping+direction is syncing, independent of the progress modal,
+  // so the "Syncing…" state on its card survives the modal being closed/dismissed and
+  // doesn't lock up the Pull/Push buttons on unrelated mappings.
+  const [activeSyncKey, setActiveSyncKey] = useState<string | null>(null);
 
   // Meeting Summary Mapping State
   const [sumAppToken, setSumAppToken] = useState("");
@@ -402,7 +406,8 @@ export default function LarkBaseSettingsPage() {
     onError: (err: any, variables) => {
       setBaseSyncDialog({ open: true, status: "failed", direction: variables.direction, mappingName: variables.mappingName, error: err?.message });
       setErrorMsg(err?.message); setTimeout(() => setErrorMsg(""), 5000);
-    }
+    },
+    onSettled: () => setActiveSyncKey(null),
   });
 
   const saveSumMappingMutation = useMutation({
@@ -464,6 +469,7 @@ export default function LarkBaseSettingsPage() {
   const startBaseSync = (mapping: LarkBaseMapping, direction: LarkBaseSyncDirection) => {
     const mappingName = mapping.table_name || mapping.table_id;
     setBaseSyncDialog({ open: true, status: "running", direction, mappingName });
+    setActiveSyncKey(`${mapping.id}:${direction}`);
     syncBaseMappingMutation.mutate({ mappingId: mapping.id, direction, mappingName });
   };
 
@@ -721,11 +727,25 @@ export default function LarkBaseSettingsPage() {
             <p className="text-sm text-muted-foreground">No Base mappings saved yet. Add one below.</p>
           ) : (
             <div className="space-y-4">
-              {baseMappings.map((mapping) => (
+              {baseMappings.map((mapping) => {
+                const pullKey = `${mapping.id}:pull`;
+                const pushKey = `${mapping.id}:push`;
+                const isPulling = activeSyncKey === pullKey;
+                const isPushing = activeSyncKey === pushKey;
+                const thisMappingBusy = isPulling || isPushing;
+                return (
                 <div key={mapping.id} className="flex flex-col gap-3 rounded-lg border border-border bg-[var(--background)] p-4">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm font-semibold">{mapping.table_name || mapping.table_id}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold">{mapping.table_name || mapping.table_id}</p>
+                        {thisMappingBusy && (
+                          <Badge variant="brand" className="inline-flex items-center gap-1">
+                            <Loader className="h-3 w-3 animate-spin" />
+                            Syncing…
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground font-mono mt-1">App: {mapping.app_token}</p>
                       <div className="mt-2 flex gap-2 text-xs">
                         <Badge variant="outline">{mapping.sync_direction}</Badge>
@@ -765,22 +785,25 @@ export default function LarkBaseSettingsPage() {
                       variant="outline"
                       className="flex-1"
                       onClick={() => startBaseSync(mapping, 'pull')}
-                      disabled={syncBaseMappingMutation.isPending || mapping.sync_direction === 'leadsy_to_lark'}
+                      disabled={thisMappingBusy || mapping.sync_direction === 'leadsy_to_lark'}
                     >
-                      Pull from Lark
+                      {isPulling && <Loader className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                      {isPulling ? 'Pulling…' : 'Pull from Lark'}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       className="flex-1"
                       onClick={() => startBaseSync(mapping, 'push')}
-                      disabled={syncBaseMappingMutation.isPending || mapping.sync_direction === 'lark_to_leadsy'}
+                      disabled={thisMappingBusy || mapping.sync_direction === 'lark_to_leadsy'}
                     >
-                      Push to Lark
+                      {isPushing && <Loader className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                      {isPushing ? 'Pushing…' : 'Push to Lark'}
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>
@@ -985,7 +1008,12 @@ export default function LarkBaseSettingsPage() {
         </div>
       </div>
 
-      <Modal title="Base Sync Progress" open={baseSyncDialog.open} onOpenChange={(open) => !open && setBaseSyncDialog((p) => ({ ...p, open: false }))}>
+      <Modal
+        title="Base Sync Progress"
+        open={baseSyncDialog.open}
+        onOpenChange={(open) => !open && setBaseSyncDialog((p) => ({ ...p, open: false }))}
+        preventClose={baseSyncDialog.status === "running"}
+      >
         <div className="p-6">
           <h2 className="mb-4 text-xl font-semibold">
             {baseSyncDialog.direction === "pull" ? "Pulling from" : "Pushing to"} Lark Base: {baseSyncDialog.mappingName}
