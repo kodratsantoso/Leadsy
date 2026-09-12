@@ -743,6 +743,40 @@ class WhatsAppController extends Controller
 
         $contact->update(['linked_lead_id' => $lead->id]);
 
+        // Lead Source = WhatsApp, Channel = the specific platform the conversation
+        // came in on (e.g. local WhatsApp vs Mekari Qontak) — same Source/Channel
+        // attribution pattern used by Lark and IDX ingestion. This was previously
+        // missing entirely, leaving every WhatsApp-converted lead unattributed
+        // (System Audit Phase 1, Item 4).
+        $sourceType = \App\Models\LeadSourceType::firstOrCreate(
+            ['slug' => 'whatsapp'],
+            [
+                'name' => 'WhatsApp',
+                'description' => 'Converted from a WhatsApp conversation',
+                'sort_order' => 50,
+                'is_active' => true,
+            ]
+        );
+
+        $channelSlug = \Illuminate\Support\Str::slug($conversation->platform) ?: 'whatsapp';
+        $channelType = \App\Models\LeadChannelType::firstOrCreate(
+            ['slug' => $channelSlug, 'lead_source_type_id' => $sourceType->id],
+            [
+                'name' => ucwords(str_replace(['_', '-'], ' ', $conversation->platform)),
+                'description' => 'WhatsApp conversations via '.$conversation->platform,
+                'sort_order' => 10,
+                'is_active' => true,
+            ]
+        );
+
+        \App\Models\LeadSource::create([
+            'lead_id' => $lead->id,
+            'source_type' => $sourceType->slug,
+            'channel_type_id' => $channelType->id,
+            'confidence' => 'high',
+            'last_verified_at' => now(),
+        ]);
+
         // Auto-trigger enrichment, scoring, and qualification
         app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'whatsapp');
 
