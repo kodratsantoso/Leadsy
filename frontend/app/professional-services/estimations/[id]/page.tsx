@@ -14,6 +14,7 @@ import {
   createProjectPlanFromEstimation
 } from "@/lib/api/professional-services";
 import { TaskBreakdownEditor } from "@/components/professional-services/task-breakdown-editor";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { ConvertToQuotationModal } from "@/components/professional-services/modals/convert-to-quotation-modal";
 import { PsDocumentList } from "@/components/professional-services/ps-document-list";
 import { GovernancePanel } from "@/components/professional-services/governance/governance-panel";
@@ -64,8 +65,10 @@ export default function EstimationDetailPage() {
     }
   };
 
+  const { setting: currencySetting } = useNumberFormat();
+
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || currencySetting?.currency_code || 'USD' }).format(amount);
   };
 
   if (loading || !estimation) {

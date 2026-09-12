@@ -12,6 +12,7 @@ import { getEstimationsByLead, PsEstimation } from "@/lib/api/professional-servi
 import { useAuthStore } from "@/store/useAuthStore";
 import { canAccessPath } from "@/lib/permissions";
 import { apiFetch } from "@/lib/apiFetch";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 export function ProfessionalServicesDashboard() {
   const [estimations, setEstimations] = useState<PsEstimation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,8 +65,10 @@ export function ProfessionalServicesDashboard() {
   const totalManDays = estimations.reduce((sum, e) => sum + (e.total_final_mandays || 0), 0);
   const totalFee = estimations.reduce((sum, e) => sum + (e.total_estimated_fee || 0), 0);
 
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+  const { setting: currencySetting } = useNumberFormat();
+
+  const formatCurrency = (amount: number, currency?: string) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || currencySetting?.currency_code || 'USD' }).format(amount);
   };
 
   return (
@@ -122,7 +125,7 @@ export function ProfessionalServicesDashboard() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">{loading ? "..." : formatCurrency(totalFee, 'USD')}</div>
+            <div className="text-xl font-bold">{loading ? "..." : formatCurrency(totalFee)}</div>
             <p className="text-xs text-muted-foreground">Across all active estimations</p>
           </CardContent>
         </Card>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PsEstimation, quotationPreview, convertToQuotation } from "@/lib/api/professional-services";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
 type ConvertToQuotationModalProps = {
   open: boolean;
@@ -91,8 +92,11 @@ export function ConvertToQuotationModal({ open, onOpenChange, estimation, onSucc
     }
   };
 
+  const { setting: currencySetting } = useNumberFormat();
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: estimation.currency_code || 'USD' }).format(amount);
+    const currency = estimation.currency_code || currencySetting?.currency_code || 'USD';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
   };
 
   return (

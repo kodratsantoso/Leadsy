@@ -12,6 +12,7 @@ import {
   getPsConfig, getTemplates, getTemplate, createEstimation
 } from "@/lib/api/professional-services";
 import { fetchLead, Lead } from "@/lib/api/leads";
+import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
 export function EstimatorWizard() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export function EstimatorWizard() {
   const [complexityId, setComplexityId] = useState<number | "">("");
   const [bufferPercent, setBufferPercent] = useState<number>(10);
   const [currency, setCurrency] = useState("USD");
+  const { setting: currencySetting } = useNumberFormat();
   const [assumptions, setAssumptions] = useState("");
   const [outOfScope, setOutOfScope] = useState("");
   const [dependencies, setDependencies] = useState("");
@@ -66,6 +68,14 @@ export function EstimatorWizard() {
     }
     loadData();
   }, [leadId]);
+
+  // Default the estimation's currency to the tenant's configured currency,
+  // instead of a hardcoded "USD", once it's loaded.
+  useEffect(() => {
+    if (currencySetting?.currency_code) {
+      setCurrency(currencySetting.currency_code);
+    }
+  }, [currencySetting?.currency_code]);
 
   const loadTemplate = async (tid: number) => {
     try {
