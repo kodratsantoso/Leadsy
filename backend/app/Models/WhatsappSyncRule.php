@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Model;
 class WhatsappSyncRule extends Model
 {
     protected $fillable = [
+        'tenant_id',
         'rule_type',
         'rule_key',
         'rule_value',

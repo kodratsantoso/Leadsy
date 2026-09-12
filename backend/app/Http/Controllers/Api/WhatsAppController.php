@@ -600,9 +600,16 @@ class WhatsAppController extends Controller
      *  SYNC RULES
      * ────────────────────────────────────────────────────────────── */
 
-    public function getSyncRules(): JsonResponse
+    public function getSyncRules(Request $request): JsonResponse
     {
-        $rules = WhatsappSyncRule::orderBy('rule_type')->get();
+        $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
+
+        // Tenant-specific rules if this tenant has saved any; otherwise fall back to the
+        // untenanted global-default rows (pre-existing data from before tenant scoping).
+        $rules = WhatsappSyncRule::where('tenant_id', $tenantId)->orderBy('rule_type')->get();
+        if ($rules->isEmpty()) {
+            $rules = WhatsappSyncRule::whereNull('tenant_id')->orderBy('rule_type')->get();
+        }
 
         return response()->json(['data' => $rules]);
     }
@@ -617,11 +624,15 @@ class WhatsAppController extends Controller
             'rules.*.enabled' => 'required|boolean',
         ]);
 
-        // Clear existing and re-create for simplicity
-        WhatsappSyncRule::truncate();
+        $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
+
+        // Replace only THIS tenant's rules. Previously this called
+        // WhatsappSyncRule::truncate(), which wiped every tenant's rules on
+        // every save — a cross-tenant data-loss bug (2026-09-13 audit).
+        WhatsappSyncRule::where('tenant_id', $tenantId)->delete();
 
         foreach ($data['rules'] as $rule) {
-            WhatsappSyncRule::create($rule);
+            WhatsappSyncRule::create([...$rule, 'tenant_id' => $tenantId]);
         }
 
         return response()->json(['success' => true, 'message' => 'Sync rules updated.']);

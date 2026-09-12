@@ -35,7 +35,15 @@ class WhatsAppSyncEngine
             return ['allow' => true, 'reason' => 'matched_known_lead', 'lead_id' => $linkedLeadId];
         }
 
-        $rules = WhatsappSyncRule::where('enabled', true)->get();
+        // Scope rules to the receiving user's tenant so one tenant's keyword rules never
+        // apply to another tenant's messages (2026-09-13 audit — rules previously had no
+        // tenant scoping at all). Falls back to untenanted legacy/global rows.
+        $tenantId = $userId ? \App\Models\User::find($userId)?->tenant_id : null;
+        $rulesQuery = WhatsappSyncRule::where('enabled', true);
+        $rulesQuery = $tenantId
+            ? $rulesQuery->where(fn ($q) => $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id'))
+            : $rulesQuery->whereNull('tenant_id');
+        $rules = $rulesQuery->get();
 
         // Separate rules by type
         $excludeKeywords = $rules->where('rule_type', 'exclude_keyword')->pluck('rule_value');
