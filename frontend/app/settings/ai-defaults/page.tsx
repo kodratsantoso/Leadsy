@@ -240,13 +240,21 @@ const emptyProviderForm: ProviderFormState = {
   organization_id: "",
   project_id: "",
   default_model: "",
-  status: "inactive",
+  status: "active",
   timeout_seconds: "30",
   retry_limit: "1",
   max_tokens_default: "",
   cache_ttl_minutes: "",
   cost_sensitivity: "balanced",
 };
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
 function fmtDate(value?: string | null) {
   if (!value) return "—";
@@ -278,6 +286,8 @@ export default function AiDefaultsPage() {
   const [expandedProviderId, setExpandedProviderId] = useState<number | null>(null);
   const [providerForm, setProviderForm] = useState<ProviderFormState>(emptyProviderForm);
   const [providerModalOpen, setProviderModalOpen] = useState(false);
+  const [providerAdvancedOpen, setProviderAdvancedOpen] = useState(false);
+  const [providerSlugEdited, setProviderSlugEdited] = useState(false);
   const [providerError, setProviderError] = useState("");
   const [revealedKeys, setRevealedKeys] = useState<Record<number, string>>({});
   const [routeDrafts, setRouteDrafts] = useState<RouteDraftState>({});
@@ -652,10 +662,14 @@ export default function AiDefaultsPage() {
   const openCreateProvider = () => {
     setProviderForm(emptyProviderForm);
     setProviderError("");
+    setProviderAdvancedOpen(false);
+    setProviderSlugEdited(false);
     setProviderModalOpen(true);
   };
 
   const openEditProvider = (provider: Provider) => {
+    setProviderAdvancedOpen(false);
+    setProviderSlugEdited(true); // slug is fixed after creation — no need to auto-derive it
     setProviderForm({
       id: provider.id,
       name: provider.name,
@@ -1535,7 +1549,7 @@ export default function AiDefaultsPage() {
         open={providerModalOpen}
         onOpenChange={setProviderModalOpen}
         title={providerForm.id ? "Edit Provider" : "Add Provider"}
-        description="This provider form now uses the same modal and field system as the rest of settings."
+        description="Pick a provider, paste its base URL, and drop in the API key. Everything else has a sensible default — expand Advanced only if you need to change it."
         size="xl"
         footer={
           <>
@@ -1550,8 +1564,6 @@ export default function AiDefaultsPage() {
         }
       >
             <div className="grid gap-4 md:grid-cols-2">
-              <Input placeholder="Provider name" value={providerForm.name} onChange={(e) => setProviderForm((current) => ({ ...current, name: e.target.value }))} />
-              <Input placeholder="Slug" value={providerForm.slug} onChange={(e) => setProviderForm((current) => ({ ...current, slug: e.target.value }))} disabled={Boolean(providerForm.id)} />
               <Select value={providerForm.provider_type} onChange={(e) => handleProviderTypeChange(e.target.value)}>
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic / Claude</option>
@@ -1560,10 +1572,18 @@ export default function AiDefaultsPage() {
                 <option value="openrouter">OpenRouter</option>
                 <option value="custom">Custom / Local</option>
               </Select>
-              <Select value={providerForm.status} onChange={(e) => setProviderForm((current) => ({ ...current, status: e.target.value as "active" | "inactive" }))}>
-                <option value="active">Enabled</option>
-                <option value="inactive">Disabled</option>
-              </Select>
+              <Input
+                placeholder="Provider name"
+                value={providerForm.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setProviderForm((current) => ({
+                    ...current,
+                    name,
+                    slug: !providerSlugEdited && !current.id ? slugify(name) : current.slug,
+                  }));
+                }}
+              />
               <div className="md:col-span-2 space-y-1">
                 <Input placeholder="Base URL" value={providerForm.base_url} onChange={(e) => setProviderForm((current) => ({ ...current, base_url: e.target.value }))} />
                 {providerForm.provider_type === "byteplus" && (
@@ -1572,20 +1592,51 @@ export default function AiDefaultsPage() {
                   </p>
                 )}
               </div>
-              <Input placeholder={providerForm.id ? "New API key (leave blank to keep current)" : "API key"} value={providerForm.api_key} onChange={(e) => setProviderForm((current) => ({ ...current, api_key: e.target.value }))} />
-              <Input placeholder="Organization ID" value={providerForm.organization_id} onChange={(e) => setProviderForm((current) => ({ ...current, organization_id: e.target.value }))} />
-              <Input placeholder="Project ID" value={providerForm.project_id} onChange={(e) => setProviderForm((current) => ({ ...current, project_id: e.target.value }))} />
-              <Input placeholder="Default model (e.g. doubao-1.5-pro-32k or ep-...)" value={providerForm.default_model} onChange={(e) => setProviderForm((current) => ({ ...current, default_model: e.target.value }))} />
-              <Select value={providerForm.cost_sensitivity} onChange={(e) => setProviderForm((current) => ({ ...current, cost_sensitivity: e.target.value }))}>
-                <option value="balanced">Balanced</option>
-                <option value="cost_first">Cost first</option>
-                <option value="quality_first">Quality first</option>
-              </Select>
-              <Input placeholder="Timeout seconds" value={providerForm.timeout_seconds} onChange={(e) => setProviderForm((current) => ({ ...current, timeout_seconds: e.target.value }))} />
-              <Input placeholder="Retry limit" value={providerForm.retry_limit} onChange={(e) => setProviderForm((current) => ({ ...current, retry_limit: e.target.value }))} />
-              <Input placeholder="Max tokens default" value={providerForm.max_tokens_default} onChange={(e) => setProviderForm((current) => ({ ...current, max_tokens_default: e.target.value }))} />
-              <Input placeholder="Cache TTL minutes" value={providerForm.cache_ttl_minutes} onChange={(e) => setProviderForm((current) => ({ ...current, cache_ttl_minutes: e.target.value }))} />
+              <div className="md:col-span-2">
+                <Input placeholder={providerForm.id ? "New API key (leave blank to keep current)" : "API key"} value={providerForm.api_key} onChange={(e) => setProviderForm((current) => ({ ...current, api_key: e.target.value }))} />
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setProviderAdvancedOpen((v) => !v)}
+              className="mt-4 flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              {providerAdvancedOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              Advanced settings
+            </button>
+
+            {providerAdvancedOpen && (
+              <div className="mt-3 grid gap-4 rounded-2xl border border-border bg-[color:var(--surface-subtle)] p-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Slug (used internally, must be unique)</label>
+                  <Input
+                    value={providerForm.slug}
+                    onChange={(e) => { setProviderSlugEdited(true); setProviderForm((current) => ({ ...current, slug: e.target.value })); }}
+                    disabled={Boolean(providerForm.id)}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Status</label>
+                  <Select value={providerForm.status} onChange={(e) => setProviderForm((current) => ({ ...current, status: e.target.value as "active" | "inactive" }))}>
+                    <option value="active">Enabled</option>
+                    <option value="inactive">Disabled</option>
+                  </Select>
+                </div>
+                <Input placeholder="Organization ID" value={providerForm.organization_id} onChange={(e) => setProviderForm((current) => ({ ...current, organization_id: e.target.value }))} />
+                <Input placeholder="Project ID" value={providerForm.project_id} onChange={(e) => setProviderForm((current) => ({ ...current, project_id: e.target.value }))} />
+                <Input placeholder="Default model (e.g. doubao-1.5-pro-32k or ep-...)" value={providerForm.default_model} onChange={(e) => setProviderForm((current) => ({ ...current, default_model: e.target.value }))} />
+                <Select value={providerForm.cost_sensitivity} onChange={(e) => setProviderForm((current) => ({ ...current, cost_sensitivity: e.target.value }))}>
+                  <option value="balanced">Balanced</option>
+                  <option value="cost_first">Cost first</option>
+                  <option value="quality_first">Quality first</option>
+                </Select>
+                <Input placeholder="Timeout seconds" value={providerForm.timeout_seconds} onChange={(e) => setProviderForm((current) => ({ ...current, timeout_seconds: e.target.value }))} />
+                <Input placeholder="Retry limit" value={providerForm.retry_limit} onChange={(e) => setProviderForm((current) => ({ ...current, retry_limit: e.target.value }))} />
+                <Input placeholder="Max tokens default" value={providerForm.max_tokens_default} onChange={(e) => setProviderForm((current) => ({ ...current, max_tokens_default: e.target.value }))} />
+                <Input placeholder="Cache TTL minutes" value={providerForm.cache_ttl_minutes} onChange={(e) => setProviderForm((current) => ({ ...current, cache_ttl_minutes: e.target.value }))} />
+              </div>
+            )}
 
             {providerError && (
               <div className="mt-4"><Badge variant="danger">{providerError}</Badge></div>
