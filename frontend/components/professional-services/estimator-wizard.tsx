@@ -1,26 +1,31 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, Save, FileText, Settings, Users, ArrowRight, Check, CheckCircle2, ChevronRight, Loader2, Plus, Trash2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
-import { 
+import {
   PsConfig, PsEstimation, PsEstimationLine, PsEstimationTemplate,
-  getPsConfig, getTemplates, createEstimation 
+  getPsConfig, getTemplates, createEstimation
 } from "@/lib/api/professional-services";
+import { fetchLead, Lead } from "@/lib/api/leads";
 
 export function EstimatorWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const leadIdParam = searchParams.get("lead_id");
+  const leadId = leadIdParam ? parseInt(leadIdParam) : null;
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Data
   const [config, setConfig] = useState<PsConfig | null>(null);
   const [templates, setTemplates] = useState<PsEstimationTemplate[]>([]);
+  const [lead, setLead] = useState<Lead | null>(null);
   
   // Form State
   const [title, setTitle] = useState("");
@@ -41,11 +46,12 @@ export function EstimatorWizard() {
       try {
         const [conf, tmpl] = await Promise.all([
           getPsConfig(),
-          getTemplates()
+          getTemplates(),
+          ...(leadId ? [fetchLead(String(leadId)).then(setLead)] : [])
         ]);
         setConfig(conf);
         setTemplates(tmpl);
-        
+
         // Defaults
         if (conf?.categories?.length > 0) setCategoryId(conf.categories[0].id);
         if (conf?.complexity_levels?.length > 0) {
@@ -59,7 +65,7 @@ export function EstimatorWizard() {
       }
     }
     loadData();
-  }, []);
+  }, [leadId]);
 
   const loadTemplate = async (tid: number) => {
     try {
@@ -155,6 +161,7 @@ export function EstimatorWizard() {
       setSubmitting(true);
       const payload = {
         title,
+        lead_id: leadId || undefined,
         service_category_id: categoryId,
         template_id: templateId || null,
         complexity_level_id: complexityId,
@@ -208,6 +215,11 @@ export function EstimatorWizard() {
         <div className="flex items-center space-x-4">
           <Button variant="ghost" onClick={() => router.back()}><ArrowLeft className="h-4 w-4 mr-2" /> Back</Button>
           <h1 className="text-2xl font-bold">New Estimation</h1>
+          {leadId && (
+            <span className="text-sm px-3 py-1 rounded-full bg-[color:var(--brand)]/10 text-[color:var(--brand)] font-medium">
+              Linked to lead: {lead ? lead.company_name : `#${leadId}`}
+            </span>
+          )}
         </div>
       </div>
 
