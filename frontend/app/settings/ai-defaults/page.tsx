@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -262,12 +263,17 @@ function providerBadge(status?: string | null) {
 
 export default function AiDefaultsPage() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const { formatNumber, formatCurrency } = useNumberFormat();
   const [timelineFilter, setTimelineFilter] = useState("last_30_days");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
   const [selectedFeatureFilter, setSelectedFeatureFilter] = useState("");
-  const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("providers");
+  const requestedTab = searchParams.get("tab");
+  const initialTab = tabs.some((t) => t.key === requestedTab)
+    ? (requestedTab as (typeof tabs)[number]["key"])
+    : "providers";
+  const [tab, setTab] = useState<(typeof tabs)[number]["key"]>(initialTab);
   const [expandedProviderId, setExpandedProviderId] = useState<number | null>(null);
   const [providerForm, setProviderForm] = useState<ProviderFormState>(emptyProviderForm);
   const [providerModalOpen, setProviderModalOpen] = useState(false);

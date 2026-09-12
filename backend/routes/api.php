@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\AiFeatureRouteController;
-use App\Http\Controllers\Api\AiProviderController;
 use App\Http\Controllers\Api\AiLeadProfilingController;
 use App\Http\Controllers\LarkBaseMappingController;
 use App\Http\Controllers\MeetingSummaryPdfController;
@@ -103,8 +102,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Global Search
     Route::get('search', [\App\Http\Controllers\Api\GlobalSearchController::class, 'search']);
 
-    // AI Usage
-    Route::get('settings/ai-usage', [\App\Http\Controllers\Api\AiUsageLogController::class, 'index']);
+    // AI Usage is now served from the AI Defaults "Usage & Health" tab
+    // (AiSettingsController::index -> AIUsageLogService, backed by ai_requests).
+    // The old ai_usage_logs-backed endpoint was retired 2026-09-12; the
+    // ai_usage_logs table/model are kept for historical data only.
 
     // Custom Workflow Engine
     Route::apiResource('workflows', \App\Http\Controllers\Api\WorkflowDefinitionController::class);
@@ -575,14 +576,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('funnel/stages/{stage}', [FunnelController::class, 'destroyStage'])->middleware('permission:leads.edit');
     Route::get('funnel/dashboard', [FunnelController::class, 'dashboard']);
 
-    // AI Providers — must register usage-summary BEFORE apiResource to avoid route collision
-    Route::get('ai-providers/usage-summary', [AiProviderController::class, 'usageSummary'])->middleware('permission:ai.manage');
-    Route::apiResource('ai-providers', AiProviderController::class)->except(['show'])->middleware('permission:ai.manage');
-    Route::post('ai-providers/{aiProvider}/test', [AiProviderController::class, 'testConnection'])->middleware('permission:ai.manage');
-    Route::post('ai-providers/{aiProvider}/models', [AiProviderController::class, 'storeModel'])->middleware('permission:ai.manage');
-    Route::delete('ai-providers/{aiProvider}/models/{model}', [AiProviderController::class, 'destroyModel'])->middleware('permission:ai.manage');
-    Route::get('ai-model-routes', [AiProviderController::class, 'routes'])->middleware('permission:ai.manage');
-    Route::post('ai-model-routes', [AiProviderController::class, 'storeRoute'])->middleware('permission:ai.manage');
+    // The legacy `ai-providers` / `ai-model-routes` API (AiProviderController) was retired
+    // 2026-09-12: it was a dead/unused duplicate of Settings → AI Defaults
+    // (AiSettingsController), which is now the single source of truth for
+    // provider, model, and routing management.
 
     // AI Feature Routing (Priority Engine)
     Route::apiResource('ai-feature-routes', AiFeatureRouteController::class)->except(['show', 'update'])->middleware('permission:ai.manage');

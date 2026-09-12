@@ -96,13 +96,6 @@ export const fetchFunnelStages = () => api.get<{ data: FunnelStage[] }>("/api/fu
 export const fetchFunnelDashboard = () =>
   api.get<{ data: FunnelDashboardItem[] }>("/api/funnel/dashboard");
 
-// AI Providers
-export const fetchAiProviders = () => api.get<{ data: AiProvider[] }>("/api/ai-providers");
-export const createAiProvider = (data: Record<string, unknown>) =>
-  api.post<{ data: AiProvider }>("/api/ai-providers", data);
-export const testAiProvider = (id: number) =>
-  api.post<{ success: boolean; status: number }>(`/api/ai-providers/${id}/test`);
-
 // Users
 export const fetchUsers = () => api.get<{ data: AppUser[] }>("/api/users");
 export const fetchRoles = () => api.get<{ data: Role[] }>("/api/roles");
@@ -285,25 +278,6 @@ export type FunnelStage = {
 };
 
 export type FunnelDashboardItem = FunnelStage & { count: number };
-
-export type AiProvider = {
-  id: number;
-  name: string;
-  slug: string;
-  base_url?: string | null;
-  api_key_masked?: string;
-  status?: string;
-  models?: AiModel[];
-};
-
-export type AiModel = {
-  id: number;
-  name: string;
-  context_window?: number;
-  capabilities?: string[];
-  cost_tier?: string;
-  status?: string;
-};
 
 export type AppUser = {
   id: number;

@@ -193,25 +193,10 @@ class AiOrchestrationService
 
             $this->logRequest($model, $functionName, $promptTokens, $completionTokens, $cost, $latencyMs, 'success', null, $isFallback);
 
-            // Log AiUsageLog specifically for user accounting
-            if (isset($context['user_id'])) {
-                \App\Models\AiUsageLog::create([
-                    'tenant_id' => $context['tenant_id'] ?? null,
-                    'user_id' => $context['user_id'],
-                    'action' => $functionName,
-                    'provider' => $provider->slug,
-                    'model' => $model->name,
-                    'tokens_prompt' => $promptTokens,
-                    'tokens_completion' => $completionTokens,
-                    'tokens_total' => $promptTokens + $completionTokens,
-                    'estimated_cost_usd' => $cost,
-                    'has_web_search' => $context['web_search'] ?? false,
-                    'metadata' => [
-                        'latency_ms' => $latencyMs,
-                        'lead_id' => $context['lead_id'] ?? null,
-                    ],
-                ]);
-            }
+            // NOTE: usage accounting used to be double-logged here into the legacy
+            // `ai_usage_logs` table (AiUsageLog). That table/page was retired
+            // 2026-09-12 in favor of `ai_requests` (logRequest() below), which is
+            // now the single source of truth for AI cost/usage reporting.
 
             return [
                 'success' => true,
