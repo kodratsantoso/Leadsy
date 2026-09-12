@@ -98,10 +98,12 @@ class TeamPerformanceDashboardController extends Controller
             ->whereHas('funnelStage', fn ($q) => $q->whereNotIn('name', ['Won', 'Lost']))
             ->sum('estimated_closing_amount') ?? 0);
 
-        $wonRevenue = (float) (LeadOutcome::whereIn('closed_by', $userIds)
-            ->whereBetween('closed_at', $dateRange)
-            ->where('outcome', 'won')
-            ->sum('deal_size') ?? 0);
+        // Closed-won revenue is defined by confirmed/closed Lead Sales Orders
+        // (Lead::realized_closing_amount's own source), not the separately-
+        // logged LeadOutcome record — those two could previously disagree.
+        $wonRevenue = (float) (LeadSalesOrder::realizedBetween($dateRange[0], $dateRange[1])
+            ->ownedByReps($userIds)
+            ->sum('total_amount') ?? 0);
 
         $overdueFollowUps = LeadFollowUp::whereIn('assigned_to', $userIds)
             ->where('status', '!=', 'completed')

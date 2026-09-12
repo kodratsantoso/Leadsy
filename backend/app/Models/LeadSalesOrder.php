@@ -210,6 +210,57 @@ class LeadSalesOrder extends Model
         });
     }
 
+    /**
+     * The single definition of "realized/won revenue" for this model — must
+     * stay identical to Lead::syncRealizedAmount()'s filter, since that's the
+     * cached field this scope is meant to reconcile with. Excludes renewals/
+     * expansions (order_type != 'new'), which are tracked as separate KPIs.
+     */
+    public function scopeRealized(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('order_type', 'new')
+            ->whereIn('order_status', ['confirmed', 'closed']);
+    }
+
+    /**
+     * Filter to orders realized within a date range, using whichever
+     * timestamp actually reflects when that happened (closed_at for closed
+     * orders, confirmed_at for merely-confirmed ones).
+     */
+    public function scopeRealizedBetween(\Illuminate\Database\Eloquent\Builder $query, $start, $end): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->realized()
+            ->whereRaw('COALESCE(closed_at, confirmed_at) BETWEEN ? AND ?', [$start, $end]);
+    }
+
+    /**
+     * Filter to orders "belonging to" a given rep, for per-rep KPI rollups —
+     * matches if the rep is the sales owner, the one who confirmed it, or the
+     * owner of the underlying lead (same "who gets credit" convention used by
+     * LeadOutcome-based queries elsewhere).
+     */
+    public function scopeOwnedByRep(\Illuminate\Database\Eloquent\Builder $query, int $repId): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where(function ($q) use ($repId) {
+            $q->where('sales_owner_id', $repId)
+                ->orWhere('confirmed_by', $repId)
+                ->orWhereHas('lead', fn ($l) => $l->where('owner_id', $repId));
+        });
+    }
+
+    /**
+     * Filter to orders "belonging to" any rep in a set of ids — the
+     * multi-rep equivalent of scopeOwnedByRep(), for team-level rollups.
+     */
+    public function scopeOwnedByReps(\Illuminate\Database\Eloquent\Builder $query, array $repIds): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where(function ($q) use ($repIds) {
+            $q->whereIn('sales_owner_id', $repIds)
+                ->orWhereIn('confirmed_by', $repIds)
+                ->orWhereHas('lead', fn ($l) => $l->whereIn('owner_id', $repIds));
+        });
+    }
+
     public function lead()
     {
         return $this->belongsTo(Lead::class);

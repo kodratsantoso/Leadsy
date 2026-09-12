@@ -7,6 +7,7 @@ use App\Models\FunnelStage;
 use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\LeadOutcome;
+use App\Models\LeadSalesOrder;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\RevenueTarget;
@@ -630,13 +631,12 @@ class DashboardController extends Controller
                         })->count();
                         $repTargetType = 'opportunities';
                     } else {
-                        $repRealized = (float) LeadOutcome::where('outcome', 'won')
-                            ->whereBetween('closed_at', [$start, $end])
-                            ->where(function ($q) use ($rep) {
-                                $q->where('closed_by', $rep->id)
-                                    ->orWhereHas('lead', fn ($l) => $l->where('owner_id', $rep->id));
-                            })
-                            ->sum('deal_size');
+                        // Closed-won revenue is defined by confirmed/closed Lead Sales
+                        // Orders (Lead::realized_closing_amount's own source), not the
+                        // separately-logged LeadOutcome record — those can disagree.
+                        $repRealized = (float) LeadSalesOrder::realizedBetween($start, $end)
+                            ->ownedByRep($rep->id)
+                            ->sum('total_amount');
                         $repTargetType = 'closed_won';
                     }
                     
@@ -666,30 +666,30 @@ class DashboardController extends Controller
                 })->values()->all();
             }
 
-            $outcomes = LeadOutcome::where('outcome', 'won')
-                ->whereBetween('closed_at', [$start, $end])
+            // Closed-won revenue is defined by confirmed/closed Lead Sales Orders
+            // (Lead::realized_closing_amount's own source), not the separately-
+            // logged LeadOutcome record — those two could previously disagree.
+            $wonOrders = LeadSalesOrder::realizedBetween($start, $end)
                 ->when($visibleUserIds !== null, function ($query) use ($visibleUserIds, $user, $tier) {
                     if ($tier === 'SR_AE' || $tier === 'JR_AE') {
-                        return $query->where(function ($q) use ($user) {
-                            $q->where('closed_by', $user->id)
-                                ->orWhereHas('lead', fn ($l) => $l->where('owner_id', $user->id));
-                        });
+                        return $query->ownedByRep($user->id);
                     }
 
                     return $query->where(function ($scoped) use ($visibleUserIds) {
-                        $scoped->whereIn('closed_by', $visibleUserIds)
+                        $scoped->whereIn('sales_owner_id', $visibleUserIds)
+                            ->orWhereIn('confirmed_by', $visibleUserIds)
                             ->orWhereHas('lead', fn ($leadQuery) => $leadQuery
                                 ->whereIn('owner_id', $visibleUserIds)
                                 ->orWhereIn('created_by', $visibleUserIds));
                     });
                 });
 
-            $realized = (float) (clone $outcomes)->sum('deal_size');
-            $closedWonCount = (clone $outcomes)->count();
+            $realized = (float) (clone $wonOrders)->sum('total_amount');
+            $closedWonCount = (clone $wonOrders)->count();
 
-            $trend = (clone $outcomes)
-                ->select(DB::raw('DATE(closed_at) as date'), DB::raw('sum(deal_size) as total'))
-                ->groupBy(DB::raw('DATE(closed_at)'))
+            $trend = (clone $wonOrders)
+                ->selectRaw('DATE(COALESCE(closed_at, confirmed_at)) as date, sum(total_amount) as total')
+                ->groupBy(DB::raw('DATE(COALESCE(closed_at, confirmed_at))'))
                 ->orderBy('date')
                 ->get()
                 ->map(fn ($row) => ['date' => $row->date, 'total' => (float) $row->total]);
@@ -1032,12 +1032,11 @@ class DashboardController extends Controller
             $pipelineValue = (clone $salesLeads)->whereHas('funnelStage', function ($q) {
                 $q->whereNotIn('name', ['Won', 'Lost']);
             })->sum('estimated_closing_amount');
-            $wonValue = (clone $salesLeads)->whereHas('funnelStage', function ($q) {
-                $q->where('name', 'Won');
-            })->sum('realized_closing_amount');
-            $wonCount = (clone $salesLeads)->whereHas('funnelStage', function ($q) {
-                $q->where('name', 'Won');
-            })->count();
+            // "Won" here is defined by having realized (sales-order-backed) revenue,
+            // not by the independently-set funnel_stage — those two can drift out of
+            // sync (a lead can have a confirmed order without anyone moving its stage).
+            $wonValue = (clone $salesLeads)->sum('realized_closing_amount');
+            $wonCount = (clone $salesLeads)->where('realized_closing_amount', '>', 0)->count();
             $lostCount = (clone $salesLeads)->whereHas('funnelStage', function ($q) {
                 $q->where('name', 'Lost');
             })->count();
@@ -1054,12 +1053,8 @@ class DashboardController extends Controller
             $amLeads = Lead::where('am_owner_id', $u->id);
             $amLeadsCount = (clone $amLeads)->count();
             $amPortfolioValue = (clone $amLeads)->sum('realized_closing_amount');
-            $amWonCount = (clone $amLeads)->whereHas('funnelStage', function ($q) {
-                $q->where('name', 'Won');
-            })->count();
-            $amAvgDealSize = $amWonCount > 0 ? round((clone $amLeads)->whereHas('funnelStage', function ($q) {
-                $q->where('name', 'Won');
-            })->avg('realized_closing_amount') ?? 0, 2) : 0;
+            $amWonCount = (clone $amLeads)->where('realized_closing_amount', '>', 0)->count();
+            $amAvgDealSize = $amWonCount > 0 ? round((clone $amLeads)->where('realized_closing_amount', '>', 0)->avg('realized_closing_amount') ?? 0, 2) : 0;
 
             // 4. CSM metrics
             $csmLeads = Lead::where('csm_owner_id', $u->id);

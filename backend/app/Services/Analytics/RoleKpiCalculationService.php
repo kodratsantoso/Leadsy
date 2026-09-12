@@ -117,7 +117,9 @@ class RoleKpiCalculationService
                     return (float) ((clone $leadsQuery)->whereHas('funnelStage', fn ($q) => $q->whereNotIn('name', ['Won', 'Lost']))->sum('estimated_closing_amount') ?? 0);
 
                 case 'sales_closed_won':
-                    return (float) ((clone $leadsQuery)->whereHas('funnelStage', fn ($q) => $q->where('name', 'Won'))->sum('realized_closing_amount') ?? 0);
+                    // Defined by realized (sales-order-backed) revenue, not the
+                    // independently-set funnel_stage — those can drift out of sync.
+                    return (float) ((clone $leadsQuery)->sum('realized_closing_amount') ?? 0);
 
                 case 'sales_win_rate':
                     $won = (clone $leadsQuery)->whereHas('funnelStage', fn ($q) => $q->where('name', 'Won'))->count();
@@ -203,10 +205,12 @@ class RoleKpiCalculationService
                     return (float) (clone $leadsQuery)->count();
 
                 case 'am_portfolio_value':
-                    return (float) ((clone $leadsQuery)->whereHas('funnelStage', fn ($q) => $q->where('name', 'Won'))->sum('realized_closing_amount') ?? 0);
+                    // Defined by realized (sales-order-backed) revenue, not the
+                    // independently-set funnel_stage — those can drift out of sync.
+                    return (float) ((clone $leadsQuery)->sum('realized_closing_amount') ?? 0);
 
                 case 'am_avg_deal_size':
-                    $wonQuery = (clone $leadsQuery)->whereHas('funnelStage', fn ($q) => $q->where('name', 'Won'));
+                    $wonQuery = (clone $leadsQuery)->where('realized_closing_amount', '>', 0);
                     $count = $wonQuery->count();
                     $sum = $wonQuery->sum('realized_closing_amount');
                     return $count > 0 ? round($sum / $count, 2) : 0.0;
@@ -282,7 +286,7 @@ class RoleKpiCalculationService
         $map = [
             'sales_leads_managed'      => ['tables' => ['leads', 'lead_role_assignments'], 'basis' => 'Count of leads where owner_id = user or role_assignment.role_type = sales'],
             'sales_pipeline_value'     => ['tables' => ['leads', 'funnel_stages'], 'basis' => 'Sum of estimated_closing_amount where funnel_stage not in Won/Lost'],
-            'sales_closed_won'         => ['tables' => ['leads', 'funnel_stages'], 'basis' => 'Sum of realized_closing_amount where funnel_stage = Won'],
+            'sales_closed_won'         => ['tables' => ['leads'], 'basis' => 'Sum of realized_closing_amount (confirmed/closed Lead Sales Orders)'],
             'sales_win_rate'           => ['tables' => ['leads', 'funnel_stages'], 'basis' => 'Won / (Won + Lost) count'],
             'sales_quotation_count'    => ['tables' => ['leads', 'lead_quotations'], 'basis' => 'Count of quotations for owned leads'],
             'sales_follow_up_rate'     => ['tables' => ['leads', 'lead_follow_ups'], 'basis' => 'Completed follow-ups / total follow-ups'],
@@ -298,8 +302,8 @@ class RoleKpiCalculationService
             'presales_demo_readiness'    => ['tables' => ['leads'], 'basis' => 'Average lead_score of presales-assigned leads'],
 
             'am_accounts_managed'    => ['tables' => ['leads', 'lead_role_assignments'], 'basis' => 'Count of leads where am_owner_id = user or role_assignment.role_type = account_manager'],
-            'am_portfolio_value'     => ['tables' => ['leads', 'funnel_stages'], 'basis' => 'Sum of realized_closing_amount for Won leads under AM scope'],
-            'am_avg_deal_size'       => ['tables' => ['leads', 'funnel_stages'], 'basis' => 'Portfolio value / Won lead count'],
+            'am_portfolio_value'     => ['tables' => ['leads'], 'basis' => 'Sum of realized_closing_amount under AM scope'],
+            'am_avg_deal_size'       => ['tables' => ['leads'], 'basis' => 'Portfolio value / count of leads with realized_closing_amount > 0'],
             'am_renewal_count'       => ['tables' => ['leads', 'lead_sales_orders'], 'basis' => 'Count of sales orders where order_type = renewal'],
             'am_expansion_revenue'   => ['tables' => ['leads', 'lead_sales_orders'], 'basis' => 'Sum of total_amount where order_type = expansion'],
             'am_quotation_to_order'  => ['tables' => ['leads', 'lead_quotations', 'lead_sales_orders'], 'basis' => 'Sales orders / quotations as percentage'],
