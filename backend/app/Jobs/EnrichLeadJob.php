@@ -4,9 +4,6 @@ namespace App\Jobs;
 
 use App\Models\Lead;
 use App\Models\LeadActivity;
-use App\Services\Enrichment\LeadEnrichmentAiOrchestrator;
-use App\Services\Enrichment\LeadMasterDataMapperService;
-use App\Services\Enrichment\LeadPostEnrichmentAIService;
 use App\Services\Lead\LeadDiscoveryService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,11 +30,8 @@ class EnrichLeadJob implements ShouldQueue
         private readonly int $leadId,
     ) {}
 
-    public function handle(
-        LeadDiscoveryService $discovery,
-        LeadEnrichmentAiOrchestrator $aiOrchestrator,
-        LeadPostEnrichmentAIService $postEnrichment
-    ): void {
+    public function handle(LeadDiscoveryService $discovery): void
+    {
         $lead = Lead::find($this->leadId);
 
         if (! $lead) {
@@ -79,9 +73,6 @@ class EnrichLeadJob implements ShouldQueue
                 }
             }
 
-            // 3. Run AI Orchestration Pipeline
-            $aiOrchestrator->runEnrichment($lead, $details);
-
             $lead->update([
                 'enrichment_status' => 'completed',
                 'last_enriched_at' => now(),
@@ -92,7 +83,7 @@ class EnrichLeadJob implements ShouldQueue
                 ],
             ]);
 
-            Log::info("[EnrichLeadJob] Enriched lead {$this->leadId} with fields: " . implode(', ', $mappedFields));
+            Log::info("[EnrichLeadJob] Mapped Google Maps fields for lead {$this->leadId}: " . implode(', ', $mappedFields));
 
             LeadActivity::create([
                 'lead_id' => $lead->id,
@@ -101,8 +92,13 @@ class EnrichLeadJob implements ShouldQueue
                 'activity_date' => now(),
             ]);
 
-            // 4. Trigger Post-Enrichment AI actions
-            $postEnrichment->trigger($lead);
+            // 3. Hand off to the unified 9-stage Pre-Meeting AI pipeline — this now
+            // covers deep AI enrichment (which used to run inline here via
+            // LeadEnrichmentAiOrchestrator), scoring, qualification, ICP matching,
+            // and everything else. Do NOT also call the old
+            // LeadPostEnrichmentAIService chain here — it would duplicate AI calls
+            // and race on lead_score/qualification_status writes.
+            RunLeadAiPipelineJob::dispatch($this->leadId);
 
             // Chain Contact Discovery Enrichment
             EnrichLeadContactsJob::dispatch($this->leadId)

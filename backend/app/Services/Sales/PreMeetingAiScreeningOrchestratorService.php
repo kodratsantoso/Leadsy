@@ -11,11 +11,13 @@ use App\Services\Enrichment\LeadMasterDataMapperService;
 use App\Services\Lead\AiLeadProfilingService;
 use App\Services\Lead\CompanyVerificationService;
 use App\Services\Lead\LeadDiscoveryService;
+use App\Services\Lead\LeadAIAnalysisService;
+use App\Services\Lead\LeadProductMatchingService;
 use App\Services\Lead\LeadProfilingAndStrategyService;
 use App\Services\Lead\LeadQualificationService;
 use App\Services\Lead\LeadScoringService;
+use App\Services\LeadBantcQuestionGenerationService;
 use App\Services\Revenue\ICPMatchingService;
-use App\Services\Sales\PreMeetingBriefService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,7 +34,9 @@ class PreMeetingAiScreeningOrchestratorService
         private readonly ICPMatchingService $icpMatchingService,
         private readonly LeadScoringService $scoringService,
         private readonly LeadQualificationService $qualificationService,
-        private readonly PreMeetingBriefService $preMeetingBriefService,
+        private readonly LeadAIAnalysisService $analysisService,
+        private readonly LeadProductMatchingService $productMatchingService,
+        private readonly LeadBantcQuestionGenerationService $bantcQuestionService,
         private readonly AiOrchestrationService $ai
     ) {}
 
@@ -45,7 +49,14 @@ class PreMeetingAiScreeningOrchestratorService
      * Stage 3: AI Profiling & Sales Strategy Formulation
      * Stage 4: ICP Matching & Interaction Scoring
      * Stage 5: BANTC Gatekeeper Qualification Decision
-     * Stage 6: Pre-Meeting Brief Strategy Formulation
+     * Stage 6: Lead AI Analysis (opportunity summary, needs, urgency)
+     * Stage 7: Product Matching
+     * Stage 8: BANTC Discovery Question Generation
+     *
+     * Pre-Meeting Brief generation is intentionally NOT part of this pipeline — it's
+     * triggered separately, on-demand, when a sales/presales rep fills in the
+     * meeting-context form (see PreMeetingBriefController::generate()), since it
+     * needs meeting-specific input this pipeline doesn't have at lead-creation time.
      *
      * @param Lead $lead
      * @param int|null $userId
@@ -54,6 +65,23 @@ class PreMeetingAiScreeningOrchestratorService
     public function screenLead(Lead $lead, ?int $userId = null): array
     {
         $startTime = microtime(true);
+
+        if ($lead->ai_mode === 'manual') {
+            Log::info("[PreMeetingAiScreening] Skipped for Lead ID: {$lead->id} — ai_mode is 'manual'.");
+
+            return [
+                'success' => true,
+                'lead_id' => $lead->id,
+                'company_name' => $lead->company_name,
+                'qualification_status' => $lead->qualification_status,
+                'lead_score' => $lead->lead_score,
+                'stages_executed' => [],
+                'skipped' => true,
+                'skip_reason' => 'ai_mode_manual',
+                'elapsed_seconds' => round(microtime(true) - $startTime, 2),
+            ];
+        }
+
         Log::info("[PreMeetingAiScreening] Starting sequential screening for Lead ID: {$lead->id} ({$lead->company_name})");
 
         $stagesExecuted = [];
@@ -100,7 +128,7 @@ class PreMeetingAiScreeningOrchestratorService
             }
 
             try {
-                $this->icpMatchingService->evaluateLead($lead);
+                $this->icpMatchingService->matchLead($lead);
                 $stagesExecuted[] = 'icp_and_solution_matching';
             } catch (\Throwable $e) {
                 Log::warning("[PreMeetingAiScreening] ICP match warning for Lead {$lead->id}: " . $e->getMessage());
@@ -157,22 +185,35 @@ class PreMeetingAiScreeningOrchestratorService
             }
 
             // =========================================================================
-            // STAGE 6: Pre-Meeting Battle Plan & Discovery Questions
+            // STAGE 6: Lead AI Analysis (opportunity summary, needs, urgency)
             // =========================================================================
-            $briefGenerated = false;
-            $briefId = null;
+            try {
+                $this->analysisService->analyzeLead($lead);
+                $stagesExecuted[] = 'lead_analysis';
+            } catch (\Throwable $e) {
+                Log::warning("[PreMeetingAiScreening] Lead analysis warning for Lead {$lead->id}: " . $e->getMessage());
+            }
 
-            if (in_array($qualificationStatus, ['eligible', 'potential']) || ($lead->lead_score ?? 0) >= 40) {
-                try {
-                    $brief = $this->preMeetingBriefService->generateBrief($lead, [
-                        'meeting_type' => 'First Discovery Meeting'
-                    ]);
-                    $briefGenerated = true;
-                    $briefId = $brief->id;
-                    $stagesExecuted[] = 'pre_meeting_brief_generation';
-                } catch (\Throwable $e) {
-                    Log::warning("[PreMeetingAiScreening] Pre-meeting brief generation warning for Lead {$lead->id}: " . $e->getMessage());
+            // =========================================================================
+            // STAGE 7: Product Matching
+            // =========================================================================
+            try {
+                $this->productMatchingService->matchLeadToProducts($lead, $userId);
+                $stagesExecuted[] = 'product_matching';
+            } catch (\Throwable $e) {
+                Log::warning("[PreMeetingAiScreening] Product matching warning for Lead {$lead->id}: " . $e->getMessage());
+            }
+
+            // =========================================================================
+            // STAGE 8: BANTC Discovery Question Generation
+            // =========================================================================
+            try {
+                $bantcResult = $this->bantcQuestionService->generate($lead);
+                if (!empty($bantcResult['success'])) {
+                    $stagesExecuted[] = 'bantc_question_generation';
                 }
+            } catch (\Throwable $e) {
+                Log::warning("[PreMeetingAiScreening] BANTC question generation warning for Lead {$lead->id}: " . $e->getMessage());
             }
 
             // Log activity
@@ -197,8 +238,6 @@ class PreMeetingAiScreeningOrchestratorService
                 'qualification_status' => $qualificationStatus,
                 'lead_score' => $lead->lead_score,
                 'stages_executed' => $stagesExecuted,
-                'pre_meeting_brief_generated' => $briefGenerated,
-                'pre_meeting_brief_id' => $briefId,
                 'elapsed_seconds' => $elapsedSeconds,
             ];
 
@@ -220,7 +259,6 @@ class PreMeetingAiScreeningOrchestratorService
                 'qualification_status' => $status,
                 'lead_score' => $score,
                 'stages_executed' => $stagesExecuted,
-                'pre_meeting_brief_generated' => false,
                 'elapsed_seconds' => round(microtime(true) - $startTime, 2),
             ];
         }

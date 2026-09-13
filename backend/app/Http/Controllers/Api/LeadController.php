@@ -423,7 +423,10 @@ class LeadController extends Controller
         // Trigger the new Enrichment Service
         app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'manual_creation');
 
-        // Note: Post-enrichment AI (Scoring, ICP) is now triggered inside EnrichLeadJob via LeadPostEnrichmentAIService
+        // Note: the full 9-stage Pre-Meeting AI pipeline (enrichment, verification,
+        // strategy, ICP matching, scoring, qualification, analysis, product
+        // matching, BANTC questions) is dispatched from inside EnrichLeadJob via
+        // RunLeadAiPipelineJob — see PreMeetingAiScreeningOrchestratorService.
 
         return response()->json([
             'data' => $lead->load(['industry', 'funnelStage', 'sources.channelType']),
