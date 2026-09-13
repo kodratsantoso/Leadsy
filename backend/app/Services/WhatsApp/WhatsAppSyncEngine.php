@@ -3,10 +3,40 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\Lead;
+use App\Models\LeadContact;
 use App\Models\WhatsappSyncRule;
 
 class WhatsAppSyncEngine
 {
+    /**
+     * Normalize a phone number and look up a matching Lead by phone — checking
+     * both Lead.phone (the primary contact number) and LeadContact.phone (a
+     * secondary/named contact on the lead), since a WhatsApp conversation may
+     * be with either. Returns the lead id, or null if no match.
+     */
+    public function findLeadByPhone(string $phoneNumber, ?int $userId = null): ?int
+    {
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phoneNumber);
+        if (empty($cleanPhone)) {
+            return null;
+        }
+
+        $leadQuery = Lead::where('phone', 'like', "%{$cleanPhone}%");
+        if ($userId) {
+            $leadQuery->where('owner_id', $userId);
+        }
+        if ($leadQuery->exists()) {
+            return $leadQuery->value('id');
+        }
+
+        $contactQuery = LeadContact::where('phone', 'like', "%{$cleanPhone}%");
+        if ($userId) {
+            $contactQuery->whereHas('lead', fn ($q) => $q->where('owner_id', $userId));
+        }
+
+        return $contactQuery->value('lead_id');
+    }
+
     /**
      * Determines if a message should be ingested based on Privacy Sync Rules.
      *
@@ -20,17 +50,9 @@ class WhatsAppSyncEngine
     public function evaluateMessage(string $senderName, string $phoneNumber, string $body, ?int $userId = null): array
     {
         // 1. Check if it explicitly matches an existing lead number
-        $cleanPhone = preg_replace('/[^0-9]/', '', $phoneNumber);
-        $linkedLeadId = null;
+        $linkedLeadId = $this->findLeadByPhone($phoneNumber, $userId);
 
-        $leadQuery = Lead::where('phone', 'like', "%{$cleanPhone}%");
-        if ($userId) {
-            $leadQuery->where('owner_id', $userId);
-        }
-
-        if ($leadQuery->exists()) {
-            $linkedLeadId = $leadQuery->value('id');
-
+        if ($linkedLeadId) {
             // If we know this lead, we sync it.
             return ['allow' => true, 'reason' => 'matched_known_lead', 'lead_id' => $linkedLeadId];
         }

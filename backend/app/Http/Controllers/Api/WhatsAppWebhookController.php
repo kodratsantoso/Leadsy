@@ -122,8 +122,10 @@ class WhatsAppWebhookController extends Controller
 
             $conversation->update(['last_message_at' => now()]);
 
-            // Dispatch AI Analysis job in background since it passed the filter
-            AnalyzeWhatsAppConversationJob::dispatch($conversation->id);
+            // Dispatch AI Analysis 30 minutes from now, debounced: if more messages
+            // arrive before then, their own dispatches supersede this one (see
+            // AnalyzeWhatsAppConversationJob's staleness check).
+            AnalyzeWhatsAppConversationJob::dispatch($conversation->id)->delay(now()->addMinutes(30));
         } elseif ($action === 'history_sync') {
             $messages = $payload['messages'] ?? [];
             \Log::info('WhatsApp History Sync webhook called with '.count($messages).' messages');

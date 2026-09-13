@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\AnalyzeWhatsAppConversationJob;
 use App\Models\IntegrationConfig;
 use App\Models\WhatsappContact;
 use App\Models\WhatsappConversation;
@@ -437,6 +438,7 @@ class MekariQontakService
         $hasMore = true;
         $pagesFetched = 0;
         $consecutiveExisting = 0;
+        $hasNewInboundMessage = false;
 
         while ($hasMore) {
             try {
@@ -492,7 +494,7 @@ class MekariQontakService
                         $direction = 'outbound';
                     }
 
-                    WhatsappMessage::updateOrCreate(
+                    $messageRow = WhatsappMessage::updateOrCreate(
                         ['external_message_id' => $msgId],
                         [
                             'conversation_id' => $conversation->id,
@@ -502,6 +504,14 @@ class MekariQontakService
                             'sent_at' => ! empty($msg['created_at']) ? Carbon::parse($msg['created_at']) : now(),
                         ]
                     );
+
+                    // Only a genuinely NEW inbound message (not a re-sync of one we
+                    // already have) should trigger AI analysis — this loop runs on
+                    // every poll cycle, so re-triggering on already-known messages
+                    // would re-dispatch the analysis job constantly for no reason.
+                    if ($messageRow->wasRecentlyCreated && $direction === 'inbound') {
+                        $hasNewInboundMessage = true;
+                    }
                 }
 
                 $nextCursor = $response->json('meta.pagination.cursor.next');
@@ -530,6 +540,13 @@ class MekariQontakService
             }
         } catch (\Throwable $e) {
             Log::error("[Qontak] Failed to update last message timestamp for room {$roomExternalId}: ".$e->getMessage());
+        }
+
+        // Same 30-minute debounce as the WhatsApp Local webhook path — only fires
+        // when this sync actually discovered a new inbound message, not on every
+        // poll cycle re-confirming messages we already have.
+        if ($hasNewInboundMessage) {
+            AnalyzeWhatsAppConversationJob::dispatch($conversation->id)->delay(now()->addMinutes(30));
         }
     }
 

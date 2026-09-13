@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\WhatsappAiAnalysis;
 use App\Models\WhatsappConversation;
 use App\Services\AI\AiOrchestrationService;
+use App\Services\WhatsApp\WhatsAppSyncEngine;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -18,12 +19,16 @@ class AnalyzeWhatsAppConversationJob implements ShouldQueue
 
     protected int $conversationId;
 
+    /** When this job instance was created — used to detect a newer message arriving after it was queued. */
+    protected string $dispatchedAt;
+
     public function __construct(int $conversationId)
     {
         $this->conversationId = $conversationId;
+        $this->dispatchedAt = now()->toIso8601String();
     }
 
-    public function handle(AiOrchestrationService $ai): void
+    public function handle(AiOrchestrationService $ai, WhatsAppSyncEngine $syncEngine): void
     {
         $conversation = WhatsappConversation::with(['messages' => function ($q) {
             $q->orderBy('sent_at', 'asc')->take(50);
@@ -31,6 +36,35 @@ class AnalyzeWhatsAppConversationJob implements ShouldQueue
 
         if (! $conversation || $conversation->messages->isEmpty()) {
             return;
+        }
+
+        // Debounce: this job is dispatched with a 30-minute delay from the
+        // webhook/sync path. If a newer message arrived after THIS job instance
+        // was created, a later job (dispatched for that newer message) will run
+        // 30 minutes after it instead — so this earlier one no-ops rather than
+        // running the analysis prematurely on an still-active conversation.
+        if ($conversation->last_message_at && $conversation->last_message_at->gt($this->dispatchedAt)) {
+            Log::info('[WhatsApp AI] Skipping stale analysis job — newer message arrived since dispatch', [
+                'conversation_id' => $conversation->id,
+            ]);
+            return;
+        }
+
+        // Auto-link: if this conversation's contact isn't linked to a Lead yet,
+        // try to find one by phone number (checking both Lead.phone and
+        // LeadContact.phone) before analyzing.
+        if ($conversation->contact && ! $conversation->contact->linked_lead_id) {
+            // Not scoped to an owner — this is an internal auto-detection of
+            // "does this phone number belong to any registered lead," not a
+            // permission-filtered lookup for a specific viewing user.
+            $matchedLeadId = $syncEngine->findLeadByPhone($conversation->contact->phone_number);
+            if ($matchedLeadId) {
+                $conversation->contact->update(['linked_lead_id' => $matchedLeadId]);
+                Log::info('[WhatsApp AI] Auto-linked conversation to lead by phone match', [
+                    'conversation_id' => $conversation->id,
+                    'lead_id' => $matchedLeadId,
+                ]);
+            }
         }
 
         $messagesText = $conversation->messages->map(function ($m) {
