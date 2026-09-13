@@ -2015,13 +2015,7 @@ export default function LeadsPage() {
                     />
                   </TableHeaderCell>
                 )}
-                <TableHeaderCell className="min-w-[200px]">Company</TableHeaderCell>
-                <TableHeaderCell className="min-w-[120px]">Industry</TableHeaderCell>
-                <TableHeaderCell className="min-w-[140px]">Product</TableHeaderCell>
-                <TableHeaderCell className="min-w-[120px]">Source</TableHeaderCell>
-                <TableHeaderCell className="min-w-[130px]">Channel</TableHeaderCell>
-                <TableHeaderCell className="min-w-[150px]">Lark Sync</TableHeaderCell>
-                <TableHeaderCell className="min-w-[160px]">Contact</TableHeaderCell>
+                <TableHeaderCell className="min-w-[260px]">Company</TableHeaderCell>
                 <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
                 <TableHeaderCell className="w-[80px]">Grade</TableHeaderCell>
                 <TableHeaderCell className="w-[120px]">Qualification</TableHeaderCell>
@@ -2034,12 +2028,12 @@ export default function LeadsPage() {
             </TableHead>
             <TableBody>
               {isLoading ? (
-                <TableEmpty colSpan={14}>
+                <TableEmpty colSpan={9}>
                   <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                   Loading leads...
                 </TableEmpty>
               ) : leads.length === 0 ? (
-                <TableEmpty colSpan={user?.role?.name === "super_admin" ? 15 : 14}>No leads found.</TableEmpty>
+                <TableEmpty colSpan={user?.role?.name === "super_admin" ? 10 : 9}>No leads found.</TableEmpty>
               ) : (
                 leads.map((lead) => (
                   <TableRow key={lead.id}>
@@ -2060,142 +2054,136 @@ export default function LeadsPage() {
                       </TableCell>
                     )}
                     <TableCell>
-                      <Link href={`/leads/${lead.id}`} className="block space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{lead.company_name}</p>
-                          {lead.brand && (
-                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0 bg-slate-100 text-slate-800 border-slate-300">
-                              {lead.brand}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={lead.industry_id != null ? String(lead.industry_id) : ""}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === String(lead.industry_id ?? "")) return;
-                          updateLeadField(lead, "industry", { industry_id: value ? Number(value) : null });
-                        }}
-                        disabled={inlineSavingKey === `${lead.id}:industry`}
-                        placeholder="Unknown"
-                        className="h-8 min-w-[110px] text-xs"
-                      >
-                        {allIndustries.map((industry) => (
-                          <option key={industry.id} value={String(industry.id)}>{industry.name}</option>
-                        ))}
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={lead.product_id != null ? String(lead.product_id) : ""}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === String(lead.product_id ?? "")) return;
-                          updateLeadField(lead, "product", { product_id: value ? Number(value) : null });
-                        }}
-                        disabled={inlineSavingKey === `${lead.id}:product`}
-                        placeholder="Unassigned"
-                        className="h-8 min-w-[120px] text-xs"
-                      >
-                        {products.map((product) => (
-                          <option key={product.id} value={String(product.id)}>{product.name}</option>
-                        ))}
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={primarySourceSlug(lead) || ""}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          if (value === (primarySourceSlug(lead) || "")) return;
-                          // Changing the source invalidates the previously selected channel,
-                          // matching the behavior of the full lead edit form.
-                          updateLeadField(lead, "source", { source_type: value || null, channel_type_id: null });
-                        }}
-                        disabled={inlineSavingKey === `${lead.id}:source`}
-                        placeholder="Unclassified"
-                        className="h-8 min-w-[110px] text-xs"
-                      >
-                        {activeLeadSources.map((source) => (
-                          <option key={source.id} value={source.slug}>{source.name}</option>
-                        ))}
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const leadSourceSlug = primarySourceSlug(lead);
-                        const leadChannelOptions = activeLeadChannels.filter(
-                          (channel) => !leadSourceSlug || channel.source_slug === leadSourceSlug
-                        );
-                        const currentChannelId = primaryChannelId(lead);
-                        return (
+                      <div className="min-w-[240px] space-y-2 py-1">
+                        <Link href={`/leads/${lead.id}`} className="block space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{lead.company_name}</p>
+                            {lead.brand && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0 bg-slate-100 text-slate-800 border-slate-300">
+                                {lead.brand}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="truncate text-xs text-muted-foreground">{lead.address || "No address"}</p>
+                        </Link>
+
+                        <div className="flex flex-wrap gap-1.5">
                           <Select
-                            value={currentChannelId != null ? String(currentChannelId) : ""}
+                            value={lead.industry_id != null ? String(lead.industry_id) : ""}
                             onChange={(e) => {
                               const value = e.target.value;
-                              if (value === String(currentChannelId ?? "")) return;
-                              updateLeadField(lead, "channel", {
-                                source_type: leadSourceSlug || null,
-                                channel_type_id: value ? Number(value) : null,
-                              });
+                              if (value === String(lead.industry_id ?? "")) return;
+                              updateLeadField(lead, "industry", { industry_id: value ? Number(value) : null });
                             }}
-                            disabled={inlineSavingKey === `${lead.id}:channel` || !leadSourceSlug}
-                            placeholder={leadSourceSlug ? "Unclassified" : "Select source first"}
-                            className="h-8 min-w-[120px] text-xs"
+                            disabled={inlineSavingKey === `${lead.id}:industry`}
+                            placeholder="Unknown"
+                            className="h-7 w-auto min-w-[90px] text-[11px]"
                           >
-                            {leadChannelOptions.map((channel) => (
-                              <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+                            {allIndustries.map((industry) => (
+                              <option key={industry.id} value={String(industry.id)}>{industry.name}</option>
                             ))}
                           </Select>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      {lead.lark_base_id ? (
-                        <div className="space-y-1 text-xs">
-                          <p className="truncate w-[120px] font-mono text-muted-foreground" title={`Base: ${lead.lark_base_id}`}>B: {lead.lark_base_id.substring(0, 8)}...</p>
-                          <p className="truncate w-[120px] font-mono text-muted-foreground" title={`Table: ${lead.lark_table_id}`}>T: {lead.lark_table_id?.substring(0, 8)}...</p>
+                          <Select
+                            value={lead.product_id != null ? String(lead.product_id) : ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === String(lead.product_id ?? "")) return;
+                              updateLeadField(lead, "product", { product_id: value ? Number(value) : null });
+                            }}
+                            disabled={inlineSavingKey === `${lead.id}:product`}
+                            placeholder="Unassigned"
+                            className="h-7 w-auto min-w-[90px] text-[11px]"
+                          >
+                            {products.map((product) => (
+                              <option key={product.id} value={String(product.id)}>{product.name}</option>
+                            ))}
+                          </Select>
+                          <Select
+                            value={primarySourceSlug(lead) || ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === (primarySourceSlug(lead) || "")) return;
+                              // Changing the source invalidates the previously selected channel,
+                              // matching the behavior of the full lead edit form.
+                              updateLeadField(lead, "source", { source_type: value || null, channel_type_id: null });
+                            }}
+                            disabled={inlineSavingKey === `${lead.id}:source`}
+                            placeholder="Unclassified"
+                            className="h-7 w-auto min-w-[90px] text-[11px]"
+                          >
+                            {activeLeadSources.map((source) => (
+                              <option key={source.id} value={source.slug}>{source.name}</option>
+                            ))}
+                          </Select>
+                          {(() => {
+                            const leadSourceSlug = primarySourceSlug(lead);
+                            const leadChannelOptions = activeLeadChannels.filter(
+                              (channel) => !leadSourceSlug || channel.source_slug === leadSourceSlug
+                            );
+                            const currentChannelId = primaryChannelId(lead);
+                            return (
+                              <Select
+                                value={currentChannelId != null ? String(currentChannelId) : ""}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === String(currentChannelId ?? "")) return;
+                                  updateLeadField(lead, "channel", {
+                                    source_type: leadSourceSlug || null,
+                                    channel_type_id: value ? Number(value) : null,
+                                  });
+                                }}
+                                disabled={inlineSavingKey === `${lead.id}:channel` || !leadSourceSlug}
+                                placeholder={leadSourceSlug ? "Unclassified" : "Select source first"}
+                                className="h-7 w-auto min-w-[90px] text-[11px]"
+                              >
+                                {leadChannelOptions.map((channel) => (
+                                  <option key={channel.id} value={String(channel.id)}>{channel.name}</option>
+                                ))}
+                              </Select>
+                            );
+                          })()}
                         </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const primaryContact = lead.contacts?.find((c) => c.is_primary) || lead.contacts?.[0];
-                        const contactName = primaryContact?.name || null;
-                        const contactPhone = primaryContact?.phone || lead.phone || null;
-                        const contactEmail = primaryContact?.email || lead.email || null;
 
-                        return (
-                          <div className="space-y-0.5 text-xs">
-                            {contactName ? (
-                              <div className="flex items-center gap-1.5 font-medium">
-                                <span className="truncate max-w-[150px]" title={contactName}>{contactName}</span>
-                                {primaryContact?.is_primary && (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-brand/5 text-brand border-brand/20">PIC</Badge>
-                                )}
-                              </div>
-                            ) : (
-                              <p className="font-medium text-foreground">{contactEmail || "—"}</p>
-                            )}
-                            <div className="text-muted-foreground flex flex-col gap-0.5">
-                              {contactPhone ? (
-                                <span className="font-mono text-[11px] text-foreground/90">{contactPhone}</span>
-                              ) : (
-                                <span>No phone</span>
-                              )}
-                              {contactName && contactEmail && contactEmail !== contactName && (
-                                <span className="truncate max-w-[150px] text-[11px] text-muted-foreground/80" title={contactEmail}>{contactEmail}</span>
-                              )}
+                        <div className="flex flex-wrap items-start gap-x-4 gap-y-1 text-xs">
+                          {lead.lark_base_id && (
+                            <div className="space-y-0.5" title={`Base: ${lead.lark_base_id} / Table: ${lead.lark_table_id}`}>
+                              <p className="truncate max-w-[120px] font-mono text-muted-foreground">B: {lead.lark_base_id.substring(0, 8)}...</p>
+                              <p className="truncate max-w-[120px] font-mono text-muted-foreground">T: {lead.lark_table_id?.substring(0, 8)}...</p>
                             </div>
-                          </div>
-                        );
-                      })()}
+                          )}
+                          {(() => {
+                            const primaryContact = lead.contacts?.find((c) => c.is_primary) || lead.contacts?.[0];
+                            const contactName = primaryContact?.name || null;
+                            const contactPhone = primaryContact?.phone || lead.phone || null;
+                            const contactEmail = primaryContact?.email || lead.email || null;
+
+                            return (
+                              <div className="space-y-0.5">
+                                {contactName ? (
+                                  <div className="flex items-center gap-1.5 font-medium">
+                                    <span className="truncate max-w-[150px]" title={contactName}>{contactName}</span>
+                                    {primaryContact?.is_primary && (
+                                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-brand/5 text-brand border-brand/20">PIC</Badge>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="font-medium text-foreground">{contactEmail || "—"}</p>
+                                )}
+                                <div className="text-muted-foreground flex flex-wrap gap-x-2 gap-y-0.5">
+                                  {contactPhone ? (
+                                    <span className="font-mono text-[11px] text-foreground/90">{contactPhone}</span>
+                                  ) : (
+                                    <span>No phone</span>
+                                  )}
+                                  {contactName && contactEmail && contactEmail !== contactName && (
+                                    <span className="truncate max-w-[150px] text-[11px] text-muted-foreground/80" title={contactEmail}>{contactEmail}</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {lead.lead_score !== null && lead.lead_score !== undefined ? (
