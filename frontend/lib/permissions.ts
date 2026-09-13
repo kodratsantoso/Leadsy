@@ -21,6 +21,7 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/settings/audit-logs": { any: ["audit.view"] },
   "/settings/icp-profiles": { any: ["leads.view", "leads.edit"] },
   "/settings/ai-defaults": { any: ["ai.manage"] },
+  "/settings/ai-testing-console": { any: ["ai_testing.manage"] },
   "/settings/users": { any: ["users.manage"] },
   "/settings/targets": { any: ["users.manage"] },
   "/settings/lead-sources": { any: ["leads.edit"] },

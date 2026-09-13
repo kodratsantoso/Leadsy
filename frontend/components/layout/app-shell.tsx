@@ -9,7 +9,7 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft
+  HeartPulse, ArrowRightLeft, TestTube2
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -113,6 +113,7 @@ export const navItems: NavItem[] = [
       { href: "/settings/targets/revenue", icon: Target,       label: "Target Revenue", group: "User & Targets" },
       { href: "/settings/targets/kpi",     icon: Activity,     label: "Target KPI", group: "User & Targets" },
       { href: "/settings/ai-defaults",    icon: Bot,          label: "AI Defaults", group: "AI Intelligence" },
+      { href: "/settings/ai-testing-console", icon: TestTube2, label: "AI Testing Console", group: "AI Intelligence" },
       { href: "/settings/icp-profiles",   icon: Target,       label: "ICP Profiles", group: "AI Intelligence" },
       { href: "/settings/industries",     icon: Layers,       label: "Industries", group: "CRM Taxonomy" },
       { href: "/settings/business-categories", icon: Briefcase,    label: "Business Categories", group: "CRM Taxonomy" },
