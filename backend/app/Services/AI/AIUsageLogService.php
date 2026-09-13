@@ -58,6 +58,8 @@ class AIUsageLogService
                 DB::raw('AVG(ai_requests.latency_ms) as avg_latency_ms'),
                 DB::raw("SUM(CASE WHEN ai_requests.status = 'success' THEN 1 ELSE 0 END) as success_count"),
                 DB::raw('SUM(CASE WHEN ai_requests.fallback_used IS TRUE THEN 1 ELSE 0 END) as fallback_count'),
+                DB::raw('COALESCE(SUM(ai_requests.prompt_tokens), 0) as total_tokens_in'),
+                DB::raw('COALESCE(SUM(ai_requests.completion_tokens), 0) as total_tokens_out'),
                 DB::raw('MAX(ai_requests.created_at) as last_used_at')
             )
             ->groupBy('ai_providers.id', 'ai_providers.name', 'ai_providers.slug');
@@ -130,6 +132,8 @@ class AIUsageLogService
         $totalCostUsd = (float) $perProvider->sum('total_cost_usd');
         $totalCostConverted = (float) $perProvider->sum('total_cost_converted');
         $fallbackCount = (int) $perProvider->sum('fallback_count');
+        $totalTokensIn = (int) $perProvider->sum('total_tokens_in');
+        $totalTokensOut = (int) $perProvider->sum('total_tokens_out');
 
         return [
             'summary' => [
@@ -141,6 +145,9 @@ class AIUsageLogService
                 'success_rate' => $totalCalls > 0 ? round(($successCount / $totalCalls) * 100, 1) : null,
                 'avg_latency_ms' => $perProvider->avg('avg_latency_ms') ? round((float) $perProvider->avg('avg_latency_ms')) : null,
                 'fallback_count' => $fallbackCount,
+                'total_tokens_in' => $totalTokensIn,
+                'total_tokens_out' => $totalTokensOut,
+                'total_tokens' => $totalTokensIn + $totalTokensOut,
                 'has_data' => $totalCalls > 0,
                 'last_used_provider' => $latestRequest?->aiModel?->provider?->name,
                 'last_used_model' => $latestRequest?->aiModel?->name,
@@ -156,6 +163,9 @@ class AIUsageLogService
                 'avg_latency_ms' => $row->avg_latency_ms ? round((float) $row->avg_latency_ms) : null,
                 'success_rate' => $row->total_calls > 0 ? round(($row->success_count / $row->total_calls) * 100, 1) : null,
                 'fallback_count' => (int) $row->fallback_count,
+                'total_tokens_in' => (int) $row->total_tokens_in,
+                'total_tokens_out' => (int) $row->total_tokens_out,
+                'total_tokens' => (int) $row->total_tokens_in + (int) $row->total_tokens_out,
                 'last_used_at' => $row->last_used_at,
             ])->values()->all(),
             'daily_timeline' => $timelineData->map(fn ($row) => [

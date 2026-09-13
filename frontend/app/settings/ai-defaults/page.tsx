@@ -127,6 +127,9 @@ type UsageOverview = {
     success_rate: number | null;
     avg_latency_ms: number | null;
     fallback_count: number;
+    total_tokens_in: number;
+    total_tokens_out: number;
+    total_tokens: number;
     has_data: boolean;
     last_used_provider?: string | null;
     last_used_model?: string | null;
@@ -141,6 +144,9 @@ type UsageOverview = {
     avg_latency_ms: number | null;
     success_rate: number | null;
     fallback_count: number;
+    total_tokens_in: number;
+    total_tokens_out: number;
+    total_tokens: number;
     last_used_at?: string | null;
   }[];
   daily_timeline?: {
@@ -1319,6 +1325,16 @@ export default function AiDefaultsPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Fallback Count</p>
               <p className="mt-3 text-3xl font-semibold">{formatNumber(usageOverview?.summary.fallback_count ?? 0, { decimals: 0 })}</p>
             </CardContent></Card>
+            <Card><CardContent className="p-5 pt-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Tokens In</p>
+              <p className="mt-3 text-3xl font-semibold">{formatNumber(usageOverview?.summary.total_tokens_in ?? 0, { decimals: 0 })}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Prompt / input tokens</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-5 pt-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Tokens Out</p>
+              <p className="mt-3 text-3xl font-semibold">{formatNumber(usageOverview?.summary.total_tokens_out ?? 0, { decimals: 0 })}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">Completion / output tokens</p>
+            </CardContent></Card>
           </div>
 
           <Card>
@@ -1449,6 +1465,9 @@ export default function AiDefaultsPage() {
                         <p className="font-medium">{item.provider_name}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {formatNumber(item.total_calls, { decimals: 0 })} calls • {formatNumber(item.fallback_count, { decimals: 0 })} fallbacks • Last used {fmtDate(item.last_used_at)}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Tokens: {formatNumber(item.total_tokens_in, { decimals: 0 })} in / {formatNumber(item.total_tokens_out, { decimals: 0 })} out
                         </p>
                       </div>
                       <div className="text-sm text-muted-foreground">
