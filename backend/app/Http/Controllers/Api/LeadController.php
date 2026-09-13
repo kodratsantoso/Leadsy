@@ -967,6 +967,14 @@ class LeadController extends Controller
             'user_id' => $request->user()?->id,
         ]);
 
+        // Sales explicitly named a competitor on this activity — sync it onto
+        // the Lead (previously never happened; only LeadActivity.competitor was
+        // written) and auto-generate a battle card for it.
+        if (\App\Services\Sales\CompetitiveBattleCardService::isMeaningfulCompetitorName($data['competitor'] ?? null)) {
+            $lead->update(['competitor' => $data['competitor']]);
+            \App\Jobs\GenerateBattleCardJob::dispatch($lead->id, $data['competitor']);
+        }
+
         if (! empty($data['transcript_id'])) {
             $transcript = $lead->transcripts()->find($data['transcript_id']);
             if ($transcript && ! $transcript->activity_id) {
@@ -1590,6 +1598,11 @@ class LeadController extends Controller
         ]);
         $activity->update($data);
         AuditService::log('update_activity', 'lead_activities', $activity, $activity->toArray());
+
+        if (\App\Services\Sales\CompetitiveBattleCardService::isMeaningfulCompetitorName($data['competitor'] ?? null)) {
+            $lead->update(['competitor' => $data['competitor']]);
+            \App\Jobs\GenerateBattleCardJob::dispatch($lead->id, $data['competitor']);
+        }
 
         \App\Jobs\RunLeadIntelligenceJob::dispatch($lead->id);
 

@@ -21,11 +21,23 @@ class CompetitiveBattleCardService
      * @param string|null $explicitCompetitor
      * @return LeadBattleCard
      */
+    /**
+     * Values that mean "no real competitor was named" — shared with callers
+     * that decide whether it's worth dispatching a battle-card generation job
+     * at all, so they don't do so for an empty/placeholder value.
+     */
+    public const BLANK_COMPETITOR_VALUES = ['none', 'no competitor', 'unknown', '-'];
+
+    public static function isMeaningfulCompetitorName(?string $name): bool
+    {
+        return !empty($name) && !in_array(strtolower(trim($name)), self::BLANK_COMPETITOR_VALUES, true);
+    }
+
     public function generateBattleCard(Lead $lead, ?string $explicitCompetitor = null): LeadBattleCard
     {
         $competitorName = $this->resolveCompetitorName($lead, $explicitCompetitor);
 
-        if (empty($competitorName) || in_array(strtolower($competitorName), ['none', 'no competitor', 'unknown', '-'])) {
+        if (! self::isMeaningfulCompetitorName($competitorName)) {
             $competitorName = 'General Market Alternatives';
         }
 

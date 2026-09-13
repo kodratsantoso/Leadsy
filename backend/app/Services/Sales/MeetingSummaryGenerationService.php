@@ -419,13 +419,27 @@ JSON
 
         // Update lead scoring/BANT-C if updates are present
         if (!empty($parsed['bantc'])) {
+            $previousCompetitor = $lead->competitor;
+            $newCompetitor = $parsed['bantc']['competitor'] ?? $lead->competitor;
+
             $lead->update([
                 'budget' => $parsed['bantc']['budget'] ?? $lead->budget,
                 'authority' => $parsed['bantc']['authority'] ?? $lead->authority,
                 'needs' => $parsed['bantc']['needs'] ?? $lead->needs,
                 'timeline' => $parsed['bantc']['timeline'] ?? $lead->timeline,
-                'competitor' => $parsed['bantc']['competitor'] ?? $lead->competitor,
+                'competitor' => $newCompetitor,
             ]);
+
+            // Auto-generate a battle card only when the meeting transcript
+            // confirmed a real (non-blank) competitor name that's different
+            // from what was already on file — avoids re-generating for the
+            // same competitor across multiple meetings.
+            if (
+                \App\Services\Sales\CompetitiveBattleCardService::isMeaningfulCompetitorName($newCompetitor)
+                && strcasecmp((string) $newCompetitor, (string) $previousCompetitor) !== 0
+            ) {
+                \App\Jobs\GenerateBattleCardJob::dispatch($lead->id, $newCompetitor);
+            }
 
             // Save to Lead Activity Log
             $lead->activities()->create([
