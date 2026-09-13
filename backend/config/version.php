@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.23.0',
-    'released_at' => '2026-09-07',
+    'version' => '1.24.0',
+    'released_at' => '2026-09-13',
     'type' => 'minor',
-    'notes' => 'Added BytePlus ModelArk AI Provider Integration and Superadmin One-Click AI Pre-Meeting Screening & Qualification Engine.',
+    'notes' => 'System Audit remediation (Fase 0-4): modul Customer Success baru, Session Timeout & Password Policy sungguhan, perluasan Global Search, rekonsiliasi 3 sumber revenue, dan puluhan perbaikan RBAC/WhatsApp/Professional Services.',
 ];

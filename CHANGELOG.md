@@ -9,6 +9,25 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.24.0] — 2026-09-13 · Minor Release
+
+### Fitur Baru
+- **Modul Customer Success** — Dashboard kesehatan pelanggan (Health Score), papan Renewal & Cross-Sell Opportunities, siklus Onboarding Milestones, dan form pencatatan Customer Feedback (NPS/CSAT/Onboarding Review/QBR) — seluruhnya baru di frontend, menyambungkan logic backend yang sudah ada namun sebelumnya tidak punya UI sama sekali.
+- **Session Timeout & Password Policy (sungguhan)** — Settings → Security kini benar-benar mengatur batas waktu idle sesi (opt-in, default nonaktif) dan kebijakan kekuatan password (panjang minimum, huruf besar/kecil, karakter spesial), diterapkan konsisten di registrasi, pembuatan/ubah user oleh admin, dan endpoint ganti password sendiri yang baru ditambahkan (`PUT /api/auth/password`) — sebelumnya tidak ada mekanisme ganti password mandiri di Leadsy.
+- **Perluasan Global Search** — Pencarian kini mencakup Contacts, Quotations, ICP Profiles, dan Professional Services (sebelumnya hanya Leads/Products/Users), sekaligus menambahkan penjagaan izin & kepemilikan ke seluruh grup hasil pencarian (termasuk yang lama).
+
+### Perbaikan Utama
+- **Rekonsiliasi Revenue** — Menyatukan 3 sumber perhitungan "revenue tercapai" yang sebelumnya bisa saling berbeda (Dashboard, Team Performance, RoleKpiCalculationService) menjadi satu sumber kebenaran berbasis Lead Sales Order.
+- **Generate Document/PDF Professional Services** — Memperbaiki relasi Eloquent yang salah sehingga fitur ini sebelumnya gagal 100% setiap dipanggil.
+- **Keamanan WhatsApp Webhook & RBAC** — Menutup celah RBAC di endpoint inti (`leads`, `products`, `revenue-targets`, dll.), menambahkan verifikasi secret pada webhook WhatsApp publik, dan memperbaiki scoping tenant pada Sync Rules.
+- **WhatsApp** — Atribusi Source/Channel pada Convert-to-Lead, `force_sync` Qontak yang sebelumnya diabaikan, permission Sync Rules yang salah gate, persistensi notes/assignee/tag percakapan Local, dan "Assign to Me" yang sebelumnya selalu ke user ID 1 (bug demo).
+- **Professional Services** — `lead_id` dari tab Lead kini tersambung ke wizard estimasi, tombol tambah/edit/hapus task manual kini berfungsi, pemilihan Template kini memuat komponen sungguhan, dan 5 lokasi tampilan uang tidak lagi hardcode ke USD melainkan mengikuti currency tenant.
+- **Kebersihan kode** — Menghapus kode mati (`TargetCalculationService`, model `Quotation`/`SalesOrder` lama, 3 controller WhatsApp yang tidak pernah di-routing, pengaturan WhatsApp Integration yang tidak berefek), route Order-to-Cash yang terdaftar dobel, dan `console.log` debug di `lib/permissions.ts`.
+
+### Quality
+- Setiap perbaikan diverifikasi dengan `php -l`, `npx tsc --noEmit`, full test suite backend (PHPUnit), dan skenario fungsional lewat Tinker (transaksi di-rollback) sebelum commit — 23 commit total untuk rilis ini.
+- Lihat dokumen [Leadsy System Audit](https://claude.ai/code/artifact/07744e44-2860-4cb3-9c10-2fe33428ffe5) untuk rincian lengkap per temuan dan status penyelesaiannya.
+
 ## [1.7.0] — 2026-06-20 · Minor Release
 
 ### Fitur Baru & Perbaikan Utama
