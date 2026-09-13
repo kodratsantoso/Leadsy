@@ -798,20 +798,6 @@ export default function LeadDetailPage() {
     enabled: activeTab === 'intelligence',
   });
 
-  const runVerificationMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiFetch(`/leads/${leadId}/verification/run`, { method: 'POST' });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.message || 'Failed to run company verification');
-      return json;
-    },
-    onSuccess: () => {
-      refetchVerification();
-      refetchFinancials();
-      invalidateLead();
-    }
-  });
-
   const resolveConflictMutation = useMutation({
     mutationFn: async (payload: { override_value: string; override_type: string; justification?: string }) => {
       const res = await apiFetch(`/leads/${leadId}/verification/resolve-conflict`, {
@@ -973,93 +959,6 @@ export default function LeadDetailPage() {
 
   const invalidateLead = () => qc.invalidateQueries({ queryKey: ['lead', leadId] });
 
-  const [screeningLoading, setScreeningLoading] = useState(false);
-  const [screeningFeedback, setScreeningFeedback] = useState<string | null>(null);
-
-  const handleRunPreMeetingScreening = async () => {
-    if (!leadId) return;
-    setScreeningLoading(true);
-    setScreeningFeedback("Memulai AI Screening...");
-    try {
-      const res = await apiFetch(`/leads/${leadId}/ai-screening/dispatch`, {
-        method: "POST",
-      });
-      const json = await res.json();
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || json?.message || "Gagal memulai screening.");
-      }
-
-      // Poll status every 2 seconds
-      let isDone = false;
-      let pollAttempts = 0;
-      const maxAttempts = 90;
-
-      while (!isDone && pollAttempts < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 2000));
-        pollAttempts++;
-        setScreeningFeedback(`Menjalankan AI Screening (${pollAttempts * 2}s)...`);
-
-        const statusRes = await apiFetch(`/leads/${leadId}/ai-screening/status`);
-        if (statusRes.ok) {
-          const statusJson = await statusRes.json();
-          if (statusJson.status === "completed" && statusJson.data) {
-            isDone = true;
-            invalidateLead();
-            qc.invalidateQueries({ queryKey: ["leads"] });
-            qc.invalidateQueries({ queryKey: ["unassessed-leads-count"] });
-            setScreeningFeedback(
-              `AI Screening Selesai: ${statusJson.data.qualification_status?.toUpperCase()} (Skor: ${statusJson.data.lead_score ?? "-"})`
-            );
-            break;
-          } else if (statusJson.status === "failed") {
-            throw new Error(statusJson.error || "Screening gagal di server.");
-          }
-        }
-      }
-
-      if (!isDone) {
-        setScreeningFeedback("Screening diproses di latar belakang.");
-        invalidateLead();
-      }
-    } catch (err: any) {
-      setScreeningFeedback(err?.message || "Screening error");
-    } finally {
-      setScreeningLoading(false);
-    }
-  };
-
-  // Update lead company info mutation
-  const enrichMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiFetch(`/leads/${params.id}/enrich/retry`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to enrich lead");
-      return response.json();
-    },
-    onSuccess: () => {
-      invalidateLead();
-    },
-  });
-
-  const runProofingMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiFetch(`/leads/${params.id}/run-proofing-strategy`, { method: "POST" });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.message ?? "Failed to refresh score, ICP & qualification");
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      invalidateLead();
-      setEnrichmentFeedback({ type: 'success', msg: data.message });
-    },
-    onError: (err: any) => {
-      setEnrichmentFeedback({ type: 'error', msg: err.message });
-    }
-  });
-
   const runIntelligenceMutation = useMutation({
     mutationFn: async () => {
       const response = await apiFetch(`/leads/${params.id}/run-intelligence`, { method: "POST" });
@@ -1170,18 +1069,6 @@ export default function LeadDetailPage() {
     };
     updateLeadMutation.mutate(payload);
   }
-
-  /* ── Intelligence mutations ── */
-  const scoreMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/rescore`, { method: 'POST' }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
-      qc.invalidateQueries({ queryKey: ['lead', leadId] });
-      qc.invalidateQueries({ queryKey: ['lead-progress', leadId] });
-    },
-  });
-
-
 
   /* ── Contact mutations ── */
   const addContactMutation = useMutation({
@@ -1665,21 +1552,6 @@ export default function LeadDetailPage() {
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [outcomeForm, setOutcomeForm] = useState({ outcome: 'won', product_id: '', sale_type: 'new_sales', deal_size: '', feedback_notes: '' });
 
-  const profilingStrategyMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/run-profiling-strategy`, { method: 'POST' }).then(r => r.json()),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['lead-intelligence', leadId] });
-      refetchRevenue(); // Because it might also update product matches which affect revenue
-    }
-  });
-
-  const analysisMutation = useMutation({
-    mutationFn: () => apiFetch(`/leads/${leadId}/revenue-analysis`, { method: 'POST' }),
-    onSuccess: () => refetchRevenue(),
-  });
-
-
-
   /* ── Render ── */
   if (leadLoading) {
     return <AILoader text="Loading" fullScreen />;
@@ -1857,16 +1729,6 @@ export default function LeadDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            className="bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30 hover:bg-[var(--status-info)] hover:text-white"
-            onClick={() => runProofingMutation.mutate()}
-            disabled={runProofingMutation.isPending}
-          >
-            {runProofingMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-            Refresh Score, ICP & Qualification
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             className="bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white"
             onClick={() => runIntelligenceMutation.mutate()}
             disabled={runIntelligenceMutation.isPending}
@@ -1904,17 +1766,6 @@ export default function LeadDetailPage() {
               ) : null}
             </div>
             <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{leadData.ai_explanation || 'No scoring explanation yet.'}</p>
-          </div>
-          <div className="pt-3">
-            <Button
-              onClick={() => scoreMutation.mutate()}
-              disabled={scoreMutation.isPending}
-              variant="outline"
-              size="xs"
-              className="w-full"
-            >
-              {scoreMutation.isPending ? 'Scoring...' : 'Rescore'}
-            </Button>
           </div>
         </div>
 
@@ -1954,32 +1805,6 @@ export default function LeadDetailPage() {
             <p className="mt-2 text-xs text-muted-foreground line-clamp-2" title={latestQual?.qualification_reason || undefined}>
               {latestQual?.qualification_reason || (leadData.qualification_status && leadData.qualification_status !== 'pending' ? `Lead diklasifikasikan sebagai ${formatQualificationStatus(leadData.qualification_status)}.` : 'Belum dilakukan asesmen kualifikasi.')}
             </p>
-          </div>
-          <div className="pt-3">
-            <Button
-              onClick={handleRunPreMeetingScreening}
-              disabled={screeningLoading}
-              variant="outline"
-              size="xs"
-              className="w-full flex items-center justify-center gap-1.5"
-            >
-              {screeningLoading ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Screening AI...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3 w-3 text-[var(--brand)]" />
-                  {leadData.qualification_status && leadData.qualification_status !== 'pending' ? 'Re-Screen AI' : 'Run Screening AI'}
-                </>
-              )}
-            </Button>
-            {screeningFeedback && (
-              <p className="text-[10px] text-muted-foreground mt-1 truncate" title={screeningFeedback}>
-                {screeningFeedback}
-              </p>
-            )}
           </div>
         </div>
 
@@ -2173,16 +1998,6 @@ export default function LeadDetailPage() {
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="font-semibold">Company Information</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="text-[color:var(--brand)] hover:text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
-                    onClick={() => enrichMutation.mutate()}
-                    disabled={enrichMutation.isPending}
-                    tooltip="Enrich with AI (Web Search)"
-                  >
-                    {enrichMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bot className="h-3.5 w-3.5" />}
-                  </Button>
                 </div>
                 <Button variant="ghost" size="icon-sm" onClick={openEditCompanyInfo} title="Edit lead information">
                   <Pencil className="h-3.5 w-3.5" />
@@ -2247,16 +2062,22 @@ export default function LeadDetailPage() {
             </div>
           </div>
 
-            {/* Enrichment Status Card */}
+            {/* AI Pre-Meeting Pipeline Status Card — read-only; the 9 underlying
+                functions now run automatically on lead creation. Manual re-run
+                is superadmin-only via Settings > AI Testing Console. */}
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold">Automated Enrichment Status</h3>
+                <h3 className="font-semibold">AI Pre-Meeting Analysis Status</h3>
                 <Badge variant={
-                  leadData.enrichment_status === 'completed' ? 'success' : 
-                  leadData.enrichment_status === 'running' ? 'warning' :
-                  leadData.enrichment_status === 'failed' ? 'danger' : 'outline'
-                }>
-                  {leadData.enrichment_status ? leadData.enrichment_status.toUpperCase() : 'PENDING'}
+                  leadData.ai_processing_status === 'completed' ? 'success' :
+                  leadData.ai_processing_status === 'processing' ? 'warning' :
+                  leadData.ai_processing_status === 'failed' ? 'danger' : 'outline'
+                } className="flex items-center gap-1.5">
+                  {leadData.ai_processing_status === 'processing' && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {leadData.ai_processing_status === 'completed' ? 'Selesai'
+                    : leadData.ai_processing_status === 'processing' ? 'Sedang Diproses...'
+                    : leadData.ai_processing_status === 'failed' ? 'Gagal — Hubungi Admin'
+                    : 'Menunggu'}
                 </Badge>
               </div>
               <div className="flex flex-col gap-2 text-sm">
@@ -2297,17 +2118,6 @@ export default function LeadDetailPage() {
                     )}
                   </div>
                 )}
-                <div className="mt-2 flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => enrichMutation.mutate()}
-                    disabled={enrichMutation.isPending || leadData.enrichment_status === 'running'}
-                  >
-                    {enrichMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Retry Enrichment
-                  </Button>
-                </div>
               </div>
             </div>
 
@@ -2711,25 +2521,6 @@ export default function LeadDetailPage() {
                 >
                   {formatQualificationStatus(leadData.qualification_status)}
                 </Badge>
-                <Button
-                  onClick={handleRunPreMeetingScreening}
-                  disabled={screeningLoading}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs flex items-center gap-1.5"
-                >
-                  {screeningLoading ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Screening...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
-                      Run AI Pre-Meeting Screening
-                    </>
-                  )}
-                </Button>
               </div>
             </div>
 
@@ -2979,72 +2770,7 @@ export default function LeadDetailPage() {
             </div>
           </div>
 
-          {/* ── Action bar ── */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Run Intelligence Functions</p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={() => scoreMutation.mutate()}
-                disabled={scoreMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                {scoreMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 text-yellow-500" />}
-                {scoreMutation.isPending ? 'Scoring…' : 'Rescore Lead'}
-              </Button>
-              <Button
-                onClick={() => profilingStrategyMutation.mutate()}
-                disabled={profilingStrategyMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                {profilingStrategyMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5 text-[var(--status-info)]" />}
-                {profilingStrategyMutation.isPending ? 'Profiling…' : 'Run AI Profiling & Strategy'}
-              </Button>
-              <Button
-                onClick={() => runVerificationMutation.mutate()}
-                disabled={runVerificationMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                {runVerificationMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Building2 className="h-3.5 w-3.5 text-[var(--brand)]" />}
-                {runVerificationMutation.isPending ? 'Verifying…' : 'Run Company Verification'}
-              </Button>
-            </div>
-            {scoreMutation.isSuccess && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
-                <CheckCircle className="h-3.5 w-3.5" /> Lead scored — results updated below.
-              </p>
-            )}
-            {scoreMutation.isError && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
-                <AlertCircle className="h-3.5 w-3.5" /> Scoring failed. Check AI settings.
-              </p>
-            )}
-            {profilingStrategyMutation.isSuccess && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
-                <CheckCircle className="h-3.5 w-3.5" /> AI Profiling & Strategy complete — see results below.
-              </p>
-            )}
-            {profilingStrategyMutation.isError && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
-                <AlertCircle className="h-3.5 w-3.5" /> AI Profiling & Strategy failed. Check AI settings.
-              </p>
-            )}
-            {runVerificationMutation.isSuccess && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-success)]">
-                <CheckCircle className="h-3.5 w-3.5" /> Company identity verification and financial analysis run complete.
-              </p>
-            )}
-            {runVerificationMutation.isError && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-[var(--status-danger)]">
-                <AlertCircle className="h-3.5 w-3.5" /> Verification failed. Check local emittent cache or API routes.
-              </p>
-            )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              <strong>Rescore</strong> runs immediately. <strong>AI Profiling & Strategy</strong> generates a commercial readout and uses BANT + Competitor AI to rank all products against this lead. Qualification, ICP Matching, and Confidentiality assessments are now fully automated.
-            </p>
-          </div>
+          {/* Scoring, profiling & verification now run automatically via the Pre-Meeting AI pipeline. */}
 
           <LeadBantcQuestionGuide leadId={leadData.id} />
 
@@ -3327,26 +3053,16 @@ export default function LeadDetailPage() {
               <div>
                 <h3 className="font-semibold">Product Match</h3>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  AI-powered BANT + Competitor analysis against all active products.
+                  AI-powered BANT + Competitor analysis against all active products. Runs automatically as part of the Pre-Meeting AI pipeline.
                 </p>
               </div>
-              <Button
-                onClick={() => profilingStrategyMutation.mutate()}
-                disabled={profilingStrategyMutation.isPending}
-                variant="outline"
-                size="sm"
-              >
-                {profilingStrategyMutation.isPending
-                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Matching…</>
-                  : <><ClipboardList className="h-3.5 w-3.5" /> Run Product Match</>}
-              </Button>
             </div>
 
             {topProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/10 py-10 text-center">
                 <ClipboardList className="mb-2 h-8 w-8 text-muted-foreground/30" />
                 <p className="text-sm text-muted-foreground">No product matches yet.</p>
-                <p className="mt-1 text-xs text-muted-foreground">Click <strong>Run Product Match</strong> above to analyse this lead against all active products.</p>
+                <p className="mt-1 text-xs text-muted-foreground">This runs automatically shortly after the lead is created.</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -3470,14 +3186,6 @@ export default function LeadDetailPage() {
                   Get Prescription
                 </button>
                 <button
-                  onClick={() => analysisMutation.mutate()}
-                  disabled={analysisMutation.isPending}
-                  className="flex items-center gap-1.5 rounded-lg border border-[var(--brand)]/40 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--brand)] hover:bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] disabled:opacity-50"
-                >
-                  {analysisMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
-                  Run AI Analysis
-                </button>
-                <button
                   onClick={() => {
                     setOutcomeForm((current) => ({
                       ...current,
@@ -3497,13 +3205,6 @@ export default function LeadDetailPage() {
               {revenueIntel?.data?.latest_analysis && (
                 <RevenueAnalysisPanel analysis={revenueIntel.data.latest_analysis} />
               )}
-              {analysisMutation.isPending && (
-                <div className="flex items-center gap-3 rounded-xl border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_10%,transparent)] p-4 text-sm text-[var(--brand)]">
-                  <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
-                  Revenue Intelligence AI is analysing this lead — this may take 15–30 seconds…
-                </div>
-              )}
-
               <div className="grid gap-4 lg:grid-cols-2">
                 {/* ICP Match */}
                 <div className="rounded-xl border border-border bg-card p-5">

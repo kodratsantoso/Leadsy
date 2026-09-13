@@ -58,7 +58,6 @@ import { cn } from "@/lib/utils";
 import { CreateNewModal } from "@/components/ui/CreateNewModal";
 import { EditLeadModal } from "@/components/leads/EditLeadModal";
 import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
-import { PreMeetingScreeningModal } from "@/components/leads/PreMeetingScreeningModal";
 
 type LeadRecord = {
   id: number;
@@ -719,8 +718,6 @@ export default function LeadsPage() {
   const [parentLeadSearching, setParentLeadSearching] = useState(false);
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
-  const [screeningModalOpen, setScreeningModalOpen] = useState(false);
-  const [screeningMode, setScreeningMode] = useState<"unassessed" | "selected">("unassessed");
 
   const user = useAuthStore((s) => s.user);
   const isSuperAdmin = user?.role?.name === "super_admin" || user?.role?.name === "superadmin";
@@ -1201,52 +1198,6 @@ export default function LeadsPage() {
     },
   });
 
-  const singleScreenMutation = useMutation({
-    mutationFn: async (leadId: number) => {
-      const response = await apiFetch(`/leads/${leadId}/ai-screening/dispatch`, {
-        method: "POST",
-      });
-      const json = await response.json();
-      if (!response.ok || !json.success) {
-        throw new Error(json.error || json.message || "Failed to start screening.");
-      }
-
-      // Poll status until complete
-      let isDone = false;
-      let pollAttempts = 0;
-      const maxAttempts = 90;
-
-      while (!isDone && pollAttempts < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 2000));
-        pollAttempts++;
-
-        const statusRes = await apiFetch(`/leads/${leadId}/ai-screening/status`);
-        if (statusRes.ok) {
-          const statusJson = await statusRes.json();
-          if (statusJson.status === "completed" && statusJson.data) {
-            return statusJson;
-          } else if (statusJson.status === "failed") {
-            throw new Error(statusJson.error || "Screening failed on server.");
-          }
-        }
-      }
-
-      throw new Error("Screening timed out after 180 seconds.");
-    },
-    onSuccess: (json) => {
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
-      queryClient.invalidateQueries({ queryKey: ["unassessed-leads-count"] });
-      refetchUnassessedCount();
-      const data = json?.data || {};
-      setFeedback(
-        `AI Screening Completed for ${data.company_name || "Lead"}! Score: ${data.lead_score ?? "—"} (${data.qualification_status ?? "eligible"}).`
-      );
-    },
-    onError: (error: Error) => {
-      setFeedback(`AI Screening Error: ${error.message}`);
-    },
-  });
-
   const openEdit = (lead: LeadRecord) => {
     setEditLead(lead);
     setFormError("");
@@ -1586,19 +1537,6 @@ export default function LeadsPage() {
               <Upload className="h-4 w-4" />
               Import
             </Button>
-            {isSuperAdmin && (
-              <Button
-                variant="outline"
-                className="bg-[color-mix(in_oklch,var(--brand)_12%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white font-medium"
-                onClick={() => {
-                  setScreeningMode("unassessed");
-                  setScreeningModalOpen(true);
-                }}
-              >
-                <Sparkles className="h-4 w-4 mr-1.5" />
-                Screen Unassessed ({unassessedCount})
-              </Button>
-            )}
             {user?.role?.name === "super_admin" && selectedLeads.length > 0 && (
               <Button
                 variant="destructive"
@@ -1606,19 +1544,6 @@ export default function LeadsPage() {
               >
                 <Trash2 className="h-4 w-4" />
                 Delete Selected ({selectedLeads.length})
-              </Button>
-            )}
-            {isSuperAdmin && selectedLeads.length > 0 && (
-              <Button
-                variant="outline"
-                className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-600 hover:text-white dark:text-emerald-400 font-medium"
-                onClick={() => {
-                  setScreeningMode("selected");
-                  setScreeningModalOpen(true);
-                }}
-              >
-                <Sparkles className="h-4 w-4 mr-1.5" />
-                Screen Selected ({selectedLeads.length})
               </Button>
             )}
             {selectedLeads.length > 0 && (
@@ -2239,22 +2164,6 @@ export default function LeadsPage() {
 
                         return (
                           <div className="flex items-center gap-1 whitespace-nowrap">
-                            {isSuperAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => singleScreenMutation.mutate(lead.id)}
-                                disabled={singleScreenMutation.isPending}
-                                tooltip="Run AI Pre-Meeting Screening"
-                                className="text-[var(--brand)] hover:bg-[var(--brand)]/10"
-                              >
-                                {singleScreenMutation.isPending && (singleScreenMutation.variables as unknown as number) === lead.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Sparkles className="h-4 w-4" />
-                                )}
-                              </Button>
-                            )}
                             <Button
                               variant="ghost"
                               size="icon-sm"
@@ -3270,19 +3179,6 @@ export default function LeadsPage() {
         />
       )}
 
-      {isSuperAdmin && (
-        <PreMeetingScreeningModal
-          open={screeningModalOpen}
-          onOpenChange={setScreeningModalOpen}
-          targetCount={screeningMode === "unassessed" ? unassessedCount : selectedLeads.length}
-          mode={screeningMode}
-          selectedLeadIds={selectedLeads}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["leads"] });
-            refetchUnassessedCount();
-          }}
-        />
-      )}
     </div>
   );
 }

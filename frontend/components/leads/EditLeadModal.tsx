@@ -14,7 +14,6 @@ import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
-import { useAuthStore } from "@/store/useAuthStore";
 
 export function EditLeadModal({
   lead,
@@ -54,67 +53,6 @@ export function EditLeadModal({
   const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed">("idle");
   const [profilingData, setProfilingData] = useState<any>(null);
   const [validationError, setValidationError] = useState<string>("");
-  const [screeningLoading, setScreeningLoading] = useState(false);
-  const [screeningFeedback, setScreeningFeedback] = useState<string | null>(null);
-
-  const user = useAuthStore((s) => s.user);
-  const isSuperAdmin = user?.role?.name === "super_admin" || user?.role?.name === "superadmin";
-
-  const handleRunPreMeetingScreening = async () => {
-    if (!lead?.id) return;
-    setScreeningLoading(true);
-    setScreeningFeedback("Memulai AI Screening...");
-    try {
-      const res = await apiFetch(`/leads/${lead.id}/ai-screening/dispatch`, {
-        method: "POST",
-      });
-      const json = await res.json();
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || json?.message || "Gagal memulai screening.");
-      }
-
-      // Poll status every 2 seconds
-      let isDone = false;
-      let pollAttempts = 0;
-      const maxAttempts = 90;
-
-      while (!isDone && pollAttempts < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 2000));
-        pollAttempts++;
-        setScreeningFeedback(`Menjalankan AI Screening (${pollAttempts * 2}s)...`);
-
-        const statusRes = await apiFetch(`/leads/${lead.id}/ai-screening/status`);
-        if (statusRes.ok) {
-          const statusJson = await statusRes.json();
-          if (statusJson.status === "completed" && statusJson.data) {
-            isDone = true;
-            const data = statusJson.data;
-            setScreeningFeedback(
-              `Pre-Meeting Screened: ${data.qualification_status?.toUpperCase()} (Score: ${data.lead_score ?? "-"})`
-            );
-            if (data.qualification_status) {
-              setCompanyForm((f) => ({ ...f, qualification_status: data.qualification_status }));
-            }
-            qc.invalidateQueries({ queryKey: ["leads"] });
-            qc.invalidateQueries({ queryKey: ["unassessed-leads-count"] });
-            if (onSuccess) onSuccess();
-            break;
-          } else if (statusJson.status === "failed") {
-            throw new Error(statusJson.error || "Screening failed on server.");
-          }
-        }
-      }
-
-      if (!isDone) {
-        setScreeningFeedback("Screening masih diproses di latar belakang. Silakan refresh sebentar lagi.");
-        qc.invalidateQueries({ queryKey: ["leads"] });
-      }
-    } catch (err: any) {
-      setScreeningFeedback(err?.message || "Screening failed");
-    } finally {
-      setScreeningLoading(false);
-    }
-  };
 
   // Parent lead search
   const [parentLeadSearch, setParentLeadSearch] = useState(lead?.parent_lead?.name || "");
@@ -403,28 +341,7 @@ export function EditLeadModal({
                     AI Profiling Start
                   </Button>
 
-                  {isSuperAdmin && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="bg-[color-mix(in_oklch,var(--brand)_12%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white"
-                      disabled={screeningLoading}
-                      onClick={handleRunPreMeetingScreening}
-                    >
-                      {screeningLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : (
-                        <Zap className="h-4 w-4 mr-1 text-[var(--brand)]" />
-                      )}
-                      Pre-Meeting Screen
-                    </Button>
-                  )}
                 </div>
-                {screeningFeedback && (
-                  <Badge variant="info" className="mt-1.5 text-xs">
-                    {screeningFeedback}
-                  </Badge>
-                )}
                 <AiProfilingPanel
                   status={profilingStatus}
                   data={profilingData}

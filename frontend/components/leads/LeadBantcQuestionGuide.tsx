@@ -212,23 +212,6 @@ export function LeadBantcQuestionGuide({ leadId }: { leadId: number | string }) 
     }
   }, [data, draft]);
 
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      const r = await apiFetch(`/leads/${leadId}/bantc-questions/generate`, { method: "POST" });
-      if (!r.ok) {
-        const j = await r.json().catch(() => ({}));
-        throw new Error(errorMessageFromPayload(j, `Failed (${r.status})`));
-      }
-      return r.json() as Promise<{ data: BantcQuestion[]; ai_model: string | null }>;
-    },
-    onSuccess: ({ data: questions, ai_model }) => {
-      setDraft(questions);
-      setLastAiModel(ai_model);
-      setIsDirty(true);
-      setJustGenerated(true);
-    },
-  });
-
   const saveMutation = useMutation({
     mutationFn: async (questions: BantcQuestion[]) => {
       const r = await apiFetch(`/leads/${leadId}/bantc-questions`, {
@@ -316,22 +299,6 @@ export function LeadBantcQuestionGuide({ leadId }: { leadId: number | string }) 
               </span>
             )}
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => generateMutation.mutate()}
-              disabled={generateMutation.isPending || saveMutation.isPending}
-              className="gap-1.5 border-[color:var(--brand)] text-[color:var(--brand)] hover:bg-[color:var(--brand)]/5"
-            >
-              {generateMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              {generateMutation.isPending ? "Generating..." : draft && draft.length > 0 ? "Regenerate" : "Generate with AI"}
-            </Button>
-
             {isDirty && (
               <Button
                 type="button"
@@ -369,11 +336,6 @@ export function LeadBantcQuestionGuide({ leadId }: { leadId: number | string }) 
           </div>
         )}
 
-        {generateMutation.isError && (
-          <p className="rounded-lg border border-[color:var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_8%,transparent)] px-3 py-2 text-xs text-[color:var(--status-danger)]">
-            {(generateMutation.error as Error).message}
-          </p>
-        )}
         {saveMutation.isError && (
           <p className="rounded-lg border border-[color:var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_8%,transparent)] px-3 py-2 text-xs text-[color:var(--status-danger)]">
             {(saveMutation.error as Error).message}
@@ -389,7 +351,7 @@ export function LeadBantcQuestionGuide({ leadId }: { leadId: number | string }) 
             <Sparkles className="mx-auto mb-3 h-7 w-7 text-muted-foreground/40" />
             <p className="text-sm font-medium text-muted-foreground">No BANTC question guide yet</p>
             <p className="mt-1 px-4 text-xs text-muted-foreground/70">
-              Click <strong>Generate with AI</strong> to create customer-specific Budget, Authority, Need, Timeline, and Competition questions. Save only when you want to use it.
+              AI generates Budget, Authority, Need, Timeline, and Competition questions automatically as part of the Pre-Meeting AI pipeline.
             </p>
           </div>
         ) : (
