@@ -42,10 +42,15 @@ export const useAuthStore = create<AuthState>()(
                 Authorization: `Bearer ${token}`,
                 Accept: "application/json",
               },
+              credentials: "include",
             });
           } catch {
             // Even if server call fails, clear local state
           }
+        }
+        if (typeof document !== "undefined") {
+          document.cookie = "virtuenet_sso_jwt=; path=/; domain=.virtuenet.space; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          document.cookie = "virtuenet_sso_jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         }
         set({ token: null, user: null });
         if (typeof window !== "undefined") {

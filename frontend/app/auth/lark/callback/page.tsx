@@ -14,34 +14,8 @@ export default function LarkCallbackPage() {
   const [message, setMessage] = useState("Finalizing Lark login...");
 
   useEffect(() => {
-    const ssoToken = searchParams.get("sso_token");
     const code = searchParams.get("code");
     const state = searchParams.get("state");
-
-    if (ssoToken) {
-      const finalizeSso = async () => {
-        try {
-          const res = await fetch(`/api/auth/sso/probe?sso_token=${encodeURIComponent(ssoToken)}`, {
-            headers: { Accept: "application/json" },
-            credentials: "include",
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data?.message || "SSO validation failed.");
-          setAuth(data.token, data.user);
-          setStatus("success");
-          setMessage("Authenticated via Virtuenet SSO. Redirecting...");
-          window.setTimeout(() => {
-            router.replace("/");
-            router.refresh();
-          }, 500);
-        } catch (err: any) {
-          setStatus("error");
-          setMessage(err.message || "Virtuenet SSO login failed.");
-        }
-      };
-      finalizeSso();
-      return;
-    }
 
     if (!code) {
       setStatus("error");
@@ -78,9 +52,9 @@ export default function LarkCallbackPage() {
           router.replace("/");
           router.refresh();
         }, 700);
-      } catch (err: any) {
+      } catch (err: unknown) {
         setStatus("error");
-        setMessage(err.message || "Lark SSO login failed. Please try again.");
+        setMessage((err as Error)?.message || "Lark SSO login failed. Please try again.");
       }
     };
 
