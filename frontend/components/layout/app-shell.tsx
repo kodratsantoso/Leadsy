@@ -9,7 +9,7 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft, TestTube2
+  HeartPulse, ArrowRightLeft, TestTube2, Trash2
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -71,7 +71,16 @@ export const navItems: NavItem[] = [
       { href: "/lead-generator/idx", icon: Building2, label: "IDX Public Companies" },
     ],
   },
-  { href: "/leads",                  icon: Building2,       label: "Leads" },
+  {
+    href: "/leads",
+    icon: Building2,
+    label: "Leads",
+    children: [
+      { href: "/leads", icon: Building2, label: "All Leads" },
+      { href: "/industries", icon: Layers, label: "By Industry" },
+      { href: "/leads/trash", icon: Trash2, label: "Trash" },
+    ],
+  },
   { href: "/products",               icon: Package,         label: "Products" },
   {
     href: "/professional-services",
