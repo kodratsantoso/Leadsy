@@ -192,6 +192,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('leads/ai-profiling/start', [AiLeadProfilingController::class, 'start'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/ai-profiling/{id}/status', [AiLeadProfilingController::class, 'status'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');
+    Route::get('leads/industry-summary', [LeadController::class, 'industrySummary'])->middleware('permission:leads.view');
     // Split from Route::apiResource() so each verb carries its own permission —
     // the resource previously had no permission gate at all (2026-09-13 audit).
     Route::get('leads', [LeadController::class, 'index'])->middleware('permission:leads.view');

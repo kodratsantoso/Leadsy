@@ -33,6 +33,7 @@ use App\Services\Sales\LeadEvaluationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -56,7 +57,9 @@ class LeadController extends Controller
             ]);
 
         // Filters
-        if ($request->filled('industry_id')) {
+        if ($request->get('industry_id') === 'unassigned') {
+            $query->whereNull('industry_id');
+        } elseif ($request->filled('industry_id')) {
             $query->where('industry_id', $request->industry_id);
         }
         if ($request->filled('funnel_stage_id')) {
@@ -202,6 +205,44 @@ class LeadController extends Controller
         $leads = $query->paginate($request->get('per_page', 25));
 
         return response()->json($leads);
+    }
+
+    /**
+     * Leads grouped by industry, for the "Leads by Industry" browsing page —
+     * one row per active industry that has at least one lead, plus a synthetic
+     * "Un-Identified" bucket for leads with no industry_id set.
+     */
+    public function industrySummary(Request $request): JsonResponse
+    {
+        $base = Lead::visibleTo($request->user());
+
+        $counts = (clone $base)
+            ->select('industry_id', DB::raw('count(*) as total'))
+            ->whereNotNull('industry_id')
+            ->groupBy('industry_id')
+            ->with('industry:id,name')
+            ->get()
+            ->filter(fn ($row) => $row->industry !== null)
+            ->map(fn ($row) => [
+                'industry_id' => $row->industry_id,
+                'name' => $row->industry->name,
+                'count' => $row->total,
+            ])
+            ->sortBy('name')
+            ->values();
+
+        $unidentifiedCount = (clone $base)->whereNull('industry_id')->count();
+
+        return response()->json([
+            'data' => [
+                ...$counts,
+                [
+                    'industry_id' => null,
+                    'name' => 'Un-Identified',
+                    'count' => $unidentifiedCount,
+                ],
+            ],
+        ]);
     }
 
     public function assignableUsers(Request $request): JsonResponse
