@@ -66,21 +66,13 @@ class PreMeetingAiScreeningOrchestratorService
     {
         $startTime = microtime(true);
 
-        if ($lead->ai_mode === 'manual') {
-            Log::info("[PreMeetingAiScreening] Skipped for Lead ID: {$lead->id} — ai_mode is 'manual'.");
-
-            return [
-                'success' => true,
-                'lead_id' => $lead->id,
-                'company_name' => $lead->company_name,
-                'qualification_status' => $lead->qualification_status,
-                'lead_score' => $lead->lead_score,
-                'stages_executed' => [],
-                'skipped' => true,
-                'skip_reason' => 'ai_mode_manual',
-                'elapsed_seconds' => round(microtime(true) - $startTime, 2),
-            ];
-        }
+        // NOTE: `ai_mode` here means "run AI synchronously at creation time?" (see
+        // MapDiscoveryController), not "opt this lead out of AI forever" — it
+        // defaults to 'manual' for nearly every lead (DB default, plus WhatsApp
+        // convert / Lark import / IDX import all set it explicitly). Gating this
+        // pipeline on it previously made the automatic trigger and the AI Testing
+        // Console's re-run buttons a silent no-op for almost every lead in the
+        // system. Do not reintroduce an ai_mode check here.
 
         Log::info("[PreMeetingAiScreening] Starting sequential screening for Lead ID: {$lead->id} ({$lead->company_name})");
 

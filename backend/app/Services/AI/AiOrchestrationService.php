@@ -200,7 +200,13 @@ class AiOrchestrationService
                 ],
                 'response_format' => ['type' => 'json_object'],
                 'max_tokens' => $maxTokens ?? 4096,
-                'tools' => ($context['web_search'] ?? false) ? [['type' => 'web_search']] : null,
+                // No 'tools' web-search param here: the /chat/completions endpoint
+                // these providers use doesn't support a {type: 'web_search'} tool —
+                // sending it caused an immediate provider-side 400 on every call
+                // that requested web_search (lead_ai_profiling, pre_meeting_brief
+                // generation, contact deep search). Callers still get the
+                // web-search-driven prompt template; only Google Gemini currently
+                // wires an actual server-side search tool (see the branch above).
             ], fn ($value) => $value !== null),
         };
     }
