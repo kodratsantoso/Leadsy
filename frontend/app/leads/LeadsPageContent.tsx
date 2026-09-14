@@ -697,17 +697,6 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     enabled: isSuperAdmin,
   });
 
-  const { data: trashSummaryData } = useQuery({
-    queryKey: ["leads-trash-summary"],
-    queryFn: async () => {
-      const res = await apiFetch("/leads/trash?per_page=1");
-      if (!res.ok) return { summary: { total_deleted: 0 } };
-      return res.json();
-    },
-    staleTime: 30000,
-  });
-  const trashCount = trashSummaryData?.summary?.total_deleted ?? 0;
-
 
 
   const { data: stagesData } = useQuery({
@@ -1339,6 +1328,9 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const hasActiveFilter = Boolean(
     search || funnelStageId || funnelMinSequence || qualificationFilter || gradeFilter || duplicateFilter || sourceFilter || channelFilter || ownerFilter || minScore || maxScore
   );
+  const activeFilterCount = [
+    funnelStageId, qualificationFilter, gradeFilter, duplicateFilter, sourceFilter, channelFilter, ownerFilter, minScore, maxScore,
+  ].filter(Boolean).length;
 
   return (
     <div className="space-y-6 p-6">
@@ -1349,34 +1341,24 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
             <CardDescription>Discovered and enriched leads with one standardized admin workflow.</CardDescription>
           </div>
           <div className="flex items-center gap-2" data-tour="leads-actions">
-            <Link href="/leads/trash">
+            {isSuperAdmin && (
+              <Button variant="outline" onClick={handleExport}>
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            )}
+            {isSuperAdmin && (
               <Button
                 variant="outline"
-                className="border-border hover:border-destructive/40 text-muted-foreground hover:text-destructive"
+                onClick={() => {
+                  resetImport();
+                  setImportOpen(true);
+                }}
               >
-                <Trash2 className="h-4 w-4 mr-1.5" />
-                Keranjang Sampah
-                {trashCount > 0 && (
-                  <Badge variant="neutral" className="ml-1.5 bg-muted text-xs px-1.5 py-0.5">
-                    {trashCount}
-                  </Badge>
-                )}
+                <Upload className="h-4 w-4" />
+                Import
               </Button>
-            </Link>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                resetImport();
-                setImportOpen(true);
-              }}
-            >
-              <Upload className="h-4 w-4" />
-              Import
-            </Button>
+            )}
             {user?.role?.name === "super_admin" && selectedLeads.length > 0 && (
               <Button
                 variant="destructive"
@@ -1425,7 +1407,9 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
           <span className="text-[var(--brand)]">
             Filtered by Industry:{" "}
             <strong>
-              {allIndustries.find((i) => String(i.id) === industryFilter)?.name ?? `#${industryFilter}`}
+              {industryFilter === "unassigned"
+                ? "Un-Identified"
+                : allIndustries.find((i) => String(i.id) === industryFilter)?.name ?? `#${industryFilter}`}
             </strong>
           </span>
           <Link href="/leads" className="text-xs font-medium text-muted-foreground hover:text-foreground">
@@ -1435,174 +1419,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
       )}
 
       <div data-tour="leads-filters" className="space-y-3">
-        {/* Quick Assessment Status & Grade Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant={!qualificationFilter && !gradeFilter && !ownerFilter ? "default" : "outline"}
-            size="sm"
-            className="text-xs h-8 rounded-xl font-medium"
-            onClick={() => {
-              setQualificationFilter("");
-              setGradeFilter("");
-              setOwnerFilter("");
-              setPage(1);
-            }}
-          >
-            All Leads
-          </Button>
-          {user?.id && (
-            <Button
-              type="button"
-              variant={ownerFilter === String(user.id) ? "default" : "outline"}
-              size="sm"
-              className={`text-xs h-8 rounded-xl font-medium ${
-                ownerFilter === String(user.id)
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "border-blue-500/30 text-blue-600 bg-blue-500/5 hover:bg-blue-500/10 dark:text-blue-400"
-              }`}
-              onClick={() => {
-                setOwnerFilter(ownerFilter === String(user.id) ? "" : String(user.id));
-                setPage(1);
-              }}
-            >
-              <UserCheck className="h-3.5 w-3.5 mr-1" />
-              My Leads
-            </Button>
-          )}
-
-          <div className="h-4 w-px bg-border/60 mx-0.5" />
-
-          {/* Qualification Status Pills */}
-          <Button
-            type="button"
-            variant={qualificationFilter === "unassessed" ? "default" : "outline"}
-            size="sm"
-            className={`text-xs h-8 rounded-xl font-medium ${
-              qualificationFilter === "unassessed"
-                ? "bg-[var(--brand)] text-white hover:opacity-90"
-                : "border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 dark:text-amber-400"
-            }`}
-            onClick={() => {
-              setQualificationFilter(qualificationFilter === "unassessed" ? "" : "unassessed");
-              setPage(1);
-            }}
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-500" />
-            Unassessed ({unassessedCount})
-          </Button>
-          <Button
-            type="button"
-            variant={qualificationFilter === "eligible" ? "default" : "outline"}
-            size="sm"
-            className={`text-xs h-8 rounded-xl font-medium ${
-              qualificationFilter === "eligible"
-                ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                : "border-emerald-500/30 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 dark:text-emerald-400"
-            }`}
-            onClick={() => {
-              setQualificationFilter(qualificationFilter === "eligible" ? "" : "eligible");
-              setPage(1);
-            }}
-          >
-            Eligible
-          </Button>
-          <Button
-            type="button"
-            variant={qualificationFilter === "potential" ? "default" : "outline"}
-            size="sm"
-            className="text-xs h-8 rounded-xl font-medium"
-            onClick={() => {
-              setQualificationFilter(qualificationFilter === "potential" ? "" : "potential");
-              setPage(1);
-            }}
-          >
-            Potential
-          </Button>
-          <Button
-            type="button"
-            variant={qualificationFilter === "not_eligible" ? "default" : "outline"}
-            size="sm"
-            className="text-xs h-8 rounded-xl font-medium"
-            onClick={() => {
-              setQualificationFilter(qualificationFilter === "not_eligible" ? "" : "not_eligible");
-              setPage(1);
-            }}
-          >
-            Not Eligible
-          </Button>
-
-          <div className="h-4 w-px bg-border/60 mx-0.5" />
-
-          {/* Grade Filter Pills */}
-          <Button
-            type="button"
-            variant={gradeFilter === "hot" ? "default" : "outline"}
-            size="sm"
-            className={`text-xs h-8 rounded-xl font-medium ${
-              gradeFilter === "hot"
-                ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
-                : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
-            }`}
-            onClick={() => {
-              setGradeFilter(gradeFilter === "hot" ? "" : "hot");
-              setPage(1);
-            }}
-          >
-            <Zap className="h-3.5 w-3.5 mr-1 fill-emerald-500 text-emerald-500" />
-            Hot (≥ 80)
-          </Button>
-          <Button
-            type="button"
-            variant={gradeFilter === "warm" ? "default" : "outline"}
-            size="sm"
-            className={`text-xs h-8 rounded-xl font-medium ${
-              gradeFilter === "warm"
-                ? "bg-amber-600 text-white hover:bg-amber-700 shadow-xs"
-                : "border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
-            }`}
-            onClick={() => {
-              setGradeFilter(gradeFilter === "warm" ? "" : "warm");
-              setPage(1);
-            }}
-          >
-            <Zap className="h-3.5 w-3.5 mr-1 fill-amber-500 text-amber-500" />
-            Warm (60 - 79)
-          </Button>
-          <Button
-            type="button"
-            variant={gradeFilter === "cold" ? "default" : "outline"}
-            size="sm"
-            className={`text-xs h-8 rounded-xl font-medium ${
-              gradeFilter === "cold"
-                ? "bg-slate-700 text-white hover:bg-slate-800 shadow-xs"
-                : "border-slate-400/30 text-slate-700 dark:text-slate-300 bg-slate-500/10 hover:bg-slate-500/20"
-            }`}
-            onClick={() => {
-              setGradeFilter(gradeFilter === "cold" ? "" : "cold");
-              setPage(1);
-            }}
-          >
-            Cold (&lt; 60)
-          </Button>
-          <Button
-            type="button"
-            variant={gradeFilter === "unscored" ? "default" : "outline"}
-            size="sm"
-            className={`text-xs h-8 rounded-xl font-medium ${
-              gradeFilter === "unscored"
-                ? "bg-zinc-600 text-white hover:bg-zinc-700"
-                : "border-zinc-300 text-muted-foreground hover:bg-muted/40"
-            }`}
-            onClick={() => {
-              setGradeFilter(gradeFilter === "unscored" ? "" : "unscored");
-              setPage(1);
-            }}
-          >
-            Unscored
-          </Button>
-        </div>
-
+        {/* Search + Filters toggle — always visible */}
         <FilterBar>
           <FilterBarSearch
             value={search}
@@ -1612,164 +1429,369 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
             }}
             placeholder="Search company, industry, or email"
           />
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setShowFilters(!showFilters)}
             className="shrink-0"
           >
             <Filter className="h-4 w-4 mr-2" />
             {showFilters ? "Hide Filters" : "Show Filters"}
-            {hasActiveFilter && !showFilters && (
-               <Badge variant="brand" className="ml-2">Active</Badge>
+            {activeFilterCount > 0 && (
+              <Badge variant="brand" className="ml-2">{activeFilterCount}</Badge>
             )}
             {showFilters ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
           </Button>
           {hasActiveFilter ? (
             <Button variant="ghost" onClick={resetFilters}>
-              Clear
+              <X className="h-4 w-4 mr-1.5" />
+              Clear Filters
             </Button>
           ) : null}
         </FilterBar>
 
         {showFilters && (
-          <FilterBar className="bg-card/50 border-dashed">
-            <Select
-              value={funnelStageId}
-              onChange={(event) => {
-                setFunnelStageId(event.target.value);
-                setPage(1);
-              }}
-              placeholder="All stages"
-            >
-              {funnelStages.map((stage) => (
-                <option key={stage.id} value={String(stage.id)}>
-                  {stage.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={qualificationFilter}
-              onChange={(event) => {
-                setQualificationFilter(event.target.value);
-                setPage(1);
-              }}
-              placeholder="All qualifications"
-            >
-              <option value="unassessed">Unassessed (Needs Screening)</option>
-              <option value="pending">Pending</option>
-              <option value="eligible">Eligible</option>
-              <option value="potential">Potential</option>
-              <option value="not_eligible">Not eligible</option>
-            </Select>
-            <Select
-              value={gradeFilter}
-              onChange={(event) => {
-                setGradeFilter(event.target.value);
-                setPage(1);
-              }}
-              placeholder="All grades"
-            >
-              <option value="hot">Hot (Score ≥ 80)</option>
-              <option value="warm">Warm (Score 60 - 79)</option>
-              <option value="cold">Cold (Score &lt; 60)</option>
-              <option value="unscored">Unscored / No Grade</option>
-            </Select>
-            <Select
-              value={duplicateFilter}
-              onChange={(event) => {
-                setDuplicateFilter(event.target.value);
-                setPage(1);
-              }}
-              placeholder="All duplicate states"
-            >
-              <option value="new">New</option>
-              <option value="probable_duplicate">Probable duplicate</option>
-              <option value="exact_duplicate">Exact duplicate</option>
-            </Select>
-            <div className="flex items-center gap-2 border border-input rounded-xl bg-background pr-1 focus-within:border-[var(--brand)] focus-within:ring-3 focus-within:ring-[color:var(--brand)]/15">
-              <Select
-                value={ownerRoleFilter}
-                onChange={(event) => {
-                  setOwnerRoleFilter(event.target.value);
-                  setPage(1);
-                }}
-                className="w-32 border-0 focus-visible:ring-0 shadow-none bg-transparent"
-              >
-                <option value="owner_id">Sales</option>
-                <option value="presales_owner_id">Presales</option>
-                <option value="am_owner_id">Account Mgr</option>
-                <option value="csm_owner_id">CSM</option>
-              </Select>
-              <div className="w-px h-5 bg-border"></div>
-              <Select
-                value={ownerFilter}
-                onChange={(event) => {
-                  setOwnerFilter(event.target.value);
-                  setPage(1);
-                }}
-                className="border-0 focus-visible:ring-0 shadow-none bg-transparent min-w-[140px]"
-                placeholder="All members"
-              >
-                <option value="unassigned">Lead Pool</option>
-                {assignableUsers.map((user) => (
-                  <option key={user.id} value={String(user.id)}>
-                    {user.name}
-                  </option>
-                ))}
-              </Select>
+          <Card className="space-y-5 border-dashed bg-card/50 p-5">
+            {/* Quick Status */}
+            <div className="space-y-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Quick Status
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant={!qualificationFilter && !gradeFilter && !ownerFilter ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-8 rounded-xl font-medium"
+                  onClick={() => {
+                    setQualificationFilter("");
+                    setGradeFilter("");
+                    setOwnerFilter("");
+                    setPage(1);
+                  }}
+                >
+                  All Leads
+                </Button>
+                {user?.id && (
+                  <Button
+                    type="button"
+                    variant={ownerFilter === String(user.id) ? "default" : "outline"}
+                    size="sm"
+                    className={`text-xs h-8 rounded-xl font-medium ${
+                      ownerFilter === String(user.id)
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "border-blue-500/30 text-blue-600 bg-blue-500/5 hover:bg-blue-500/10 dark:text-blue-400"
+                    }`}
+                    onClick={() => {
+                      setOwnerFilter(ownerFilter === String(user.id) ? "" : String(user.id));
+                      setPage(1);
+                    }}
+                  >
+                    <UserCheck className="h-3.5 w-3.5 mr-1" />
+                    My Leads
+                  </Button>
+                )}
+
+                <div className="h-4 w-px bg-border/60 mx-0.5" />
+
+                <Button
+                  type="button"
+                  variant={qualificationFilter === "unassessed" ? "default" : "outline"}
+                  size="sm"
+                  className={`text-xs h-8 rounded-xl font-medium ${
+                    qualificationFilter === "unassessed"
+                      ? "bg-[var(--brand)] text-white hover:opacity-90"
+                      : "border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 dark:text-amber-400"
+                  }`}
+                  onClick={() => {
+                    setQualificationFilter(qualificationFilter === "unassessed" ? "" : "unassessed");
+                    setPage(1);
+                  }}
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-500" />
+                  Unassessed ({unassessedCount})
+                </Button>
+                <Button
+                  type="button"
+                  variant={qualificationFilter === "eligible" ? "default" : "outline"}
+                  size="sm"
+                  className={`text-xs h-8 rounded-xl font-medium ${
+                    qualificationFilter === "eligible"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                      : "border-emerald-500/30 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 dark:text-emerald-400"
+                  }`}
+                  onClick={() => {
+                    setQualificationFilter(qualificationFilter === "eligible" ? "" : "eligible");
+                    setPage(1);
+                  }}
+                >
+                  Eligible
+                </Button>
+                <Button
+                  type="button"
+                  variant={qualificationFilter === "potential" ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-8 rounded-xl font-medium"
+                  onClick={() => {
+                    setQualificationFilter(qualificationFilter === "potential" ? "" : "potential");
+                    setPage(1);
+                  }}
+                >
+                  Potential
+                </Button>
+                <Button
+                  type="button"
+                  variant={qualificationFilter === "not_eligible" ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs h-8 rounded-xl font-medium"
+                  onClick={() => {
+                    setQualificationFilter(qualificationFilter === "not_eligible" ? "" : "not_eligible");
+                    setPage(1);
+                  }}
+                >
+                  Not Eligible
+                </Button>
+
+                <div className="h-4 w-px bg-border/60 mx-0.5" />
+
+                <Button
+                  type="button"
+                  variant={gradeFilter === "hot" ? "default" : "outline"}
+                  size="sm"
+                  className={`text-xs h-8 rounded-xl font-medium ${
+                    gradeFilter === "hot"
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+                      : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                  }`}
+                  onClick={() => {
+                    setGradeFilter(gradeFilter === "hot" ? "" : "hot");
+                    setPage(1);
+                  }}
+                >
+                  <Zap className="h-3.5 w-3.5 mr-1 fill-emerald-500 text-emerald-500" />
+                  Hot (≥ 80)
+                </Button>
+                <Button
+                  type="button"
+                  variant={gradeFilter === "warm" ? "default" : "outline"}
+                  size="sm"
+                  className={`text-xs h-8 rounded-xl font-medium ${
+                    gradeFilter === "warm"
+                      ? "bg-amber-600 text-white hover:bg-amber-700 shadow-xs"
+                      : "border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+                  }`}
+                  onClick={() => {
+                    setGradeFilter(gradeFilter === "warm" ? "" : "warm");
+                    setPage(1);
+                  }}
+                >
+                  <Zap className="h-3.5 w-3.5 mr-1 fill-amber-500 text-amber-500" />
+                  Warm (60 - 79)
+                </Button>
+                <Button
+                  type="button"
+                  variant={gradeFilter === "cold" ? "default" : "outline"}
+                  size="sm"
+                  className={`text-xs h-8 rounded-xl font-medium ${
+                    gradeFilter === "cold"
+                      ? "bg-slate-700 text-white hover:bg-slate-800 shadow-xs"
+                      : "border-slate-400/30 text-slate-700 dark:text-slate-300 bg-slate-500/10 hover:bg-slate-500/20"
+                  }`}
+                  onClick={() => {
+                    setGradeFilter(gradeFilter === "cold" ? "" : "cold");
+                    setPage(1);
+                  }}
+                >
+                  Cold (&lt; 60)
+                </Button>
+                <Button
+                  type="button"
+                  variant={gradeFilter === "unscored" ? "default" : "outline"}
+                  size="sm"
+                  className={`text-xs h-8 rounded-xl font-medium ${
+                    gradeFilter === "unscored"
+                      ? "bg-zinc-600 text-white hover:bg-zinc-700"
+                      : "border-zinc-300 text-muted-foreground hover:bg-muted/40"
+                  }`}
+                  onClick={() => {
+                    setGradeFilter(gradeFilter === "unscored" ? "" : "unscored");
+                    setPage(1);
+                  }}
+                >
+                  Unscored
+                </Button>
+              </div>
             </div>
-            <Select
-              value={sourceFilter}
-              onChange={(event) => {
-                const nextSource = event.target.value;
-                setSourceFilter(nextSource);
-                setChannelFilter("");
-                setPage(1);
-              }}
-              placeholder="All sources"
-            >
-              {leadSources.map((source) => (
-                <option key={source.id} value={source.slug}>
-                  {source.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              value={channelFilter}
-              onChange={(event) => {
-                setChannelFilter(event.target.value);
-                setPage(1);
-              }}
-              placeholder="All channels"
-              disabled={filteredLeadChannels.length === 0}
-            >
-              {filteredLeadChannels.map((channel) => (
-                <option key={channel.id} value={String(channel.id)}>
-                  {channel.name}
-                </option>
-              ))}
-            </Select>
-            <Input
-              className="w-24"
-              inputMode="numeric"
-              value={minScore}
-              onChange={(event) => {
-                setMinScore(event.target.value);
-                setPage(1);
-              }}
-              placeholder="Min score"
-            />
-            <Input
-              className="w-24"
-              inputMode="numeric"
-              value={maxScore}
-              onChange={(event) => {
-                setMaxScore(event.target.value);
-                setPage(1);
-              }}
-              placeholder="Max score"
-            />
-          </FilterBar>
+
+            {/* Detailed Filters */}
+            <div className="space-y-2.5 border-t border-border/60 pt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Detailed Filters
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Funnel Stage</label>
+                  <Select
+                    value={funnelStageId}
+                    onChange={(event) => {
+                      setFunnelStageId(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="All stages"
+                  >
+                    {funnelStages.map((stage) => (
+                      <option key={stage.id} value={String(stage.id)}>
+                        {stage.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Qualification</label>
+                  <Select
+                    value={qualificationFilter}
+                    onChange={(event) => {
+                      setQualificationFilter(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="All qualifications"
+                  >
+                    <option value="unassessed">Unassessed (Needs Screening)</option>
+                    <option value="pending">Pending</option>
+                    <option value="eligible">Eligible</option>
+                    <option value="potential">Potential</option>
+                    <option value="not_eligible">Not eligible</option>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Grade</label>
+                  <Select
+                    value={gradeFilter}
+                    onChange={(event) => {
+                      setGradeFilter(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="All grades"
+                  >
+                    <option value="hot">Hot (Score ≥ 80)</option>
+                    <option value="warm">Warm (Score 60 - 79)</option>
+                    <option value="cold">Cold (Score &lt; 60)</option>
+                    <option value="unscored">Unscored / No Grade</option>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Duplicate Status</label>
+                  <Select
+                    value={duplicateFilter}
+                    onChange={(event) => {
+                      setDuplicateFilter(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="All duplicate states"
+                  >
+                    <option value="new">New</option>
+                    <option value="probable_duplicate">Probable duplicate</option>
+                    <option value="exact_duplicate">Exact duplicate</option>
+                  </Select>
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">Owner</label>
+                  <div className="flex items-center gap-2 border border-input rounded-xl bg-background pr-1 focus-within:border-[var(--brand)] focus-within:ring-3 focus-within:ring-[color:var(--brand)]/15">
+                    <Select
+                      value={ownerRoleFilter}
+                      onChange={(event) => {
+                        setOwnerRoleFilter(event.target.value);
+                        setPage(1);
+                      }}
+                      className="w-32 border-0 focus-visible:ring-0 shadow-none bg-transparent"
+                    >
+                      <option value="owner_id">Sales</option>
+                      <option value="presales_owner_id">Presales</option>
+                      <option value="am_owner_id">Account Mgr</option>
+                      <option value="csm_owner_id">CSM</option>
+                    </Select>
+                    <div className="w-px h-5 bg-border"></div>
+                    <Select
+                      value={ownerFilter}
+                      onChange={(event) => {
+                        setOwnerFilter(event.target.value);
+                        setPage(1);
+                      }}
+                      className="border-0 focus-visible:ring-0 shadow-none bg-transparent min-w-[140px]"
+                      placeholder="All members"
+                    >
+                      <option value="unassigned">Lead Pool</option>
+                      {assignableUsers.map((user) => (
+                        <option key={user.id} value={String(user.id)}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Source</label>
+                  <Select
+                    value={sourceFilter}
+                    onChange={(event) => {
+                      const nextSource = event.target.value;
+                      setSourceFilter(nextSource);
+                      setChannelFilter("");
+                      setPage(1);
+                    }}
+                    placeholder="All sources"
+                  >
+                    {leadSources.map((source) => (
+                      <option key={source.id} value={source.slug}>
+                        {source.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Channel</label>
+                  <Select
+                    value={channelFilter}
+                    onChange={(event) => {
+                      setChannelFilter(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="All channels"
+                    disabled={filteredLeadChannels.length === 0}
+                  >
+                    {filteredLeadChannels.map((channel) => (
+                      <option key={channel.id} value={String(channel.id)}>
+                        {channel.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Score Range</label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      inputMode="numeric"
+                      value={minScore}
+                      onChange={(event) => {
+                        setMinScore(event.target.value);
+                        setPage(1);
+                      }}
+                      placeholder="Min"
+                    />
+                    <span className="text-muted-foreground">–</span>
+                    <Input
+                      inputMode="numeric"
+                      value={maxScore}
+                      onChange={(event) => {
+                        setMaxScore(event.target.value);
+                        setPage(1);
+                      }}
+                      placeholder="Max"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
         )}
       </div>
 
