@@ -77,7 +77,7 @@ export const navItems: NavItem[] = [
     label: "Leads",
     children: [
       { href: "/leads", icon: Building2, label: "All Leads" },
-      { href: "/industries", icon: Layers, label: "By Industry" },
+      { href: "/leads/by-industry", icon: Layers, label: "By Industry" },
       { href: "/leads/trash", icon: Trash2, label: "Trash" },
     ],
   },
@@ -189,6 +189,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const visibleNavItems = useMemo(() => {
     return navItems
@@ -243,6 +244,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       .then((res) => res.json())
       .then((data) => setAppVersion(data?.version ?? null))
       .catch(() => {/* silently ignore */});
+  }, []);
+
+  // The logged-in user's role/permissions are cached in localStorage at login
+  // time and never updated after that — if an admin changes this user's role
+  // elsewhere, the sidebar/permission checks kept using the stale snapshot
+  // until the next full login. Re-sync from the server on every app load.
+  useEffect(() => {
+    apiFetch("/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.data) setUser(json.data);
+      })
+      .catch(() => {/* keep the cached user if this fails */});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
