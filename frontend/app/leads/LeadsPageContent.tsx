@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { APIProvider, AdvancedMarker, Map } from "@vis.gl/react-google-maps";
 import {
   Building2,
@@ -655,6 +655,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { setting: numberFormatSetting, formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [createNewModalConfig, setCreateNewModalConfig] = useState<{
     isOpen: boolean;
@@ -680,10 +681,41 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [productFilter] = useState(searchParams.get("product_id") ?? "");
   const [industryFilter] = useState(initialIndustryId ?? searchParams.get("industry_id") ?? "");
   const [ownerFilter, setOwnerFilter] = useState(searchParams.get("owner_id") ?? "");
-  const [ownerRoleFilter, setOwnerRoleFilter] = useState("owner_id");
+  const [ownerRoleFilter, setOwnerRoleFilter] = useState(searchParams.get("owner_role") || "owner_id");
   const [showFilters, setShowFilters] = useState(false);
   const [minScore, setMinScore] = useState(searchParams.get("min_score") ?? "");
   const [maxScore, setMaxScore] = useState(searchParams.get("max_score") ?? "");
+
+  // Keep the current filters mirrored into the URL query string — filters
+  // only ever read their *initial* value from searchParams on mount, so
+  // without this a refresh reloaded the same URL the page started on (no
+  // filters) and silently reset everything. router.replace + scroll:false
+  // avoids growing browser history or jumping scroll position on every
+  // keystroke/selection.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (funnelStageId) params.set("funnel_stage_id", funnelStageId);
+    if (qualificationFilter) params.set("qualification_status", qualificationFilter);
+    if (gradeFilter) params.set("grade", gradeFilter);
+    if (duplicateFilter) params.set("duplicate_status", duplicateFilter);
+    if (sourceFilter) params.set("source_type", sourceFilter);
+    if (channelFilter) params.set("channel_type_id", channelFilter);
+    if (ownerFilter) {
+      params.set("owner_id", ownerFilter);
+      if (ownerRoleFilter !== "owner_id") params.set("owner_role", ownerRoleFilter);
+    }
+    if (minScore) params.set("min_score", minScore);
+    if (maxScore) params.set("max_score", maxScore);
+    // Only relevant on the plain /leads route — the dedicated
+    // /leads/industry/[id] route carries the industry in its path instead.
+    if (industryFilter && pathname === "/leads") params.set("industry_id", industryFilter);
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, funnelStageId, qualificationFilter, gradeFilter, duplicateFilter, sourceFilter, channelFilter, ownerFilter, ownerRoleFilter, minScore, maxScore]);
+
   const [feedback, setFeedback] = useState("");
   const [formError, setFormError] = useState("");
   const [formState, setFormState] = useState<LeadFormState>(emptyForm);
@@ -789,23 +821,32 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     },
   });
 
+  // Shared by the leads list query and Export, so "Export" always downloads
+  // exactly what's currently filtered on screen instead of drifting from it.
+  const buildLeadFilterParams = () => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (funnelStageId) params.set("funnel_stage_id", funnelStageId);
+    if (funnelMinSequence) params.set("funnel_min_sequence", funnelMinSequence);
+    if (qualificationFilter) params.set("qualification_status", qualificationFilter);
+    if (gradeFilter) params.set("grade", gradeFilter);
+    if (duplicateFilter) params.set("duplicate_status", duplicateFilter);
+    if (sourceFilter) params.set("source_type", sourceFilter);
+    if (channelFilter) params.set("channel_type_id", channelFilter);
+    if (productFilter) params.set("product_id", productFilter);
+    if (industryFilter) params.set("industry_id", industryFilter);
+    if (ownerFilter) params.set(ownerRoleFilter || "owner_id", ownerFilter);
+    if (minScore) params.set("min_score", minScore);
+    if (maxScore) params.set("max_score", maxScore);
+    return params;
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ["leads", page, perPage, search, funnelStageId, funnelMinSequence, qualificationFilter, gradeFilter, duplicateFilter, sourceFilter, channelFilter, productFilter, industryFilter, ownerFilter, ownerRoleFilter, minScore, maxScore],
     queryFn: async () => {
-      const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
-      if (search) params.set("search", search);
-      if (funnelStageId) params.set("funnel_stage_id", funnelStageId);
-      if (funnelMinSequence) params.set("funnel_min_sequence", funnelMinSequence);
-      if (qualificationFilter) params.set("qualification_status", qualificationFilter);
-      if (gradeFilter) params.set("grade", gradeFilter);
-      if (duplicateFilter) params.set("duplicate_status", duplicateFilter);
-      if (sourceFilter) params.set("source_type", sourceFilter);
-      if (channelFilter) params.set("channel_type_id", channelFilter);
-      if (productFilter) params.set("product_id", productFilter);
-      if (industryFilter) params.set("industry_id", industryFilter);
-      if (ownerFilter) params.set(ownerRoleFilter || "owner_id", ownerFilter);
-      if (minScore) params.set("min_score", minScore);
-      if (maxScore) params.set("max_score", maxScore);
+      const params = buildLeadFilterParams();
+      params.set("page", String(page));
+      params.set("per_page", String(perPage));
       const response = await apiFetch(`/leads?${params.toString()}`);
       return response.json();
     },
@@ -1207,7 +1248,8 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
 
   const handleExport = async () => {
     try {
-      const response = await apiFetch("/leads/export");
+      const params = buildLeadFilterParams();
+      const response = await apiFetch(`/leads/export?${params.toString()}`);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
