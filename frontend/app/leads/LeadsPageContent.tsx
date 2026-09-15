@@ -587,6 +587,38 @@ function primarySourceSlug(lead: LeadRecord) {
   return lead.sources?.[0]?.source_type ?? "";
 }
 
+/**
+ * Best-effort "City, Province" extracted from the lead's address — the same
+ * formatted address text that gets filled in when a location pin is picked
+ * on the map, so this doubles as the pin's location without a separate
+ * reverse-geocode call per row.
+ */
+function extractLocation(address?: string | null): string | null {
+  if (!address) return null;
+
+  const parts = address
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length && /^indonesia$/i.test(parts[parts.length - 1])) {
+    parts.pop();
+  }
+  if (parts.length) {
+    parts[parts.length - 1] = parts[parts.length - 1].replace(/\s*\d{4,6}$/, "").trim();
+  }
+  if (parts.length === 0) return null;
+
+  const province = parts[parts.length - 1] || null;
+  const cityPart = [...parts].reverse().find((part) => /^(kota|kabupaten)\s+/i.test(part));
+  const city = cityPart ? cityPart.replace(/^(kota|kabupaten)\s+/i, "") : null;
+
+  if (city && province && city.toLowerCase() !== province.toLowerCase()) {
+    return `${city}, ${province}`;
+  }
+  return province;
+}
+
 function primaryChannelId(lead: LeadRecord) {
   return lead.sources?.[0]?.channel_type_id ?? lead.sources?.[0]?.channel_type?.id ?? null;
 }
@@ -1818,6 +1850,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                 )}
                 <TableHeaderCell className="min-w-[220px]">Company</TableHeaderCell>
                 <TableHeaderCell className="min-w-[140px]">Industry</TableHeaderCell>
+                <TableHeaderCell className="min-w-[160px]">Location</TableHeaderCell>
                 <TableHeaderCell className="w-[90px]">Score</TableHeaderCell>
                 <TableHeaderCell className="w-[120px]">Qualification</TableHeaderCell>
                 <TableHeaderCell className="min-w-[140px]">Owner</TableHeaderCell>
@@ -1827,12 +1860,12 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
             </TableHead>
             <TableBody>
               {isLoading ? (
-                <TableEmpty colSpan={7}>
+                <TableEmpty colSpan={8}>
                   <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                   Loading leads...
                 </TableEmpty>
               ) : leads.length === 0 ? (
-                <TableEmpty colSpan={user?.role?.name === "super_admin" ? 8 : 7}>No leads found.</TableEmpty>
+                <TableEmpty colSpan={user?.role?.name === "super_admin" ? 9 : 8}>No leads found.</TableEmpty>
               ) : (
                 leads.map((lead) => (
                   <TableRow key={lead.id}>
@@ -1868,6 +1901,16 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                       <span className="text-sm text-muted-foreground">
                         {lead.industry?.name ?? allIndustries.find((i) => i.id === lead.industry_id)?.name ?? "—"}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      {extractLocation(lead.address) ? (
+                        <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5 shrink-0 text-[color:var(--brand)]" />
+                          {extractLocation(lead.address)}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {lead.lead_score !== null && lead.lead_score !== undefined ? (
