@@ -667,7 +667,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
 
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(25);
+  const [perPage, setPerPage] = useState(10);
   const [funnelStageId, setFunnelStageId] = useState(searchParams.get("funnel_stage_id") ?? "");
   const funnelMinSequence = searchParams.get("funnel_min_sequence") ?? "";
   const [qualificationFilter, setQualificationFilter] = useState(
