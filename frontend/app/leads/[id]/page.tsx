@@ -14,7 +14,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import {
   ArrowLeft, Plus, Zap, TrendingUp, MessageSquare, Calendar,
   AlertCircle, CheckCircle, XCircle, Clock, User, FileText, Loader2,
-  Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown,
+  Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown, ChevronUp,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
   Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, Link as LinkIcon
@@ -958,6 +958,80 @@ export default function LeadDetailPage() {
   );
 
   const invalidateLead = () => qc.invalidateQueries({ queryKey: ['lead', leadId] });
+
+  /* ── AI Actions bar (superadmin-only) — mirrors the AI Testing Console's
+     re-run buttons so re-running a stuck/failed function doesn't require
+     leaving the lead's own page. Every endpoint below is also gated
+     server-side to super_admin, not just hidden here. ── */
+  const [aiActionsOpen, setAiActionsOpen] = useState(false);
+  const [aiActionsFeedback, setAiActionsFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [aiPipelineRunning, setAiPipelineRunning] = useState(false);
+
+  const useAiActionMutation = (endpoint: string, successLabel: string) =>
+    useMutation({
+      mutationFn: async () => {
+        const res = await apiFetch(`/leads/${leadId}${endpoint}`, { method: 'POST' });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.message || body?.error || `Failed: ${endpoint}`);
+        return body;
+      },
+      onSuccess: () => {
+        setAiActionsFeedback({ type: 'success', msg: `${successLabel} dispatched.` });
+        invalidateLead();
+      },
+      onError: (err: any) => setAiActionsFeedback({ type: 'error', msg: err.message }),
+    });
+
+  const aiEnrichMutation = useAiActionMutation('/enrich/retry', 'Enrichment');
+  const aiVerificationMutation = useAiActionMutation('/verification/run', 'Company Verification');
+  const aiProfilingMutation = useAiActionMutation('/run-profiling-strategy', 'Profiling & Strategy + Product Matching');
+  const aiRescoreMutation = useAiActionMutation('/rescore', 'Scoring + ICP + Qualification');
+  const aiAnalysisMutation = useAiActionMutation('/revenue-analysis', 'Lead Analysis');
+  const aiBantcMutation = useAiActionMutation('/bantc-questions/generate', 'BANTC Questions');
+
+  const runAiFullPipeline = async () => {
+    setAiPipelineRunning(true);
+    setAiActionsFeedback({ type: 'success', msg: 'Starting full 9-stage pipeline...' });
+    try {
+      const dispatchRes = await apiFetch(`/leads/${leadId}/ai-screening/dispatch`, { method: 'POST' });
+      const dispatchJson = await dispatchRes.json();
+      if (!dispatchRes.ok || !dispatchJson.success) {
+        throw new Error(dispatchJson?.error || dispatchJson?.message || 'Failed to start pipeline.');
+      }
+
+      let done = false;
+      let attempts = 0;
+      const maxAttempts = 300; // 300 * 2s = 10 minutes, matches the backend job timeout
+      while (!done && attempts < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 2000));
+        attempts++;
+        if (attempts % 5 === 0) {
+          setAiActionsFeedback({ type: 'success', msg: `Running full 9-stage pipeline... (${attempts * 2}s elapsed)` });
+        }
+        const statusRes = await apiFetch(`/leads/${leadId}/ai-screening/status`);
+        if (statusRes.ok) {
+          const statusJson = await statusRes.json();
+          if (statusJson.status === 'completed') {
+            done = true;
+            setAiActionsFeedback({
+              type: 'success',
+              msg: `Full pipeline completed. Score: ${statusJson.data?.lead_score ?? '—'} (${statusJson.data?.qualification_status ?? '—'}).`,
+            });
+          } else if (statusJson.status === 'failed') {
+            throw new Error(statusJson.error || 'Pipeline failed on server.');
+          }
+        }
+      }
+      if (!done) {
+        setAiActionsFeedback({ type: 'error', msg: 'Pipeline timed out after 10 minutes; it may still complete in the background.' });
+      }
+      invalidateLead();
+    } catch (err: any) {
+      setAiActionsFeedback({ type: 'error', msg: err.message });
+    } finally {
+      setAiPipelineRunning(false);
+    }
+  };
 
   const runIntelligenceMutation = useMutation({
     mutationFn: async () => {
@@ -2501,6 +2575,70 @@ export default function LeadDetailPage() {
       {/* ── INTELLIGENCE TAB ── */}
       {activeTab === 'intelligence' && (
         <div className="space-y-6">
+
+          {/* ── AI ACTIONS BAR (superadmin-only) ── */}
+          {isSuperAdmin && (
+            <div className="rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_5%,transparent)] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setAiActionsOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold text-[var(--brand)]">
+                  <Zap className="h-4 w-4" />
+                  AI Actions
+                  <Badge variant="outline" className="text-[10px]">Superadmin</Badge>
+                </span>
+                {aiActionsOpen ? <ChevronUp className="h-4 w-4 text-[var(--brand)]" /> : <ChevronDown className="h-4 w-4 text-[var(--brand)]" />}
+              </button>
+
+              {aiActionsOpen && (
+                <div className="border-t border-[var(--brand)]/20 p-4 space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button variant="outline" size="sm" onClick={() => aiEnrichMutation.mutate()} disabled={aiEnrichMutation.isPending} className="justify-start">
+                      {aiEnrichMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                      Re-run Enrichment
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => aiVerificationMutation.mutate()} disabled={aiVerificationMutation.isPending} className="justify-start">
+                      {aiVerificationMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Building2 className="h-3.5 w-3.5" />}
+                      Re-run Company Verification
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => aiProfilingMutation.mutate()} disabled={aiProfilingMutation.isPending} className="justify-start">
+                      {aiProfilingMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5" />}
+                      Re-run Profiling & Strategy + Product Matching
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => aiRescoreMutation.mutate()} disabled={aiRescoreMutation.isPending} className="justify-start">
+                      {aiRescoreMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                      Re-run Scoring + ICP + Qualification
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => aiAnalysisMutation.mutate()} disabled={aiAnalysisMutation.isPending} className="justify-start">
+                      {aiAnalysisMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                      Re-run Lead Analysis
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => aiBantcMutation.mutate()} disabled={aiBantcMutation.isPending} className="justify-start">
+                      {aiBantcMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5" />}
+                      Re-run BANTC Questions
+                    </Button>
+                  </div>
+
+                  <Button
+                    onClick={runAiFullPipeline}
+                    disabled={aiPipelineRunning}
+                    className="w-full gap-2 bg-[var(--brand)] text-white hover:opacity-90"
+                  >
+                    {aiPipelineRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    {aiPipelineRunning ? 'Running Full Pipeline...' : 'Run Full Pipeline (All 9 Functions)'}
+                  </Button>
+
+                  {aiActionsFeedback && (
+                    <p className={`text-xs ${aiActionsFeedback.type === 'success' ? 'text-[var(--status-success)]' : 'text-[var(--status-danger)]'}`}>
+                      {aiActionsFeedback.msg}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ── BANTC QUALIFICATION & ELIGIBILITY STATUS HERO CARD ── */}
           <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">

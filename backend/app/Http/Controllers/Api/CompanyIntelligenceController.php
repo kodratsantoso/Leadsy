@@ -38,8 +38,10 @@ class CompanyIntelligenceController extends Controller
     /**
      * POST /api/leads/{lead}/verification/run
      */
-    public function runVerification(Lead $lead): JsonResponse
+    public function runVerification(Request $request, Lead $lead): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         // 1. Resolve & Verify legal entity
         $verification = $this->verificationService->verifyLead($lead);
 

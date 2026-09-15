@@ -307,6 +307,8 @@ class LeadController extends Controller
 
     public function generateBantcQuestions(Request $request, Lead $lead): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
             abort(403);
         }
@@ -935,8 +937,10 @@ class LeadController extends Controller
     }
 
     /** POST /api/leads/{lead}/rescore */
-    public function rescore(Lead $lead): JsonResponse
+    public function rescore(Request $request, Lead $lead): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         // Run scoring synchronously — no dedicated queue worker in this deployment.
         // ScoreLeadJob is preserved for background use; manual rescore executes inline.
         try {
@@ -1483,6 +1487,8 @@ class LeadController extends Controller
     /** POST /api/leads/{lead}/run-profiling-strategy — Consolidated AI Profiling and Strategy */
     public function runProfilingStrategy(Request $request, Lead $lead): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         $service = app(\App\Services\Lead\LeadProfilingAndStrategyService::class);
         $result = $service->profileAndStrategize($lead, $request->user()?->id);
 
@@ -2151,8 +2157,10 @@ class LeadController extends Controller
     }
 
     /** POST /api/leads/{lead}/revenue-analysis — Run Revenue Intelligence Analyst AI */
-    public function runRevenueAnalysis(Lead $lead, RevenueIntelligenceAnalysisService $service): JsonResponse
+    public function runRevenueAnalysis(Request $request, Lead $lead, RevenueIntelligenceAnalysisService $service): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         $analysis = $service->analyze($lead);
 
         AuditService::log('revenue_analysis', 'leads', $lead, null, [
