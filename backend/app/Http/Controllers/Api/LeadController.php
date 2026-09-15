@@ -44,19 +44,12 @@ class LeadController extends Controller
         private readonly LeadDiscoveryService $discovery,
     ) {}
 
-    /** GET /api/leads */
-    public function index(Request $request): JsonResponse
+    /**
+     * Shared filter set for the leads list and CSV export — keeps them from
+     * silently drifting apart (export used to only understand 3 of these).
+     */
+    private function applyLeadFilters($query, Request $request): void
     {
-        $query = Lead::visibleTo($request->user())
-            ->with([
-                'industry', 'subIndustry', 'businessCategory', 'funnelStage',
-                'owner', 'presalesOwner', 'amOwner', 'csmOwner',
-                'territory', 'product', 'sources.channelType',
-                'parentLead:id,company_name',
-                'contacts' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
-            ]);
-
-        // Filters
         if ($request->get('industry_id') === 'unassigned') {
             $query->whereNull('industry_id');
         } elseif ($request->filled('industry_id')) {
@@ -193,6 +186,22 @@ class LeadController extends Controller
                     ->orWhere('email', 'ilike', $s);
             });
         }
+    }
+
+    /** GET /api/leads */
+    public function index(Request $request): JsonResponse
+    {
+        $query = Lead::visibleTo($request->user())
+            ->with([
+                'industry', 'subIndustry', 'businessCategory', 'funnelStage',
+                'owner', 'presalesOwner', 'amOwner', 'csmOwner',
+                'territory', 'product', 'sources.channelType',
+                'parentLead:id,company_name',
+                'contacts' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
+            ]);
+
+        // Filters
+        $this->applyLeadFilters($query, $request);
 
         // Sorting
         $sortField = $request->get('sort', 'created_at');
@@ -1330,34 +1339,14 @@ class LeadController extends Controller
     /** GET /api/leads/export — CSV export */
     public function export(Request $request): StreamedResponse
     {
-        $query = Lead::with(['industry', 'funnelStage', 'product']);
+        // Same visibility scoping + filters as the list view, so "Export"
+        // downloads exactly what's currently on screen — it used to ignore
+        // most filters (and everyone's tenant/role visibility scope) and
+        // just dump every lead in the database.
+        $query = Lead::visibleTo($request->user())
+            ->with(['industry', 'funnelStage', 'product', 'owner', 'sources.channelType']);
 
-        if ($request->filled('industry_id')) {
-            $query->where('industry_id', $request->industry_id);
-        }
-        if ($request->filled('qualification_status')) {
-            if ($request->qualification_status === 'unassessed') {
-                $query->where(function ($q) {
-                    $q->whereNull('qualification_status')
-                        ->orWhere('qualification_status', 'pending')
-                        ->orWhereNull('lead_score');
-                })->whereNotIn('qualification_status', ['not_eligible', 'disqualified']);
-            } else {
-                $query->where('qualification_status', $request->qualification_status);
-            }
-        }
-        if ($request->filled('grade')) {
-            $grade = strtolower($request->grade);
-            if ($grade === 'hot' || $grade === 'a') {
-                $query->where('lead_score', '>=', 80);
-            } elseif ($grade === 'warm' || $grade === 'b') {
-                $query->whereBetween('lead_score', [60, 79]);
-            } elseif ($grade === 'cold' || $grade === 'c') {
-                $query->where('lead_score', '<', 60)->whereNotNull('lead_score');
-            } elseif ($grade === 'unscored' || $grade === 'none' || $grade === 'unassessed') {
-                $query->whereNull('lead_score');
-            }
-        }
+        $this->applyLeadFilters($query, $request);
 
         $leads = $query->orderBy('lead_score', 'desc')->get();
 
@@ -1371,22 +1360,101 @@ class LeadController extends Controller
         return response()->stream(function () use ($leads) {
             $out = fopen('php://output', 'w');
             fputcsv($out, [
-                'ID', 'Company', 'Address', 'Industry', 'Email', 'Phone',
-                'Score', 'Status', 'Funnel Stage', 'Product', 'Created',
+                'ID', 'Company', 'Brand', 'Industry', 'Location', 'Address',
+                'Website', 'Phone', 'Email', 'Score', 'Grade', 'Qualification Status',
+                'Funnel Stage', 'Product', 'Owner Name', 'Owner Email',
+                'Source', 'Channel', 'Duplicate Status',
+                'Estimated Closing Amount', 'Realized Closing Amount', 'Created',
             ]);
 
             foreach ($leads as $lead) {
+                $primarySource = $lead->sources->first();
+
                 fputcsv($out, [
-                    $lead->id, $lead->company_name, $lead->address,
-                    $lead->industry?->name, $lead->email, $lead->phone,
-                    $lead->lead_score, $lead->qualification_status,
-                    $lead->funnelStage?->name, $lead->product?->name,
+                    $lead->id,
+                    $lead->company_name,
+                    $lead->brand,
+                    $lead->industry?->name,
+                    $this->extractLocationForExport($lead->address),
+                    $lead->address,
+                    $lead->website,
+                    $lead->phone,
+                    $lead->email,
+                    $lead->lead_score,
+                    self::gradeForScoreExport($lead->lead_score),
+                    $lead->qualification_status,
+                    $lead->funnelStage?->name,
+                    $lead->product?->name,
+                    $lead->owner?->name,
+                    $lead->owner?->email,
+                    $primarySource?->source_type,
+                    $primarySource?->channelType?->name,
+                    $lead->duplicate_status,
+                    $lead->estimated_closing_amount,
+                    $lead->realized_closing_amount,
                     $lead->created_at?->toDateTimeString(),
                 ]);
             }
 
             fclose($out);
         }, 200, $headers);
+    }
+
+    /**
+     * Best-effort "City, Province" from a free-text address — mirrors
+     * extractLocation() in frontend/app/leads/LeadsPageContent.tsx so the
+     * exported Location column matches what the Leads table shows.
+     */
+    private function extractLocationForExport(?string $address): ?string
+    {
+        if (empty($address)) {
+            return null;
+        }
+
+        $parts = array_values(array_filter(array_map('trim', explode(',', $address)), fn ($p) => $p !== ''));
+        if (empty($parts)) {
+            return null;
+        }
+
+        $last = count($parts) - 1;
+        if (strtolower($parts[$last]) === 'indonesia') {
+            array_pop($parts);
+            $last--;
+        }
+        if ($last >= 0) {
+            $parts[$last] = trim(preg_replace('/\s*\d{4,6}$/', '', $parts[$last]));
+        }
+        if (empty($parts)) {
+            return null;
+        }
+
+        $province = end($parts);
+        $city = null;
+        foreach (array_reverse($parts) as $part) {
+            if (preg_match('/^(kota|kabupaten)\s+(.+)$/i', $part, $m)) {
+                $city = $m[2];
+                break;
+            }
+        }
+
+        if ($city && strcasecmp($city, $province) !== 0) {
+            return "{$city}, {$province}";
+        }
+
+        return $province;
+    }
+
+    private static function gradeForScoreExport(?int $score): ?string
+    {
+        if ($score === null) {
+            return null;
+        }
+
+        return match (true) {
+            $score >= 80 => 'Hot',
+            $score >= 60 => 'Warm',
+            default => 'Cold',
+        };
     }
 
     /* ═══════════════════════════════════════════════════════════ */
