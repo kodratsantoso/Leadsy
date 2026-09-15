@@ -47,11 +47,17 @@ class LeadProductMatchingService
         $runError = null;
 
         try {
+            // One AI call for every active product instead of one call PER
+            // product — with 8 active products at ~40s each that used to make
+            // this single stage alone take 5-7 minutes, blowing through the
+            // Pre-Meeting pipeline's overall timeout on its own.
+            $batch = $this->runBatchAiAnalysis($context, $products);
+            $aiCalls = $batch['ai_called'] ? 1 : 0;
+            $totalCost = $batch['cost'];
+
             foreach ($products as $product) {
-                $result = $this->matchLeadToProduct($lead, $product, $context);
-                $matches[] = $result['match'];
-                $aiCalls += $result['ai_called'] ? 1 : 0;
-                $totalCost += $result['cost'];
+                $aiResult = $batch['results'][$product->id] ?? $this->defaultAiResult();
+                $matches[] = $this->persistMatch($lead, $product, $context, $aiResult);
             }
         } catch (\Throwable $e) {
             $runStatus = 'failed';
@@ -226,23 +232,22 @@ class LeadProductMatchingService
      * ══════════════════════════════════════════════════════════════════ */
 
     /**
-     * Match a single lead→product using hybrid rule + AI BANT analysis.
+     * Persist a single lead→product match, combining the rule-based score
+     * with the AI BANT result for this product (already fetched as part of
+     * the batched analysis across all active products).
      */
-    private function matchLeadToProduct(Lead $lead, Product $product, array $ctx): array
+    private function persistMatch(Lead $lead, Product $product, array $ctx, array $aiResult): \App\Models\LeadProductMatch
     {
         // 1. Rule-based base score
         $ruleScore = $this->calculateRuleBasedScore($ctx, $product);
 
-        // 2. AI-powered BANT + Competitor analysis
-        $aiResult = $this->runAiAnalysis($ctx, $product);
+        // 2. AI-powered BANT + Competitor analysis (from the batch result)
         $aiScore = $aiResult['score'] ?? 50;
         $bant = $aiResult['bant'] ?? [];
         $reasoning = $aiResult['reasoning'] ?? [];
         $approach = $aiResult['recommended_approach'] ?? '';
         $competitor = $aiResult['competitor_context'] ?? '';
         $confidence = $aiResult['confidence'] ?? 50;
-        $aiCalled = $aiResult['ai_called'] ?? false;
-        $cost = $aiResult['cost'] ?? 0.0;
         $provider = $aiResult['provider'] ?? null;
         $model = $aiResult['model'] ?? null;
 
@@ -286,7 +291,7 @@ class LeadProductMatchingService
             ]));
         }
 
-        return ['match' => $match, 'ai_called' => $aiCalled, 'cost' => $cost];
+        return $match;
     }
 
     /* ══════════════════════════════════════════════════════════════════
@@ -367,54 +372,84 @@ class LeadProductMatchingService
      * AI BANT + COMPETITOR ANALYSIS
      * ══════════════════════════════════════════════════════════════════ */
 
-    private function runAiAnalysis(array $ctx, Product $product): array
+    /**
+     * Run BANT + competitor analysis for every active product in a single
+     * AI call, instead of one call per product.
+     *
+     * @param  \Illuminate\Support\Collection<int, Product>  $products
+     * @return array{results: array<int, array>, ai_called: bool, cost: float}
+     */
+    private function runBatchAiAnalysis(array $ctx, $products): array
     {
-        $prompt = $this->buildPrompt($ctx, $product);
+        if ($products->isEmpty()) {
+            return ['results' => [], 'ai_called' => false, 'cost' => 0.0];
+        }
+
+        $prompt = $this->buildBatchPrompt($ctx, $products);
 
         $aiResult = $this->ai->call('product_matching', $prompt, [
-            'entity_type' => 'lead_product_match',
-            'entity_id' => ($ctx['company_name'] ?? '').'_'.$product->id,
+            'entity_type' => 'lead_product_match_batch',
+            'entity_id' => (string) ($ctx['company_name'] ?? ''),
         ]);
 
         if (! $aiResult['success'] || empty($aiResult['content'])) {
-            return [
-                'score' => 50,
-                'bant' => [],
-                'reasoning' => ['AI analysis unavailable — rule-based score used.'],
-                'ai_called' => true,
-                'cost' => 0,
-            ];
+            return ['results' => [], 'ai_called' => true, 'cost' => 0.0];
         }
 
         $parsed = json_decode($aiResult['content'], true);
+        $cost = (float) ($aiResult['cost'] ?? 0);
 
-        if (! is_array($parsed)) {
-            return [
-                'score' => 50,
-                'reasoning' => ['AI returned non-JSON content — using default.'],
+        if (! is_array($parsed) || ! is_array($parsed['matches'] ?? null)) {
+            return ['results' => [], 'ai_called' => true, 'cost' => $cost];
+        }
+
+        $results = [];
+        foreach ($parsed['matches'] as $entry) {
+            $productId = (int) ($entry['product_id'] ?? 0);
+            if (! $productId) {
+                continue;
+            }
+
+            $results[$productId] = [
+                'score' => min(100, max(0, (int) ($entry['match_score'] ?? 50))),
+                'bant' => $entry['bant_analysis'] ?? [],
+                'reasoning' => $entry['reasoning'] ?? [],
+                'recommended_approach' => $entry['recommended_approach'] ?? '',
+                'competitor_context' => $entry['competitor_context'] ?? '',
+                'confidence' => min(100, max(0, (int) ($entry['confidence_score'] ?? 50))),
                 'ai_called' => true,
-                'cost' => (float) ($aiResult['cost'] ?? 0),
+                'provider' => $aiResult['provider'] ?? null,
+                'model' => $aiResult['model'] ?? null,
             ];
         }
 
+        return ['results' => $results, 'ai_called' => true, 'cost' => $cost];
+    }
+
+    /**
+     * Fallback per-product result when the batch AI call fails entirely, or
+     * a specific product is missing from its response — matches the shape
+     * runBatchAiAnalysis() would have produced for that product.
+     */
+    private function defaultAiResult(): array
+    {
         return [
-            'score' => min(100, max(0, (int) ($parsed['match_score'] ?? 50))),
-            'bant' => $parsed['bant_analysis'] ?? [],
-            'reasoning' => $parsed['reasoning'] ?? [],
-            'recommended_approach' => $parsed['recommended_approach'] ?? '',
-            'competitor_context' => $parsed['competitor_context'] ?? '',
-            'confidence' => min(100, max(0, (int) ($parsed['confidence_score'] ?? 50))),
-            'ai_called' => true,
-            'cost' => (float) ($aiResult['cost'] ?? 0),
-            'provider' => $aiResult['provider'] ?? null,
-            'model' => $aiResult['model'] ?? null,
+            'score' => 50,
+            'bant' => [],
+            'reasoning' => ['AI analysis unavailable — rule-based score used.'],
+            'ai_called' => false,
+            'cost' => 0.0,
         ];
     }
 
-    private function buildPrompt(array $ctx, Product $product): string
+    /**
+     * @param  \Illuminate\Support\Collection<int, Product>  $products
+     */
+    private function buildBatchPrompt(array $ctx, $products): string
     {
         $ctxJson = json_encode($ctx, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        $productJson = json_encode([
+        $productsJson = json_encode($products->map(fn (Product $product) => [
+            'product_id' => $product->id,
             'name' => $product->name,
             'category' => $product->category,
             'description' => $product->description,
@@ -435,19 +470,19 @@ class LeadProductMatchingService
                 'subscription_duration' => $t->subscription_duration_value.' '.$t->subscription_duration_unit,
                 'features' => $t->features,
             ]),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        ])->values(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
         return <<<PROMPT
-You are a B2B sales intelligence engine. Evaluate the fit between a lead and a product using BANT and competitor analysis.
+You are a B2B sales intelligence engine. Evaluate the fit between a lead and EACH of the products listed below, using BANT and competitor analysis. Score every product independently — do not skip any.
 
-## PRODUCT
-{$productJson}
+## PRODUCTS
+{$productsJson}
 
 ## LEAD CONTEXT
 {$ctxJson}
 
 ## TASK
-Analyze the BANT qualification variables and competitor context, then score the product-to-lead fit.
+For every product in the PRODUCTS array, analyze the BANT qualification variables and competitor context, then score the product-to-lead fit.
 
 BANT Framework:
 - Budget: Does the lead's size, industry, and signals suggest they can afford this product?
@@ -456,26 +491,31 @@ BANT Framework:
 - Timeline: Do engagement signals (activity frequency, urgency level, buying signals) suggest readiness to buy?
 - Competitor: Are there signals of competitor product usage that this product can displace?
 
-Return ONLY valid JSON — no markdown, no explanation outside JSON:
+Return ONLY valid JSON — no markdown, no explanation outside JSON. Include exactly one entry per product_id from the PRODUCTS array:
 {
-  "match_score": 0-100,
-  "match_level": "strong | moderate | weak",
-  "confidence_score": 0-100,
-  "bant_analysis": {
-    "budget": "Assessment of budget fit",
-    "authority": "Assessment of decision-maker access",
-    "need": "Assessment of need alignment",
-    "timeline": "Assessment of purchase timeline readiness",
-    "competitor": "Competitor context and displacement opportunity"
-  },
-  "reasoning": [
-    "Specific reason 1",
-    "Specific reason 2",
-    "Specific reason 3"
-  ],
-  "recommended_approach": "Specific sales approach for this lead-product combination",
-  "competitor_context": "Current tools or competitors identified and displacement strategy",
-  "missing_information": ["field1", "field2"]
+  "matches": [
+    {
+      "product_id": 0,
+      "match_score": 0-100,
+      "match_level": "strong | moderate | weak",
+      "confidence_score": 0-100,
+      "bant_analysis": {
+        "budget": "Assessment of budget fit",
+        "authority": "Assessment of decision-maker access",
+        "need": "Assessment of need alignment",
+        "timeline": "Assessment of purchase timeline readiness",
+        "competitor": "Competitor context and displacement opportunity"
+      },
+      "reasoning": [
+        "Specific reason 1",
+        "Specific reason 2",
+        "Specific reason 3"
+      ],
+      "recommended_approach": "Specific sales approach for this lead-product combination",
+      "competitor_context": "Current tools or competitors identified and displacement strategy",
+      "missing_information": ["field1", "field2"]
+    }
+  ]
 }
 PROMPT;
     }
