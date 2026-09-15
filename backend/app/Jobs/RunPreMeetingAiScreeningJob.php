@@ -17,7 +17,12 @@ class RunPreMeetingAiScreeningJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
-    public int $timeout = 180;
+    // 9 sequential AI-calling stages at ~15-30s each can add up well past 3
+    // minutes — this used to be 180s, which killed the job mid-run before
+    // it ever reached the later stages (Lead Analysis, Product Matching,
+    // BANTC Questions), regardless of how long the frontend was willing to
+    // poll.
+    public int $timeout = 600;
 
     public function __construct(
         public readonly int $leadId,

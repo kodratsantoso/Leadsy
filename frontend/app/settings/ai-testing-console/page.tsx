@@ -120,10 +120,15 @@ function SingleLeadDebugTab() {
 
       let done = false;
       let attempts = 0;
-      const maxAttempts = 90;
+      // 9 sequential AI-calling stages can take several minutes end-to-end —
+      // matches the backend job's own 600s timeout (RunPreMeetingAiScreeningJob).
+      const maxAttempts = 300;
       while (!done && attempts < maxAttempts) {
         await new Promise((r) => setTimeout(r, 2000));
         attempts++;
+        if (attempts % 5 === 0) {
+          setFeedback({ type: "success", msg: `Running full 9-stage pipeline... (${attempts * 2}s elapsed)` });
+        }
         const statusRes = await apiFetch(`/leads/${selected.id}/ai-screening/status`);
         if (statusRes.ok) {
           const statusJson = await statusRes.json();
@@ -139,7 +144,7 @@ function SingleLeadDebugTab() {
         }
       }
       if (!done) {
-        setFeedback({ type: "error", msg: "Pipeline timed out after 180 seconds; it may still complete in the background." });
+        setFeedback({ type: "error", msg: "Pipeline timed out after 10 minutes; it may still complete in the background." });
       }
       invalidate();
     } catch (err: any) {

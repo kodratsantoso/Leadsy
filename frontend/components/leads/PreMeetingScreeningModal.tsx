@@ -209,10 +209,12 @@ export function PreMeetingScreeningModal({
           throw new Error(dispatchJson?.error || dispatchJson?.message || `Failed to start screening (${dispatchRes.status})`);
         }
 
-        // Poll status every 2 seconds until completed or max timeout (180 seconds)
+        // Poll status every 2 seconds until completed or max timeout (10 minutes) —
+        // matches the backend job's own 600s timeout; 9 sequential AI-calling
+        // stages can easily run past 3 minutes.
         let isDone = false;
         let pollAttempts = 0;
-        const maxAttempts = 90; // 90 * 2000ms = 180s
+        const maxAttempts = 300; // 300 * 2000ms = 600s
         let completedData: any = null;
 
         while (!isDone && pollAttempts < maxAttempts) {

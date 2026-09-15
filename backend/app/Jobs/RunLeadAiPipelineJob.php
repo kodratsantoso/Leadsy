@@ -25,7 +25,9 @@ class RunLeadAiPipelineJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
-    public int $timeout = 180;
+    // Same reasoning as RunPreMeetingAiScreeningJob: 9 sequential AI-calling
+    // stages can easily exceed 3 minutes.
+    public int $timeout = 600;
 
     public function __construct(public readonly int $leadId) {}
 
