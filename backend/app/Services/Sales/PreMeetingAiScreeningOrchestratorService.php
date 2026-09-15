@@ -138,14 +138,20 @@ class PreMeetingAiScreeningOrchestratorService
 
             $lead = $lead->fresh();
             if ($lead->lead_score === null) {
-                // Baseline score heuristic
+                // Baseline score heuristic — routed through applyFallbackScore()
+                // so a LeadScore history record backs it too (see that method's
+                // docblock for why a raw $lead->update() isn't enough here).
                 $baseScore = 45;
                 if (!empty($lead->phone)) $baseScore += 10;
                 if (!empty($lead->email)) $baseScore += 10;
                 if (!empty($lead->website)) $baseScore += 10;
                 if (!empty($lead->industry_id)) $baseScore += 10;
                 $baseScore = min(100, $baseScore);
-                $lead->update(['lead_score' => $baseScore]);
+                $this->scoringService->applyFallbackScore(
+                    $lead,
+                    $baseScore,
+                    'Deterministic scoring failed for this run; baseline heuristic score applied.'
+                );
                 $lead = $lead->fresh();
             }
 
@@ -236,11 +242,22 @@ class PreMeetingAiScreeningOrchestratorService
         } catch (\Throwable $e) {
             Log::error("[PreMeetingAiScreening] Safeguard triggered for lead {$lead->id}: " . $e->getMessage());
 
-            // Safeguard fallback: Ensure lead is saved as assessed with valid status
-            $score = $lead->lead_score ?? 50;
+            // Safeguard fallback: Ensure lead is saved as assessed with valid status.
+            // Only fabricate a score if none exists yet — and route it through
+            // applyFallbackScore() so it leaves a real LeadScore history record
+            // behind it, same as the in-pipeline fallback above.
+            $lead = $lead->fresh();
+            if ($lead->lead_score === null) {
+                $this->scoringService->applyFallbackScore(
+                    $lead,
+                    50,
+                    'Pipeline safeguard triggered before scoring completed; baseline score applied.'
+                );
+                $lead = $lead->fresh();
+            }
+            $score = $lead->lead_score;
             $status = $lead->qualification_status && $lead->qualification_status !== 'pending' ? $lead->qualification_status : ($score >= 60 ? 'eligible' : 'potential');
             $lead->update([
-                'lead_score' => $score,
                 'qualification_status' => $status,
             ]);
 
