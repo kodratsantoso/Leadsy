@@ -244,18 +244,46 @@ class ICPMatchingService
 
     private function legacyIndustryFactor(Lead $lead, IcpProfile $profile): array
     {
-        $rawScore = empty($profile->target_industries)
-            ? 100
-            : (in_array($lead->industry_id, $profile->target_industries, true) ? 100 : 20);
+        $targets = $profile->target_industries ?? [];
+        $leadIndustry = trim((string) ($lead->industry?->name ?? $lead->business_category ?? ''));
+
+        // target_industries is a free-text, comma-separated list of industry
+        // NAMES entered on the ICP Profiles settings page (e.g. "Manufacturing,
+        // Retail, Technology") — it was previously compared with
+        // in_array($lead->industry_id, ...), i.e. an integer ID against an
+        // array of name strings, which can never match. Compare by name
+        // instead, same as evaluateIndustryFit() does for the newer
+        // LeadIcpConfig-based path.
+        if (empty($targets)) {
+            return $this->factor(
+                'industry',
+                $leadIndustry !== '' ? $leadIndustry : 'unknown',
+                100,
+                $profile->weight_industry * 100,
+                'Legacy ICP profile has no industry restriction.'
+            );
+        }
+
+        if ($leadIndustry === '') {
+            return $this->factor('industry', 'unknown', 0, $profile->weight_industry * 100, 'Lead industry is missing.');
+        }
+
+        $matchedTarget = collect($targets)->first(function ($target) use ($leadIndustry) {
+            $target = trim((string) $target);
+
+            return Str::lower($leadIndustry) === Str::lower($target)
+                || Str::contains(Str::lower($leadIndustry), Str::lower($target))
+                || Str::contains(Str::lower($target), Str::lower($leadIndustry));
+        });
 
         return $this->factor(
             'industry',
-            (string) ($lead->industry?->name ?? 'unknown'),
-            $rawScore,
+            $leadIndustry,
+            $matchedTarget ? 100 : 20,
             $profile->weight_industry * 100,
-            empty($profile->target_industries)
-                ? 'Legacy ICP profile has no industry restriction.'
-                : 'Industry compared against legacy ICP profile target industries.'
+            $matchedTarget
+                ? "Industry matches configured target industry {$matchedTarget}."
+                : 'Industry does not match any configured target industry.'
         );
     }
 
@@ -282,18 +310,39 @@ class ICPMatchingService
     private function legacyTerritoryFactor(Lead $lead, IcpProfile $profile): array
     {
         $targets = $profile->target_territories ?? [];
-        $rawScore = empty($targets)
-            ? 100
-            : (in_array($lead->territory_id, $targets, true) ? 100 : 20);
+        $leadLocation = trim((string) ($lead->territory?->name ?? $lead->address ?? ''));
+
+        // Same bug as legacyIndustryFactor(): target_territories is a
+        // free-text list of territory/location NAMES, not IDs — compare by
+        // name instead of the previous in_array($lead->territory_id, ...).
+        if (empty($targets)) {
+            return $this->factor(
+                'location',
+                $leadLocation !== '' ? $leadLocation : 'unknown',
+                100,
+                $profile->weight_territory * 100,
+                'Legacy ICP profile has no territory restriction.'
+            );
+        }
+
+        if ($leadLocation === '') {
+            return $this->factor('location', 'unknown', 0, $profile->weight_territory * 100, 'Lead location is missing.');
+        }
+
+        $matchedTarget = collect($targets)->first(function ($target) use ($leadLocation) {
+            $target = trim((string) $target);
+
+            return Str::contains(Str::lower($leadLocation), Str::lower($target));
+        });
 
         return $this->factor(
             'location',
-            (string) ($lead->territory?->name ?? $lead->address ?? 'unknown'),
-            $rawScore,
+            $leadLocation,
+            $matchedTarget ? 100 : 20,
             $profile->weight_territory * 100,
-            empty($targets)
-                ? 'Legacy ICP profile has no territory restriction.'
-                : 'Location compared against legacy ICP profile target territories.'
+            $matchedTarget
+                ? "Location matches configured target territory {$matchedTarget}."
+                : 'Location does not match any configured target territory.'
         );
     }
 
