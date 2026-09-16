@@ -128,8 +128,9 @@ TASK:
 Generate 12-15 open-ended questions that help the user qualify this lead and decide what to do next. Make the questions specific to the lead context and product signals when available.
 
 RULES:
+- Write every question's "text" in Bahasa Indonesia — these are read aloud to an Indonesian customer during a live discovery call, so they must sound natural and professional in Indonesian, not translated word-for-word
 - Questions must be conversational and usable during a live discovery call
-- Each question must belong to one exact category: "Budget", "Authority", "Need", "Timeline", "Competition"
+- Each question must belong to one exact category: "Budget", "Authority", "Need", "Timeline", "Competition" (keep these 5 category values in English exactly as written — they're used as fixed labels in the UI)
 - Include at least two questions for each BANTC category
 - Output ONLY valid JSON — no markdown, no explanation, no extra text
 - Preferred output is a JSON object with a "questions" array
@@ -138,8 +139,8 @@ RULES:
 EXAMPLE FORMAT:
 {
   "questions": [
-    {"id":"b1","text":"How have you allocated budget for solving this issue this year?","category":"Budget","order":1},
-    {"id":"a1","text":"Who besides you will be involved in approving a solution like this?","category":"Authority","order":2}
+    {"id":"b1","text":"Bagaimana alokasi budget yang sudah disiapkan untuk mengatasi masalah ini tahun ini?","category":"Budget","order":1},
+    {"id":"a1","text":"Selain Anda, siapa saja yang akan terlibat dalam menyetujui solusi seperti ini?","category":"Authority","order":2}
   ]
 }
 PROMPT;

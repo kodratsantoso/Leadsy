@@ -436,7 +436,7 @@ class LeadProductMatchingService
         return [
             'score' => 50,
             'bant' => [],
-            'reasoning' => ['AI analysis unavailable — rule-based score used.'],
+            'reasoning' => ['Analisis AI tidak tersedia — skor rule-based digunakan.'],
             'ai_called' => false,
             'cost' => 0.0,
         ];
@@ -491,6 +491,8 @@ BANT Framework:
 - Timeline: Do engagement signals (activity frequency, urgency level, buying signals) suggest readiness to buy?
 - Competitor: Are there signals of competitor product usage that this product can displace?
 
+Write every free-text value below in Bahasa Indonesia (natural, professional sales language for an Indonesian sales team) — only the JSON keys and the match_level enum ("strong"/"moderate"/"weak") stay in English exactly as specified.
+
 Return ONLY valid JSON — no markdown, no explanation outside JSON. Include exactly one entry per product_id from the PRODUCTS array:
 {
   "matches": [
@@ -500,19 +502,19 @@ Return ONLY valid JSON — no markdown, no explanation outside JSON. Include exa
       "match_level": "strong | moderate | weak",
       "confidence_score": 0-100,
       "bant_analysis": {
-        "budget": "Assessment of budget fit",
-        "authority": "Assessment of decision-maker access",
-        "need": "Assessment of need alignment",
-        "timeline": "Assessment of purchase timeline readiness",
-        "competitor": "Competitor context and displacement opportunity"
+        "budget": "Assessment of budget fit, in Bahasa Indonesia",
+        "authority": "Assessment of decision-maker access, in Bahasa Indonesia",
+        "need": "Assessment of need alignment, in Bahasa Indonesia",
+        "timeline": "Assessment of purchase timeline readiness, in Bahasa Indonesia",
+        "competitor": "Competitor context and displacement opportunity, in Bahasa Indonesia"
       },
       "reasoning": [
-        "Specific reason 1",
-        "Specific reason 2",
-        "Specific reason 3"
+        "Specific reason 1, in Bahasa Indonesia",
+        "Specific reason 2, in Bahasa Indonesia",
+        "Specific reason 3, in Bahasa Indonesia"
       ],
-      "recommended_approach": "Specific sales approach for this lead-product combination",
-      "competitor_context": "Current tools or competitors identified and displacement strategy",
+      "recommended_approach": "Specific sales approach for this lead-product combination, in Bahasa Indonesia",
+      "competitor_context": "Current tools or competitors identified and displacement strategy, in Bahasa Indonesia",
       "missing_information": ["field1", "field2"]
     }
   ]
