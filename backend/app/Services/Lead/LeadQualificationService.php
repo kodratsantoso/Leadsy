@@ -43,6 +43,36 @@ class LeadQualificationService
             }
         }
 
+        return $this->persistQualification($lead, $ruleQualification, $finalQualification);
+    }
+
+    /**
+     * Same as qualifyLead(), but takes an already-obtained AI qualification
+     * hint (e.g. from LeadAIAnalysisService::analyzeLeadWithQualificationHint(),
+     * which asks for this alongside its own analysis in one AI call) instead
+     * of making a separate `qualification_analysis` AI call of its own — this
+     * is how PreMeetingAiScreeningOrchestratorService avoids a second AI
+     * round-trip per lead for what used to be two independent calls.
+     *
+     * @param  array{success: bool, qualified?: string, business_type?: string, company_size_band?: string, reason?: string}  $aiHint
+     */
+    public function qualifyLeadWithAiHint(Lead $lead, array $aiHint): LeadQualification
+    {
+        $ruleQualification = $this->applyQualificationRules($lead);
+
+        $finalQualification = ! empty($aiHint['success'])
+            ? $this->mergeQualifications($ruleQualification, $aiHint)
+            : $ruleQualification;
+
+        return $this->persistQualification($lead, $ruleQualification, $finalQualification);
+    }
+
+    /**
+     * Shared persistence + funnel auto-routing for both qualifyLead() and
+     * qualifyLeadWithAiHint().
+     */
+    private function persistQualification(Lead $lead, array $ruleQualification, array $finalQualification): LeadQualification
+    {
         // Step 3: Persist qualification
         $qualification = $lead->qualifications()->create([
             'qualified' => $finalQualification['qualified'],
@@ -217,12 +247,12 @@ class LeadQualificationService
         ];
 
         $prompt = <<<PROMPT
-        Evaluate the qualification of this lead. Return JSON with keys: qualified (yes/maybe/no), business_type (B2B/B2C/mixed), company_size_band (micro/small/medium/enterprise/unknown), reasoning (1-2 sentences).
-        
+        Evaluate the qualification of this lead. Return JSON with keys: qualified (yes/maybe/no), business_type (B2B/B2C/mixed), company_size_band (micro/small/medium/enterprise/unknown), reasoning (1-2 sentences, written in Bahasa Indonesia).
+
         Lead data:
         {$this->formatDataForPrompt($leadData)}
-        
-        Return ONLY valid JSON.
+
+        Return ONLY valid JSON. Keep the JSON keys and the qualified/business_type/company_size_band values in English exactly as specified — only "reasoning" should be in Bahasa Indonesia.
         PROMPT;
 
         $result = $this->ai->call('qualification_analysis', $prompt);
@@ -235,7 +265,7 @@ class LeadQualificationService
                 'qualified' => $data['qualified'] ?? 'maybe',
                 'business_type' => $data['business_type'] ?? 'mixed',
                 'company_size_band' => $data['company_size_band'] ?? 'unknown',
-                'reason' => $data['reasoning'] ?? 'AI analysis',
+                'reason' => $data['reasoning'] ?? 'Analisis AI',
             ];
         }
 

@@ -13,7 +13,6 @@ use App\Services\Lead\CompanyVerificationService;
 use App\Services\Lead\LeadDiscoveryService;
 use App\Services\Lead\LeadAIAnalysisService;
 use App\Services\Lead\LeadProductMatchingService;
-use App\Services\Lead\LeadProfilingAndStrategyService;
 use App\Services\Lead\LeadQualificationService;
 use App\Services\Lead\LeadScoringService;
 use App\Services\LeadBantcQuestionGenerationService;
@@ -30,7 +29,6 @@ class PreMeetingAiScreeningOrchestratorService
         private readonly LeadEnrichmentAiOrchestrator $enrichmentOrchestrator,
         private readonly AiLeadProfilingService $profilingService,
         private readonly CompanyVerificationService $companyVerificationService,
-        private readonly LeadProfilingAndStrategyService $profilingStrategyService,
         private readonly ICPMatchingService $icpMatchingService,
         private readonly LeadScoringService $scoringService,
         private readonly LeadQualificationService $qualificationService,
@@ -46,12 +44,30 @@ class PreMeetingAiScreeningOrchestratorService
      * Sequential execution order:
      * Stage 1: Deep AI Profiling & Standardization
      * Stage 2: Company Verification & Legal Structure
-     * Stage 3: AI Profiling & Sales Strategy Formulation
-     * Stage 4: ICP Matching & Interaction Scoring
-     * Stage 5: BANTC Gatekeeper Qualification Decision
-     * Stage 6: Lead AI Analysis (opportunity summary, needs, urgency)
+     * Stage 3: ICP Matching & Interaction Scoring
+     * Stage 4: Lead Scoring
+     * Stage 5: Lead AI Analysis (opportunity summary, needs, urgency)
+     *          — also yields a lightweight qualification hint (see Stage 6)
+     * Stage 6: BANTC Gatekeeper Qualification Decision
      * Stage 7: Product Matching
      * Stage 8: BANTC Discovery Question Generation
+     *
+     * A former "Profiling & Strategy" stage used to run here (between Company
+     * Verification and ICP Matching) and made its own AI call, but its output
+     * — a LeadAiAnalysis row and a set of LeadProductMatch rows — was always
+     * immediately overwritten by Stage 5 and Stage 7 respectively before the
+     * pipeline finished. It's been removed entirely; nothing downstream ever
+     * saw its result. Its endpoint (LeadController::runProfilingStrategy(),
+     * still used by the AI Testing Console's manual re-run button) is
+     * unaffected — only this automatic pipeline stopped calling it.
+     *
+     * Qualification (Stage 6) used to make its own small AI call
+     * (qualification_analysis) after its rule engine ran. That's been folded
+     * into Stage 5's call instead — LeadAIAnalysisService now also asks for
+     * a qualified/business_type/company_size_band hint in the same request,
+     * which Stage 6 feeds into the same merge logic the standalone AI call
+     * used to. Net effect: 2 fewer AI round-trips per lead with no feature
+     * loss.
      *
      * Pre-Meeting Brief generation is intentionally NOT part of this pipeline — it's
      * triggered separately, on-demand, when a sales/presales rep fills in the
@@ -110,15 +126,8 @@ class PreMeetingAiScreeningOrchestratorService
             }
 
             // =========================================================================
-            // STAGE 3: AI Profiling & Sales Strategy + ICP Matching
+            // STAGE 3: ICP Matching & Interaction Scoring
             // =========================================================================
-            try {
-                $this->profilingStrategyService->profileAndStrategize($lead, $userId);
-                $stagesExecuted[] = 'profiling_and_strategy';
-            } catch (\Throwable $e) {
-                Log::warning("[PreMeetingAiScreening] Profiling & Strategy warning for Lead {$lead->id}: " . $e->getMessage());
-            }
-
             try {
                 $this->icpMatchingService->matchLead($lead);
                 $stagesExecuted[] = 'icp_and_solution_matching';
@@ -156,19 +165,32 @@ class PreMeetingAiScreeningOrchestratorService
             }
 
             // =========================================================================
-            // STAGE 5: BANTC Gatekeeper Qualification (Eligible / Potential / Unqualified)
+            // STAGE 5: Lead AI Analysis (opportunity summary, needs, urgency)
+            // Also yields a lightweight qualification hint (qualified/business_type/
+            // company_size_band) in the same AI call, which Stage 6 uses instead of
+            // making its own separate AI round-trip.
+            // =========================================================================
+            $qualificationHint = null;
+            try {
+                $analysisResult = $this->analysisService->analyzeLeadWithQualificationHint($lead);
+                $qualificationHint = $analysisResult['qualification_hint'];
+                $stagesExecuted[] = 'lead_analysis';
+            } catch (\Throwable $e) {
+                Log::warning("[PreMeetingAiScreening] Lead analysis warning for Lead {$lead->id}: " . $e->getMessage());
+            }
+
+            // =========================================================================
+            // STAGE 6: BANTC Gatekeeper Qualification (Eligible / Potential / Unqualified)
             // =========================================================================
             try {
-                $this->qualificationService->qualifyLead($lead, true);
+                if ($qualificationHint && !empty($qualificationHint['success'])) {
+                    $this->qualificationService->qualifyLeadWithAiHint($lead, $qualificationHint);
+                } else {
+                    $this->qualificationService->qualifyLead($lead, false);
+                }
                 $stagesExecuted[] = 'bantc_gatekeeper_qualification';
             } catch (\Throwable $e) {
-                Log::warning("[PreMeetingAiScreening] AI qualification warning, attempting rule fallback for Lead {$lead->id}: " . $e->getMessage());
-                try {
-                    $this->qualificationService->qualifyLead($lead, false);
-                    $stagesExecuted[] = 'bantc_gatekeeper_qualification';
-                } catch (\Throwable $e2) {
-                    Log::warning("[PreMeetingAiScreening] Rule qualification fallback warning for Lead {$lead->id}: " . $e2->getMessage());
-                }
+                Log::warning("[PreMeetingAiScreening] Qualification warning for Lead {$lead->id}: " . $e->getMessage());
             }
 
             $lead = $lead->fresh();
@@ -180,16 +202,6 @@ class PreMeetingAiScreeningOrchestratorService
                 $lead->update(['qualification_status' => $fallbackStatus]);
                 $qualificationStatus = $fallbackStatus;
                 $lead = $lead->fresh();
-            }
-
-            // =========================================================================
-            // STAGE 6: Lead AI Analysis (opportunity summary, needs, urgency)
-            // =========================================================================
-            try {
-                $this->analysisService->analyzeLead($lead);
-                $stagesExecuted[] = 'lead_analysis';
-            } catch (\Throwable $e) {
-                Log::warning("[PreMeetingAiScreening] Lead analysis warning for Lead {$lead->id}: " . $e->getMessage());
             }
 
             // =========================================================================
