@@ -966,6 +966,7 @@ export default function LeadDetailPage() {
   const [aiActionsOpen, setAiActionsOpen] = useState(false);
   const [aiActionsFeedback, setAiActionsFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [aiPipelineRunning, setAiPipelineRunning] = useState(false);
+  const [aiSyncPipelineRunning, setAiSyncPipelineRunning] = useState(false);
 
   const useAiActionMutation = (endpoint: string, successLabel: string) =>
     useMutation({
@@ -1030,6 +1031,36 @@ export default function LeadDetailPage() {
       setAiActionsFeedback({ type: 'error', msg: err.message });
     } finally {
       setAiPipelineRunning(false);
+    }
+  };
+
+  /* Runs the same 8 stages inline in one request instead of via the queue —
+     use this when the queue worker is stuck/down (jobs dispatched via
+     runAiFullPipeline sit at "processing" forever with no error, since the
+     dispatch endpoint always returns success immediately regardless of
+     whether anything is actually consuming the queue). No polling needed:
+     the response already carries the final result. Takes longer to return
+     since the request stays open for all 8 stages, but doesn't depend on
+     any background worker being alive. */
+  const runAiFullPipelineSync = async () => {
+    setAiSyncPipelineRunning(true);
+    setAiActionsFeedback({ type: 'success', msg: 'Running full 8-stage pipeline synchronously (no queue) — this can take several minutes, please keep this tab open...' });
+    try {
+      const res = await apiFetch(`/leads/${leadId}/ai-screening`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        throw new Error(json?.data?.error || json?.error || json?.message || 'Pipeline failed on server.');
+      }
+      const data = json.data ?? {};
+      setAiActionsFeedback({
+        type: 'success',
+        msg: `Full pipeline completed (synchronous). Score: ${data.lead_score ?? '—'} (${data.qualification_status ?? '—'}). Stages: ${(data.stages_executed || []).join(', ') || '—'}.`,
+      });
+      invalidateLead();
+    } catch (err: any) {
+      setAiActionsFeedback({ type: 'error', msg: err.message });
+    } finally {
+      setAiSyncPipelineRunning(false);
     }
   };
 
@@ -2596,7 +2627,7 @@ export default function LeadDetailPage() {
                 <div className="border-t border-[var(--brand)]/20 p-4 space-y-4">
                   <Button
                     onClick={runAiFullPipeline}
-                    disabled={aiPipelineRunning}
+                    disabled={aiPipelineRunning || aiSyncPipelineRunning}
                     className="w-full gap-2 bg-[var(--brand)] text-white hover:opacity-90"
                   >
                     {aiPipelineRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
@@ -2608,6 +2639,22 @@ export default function LeadDetailPage() {
                       {aiActionsFeedback.msg}
                     </p>
                   )}
+
+                  <div className="space-y-1.5 rounded-md border border-[var(--status-warning)]/30 bg-[color-mix(in_oklch,var(--status-warning)_6%,transparent)] p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Stuck on "Processing" with no result? The background queue worker may be down. This runs the same 8 stages directly, without the queue — slower, but doesn't need anyone to restart anything.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={runAiFullPipelineSync}
+                      disabled={aiPipelineRunning || aiSyncPipelineRunning}
+                      className="w-full gap-2"
+                    >
+                      {aiSyncPipelineRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                      {aiSyncPipelineRunning ? 'Running without queue... (do not close this tab)' : 'Force Run Full Pipeline (No Queue)'}
+                    </Button>
+                  </div>
 
                   <div className="space-y-2 border-t border-[var(--brand)]/10 pt-3">
                     <p className="text-xs font-medium text-muted-foreground">Advanced: re-run a single stage</p>
