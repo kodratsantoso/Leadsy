@@ -984,14 +984,14 @@ export default function LeadDetailPage() {
 
   const aiEnrichMutation = useAiActionMutation('/enrich/retry', 'Enrichment');
   const aiVerificationMutation = useAiActionMutation('/verification/run', 'Company Verification');
-  const aiProfilingMutation = useAiActionMutation('/run-profiling-strategy', 'Profiling & Strategy + Product Matching');
   const aiRescoreMutation = useAiActionMutation('/rescore', 'Scoring + ICP + Qualification');
-  const aiAnalysisMutation = useAiActionMutation('/revenue-analysis', 'Lead Analysis');
+  const aiAnalysisMutation = useAiActionMutation('/analyze', 'Lead Analysis');
+  const aiProductMatchingMutation = useAiActionMutation('/match-products', 'Product Matching');
   const aiBantcMutation = useAiActionMutation('/bantc-questions/generate', 'BANTC Questions');
 
   const runAiFullPipeline = async () => {
     setAiPipelineRunning(true);
-    setAiActionsFeedback({ type: 'success', msg: 'Starting full 9-stage pipeline...' });
+    setAiActionsFeedback({ type: 'success', msg: 'Starting full 8-stage pipeline...' });
     try {
       const dispatchRes = await apiFetch(`/leads/${leadId}/ai-screening/dispatch`, { method: 'POST' });
       const dispatchJson = await dispatchRes.json();
@@ -1006,7 +1006,7 @@ export default function LeadDetailPage() {
         await new Promise((r) => setTimeout(r, 2000));
         attempts++;
         if (attempts % 5 === 0) {
-          setAiActionsFeedback({ type: 'success', msg: `Running full 9-stage pipeline... (${attempts * 2}s elapsed)` });
+          setAiActionsFeedback({ type: 'success', msg: `Running full 8-stage pipeline... (${attempts * 2}s elapsed)` });
         }
         const statusRes = await apiFetch(`/leads/${leadId}/ai-screening/status`);
         if (statusRes.ok) {
@@ -2593,41 +2593,14 @@ export default function LeadDetailPage() {
               </button>
 
               {aiActionsOpen && (
-                <div className="border-t border-[var(--brand)]/20 p-4 space-y-3">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Button variant="outline" size="sm" onClick={() => aiEnrichMutation.mutate()} disabled={aiEnrichMutation.isPending} className="justify-start">
-                      {aiEnrichMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                      Re-run Enrichment
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => aiVerificationMutation.mutate()} disabled={aiVerificationMutation.isPending} className="justify-start">
-                      {aiVerificationMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Building2 className="h-3.5 w-3.5" />}
-                      Re-run Company Verification
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => aiProfilingMutation.mutate()} disabled={aiProfilingMutation.isPending} className="justify-start">
-                      {aiProfilingMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5" />}
-                      Re-run Profiling & Strategy + Product Matching
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => aiRescoreMutation.mutate()} disabled={aiRescoreMutation.isPending} className="justify-start">
-                      {aiRescoreMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                      Re-run Scoring + ICP + Qualification
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => aiAnalysisMutation.mutate()} disabled={aiAnalysisMutation.isPending} className="justify-start">
-                      {aiAnalysisMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                      Re-run Lead Analysis
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => aiBantcMutation.mutate()} disabled={aiBantcMutation.isPending} className="justify-start">
-                      {aiBantcMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5" />}
-                      Re-run BANTC Questions
-                    </Button>
-                  </div>
-
+                <div className="border-t border-[var(--brand)]/20 p-4 space-y-4">
                   <Button
                     onClick={runAiFullPipeline}
                     disabled={aiPipelineRunning}
                     className="w-full gap-2 bg-[var(--brand)] text-white hover:opacity-90"
                   >
                     {aiPipelineRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                    {aiPipelineRunning ? 'Running Full Pipeline...' : 'Run Full Pipeline (All 9 Functions)'}
+                    {aiPipelineRunning ? 'Running Full Pipeline...' : 'Run Full Pipeline (All 8 Functions)'}
                   </Button>
 
                   {aiActionsFeedback && (
@@ -2635,6 +2608,36 @@ export default function LeadDetailPage() {
                       {aiActionsFeedback.msg}
                     </p>
                   )}
+
+                  <div className="space-y-2 border-t border-[var(--brand)]/10 pt-3">
+                    <p className="text-xs font-medium text-muted-foreground">Advanced: re-run a single stage</p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Button variant="outline" size="sm" onClick={() => aiEnrichMutation.mutate()} disabled={aiEnrichMutation.isPending} className="justify-start">
+                        {aiEnrichMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        Re-run Enrichment
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => aiVerificationMutation.mutate()} disabled={aiVerificationMutation.isPending} className="justify-start">
+                        {aiVerificationMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Building2 className="h-3.5 w-3.5" />}
+                        Re-run Company Verification
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => aiRescoreMutation.mutate()} disabled={aiRescoreMutation.isPending} className="justify-start">
+                        {aiRescoreMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                        Re-run Scoring + ICP + Qualification
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => aiAnalysisMutation.mutate()} disabled={aiAnalysisMutation.isPending} className="justify-start">
+                        {aiAnalysisMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                        Re-run Lead Analysis
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => aiProductMatchingMutation.mutate()} disabled={aiProductMatchingMutation.isPending} className="justify-start">
+                        {aiProductMatchingMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5" />}
+                        Re-run Product Matching
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => aiBantcMutation.mutate()} disabled={aiBantcMutation.isPending} className="justify-start">
+                        {aiBantcMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5" />}
+                        Re-run BANTC Questions
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
