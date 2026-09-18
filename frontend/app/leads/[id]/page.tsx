@@ -2642,7 +2642,7 @@ export default function LeadDetailPage() {
 
                   <div className="space-y-1.5 rounded-md border border-[var(--status-warning)]/30 bg-[color-mix(in_oklch,var(--status-warning)_6%,transparent)] p-3">
                     <p className="text-xs text-muted-foreground">
-                      Stuck on "Processing" with no result? The background queue worker may be down. This runs the same 8 stages directly, without the queue — slower, but doesn't need anyone to restart anything.
+                      Stuck on "Processing" with no result? The background queue worker may be down. This runs the same 8 stages directly, without the queue — but holds this page's connection open for the whole run (all 8 AI calls, sometimes 60-100s+ each), which can hit a ~100s network gateway limit and fail with a connection error on data-heavy leads. Prefer fixing the queue worker when possible; use this as a one-off recovery for a single stuck lead, not routinely.
                     </p>
                     <Button
                       variant="outline"

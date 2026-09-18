@@ -720,8 +720,31 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [formError, setFormError] = useState("");
   const [formState, setFormState] = useState<LeadFormState>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
-  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed">("idle");
+  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout">("idle");
   const [profilingData, setProfilingData] = useState<any>(null);
+  const [profilingRetrying, setProfilingRetrying] = useState(false);
+
+  const retryAiProfilingSync = async () => {
+    setProfilingRetrying(true);
+    try {
+      const res = await apiFetch("/leads/ai-profiling/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_name: formState.company_name.trim(), sync: true }),
+      });
+      const json = await res.json();
+      if (json.success && json.data?.status === "ready_for_review") {
+        setProfilingStatus("ready_for_review");
+        setProfilingData(json.data.current_output_json);
+      } else {
+        setProfilingStatus("failed");
+      }
+    } catch {
+      setProfilingStatus("failed");
+    } finally {
+      setProfilingRetrying(false);
+    }
+  };
   const [locationSearch, setLocationSearch] = useState("");
   const [locationFeedback, setLocationFeedback] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState("");
@@ -2438,8 +2461,13 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                     const json = await res.json();
                     if (json.success && json.data) {
                       let currentData = json.data;
-                      // Poll status
+                      // Poll status — the queue can be slow or stuck, so give
+                      // up after 40s and offer a manual no-queue retry instead
+                      // of polling forever with no feedback.
+                      let attempts = 0;
+                      const maxAttempts = 20;
                       const interval = setInterval(async () => {
+                        attempts++;
                         const statusRes = await apiFetch(`/leads/ai-profiling/${currentData.id}/status`);
                         const statusJson = await statusRes.json();
                         if (statusJson.success && statusJson.data) {
@@ -2451,6 +2479,9 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                           } else if (currentData.status === "failed") {
                             clearInterval(interval);
                             setProfilingStatus("failed");
+                          } else if (attempts >= maxAttempts) {
+                            clearInterval(interval);
+                            setProfilingStatus("timeout");
                           }
                         } else {
                           clearInterval(interval);
@@ -2473,6 +2504,8 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
           <AiProfilingPanel
             status={profilingStatus}
             data={profilingData}
+            onRetrySync={retryAiProfilingSync}
+            retryingSync={profilingRetrying}
             onClose={() => {
               setProfilingStatus("idle");
               setProfilingData(null);

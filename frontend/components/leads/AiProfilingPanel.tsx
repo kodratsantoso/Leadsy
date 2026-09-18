@@ -58,10 +58,12 @@ interface ProfilingData {
 }
 
 interface AiProfilingPanelProps {
-  status: "idle" | "researching" | "ready_for_review" | "failed";
+  status: "idle" | "researching" | "ready_for_review" | "failed" | "timeout";
   data: ProfilingData | null;
   onApply: (data: ProfilingData) => void;
   onClose: () => void;
+  onRetrySync?: () => void;
+  retryingSync?: boolean;
 }
 
 const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, icon, children, defaultOpen = true }) => {
@@ -121,6 +123,8 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
   data,
   onApply,
   onClose,
+  onRetrySync,
+  retryingSync,
 }) => {
   if (status === "idle") return null;
 
@@ -153,6 +157,24 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
             <p className="font-semibold">Research Failed</p>
             <p className="text-xs text-muted-foreground">Tidak dapat mengumpulkan detail profiling untuk nama perusahaan ini. Coba nama yang lebih spesifik atau tambahkan lokasi.</p>
           </div>
+        </div>
+      )}
+
+      {status === "timeout" && (
+        <div className="flex flex-col gap-3 py-4 px-4 bg-[var(--status-warning)]/10 m-3 rounded-lg border border-[var(--status-warning)]/30 text-sm">
+          <div className="flex items-center gap-3 text-[var(--status-warning)]">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold text-foreground">Masih diproses di background</p>
+              <p className="text-xs text-muted-foreground">Belum ada hasil dalam waktu normal — kemungkinan antrian proses sedang lambat. Bisa ditunggu, atau coba jalankan langsung (tanpa antrian; bisa gagal untuk perusahaan besar karena butuh waktu lebih lama).</p>
+            </div>
+          </div>
+          {onRetrySync && (
+            <Button size="sm" variant="outline" onClick={onRetrySync} disabled={retryingSync} className="self-start gap-2">
+              {retryingSync ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {retryingSync ? "Menjalankan langsung..." : "Coba Jalankan Langsung"}
+            </Button>
+          )}
         </div>
       )}
 

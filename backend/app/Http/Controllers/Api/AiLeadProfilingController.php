@@ -26,11 +26,20 @@ class AiLeadProfilingController extends Controller
         $companyName = $request->input('company_name');
         $userId = $request->user()?->id;
 
-        // Runs inline rather than dispatching to the queue — see
-        // AiLeadProfilingService::startProfilingSync() docblock. Bump the
-        // time limit since this now holds the request open for the AI call.
-        @set_time_limit(120);
-        $output = $this->profilingService->startProfilingSync($companyName, $userId);
+        // Default path dispatches to the queue (fast response, no gateway
+        // timeout risk). `sync: true` runs inline instead — see
+        // AiLeadProfilingService::startProfilingSync() docblock — which the
+        // frontend uses as a manual fallback when the queue looks stuck.
+        // Inline mode holds the request open for the whole AI call (can be
+        // 60-100+s for data-rich companies), which is long enough to hit
+        // Cloudflare's ~100s edge timeout (524) — it's a fallback, not the
+        // default, for exactly that reason.
+        if ($request->boolean('sync')) {
+            @set_time_limit(120);
+            $output = $this->profilingService->startProfilingSync($companyName, $userId);
+        } else {
+            $output = $this->profilingService->startProfiling($companyName, $userId);
+        }
 
         return response()->json([
             'success' => true,

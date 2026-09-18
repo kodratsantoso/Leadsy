@@ -50,8 +50,31 @@ export function EditLeadModal({
   const [locationSearch, setLocationSearch] = useState("");
   const [locationFeedback, setLocationFeedback] = useState("");
   const [locationCenter, setLocationCenter] = useState({ lat: -6.2088, lng: 106.8456 });
-  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed">("idle");
+  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout">("idle");
   const [profilingData, setProfilingData] = useState<any>(null);
+  const [profilingRetrying, setProfilingRetrying] = useState(false);
+
+  const retryAiProfilingSync = async () => {
+    setProfilingRetrying(true);
+    try {
+      const res = await apiFetch("/leads/ai-profiling/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_name: companyForm.company_name.trim(), sync: true }),
+      });
+      const json = await res.json();
+      if (json.success && json.data?.status === "ready_for_review") {
+        setProfilingStatus("ready_for_review");
+        setProfilingData(json.data.current_output_json);
+      } else {
+        setProfilingStatus("failed");
+      }
+    } catch {
+      setProfilingStatus("failed");
+    } finally {
+      setProfilingRetrying(false);
+    }
+  };
   const [validationError, setValidationError] = useState<string>("");
 
   // Parent lead search
@@ -311,7 +334,12 @@ export function EditLeadModal({
                         const json = await res.json();
                         if (json.success && json.data) {
                           let currentData = json.data;
+                          // Give up after 40s and offer a manual no-queue
+                          // retry instead of polling forever with no feedback.
+                          let attempts = 0;
+                          const maxAttempts = 20;
                           const interval = setInterval(async () => {
+                            attempts++;
                             const statusRes = await apiFetch(`/leads/ai-profiling/${currentData.id}/status`);
                             const statusJson = await statusRes.json();
                             if (statusJson.success && statusJson.data) {
@@ -323,6 +351,9 @@ export function EditLeadModal({
                               } else if (currentData.status === "failed") {
                                 clearInterval(interval);
                                 setProfilingStatus("failed");
+                              } else if (attempts >= maxAttempts) {
+                                clearInterval(interval);
+                                setProfilingStatus("timeout");
                               }
                             } else {
                               clearInterval(interval);
@@ -345,6 +376,8 @@ export function EditLeadModal({
                 <AiProfilingPanel
                   status={profilingStatus}
                   data={profilingData}
+                  onRetrySync={retryAiProfilingSync}
+                  retryingSync={profilingRetrying}
                   onClose={() => {
                     setProfilingStatus("idle");
                     setProfilingData(null);
