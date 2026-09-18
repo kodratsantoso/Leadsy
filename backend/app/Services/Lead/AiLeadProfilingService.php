@@ -105,7 +105,15 @@ class AiLeadProfilingService
         $rawJson = preg_replace('/^```(?:json)?\s*|\s*```$/s', '', trim($response['content']));
         $profileData = json_decode($rawJson, true);
         if (!is_array($profileData)) {
-            throw new \Exception('Failed to parse AI profiling response JSON.');
+            // Surface why parsing failed (e.g. truncated output from hitting
+            // max_tokens) instead of a bare generic message — this is stored
+            // on the AiGeneratedOutput record and is otherwise the only clue
+            // available without direct server log access.
+            throw new \Exception(sprintf(
+                'Failed to parse AI profiling response JSON (%s). Raw response (last 500 chars): %s',
+                json_last_error_msg(),
+                mb_substr($rawJson, -500)
+            ));
         }
 
         if (!empty($profileData['candidates']) && is_array($profileData['candidates'])) {
