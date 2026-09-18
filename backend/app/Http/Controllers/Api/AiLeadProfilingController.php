@@ -26,7 +26,11 @@ class AiLeadProfilingController extends Controller
         $companyName = $request->input('company_name');
         $userId = $request->user()?->id;
 
-        $output = $this->profilingService->startProfiling($companyName, $userId);
+        // Runs inline rather than dispatching to the queue — see
+        // AiLeadProfilingService::startProfilingSync() docblock. Bump the
+        // time limit since this now holds the request open for the AI call.
+        @set_time_limit(120);
+        $output = $this->profilingService->startProfilingSync($companyName, $userId);
 
         return response()->json([
             'success' => true,

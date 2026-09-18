@@ -28,8 +28,48 @@ class AiLeadProfilingService
      */
     public function startProfiling(string $companyName, ?int $userId = null): AiGeneratedOutput
     {
-        // 1. Create a placeholder output record
-        $output = AiGeneratedOutput::create([
+        $output = $this->createPlaceholderOutput($companyName, $userId);
+
+        // Trigger async profiling
+        \App\Jobs\RunAiLeadProfilingJob::dispatch($output, $companyName);
+
+        return $output;
+    }
+
+    /**
+     * Same as startProfiling(), but runs inline instead of dispatching to
+     * the queue. A queued RunAiLeadProfilingJob silently never completes if
+     * the queue worker is down — the dispatch call still succeeds, so the
+     * caller sees no error, just a "researching" status that never
+     * advances. A single profiling call is one AI round-trip (~20-60s
+     * historically), short enough to run inline within the HTTP request
+     * without needing the queue's retry/backoff machinery.
+     */
+    public function startProfilingSync(string $companyName, ?int $userId = null): AiGeneratedOutput
+    {
+        $output = $this->createPlaceholderOutput($companyName, $userId);
+
+        try {
+            $this->performProfiling($output, $companyName);
+        } catch (\Throwable $e) {
+            Log::error("[AiLeadProfiling] Profiling failed for {$companyName}", ['error' => $e->getMessage()]);
+
+            $original = $output->original_output_json ?? [];
+            $current = $output->current_output_json ?? [];
+
+            $output->update([
+                'status' => 'failed',
+                'original_output_json' => array_merge(is_array($original) ? $original : [], ['error' => $e->getMessage()]),
+                'current_output_json' => array_merge(is_array($current) ? $current : [], ['error' => $e->getMessage()]),
+            ]);
+        }
+
+        return $output->fresh();
+    }
+
+    private function createPlaceholderOutput(string $companyName, ?int $userId = null): AiGeneratedOutput
+    {
+        return AiGeneratedOutput::create([
             'entity_type' => 'App\Models\Lead',
             'entity_id' => 0, // Placeholder before actual Lead creation
             'feature_key' => 'lead_ai_profiling',
@@ -39,11 +79,6 @@ class AiLeadProfilingService
             'original_output_json' => ['company_name' => $companyName],
             'current_output_json' => ['company_name' => $companyName],
         ]);
-
-        // 2. Trigger async profiling
-        \App\Jobs\RunAiLeadProfilingJob::dispatch($output, $companyName);
-
-        return $output;
     }
 
     /**
