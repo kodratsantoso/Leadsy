@@ -17,3 +17,12 @@ Artisan::command('inspire', function () {
 \Illuminate\Support\Facades\Schedule::command('app:sync-exchange-rates')
     ->dailyAt('00:05')
     ->timezone('Asia/Jakarta');
+
+// Chips away at the unassessed-leads backlog without depending on the Redis
+// queue worker (which has repeatedly gone silent for hours at a time — see
+// ScreenUnassessedLeadsCommand's docblock). withoutOverlapping() guards
+// against a slow run still executing when the next tick fires.
+\Illuminate\Support\Facades\Schedule::command('leadsy:screen-unassessed --limit=10 --max-seconds=540')
+    ->everyTenMinutes()
+    ->withoutOverlapping(12)
+    ->runInBackground();

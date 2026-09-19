@@ -8,6 +8,8 @@ use App\Models\Lead;
 use App\Services\Sales\PreMeetingAiScreeningOrchestratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class AiPreMeetingScreeningController extends Controller
 {
@@ -23,10 +25,51 @@ class AiPreMeetingScreeningController extends Controller
     {
         $count = $this->orchestrator->getUnassessedLeadsCount();
 
+        $this->maybeTrickleBackfill($count);
+
         return response()->json([
             'success' => true,
             'unassessed_count' => $count,
         ]);
+    }
+
+    /**
+     * Opportunistic backlog processing piggybacking on normal traffic to
+     * this endpoint (polled by the Leads page for every superadmin visit).
+     * This is a safety net for the case where BOTH the Redis queue worker
+     * AND the cron-driven `leadsy:screen-unassessed` schedule (routes/
+     * console.php) aren't actually running — this repo has no confirmed
+     * crontab invoking `php artisan schedule:run`, and the queue worker has
+     * independently gone silent for hours at a time in production.
+     *
+     * Runs via terminating() so it only executes after the response has
+     * already been sent — it adds zero latency to this request. Throttled
+     * via a cache lock (one lead per ~2 minutes app-wide) so rapid/parallel
+     * page visits don't pile up overlapping runs or tie up too many PHP-FPM
+     * workers at once.
+     */
+    private function maybeTrickleBackfill(int $unassessedCount): void
+    {
+        if ($unassessedCount < 1) {
+            return;
+        }
+
+        if (! Cache::add('leadsy_trickle_backfill_lock', true, now()->addMinutes(2))) {
+            return;
+        }
+
+        app()->terminating(function () {
+            @set_time_limit(200);
+
+            try {
+                $lead = $this->orchestrator->getUnassessedLeads(1)->first();
+                if ($lead) {
+                    $this->orchestrator->screenLead($lead->fresh());
+                }
+            } catch (\Throwable $e) {
+                Log::error('[TrickleBackfill] '.$e->getMessage());
+            }
+        });
     }
 
     /**
