@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Services\Sales\PreMeetingAiScreeningOrchestratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 
 class AiPreMeetingScreeningController extends Controller
 {
@@ -187,6 +188,47 @@ class AiPreMeetingScreeningController extends Controller
             'success' => $result['success'] ?? false,
             'data' => $result,
         ], ($result['success'] ?? false) ? 200 : 422);
+    }
+
+    /**
+     * POST /api/v1/leads/ai-screening/run-backfill
+     * Manual "run now" button for the backlog: screens a small, bounded
+     * batch of unassessed leads in-process and returns the result.
+     *
+     * Deliberately does NOT shell out (no exec()/proc_open()) — an
+     * HTTP-reachable endpoint that constructs and runs a shell command is a
+     * remote-code-execution risk surface even with careful escaping, and
+     * isn't worth it here. It also does NOT use terminating()/afterResponse
+     * — confirmed via live testing on this deployment that the response
+     * doesn't actually detach early, so anything registered there still
+     * blocks the caller for its full duration.
+     *
+     * Given both of those are off the table, this just runs synchronously
+     * and keeps the batch small enough (default 2 leads, ~35s budget) to
+     * usually finish inside typical reverse-proxy gateway timeouts. A slow
+     * lead can still make this time out client-side — that's an
+     * acceptable failure mode (nothing is lost; just click it again or
+     * wait for the next scheduled run), unlike exec()'s risk profile.
+     */
+    public function runBackfillNow(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
+        $limit = min(max((int) $request->input('limit', 2), 1), 3);
+        $maxSeconds = min(max((int) $request->input('max_seconds', 35), 10), 60);
+
+        @set_time_limit($maxSeconds + 15);
+
+        Artisan::call('leadsy:screen-unassessed', [
+            '--limit' => $limit,
+            '--max-seconds' => $maxSeconds,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Backfill batch complete.',
+            'output' => Artisan::output(),
+        ]);
     }
 
     /**

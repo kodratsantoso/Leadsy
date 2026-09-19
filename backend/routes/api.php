@@ -528,6 +528,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/ai-screening/unassessed-count', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'unassessedCount']);
     Route::get('leads/ai-screening/stats', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'stats']);
     Route::get('leads/ai-screening/pending-leads', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'pendingLeads']);
+    Route::post('leads/ai-screening/run-backfill', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'runBackfillNow']);
     Route::post('leads/ai-screening/bulk-unassessed', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'screenAllUnassessed']);
     Route::post('leads/ai-screening/bulk-selected', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'screenSelected']);
     Route::post('leads/{lead}/ai-screening/dispatch', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'dispatchSingle']);

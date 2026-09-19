@@ -784,6 +784,30 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     enabled: isSuperAdmin,
   });
 
+  const [backfillFeedback, setBackfillFeedback] = useState<string>("");
+  const runBackfillMutation = useMutation({
+    mutationFn: async () => {
+      // Kept small (server clamps to a max of 3 leads / 60s anyway) so this
+      // request finishes within typical gateway timeouts — this button is a
+      // quick manual nudge, not a full backlog sweep. The full backlog is
+      // handled automatically every 10 minutes by the scheduled
+      // leadsy:screen-unassessed command running server-side.
+      const res = await apiFetch("/leads/ai-screening/run-backfill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ limit: 2, max_seconds: 35 }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) throw new Error(json?.message || "Failed to run backfill batch.");
+      return json;
+    },
+    onSuccess: (json) => {
+      setBackfillFeedback(json.message || "Backfill batch complete.");
+      refetchUnassessedCount();
+    },
+    onError: (err: any) => setBackfillFeedback(err.message),
+  });
+
 
 
   const { data: stagesData } = useQuery({
@@ -1607,6 +1631,24 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-500" />
                   Unassessed ({unassessedCount})
                 </Button>
+                {isSuperAdmin && unassessedCount > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8 rounded-xl font-medium border-[var(--brand)]/30 text-[var(--brand)] bg-[var(--brand)]/5 hover:bg-[var(--brand)]/10"
+                    disabled={runBackfillMutation.isPending}
+                    onClick={() => runBackfillMutation.mutate()}
+                    title="Screens 1-2 unassessed leads right now, directly on the server (no queue needed). The full backlog is also processed automatically every 10 minutes in the background."
+                  >
+                    {runBackfillMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Zap className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Screen a Few Now
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant={qualificationFilter === "eligible" ? "default" : "outline"}
@@ -1717,6 +1759,9 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   Unscored
                 </Button>
               </div>
+              {backfillFeedback && (
+                <p className="text-xs text-muted-foreground pt-1">{backfillFeedback}</p>
+              )}
             </div>
 
             {/* Detailed Filters */}
