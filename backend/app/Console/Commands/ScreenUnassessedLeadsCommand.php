@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Lead;
 use App\Services\Sales\PreMeetingAiScreeningOrchestratorService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -29,63 +30,82 @@ class ScreenUnassessedLeadsCommand extends Command
 
     public function handle(PreMeetingAiScreeningOrchestratorService $orchestrator): int
     {
-        $limit = max(1, (int) $this->option('limit'));
-        $maxSeconds = max(30, (int) $this->option('max-seconds'));
-        $startedAt = microtime(true);
-
-        $leads = $orchestrator->getUnassessedLeads($limit);
-
-        if ($leads->isEmpty()) {
-            $this->info('No unassessed leads found. Nothing to do.');
+        // Shared app-wide lock: the scheduled run (every 10 minutes) and the
+        // "Screen a Few Now" manual button both invoke this same command.
+        // Without this, two overlapping runs can pick up and process the
+        // SAME lead concurrently (screenLead() deletes/recreates related
+        // rows inside a DB transaction), which showed up in production as
+        // the whole site slowing to a crawl under lock contention. Skip
+        // rather than wait — the manual button is an HTTP request and
+        // must not block on another run's lock.
+        $lock = Cache::lock('leadsy-screen-unassessed-batch', 900);
+        if (! $lock->get()) {
+            $this->warn('Another screening batch is already running; skipping to avoid overlapping AI calls on the same leads.');
 
             return self::SUCCESS;
         }
 
-        $this->info("Found {$leads->count()} unassessed lead(s) to screen (limit {$limit}, budget {$maxSeconds}s).");
+        try {
+            $limit = max(1, (int) $this->option('limit'));
+            $maxSeconds = max(30, (int) $this->option('max-seconds'));
+            $startedAt = microtime(true);
 
-        $processed = 0;
-        $failed = 0;
+            $leads = $orchestrator->getUnassessedLeads($limit);
 
-        foreach ($leads as $lead) {
-            if ((microtime(true) - $startedAt) >= $maxSeconds) {
-                $this->warn('Time budget exhausted; stopping before starting another lead.');
-                break;
+            if ($leads->isEmpty()) {
+                $this->info('No unassessed leads found. Nothing to do.');
+
+                return self::SUCCESS;
             }
 
-            // Re-check: a manual "Run Full Pipeline" click or another
-            // overlapping run may have already assessed this lead since
-            // getUnassessedLeads() ran its query above.
-            $fresh = $lead->fresh();
-            if (! $fresh || $this->isAlreadyAssessed($fresh)) {
-                continue;
+            $this->info("Found {$leads->count()} unassessed lead(s) to screen (limit {$limit}, budget {$maxSeconds}s).");
+
+            $processed = 0;
+            $failed = 0;
+
+            foreach ($leads as $lead) {
+                if ((microtime(true) - $startedAt) >= $maxSeconds) {
+                    $this->warn('Time budget exhausted; stopping before starting another lead.');
+                    break;
+                }
+
+                // Re-check: a manual "Run Full Pipeline" click or another
+                // overlapping run may have already assessed this lead since
+                // getUnassessedLeads() ran its query above.
+                $fresh = $lead->fresh();
+                if (! $fresh || $this->isAlreadyAssessed($fresh)) {
+                    continue;
+                }
+
+                $leadStart = microtime(true);
+                $this->line("Screening Lead #{$fresh->id} ({$fresh->company_name})...");
+
+                try {
+                    $result = $orchestrator->screenLead($fresh);
+                    $elapsed = round(microtime(true) - $leadStart, 1);
+                    $processed++;
+                    $this->info("  -> done in {$elapsed}s. Score: ".($result['lead_score'] ?? '—').", Qualification: ".($result['qualification_status'] ?? '—'));
+                    Log::info("[ScreenUnassessedLeadsCommand] Screened lead {$fresh->id} in {$elapsed}s", $result);
+                } catch (\Throwable $e) {
+                    $failed++;
+                    $this->error("  -> failed: {$e->getMessage()}");
+                    Log::error("[ScreenUnassessedLeadsCommand] Failed to screen lead {$fresh->id}: {$e->getMessage()}");
+                    // screenLead() already has its own internal safeguard that
+                    // guarantees a fallback score/status before it would ever
+                    // throw this far — a throw here means something unexpected
+                    // (e.g. a DB error). Keep going; don't let one bad lead
+                    // block the rest of the batch.
+                }
             }
 
-            $leadStart = microtime(true);
-            $this->line("Screening Lead #{$fresh->id} ({$fresh->company_name})...");
+            $totalElapsed = round(microtime(true) - $startedAt, 1);
+            $remaining = $orchestrator->getUnassessedLeadsCount();
+            $this->info("Batch complete in {$totalElapsed}s. Processed: {$processed}, Failed: {$failed}, Still unassessed: {$remaining}.");
 
-            try {
-                $result = $orchestrator->screenLead($fresh);
-                $elapsed = round(microtime(true) - $leadStart, 1);
-                $processed++;
-                $this->info("  -> done in {$elapsed}s. Score: ".($result['lead_score'] ?? '—').", Qualification: ".($result['qualification_status'] ?? '—'));
-                Log::info("[ScreenUnassessedLeadsCommand] Screened lead {$fresh->id} in {$elapsed}s", $result);
-            } catch (\Throwable $e) {
-                $failed++;
-                $this->error("  -> failed: {$e->getMessage()}");
-                Log::error("[ScreenUnassessedLeadsCommand] Failed to screen lead {$fresh->id}: {$e->getMessage()}");
-                // screenLead() already has its own internal safeguard that
-                // guarantees a fallback score/status before it would ever
-                // throw this far — a throw here means something unexpected
-                // (e.g. a DB error). Keep going; don't let one bad lead
-                // block the rest of the batch.
-            }
+            return self::SUCCESS;
+        } finally {
+            $lock->release();
         }
-
-        $totalElapsed = round(microtime(true) - $startedAt, 1);
-        $remaining = $orchestrator->getUnassessedLeadsCount();
-        $this->info("Batch complete in {$totalElapsed}s. Processed: {$processed}, Failed: {$failed}, Still unassessed: {$remaining}.");
-
-        return self::SUCCESS;
     }
 
     private function isAlreadyAssessed(Lead $lead): bool
