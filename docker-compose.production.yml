@@ -163,9 +163,37 @@ services:
       coolify:
         aliases:
           - "leadsy-worker-${COOLIFY_RESOURCE_UUID:-local}"
-    command: ["php", "artisan", "horizon"]
+    # Wraps `horizon` with a watchdog instead of exec-ing it directly. Horizon
+    # has a known failure mode where its master process stays alive while its
+    # supervisors/workers silently stop processing jobs — a plain process
+    # healthcheck or `restart: always` alone won't catch that, since nothing
+    # actually crashes. This polls `horizon:status` every 30s and, if it ever
+    # reports anything other than running, kills horizon and exits 1 so
+    # `restart: always` restarts the whole container with a clean process.
+    command:
+      - sh
+      - -c
+      - |
+        php artisan horizon &
+        HORIZON_PID=$!
+        while kill -0 "$HORIZON_PID" 2>/dev/null; do
+          sleep 30
+          if ! php artisan horizon:status 2>/dev/null | grep -qi running; then
+            echo "[horizon-watchdog] horizon:status is not 'running' — restarting container."
+            kill "$HORIZON_PID" 2>/dev/null
+            exit 1
+          fi
+        done
+        echo "[horizon-watchdog] horizon process exited unexpectedly."
+        exit 1
     restart: always
     init: true
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan horizon:status 2>/dev/null | grep -qi running || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # Runs Laravel's scheduler (routes/console.php) forever without needing an
   # OS-level crontab entry on the host — schedule:work polls internally every
@@ -225,6 +253,12 @@ services:
     command: ["php", "artisan", "schedule:work"]
     restart: always
     init: true
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'schedule:work' > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   frontend:
     build:

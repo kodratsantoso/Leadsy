@@ -146,10 +146,17 @@ php artisan config:cache  || log "WARNING: config:cache failed (non-fatal)."
 php artisan route:cache   || log "WARNING: route:cache failed (non-fatal)."
 php artisan view:cache    || log "WARNING: view:cache failed (non-fatal)."
 
-# ── 10. Start queue worker in background & Start server ────────────────────────
-log "Starting background queue worker..."
-php artisan queue:work --sleep=3 --tries=3 --timeout=180 &
-
+# ── 10. Start server (or the container's designated foreground command) ──────
+# NOTE: this used to also start `php artisan queue:work &` here unconditionally
+# — meaning every container using this entrypoint (backend, worker, scheduler)
+# ran its OWN unsupervised queue consumer in the background, IN ADDITION to
+# the dedicated `worker` container's Horizon process. That's multiple
+# uncoordinated consumers racing on the same Redis queue, and since it was a
+# bare `&` background job with nothing watching it, if it silently died
+# nothing noticed or restarted it — a very plausible contributor to the queue
+# processing going silent for hours at a time with zero visible error.
+# Horizon (in the dedicated `worker` service) is now the single source of
+# truth for queue consumption. Do not reintroduce a second consumer here.
 if [ "$#" -gt 0 ]; then
     log "Running command: $*"
     exec "$@"
