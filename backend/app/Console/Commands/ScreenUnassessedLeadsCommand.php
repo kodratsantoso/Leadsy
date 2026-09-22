@@ -30,6 +30,13 @@ class ScreenUnassessedLeadsCommand extends Command
 
     public function handle(PreMeetingAiScreeningOrchestratorService $orchestrator): int
     {
+        // Written unconditionally, before the lock check, so it proves
+        // whether anything is invoking this command AT ALL — that's the
+        // one question neither of us could answer without server/container
+        // access during the outages this backs up. Exposed read-only via
+        // GET /api/leads/ai-screening/scheduler-heartbeat.
+        $this->writeHeartbeat(['invoked_at' => now()->toIso8601String()]);
+
         // Shared app-wide lock: the scheduled run (every 10 minutes) and the
         // "Screen a Few Now" manual button both invoke this same command.
         // Without this, two overlapping runs can pick up and process the
@@ -41,6 +48,7 @@ class ScreenUnassessedLeadsCommand extends Command
         $lock = Cache::lock('leadsy-screen-unassessed-batch', 900);
         if (! $lock->get()) {
             $this->warn('Another screening batch is already running; skipping to avoid overlapping AI calls on the same leads.');
+            $this->writeHeartbeat(['invoked_at' => now()->toIso8601String(), 'skipped' => 'lock_held']);
 
             return self::SUCCESS;
         }
@@ -102,6 +110,15 @@ class ScreenUnassessedLeadsCommand extends Command
             $remaining = $orchestrator->getUnassessedLeadsCount();
             $this->info("Batch complete in {$totalElapsed}s. Processed: {$processed}, Failed: {$failed}, Still unassessed: {$remaining}.");
 
+            $this->writeHeartbeat([
+                'invoked_at' => now()->toIso8601String(),
+                'completed_at' => now()->toIso8601String(),
+                'elapsed_seconds' => $totalElapsed,
+                'processed' => $processed,
+                'failed' => $failed,
+                'remaining' => $remaining,
+            ]);
+
             return self::SUCCESS;
         } finally {
             $lock->release();
@@ -113,5 +130,13 @@ class ScreenUnassessedLeadsCommand extends Command
         return $lead->lead_score !== null
             && ! empty($lead->qualification_status)
             && ! in_array($lead->qualification_status, ['pending', 'unassessed'], true);
+    }
+
+    private function writeHeartbeat(array $data): void
+    {
+        // Long TTL (7 days) so a stale heartbeat is still visible as
+        // evidence of "when this last ran," rather than silently expiring
+        // into looking identical to "never configured."
+        Cache::put('leadsy_scheduler_heartbeat', $data, now()->addDays(7));
     }
 }

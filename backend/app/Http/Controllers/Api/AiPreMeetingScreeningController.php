@@ -9,6 +9,8 @@ use App\Services\Sales\PreMeetingAiScreeningOrchestratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Carbon;
 
 class AiPreMeetingScreeningController extends Controller
 {
@@ -27,6 +29,49 @@ class AiPreMeetingScreeningController extends Controller
         return response()->json([
             'success' => true,
             'unassessed_count' => $count,
+        ]);
+    }
+
+    /**
+     * GET /api/v1/leads/ai-screening/scheduler-heartbeat
+     * Reports whether `leadsy:screen-unassessed` has actually been invoked
+     * recently — by anything (the scheduler container, a manual run, the
+     * "Screen a Few Now" button). This is the one thing that kept being
+     * impossible to answer from inside the app during past outages: is the
+     * scheduler container even running? Now it's a read from this endpoint
+     * instead of needing server/container access.
+     */
+    public function schedulerHeartbeat(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
+        $heartbeat = Cache::get('leadsy_scheduler_heartbeat');
+
+        if (! $heartbeat) {
+            return response()->json([
+                'success' => true,
+                'status' => 'never_seen',
+                'message' => 'leadsy:screen-unassessed has not run since this cache key\'s TTL — either it has never run, or it hasn\'t run in over 7 days.',
+            ]);
+        }
+
+        $lastSeenAt = Carbon::parse($heartbeat['completed_at'] ?? $heartbeat['invoked_at']);
+        $minutesAgo = $lastSeenAt->diffInMinutes(now());
+
+        // The command is scheduled every 10 minutes; anything comfortably
+        // past that without a fresh heartbeat means whatever should be
+        // invoking it (the scheduler container) has stopped.
+        $status = match (true) {
+            $minutesAgo <= 15 => 'healthy',
+            $minutesAgo <= 60 => 'stale',
+            default => 'dead',
+        };
+
+        return response()->json([
+            'success' => true,
+            'status' => $status,
+            'minutes_ago' => $minutesAgo,
+            'detail' => $heartbeat,
         ]);
     }
 

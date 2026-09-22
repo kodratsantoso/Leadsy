@@ -526,6 +526,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     
     // Pre-Meeting AI Screening & Qualification (Superadmin)
     Route::get('leads/ai-screening/unassessed-count', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'unassessedCount']);
+    Route::get('leads/ai-screening/scheduler-heartbeat', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'schedulerHeartbeat']);
     Route::get('leads/ai-screening/stats', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'stats']);
     Route::get('leads/ai-screening/pending-leads', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'pendingLeads']);
     Route::post('leads/ai-screening/run-backfill', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'runBackfillNow']);

@@ -784,6 +784,21 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     enabled: isSuperAdmin,
   });
 
+  // Surfaces whether the background scheduler (leadsy:screen-unassessed,
+  // meant to run every 10 minutes via the `scheduler` container) is
+  // actually alive — this answers "is the AI pipeline running in the
+  // background or not?" from inside the app, without needing server or
+  // container access.
+  const { data: schedulerHeartbeat } = useQuery({
+    queryKey: ["scheduler-heartbeat"],
+    queryFn: async () => {
+      const res = await apiFetch("/leads/ai-screening/scheduler-heartbeat");
+      return res.json();
+    },
+    enabled: isSuperAdmin,
+    refetchInterval: 60000,
+  });
+
   const [backfillFeedback, setBackfillFeedback] = useState<string>("");
   const runBackfillMutation = useMutation({
     mutationFn: async () => {
@@ -1648,6 +1663,34 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                     )}
                     Screen a Few Now
                   </Button>
+                )}
+                {isSuperAdmin && schedulerHeartbeat && (
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 h-8 text-[11px] font-medium border ${
+                      schedulerHeartbeat.status === "healthy"
+                        ? "border-emerald-500/30 text-emerald-600 bg-emerald-500/5 dark:text-emerald-400"
+                        : schedulerHeartbeat.status === "stale"
+                        ? "border-amber-500/30 text-amber-600 bg-amber-500/5 dark:text-amber-400"
+                        : "border-red-500/30 text-red-600 bg-red-500/5 dark:text-red-400"
+                    }`}
+                    title={
+                      schedulerHeartbeat.status === "healthy"
+                        ? `Background scheduler ran ${schedulerHeartbeat.minutes_ago} min ago — working normally.`
+                        : schedulerHeartbeat.status === "stale"
+                        ? `Background scheduler last ran ${schedulerHeartbeat.minutes_ago} min ago — expected every 10 min, may be lagging.`
+                        : schedulerHeartbeat.status === "dead"
+                        ? `Background scheduler hasn't run in ${schedulerHeartbeat.minutes_ago} min — it has likely stopped. Contact DevOps to check the scheduler container.`
+                        : "Background scheduler has never reported in — it may not be running at all."
+                    }
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${
+                      schedulerHeartbeat.status === "healthy" ? "bg-emerald-500" : schedulerHeartbeat.status === "stale" ? "bg-amber-500" : "bg-red-500"
+                    }`} />
+                    {schedulerHeartbeat.status === "healthy" && "Background AI: running"}
+                    {schedulerHeartbeat.status === "stale" && `Background AI: lagging (${schedulerHeartbeat.minutes_ago}m)`}
+                    {schedulerHeartbeat.status === "dead" && `Background AI: stopped (${schedulerHeartbeat.minutes_ago}m)`}
+                    {schedulerHeartbeat.status === "never_seen" && "Background AI: never seen"}
+                  </span>
                 )}
                 <Button
                   type="button"
