@@ -90,19 +90,15 @@ jobs:
       - name: Rollout to K3s Cluster
         run: |
           set -euo pipefail
-          NAMESPACE="leadsy-production"
+          NAMESPACE="leadsy-prod"
           REGISTRY="10.43.110.114:5000"
           TAG="${{ github.sha }}"
           
           echo "Updating deployment images in namespace ${NAMESPACE}..."
-          kubectl set image deployment/backend backend="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
-          kubectl set image deployment/worker worker="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
-          kubectl set image deployment/frontend frontend="${REGISTRY}/leadsy-frontend:${TAG}" -n "${NAMESPACE}"
+          kubectl set image deployment/leadsy web="${REGISTRY}/leadsy-frontend:${TAG}" -n "${NAMESPACE}"
           
           echo "Waiting for rollouts to complete..."
-          kubectl rollout status deployment/backend -n "${NAMESPACE}" --timeout=180s
-          kubectl rollout status deployment/worker -n "${NAMESPACE}" --timeout=180s
-          kubectl rollout status deployment/frontend -n "${NAMESPACE}" --timeout=180s
+          kubectl rollout status deployment/leadsy -n "${NAMESPACE}" --timeout=180s
 
       - name: Health Smoke Test
         run: |
@@ -115,3 +111,15 @@ jobs:
           else
             echo "::warning::Unexpected status code: ${STATUS_CODE}"
           fi
+
+  record:
+    name: Record deployment in VirtueDev
+    needs: deploy
+    if: needs.deploy.result == 'success'
+    uses: virtuenet-prasetia/.github/.github/workflows/record-deployment.yml@main
+    with:
+      app_name: leadsy
+      environment: production
+      target_namespace: leadsy-prod
+      source_commit: ${{ github.sha }}
+    secrets: inherit
