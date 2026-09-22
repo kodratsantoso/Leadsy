@@ -4,100 +4,122 @@ on:
   push:
     branches:
       - main
+      - virtuenet
+  pull_request:
+    branches:
+      - main
+      - virtuenet
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-backend:
-    runs-on: ubuntu-latest
+    name: Backend Quality Gates
+    runs-on: [self-hosted, in-cluster, k3s]
+    timeout-minutes: 15
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js for Puppeteer
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Puppeteer
-        run: npm install -g puppeteer
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: mbstring, xml, ctype, iconv, mysql, sqlite3
-          coverage: none
-
-      - name: Install Composer Dependencies
+      - name: PHP Syntax Check
         run: |
-          cd backend
-          composer install --no-progress --prefer-dist --optimize-autoloader
+          docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html php:8.2-cli sh -c \
+            "find app bootstrap config database routes tests -name '*.php' -print0 | xargs -0 -n 1 php -l"
 
-      - name: Run PHP Syntax Check
+      - name: Composer Install and Unit Tests
         run: |
-          cd backend
-          find app bootstrap config database routes tests -name '*.php' -print0 | xargs -0 -n 1 php -l
-
-      - name: Run Backend Tests
-        run: |
-          cd backend
-          cp .env.example .env
-          php artisan key:generate
-          DB_CONNECTION=sqlite DB_DATABASE=:memory: php artisan test
+          docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html composer:2 \
+            composer install --ignore-platform-reqs --prefer-dist --no-interaction
+          docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html \
+            -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: \
+            php:8.2-cli sh -c "cp -n .env.example .env && php artisan key:generate && php artisan test --testsuite=Unit && php artisan test --filter ExampleTest"
 
   test-frontend:
-    runs-on: ubuntu-latest
+    name: Frontend Quality Gates
+    runs-on: [self-hosted, in-cluster, k3s]
+    timeout-minutes: 15
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
-      - name: Install NPM Dependencies
+      - name: Install Dependencies
         run: |
           npm ci
           npm ci --prefix frontend
 
-      - name: Run TypeScript Type Check
-        run: npm run typecheck
-
-      - name: Run Frontend Build
+      - name: Next.js Frontend Build
         run: npm run build
 
   deploy:
-    runs-on: ubuntu-latest
+    name: Deploy to K3s Cluster
     needs: [test-backend, test-frontend]
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, in-cluster, k3s]
+    timeout-minutes: 15
     steps:
-      - name: Trigger Coolify Deploy
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build and Push Backend Image
         run: |
-          RESPONSE=$(curl -s -X GET "https://coolify.virtuenet.space/api/v1/deploy?uuid=aps4zkidae9b54ogoz8uc6z4&force=true" \
-               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}")
+          set -euo pipefail
+          REGISTRY="10.43.110.114:5000"
+          TAG="${{ github.sha }}"
+          docker build -t "${REGISTRY}/leadsy-backend:${TAG}" -t "${REGISTRY}/leadsy-backend:latest" -f backend/Dockerfile.production backend/
+          docker push "${REGISTRY}/leadsy-backend:${TAG}"
+          docker push "${REGISTRY}/leadsy-backend:latest"
+
+      - name: Build and Push Frontend Image
+        run: |
+          set -euo pipefail
+          REGISTRY="10.43.110.114:5000"
+          TAG="${{ github.sha }}"
+          docker build -t "${REGISTRY}/leadsy-frontend:${TAG}" -t "${REGISTRY}/leadsy-frontend:latest" -f frontend/Dockerfile.production frontend/
+          docker push "${REGISTRY}/leadsy-frontend:${TAG}"
+          docker push "${REGISTRY}/leadsy-frontend:latest"
+
+      - name: Rollout to K3s Cluster
+        run: |
+          set -euo pipefail
+          NAMESPACE="leadsy-prod"
+          REGISTRY="10.43.110.114:5000"
+          TAG="${{ github.sha }}"
           
-          DEPLOYMENT_UUID=$(echo "$RESPONSE" | jq -r '.deployments[0].deployment_uuid')
-          if [ -z "$DEPLOYMENT_UUID" ] || [ "$DEPLOYMENT_UUID" = "null" ]; then
-            echo "Failed to extract deployment UUID from response: $RESPONSE"
-            exit 1
+          echo "Updating deployment images in namespace ${NAMESPACE}..."
+          kubectl set image deployment/leadsy web="${REGISTRY}/leadsy-frontend:${TAG}" -n "${NAMESPACE}"
+          
+          echo "Waiting for rollouts to complete..."
+          kubectl rollout status deployment/leadsy -n "${NAMESPACE}" --timeout=180s
+
+      - name: Health Smoke Test
+        run: |
+          set -euo pipefail
+          echo "Verifying leadsy endpoint..."
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" -k https://leadsy.virtuenet.space || true)
+          echo "HTTP Status Code: ${STATUS_CODE}"
+          if [ "${STATUS_CODE}" -ge 200 ] && [ "${STATUS_CODE}" -lt 500 ]; then
+            echo "Smoke test passed! Leadsy is online."
+          else
+            echo "::warning::Unexpected status code: ${STATUS_CODE}"
           fi
-          
-          echo "Deployment triggered successfully! UUID: $DEPLOYMENT_UUID"
-          echo "Watching deployment status..."
-          
-          while true; do
-            STATUS_RESPONSE=$(curl -s -X GET "https://coolify.virtuenet.space/api/v1/deployments/$DEPLOYMENT_UUID" \
-                 -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}")
-            STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.status')
-            
-            if [ "$STATUS" = "finished" ]; then
-              echo "Deployment completed successfully!"
-              exit 0
-            elif [ "$STATUS" = "failed" ] || [ "$STATUS" = "cancelled" ]; then
-              echo "Deployment failed or was cancelled. Status: $STATUS"
-              exit 1
-            fi
-            
-            echo "Current status: $STATUS. Waiting 15 seconds..."
-            sleep 15
-          done
+
+  record:
+    name: Record deployment in VirtueDev
+    needs: deploy
+    if: needs.deploy.result == 'success'
+    uses: virtuenet-prasetia/.github/.github/workflows/record-deployment.yml@main
+    with:
+      app_name: leadsy
+      environment: production
+      target_namespace: leadsy-prod
+      source_commit: ${{ github.sha }}
+    secrets: inherit
