@@ -1,8 +1,9 @@
 # Leadsy UI Governance
 
 This project rule extends `/root/AGENTS.md` and `/root/SSOT/standards/agent_rules_standard.md`;
-it does not override native agent instructions. GitHub is canonical, `virtuenet` deploys via
-the development Coolify webhook, and `main` deploys through GitHub Actions and Coolify API.
+it does not override native agent instructions. GitHub is canonical; long-lived branches are
+`virtuenet` (development/integration) and `main` (production), and only a push to `main` deploys —
+to the K3s cluster through a GitHub Actions in-cluster runner (see "Deployment contract" below).
 Review the actual diff and user workflow before reporting completion.
 
 This repository contains deprecated root-level UI mirrors and one active runtime frontend.
@@ -82,3 +83,44 @@ Aturan berikut WAJIB dipatuhi oleh seluruh AI agent dan developer pada setiap se
 - **Validasi Kode Sebelum Push:**
   - Pastikan linting dan typecheck lulus tanpa error (`npm run build` / lint, serta `cd frontend && npx tsc --noEmit`).
   - Pastikan syntax endpoint backend tervalidasi.
+
+---
+
+## Deployment contract
+
+Coolify is retired: there is no Coolify server, API, webhook, or GitHub App for this repository.
+`coolify.json` and the Traefik/`coolify` network wiring in `docker-compose*.yml` are leftover
+artifacts of that era; local compose is for developer workstations only and must never be used to
+run production workloads.
+
+- Application: Leadsy. Repository: `virtuenet-prasetia/leadsy`.
+- Platform: the 3-node K3s cluster, deployed by GitHub Actions running on the org-scoped
+  self-hosted in-cluster runners (`runs-on: [self-hosted, in-cluster, k3s]`).
+- Workflow: `.github/workflows/ci.yml`. This is a bespoke in-cluster pipeline, **not** a caller of
+  the org reusable workflow `virtuenet-prasetia/.github/.github/workflows/k3s-app-deploy.yml@main`.
+- Triggers: push and pull_request on `main` and `virtuenet` run `test-backend` (PHP lint,
+  composer install, Laravel unit tests) and `test-frontend` (Next.js build). The `deploy` job is
+  gated to a push on `main` or a manual `workflow_dispatch` — a push to `virtuenet` never deploys,
+  and there is no development namespace today. Treat that as a known gap.
+- Images: built on the runner from `backend/Dockerfile.production` and
+  `frontend/Dockerfile.production` and pushed to the in-cluster registry `10.43.110.114:5000` as
+  `leadsy-backend:<commit sha>` and `leadsy-frontend:<commit sha>` (plus `:latest`).
+- Namespace: `leadsy-production`. The workflow rolls `deployment/backend`, `deployment/worker`
+  (same backend image), and `deployment/frontend` with `kubectl set image` +
+  `kubectl rollout status`, then smoke-tests `https://leadsy.virtuenet.space`.
+- Required secrets: the workflow references no GitHub repository secrets; the runner's in-cluster
+  service account provides `docker` and `kubectl`. Runtime configuration is injected from
+  Kubernetes Secrets/ConfigMaps in the namespace; the variable *names* are in `.env.example`
+  (`APP_KEY`, `DB_*`, `REDIS_*`, `INTEGRATION_CREDENTIAL_KEY`, `INTEGRATION_CREDENTIAL_KEY_ID`,
+  `WEBHOOK_SECRET`, `WHATSAPP_SIDECAR_URL`, `WHATSAPP_WEBHOOK_SECRET`, `LARK_*`, `AWS_*`,
+  `MAIL_*`, `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`). Never print values.
+- Runtime dependencies: PostgreSQL/MySQL per `DB_CONNECTION` on a persistent volume, Redis for
+  cache and queues (the `worker` deployment), an S3-compatible bucket (`AWS_*`), the WhatsApp
+  sidecar service, and the Lark Open API.
+- Edge routing is Cloudflare (`*.virtuenet.space` -> `187.127.115.170`) into the nginx
+  `load-balancer` container on `vn-core-prod-02`, then a Kubernetes NodePort. The cluster has
+  no ingress controller and no cert-manager, so `Ingress` objects do not route public traffic.
+- Ownership: GitHub team `virtuenet` (`virtuenet-prasetia/virtuenet`).
+
+Deployment evidence is the Actions run URL, the image tag (commit SHA), `kubectl rollout status`
+output for `leadsy-production`, and the public HTTPS check — an HTTP 200 alone is not evidence.
