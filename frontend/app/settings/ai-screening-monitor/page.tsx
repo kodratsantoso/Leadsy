@@ -6,12 +6,14 @@ import {
   CheckCircle2,
   Clock,
   HeartPulse,
-  Loader2,
-  RadioTower,
+  Inbox,
+  ListChecks,
+  Radio,
+  TrendingUp,
+  WifiOff,
   XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { apiFetch } from "@/lib/apiFetch";
 
@@ -19,6 +21,7 @@ type SchedulerStatus = "healthy" | "stale" | "dead" | "never_seen";
 
 type ProgressResponse = {
   success: boolean;
+  message?: string;
   total_leads: number;
   assessed_count: number;
   unassessed_count: number;
@@ -26,7 +29,6 @@ type ProgressResponse = {
   scheduler: {
     status: SchedulerStatus;
     minutes_ago: number | null;
-    detail: Record<string, any> | null;
   };
   last_hour: { success: number; partial: number; failed: number };
 };
@@ -39,7 +41,6 @@ type Run = {
   company_name: string | null;
   status: RunStatus;
   error_message: string | null;
-  stages_executed: string[] | null;
   lead_score: number | null;
   qualification_status: string | null;
   triggered_by: string;
@@ -47,17 +48,44 @@ type Run = {
   created_at: string | null;
 };
 
-const SCHEDULER_META: Record<SchedulerStatus, { label: string; badge: "success" | "warning" | "danger" | "outline"; desc: string }> = {
-  healthy: { label: "Running", badge: "success", desc: "The background scheduler ran within the last 15 minutes — on schedule." },
-  stale: { label: "Lagging", badge: "warning", desc: "It's been longer than expected since the last run. May just be a slow tick — worth watching." },
-  dead: { label: "Stopped", badge: "danger", desc: "No run in over an hour. The scheduler container has very likely stopped — this needs a DevOps check." },
-  never_seen: { label: "Never seen", badge: "outline", desc: "This install has never recorded a run at all. The scheduler may not be deployed yet." },
+const SCHEDULER_META: Record<
+  SchedulerStatus,
+  { label: string; dot: string; ring: string; text: string; desc: string }
+> = {
+  healthy: {
+    label: "Running on schedule",
+    dot: "bg-[var(--success)]",
+    ring: "ring-[var(--success)]/25",
+    text: "text-[var(--success)]",
+    desc: "Last run was within the last 15 minutes.",
+  },
+  stale: {
+    label: "Lagging",
+    dot: "bg-[var(--warning)]",
+    ring: "ring-[var(--warning)]/25",
+    text: "text-[var(--warning)]",
+    desc: "It's taking longer than expected between runs. Worth watching.",
+  },
+  dead: {
+    label: "Stopped",
+    dot: "bg-[var(--danger)]",
+    ring: "ring-[var(--danger)]/25",
+    text: "text-[var(--danger)]",
+    desc: "No run in over an hour — the scheduler process has very likely stopped. Needs a DevOps check.",
+  },
+  never_seen: {
+    label: "Never reported in",
+    dot: "bg-[var(--muted-foreground)]",
+    ring: "ring-border",
+    text: "text-muted-foreground",
+    desc: "No run has ever been recorded on this install.",
+  },
 };
 
-const RUN_META: Record<RunStatus, { label: string; icon: typeof CheckCircle2; badge: "success" | "warning" | "danger" }> = {
-  success: { label: "Success", icon: CheckCircle2, badge: "success" },
-  partial: { label: "Partial", icon: AlertTriangle, badge: "warning" },
-  failed: { label: "Failed", icon: XCircle, badge: "danger" },
+const RUN_META: Record<RunStatus, { label: string; icon: typeof CheckCircle2; text: string; bg: string }> = {
+  success: { label: "Success", icon: CheckCircle2, text: "text-[var(--success)]", bg: "bg-[var(--success-soft)]" },
+  partial: { label: "Partial", icon: AlertTriangle, text: "text-[var(--warning)]", bg: "bg-[var(--warning-soft)]" },
+  failed: { label: "Failed", icon: XCircle, text: "text-[var(--danger)]", bg: "bg-[var(--danger-soft)]" },
 };
 
 function timeAgo(iso: string | null): string {
@@ -71,8 +99,39 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  accent,
+  loading,
+}: {
+  icon: typeof TrendingUp;
+  label: string;
+  value: string;
+  accent?: string;
+  loading: boolean;
+}) {
+  return (
+    <div className="flex-1 rounded-xl border border-border bg-card p-5">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-4 w-4" />
+        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+      </div>
+      {loading ? (
+        <div className="mt-3 h-8 w-16 animate-pulse rounded bg-muted" />
+      ) : (
+        <div className={`mt-2 text-3xl font-semibold tabular-nums ${accent ?? ""}`}>{value}</div>
+      )}
+    </div>
+  );
+}
+
 export default function AiScreeningMonitorPage() {
-  const { data: progress, isLoading: progressLoading } = useQuery<ProgressResponse>({
+  const {
+    data: progress,
+    isLoading: progressLoading,
+  } = useQuery<ProgressResponse>({
     queryKey: ["ai-screening-progress"],
     queryFn: async () => {
       const res = await apiFetch("/leads/ai-screening/progress");
@@ -90,166 +149,188 @@ export default function AiScreeningMonitorPage() {
     refetchInterval: 8000,
   });
 
-  const runs = runsData?.data ?? [];
-  const schedulerStatus = progress?.scheduler?.status ?? "never_seen";
+  const connected = progress?.success === true;
+  const runs = connected ? runsData?.data ?? [] : [];
+  const schedulerStatus: SchedulerStatus = connected ? progress.scheduler.status : "never_seen";
   const schedulerMeta = SCHEDULER_META[schedulerStatus];
   const isLive = schedulerStatus === "healthy";
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
+    <div className="mx-auto max-w-5xl space-y-6 pb-12">
+      <div className="space-y-1.5">
         <BackToSettings />
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">AI Screening Monitor</h1>
           {isLive && (
-            <span className="flex items-center gap-1.5 text-xs text-[var(--success)]">
-              <span className="relative flex h-2 w-2">
+            <span className="flex items-center gap-1.5 rounded-full bg-[var(--success-soft)] px-2.5 py-1 text-xs font-medium text-[var(--success)]">
+              <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--success)]" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
               </span>
-              live
+              Live
             </span>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">
-          Real-time visibility into whether the background AI screening pipeline is actually running, and exactly what happened
-          — success, partial, or failed — for each lead it touches.
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Whether the background AI screening pipeline is actually running, and exactly what happened for each lead it
+          touched — success, partial, or failed.
         </p>
       </div>
 
+      {!progressLoading && !connected && (
+        <div className="flex items-start gap-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] p-4">
+          <WifiOff className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">Monitoring service isn't responding yet</p>
+            <p className="text-sm text-muted-foreground">
+              This page can't reach the monitoring endpoints on the server. If a backend deploy is in progress, this will
+              resolve on its own — refresh in a few minutes.
+              {progress?.message ? (
+                <>
+                  {" "}
+                  <span className="font-mono text-xs text-muted-foreground/80">({progress.message})</span>
+                </>
+              ) : null}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Overview */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total leads</CardDescription>
-            <CardTitle className="text-3xl tabular-nums">
-              {progressLoading ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : progress?.total_leads ?? "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Assessed</CardDescription>
-            <CardTitle className="text-3xl tabular-nums text-[var(--success)]">
-              {progressLoading ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : progress?.assessed_count ?? "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Unassessed</CardDescription>
-            <CardTitle className="text-3xl tabular-nums text-[var(--warning)]">
-              {progressLoading ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : progress?.unassessed_count ?? "—"}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Backlog progress</CardDescription>
-            <CardTitle className="text-3xl tabular-nums">{progress ? `${progress.percent_assessed}%` : "—"}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-[var(--brand)] transition-all duration-500"
-                style={{ width: `${progress?.percent_assessed ?? 0}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <StatTile icon={ListChecks} label="Total leads" value={connected ? String(progress.total_leads) : "—"} loading={progressLoading} />
+        <StatTile
+          icon={CheckCircle2}
+          label="Assessed"
+          value={connected ? String(progress.assessed_count) : "—"}
+          accent="text-[var(--success)]"
+          loading={progressLoading}
+        />
+        <StatTile
+          icon={Inbox}
+          label="Unassessed"
+          value={connected ? String(progress.unassessed_count) : "—"}
+          accent="text-[var(--warning)]"
+          loading={progressLoading}
+        />
+      </div>
+
+      {/* Backlog progress */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <TrendingUp className="h-4 w-4" />
+            <span className="text-xs font-medium uppercase tracking-wide">Backlog progress</span>
+          </div>
+          <span className="text-sm font-semibold tabular-nums text-foreground">
+            {connected ? `${progress.percent_assessed}%` : progressLoading ? "" : "—"}
+          </span>
+        </div>
+        <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-[var(--brand)] transition-all duration-700"
+            style={{ width: `${connected ? progress.percent_assessed : 0}%` }}
+          />
+        </div>
       </div>
 
       {/* Scheduler health */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <div className="flex items-center gap-2">
-            <HeartPulse className="h-4.5 w-4.5 text-muted-foreground" />
-            <CardTitle className="text-base">Background scheduler</CardTitle>
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className={`flex items-center gap-3 border-b border-border p-5 ring-1 ring-inset ${schedulerMeta.ring}`}>
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${schedulerMeta.dot}/15`}>
+            <HeartPulse className={`h-4.5 w-4.5 ${schedulerMeta.text}`} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground">Background scheduler</span>
+              <span className={`h-1.5 w-1.5 rounded-full ${schedulerMeta.dot}`} />
+              <span className={`text-sm font-medium ${schedulerMeta.text}`}>{schedulerMeta.label}</span>
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">{schedulerMeta.desc}</p>
           </div>
-          <Badge variant={schedulerMeta.badge}>{schedulerMeta.label}</Badge>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">{schedulerMeta.desc}</p>
-          <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
-            <div>
-              <span className="text-muted-foreground">Last run: </span>
-              <span className="font-medium tabular-nums">
-                {progress?.scheduler?.minutes_ago != null ? `${progress.scheduler.minutes_ago}m ago` : "never"}
-              </span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Last hour — success: </span>
-              <span className="font-medium text-[var(--success)] tabular-nums">{progress?.last_hour?.success ?? 0}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">partial: </span>
-              <span className="font-medium text-[var(--warning)] tabular-nums">{progress?.last_hour?.partial ?? 0}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">failed: </span>
-              <span className="font-medium text-[var(--danger)] tabular-nums">{progress?.last_hour?.failed ?? 0}</span>
+          <div className="hidden shrink-0 text-right text-sm sm:block">
+            <div className="text-muted-foreground">Last run</div>
+            <div className="font-medium tabular-nums">
+              {connected && progress.scheduler.minutes_ago != null ? `${progress.scheduler.minutes_ago}m ago` : "never"}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-border text-center">
+          <div className="p-4">
+            <div className="text-lg font-semibold tabular-nums text-[var(--success)]">{connected ? progress.last_hour.success : "—"}</div>
+            <div className="text-xs text-muted-foreground">success (1h)</div>
+          </div>
+          <div className="p-4">
+            <div className="text-lg font-semibold tabular-nums text-[var(--warning)]">{connected ? progress.last_hour.partial : "—"}</div>
+            <div className="text-xs text-muted-foreground">partial (1h)</div>
+          </div>
+          <div className="p-4">
+            <div className="text-lg font-semibold tabular-nums text-[var(--danger)]">{connected ? progress.last_hour.failed : "—"}</div>
+            <div className="text-xs text-muted-foreground">failed (1h)</div>
+          </div>
+        </div>
+      </div>
 
       {/* Recent runs */}
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-2 pb-3">
-          <RadioTower className="h-4.5 w-4.5 text-muted-foreground" />
-          <CardTitle className="text-base">Recent screening runs</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {runsLoading ? (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading recent activity...
-            </div>
-          ) : runs.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
-              <Clock className="h-6 w-6" />
-              No screening runs recorded yet. They'll show up here as soon as the scheduler processes a lead.
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {runs.map((run) => {
-                const meta = RUN_META[run.status];
-                const Icon = meta.icon;
-                const isProblem = run.status !== "success";
-                return (
-                  <div
-                    key={run.id}
-                    className={`flex flex-col gap-2 px-5 py-3 ${isProblem ? "bg-[var(--danger-soft)]/40" : ""}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <Icon className={`h-4 w-4 shrink-0 ${isProblem ? "text-[var(--danger)]" : "text-[var(--success)]"}`} />
-                        <span className="truncate text-sm font-medium">{run.company_name ?? `Lead #${run.lead_id}`}</span>
-                        <Badge variant={meta.badge} className="shrink-0">{meta.label}</Badge>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
-                        <span className="tabular-nums">{run.elapsed_seconds != null ? `${run.elapsed_seconds}s` : "—"}</span>
-                        <span>{run.triggered_by}</span>
-                        <span className="tabular-nums">{timeAgo(run.created_at)}</span>
-                      </div>
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+          <Radio className="h-4 w-4 text-muted-foreground" />
+          <span className="font-medium text-foreground">Recent screening runs</span>
+        </div>
+
+        {runsLoading ? (
+          <div className="space-y-3 p-5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
+            ))}
+          </div>
+        ) : runs.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-14 text-center text-sm text-muted-foreground">
+            <Clock className="h-6 w-6" />
+            No screening runs recorded yet. They'll show up here as soon as the scheduler processes a lead.
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {runs.map((run) => {
+              const meta = RUN_META[run.status];
+              const Icon = meta.icon;
+              const isProblem = run.status !== "success";
+              return (
+                <div key={run.id} className="flex flex-col gap-2 px-5 py-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${meta.bg}`}>
+                        <Icon className={`h-3.5 w-3.5 ${meta.text}`} />
+                      </span>
+                      <span className="truncate text-sm font-medium text-foreground">
+                        {run.company_name ?? `Lead #${run.lead_id}`}
+                      </span>
+                      {isProblem && (
+                        <Badge variant={run.status === "failed" ? "danger" : "warning"} className="shrink-0">
+                          {meta.label}
+                        </Badge>
+                      )}
                     </div>
-                    {isProblem && run.error_message && (
-                      <p className="rounded-md bg-[var(--danger-soft)] px-3 py-2 text-xs text-[var(--danger)]">
-                        {run.error_message}
-                      </p>
-                    )}
-                    {run.status === "success" && (
-                      <p className="text-xs text-muted-foreground">
-                        Score {run.lead_score ?? "—"} · {run.qualification_status ?? "—"}
-                      </p>
-                    )}
+                    <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+                      <span className="tabular-nums">{run.elapsed_seconds != null ? `${run.elapsed_seconds}s` : "—"}</span>
+                      <span className="hidden sm:inline">{run.triggered_by}</span>
+                      <span className="tabular-nums">{timeAgo(run.created_at)}</span>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  {isProblem && run.error_message && (
+                    <p className={`ml-[34px] rounded-md ${meta.bg} px-3 py-2 text-xs ${meta.text}`}>{run.error_message}</p>
+                  )}
+                  {run.status === "success" && (
+                    <p className="ml-[34px] text-xs text-muted-foreground">
+                      Score {run.lead_score ?? "—"} · {run.qualification_status ?? "—"}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
