@@ -9,13 +9,16 @@ import {
   Inbox,
   ListChecks,
   Radio,
+  ShieldOff,
   TrendingUp,
   WifiOff,
   XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { apiFetch } from "@/lib/apiFetch";
+import { useAuthStore } from "@/store/useAuthStore";
 
 type SchedulerStatus = "healthy" | "stale" | "dead" | "never_seen";
 
@@ -113,21 +116,25 @@ function StatTile({
   loading: boolean;
 }) {
   return (
-    <div className="flex-1 rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Icon className="h-4 w-4" />
-        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
-      </div>
-      {loading ? (
-        <div className="mt-3 h-8 w-16 animate-pulse rounded bg-muted" />
-      ) : (
-        <div className={`mt-2 text-3xl font-semibold tabular-nums ${accent ?? ""}`}>{value}</div>
-      )}
-    </div>
+    <Card className="flex-1">
+      <CardHeader className="pb-2">
+        <CardDescription className="flex items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+        </CardDescription>
+        {loading ? (
+          <div className="mt-1 h-8 w-16 animate-pulse rounded bg-muted" />
+        ) : (
+          <CardTitle className={`text-3xl tabular-nums ${accent ?? ""}`}>{value}</CardTitle>
+        )}
+      </CardHeader>
+    </Card>
   );
 }
 
 export default function AiScreeningMonitorPage() {
+  const authUser = useAuthStore((s) => s.user);
+
   const {
     data: progress,
     isLoading: progressLoading,
@@ -138,6 +145,7 @@ export default function AiScreeningMonitorPage() {
       return res.json();
     },
     refetchInterval: 8000,
+    enabled: authUser?.role?.name === "super_admin",
   });
 
   const { data: runsData, isLoading: runsLoading } = useQuery<{ success: boolean; data: Run[] }>({
@@ -147,7 +155,23 @@ export default function AiScreeningMonitorPage() {
       return res.json();
     },
     refetchInterval: 8000,
+    enabled: authUser?.role?.name === "super_admin",
   });
+
+  if (authUser?.role?.name !== "super_admin") {
+    return (
+      <div className="space-y-4 p-6">
+        <BackToSettings />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-border bg-card py-20 text-center">
+          <ShieldOff className="h-8 w-8 text-muted-foreground" />
+          <p className="font-semibold">Access Denied</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            The AI Screening Monitor is restricted to superadmins.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const connected = progress?.success === true;
   const runs = connected ? runsData?.data ?? [] : [];
@@ -156,45 +180,50 @@ export default function AiScreeningMonitorPage() {
   const isLive = schedulerStatus === "healthy";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-12">
-      <div className="space-y-1.5">
-        <BackToSettings />
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">AI Screening Monitor</h1>
-          {isLive && (
-            <span className="flex items-center gap-1.5 rounded-full bg-[var(--success-soft)] px-2.5 py-1 text-xs font-medium text-[var(--success)]">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
-              </span>
-              Live
-            </span>
-          )}
-        </div>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Whether the background AI screening pipeline is actually running, and exactly what happened for each lead it
-          touched — success, partial, or failed.
-        </p>
-      </div>
-
-      {!progressLoading && !connected && (
-        <div className="flex items-start gap-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] p-4">
-          <WifiOff className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
+    <div className="space-y-6 p-6">
+      <Card>
+        <CardHeader>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-foreground">Monitoring service isn't responding yet</p>
-            <p className="text-sm text-muted-foreground">
-              This page can't reach the monitoring endpoints on the server. If a backend deploy is in progress, this will
-              resolve on its own — refresh in a few minutes.
-              {progress?.message ? (
-                <>
-                  {" "}
-                  <span className="font-mono text-xs text-muted-foreground/80">({progress.message})</span>
-                </>
-              ) : null}
-            </p>
+            <BackToSettings />
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle>AI Screening Monitor</CardTitle>
+              {isLive && (
+                <span className="flex items-center gap-1.5 rounded-full bg-[var(--success-soft)] px-2.5 py-1 text-xs font-medium text-[var(--success)]">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--success)] opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
+                  </span>
+                  Live
+                </span>
+              )}
+            </div>
+            <CardDescription>
+              Whether the background AI screening pipeline is actually running, and exactly what happened for each lead
+              it touched — success, partial, or failed.
+            </CardDescription>
           </div>
-        </div>
-      )}
+        </CardHeader>
+        {!progressLoading && !connected && (
+          <CardContent className="pt-0">
+            <div className="flex items-start gap-3 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-soft)] p-4">
+              <WifiOff className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Monitoring service isn't responding yet</p>
+                <p className="text-sm text-muted-foreground">
+                  This page can't reach the monitoring endpoints on the server. If a backend deploy is in progress, this
+                  will resolve on its own — refresh in a few minutes.
+                  {progress?.message ? (
+                    <>
+                      {" "}
+                      <span className="font-mono text-xs text-muted-foreground/80">({progress.message})</span>
+                    </>
+                  ) : null}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
 
       {/* Overview */}
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -216,26 +245,28 @@ export default function AiScreeningMonitorPage() {
       </div>
 
       {/* Backlog progress */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-xs font-medium uppercase tracking-wide">Backlog progress</span>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between gap-3">
+            <CardDescription className="flex items-center gap-1.5">
+              <TrendingUp className="h-3.5 w-3.5" />
+              Backlog progress
+            </CardDescription>
+            <span className="text-sm font-semibold tabular-nums text-foreground">
+              {connected ? `${progress.percent_assessed}%` : progressLoading ? "" : "—"}
+            </span>
           </div>
-          <span className="text-sm font-semibold tabular-nums text-foreground">
-            {connected ? `${progress.percent_assessed}%` : progressLoading ? "" : "—"}
-          </span>
-        </div>
-        <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-[var(--brand)] transition-all duration-700"
-            style={{ width: `${connected ? progress.percent_assessed : 0}%` }}
-          />
-        </div>
-      </div>
+          <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-[var(--brand)] transition-all duration-700"
+              style={{ width: `${connected ? progress.percent_assessed : 0}%` }}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Scheduler health */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <Card className="overflow-hidden">
         <div className={`flex items-center gap-3 border-b border-border p-5 ring-1 ring-inset ${schedulerMeta.ring}`}>
           <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${schedulerMeta.dot}/15`}>
             <HeartPulse className={`h-4.5 w-4.5 ${schedulerMeta.text}`} />
@@ -269,10 +300,10 @@ export default function AiScreeningMonitorPage() {
             <div className="text-xs text-muted-foreground">failed (1h)</div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Recent runs */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <Card className="overflow-hidden">
         <div className="flex items-center gap-2 border-b border-border px-5 py-4">
           <Radio className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium text-foreground">Recent screening runs</span>
@@ -330,7 +361,7 @@ export default function AiScreeningMonitorPage() {
             })}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
