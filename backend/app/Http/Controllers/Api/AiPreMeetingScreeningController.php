@@ -227,7 +227,7 @@ class AiPreMeetingScreeningController extends Controller
 
         @set_time_limit(180);
 
-        $result = $this->orchestrator->screenLead($lead, $request->user()->id);
+        $result = $this->orchestrator->screenLead($lead, $request->user()->id, 'manual_force_run_sync');
 
         return response()->json([
             'success' => $result['success'] ?? false,

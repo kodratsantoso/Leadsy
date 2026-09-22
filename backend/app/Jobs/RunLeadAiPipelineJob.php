@@ -58,7 +58,7 @@ class RunLeadAiPipelineJob implements ShouldQueue
                 'started_at' => now()->toIso8601String(),
             ], 600);
 
-            $result = $orchestrator->screenLead($lead);
+            $result = $orchestrator->screenLead($lead, null, 'auto_on_creation');
 
             $lead->update(['ai_processing_status' => 'completed']);
 

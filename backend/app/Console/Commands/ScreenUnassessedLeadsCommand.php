@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\AiScreeningRun;
 use App\Models\Lead;
 use App\Services\Sales\PreMeetingAiScreeningOrchestratorService;
 use Illuminate\Console\Command;
@@ -29,18 +28,6 @@ class ScreenUnassessedLeadsCommand extends Command
         {--source=scheduler : Who triggered this run (scheduler|manual_button|manual_command) — recorded on each ai_screening_runs row}';
 
     protected $description = 'Runs the Pre-Meeting AI Screening pipeline directly (no queue) for a batch of unassessed leads';
-
-    /** The orchestrator's own stage names — see PreMeetingAiScreeningOrchestratorService::screenLead() docblock. */
-    private const ALL_STAGES = [
-        'profiling_and_enrichment',
-        'company_verification',
-        'icp_and_solution_matching',
-        'lead_scoring',
-        'lead_analysis',
-        'bantc_gatekeeper_qualification',
-        'product_matching',
-        'bantc_question_generation',
-    ];
 
     public function handle(PreMeetingAiScreeningOrchestratorService $orchestrator): int
     {
@@ -104,51 +91,26 @@ class ScreenUnassessedLeadsCommand extends Command
                 $source = (string) $this->option('source');
 
                 try {
-                    $result = $orchestrator->screenLead($fresh);
+                    // screenLead() itself writes the AiScreeningRun audit row
+                    // (including detecting silently-skipped stages) — see
+                    // PreMeetingAiScreeningOrchestratorService::recordRun().
+                    // Keeping that in one place means every caller (this
+                    // command, the queue job, the sync debug endpoint) is
+                    // covered instead of only whichever one remembers to log.
+                    $result = $orchestrator->screenLead($fresh, null, $source);
                     $elapsed = round(microtime(true) - $leadStart, 1);
                     $processed++;
                     $this->info("  -> done in {$elapsed}s. Score: ".($result['lead_score'] ?? '—').", Qualification: ".($result['qualification_status'] ?? '—'));
                     Log::info("[ScreenUnassessedLeadsCommand] Screened lead {$fresh->id} in {$elapsed}s", $result);
-
-                    // screenLead() swallows most per-stage AI failures
-                    // internally (a warning-and-continue, not a throw) so a
-                    // lead can still end up with a fallback score even when
-                    // several stages silently failed. Surface that gap here
-                    // — this is exactly the "what actually went wrong" detail
-                    // the monitor UI needs, not just a bare success/fail flag.
-                    $executed = $result['stages_executed'] ?? [];
-                    $missingStages = array_values(array_diff(self::ALL_STAGES, $executed));
-
-                    AiScreeningRun::create([
-                        'lead_id' => $fresh->id,
-                        'company_name' => $fresh->company_name,
-                        'status' => empty($missingStages) ? 'success' : 'partial',
-                        'error_message' => empty($missingStages)
-                            ? null
-                            : 'Stage(s) failed or were skipped: '.implode(', ', $missingStages).'. Score/qualification used a fallback where needed — check storage/logs/laravel.log around this lead\'s ID for the underlying error.',
-                        'stages_executed' => $executed,
-                        'lead_score' => $result['lead_score'] ?? null,
-                        'qualification_status' => $result['qualification_status'] ?? null,
-                        'triggered_by' => $source,
-                        'elapsed_seconds' => $elapsed,
-                    ]);
                 } catch (\Throwable $e) {
                     $failed++;
                     $this->error("  -> failed: {$e->getMessage()}");
                     Log::error("[ScreenUnassessedLeadsCommand] Failed to screen lead {$fresh->id}: {$e->getMessage()}");
                     // screenLead() already has its own internal safeguard that
-                    // guarantees a fallback score/status before it would ever
-                    // throw this far — a throw here means something unexpected
-                    // (e.g. a DB error). Keep going; don't let one bad lead
-                    // block the rest of the batch.
-                    AiScreeningRun::create([
-                        'lead_id' => $fresh->id,
-                        'company_name' => $fresh->company_name,
-                        'status' => 'failed',
-                        'error_message' => $e->getMessage(),
-                        'triggered_by' => $source,
-                        'elapsed_seconds' => round(microtime(true) - $leadStart, 1),
-                    ]);
+                    // guarantees a fallback score/status (and its own audit
+                    // row) before it would ever throw this far — a throw here
+                    // means something unexpected (e.g. a DB error). Keep
+                    // going; don't let one bad lead block the rest of the batch.
                 }
             }
 

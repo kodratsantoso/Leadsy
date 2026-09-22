@@ -49,7 +49,7 @@ class RunPreMeetingAiScreeningJob implements ShouldQueue
                 'started_at' => now()->toIso8601String(),
             ], 600);
 
-            $result = $orchestrator->screenLead($lead, $this->userId);
+            $result = $orchestrator->screenLead($lead, $this->userId, 'queue_dispatch');
             
             Cache::put("lead_screening_{$this->leadId}", array_merge($result, [
                 'status' => 'completed',

@@ -2,6 +2,7 @@
 
 namespace App\Services\Sales;
 
+use App\Models\AiScreeningRun;
 use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\LeadPreMeetingBrief;
@@ -23,6 +24,18 @@ use Illuminate\Support\Facades\Log;
 
 class PreMeetingAiScreeningOrchestratorService
 {
+    /** Canonical stage list — used to detect which stages silently failed/were skipped for the AiScreeningRun audit trail. */
+    private const ALL_STAGES = [
+        'profiling_and_enrichment',
+        'company_verification',
+        'icp_and_solution_matching',
+        'lead_scoring',
+        'lead_analysis',
+        'bantc_gatekeeper_qualification',
+        'product_matching',
+        'bantc_question_generation',
+    ];
+
     public function __construct(
         private readonly LeadDiscoveryService $discovery,
         private readonly LeadMasterDataMapperService $mapper,
@@ -76,9 +89,15 @@ class PreMeetingAiScreeningOrchestratorService
      *
      * @param Lead $lead
      * @param int|null $userId
+     * @param string $triggeredBy Who/what invoked this run — recorded on the
+     *   AiScreeningRun audit row so the "AI Screening Monitor" page can show
+     *   whether a given result came from the scheduler, a manual button, the
+     *   automatic on-creation trigger, etc. This is the single choke point
+     *   every caller of screenLead() goes through, so logging lives here
+     *   rather than being duplicated (and inevitably missed) in each caller.
      * @return array
      */
-    public function screenLead(Lead $lead, ?int $userId = null): array
+    public function screenLead(Lead $lead, ?int $userId = null, string $triggeredBy = 'unspecified'): array
     {
         $startTime = microtime(true);
 
@@ -241,6 +260,8 @@ class PreMeetingAiScreeningOrchestratorService
 
             $elapsedSeconds = round(microtime(true) - $startTime, 2);
 
+            $this->recordRun($lead, $stagesExecuted, $lead->lead_score, $qualificationStatus, $triggeredBy, $elapsedSeconds, null);
+
             return [
                 'success' => true,
                 'lead_id' => $lead->id,
@@ -273,6 +294,9 @@ class PreMeetingAiScreeningOrchestratorService
                 'qualification_status' => $status,
             ]);
 
+            $elapsedSeconds = round(microtime(true) - $startTime, 2);
+            $this->recordRun($lead, $stagesExecuted, $score, $status, $triggeredBy, $elapsedSeconds, $e->getMessage());
+
             return [
                 'success' => true,
                 'lead_id' => $lead->id,
@@ -280,8 +304,51 @@ class PreMeetingAiScreeningOrchestratorService
                 'qualification_status' => $status,
                 'lead_score' => $score,
                 'stages_executed' => $stagesExecuted,
-                'elapsed_seconds' => round(microtime(true) - $startTime, 2),
+                'elapsed_seconds' => $elapsedSeconds,
             ];
+        }
+    }
+
+    /**
+     * Writes the AiScreeningRun audit row every screenLead() call produces —
+     * success, partial (some stages silently failed but a fallback score
+     * still landed), or failed (the outer safeguard had to step in).
+     */
+    private function recordRun(
+        Lead $lead,
+        array $stagesExecuted,
+        ?int $leadScore,
+        ?string $qualificationStatus,
+        string $triggeredBy,
+        float $elapsedSeconds,
+        ?string $safeguardError
+    ): void {
+        $missingStages = array_values(array_diff(self::ALL_STAGES, $stagesExecuted));
+
+        $status = $safeguardError !== null ? 'failed' : (empty($missingStages) ? 'success' : 'partial');
+
+        $errorMessage = match (true) {
+            $safeguardError !== null => $safeguardError,
+            ! empty($missingStages) => 'Stage(s) failed or were skipped: '.implode(', ', $missingStages)
+                .'. Score/qualification used a fallback where needed — check storage/logs/laravel.log around this lead\'s ID for the underlying error.',
+            default => null,
+        };
+
+        try {
+            AiScreeningRun::create([
+                'lead_id' => $lead->id,
+                'company_name' => $lead->company_name,
+                'status' => $status,
+                'error_message' => $errorMessage,
+                'stages_executed' => $stagesExecuted,
+                'lead_score' => $leadScore,
+                'qualification_status' => $qualificationStatus,
+                'triggered_by' => $triggeredBy,
+                'elapsed_seconds' => $elapsedSeconds,
+            ]);
+        } catch (\Throwable $e) {
+            // Never let audit-logging itself break the actual screening result.
+            Log::warning("[PreMeetingAiScreening] Failed to write AiScreeningRun for lead {$lead->id}: {$e->getMessage()}");
         }
     }
 
