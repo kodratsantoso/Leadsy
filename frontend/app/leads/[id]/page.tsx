@@ -1837,9 +1837,10 @@ export default function LeadDetailPage() {
             className="bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white"
             onClick={() => runIntelligenceMutation.mutate()}
             disabled={runIntelligenceMutation.isPending}
+            title="Refreshes ICP match, conversion prediction, and prescriptions on the Revenue tab. This is separate from AI Screening (lead score/qualification/BANTC)."
           >
             {runIntelligenceMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
-            Run AI Intelligence
+            Run Revenue Intelligence
           </Button>
           <Button
             variant="outline"
