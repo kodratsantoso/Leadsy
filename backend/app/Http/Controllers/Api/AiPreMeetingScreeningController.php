@@ -267,6 +267,7 @@ class AiPreMeetingScreeningController extends Controller
         Artisan::call('leadsy:screen-unassessed', [
             '--limit' => $limit,
             '--max-seconds' => $maxSeconds,
+            '--source' => 'manual_button',
         ]);
 
         return response()->json([

@@ -123,6 +123,7 @@ export const navItems: NavItem[] = [
       { href: "/settings/targets/kpi",     icon: Activity,     label: "Target KPI", group: "User & Targets" },
       { href: "/settings/ai-defaults",    icon: Bot,          label: "AI Defaults", group: "AI Intelligence" },
       { href: "/settings/ai-testing-console", icon: TestTube2, label: "AI Testing Console", group: "AI Intelligence" },
+      { href: "/settings/ai-screening-monitor", icon: HeartPulse, label: "AI Screening Monitor", group: "AI Intelligence" },
       { href: "/settings/icp-profiles",   icon: Target,       label: "ICP Profiles", group: "AI Intelligence" },
       { href: "/settings/industries",     icon: Layers,       label: "Industries", group: "CRM Taxonomy" },
       { href: "/settings/business-categories", icon: Briefcase,    label: "Business Categories", group: "CRM Taxonomy" },
