@@ -5,7 +5,7 @@
 # Environment variables (set in Coolify dashboard or docker-compose.production.yml):
 #   APP_KEY             Required. Generate with: php artisan key:generate --show
 #   AUTO_MIGRATE        true|false  (default: true)
-#   AUTO_SEED_BASELINE  true|false  (default: true)
+#   AUTO_SEED_BASELINE  true|false  (default: false — opt in per environment)
 #   SEED_DEMO_DATA      true|false  (default: false — NEVER set true in production)
 #   ADMIN_EMAIL         (default: admin@prasetia.com)
 #   ADMIN_PASSWORD      (default: ChangeMe!123 — override in Coolify!)
@@ -122,8 +122,14 @@ php artisan optimize:clear || {
 # ── 7. Production seeder ──────────────────────────────────────────────────────
 # Runs roles, permissions, funnel stages, admin user, industries, AI providers,
 # lead source types, notification defaults, and discovery categories.
-# All seeders use updateOrCreate — safe to run on every deploy.
-AUTO_SEED_BASELINE="${AUTO_SEED_BASELINE:-true}"
+#
+# Defaults to FALSE: updateOrCreate is idempotent against the seeders' own
+# defaults, not against changes made through the app, so running this on every
+# container start quietly reverts reference data the team has customised, and
+# AdminUserSeeder rewrites the admin password whenever ADMIN_PASSWORD is set in
+# the environment. Only an environment that genuinely needs its baseline
+# planted — a fresh install — should opt in by setting AUTO_SEED_BASELINE=true.
+AUTO_SEED_BASELINE="${AUTO_SEED_BASELINE:-false}"
 if [ "$AUTO_SEED_BASELINE" = "true" ]; then
     log "Running ProductionSeeder..."
     php artisan db:seed --class=ProductionSeeder --force

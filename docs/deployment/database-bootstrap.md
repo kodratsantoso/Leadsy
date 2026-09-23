@@ -101,7 +101,7 @@ Add these to Coolify environment variables for the backend service:
 | Variable             | Production | Staging/Dev | Description                                  |
 |---------------------|-----------|------------|----------------------------------------------|
 | `AUTO_MIGRATE`       | `true`    | `true`     | Run `migrate --force` on startup             |
-| `AUTO_SEED_BASELINE` | `true`    | `true`     | Run `ProductionSeeder` on startup            |
+| `AUTO_SEED_BASELINE` | `false`   | `true`     | Run `ProductionSeeder` on startup. Leave off once production has its baseline: it re-applies seeder defaults over reference data changed in-app, and rewrites the admin password whenever `ADMIN_PASSWORD` is set. Turn on only for a fresh install. |
 | `SEED_DEMO_DATA`     | `false`   | optional   | Run `DemoSeeder` — NEVER true in production  |
 | `IMPORT_LEADSY_DB_SNAPSHOT` | optional | optional | One-time fresh DB import from committed snapshot |
 | `IMPORT_LEADSY_DB_SNAPSHOT_FORCE` | `false` | optional | Bypass existing-row guard for intentional rebuilds only |
