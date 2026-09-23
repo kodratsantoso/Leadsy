@@ -1,0 +1,63 @@
+name: Cluster Diagnostics (read-only)
+
+# Manually triggered inventory of what actually runs in the production
+# namespace. Read-only by construction: it only ever calls `kubectl get`.
+#
+# Exists because the repo checks in no k8s manifests, so the cluster's real
+# topology — which workloads exist, where the frontend sends API traffic,
+# whether the backend runs here at all — cannot be answered from source.
+#
+# Secret hygiene: env VALUES are never printed, only env NAMES, with the
+# single exception of API_INTERNAL_URL (needed to locate the backend), whose
+# userinfo is masked before it reaches the log.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    name: Inspect leadsy-prod
+    runs-on: [self-hosted, in-cluster, k3s]
+    timeout-minutes: 10
+    steps:
+      - name: Namespace inventory
+        run: |
+          NS=leadsy-prod
+          echo "===== Deployments ====="
+          kubectl get deploy -n "$NS" -o wide || true
+          echo; echo "===== StatefulSets ====="
+          kubectl get sts -n "$NS" -o wide || true
+          echo; echo "===== DaemonSets ====="
+          kubectl get ds -n "$NS" -o wide || true
+          echo; echo "===== CronJobs ====="
+          kubectl get cronjob -n "$NS" || true
+          echo; echo "===== Pods ====="
+          kubectl get pods -n "$NS" -o wide || true
+          echo; echo "===== Services ====="
+          kubectl get svc -n "$NS" || true
+          echo; echo "===== Ingress ====="
+          kubectl get ingress -n "$NS" || true
+          echo; echo "===== PersistentVolumeClaims ====="
+          kubectl get pvc -n "$NS" || true
+          echo; echo "===== ConfigMaps (names only) ====="
+          kubectl get cm -n "$NS" -o name || true
+          echo; echo "===== Secrets (names only, no values) ====="
+          kubectl get secret -n "$NS" -o name || true
+
+      - name: Where the frontend sends API traffic
+        run: |
+          NS=leadsy-prod
+          echo "===== env var NAMES on deployment/leadsy container 'web' ====="
+          kubectl get deploy leadsy -n "$NS" \
+            -o jsonpath='{range .spec.template.spec.containers[?(@.name=="web")].env[*]}{.name}{"\n"}{end}' || true
+          echo; echo "===== API_INTERNAL_URL (any credentials masked) ====="
+          kubectl get deploy leadsy -n "$NS" \
+            -o jsonpath='{range .spec.template.spec.containers[?(@.name=="web")].env[?(@.name=="API_INTERNAL_URL")]}{.value}{"\n"}{end}' \
+            | sed -E 's#//[^/@]*@#//***@#' || true
+          echo; echo "===== Service endpoints named like a backend ====="
+          kubectl get endpoints -n "$NS" || true
+
+      - name: Leadsy workloads in any other namespace
+        run: |
+          echo "===== Deployments/StatefulSets cluster-wide matching 'leadsy' ====="
+          kubectl get deploy,sts -A -o wide 2>/dev/null | grep -iE 'NAMESPACE|leadsy' || echo "(none found, or listing across namespaces is not permitted for this runner)"
