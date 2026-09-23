@@ -24,6 +24,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
+import { runAiScreening } from "@/lib/aiScreeningPipeline";
 
 interface PendingLeadItem {
   id: number;
@@ -199,48 +200,16 @@ export function PreMeetingScreeningModal({
       let resultItem: ProcessedLeadResult;
 
       try {
-        // Dispatch background job (near-instant response, no Cloudflare 100s timeout)
-        const dispatchRes = await apiFetch(`/leads/${lead.id}/ai-screening/dispatch`, {
-          method: "POST",
+        const outcome = await runAiScreening(lead.id, {
+          shouldStop: () => stopRequestedRef.current,
         });
-        const dispatchJson = await dispatchRes.json();
 
-        if (!dispatchRes.ok || !dispatchJson.success) {
-          throw new Error(dispatchJson?.error || dispatchJson?.message || `Failed to start screening (${dispatchRes.status})`);
+        if (outcome.status === "failed") {
+          throw new Error(outcome.error);
         }
 
-        // Poll status every 2 seconds until completed or max timeout (10 minutes) —
-        // matches the backend job's own 600s timeout; 9 sequential AI-calling
-        // stages can easily run past 3 minutes.
-        let isDone = false;
-        let pollAttempts = 0;
-        const maxAttempts = 300; // 300 * 2000ms = 600s
-        let completedData: any = null;
-
-        while (!isDone && pollAttempts < maxAttempts) {
-          if (stopRequestedRef.current) {
-            break;
-          }
-
-          await new Promise((r) => setTimeout(r, 2000));
-          pollAttempts++;
-
-          try {
-            const statusRes = await apiFetch(`/leads/${lead.id}/ai-screening/status`);
-            if (statusRes.ok) {
-              const statusJson = await statusRes.json();
-              if (statusJson.status === "completed") {
-                isDone = true;
-                completedData = statusJson.data;
-                break;
-              } else if (statusJson.status === "failed") {
-                throw new Error(statusJson.error || "AI Screening failed on server.");
-              }
-            }
-          } catch (pollErr: any) {
-            if (pollAttempts >= maxAttempts) throw pollErr;
-          }
-        }
+        const isDone = outcome.status === "completed";
+        const completedData = isDone && outcome.status === "completed" ? outcome.data : null;
 
         clearInterval(stageInterval);
         const duration = Math.round((performance.now() - startTime) / 100) / 10;

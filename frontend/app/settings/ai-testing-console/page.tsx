@@ -20,6 +20,7 @@ import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { LeadPicker, type PickedLead } from "@/components/settings/ai-testing/LeadPicker";
 import { PreMeetingScreeningModal } from "@/components/leads/PreMeetingScreeningModal";
 import { apiFetch } from "@/lib/apiFetch";
+import { runAiScreening } from "@/lib/aiScreeningPipeline";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const TABS = [
@@ -112,38 +113,19 @@ function SingleLeadDebugTab() {
     setPipelineRunning(true);
     setFeedback({ type: "success", msg: "Starting full 9-stage pipeline..." });
     try {
-      const dispatchRes = await apiFetch(`/leads/${selected.id}/ai-screening/dispatch`, { method: "POST" });
-      const dispatchJson = await dispatchRes.json();
-      if (!dispatchRes.ok || !dispatchJson.success) {
-        throw new Error(dispatchJson?.error || dispatchJson?.message || "Failed to start pipeline.");
-      }
+      const outcome = await runAiScreening(selected.id, {
+        onProgress: (elapsedSeconds) =>
+          setFeedback({ type: "success", msg: `Running full 8-stage pipeline... (${elapsedSeconds}s elapsed)` }),
+      });
 
-      let done = false;
-      let attempts = 0;
-      // 9 sequential AI-calling stages can take several minutes end-to-end —
-      // matches the backend job's own 600s timeout (RunPreMeetingAiScreeningJob).
-      const maxAttempts = 300;
-      while (!done && attempts < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 2000));
-        attempts++;
-        if (attempts % 5 === 0) {
-          setFeedback({ type: "success", msg: `Running full 9-stage pipeline... (${attempts * 2}s elapsed)` });
-        }
-        const statusRes = await apiFetch(`/leads/${selected.id}/ai-screening/status`);
-        if (statusRes.ok) {
-          const statusJson = await statusRes.json();
-          if (statusJson.status === "completed") {
-            done = true;
-            setFeedback({
-              type: "success",
-              msg: `Full pipeline completed. Score: ${statusJson.data?.lead_score ?? "—"} (${statusJson.data?.qualification_status ?? "—"}).`,
-            });
-          } else if (statusJson.status === "failed") {
-            throw new Error(statusJson.error || "Pipeline failed on server.");
-          }
-        }
-      }
-      if (!done) {
+      if (outcome.status === "completed") {
+        setFeedback({
+          type: "success",
+          msg: `Full pipeline completed. Score: ${outcome.data?.lead_score ?? "—"} (${outcome.data?.qualification_status ?? "—"}).`,
+        });
+      } else if (outcome.status === "failed") {
+        throw new Error(outcome.error);
+      } else {
         setFeedback({ type: "error", msg: "Pipeline timed out after 10 minutes; it may still complete in the background." });
       }
       invalidate();

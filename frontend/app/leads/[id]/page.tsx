@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
+import { runAiScreening } from '@/lib/aiScreeningPipeline';
 import { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Badge } from "@/components/ui/badge";
@@ -994,36 +995,19 @@ export default function LeadDetailPage() {
     setAiPipelineRunning(true);
     setAiActionsFeedback({ type: 'success', msg: 'Starting full 8-stage pipeline...' });
     try {
-      const dispatchRes = await apiFetch(`/leads/${leadId}/ai-screening/dispatch`, { method: 'POST' });
-      const dispatchJson = await dispatchRes.json();
-      if (!dispatchRes.ok || !dispatchJson.success) {
-        throw new Error(dispatchJson?.error || dispatchJson?.message || 'Failed to start pipeline.');
-      }
+      const outcome = await runAiScreening(leadId, {
+        onProgress: (elapsedSeconds) =>
+          setAiActionsFeedback({ type: 'success', msg: `Running full 8-stage pipeline... (${elapsedSeconds}s elapsed)` }),
+      });
 
-      let done = false;
-      let attempts = 0;
-      const maxAttempts = 300; // 300 * 2s = 10 minutes, matches the backend job timeout
-      while (!done && attempts < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 2000));
-        attempts++;
-        if (attempts % 5 === 0) {
-          setAiActionsFeedback({ type: 'success', msg: `Running full 8-stage pipeline... (${attempts * 2}s elapsed)` });
-        }
-        const statusRes = await apiFetch(`/leads/${leadId}/ai-screening/status`);
-        if (statusRes.ok) {
-          const statusJson = await statusRes.json();
-          if (statusJson.status === 'completed') {
-            done = true;
-            setAiActionsFeedback({
-              type: 'success',
-              msg: `Full pipeline completed. Score: ${statusJson.data?.lead_score ?? '—'} (${statusJson.data?.qualification_status ?? '—'}).`,
-            });
-          } else if (statusJson.status === 'failed') {
-            throw new Error(statusJson.error || 'Pipeline failed on server.');
-          }
-        }
-      }
-      if (!done) {
+      if (outcome.status === 'completed') {
+        setAiActionsFeedback({
+          type: 'success',
+          msg: `Full pipeline completed. Score: ${outcome.data?.lead_score ?? '—'} (${outcome.data?.qualification_status ?? '—'}).`,
+        });
+      } else if (outcome.status === 'failed') {
+        throw new Error(outcome.error);
+      } else {
         setAiActionsFeedback({ type: 'error', msg: 'Pipeline timed out after 10 minutes; it may still complete in the background.' });
       }
       invalidateLead();
