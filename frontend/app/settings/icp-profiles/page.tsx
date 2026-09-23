@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -381,16 +382,16 @@ export default function IcpProfilesPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : profiles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-20 text-center">
-          <Target className="mb-4 h-10 w-10 text-muted-foreground/30" />
-          <p className="font-semibold">No ICP profiles yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create a profile to enable ICP matching on leads.
-          </p>
-          <Button onClick={openCreate} className="mt-4">
-            <Plus className="h-4 w-4" /> Create First Profile
-          </Button>
-        </div>
+        <EmptyState
+          icon={Target}
+          title="No ICP profiles yet"
+          description="Create a profile to enable ICP matching on leads."
+          action={
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" /> Create First Profile
+            </Button>
+          }
+        />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {profiles.map((p) => (
