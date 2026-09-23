@@ -1229,7 +1229,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-blue-500" />
+                <FileText className="h-5 w-5 text-[var(--brand)]" />
                 Quotations / Estimates
               </CardTitle>
               <CardDescription>Generated NetSuite-style commercial proposals.</CardDescription>
@@ -1345,7 +1345,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                               key={t.id}
                               size="xs" 
                               variant="outline" 
-                              className="text-blue-600 hover:bg-blue-50"
+                              className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10"
                               onClick={() => executeWorkflowTransition(q.id, t.id)}
                             >
                               {t.name}
@@ -1353,33 +1353,33 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           ))}
                           {q.quotation_status === 'draft' && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
                             </>
                           )}
                           {q.quotation_status === 'accepted' && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10" onClick={() => convertQuotationToSO(q.id)}>
                                 Convert to SO
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
                             </>
                           )}
                           {!['draft', 'accepted'].includes(q.quotation_status) && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
                             </>
@@ -1389,16 +1389,16 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                         <>
                           {q.quotation_status === 'draft' && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => updateQuotationStatus(q.id, 'submitted')}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => updateQuotationStatus(q.id, 'submitted')}>
                                 Submit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
                               </Button>
                             </>
@@ -1406,19 +1406,19 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           
                           {q.quotation_status === 'submitted' && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => updateQuotationStatus(q.id, 'approved')}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10" onClick={() => updateQuotationStatus(q.id, 'approved')}>
                                 Approve
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'rejected')}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => updateQuotationStatus(q.id, 'rejected')}>
                                 Reject
                               </Button>
                               <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
                             </>
@@ -1426,19 +1426,19 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
 
                           {q.quotation_status === 'approved' && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => updateQuotationStatus(q.id, 'sent')}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => updateQuotationStatus(q.id, 'sent')}>
                                 Mark Sent
                               </Button>
-                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10" onClick={() => convertQuotationToSO(q.id)}>
                                 Convert to SO
                               </Button>
                               <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
                             </>
@@ -1446,16 +1446,16 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
 
                           {q.quotation_status === 'sent' && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => updateQuotationStatus(q.id, 'accepted')}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10" onClick={() => updateQuotationStatus(q.id, 'accepted')}>
                                 Mark Accepted
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
                             </>
@@ -1463,16 +1463,16 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
 
                           {q.quotation_status === 'accepted' && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-50" onClick={() => convertQuotationToSO(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10" onClick={() => convertQuotationToSO(q.id)}>
                                 Convert to SO
                               </Button>
                               <Button size="xs" variant="outline" className="text-neutral-600 hover:bg-neutral-50" onClick={() => updateQuotationStatus(q.id, 'cancelled')}>
                                 Cancel
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
                             </>
@@ -1480,10 +1480,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
 
                           {['converted', 'cancelled', 'rejected'].includes(q.quotation_status) && (
                             <>
-                              <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-50" onClick={() => handleEditQuotation(q)}>
+                              <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => handleEditQuotation(q)}>
                                 Edit
                               </Button>
-                              <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => deleteQuotation(q.id)}>
+                              <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteQuotation(q.id)}>
                                 Delete
                               </Button>
                             </>
@@ -1494,7 +1494,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50 justify-between items-center">
                       <div className="text-[10px] text-muted-foreground">
                         {q.pdf_url ? (
-                          <span className="text-green-600 font-medium">PDF Generated</span>
+                          <span className="text-[var(--status-success)] font-medium">PDF Generated</span>
                         ) : (
                           <span>PDF Not Generated</span>
                         )}
@@ -1535,12 +1535,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-green-500" />
+                <Receipt className="h-5 w-5 text-[var(--status-success)]" />
                 Sales Orders
               </CardTitle>
               <CardDescription>Confirmed commercial value and bookings.</CardDescription>
             </div>
-            <Button size="sm" variant="outline" className="border-green-500/30 text-green-700 hover:bg-green-50" onClick={() => {
+            <Button size="sm" variant="outline" className="border-[color:var(--status-success)]/30 text-[var(--status-success)] hover:bg-[var(--status-success-soft)]" onClick={() => {
               setErrorMessage(null);
               setEditingSOId(null);
               setSoActiveTab('primary');
@@ -1628,7 +1628,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
             ) : (
               <div className="space-y-4">
                 {salesOrders.map((so: any) => (
-                  <div key={so.id} className="p-4 rounded-xl border border-green-500/30 bg-green-500/5 shadow-sm space-y-3">
+                  <div key={so.id} className="p-4 rounded-xl border border-[color:var(--status-success)]/30 bg-[var(--status-success-soft)]0/5 shadow-sm space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="flex items-center gap-2">
@@ -1644,56 +1644,56 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           </p>
                         )}
                         {!so.quotation_id && (
-                          <p className="text-[10px] text-yellow-600 dark:text-yellow-500 mt-1 font-medium">
+                          <p className="text-[10px] text-[var(--status-warning)] mt-1 font-medium">
                             Created directly without quotation
                           </p>
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="font-bold tabular-nums text-green-700">{formatCurrency(Number(so.total_amount))}</p>
+                        <p className="font-bold tabular-nums text-[var(--status-success)]">{formatCurrency(Number(so.total_amount))}</p>
                         <div className="mt-1">{renderSalesOrderStatus(so.order_status || 'draft')}</div>
                       </div>
                     </div>
  
-                    <div className="flex gap-2 pt-2 border-t border-green-500/10">
+                    <div className="flex gap-2 pt-2 border-t border-[color:var(--status-success)]/10">
                       {so.order_status === 'draft' && (
                         <>
-                          <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-100/50" onClick={() => startEditSO(so)}>
+                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => startEditSO(so)}>
                             Edit
                           </Button>
-                          <Button size="xs" variant="outline" className="text-green-600 hover:bg-green-100/50" onClick={() => updateSalesOrderStatus(so.id, 'confirm')}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10" onClick={() => updateSalesOrderStatus(so.id, 'confirm')}>
                             Confirm Order
                           </Button>
-                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => deleteSalesOrder(so.id)}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteSalesOrder(so.id)}>
                             Delete
                           </Button>
-                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => updateSalesOrderStatus(so.id, 'cancel')}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => updateSalesOrderStatus(so.id, 'cancel')}>
                             Cancel
                           </Button>
                         </>
                       )}
                       {so.order_status === 'confirmed' && (
                         <>
-                          <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-100/50" onClick={() => startEditSO(so)}>
+                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => startEditSO(so)}>
                             Edit
                           </Button>
                           <Button size="xs" variant="outline" className="text-neutral-600" onClick={() => updateSalesOrderStatus(so.id, 'close')}>
                             Close Order
                           </Button>
-                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => updateSalesOrderStatus(so.id, 'cancel')}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => updateSalesOrderStatus(so.id, 'cancel')}>
                             Cancel
                           </Button>
-                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => deleteSalesOrder(so.id)}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteSalesOrder(so.id)}>
                             Delete
                           </Button>
                         </>
                       )}
                       {!['draft', 'confirmed'].includes(so.order_status) && (
                         <>
-                          <Button size="xs" variant="outline" className="text-blue-600 hover:bg-blue-100/50" onClick={() => startEditSO(so)}>
+                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => startEditSO(so)}>
                             Edit
                           </Button>
-                          <Button size="xs" variant="outline" className="text-red-600 hover:bg-red-100/50" onClick={() => deleteSalesOrder(so.id)}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteSalesOrder(so.id)}>
                             Delete
                           </Button>
                         </>
@@ -1702,7 +1702,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50 justify-between items-center">
                       <div className="text-[10px] text-muted-foreground">
                         {so.pdf_url ? (
-                          <span className="text-green-600 font-medium">PDF Generated</span>
+                          <span className="text-[var(--status-success)] font-medium">PDF Generated</span>
                         ) : (
                           <span>PDF Not Generated</span>
                         )}
@@ -1750,7 +1750,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           size="7xl"
           footer={
             <div className="flex justify-between w-full items-center">
-              <div className="text-sm font-bold text-blue-700">
+              <div className="text-sm font-bold text-[var(--brand)]">
                 Grand Total: {formatCurrency(summary.grandTotal)}
               </div>
               <div className="flex gap-2">
@@ -1765,7 +1765,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         >
           <div className="space-y-4">
             {errorMessage && (
-              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 border border-red-200">
+              <div className="p-3 bg-[var(--status-danger-soft)] text-[var(--status-danger)] text-sm rounded-lg flex items-center gap-2 border border-[color:var(--status-danger)]/30">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{errorMessage}</span>
               </div>
@@ -1776,35 +1776,35 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
               <button 
                 type="button"
                 onClick={() => setActiveTab('primary')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'primary' ? 'bg-blue-600 text-white' : 'hover:bg-muted text-muted-foreground'}`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'primary' ? 'bg-[var(--brand)] text-white' : 'hover:bg-muted text-muted-foreground'}`}
               >
                 1. Primary Info
               </button>
               <button 
                 type="button"
                 onClick={() => setActiveTab('commercial')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'commercial' ? 'bg-blue-600 text-white' : 'hover:bg-muted text-muted-foreground'}`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'commercial' ? 'bg-[var(--brand)] text-white' : 'hover:bg-muted text-muted-foreground'}`}
               >
                 2. Commercial Info
               </button>
               <button 
                 type="button"
                 onClick={() => setActiveTab('items')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'items' ? 'bg-blue-600 text-white' : 'hover:bg-muted text-muted-foreground'}`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'items' ? 'bg-[var(--brand)] text-white' : 'hover:bg-muted text-muted-foreground'}`}
               >
                 3. Line Items ({qForm.items.length})
               </button>
               <button 
                 type="button"
                 onClick={() => setActiveTab('terms')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'terms' ? 'bg-blue-600 text-white' : 'hover:bg-muted text-muted-foreground'}`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'terms' ? 'bg-[var(--brand)] text-white' : 'hover:bg-muted text-muted-foreground'}`}
               >
                 4. Terms & Exclusions
               </button>
               <button 
                 type="button"
                 onClick={() => setActiveTab('summary')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'summary' ? 'bg-blue-600 text-white' : 'hover:bg-muted text-muted-foreground'}`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${activeTab === 'summary' ? 'bg-[var(--brand)] text-white' : 'hover:bg-muted text-muted-foreground'}`}
               >
                 5. Review Summary
               </button>
@@ -1998,7 +1998,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                       id="tax_included" 
                       checked={qForm.tax_included} 
                       onChange={e => setQForm({...qForm, tax_included: e.target.checked})}
-                      className="rounded border-input text-blue-600 focus:ring-blue-500" 
+                      className="rounded border-input text-[var(--brand)] focus:ring-[color:var(--brand)]" 
                     />
                     <label htmlFor="tax_included" className="text-xs font-semibold text-muted-foreground">Tax Included in Prices</label>
                   </div>
@@ -2011,7 +2011,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                   <div className="flex justify-between items-center">
                     <h3 className="text-sm font-semibold text-muted-foreground">Product & Service Line Items</h3>
                     <div className="flex gap-2">
-                      <Button size="xs" variant="outline" onClick={clearAllItems} className="text-red-600 border-red-200">
+                      <Button size="xs" variant="outline" onClick={clearAllItems} className="text-[var(--status-danger)] border-[color:var(--status-danger)]/30">
                         Clear All
                       </Button>
                       <Button size="xs" onClick={addLineItem}>
@@ -2204,7 +2204,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   <Button size="xs" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateLineItem(index)}>
                                     <Copy className="h-3 w-3" />
                                   </Button>
-                                  <Button size="xs" variant="outline" className="h-7 w-7 p-0 text-red-600" disabled={qForm.items.length <= 1} onClick={() => removeLineItem(index)}>
+                                  <Button size="xs" variant="outline" className="h-7 w-7 p-0 text-[var(--status-danger)]" disabled={qForm.items.length <= 1} onClick={() => removeLineItem(index)}>
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </div>
@@ -2304,11 +2304,11 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                       </div>
                       <div className="flex justify-between text-xs font-medium text-muted-foreground">
                         <span>Line Discounts Total:</span>
-                        <span className="tabular-nums font-bold text-red-600">-{formatCurrency(summary.totalLineDiscount)}</span>
+                        <span className="tabular-nums font-bold text-[var(--status-danger)]">-{formatCurrency(summary.totalLineDiscount)}</span>
                       </div>
                       <div className="flex justify-between text-xs font-medium text-muted-foreground">
                         <span>Header Discount Amount:</span>
-                        <span className="tabular-nums font-bold text-red-600">-{formatCurrency(summary.headerDiscountAmount)}</span>
+                        <span className="tabular-nums font-bold text-[var(--status-danger)]">-{formatCurrency(summary.headerDiscountAmount)}</span>
                       </div>
                        <div className="flex justify-between text-xs font-medium text-muted-foreground">
                         <span>Estimated Tax (VAT/PPN):</span>
@@ -2326,9 +2326,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                       </div>
                       <div className="flex justify-between text-xs font-medium text-muted-foreground">
                         <span>Withholding Tax (WHT):</span>
-                        <span className="tabular-nums font-bold text-red-600">-{formatCurrency(summary.totalWithholdingTax)}</span>
+                        <span className="tabular-nums font-bold text-[var(--status-danger)]">-{formatCurrency(summary.totalWithholdingTax)}</span>
                       </div>
-                      <div className="border-t border-border pt-2 flex justify-between text-sm font-bold text-blue-700 dark:text-blue-400">
+                      <div className="border-t border-border pt-2 flex justify-between text-sm font-bold text-[var(--brand)]">
                         <span>Net Grand Total:</span>
                         <span className="tabular-nums text-lg">{formatCurrency(summary.grandTotal)}</span>
                       </div>
@@ -2355,12 +2355,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
             size="7xl"
             footer={
               <div className="flex justify-between w-full items-center">
-                <div className="text-sm font-bold text-green-700">
+                <div className="text-sm font-bold text-[var(--status-success)]">
                   Grand Total: {formatCurrency(soSummary.grandTotal)}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setShowSOModal(false)}>Cancel</Button>
-                  <Button onClick={createSalesOrderDirect} disabled={savingSO} className="bg-green-600 hover:bg-green-700 text-white">
+                  <Button onClick={createSalesOrderDirect} disabled={savingSO} className="bg-[var(--status-success)] hover:opacity-90 text-white">
                     {savingSO && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
                     {editingSOId ? "Update Order" : "Save as Draft"}
                   </Button>
@@ -2370,7 +2370,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           >
             <div className="space-y-4">
               {soForm.source_type === 'direct' ? (
-                <div className="p-3 bg-yellow-50 dark:bg-yellow-950/20 text-yellow-800 dark:text-yellow-400 text-xs rounded-lg flex items-start gap-2 border border-yellow-200 dark:border-yellow-900/30">
+                <div className="p-3 bg-[var(--status-warning-soft)] text-[var(--status-warning)] text-xs rounded-lg flex items-start gap-2 border border-[color:var(--status-warning)]/30">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block mb-0.5">Direct Order Warning</span>
@@ -2378,7 +2378,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                   </div>
                 </div>
               ) : (
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 text-green-800 dark:text-green-400 text-xs rounded-lg flex items-start gap-2 border border-green-200 dark:border-green-900/30">
+                <div className="p-3 bg-[var(--status-success-soft)] text-[var(--status-success)] text-xs rounded-lg flex items-start gap-2 border border-[color:var(--status-success)]/30">
                   <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block mb-0.5">Converted from Quotation</span>
@@ -2388,7 +2388,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
               )}
 
               {errorMessage && (
-                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 border border-red-200">
+                <div className="p-3 bg-[var(--status-danger-soft)] text-[var(--status-danger)] text-sm rounded-lg flex items-center gap-2 border border-[color:var(--status-danger)]/30">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
@@ -2401,7 +2401,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     key={tab}
                     type="button"
                     onClick={() => setSoActiveTab(tab)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors capitalize whitespace-nowrap ${soActiveTab === tab ? 'bg-green-600 text-white' : 'hover:bg-muted text-muted-foreground'}`}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors capitalize whitespace-nowrap ${soActiveTab === tab ? 'bg-[var(--status-success)] text-white' : 'hover:bg-muted text-muted-foreground'}`}
                   >
                     {idx + 1}. {tab === 'primary' ? 'Primary Info' : tab === 'sales' ? 'Sales Info' : tab === 'billing' ? 'Billing & Terms' : tab === 'summary' ? 'Review Summary' : tab}
                   </button>
@@ -2574,7 +2574,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                   <div className="space-y-4">
                     {soForm.source_type === 'quotation_conversion' && (
                       <div className="text-[11px] text-muted-foreground bg-muted p-2 rounded flex items-center gap-1.5 border border-border">
-                        <AlertCircle className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                        <AlertCircle className="h-3.5 w-3.5 text-[var(--brand)] shrink-0" />
                         Converted Sales Order line items are preserved from Quotation snapshot, but can be updated or overridden if draft.
                       </div>
                     )}
@@ -2777,7 +2777,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   ))}
                                 </select>
                                 {item.withholding_tax_rate > 0 && (
-                                  <span className="text-[9px] text-red-600 block mt-1 font-semibold">Deduct: {item.withholding_tax_rate}%</span>
+                                  <span className="text-[9px] text-[var(--status-danger)] block mt-1 font-semibold">Deduct: {item.withholding_tax_rate}%</span>
                                 )}
                               </td>
                               <td className="p-1 space-y-1">
@@ -2860,7 +2860,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => duplicateSOLineItem(index)} title="Duplicate Row">
                                     <Copy className="h-3.5 w-3.5" />
                                   </Button>
-                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => removeSOLineItem(index)} disabled={soForm.items.length <= 1} title="Delete Row">
+                                  <Button size="icon" variant="ghost" className="h-6 w-6 text-[var(--status-danger)] hover:text-[var(--status-danger)] hover:bg-[var(--status-danger-soft)]" onClick={() => removeSOLineItem(index)} disabled={soForm.items.length <= 1} title="Delete Row">
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
                                 </div>
@@ -2874,7 +2874,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                       <Button size="sm" variant="outline" onClick={addSOLineItem} className="text-xs">
                         <Plus className="h-3.5 w-3.5 mr-1" /> Add Row
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={clearAllSOItems} className="text-xs text-red-600 hover:bg-red-50 hover:text-red-700">
+                      <Button size="sm" variant="ghost" onClick={clearAllSOItems} className="text-xs text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10 hover:text-[var(--status-danger)]">
                         Clear All Lines
                       </Button>
                     </div>
@@ -2948,7 +2948,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                         id="so_tax_included" 
                         checked={soForm.tax_included} 
                         onChange={e => setSoForm({...soForm, tax_included: e.target.checked})} 
-                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" 
+                        className="h-4 w-4 rounded border-border text-[var(--status-success)] focus:ring-[color:var(--status-success)]" 
                       />
                       <label htmlFor="so_tax_included" className="text-xs font-semibold text-foreground cursor-pointer">
                         Tax / PPN is already included in prices (PPN Dalam Harga)
@@ -3013,23 +3013,23 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           <span>Subtotal (Qty * Price * Duration):</span>
                           <span className="font-bold tabular-nums">{formatCurrency(soSummary.subtotal)}</span>
                         </div>
-                        <div className="flex justify-between text-red-600">
+                        <div className="flex justify-between text-[var(--status-danger)]">
                           <span>Line Discounts Total:</span>
                           <span className="font-semibold tabular-nums">- {formatCurrency(soSummary.lineDiscountTotal)}</span>
                         </div>
                         {soSummary.headerDiscountAmount > 0 && (
-                          <div className="flex justify-between text-red-600">
+                          <div className="flex justify-between text-[var(--status-danger)]">
                             <span>Header Discount Amount ({soForm.header_discount_type === 'percentage' ? `${soForm.header_discount_value}%` : 'Fixed'}):</span>
                             <span className="font-semibold tabular-nums">- {formatCurrency(soSummary.headerDiscountAmount)}</span>
                           </div>
                         )}
                         {soSummary.otherCost > 0 && (
-                          <div className="flex justify-between text-green-700">
+                          <div className="flex justify-between text-[var(--status-success)]">
                             <span>Other Implementation Costs:</span>
                             <span className="font-semibold tabular-nums">+ {formatCurrency(soSummary.otherCost)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between text-green-700">
+                        <div className="flex justify-between text-[var(--status-success)]">
                           <span>Estimated Tax / VAT / PPN:</span>
                           <span className="font-bold tabular-nums">+ {formatCurrency(soSummary.taxTotal)}</span>
                         </div>
@@ -3037,11 +3037,11 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           <span>Grand Total Before WHT:</span>
                           <span className="tabular-nums">{formatCurrency(soSummary.grandTotalBeforeWht)}</span>
                         </div>
-                        <div className="flex justify-between text-red-600">
+                        <div className="flex justify-between text-[var(--status-danger)]">
                           <span>Withholding Tax (WHT / PPh Deductions):</span>
                           <span className="font-semibold tabular-nums">- {formatCurrency(soSummary.whtTotal)}</span>
                         </div>
-                        <div className="flex justify-between border-t border-double border-green-600 pt-2 font-extrabold text-sm text-green-700">
+                        <div className="flex justify-between border-t border-double border-[color:var(--status-success)] pt-2 font-extrabold text-sm text-[var(--status-success)]">
                           <span>Net Grand Total (Total Booked Value):</span>
                           <span className="tabular-nums text-lg">{formatCurrency(soSummary.grandTotal)}</span>
                         </div>
