@@ -16,7 +16,6 @@ use App\Services\Lead\LeadAIAnalysisService;
 use App\Services\Lead\LeadProductMatchingService;
 use App\Services\Lead\LeadQualificationService;
 use App\Services\Lead\LeadScoringService;
-use App\Services\LeadBantcQuestionGenerationService;
 use App\Services\Revenue\ICPMatchingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -33,7 +32,6 @@ class PreMeetingAiScreeningOrchestratorService
         'lead_analysis',
         'bantc_gatekeeper_qualification',
         'product_matching',
-        'bantc_question_generation',
     ];
 
     public function __construct(
@@ -47,7 +45,6 @@ class PreMeetingAiScreeningOrchestratorService
         private readonly LeadQualificationService $qualificationService,
         private readonly LeadAIAnalysisService $analysisService,
         private readonly LeadProductMatchingService $productMatchingService,
-        private readonly LeadBantcQuestionGenerationService $bantcQuestionService,
         private readonly AiOrchestrationService $ai
     ) {}
 
@@ -63,7 +60,10 @@ class PreMeetingAiScreeningOrchestratorService
      *          — also yields a lightweight qualification hint (see Stage 6)
      * Stage 6: BANTC Gatekeeper Qualification Decision
      * Stage 7: Product Matching
-     * Stage 8: BANTC Discovery Question Generation
+     *
+     * A "BANTC Discovery Question Generation" stage used to run last. It called
+     * the AI on every lead and discarded the result — nothing persisted it —
+     * so it was removed; see the note at its former position below.
      *
      * A former "Profiling & Strategy" stage used to run here (between Company
      * Verification and ICP Matching) and made its own AI call, but its output
@@ -233,17 +233,18 @@ class PreMeetingAiScreeningOrchestratorService
                 Log::warning("[PreMeetingAiScreening] Product matching warning for Lead {$lead->id}: " . $e->getMessage());
             }
 
-            // =========================================================================
-            // STAGE 8: BANTC Discovery Question Generation
-            // =========================================================================
-            try {
-                $bantcResult = $this->bantcQuestionService->generate($lead);
-                if (!empty($bantcResult['success'])) {
-                    $stagesExecuted[] = 'bantc_question_generation';
-                }
-            } catch (\Throwable $e) {
-                Log::warning("[PreMeetingAiScreening] BANTC question generation warning for Lead {$lead->id}: " . $e->getMessage());
-            }
+            // BANTC discovery question generation used to run here as stage 8. It
+            // made an AI call per lead and then threw the questions away:
+            // LeadBantcQuestionGenerationService::generate() returns them in memory
+            // and persists nothing, and this pipeline never saved them either, so
+            // the only trace a run left was the stage name in the audit row.
+            //
+            // Removed rather than wired up to storage, because the app already has
+            // a BANTC question guide that IS persisted — generated on demand via
+            // LeadController::saveBantcQuestions() — and a second automatic source
+            // would deepen the overlap between the screening pipeline and the
+            // Pre-Meeting Brief instead of resolving it. Restoring the call is a
+            // git revert away once that overlap is settled deliberately.
 
             // Log activity
             try {

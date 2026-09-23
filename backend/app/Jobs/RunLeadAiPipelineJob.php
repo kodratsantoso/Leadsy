@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Runs the unified Pre-Meeting AI pipeline (9 stages — see
+ * Runs the unified Pre-Meeting AI pipeline (see
  * PreMeetingAiScreeningOrchestratorService) automatically whenever a lead is
  * created, regardless of source. This replaces the old, narrower automatic
  * chain (EnrichLeadJob -> LeadPostEnrichmentAIService -> Score/Qualify/ICPMatch

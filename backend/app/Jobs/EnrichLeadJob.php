@@ -92,7 +92,7 @@ class EnrichLeadJob implements ShouldQueue
                 'activity_date' => now(),
             ]);
 
-            // 3. Hand off to the unified 9-stage Pre-Meeting AI pipeline — this now
+            // 3. Hand off to the unified Pre-Meeting AI pipeline — this now
             // covers deep AI enrichment (which used to run inline here via
             // LeadEnrichmentAiOrchestrator), scoring, qualification, ICP matching,
             // and everything else. Do NOT also call the old

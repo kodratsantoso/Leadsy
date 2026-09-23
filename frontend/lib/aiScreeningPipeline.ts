@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/apiFetch";
  *
  * This used to be copy-pasted in three places (the Lead Detail page, the AI
  * Testing Console and the bulk screening modal) and had already drifted — two
- * copies disagreed on whether the pipeline has 8 or 9 stages, and only one of
+ * copies disagreed on how many stages the pipeline has, and only one of
  * them tolerated a transient polling error.
  */
 

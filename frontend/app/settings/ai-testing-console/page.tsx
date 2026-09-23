@@ -111,11 +111,11 @@ function SingleLeadDebugTab() {
   const runFullPipeline = async () => {
     if (!selected) return;
     setPipelineRunning(true);
-    setFeedback({ type: "success", msg: "Starting full 9-stage pipeline..." });
+    setFeedback({ type: "success", msg: "Starting full pipeline..." });
     try {
       const outcome = await runAiScreening(selected.id, {
         onProgress: (elapsedSeconds) =>
-          setFeedback({ type: "success", msg: `Running full 8-stage pipeline... (${elapsedSeconds}s elapsed)` }),
+          setFeedback({ type: "success", msg: `Running full pipeline... (${elapsedSeconds}s elapsed)` }),
       });
 
       if (outcome.status === "completed") {
@@ -142,7 +142,7 @@ function SingleLeadDebugTab() {
         <div>
           <CardTitle>Single Lead Debug</CardTitle>
           <CardDescription>
-            Search a lead and re-run any of the 9 Pre-Meeting AI functions individually, or the full pipeline at once.
+            Search a lead and re-run any of the Pre-Meeting AI functions individually, or the full pipeline at once.
           </CardDescription>
         </div>
       </CardHeader>
@@ -170,7 +170,7 @@ function SingleLeadDebugTab() {
 
             <Button onClick={runFullPipeline} disabled={pipelineRunning} className="w-full gap-2 bg-[var(--brand)] text-white hover:opacity-90">
               {pipelineRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-              {pipelineRunning ? "Running Full Pipeline..." : "Run Full Pipeline (All 9 Functions)"}
+              {pipelineRunning ? "Running Full Pipeline..." : "Run Full Pipeline"}
             </Button>
 
             {feedback && (
@@ -214,7 +214,7 @@ function BulkBackfillTab() {
           <div>
             <CardTitle>Screen Unassessed Leads</CardTitle>
             <CardDescription>
-              Run the full 9-stage Pre-Meeting AI pipeline for older leads created before this automation existed.
+              Run the full Pre-Meeting AI pipeline for older leads created before this automation existed.
             </CardDescription>
           </div>
           <Button

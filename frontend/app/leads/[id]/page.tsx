@@ -993,11 +993,11 @@ export default function LeadDetailPage() {
 
   const runAiFullPipeline = async () => {
     setAiPipelineRunning(true);
-    setAiActionsFeedback({ type: 'success', msg: 'Starting full 8-stage pipeline...' });
+    setAiActionsFeedback({ type: 'success', msg: 'Starting full pipeline...' });
     try {
       const outcome = await runAiScreening(leadId, {
         onProgress: (elapsedSeconds) =>
-          setAiActionsFeedback({ type: 'success', msg: `Running full 8-stage pipeline... (${elapsedSeconds}s elapsed)` }),
+          setAiActionsFeedback({ type: 'success', msg: `Running full pipeline... (${elapsedSeconds}s elapsed)` }),
       });
 
       if (outcome.status === 'completed') {
@@ -1018,17 +1018,17 @@ export default function LeadDetailPage() {
     }
   };
 
-  /* Runs the same 8 stages inline in one request instead of via the queue —
+  /* Runs the same stages inline in one request instead of via the queue —
      use this when the queue worker is stuck/down (jobs dispatched via
      runAiFullPipeline sit at "processing" forever with no error, since the
      dispatch endpoint always returns success immediately regardless of
      whether anything is actually consuming the queue). No polling needed:
      the response already carries the final result. Takes longer to return
-     since the request stays open for all 8 stages, but doesn't depend on
+     since the request stays open for every stage, but doesn't depend on
      any background worker being alive. */
   const runAiFullPipelineSync = async () => {
     setAiSyncPipelineRunning(true);
-    setAiActionsFeedback({ type: 'success', msg: 'Running full 8-stage pipeline synchronously (no queue) — this can take several minutes, please keep this tab open...' });
+    setAiActionsFeedback({ type: 'success', msg: 'Running full pipeline synchronously (no queue) — this can take several minutes, please keep this tab open...' });
     try {
       const res = await apiFetch(`/leads/${leadId}/ai-screening`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
@@ -2616,7 +2616,7 @@ export default function LeadDetailPage() {
                     className="w-full gap-2 bg-[var(--brand)] text-white hover:opacity-90"
                   >
                     {aiPipelineRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                    {aiPipelineRunning ? 'Running Full Pipeline...' : 'Run Full Pipeline (All 8 Functions)'}
+                    {aiPipelineRunning ? 'Running Full Pipeline...' : 'Run Full Pipeline'}
                   </Button>
 
                   {aiActionsFeedback && (
@@ -2627,7 +2627,7 @@ export default function LeadDetailPage() {
 
                   <div className="space-y-1.5 rounded-md border border-[var(--status-warning)]/30 bg-[color-mix(in_oklch,var(--status-warning)_6%,transparent)] p-3">
                     <p className="text-xs text-muted-foreground">
-                      Stuck on "Processing" with no result? The background queue worker may be down. This runs the same 8 stages directly, without the queue — but holds this page's connection open for the whole run (all 8 AI calls, sometimes 60-100s+ each), which can hit a ~100s network gateway limit and fail with a connection error on data-heavy leads. Prefer fixing the queue worker when possible; use this as a one-off recovery for a single stuck lead, not routinely.
+                      Stuck on "Processing" with no result? The background queue worker may be down. This runs the same stages directly, without the queue — but holds this page's connection open for the whole run (several sequential AI calls, sometimes 60-100s+ each), which can hit a ~100s network gateway limit and fail with a connection error on data-heavy leads. Prefer fixing the queue worker when possible; use this as a one-off recovery for a single stuck lead, not routinely.
                     </p>
                     <Button
                       variant="outline"
