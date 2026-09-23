@@ -100,6 +100,26 @@ type SourceChannelAggregate = {
   channel_type_id?: number | null;
 };
 
+/**
+ * Whether a metric's change is good news. Most metrics improve as they rise,
+ * but some (duplicate rate) improve as they fall — colouring those by direction
+ * alone told the reader a worsening number was an improvement.
+ * Returns null when there is nothing to judge.
+ */
+function deltaIsGood(change?: string | null, lowerIsBetter?: boolean): boolean | null {
+  if (!change) return null;
+  const rising = change.startsWith("+");
+  const falling = change.startsWith("-");
+  if (!rising && !falling) return null;
+  return lowerIsBetter ? falling : rising;
+}
+
+function deltaToneClass(change?: string | null, lowerIsBetter?: boolean): string {
+  const good = deltaIsGood(change, lowerIsBetter);
+  if (good === null) return "text-muted-foreground";
+  return good ? "text-[var(--status-success)]" : "text-[var(--status-danger)]";
+}
+
 function PipelineHealthBadge({ health }: { health?: string }) {
   const cfg = {
     healthy: "bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[var(--status-success)]/40",
@@ -400,7 +420,6 @@ export default function DashboardPage() {
       value: dashboard.total_leads ?? "—",
       icon: Building2,
       change: dashboard.leads_change ?? null,
-      color: "from-[var(--brand)] to-[oklch(0.558_0.288_302.321)]",
       href: "/leads",
       trend: dashboard.metrics_trends?.total_leads ?? [],
     },
@@ -409,7 +428,6 @@ export default function DashboardPage() {
       value: dashboard.qualified_leads ?? "—",
       icon: Target,
       change: dashboard.qualified_change ?? null,
-      color: "from-[var(--status-success)] to-[oklch(0.627_0.194_149)]",
       href: "/leads?qualification_status=eligible",
       trend: dashboard.metrics_trends?.qualified_leads ?? [],
     },
@@ -418,7 +436,6 @@ export default function DashboardPage() {
       value: dashboard.pipeline_leads ?? dashboard.total_leads ?? "—",
       icon: TrendingUp,
       change: dashboard.pipeline_change ?? null,
-      color: "from-[var(--status-info)] to-[oklch(0.527_0.183_249)]",
       href: "/leads?pipeline_status=active",
       trend: dashboard.metrics_trends?.pipeline_leads ?? [],
     },
@@ -427,7 +444,7 @@ export default function DashboardPage() {
       value: dashboard.duplicate_rate ?? (dashboard.duplicate_ratio != null ? `${dashboard.duplicate_ratio}%` : "—"),
       icon: AlertTriangle,
       change: dashboard.duplicate_change ?? null,
-      color: "from-[var(--status-warning)] to-[oklch(0.65_0.22_50)]",
+      lowerIsBetter: true,
       href: "/leads?duplicate_status=duplicates",
       trend: dashboard.metrics_trends?.duplicate_rate ?? [],
     },
@@ -437,28 +454,28 @@ export default function DashboardPage() {
     {
       label: "Pending",
       value: dashboard.by_status?.pending ?? 0,
-      color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+      color: "text-[var(--status-warning)] bg-[var(--status-warning-soft)] border-[color:var(--status-warning)]/20",
       icon: RefreshCw,
       href: "/leads?qualification_status=pending"
     },
     {
       label: "Potential",
       value: dashboard.by_status?.potential ?? 0,
-      color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+      color: "text-[var(--status-info)] bg-[var(--status-info-soft)] border-[color:var(--status-info)]/20",
       icon: Activity,
       href: "/leads?qualification_status=potential"
     },
     {
       label: "Eligible",
       value: dashboard.by_status?.eligible ?? 0,
-      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+      color: "text-[var(--status-success)] bg-[var(--status-success-soft)] border-[color:var(--status-success)]/20",
       icon: CheckCircle2,
       href: "/leads?qualification_status=eligible"
     },
     {
       label: "Not Eligible",
       value: dashboard.by_status?.not_eligible ?? 0,
-      color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+      color: "text-[var(--status-danger)] bg-[var(--status-danger-soft)] border-[color:var(--status-danger)]/20",
       icon: AlertTriangle,
       href: "/leads?qualification_status=not_eligible"
     }
@@ -736,8 +753,8 @@ export default function DashboardPage() {
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
                             <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? formatNumber(s.value, { decimals: 0 }) : s.value}</p>
                           </div>
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} shadow-lg`}>
-                            <s.icon className="h-5 w-5 text-white" />
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors group-hover:text-[var(--brand)]">
+                            <s.icon className="h-4 w-4" />
                           </div>
                         </div>
 
@@ -745,7 +762,7 @@ export default function DashboardPage() {
                         <div className="mt-4 flex w-full items-center justify-between gap-4">
                           <div className="text-xs font-semibold">
                             {s.change ? (
-                              <span className={s.change.startsWith("+") ? "text-emerald-500" : s.change.startsWith("-") ? "text-rose-500" : "text-muted-foreground"}>
+                              <span className={deltaToneClass(s.change, s.lowerIsBetter)}>
                                 {s.change}
                               </span>
                             ) : (
@@ -770,7 +787,7 @@ export default function DashboardPage() {
                                       opacityTo: 0.05
                                     }
                                   },
-                                  colors: [s.change?.startsWith("-") ? "#ef4444" : "#10b981"],
+                                  colors: [deltaIsGood(s.change, s.lowerIsBetter) === false ? "#ef4444" : "#10b981"],
                                   tooltip: { enabled: false }
                                 }}
                                 series={[{ data: s.trend }]}
