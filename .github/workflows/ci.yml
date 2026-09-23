@@ -45,26 +45,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install Dependencies
+      - name: Install Dependencies and Build
         run: |
-          npm ci
-          npm ci --prefix frontend
-
-      - name: Next.js Frontend Build
-        run: npm run build
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            node:20-bookworm \
+            bash -lc 'node --version && npm --version && npm ci && npm ci --prefix frontend && npm run build'
 
   deploy:
     name: Deploy to K3s Cluster
     needs: [test-backend, test-frontend]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, in-cluster, k3s]
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -94,63 +88,53 @@ jobs:
           REGISTRY="10.43.110.114:5000"
           TAG="${{ github.sha }}"
 
-          echo "== Current deployment topology in ${NAMESPACE} =="
-          kubectl get deployments -n "${NAMESPACE}" \
-            -o custom-columns='DEPLOYMENT:.metadata.name,CONTAINERS:.spec.template.spec.containers[*].name,IMAGES:.spec.template.spec.containers[*].image' || true
+          render() {
+            sed "s|__IMAGE_TAG__|${TAG}|g" "$1"
+          }
 
-          # Locate whichever deployment/container currently runs a leadsy-backend image
-          # rather than hardcoding a name. Read-only and non-fatal: if the runner may not
-          # list deployments, fall back to inspecting deployment/leadsy only.
-          DEPLOYMENTS=$(kubectl get deployments -n "${NAMESPACE}" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
-          if [ -z "${DEPLOYMENTS}" ]; then DEPLOYMENTS="leadsy"; fi
+          echo "Applying Redis runtime (persistent cache/queue volume only)..."
+          render k8s/leadsy-prod-redis.yaml | kubectl apply -n "${NAMESPACE}" -f -
+          kubectl rollout status deployment/leadsy-redis -n "${NAMESPACE}" --timeout=180s
 
-          BACKEND_TARGETS=""
-          for DEP in ${DEPLOYMENTS}; do
-            CONTAINERS=$(kubectl get deployment "${DEP}" -n "${NAMESPACE}" -o jsonpath='{.spec.template.spec.containers[*].name}' 2>/dev/null || echo "")
-            for C in ${CONTAINERS}; do
-              IMG=$(kubectl get deployment "${DEP}" -n "${NAMESPACE}" -o jsonpath="{.spec.template.spec.containers[?(@.name=='${C}')].image}" 2>/dev/null || echo "")
-              case "${IMG}" in
-                *leadsy-backend*) BACKEND_TARGETS="${BACKEND_TARGETS} ${DEP}/${C}" ;;
-              esac
-            done
-          done
+          echo "Applying backend runtime without changing the public backend Service yet..."
+          render k8s/leadsy-prod-backend.yaml | kubectl apply -n "${NAMESPACE}" -f -
+          kubectl set image deployment/leadsy-backend backend="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
+          kubectl rollout status deployment/leadsy-backend -n "${NAMESPACE}" --timeout=300s
+          kubectl exec -n "${NAMESPACE}" deploy/leadsy-backend -- curl --fail --silent --show-error http://127.0.0.1:8000/api/health
+
+          echo "Applying worker and scheduler after the backend is healthy..."
+          render k8s/leadsy-prod-workers.yaml | kubectl apply -n "${NAMESPACE}" -f -
+          kubectl set image deployment/leadsy-worker worker="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
+          kubectl set image deployment/leadsy-scheduler scheduler="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
+          kubectl rollout status deployment/leadsy-worker -n "${NAMESPACE}" --timeout=300s
+          kubectl rollout status deployment/leadsy-scheduler -n "${NAMESPACE}" --timeout=300s
 
           echo "Updating frontend image..."
           kubectl set image deployment/leadsy web="${REGISTRY}/leadsy-frontend:${TAG}" -n "${NAMESPACE}"
+          kubectl rollout status deployment/leadsy -n "${NAMESPACE}" --timeout=180s
 
-          AFFECTED="leadsy"
-          for T in ${BACKEND_TARGETS}; do
-            DEP="${T%%/*}"
-            C="${T##*/}"
-            echo "Updating backend image on deployment/${DEP} (container ${C})..."
-            kubectl set image "deployment/${DEP}" "${C}=${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
-            case " ${AFFECTED} " in
-              *" ${DEP} "*) ;;
-              *) AFFECTED="${AFFECTED} ${DEP}" ;;
-            esac
-          done
+          rollback_backend_service() {
+            echo "Rolling public backend Service back to the existing endpoint..."
+            kubectl patch service/backend -n "${NAMESPACE}" --type=merge \
+              -p '{"spec":{"selector":null,"ports":[{"name":"http","port":8000,"protocol":"TCP","targetPort":32080}]}}' || true
+          }
+          trap rollback_backend_service ERR
 
-          echo "Waiting for rollouts to complete..."
-          for DEP in ${AFFECTED}; do
-            kubectl rollout status "deployment/${DEP}" -n "${NAMESPACE}" --timeout=180s
-          done
-
-          if [ -z "${BACKEND_TARGETS}" ]; then
-            echo "::error::Backend image ${REGISTRY}/leadsy-backend:${TAG} was built and pushed, but no deployment in ${NAMESPACE} runs a leadsy-backend image, so the backend was NOT rolled out. Check the topology listing above and wire the backend container into this step."
-            exit 1
-          fi
+          echo "Cutting the existing backend Service over to the healthy Kubernetes backend..."
+          kubectl patch service/backend -n "${NAMESPACE}" --type=merge \
+            -p '{"spec":{"selector":{"app":"leadsy-backend"},"ports":[{"name":"http","port":8000,"protocol":"TCP","targetPort":8000}]}}'
+          kubectl wait --for=condition=ready pod -l app=leadsy-backend -n "${NAMESPACE}" --timeout=60s
+          curl --fail --silent --show-error --max-time 30 https://leadsy.virtuenet.space/api/health
+          trap - ERR
+          echo "Kubernetes backend is serving the public API."
 
       - name: Health Smoke Test
         run: |
           set -euo pipefail
-          echo "Verifying leadsy endpoint..."
-          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" -k https://leadsy.virtuenet.space || true)
-          echo "HTTP Status Code: ${STATUS_CODE}"
-          if [ "${STATUS_CODE}" -ge 200 ] && [ "${STATUS_CODE}" -lt 500 ]; then
-            echo "Smoke test passed! Leadsy is online."
-          else
-            echo "::warning::Unexpected status code: ${STATUS_CODE}"
-          fi
+          echo "Verifying public frontend and backend endpoints..."
+          curl --fail --silent --show-error --max-time 30 -o /dev/null https://leadsy.virtuenet.space/
+          curl --fail --silent --show-error --max-time 30 https://leadsy.virtuenet.space/api/health
+          echo "Smoke test passed: frontend and Kubernetes backend are online."
 
   record:
     name: Record deployment in VirtueDev

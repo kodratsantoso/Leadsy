@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: leadsy-redis-data
+  namespace: leadsy-prod
+  labels:
+    app.kubernetes.io/name: leadsy-redis
+    app.kubernetes.io/part-of: leadsy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: leadsy-redis
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-redis
+    app.kubernetes.io/part-of: leadsy
+spec:
+  selector:
+    app: leadsy-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leadsy-redis
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-redis
+    app.kubernetes.io/part-of: leadsy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: leadsy-redis
+  template:
+    metadata:
+      labels:
+        app: leadsy-redis
+        app.kubernetes.io/part-of: leadsy
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          args: ["redis-server", "--appendonly", "yes"]
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: leadsy-redis-data
