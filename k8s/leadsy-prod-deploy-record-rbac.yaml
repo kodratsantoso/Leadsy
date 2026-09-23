@@ -1,0 +1,33 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: leadsy-deployment-recorder
+  namespace: leadsy-prod
+  labels:
+    app.kubernetes.io/part-of: leadsy
+rules:
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: leadsy-deployment-recorder
+  namespace: leadsy-prod
+  labels:
+    app.kubernetes.io/part-of: leadsy
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: leadsy-deployment-recorder
+subjects:
+  - kind: ServiceAccount
+    name: k3s-runner
+    namespace: build-system
