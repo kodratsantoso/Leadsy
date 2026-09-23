@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\EnrichLeadContactsJob;
-use App\Jobs\EnrichLeadJob;
 use App\Jobs\RunLeadIntelligenceJob;
 use App\Jobs\ScoreLeadJob;
 use App\Models\FunnelStage;
@@ -2297,29 +2296,6 @@ class LeadController extends Controller
             'message' => $revenueCheck['summary'],
             'revenue_check' => $revenueCheck,
         ], 422));
-    }
-
-    /** POST /api/leads/{lead}/run-proofing-strategy */
-    public function runProofingStrategy(Lead $lead): JsonResponse
-    {
-        // 1. ICP Match
-        $icpService = app(\App\Services\Revenue\ICPMatchingService::class);
-        $icpService->matchLead($lead);
-
-        // 2. Score Lead
-        $scoreService = app(\App\Services\Lead\LeadScoringService::class);
-        $scoreService->scoreLead($lead);
-
-        // 3. Qualify Lead
-        $qualifyService = app(\App\Services\Lead\LeadQualificationService::class);
-        $qualifyService->qualifyLead($lead, useAi: true);
-
-        // 4. Dispatch Automated Enrichment (Background)
-        EnrichLeadJob::dispatch($lead->id);
-
-        return response()->json([
-            'message' => 'Score, ICP & Qualification refreshed successfully (Enrichment running in background).',
-        ]);
     }
 
     /** POST /api/leads/{lead}/run-intelligence */

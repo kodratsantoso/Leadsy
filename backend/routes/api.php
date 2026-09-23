@@ -210,7 +210,6 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::delete('business-categories/{business_category}', [\App\Http\Controllers\Api\BusinessCategoryController::class, 'destroy'])->middleware('permission:leads.edit');
     // Unified AI Triggers
     Route::post('leads/bulk-intelligence', [LeadController::class, 'bulkIntelligence'])->middleware('permission:leads.edit');
-    Route::post('leads/{lead}/run-proofing-strategy', [LeadController::class, 'runProofingStrategy'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/run-intelligence', [LeadController::class, 'runIntelligence'])->middleware('permission:leads.edit');
 
     Route::post('leads/{lead}/enrich', [\App\Http\Controllers\Api\LeadEnrichmentController::class, 'enrich'])->middleware('permission:leads.edit');
