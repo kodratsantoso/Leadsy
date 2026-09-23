@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiList } from "@/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Save, Loader, Check, Database, Eye, RefreshCw, X, ArrowLeft, Plus, Edit, FileText, Image as ImageIcon, Link as LinkIcon, HelpCircle } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
@@ -229,7 +230,7 @@ export default function LarkBaseSettingsPage() {
     queryKey: ['lead-source-types'],
     queryFn: () => apiFetch('/settings/lead-sources').then((r) => r.json()),
   });
-  const leadSources: LeadSourceOption[] = (leadSourcesData?.data ?? leadSourcesData ?? []).filter((s: LeadSourceOption) => s.is_active);
+  const leadSources: LeadSourceOption[] = apiList<LeadSourceOption>(leadSourcesData).filter((s) => s.is_active);
   const leadChannelsForSelectedSource: LeadChannelOption[] = (leadSources.find((s) => s.slug === baseDefaultSourceType)?.channels ?? []).filter((c) => c.is_active);
 
   const { data: sumMappingData } = useQuery({

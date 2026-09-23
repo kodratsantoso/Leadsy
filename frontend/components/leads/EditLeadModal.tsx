@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { apiList } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
 import { Modal } from '@/components/ui/modal';
@@ -166,19 +167,19 @@ export function EditLeadModal({
     enabled: open && (debouncedParentSearch?.length || 0) >= 2,
   });
 
-  const allIndustries: any[] = industriesData?.data ?? industriesData ?? [];
-  const products: any[] = productsData?.data ?? productsData ?? [];
-  const businessCategories: any[] = businessCategoriesData?.data ?? businessCategoriesData ?? [];
-  const leadSources: any[] = leadSourcesData?.data ?? leadSourcesData ?? [];
-  const funnelStages: any[] = funnelStagesData?.data ?? funnelStagesData ?? [];
+  const allIndustries: any[] = apiList(industriesData);
+  const products: any[] = apiList(productsData);
+  const businessCategories: any[] = apiList(businessCategoriesData);
+  const leadSources: any[] = apiList(leadSourcesData);
+  const funnelStages: any[] = apiList(funnelStagesData);
   
-  const usersList = assignableUsersData?.data ?? assignableUsersData ?? [];
+  const usersList = apiList(assignableUsersData);
   const salesUsers = usersList.filter((u: any) => ["sales_exec", "sales_manager", "admin", "super_admin"].includes(u.role?.name));
   const presalesUsers = usersList.filter((u: any) => ["presales", "admin", "super_admin"].includes(u.role?.name));
   const amUsers = usersList.filter((u: any) => ["account_manager", "admin", "super_admin"].includes(u.role?.name));
   const csmUsers = usersList.filter((u: any) => ["csm", "admin", "super_admin"].includes(u.role?.name));
 
-  const parentLeadResults = parentLeadSearchData?.data ?? parentLeadSearchData ?? [];
+  const parentLeadResults = apiList(parentLeadSearchData);
   
   const activeLeadSources = leadSources.filter((s: any) => s.is_active);
   const selectedLeadSource = activeLeadSources.find((s: any) => s.slug === companyForm.source_type);
