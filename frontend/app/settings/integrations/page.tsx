@@ -1766,7 +1766,7 @@ export default function IntegrationsSettingsPage() {
             <p className="text-xs text-muted-foreground mb-6">
               Configure the Google Cloud API key used by browser Maps, Lead Discovery place search, and Geocoding APIs.
               Get a key from{" "}
-              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-indigo-400 underline">
+              <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer" className="text-[var(--status-info)] underline">
                 Google Cloud Console
               </a>
               .
@@ -1895,12 +1895,12 @@ export default function IntegrationsSettingsPage() {
                 Check Google Permissions
               </Button>
               {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-success)]">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
                 </span>
               )}
               {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-danger)]">
                   <AlertCircle className="h-4 w-4" /> {errorMsg}
                 </span>
               )}
@@ -2196,12 +2196,12 @@ export default function IntegrationsSettingsPage() {
                 Check Google Permissions
               </Button>
               {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-success)]">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
                 </span>
               )}
               {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-danger)]">
                   <AlertCircle className="h-4 w-4" /> {errorMsg}
                 </span>
               )}
@@ -2351,7 +2351,7 @@ export default function IntegrationsSettingsPage() {
                     ...lushaConfig,
                     LUSHA_ENABLED: { ...lushaConfig.LUSHA_ENABLED, value: e.target.checked ? "true" : "false" },
                   })}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                  className="h-4 w-4 rounded border-border text-[var(--status-info)] focus:ring-[color:var(--brand)]"
                 />
               </div>
 
@@ -2419,18 +2419,18 @@ export default function IntegrationsSettingsPage() {
               <button
                 onClick={() => handleSave("lusha", lushaConfig)}
                 disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-[var(--status-info)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[var(--status-info)] disabled:opacity-50 transition-colors"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Lusha Config
               </button>
               {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-success)]">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
                 </span>
               )}
               {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-danger)]">
                   <AlertCircle className="h-4 w-4" /> {errorMsg}
                 </span>
               )}
@@ -2461,7 +2461,7 @@ export default function IntegrationsSettingsPage() {
                     ...linkedinConfig,
                     LINKEDIN_ENABLED: { ...linkedinConfig.LINKEDIN_ENABLED, value: e.target.checked ? "true" : "false" },
                   })}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                  className="h-4 w-4 rounded border-border text-[var(--status-info)] focus:ring-[color:var(--brand)]"
                 />
               </div>
 
@@ -2513,18 +2513,18 @@ export default function IntegrationsSettingsPage() {
               <button
                 onClick={() => handleSave("linkedin", linkedinConfig)}
                 disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-[var(--status-info)] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[var(--status-info)] disabled:opacity-50 transition-colors"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save LinkedIn Config
               </button>
               {successMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-emerald-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-success)]">
                   <CheckCircle2 className="h-4 w-4" /> {successMsg}
                 </span>
               )}
               {errorMsg && (
-                <span className="flex items-center gap-1 text-sm font-medium text-red-500">
+                <span className="flex items-center gap-1 text-sm font-medium text-[var(--status-danger)]">
                   <AlertCircle className="h-4 w-4" /> {errorMsg}
                 </span>
               )}
@@ -2549,12 +2549,12 @@ export default function IntegrationsSettingsPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {larkStatusData?.configured ? (
                     <span className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-600" />
+                      <Check className="w-4 h-4 text-[var(--status-success)]" />
                       Configured and {larkStatusData?.is_active ? 'Active' : 'Inactive'}
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      <X className="w-4 h-4 text-red-600" />
+                      <X className="w-4 h-4 text-[var(--status-danger)]" />
                       Not Configured
                     </span>
                   )}
@@ -2659,17 +2659,17 @@ export default function IntegrationsSettingsPage() {
                 </Button>
               </div>
               {successMsg && (
-                <div className="mt-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">
+                <div className="mt-3 rounded-lg bg-[var(--status-success-soft)] p-3 text-sm text-[var(--status-success)]">
                   {successMsg}
                 </div>
               )}
               {errorMsg && (
-                <div className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">
+                <div className="mt-3 rounded-lg bg-[var(--status-danger-soft)] p-3 text-sm text-[var(--status-danger)]">
                   {errorMsg}
                 </div>
               )}
               {testLarkConnectionMutation.data && (
-                <div className={`mt-3 p-3 rounded-lg ${testLarkConnectionMutation.data.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                <div className={`mt-3 p-3 rounded-lg ${testLarkConnectionMutation.data.success ? 'bg-[var(--status-success-soft)] text-[var(--status-success)]' : 'bg-[var(--status-danger-soft)] text-[var(--status-danger)]'}`}>
                   {testLarkConnectionMutation.data.success ? '✓ Connection successful!' : '✗ Connection failed: ' + testLarkConnectionMutation.data.error}
                 </div>
               )}
@@ -2685,14 +2685,14 @@ export default function IntegrationsSettingsPage() {
                   key={module}
                   type="button"
                   onClick={() => toggleLarkModuleMutation.mutate({ module, enabled: !enabled })}
-                  className={`text-left p-4 rounded-lg border transition ${enabled ? 'bg-blue-500/10 border-blue-500/30 ring-1 ring-blue-500/30' : 'bg-secondary/20 border-border hover:border-gray-500/30'}`}
+                  className={`text-left p-4 rounded-lg border transition ${enabled ? 'bg-[var(--status-info-soft)]0/10 border-[color:var(--status-info)]/30 ring-1 ring-[color:var(--brand)]/30' : 'bg-secondary/20 border-border hover:border-border/30'}`}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <h4 className="font-semibold capitalize">{module}</h4>
                       <p className="text-xs text-muted-foreground mt-1">{getLarkModuleDescription(module)}</p>
                     </div>
-                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center ${enabled ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
+                    <div className={`h-5 w-5 rounded border-2 flex items-center justify-center ${enabled ? 'bg-[var(--status-info)] border-[color:var(--status-info)]/30' : 'border-border'}`}>
                       {enabled && <Check className="w-3 h-3 text-white" />}
                     </div>
                   </div>
@@ -2951,7 +2951,7 @@ export default function IntegrationsSettingsPage() {
         <div className="rounded-xl border border-border bg-card p-10 text-center shadow-sm">
           <Key className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
           <p className="text-sm font-medium text-muted-foreground">Webhook URLs are managed in</p>
-          <a href="/settings/webhooks" className="mt-1 inline-block text-sm text-indigo-400 underline underline-offset-2 hover:text-indigo-300">
+          <a href="/settings/webhooks" className="mt-1 inline-block text-sm text-[var(--status-info)] underline underline-offset-2 hover:text-[var(--status-info)]">
             Settings → Webhooks →
           </a>
         </div>
