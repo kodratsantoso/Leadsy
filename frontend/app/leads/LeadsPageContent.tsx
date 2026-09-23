@@ -1614,8 +1614,8 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                     size="sm"
                     className={`text-xs h-8 rounded-xl font-medium ${
                       ownerFilter === String(user.id)
-                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : "border-blue-500/30 text-blue-600 bg-blue-500/5 hover:bg-blue-500/10 dark:text-blue-400"
+                        ? "bg-[var(--status-info)] text-white hover:opacity-90"
+                        : "border-[color:var(--status-info)]/30 text-[var(--status-info)] bg-[var(--status-info)]/5 hover:bg-[var(--status-info)]/10 dark:text-[var(--status-info)]"
                     }`}
                     onClick={() => {
                       setOwnerFilter(ownerFilter === String(user.id) ? "" : String(user.id));
@@ -1636,14 +1636,14 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   className={`text-xs h-8 rounded-xl font-medium ${
                     qualificationFilter === "unassessed"
                       ? "bg-[var(--brand)] text-white hover:opacity-90"
-                      : "border-amber-500/30 text-amber-600 bg-amber-500/5 hover:bg-amber-500/10 dark:text-amber-400"
+                      : "border-[color:var(--status-warning)]/30 text-[var(--status-warning)] bg-[color:var(--status-warning)]/5 hover:bg-[color:var(--status-warning)]/10"
                   }`}
                   onClick={() => {
                     setQualificationFilter(qualificationFilter === "unassessed" ? "" : "unassessed");
                     setPage(1);
                   }}
                 >
-                  <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-500" />
+                  <Sparkles className="h-3.5 w-3.5 mr-1 text-[var(--status-warning)]" />
                   Unassessed ({unassessedCount})
                 </Button>
                 {isSuperAdmin && unassessedCount > 0 && (
@@ -1668,10 +1668,10 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 h-8 text-[11px] font-medium border ${
                       schedulerHeartbeat.status === "healthy"
-                        ? "border-emerald-500/30 text-emerald-600 bg-emerald-500/5 dark:text-emerald-400"
+                        ? "border-[color:var(--status-success)]/30 text-[var(--status-success)] bg-[color:var(--status-success)]/5"
                         : schedulerHeartbeat.status === "stale"
-                        ? "border-amber-500/30 text-amber-600 bg-amber-500/5 dark:text-amber-400"
-                        : "border-red-500/30 text-red-600 bg-red-500/5 dark:text-red-400"
+                        ? "border-[color:var(--status-warning)]/30 text-[var(--status-warning)] bg-[color:var(--status-warning)]/5"
+                        : "border-[color:var(--status-danger)]/30 text-[var(--status-danger)] bg-[color:var(--status-danger)]/5"
                     }`}
                     title={
                       schedulerHeartbeat.status === "healthy"
@@ -1684,7 +1684,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                     }
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${
-                      schedulerHeartbeat.status === "healthy" ? "bg-emerald-500" : schedulerHeartbeat.status === "stale" ? "bg-amber-500" : "bg-red-500"
+                      schedulerHeartbeat.status === "healthy" ? "bg-[var(--status-success)]" : schedulerHeartbeat.status === "stale" ? "bg-[var(--status-warning)]" : "bg-[var(--status-danger)]"
                     }`} />
                     {schedulerHeartbeat.status === "healthy" && "Background AI: running"}
                     {schedulerHeartbeat.status === "stale" && `Background AI: lagging (${schedulerHeartbeat.minutes_ago}m)`}
@@ -1698,8 +1698,8 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   size="sm"
                   className={`text-xs h-8 rounded-xl font-medium ${
                     qualificationFilter === "eligible"
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                      : "border-emerald-500/30 text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 dark:text-emerald-400"
+                      ? "bg-[var(--status-success)] text-white hover:opacity-90"
+                      : "border-[color:var(--status-success)]/30 text-[var(--status-success)] bg-[color:var(--status-success)]/5 hover:bg-[color:var(--status-success)]/10"
                   }`}
                   onClick={() => {
                     setQualificationFilter(qualificationFilter === "eligible" ? "" : "eligible");
@@ -1741,15 +1741,15 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   size="sm"
                   className={`text-xs h-8 rounded-xl font-medium ${
                     gradeFilter === "hot"
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
-                      : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                      ? "bg-[var(--status-success)] text-white hover:opacity-90 shadow-xs"
+                      : "border-[color:var(--status-success)]/30 text-[var(--status-success)] bg-[var(--status-success)]/10 hover:bg-[var(--status-success)]/20"
                   }`}
                   onClick={() => {
                     setGradeFilter(gradeFilter === "hot" ? "" : "hot");
                     setPage(1);
                   }}
                 >
-                  <Zap className="h-3.5 w-3.5 mr-1 fill-emerald-500 text-emerald-500" />
+                  <Zap className="h-3.5 w-3.5 mr-1 fill-emerald-500 text-[var(--status-success)]" />
                   Hot (≥ 80)
                 </Button>
                 <Button
@@ -1758,15 +1758,15 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   size="sm"
                   className={`text-xs h-8 rounded-xl font-medium ${
                     gradeFilter === "warm"
-                      ? "bg-amber-600 text-white hover:bg-amber-700 shadow-xs"
-                      : "border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+                      ? "bg-[var(--status-warning)] text-white hover:opacity-90 shadow-xs"
+                      : "border-[color:var(--status-warning)]/30 text-[var(--status-warning)] bg-[var(--status-warning)]/10 hover:bg-[var(--status-warning)]/20"
                   }`}
                   onClick={() => {
                     setGradeFilter(gradeFilter === "warm" ? "" : "warm");
                     setPage(1);
                   }}
                 >
-                  <Zap className="h-3.5 w-3.5 mr-1 fill-amber-500 text-amber-500" />
+                  <Zap className="h-3.5 w-3.5 mr-1 fill-amber-500 text-[var(--status-warning)]" />
                   Warm (60 - 79)
                 </Button>
                 <Button
@@ -1775,8 +1775,8 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   size="sm"
                   className={`text-xs h-8 rounded-xl font-medium ${
                     gradeFilter === "cold"
-                      ? "bg-slate-700 text-white hover:bg-slate-800 shadow-xs"
-                      : "border-slate-400/30 text-slate-700 dark:text-slate-300 bg-slate-500/10 hover:bg-slate-500/20"
+                      ? "bg-[var(--muted-foreground)] text-background hover:opacity-90 shadow-xs"
+                      : "border-border text-muted-foreground bg-muted/40 hover:bg-muted/60"
                   }`}
                   onClick={() => {
                     setGradeFilter(gradeFilter === "cold" ? "" : "cold");
@@ -1791,8 +1791,8 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   size="sm"
                   className={`text-xs h-8 rounded-xl font-medium ${
                     gradeFilter === "unscored"
-                      ? "bg-zinc-600 text-white hover:bg-zinc-700"
-                      : "border-zinc-300 text-muted-foreground hover:bg-muted/40"
+                      ? "bg-[var(--muted-foreground)] text-background hover:opacity-90"
+                      : "border-border text-muted-foreground hover:bg-muted/40"
                   }`}
                   onClick={() => {
                     setGradeFilter(gradeFilter === "unscored" ? "" : "unscored");
@@ -1989,7 +1989,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                   <TableHeaderCell className="w-[40px]">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                      className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                       checked={leads.length > 0 && selectedLeads.length === leads.length}
                       onChange={(e) => {
                         if (e.target.checked) {
@@ -2026,7 +2026,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                       <TableCell>
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                          className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                           checked={selectedLeads.includes(lead.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
@@ -2043,7 +2043,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{lead.company_name}</p>
                           {lead.brand && (
-                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0 bg-slate-100 text-slate-800 border-slate-300">
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0">
                               {lead.brand}
                             </Badge>
                           )}
@@ -2069,7 +2069,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                       {lead.lead_score !== null && lead.lead_score !== undefined ? (
                         <Badge variant={scoreVariant(lead.lead_score)}>{lead.lead_score}</Badge>
                       ) : (
-                        <Badge variant="warning" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30 font-medium">
+                        <Badge variant="warning" className="text-[10px] bg-[var(--status-warning)]/10 text-[var(--status-warning)] border-[color:var(--status-warning)]/30 font-medium">
                           Unassessed
                         </Badge>
                       )}
