@@ -61,3 +61,15 @@ jobs:
         run: |
           echo "===== Deployments/StatefulSets cluster-wide matching 'leadsy' ====="
           kubectl get deploy,sts -A -o wide 2>/dev/null | grep -iE 'NAMESPACE|leadsy' || echo "(none found, or listing across namespaces is not permitted for this runner)"
+
+      - name: Routes the deployed backend actually serves
+        run: |
+          NS=leadsy-prod
+          echo "===== image the backend pod is running ====="
+          kubectl get deploy leadsy-backend -n "$NS" \
+            -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{" -> "}{.image}{"\n"}{end}' || true
+          echo; echo "===== git commit baked into the image ====="
+          kubectl exec -n "$NS" deploy/leadsy-backend -- sh -lc 'cat /var/www/html/.git-commit 2>/dev/null || echo "(no commit marker in image)"' || true
+          echo; echo "===== ai-screening routes registered at runtime ====="
+          # `route:list` only prints the route table; it mutates nothing.
+          kubectl exec -n "$NS" deploy/leadsy-backend -- php artisan route:list --path=ai-screening 2>&1 || true
