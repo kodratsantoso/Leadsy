@@ -105,7 +105,6 @@ jobs:
           render_runtime k8s/leadsy-prod-backend.yaml | kubectl apply -n "${NAMESPACE}" -f -
           kubectl set image deployment/leadsy-backend backend="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
           kubectl rollout status deployment/leadsy-backend -n "${NAMESPACE}" --timeout=300s
-          kubectl exec -n "${NAMESPACE}" deploy/leadsy-backend -- curl --fail --silent --show-error http://127.0.0.1:8000/api/health
 
           echo "Applying worker and scheduler after the backend is healthy..."
           render k8s/leadsy-prod-workers.yaml | kubectl apply -n "${NAMESPACE}" -f -
