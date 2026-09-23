@@ -2771,6 +2771,112 @@ export default function LeadDetailPage() {
                 </p>
               </div>
             ) : null}
+
+            {/* Hard stops — blocking conditions, shown before anything else they'd override */}
+            {Array.isArray(latestQual?.hard_stops) && latestQual.hard_stops.length > 0 && (
+              <div className="rounded-lg border border-[var(--status-danger)]/40 bg-[color-mix(in_oklch,var(--status-danger)_8%,transparent)] p-3.5 space-y-2">
+                <span className="text-xs font-semibold text-[var(--status-danger)] flex items-center gap-1.5">
+                  <XCircle className="h-3.5 w-3.5" />
+                  Hard Stop — kondisi yang memblokir kelayakan
+                </span>
+                <ul className="space-y-1 pl-5">
+                  {latestQual.hard_stops.map((stop: string, idx: number) => (
+                    <li key={idx} className="text-xs leading-relaxed">{safeRender(stop)}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Per-dimension scoring. The rule engine has always computed this; it was
+                simply never rendered, which made the final score look arbitrary. */}
+            {latestQual?.dimension_breakdown && Object.keys(latestQual.dimension_breakdown).length > 0 && (
+              <div className="space-y-2.5">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 text-[var(--brand)]" />
+                  Rincian Penilaian per Dimensi
+                </span>
+                <div className="grid gap-2.5 md:grid-cols-2">
+                  {Object.entries(latestQual.dimension_breakdown).map(([key, raw]) => {
+                    const dim = raw as any;
+                    const max = Number(dim?.max_points) || 0;
+                    const points = Number(dim?.points) || 0;
+                    const pct = max > 0 ? Math.round((points / max) * 100) : 0;
+                    const signals: string[] = Array.isArray(dim?.signals) ? dim.signals : [];
+                    const dimRisks: string[] = Array.isArray(dim?.risk_flags) ? dim.risk_flags : [];
+
+                    return (
+                      <div key={key} className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2 md:odd:last:col-span-2">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-xs font-semibold capitalize">{key.replace(/_/g, ' ')}</span>
+                          <span className="text-xs font-bold tabular-nums shrink-0">
+                            {points}<span className="text-muted-foreground font-normal">/{max}</span>
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[var(--brand)]"
+                            style={{ width: `${clampPercent(pct)}%` }}
+                          />
+                        </div>
+                        {dim?.summary && (
+                          <p className="text-[11px] text-muted-foreground leading-relaxed">{safeRender(dim.summary)}</p>
+                        )}
+                        {signals.length > 0 && (
+                          <ul className="space-y-0.5">
+                            {signals.map((signal, idx) => (
+                              <li key={idx} className="flex items-start gap-1 text-[11px] text-muted-foreground">
+                                <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-[var(--brand)]" />
+                                {safeRender(signal)}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {dimRisks.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-0.5">
+                            {dimRisks.map((flag, idx) => (
+                              <span
+                                key={idx}
+                                className="rounded border border-[var(--status-warning)]/30 bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--status-warning)]"
+                              >
+                                {safeRender(flag)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Aggregate risk flags — union across dimensions, hard stops and missing critical fields */}
+            {Array.isArray(latestQual?.risk_flags) && latestQual.risk_flags.length > 0 && (
+              <div className="rounded-lg border border-[var(--status-warning)]/30 bg-[color-mix(in_oklch,var(--status-warning)_7%,transparent)] p-3.5 space-y-2">
+                <span className="text-xs font-semibold text-[var(--status-warning)] flex items-center gap-1.5">
+                  <Activity className="h-3.5 w-3.5" />
+                  Catatan Risiko ({latestQual.risk_flags.length})
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {latestQual.risk_flags.map((flag: string, idx: number) => (
+                    <span key={idx} className="rounded-md border border-border/60 bg-background/60 px-2 py-0.5 text-[11px]">
+                      {safeRender(flag)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Policy recommendation attached to the resulting status */}
+            {latestQual?.recommendation && (
+              <div className="rounded-lg border border-[var(--brand)]/25 bg-[color-mix(in_oklch,var(--brand)_7%,transparent)] p-3.5 space-y-1">
+                <span className="text-xs font-semibold text-[var(--brand)] flex items-center gap-1.5">
+                  <Target className="h-3.5 w-3.5" />
+                  Rekomendasi Tindak Lanjut
+                </span>
+                <p className="text-xs leading-relaxed pl-5">{safeRender(latestQual.recommendation)}</p>
+              </div>
+            )}
           </div>
 
           {/* ── COMPANY INTELLIGENCE & VERIFICATION SECTION ── */}
