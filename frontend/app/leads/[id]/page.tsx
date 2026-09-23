@@ -137,6 +137,21 @@ function qualificationLabel(value?: string | null) {
   return value.replace(/_/g, ' ');
 }
 
+/**
+ * The lead detail tabs, grouped by intent. Every label — and therefore every
+ * activeTab value — is unchanged from the flat list this replaced.
+ *
+ * 'Meetings' is deliberately absent, as it was before: the tab still renders a
+ * notice pointing at Activities so old ?tab=meetings links keep working, but it
+ * is not something to send people to.
+ */
+const LEAD_TAB_GROUPS: { label: string; tabs: string[] }[] = [
+  { label: 'Profile', tabs: ['Overview', 'Contacts', 'Team'] },
+  { label: 'AI Intelligence', tabs: ['Intelligence', 'Pre-Meeting Brief', 'Revenue'] },
+  { label: 'Commercial', tabs: ['Orders', 'Professional Services', 'Projects'] },
+  { label: 'History', tabs: ['Activities', 'Transcripts', 'Customer Journey'] },
+];
+
 function RevenueAnalysisPanel({ analysis }: { analysis: any }) {
   const { formatNumber, formatCurrency } = useNumberFormat();
   const date = analysis.created_at ? new Date(analysis.created_at).toLocaleString() : '';
@@ -1931,26 +1946,41 @@ export default function LeadDetailPage() {
         </div>
       ) : null}
 
-      {/* Tabs */}
+      {/* Tabs. Twelve of them in one flat row read as an undifferentiated list,
+          so they are clustered by what the reader came to do. The labels are
+          unchanged — activeTab is still the lowercased label, which ?tab= links
+          and setActiveTab() calls elsewhere depend on. */}
       <div className="border-b border-border">
-        <div className="flex gap-0 overflow-x-auto">
-          {['Overview', 'Team', 'Orders', 'Professional Services', 'Projects', 'Contacts', 'Intelligence', 'Revenue', 'Activities', 'Transcripts', 'Pre-Meeting Brief', 'Customer Journey'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab.toLowerCase())}
-              className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.toLowerCase()
-                  ? 'border-[var(--brand)] text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+        <div className="flex items-stretch overflow-x-auto">
+          {LEAD_TAB_GROUPS.map((group, groupIndex) => (
+            <div
+              key={group.label}
+              className={groupIndex > 0 ? 'ml-3 border-l border-border/60 pl-3' : undefined}
             >
-              {tab}
-              {tab === 'Contacts' && contacts.length > 0 && (
-                <span className="ml-1.5 rounded-full bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--brand)]">
-                  {contacts.length}
-                </span>
-              )}
-            </button>
+              <span className="block px-4 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                {group.label}
+              </span>
+              <div className="flex">
+                {group.tabs.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab.toLowerCase())}
+                    className={`whitespace-nowrap border-b-2 px-4 pb-3 pt-1.5 text-sm font-medium transition-colors ${
+                      activeTab === tab.toLowerCase()
+                        ? 'border-[var(--brand)] text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {tab}
+                    {tab === 'Contacts' && contacts.length > 0 && (
+                      <span className="ml-1.5 rounded-full bg-[color-mix(in_oklch,var(--brand)_20%,transparent)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--brand)]">
+                        {contacts.length}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
