@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
 import { runAiScreening } from '@/lib/aiScreeningPipeline';
+import { clampPercent, formatQualificationStatus, gradeVariant, icpLabel, icpVariant, qualificationVariant } from "@/lib/leadDisplay";
 import { useState, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Badge } from "@/components/ui/badge";
@@ -130,50 +131,9 @@ type GoogleContactCandidate = {
   status: string;
 };
 
-function gradeVariant(grade?: string | null) {
-  const normalized = grade?.toLowerCase();
-  if (normalized === 'hot') return 'success';
-  if (normalized === 'warm') return 'warning';
-  return 'neutral';
-}
-
-function qualificationVariant(status?: string | null): "success" | "warning" | "danger" | "outline" {
-  if (status === 'eligible') return 'success';
-  if (status === 'potential') return 'warning';
-  if (status === 'not_eligible' || status === 'disqualified') return 'danger';
-  return 'outline';
-}
-
-function formatQualificationStatus(status?: string | null): string {
-  if (!status || status === 'pending' || status === 'unassessed') return 'Unassessed';
-  if (status === 'eligible') return 'Eligible';
-  if (status === 'potential') return 'Potential';
-  if (status === 'not_eligible') return 'Not Eligible';
-  if (status === 'disqualified') return 'Disqualified';
-  return status.replace(/_/g, ' ');
-}
-
 function qualificationLabel(value?: string | null) {
   if (!value) return 'Unknown';
   return value.replace(/_/g, ' ');
-}
-
-function icpVariant(status?: string | null) {
-  if (status === 'strong_match') return 'success';
-  if (status === 'partial_match') return 'warning';
-  if (status === 'weak_match') return 'neutral';
-  return 'outline';
-}
-
-function icpLabel(status?: string | null) {
-  if (status === 'strong_match') return 'Strong match';
-  if (status === 'partial_match') return 'Partial match';
-  if (status === 'weak_match') return 'Weak match';
-  return 'Not evaluated';
-}
-
-function clampPercent(value?: number | null) {
-  return Math.max(0, Math.min(100, value ?? 0));
 }
 
 function RevenueAnalysisPanel({ analysis }: { analysis: any }) {

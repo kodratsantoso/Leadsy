@@ -31,6 +31,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/useAuthStore";
 
 import { Badge } from "@/components/ui/badge";
+import { qualificationVariant, scoreVariant } from "@/lib/leadDisplay";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterBar, FilterBarSearch } from "@/components/ui/filter-bar";
@@ -568,19 +569,6 @@ function rowToImportLead(row: Record<string, unknown>): ImportLead | null {
   if (contacts.length > 0) lead.contacts = contacts;
 
   return lead;
-}
-
-function qualificationVariant(status?: string | null) {
-  if (status === "eligible") return "success";
-  if (status === "potential") return "warning";
-  if (status === "not_eligible") return "danger";
-  return "neutral";
-}
-
-function scoreVariant(score?: number | null) {
-  if ((score ?? 0) >= 80) return "success";
-  if ((score ?? 0) >= 60) return "warning";
-  return "neutral";
 }
 
 function primarySourceSlug(lead: LeadRecord) {
