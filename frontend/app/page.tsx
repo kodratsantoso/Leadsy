@@ -226,7 +226,7 @@ function CountdownWidget() {
         <span>{formatNum(timeLeft.minutes)}</span>
         <span className="text-muted-foreground font-sans font-medium text-[10px]">m</span>
         <span className="text-muted-foreground/50">:</span>
-        <span className="text-rose-500">{formatNum(timeLeft.seconds)}</span>
+        <span className="text-[var(--status-danger)]">{formatNum(timeLeft.seconds)}</span>
         <span className="text-muted-foreground font-sans font-medium text-[10px]">s</span>
       </div>
     </div>
@@ -574,20 +574,20 @@ export default function DashboardPage() {
           const estPct = formatNumber(step.estimated_percentage ?? 0, { decimals: 1 });
 
           return `
-            <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg shadow-xl text-white font-sans min-w-[220px]">
-              <div class="font-semibold text-sm mb-2 pb-1 border-b border-slate-800 text-white">${step.label}</div>
+            <div class="p-3 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl text-[var(--card-foreground)] font-sans min-w-[220px]">
+              <div class="font-semibold text-sm mb-2 pb-1 border-b border-[var(--border)]">${step.label}</div>
               <div class="space-y-1 text-xs">
                 <div class="flex justify-between gap-4">
-                  <span class="text-slate-400">Total Leads:</span>
-                  <span class="font-medium text-white">${totalLeads}</span>
+                  <span class="text-[var(--muted-foreground)]">Total Leads:</span>
+                  <span class="font-medium">${totalLeads}</span>
                 </div>
                 <div class="flex justify-between gap-4">
-                  <span class="text-slate-400">Presentase Konversi:</span>
-                  <span class="font-medium text-white">${conversionPct}%</span>
+                  <span class="text-[var(--muted-foreground)]">Presentase Konversi:</span>
+                  <span class="font-medium">${conversionPct}%</span>
                 </div>
                 <div class="flex justify-between gap-4">
-                  <span class="text-slate-400">Amount Estimated:</span>
-                  <span class="font-medium text-white">${estAmount} (${estPct}%)</span>
+                  <span class="text-[var(--muted-foreground)]">Amount Estimated:</span>
+                  <span class="font-medium">${estAmount} (${estPct}%)</span>
                 </div>
               </div>
             </div>
@@ -1406,7 +1406,7 @@ export default function DashboardPage() {
                 <Card className="h-full">
                   <CardHeader>
                     <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
+                      <Zap className="h-4 w-4 text-[var(--brand)]" />
                       <div>
                         <CardTitle>Technical Trust Validation</CardTitle>
                         <CardDescription>Presales Solution Architect KPIs</CardDescription>
@@ -1423,15 +1423,15 @@ export default function DashboardPage() {
                         </div>
                         <div className="rounded-lg bg-muted/40 p-3">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">POC Success Rate</p>
-                          <p className="text-lg font-bold text-emerald-500">{salesAchievement.poc_success_rate}%</p>
+                          <p className="text-lg font-bold">{salesAchievement.poc_success_rate}%</p>
                         </div>
                         <div className="rounded-lg bg-muted/40 p-3">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Integration Fit</p>
-                          <p className="text-lg font-bold text-blue-500">{salesAchievement.integration_fit_score}%</p>
+                          <p className="text-lg font-bold">{salesAchievement.integration_fit_score}%</p>
                         </div>
                         <div className="rounded-lg bg-muted/40 p-3">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">SLA Response</p>
-                          <p className="text-lg font-bold text-amber-500">{salesAchievement.sla_response_time} hrs</p>
+                          <p className="text-lg font-bold">{salesAchievement.sla_response_time} hrs</p>
                         </div>
                       </div>
 
@@ -1698,11 +1698,11 @@ export default function DashboardPage() {
                       </div>
                       <div className="rounded-xl border border-border bg-background p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expected Buffer Rate</p>
-                        <p className="mt-1 text-xl font-bold text-amber-500">{salesAchievement.buffer_rate}%</p>
+                        <p className="mt-1 text-xl font-bold">{salesAchievement.buffer_rate}%</p>
                       </div>
                       <div className="rounded-xl border border-border bg-background p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company Target (Net)</p>
-                        <p className="mt-1 text-xl font-bold text-emerald-500">{formatCurrency(salesAchievement.net_target)}</p>
+                        <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.net_target)}</p>
                       </div>
                       <div className="rounded-xl border border-border bg-background p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Realized Revenue</p>
@@ -1729,9 +1729,9 @@ export default function DashboardPage() {
                               const isSdr = rep.tier_level === "SDR";
                               const isPresales = rep.tier_level === "PRESALES";
                               const barColor = isSdr
-                                ? "bg-indigo-500"
+                                ? "bg-[var(--status-info)]"
                                 : isPresales
-                                  ? "bg-emerald-500"
+                                  ? "bg-[var(--status-success)]"
                                   : "bg-[color:var(--brand)]";
                               return (
                                 <TableRow key={rep.id} className="hover:bg-muted/30">
@@ -1753,11 +1753,11 @@ export default function DashboardPage() {
                                   </TableCell>
                                   <TableCell className="text-xs font-medium uppercase">
                                     {rep.target_type === "pipeline_value" ? (
-                                      <span className="text-indigo-400 font-semibold">Pipeline Sourced</span>
+                                      <span className="text-[var(--status-info)] font-semibold">Pipeline Sourced</span>
                                     ) : rep.target_type === "opportunities" ? (
-                                      <span className="text-amber-400 font-semibold">Opportunities Assigned</span>
+                                      <span className="text-[var(--status-warning)] font-semibold">Opportunities Assigned</span>
                                     ) : (
-                                      <span className="text-emerald-400 font-semibold">Closed-Won</span>
+                                      <span className="text-[var(--status-success)] font-semibold">Closed-Won</span>
                                     )}
                                   </TableCell>
                                   <TableCell className="font-mono text-sm">
