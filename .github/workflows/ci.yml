@@ -92,12 +92,17 @@ jobs:
             sed "s|__IMAGE_TAG__|${TAG}|g" "$1"
           }
 
+          render_runtime() {
+            sed "s|__IMAGE_TAG__|${TAG}|g" "$1" \
+              | awk 'BEGIN { skip = 1 } /^---[[:space:]]*$/ { if (skip) { skip = 0; next } print; next } !skip { print }'
+          }
+
           echo "Applying Redis runtime (persistent cache/queue volume only)..."
-          render k8s/leadsy-prod-redis.yaml | kubectl apply -n "${NAMESPACE}" -f -
+          render_runtime k8s/leadsy-prod-redis.yaml | kubectl apply -n "${NAMESPACE}" -f -
           kubectl rollout status deployment/leadsy-redis -n "${NAMESPACE}" --timeout=180s
 
           echo "Applying backend runtime without changing the public backend Service yet..."
-          render k8s/leadsy-prod-backend.yaml | kubectl apply -n "${NAMESPACE}" -f -
+          render_runtime k8s/leadsy-prod-backend.yaml | kubectl apply -n "${NAMESPACE}" -f -
           kubectl set image deployment/leadsy-backend backend="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
           kubectl rollout status deployment/leadsy-backend -n "${NAMESPACE}" --timeout=300s
           kubectl exec -n "${NAMESPACE}" deploy/leadsy-backend -- curl --fail --silent --show-error http://127.0.0.1:8000/api/health
