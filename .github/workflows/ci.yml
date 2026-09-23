@@ -64,7 +64,7 @@ jobs:
     needs: [test-backend, test-frontend]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: [self-hosted, in-cluster, k3s]
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
