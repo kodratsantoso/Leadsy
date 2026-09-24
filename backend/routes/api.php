@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\IntegrationPlatformController;
 use App\Http\Controllers\Api\LarkController;
 use App\Http\Controllers\Api\LeadChannelTypeController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\LeadTranscriptController;
 use App\Http\Controllers\Api\LeadSourceTypeController;
 use App\Http\Controllers\Api\MapDiscoveryController;
 use App\Http\Controllers\Api\OpenSearchController;
@@ -509,13 +510,13 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/{lead}/meetings', [LeadController::class, 'getMeetings'])->middleware('permission:leads.view');
     Route::put('leads/{lead}/meetings/{meeting}', [LeadController::class, 'updateMeeting'])->middleware('permission:leads.edit');
     Route::delete('leads/{lead}/meetings/{meeting}', [LeadController::class, 'deleteMeeting'])->middleware('permission:leads.edit');
-    Route::get('leads/{lead}/transcripts', [LeadController::class, 'getTranscripts'])->middleware('permission:leads.view');
-    Route::post('leads/{lead}/transcripts', [LeadController::class, 'storeTranscript'])->middleware('permission:leads.edit');
-    Route::put('leads/{lead}/transcripts/{transcript}', [LeadController::class, 'updateTranscript'])->middleware('permission:leads.edit');
-    Route::post('leads/{lead}/transcripts/fetch-link', [LeadController::class, 'fetchTranscriptFromLink'])->middleware('permission:leads.edit');
-    Route::delete('leads/{lead}/transcripts/{transcript}', [LeadController::class, 'deleteTranscript'])->middleware('permission:leads.edit');
-    Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');
-    Route::get('leads/{lead}/evaluations', [LeadController::class, 'getEvaluations'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/transcripts', [LeadTranscriptController::class, 'getTranscripts'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/transcripts', [LeadTranscriptController::class, 'storeTranscript'])->middleware('permission:leads.edit');
+    Route::put('leads/{lead}/transcripts/{transcript}', [LeadTranscriptController::class, 'updateTranscript'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/transcripts/fetch-link', [LeadTranscriptController::class, 'fetchTranscriptFromLink'])->middleware('permission:leads.edit');
+    Route::delete('leads/{lead}/transcripts/{transcript}', [LeadTranscriptController::class, 'deleteTranscript'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadTranscriptController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/evaluations', [LeadTranscriptController::class, 'getEvaluations'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/follow-ups', [LeadController::class, 'getFollowUps'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/sync-lark', [\App\Http\Controllers\Api\LarkController::class, 'syncSingleLead'])->middleware('permission:leads.edit');
     
