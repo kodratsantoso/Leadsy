@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Lead\StoreLeadRequest;
+use App\Http\Requests\Lead\UpdateLeadRequest;
 use App\Jobs\EnrichLeadContactsJob;
 use App\Jobs\RunLeadIntelligenceJob;
 use App\Jobs\ScoreLeadJob;
@@ -380,38 +382,9 @@ class LeadController extends Controller
     }
 
     /** POST /api/leads */
-    public function store(Request $request): JsonResponse
+    public function store(StoreLeadRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'company_name' => 'required|string|max:255',
-            'brand' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'lat' => 'nullable|numeric',
-            'lng' => 'nullable|numeric',
-            'website' => 'nullable|url|max:500',
-            'phone' => 'nullable|string|max:30',
-            'email' => 'nullable|email',
-            'industry_id' => 'nullable|exists:industries,id',
-            'sub_industry_id' => 'nullable|exists:sub_industries,id',
-            'business_category' => 'nullable|string|max:255',
-            'business_category_id' => 'nullable|exists:business_categories,id',
-            'external_place_id' => 'nullable|string|max:255',
-            'product_id' => 'nullable|exists:products,id',
-            'territory_id' => 'nullable|exists:territories,id',
-            'ai_mode' => 'nullable|in:full_ai,hybrid,manual',
-            'use_ai_reference' => 'nullable|boolean',
-            'company_size_estimate' => 'nullable|string|max:100',
-            'estimated_closing_amount' => 'nullable|numeric|min:0',
-            'realized_closing_amount' => 'nullable|numeric|min:0',
-            'funnel_stage_id' => 'nullable|exists:funnel_stages,id',
-            'owner_id' => 'nullable|exists:users,id',
-            'presales_owner_id' => 'nullable|exists:users,id',
-            'am_owner_id' => 'nullable|exists:users,id',
-            'csm_owner_id' => 'nullable|exists:users,id',
-            'source_type' => 'nullable|exists:lead_source_types,slug',
-            'channel_type_id' => 'nullable|exists:lead_channel_types,id',
-            'parent_lead_id' => 'nullable|exists:leads,id',
-        ]);
+        $data = $request->validated();
         $sourceType = $data['source_type'] ?? 'manual';
         $channelTypeId = $data['channel_type_id'] ?? null;
         unset($data['source_type']);
@@ -725,7 +698,7 @@ class LeadController extends Controller
     }
 
     /** PUT /api/leads/{lead} */
-    public function update(Request $request, Lead $lead): JsonResponse
+    public function update(UpdateLeadRequest $request, Lead $lead): JsonResponse
     {
         if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
             abort(403);
@@ -733,39 +706,7 @@ class LeadController extends Controller
 
         $original = $lead->getAttributes();
 
-        $data = $request->validate([
-            'company_name' => 'sometimes|string|max:255',
-            'brand' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'lat' => 'nullable|numeric',
-            'lng' => 'nullable|numeric',
-            'website' => 'nullable|url|max:500',
-            'phone' => 'nullable|string|max:30',
-            'email' => 'nullable|email',
-            'industry_id' => 'nullable|exists:industries,id',
-            'sub_industry_id' => 'nullable|exists:sub_industries,id',
-            'business_category' => 'nullable|string|max:255',
-            'business_category_id' => 'nullable|exists:business_categories,id',
-            'company_size_estimate' => 'nullable|string|max:100',
-            'lead_score' => 'nullable|integer|min:0|max:100',
-            'estimated_closing_amount' => 'nullable|numeric|min:0',
-            'realized_closing_amount' => 'nullable|numeric|min:0',
-            'qualification_status' => 'nullable|in:pending,eligible,potential,not_eligible',
-            'ai_explanation' => 'nullable|string',
-            'funnel_stage_id' => 'nullable|exists:funnel_stages,id',
-            'owner_id' => 'nullable|exists:users,id',
-            'presales_owner_id' => 'nullable|exists:users,id',
-            'am_owner_id' => 'nullable|exists:users,id',
-            'csm_owner_id' => 'nullable|exists:users,id',
-            'product_id' => 'nullable|exists:products,id',
-            'source_type' => 'nullable|exists:lead_source_types,slug',
-            'channel_type_id' => 'nullable|exists:lead_channel_types,id',
-            'parent_lead_id' => ['nullable', 'exists:leads,id', function ($attribute, $value, $fail) use ($lead) {
-                if ((int) $value === $lead->id) {
-                    $fail('A lead cannot be a subsidiary of itself.');
-                }
-            }],
-        ]);
+        $data = $request->validated();
         $sourceType = $data['source_type'] ?? null;
         $channelTypeId = $data['channel_type_id'] ?? null;
         unset($data['source_type']);
