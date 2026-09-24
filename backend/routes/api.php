@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\IntegrationPlatformController;
 use App\Http\Controllers\Api\LarkController;
 use App\Http\Controllers\Api\LeadChannelTypeController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\LeadActivityController;
+use App\Http\Controllers\Api\LeadTrashController;
 use App\Http\Controllers\Api\LeadTranscriptController;
 use App\Http\Controllers\Api\LeadSourceTypeController;
 use App\Http\Controllers\Api\MapDiscoveryController;
@@ -183,13 +185,13 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/export', [LeadController::class, 'export'])->middleware('permission:leads.export');
     Route::post('leads/discover', [LeadController::class, 'discover'])->middleware('permission:leads.create');
     Route::post('leads/bulk-import', [LeadController::class, 'bulkImport'])->middleware('permission:leads.create');
-    Route::post('leads/batch-delete', [LeadController::class, 'batchDelete']);
-    Route::get('leads/trash', [LeadController::class, 'trash'])->middleware('permission:leads.view');
-    Route::post('leads/batch-restore', [LeadController::class, 'batchRestore'])->middleware('permission:leads.edit');
-    Route::post('leads/batch-force-delete', [LeadController::class, 'batchForceDelete'])->middleware('permission:leads.edit');
-    Route::post('leads/purge-expired', [LeadController::class, 'purgeExpired'])->middleware('permission:leads.edit');
-    Route::post('leads/{id}/restore', [LeadController::class, 'restore'])->middleware('permission:leads.edit');
-    Route::delete('leads/{id}/force-delete', [LeadController::class, 'forceDelete'])->middleware('permission:leads.edit');
+    Route::post('leads/batch-delete', [LeadTrashController::class, 'batchDelete']);
+    Route::get('leads/trash', [LeadTrashController::class, 'trash'])->middleware('permission:leads.view');
+    Route::post('leads/batch-restore', [LeadTrashController::class, 'batchRestore'])->middleware('permission:leads.edit');
+    Route::post('leads/batch-force-delete', [LeadTrashController::class, 'batchForceDelete'])->middleware('permission:leads.edit');
+    Route::post('leads/purge-expired', [LeadTrashController::class, 'purgeExpired'])->middleware('permission:leads.edit');
+    Route::post('leads/{id}/restore', [LeadTrashController::class, 'restore'])->middleware('permission:leads.edit');
+    Route::delete('leads/{id}/force-delete', [LeadTrashController::class, 'forceDelete'])->middleware('permission:leads.edit');
     Route::post('leads/ai-profiling/start', [AiLeadProfilingController::class, 'start'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/ai-profiling/{id}/status', [AiLeadProfilingController::class, 'status'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');
@@ -201,7 +203,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/{lead}', [LeadController::class, 'show'])->middleware('permission:leads.view');
     Route::put('leads/{lead}', [LeadController::class, 'update'])->middleware('permission:leads.edit');
     Route::patch('leads/{lead}', [LeadController::class, 'update'])->middleware('permission:leads.edit');
-    Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->middleware('permission:leads.delete');
+    Route::delete('leads/{lead}', [LeadTrashController::class, 'destroy'])->middleware('permission:leads.delete');
     // business-categories: same gap — read stays open (matches the funnel/stages
     // reference-data precedent), writes require leads.edit.
     Route::get('business-categories', [\App\Http\Controllers\Api\BusinessCategoryController::class, 'index']);
@@ -280,8 +282,8 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('leads/{lead}/cs-playbook/generate', [\App\Http\Controllers\Api\Sprint5PolishController::class, 'generateCsPlaybook'])->middleware('permission:leads.view');
     Route::get('analytics/lead-source-quality', [\App\Http\Controllers\Api\Sprint5PolishController::class, 'getLeadSourceQualityReport'])->middleware('permission:leads.view');
 
-    Route::post('leads/{lead}/activities', [LeadController::class, 'logActivity'])->middleware('permission:leads.edit');
-    Route::post('leads/{lead}/meetings', [LeadController::class, 'logMeeting'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/activities', [LeadActivityController::class, 'logActivity'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/meetings', [LeadActivityController::class, 'logMeeting'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contacts', [LeadController::class, 'addContact'])->middleware('permission:leads.edit');
     Route::put('leads/{lead}/contacts/{contact}', [LeadController::class, 'updateContact'])->middleware('permission:leads.edit');
     Route::delete('leads/{lead}/contacts/{contact}', [LeadController::class, 'deleteContact'])->middleware('permission:leads.edit');
@@ -488,8 +490,8 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/{lead}/intelligence', [LeadController::class, 'intelligence'])->middleware('permission:leads.view');
     // Route::get('leads/{lead}/verification', [LeadController::class, 'verificationStatus'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/verification/request', [LeadController::class, 'requestVerificationReview'])->middleware('permission:leads.edit');
-    Route::get('leads/{lead}/activities', [LeadController::class, 'getActivities'])->middleware('permission:leads.view');
-    Route::get('leads/{lead}/progress', [LeadController::class, 'getProgress'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/activities', [LeadActivityController::class, 'getActivities'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/progress', [LeadActivityController::class, 'getProgress'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/bantc-questions', [LeadController::class, 'getBantcQuestions'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/bantc-questions/generate', [LeadController::class, 'generateBantcQuestions'])->middleware('permission:leads.edit');
     Route::put('leads/{lead}/bantc-questions', [LeadController::class, 'saveBantcQuestions'])->middleware('permission:leads.edit');
@@ -505,11 +507,11 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/{lead}/revenue-analysis', [LeadController::class, 'getRevenueAnalysis'])->middleware('permission:leads.view');
 
     // Lead Activity & Evaluation Routes (Module B — Activities, Meetings, Transcripts, Evaluations)
-    Route::put('leads/{lead}/activities/{activity}', [LeadController::class, 'updateActivity'])->middleware('permission:leads.edit');
-    Route::delete('leads/{lead}/activities/{activity}', [LeadController::class, 'deleteActivity'])->middleware('permission:leads.edit');
-    Route::get('leads/{lead}/meetings', [LeadController::class, 'getMeetings'])->middleware('permission:leads.view');
-    Route::put('leads/{lead}/meetings/{meeting}', [LeadController::class, 'updateMeeting'])->middleware('permission:leads.edit');
-    Route::delete('leads/{lead}/meetings/{meeting}', [LeadController::class, 'deleteMeeting'])->middleware('permission:leads.edit');
+    Route::put('leads/{lead}/activities/{activity}', [LeadActivityController::class, 'updateActivity'])->middleware('permission:leads.edit');
+    Route::delete('leads/{lead}/activities/{activity}', [LeadActivityController::class, 'deleteActivity'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/meetings', [LeadActivityController::class, 'getMeetings'])->middleware('permission:leads.view');
+    Route::put('leads/{lead}/meetings/{meeting}', [LeadActivityController::class, 'updateMeeting'])->middleware('permission:leads.edit');
+    Route::delete('leads/{lead}/meetings/{meeting}', [LeadActivityController::class, 'deleteMeeting'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/transcripts', [LeadTranscriptController::class, 'getTranscripts'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/transcripts', [LeadTranscriptController::class, 'storeTranscript'])->middleware('permission:leads.edit');
     Route::put('leads/{lead}/transcripts/{transcript}', [LeadTranscriptController::class, 'updateTranscript'])->middleware('permission:leads.edit');
@@ -517,7 +519,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::delete('leads/{lead}/transcripts/{transcript}', [LeadTranscriptController::class, 'deleteTranscript'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/transcripts/{transcript}/evaluate', [LeadTranscriptController::class, 'evaluateTranscript'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/evaluations', [LeadTranscriptController::class, 'getEvaluations'])->middleware('permission:leads.view');
-    Route::get('leads/{lead}/follow-ups', [LeadController::class, 'getFollowUps'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/follow-ups', [LeadActivityController::class, 'getFollowUps'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/sync-lark', [\App\Http\Controllers\Api\LarkController::class, 'syncSingleLead'])->middleware('permission:leads.edit');
     
     // Meeting Summary PDFs
