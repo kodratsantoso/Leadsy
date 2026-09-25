@@ -9,6 +9,7 @@ import {
   Inbox,
   ListChecks,
   Radio,
+  Server,
   ShieldOff,
   TrendingUp,
   WifiOff,
@@ -20,7 +21,17 @@ import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { apiFetch } from "@/lib/apiFetch";
 import { useAuthStore } from "@/store/useAuthStore";
 
-type SchedulerStatus = "healthy" | "stale" | "dead" | "never_seen";
+type SchedulerStatus = "healthy" | "stale" | "dead" | "never_seen" | "unknown";
+
+type DependencyStatus = "ok" | "degraded" | "down" | "unknown";
+
+type Dependency = {
+  name: string;
+  /** The cluster workload to check, e.g. deployment/leadsy-scheduler. */
+  workload: string | null;
+  status: DependencyStatus;
+  detail: string;
+};
 
 type ProgressResponse = {
   success: boolean;
@@ -33,6 +44,8 @@ type ProgressResponse = {
     status: SchedulerStatus;
     minutes_ago: number | null;
   };
+  dependencies?: Record<string, Dependency>;
+  error?: { code?: string; reference?: string };
   last_hour: { success: number; partial: number; failed: number };
 };
 
@@ -81,9 +94,66 @@ const SCHEDULER_META: Record<
     dot: "bg-[var(--muted-foreground)]",
     ring: "ring-border",
     text: "text-muted-foreground",
-    desc: "No run has ever been recorded on this install.",
+    desc: "No run has ever been recorded on this install — the scheduler workload is most likely not running at all.",
+  },
+  unknown: {
+    label: "Cannot be determined",
+    dot: "bg-[var(--muted-foreground)]",
+    ring: "ring-border",
+    text: "text-muted-foreground",
+    desc: "The heartbeat is stored in Redis, and Redis is not reachable right now.",
   },
 };
+
+const DEPENDENCY_META: Record<DependencyStatus, { label: string; dot: string; text: string }> = {
+  ok: { label: "Running", dot: "bg-[var(--success)]", text: "text-[var(--success)]" },
+  degraded: { label: "Degraded", dot: "bg-[var(--warning)]", text: "text-[var(--warning)]" },
+  down: { label: "Not running", dot: "bg-[var(--danger)]", text: "text-[var(--danger)]" },
+  unknown: { label: "Unknown", dot: "bg-[var(--muted-foreground)]", text: "text-muted-foreground" },
+};
+
+/**
+ * Names the moving parts and says which one stopped.
+ *
+ * Until this existed the page could only report that the pipeline was idle, never why —
+ * a stopped `leadsy-scheduler` deployment and an empty backlog looked exactly alike.
+ */
+function DependencyPanel({ dependencies }: { dependencies: Record<string, Dependency> }) {
+  const entries = Object.entries(dependencies);
+  if (entries.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Server className="h-4 w-4" />
+          Pipeline services
+        </CardTitle>
+        <CardDescription>What the screening pipeline depends on, and which part is not answering.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 pt-0">
+        {entries.map(([key, dep]) => {
+          const meta = DEPENDENCY_META[dep.status] ?? DEPENDENCY_META.unknown;
+          return (
+            <div key={key} className="flex gap-3 border-t border-border pt-3 first:border-0 first:pt-0">
+              <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${meta.dot}`} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-sm font-medium">{dep.name}</span>
+                  <span className={`text-xs font-medium ${meta.text}`}>{meta.label}</span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">{dep.detail}</p>
+                {dep.workload && dep.status !== "ok" && (
+                  <p className="mt-1 font-mono text-[11px] text-muted-foreground/80">{dep.workload}</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
 
 const RUN_META: Record<RunStatus, { label: string; icon: typeof CheckCircle2; text: string; bg: string }> = {
   success: { label: "Success", icon: CheckCircle2, text: "text-[var(--success)]", bg: "bg-[var(--success-soft)]" },
@@ -209,16 +279,17 @@ export default function AiScreeningMonitorPage() {
               <WifiOff className="mt-0.5 h-5 w-5 shrink-0 text-[var(--warning)]" />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-foreground">Monitoring service isn't responding yet</p>
+                {/* The server now explains its own failures, so lead with its reason rather
+                    than burying it in parentheses behind a guess about deploys. */}
                 <p className="text-sm text-muted-foreground">
-                  This page can't reach the monitoring endpoints on the server. If a backend deploy is in progress, this
-                  will resolve on its own — refresh in a few minutes.
-                  {progress?.message ? (
-                    <>
-                      {" "}
-                      <span className="font-mono text-xs text-muted-foreground/80">({progress.message})</span>
-                    </>
-                  ) : null}
+                  {progress?.message ??
+                    "This page can't reach the monitoring endpoints on the server. If a backend deploy is in progress, this will resolve on its own — refresh in a few minutes."}
                 </p>
+                {progress?.error?.reference && (
+                  <p className="font-mono text-[11px] text-muted-foreground/80">
+                    Reference for your administrator: {progress.error.reference}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -301,6 +372,9 @@ export default function AiScreeningMonitorPage() {
           </div>
         </div>
       </Card>
+
+      {/* Which underlying service stopped — the question the page could never answer before */}
+      {connected && progress.dependencies && <DependencyPanel dependencies={progress.dependencies} />}
 
       {/* Recent runs */}
       <Card className="overflow-hidden">
