@@ -91,3 +91,20 @@ jobs:
           done
           echo; echo "===== are the other workloads healthy? (tells code vs environment) ====="
           kubectl get pods -n "$NS" -o wide 2>/dev/null | grep -E "NAME|leadsy-worker|leadsy-scheduler|postgres|redis" || true
+
+      - name: Read-only sources that might still be permitted
+        run: |
+          NS=leadsy-prod
+          echo "===== events (often name the failure reason) ====="
+          kubectl get events -n "$NS" --sort-by=.lastTimestamp 2>&1 | tail -30 || true
+          echo; echo "===== termination message on the crashed container ====="
+          kubectl get pods -n "$NS" -l app=leadsy-backend -o jsonpath='{range .items[*]}{"=== "}{.metadata.name}{" ==="}{"\n"}{.status.containerStatuses[0].lastState.terminated.message}{"\n"}{end}' 2>&1 || true
+          echo; echo "===== services ====="
+          kubectl get svc -n "$NS" 2>&1 | head -15 || true
+          echo; echo "===== backend pod conditions & probe config ====="
+          kubectl get pods -n "$NS" -l app=leadsy-backend \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{range .status.conditions[*]}{"  "}{.type}{"="}{.status}{"  "}{.reason}{"  "}{.message}{"\n"}{end}{end}' 2>&1 || true
+          echo; echo "===== what the runner is allowed to do here ====="
+          for R in pods pods/log pods/exec events endpoints services deployments configmaps secrets; do
+            printf "  %-14s " "$R"; kubectl auth can-i get "$R" -n "$NS" 2>&1 || true
+          done
