@@ -73,3 +73,21 @@ jobs:
           echo; echo "===== ai-screening routes registered at runtime ====="
           # `route:list` only prints the route table; it mutates nothing.
           kubectl exec -n "$NS" deploy/leadsy-backend -- php artisan route:list --path=ai-screening 2>&1 || true
+
+      - name: Why the backend pods are restarting
+        run: |
+          NS=leadsy-prod
+          echo "===== pod state ====="
+          kubectl get pods -n "$NS" -l app=leadsy-backend -o wide || true
+          echo; echo "===== last termination reason per pod ====="
+          kubectl get pods -n "$NS" -l app=leadsy-backend \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"  restarts="}{.status.containerStatuses[0].restartCount}{"  lastState="}{.status.containerStatuses[0].lastState.terminated.reason}{"  exitCode="}{.status.containerStatuses[0].lastState.terminated.exitCode}{"\n"}{end}' || true
+          echo; echo "===== logs from the CRASHED run (entrypoint output) ====="
+          for POD in $(kubectl get pods -n "$NS" -l app=leadsy-backend -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+            echo "--- $POD (previous) ---"
+            kubectl logs -n "$NS" "$POD" -c backend --previous --tail=60 2>&1 || true
+            echo "--- $POD (current) ---"
+            kubectl logs -n "$NS" "$POD" -c backend --tail=30 2>&1 || true
+          done
+          echo; echo "===== are the other workloads healthy? (tells code vs environment) ====="
+          kubectl get pods -n "$NS" -o wide 2>/dev/null | grep -E "NAME|leadsy-worker|leadsy-scheduler|postgres|redis" || true
