@@ -108,3 +108,21 @@ jobs:
           for R in pods pods/log pods/exec events endpoints services deployments configmaps secrets; do
             printf "  %-14s " "$R"; kubectl auth can-i get "$R" -n "$NS" 2>&1 || true
           done
+
+      - name: Backend logs now that pods/log is permitted
+        run: |
+          NS=leadsy-prod
+          echo "===== image & restart count ====="
+          kubectl get deploy leadsy-backend -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}' || true
+          kubectl get pods -n "$NS" -l app=leadsy-backend \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"  restarts="}{.status.containerStatuses[0].restartCount}{"  started="}{.status.startTime}{"\n"}{end}' || true
+          echo; echo "===== entrypoint output of the CRASHED run, if one is still retained ====="
+          for POD in $(kubectl get pods -n "$NS" -l app=leadsy-backend -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+            echo "--- $POD --previous ---"
+            kubectl logs -n "$NS" "$POD" -c backend --previous --tail=80 2>&1 || true
+          done
+          echo; echo "===== current boot log (entrypoint steps) ====="
+          for POD in $(kubectl get pods -n "$NS" -l app=leadsy-backend -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+            echo "--- $POD ---"
+            kubectl logs -n "$NS" "$POD" -c backend --tail=40 2>&1 || true
+          done
