@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { apiList } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
+import { throwIfApiError } from '@/lib/apiError';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -195,12 +197,7 @@ export function EditLeadModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        const validationErrors = body.errors || body.error?.details;
-        const errorDetails = validationErrors ? Object.values(validationErrors).flat().join(', ') : '';
-        throw new Error(errorDetails ? `${body.message}: ${errorDetails}` : (body.message || `Failed to update lead (${res.status})`));
-      }
+      await throwIfApiError(res, "This lead could not be saved.");
       return res.json();
     },
     onSuccess: () => {
@@ -294,11 +291,11 @@ export function EditLeadModal({
         }
       >
         <div className="space-y-6">
-          {updateLeadMutation.isError && (
-            <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left w-full">
-              {updateLeadMutation.error?.message}
-            </Badge>
-          )}
+          <ErrorNotice
+            error={updateLeadMutation.error}
+            fallbackTitle="This lead could not be saved."
+            onRetry={() => updateLeadMutation.mutate(updateLeadMutation.variables)}
+          />
           {validationError && (
             <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left w-full">
               {validationError}

@@ -24,8 +24,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/input";
 
 import { apiFetch } from "@/lib/apiFetch";
+import { throwIfApiError } from "@/lib/apiError";
+import { useToast } from "@/components/ui/toast";
 
-const toast = { error: (m: string) => console.log(m), success: (m: string) => console.log(m) };
 
 type WorkflowDefinition = {
   id: number;
@@ -40,6 +41,7 @@ type WorkflowDefinition = {
 };
 
 export default function WorkflowsPage() {
+  const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -65,9 +67,7 @@ export default function WorkflowsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) {
-        throw new Error("Failed to create workflow");
-      }
+      await throwIfApiError(response, "The workflow could not be created.");
       return response.json();
     },
     onSuccess: (data) => {
@@ -78,8 +78,8 @@ export default function WorkflowsPage() {
         router.push(`/settings/workflows/${data.data.id}`);
       }
     },
-    onError: () => {
-      toast.error("Failed to create workflow");
+    onError: (error) => {
+      toast.fromError(error, "The workflow could not be created.");
     },
   });
 
@@ -88,14 +88,14 @@ export default function WorkflowsPage() {
       const response = await apiFetch(`/workflows/${id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete");
+      await throwIfApiError(response, "The workflow could not be deleted.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workflows"] });
       toast.success("Workflow deleted");
     },
-    onError: () => {
-      toast.error("Failed to delete workflow");
+    onError: (error) => {
+      toast.fromError(error, "The workflow could not be deleted.");
     },
   });
 

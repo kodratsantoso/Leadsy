@@ -1,14 +1,11 @@
 <?php
 
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Support\ApiErrorTranslator;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,51 +18,20 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $renderApiError = function (Throwable $e, Request $request) {
+        $exceptions->render(function (Throwable $e, Request $request) {
             if (! $request->is('api/*')) {
                 return null;
             }
 
-            $status = 500;
-            $code = 'SERVER_ERROR';
-            $message = config('app.debug') ? $e->getMessage() : 'An unexpected server error occurred.';
-            $details = null;
-
-            if ($e instanceof ValidationException) {
-                $status = 422;
-                $code = 'VALIDATION_ERROR';
-                $message = 'The given data was invalid.';
-                $details = $e->errors();
-            } elseif ($e instanceof AuthenticationException) {
-                $status = 401;
-                $code = 'UNAUTHENTICATED';
-                $message = 'Unauthenticated';
-            } elseif ($e instanceof AuthorizationException) {
-                $status = 403;
-                $code = 'FORBIDDEN';
-                $message = $e->getMessage() ?: 'Forbidden';
-            } elseif ($e instanceof ModelNotFoundException) {
-                $status = 404;
-                $code = 'NOT_FOUND';
-                $message = 'Resource not found';
-            } elseif ($e instanceof HttpExceptionInterface) {
-                $status = $e->getStatusCode();
-                $code = 'HTTP_ERROR';
-                $message = $e->getMessage() ?: $message;
+            // A controller that already built its own response — `abort(response()->json(...))`,
+            // which is how the revenue gate reports why a lead cannot move stage — arrives here
+            // as HttpResponseException. Laravel unwraps it, but only *after* render callbacks
+            // run, so a catch-all callback that does not check for it first turns every one of
+            // those deliberate, explanatory 422s into a blank 500.
+            if ($e instanceof HttpResponseException) {
+                return $e->getResponse();
             }
 
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'meta' => [],
-                'error' => array_filter([
-                    'code' => $code,
-                    'message' => $message,
-                    'details' => $details,
-                ], fn ($value) => $value !== null),
-                'message' => $message,
-            ], $status);
-        };
-
-        $exceptions->render($renderApiError);
+            return ApiErrorTranslator::make()->toResponse($e, $request);
+        });
     })->create();
