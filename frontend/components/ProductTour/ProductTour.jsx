@@ -19,7 +19,24 @@ function getTargetRect(selector) {
   return rect;
 }
 
+/**
+ * Master switch for the product tour. Disabled on request after it misbehaved
+ * in production (2026-09-25).
+ *
+ * Worth knowing before switching it back on: the tour auto-starts for anyone
+ * who has not completed it — useTour's initIsActive() returns `active ||
+ * !completed` — so it opens on every page for every new user, not just once
+ * somewhere sensible. Nothing was deleted; flip this to true to restore it.
+ */
+export const PRODUCT_TOUR_ENABLED = false;
+
 export function ProductTour() {
+  if (!PRODUCT_TOUR_ENABLED) return null;
+
+  return <ProductTourInner />;
+}
+
+function ProductTourInner() {
   const router = useRouter();
   const pathname = usePathname();
   const tour = useTour();

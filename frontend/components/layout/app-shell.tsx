@@ -17,7 +17,7 @@ import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { canAccessPath } from "@/lib/permissions";
 import { apiFetch } from "@/lib/apiFetch";
-import { ProductTour } from "@/components/ProductTour/ProductTour";
+import { ProductTour, PRODUCT_TOUR_ENABLED } from "@/components/ProductTour/ProductTour";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "./GlobalSearch";
 
@@ -417,16 +417,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              data-tour="tour-trigger"
-              tooltip="Take a tour"
-              onClick={() => window.dispatchEvent(new Event("leadsy:start-tour"))}
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
+            {PRODUCT_TOUR_ENABLED && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                data-tour="tour-trigger"
+                tooltip="Take a tour"
+                onClick={() => window.dispatchEvent(new Event("leadsy:start-tour"))}
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+            )}
 
             {/* Theme toggle */}
             <ThemeToggle />
