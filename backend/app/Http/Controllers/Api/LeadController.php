@@ -314,20 +314,14 @@ class LeadController extends Controller
                 'ai_generated' => $guide?->ai_generated ?? false,
                 'ai_model' => $guide?->ai_model ?? null,
                 'updated_at' => $guide?->updated_at?->toIso8601String(),
-                // A draft left by the screening pipeline, still awaiting review.
-                'draft_questions' => $guide?->draft_questions,
-                'draft_ai_model' => $guide?->draft_ai_model,
-                'draft_generated_at' => $guide?->draft_generated_at?->toIso8601String(),
             ],
         ]);
     }
 
     public function generateBantcQuestions(Request $request, Lead $lead): JsonResponse
     {
-        // Generating a draft is gated by the route's permission:leads.edit and the
-        // visibility check below — the same bar as saving one. It used to be
-        // superadmin-only while saving was not, so a sales rep saw the Generate
-        // button, clicked it, and got a 403 on the feature meant for them.
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
             abort(403);
         }
@@ -375,10 +369,6 @@ class LeadController extends Controller
                 'ai_generated' => $validated['ai_generated'] ?? false,
                 'ai_model' => $validated['ai_model'] ?? null,
                 'updated_by' => $request->user()?->id,
-                // Saving IS the review, so the pending draft is spent.
-                'draft_questions' => null,
-                'draft_ai_model' => null,
-                'draft_generated_at' => null,
             ],
         );
 

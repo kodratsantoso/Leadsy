@@ -31,10 +31,6 @@ type GuideData = {
   ai_generated: boolean;
   ai_model: string | null;
   updated_at: string | null;
-  /** Draft left by the screening pipeline, not yet reviewed by anyone. */
-  draft_questions: BantcQuestion[] | null;
-  draft_ai_model: string | null;
-  draft_generated_at: string | null;
 };
 
 const CATEGORY_COLORS: Record<BantcCategory, string> = {
@@ -277,25 +273,6 @@ export function LeadBantcQuestionGuide({ leadId }: { leadId: number | string }) 
     saveMutation.mutate(draft);
   };
 
-  // A draft the pipeline left behind. Deliberately not loaded into the editor
-  // automatically — the reviewer chooses to pull it in, so an approved guide is
-  // never quietly replaced by machine output.
-  const pendingDraft = data?.draft_questions?.length ? data.draft_questions : null;
-  const draftAge = data?.draft_generated_at
-    ? new Date(data.draft_generated_at).toLocaleString(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : null;
-
-  const loadPendingDraft = () => {
-    if (!pendingDraft) return;
-    setDraft([...pendingDraft]);
-    setLastAiModel(data?.draft_ai_model ?? null);
-    setJustGenerated(true);
-    setIsDirty(true);
-  };
-
   const savedAt = data?.updated_at ? new Date(data.updated_at).toLocaleString() : null;
   const isEmpty = !draft || draft.length === 0;
 
@@ -340,24 +317,6 @@ export function LeadBantcQuestionGuide({ leadId }: { leadId: number | string }) 
             )}
           </div>
         </div>
-
-        {pendingDraft && !justGenerated && (
-          <div className="flex flex-wrap items-start gap-2 rounded-lg border border-[color:var(--status-info)]/30 bg-[color-mix(in_oklch,var(--status-info)_8%,transparent)] px-3 py-2.5">
-            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--status-info)]" />
-            <p className="text-xs text-[color:var(--status-info)]">
-              The screening pipeline drafted {pendingDraft.length} BANTC question{pendingDraft.length === 1 ? "" : "s"}
-              {data?.draft_ai_model ? ` using ${data.draft_ai_model}` : ""}
-              {draftAge ? ` on ${draftAge}` : ""}. Nothing is saved until you review it.
-            </p>
-            <button
-              type="button"
-              onClick={loadPendingDraft}
-              className="ml-auto rounded-md border border-[color:var(--status-info)]/40 px-2 py-1 text-xs font-medium text-[color:var(--status-info)] hover:bg-[color:var(--status-info)]/10"
-            >
-              Review draft
-            </button>
-          </div>
-        )}
 
         {justGenerated && !saveMutation.isSuccess && (
           <div className="flex items-start gap-2 rounded-lg border border-[color:var(--brand)]/20 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] px-3 py-2.5">

@@ -37,18 +37,11 @@ class LeadBantcQuestionGuide extends Model
         'ai_generated',
         'ai_model',
         'updated_by',
-        // Pending AI draft, kept apart from `questions` so an approved guide
-        // stays intact while a newer draft waits for review.
-        'draft_questions',
-        'draft_ai_model',
-        'draft_generated_at',
     ];
 
     protected $casts = [
         'questions' => 'array',
         'ai_generated' => 'boolean',
-        'draft_questions' => 'array',
-        'draft_generated_at' => 'datetime',
     ];
 
     public function lead(): BelongsTo
