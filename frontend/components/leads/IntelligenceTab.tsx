@@ -98,7 +98,7 @@ export function IntelligenceTab({
       onError: (err: any) => setAiActionsFeedback({ type: 'error', msg: err.message }),
     });
 
-  const aiEnrichMutation = useAiActionMutation('/enrich/retry', 'Enrichment');
+  const aiEnrichMutation = useAiActionMutation('/enrich/retry', 'Firmographic Enrichment');
   const aiVerificationMutation = useAiActionMutation('/verification/run', 'Company Verification');
   const aiRescoreMutation = useAiActionMutation('/rescore', 'Scoring + ICP + Qualification');
   const aiAnalysisMutation = useAiActionMutation('/analyze', 'Lead Analysis');
@@ -224,11 +224,11 @@ export function IntelligenceTab({
                   </div>
 
                   <div className="space-y-2 border-t border-[var(--brand)]/10 pt-3">
-                    <p className="text-xs font-medium text-muted-foreground">Advanced: re-run a single stage</p>
+                    <p className="text-xs font-medium text-muted-foreground">Advanced: re-run a single stage of the screening pipeline</p>
                     <div className="grid gap-2 sm:grid-cols-2">
                       <Button variant="outline" size="sm" onClick={() => aiEnrichMutation.mutate()} disabled={aiEnrichMutation.isPending} className="justify-start">
                         {aiEnrichMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                        Re-run Enrichment
+                        Re-run Firmographic Enrichment (queued)
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => aiVerificationMutation.mutate()} disabled={aiVerificationMutation.isPending} className="justify-start">
                         {aiVerificationMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Building2 className="h-3.5 w-3.5" />}
@@ -248,7 +248,7 @@ export function IntelligenceTab({
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => aiBantcMutation.mutate()} disabled={aiBantcMutation.isPending} className="justify-start">
                         {aiBantcMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5" />}
-                        Re-run BANTC Questions
+                        Generate BANTC Questions
                       </Button>
                     </div>
                   </div>

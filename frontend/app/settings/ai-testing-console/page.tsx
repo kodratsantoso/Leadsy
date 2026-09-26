@@ -100,11 +100,11 @@ function SingleLeadDebugTab() {
       onError: (err: any) => setFeedback({ type: "error", msg: err.message }),
     });
 
-  const enrichMutation = useRerunMutation("/enrich/retry", "Enrichment");
+  const enrichMutation = useRerunMutation("/enrich/retry", "Firmographic Enrichment");
   const verificationMutation = useRerunMutation("/verification/run", "Company Verification");
-  const profilingMutation = useRerunMutation("/run-profiling-strategy", "Profiling & Strategy + Product Matching");
+  const profilingMutation = useRerunMutation("/run-profiling-strategy", "Profiling & Strategy + Product Matching (legacy)");
   const rescoreMutation = useRerunMutation("/rescore", "Scoring + ICP + Qualification");
-  const analysisMutation = useRerunMutation("/revenue-analysis", "Lead Analysis");
+  const analysisMutation = useRerunMutation("/revenue-analysis", "Revenue Intelligence Analysis");
   const bantcMutation = useRerunMutation("/bantc-questions/generate", "BANTC Questions");
 
   const [pipelineRunning, setPipelineRunning] = useState(false);
@@ -142,7 +142,7 @@ function SingleLeadDebugTab() {
         <div>
           <CardTitle>Single Lead Debug</CardTitle>
           <CardDescription>
-            Search a lead and re-run any of the Pre-Meeting AI functions individually, or the full pipeline at once.
+            Search a lead and re-run an individual AI function, or the whole Pre-Meeting pipeline at once. Not every function below is a pipeline stage — the labels say which.
           </CardDescription>
         </div>
       </CardHeader>
@@ -153,19 +153,19 @@ function SingleLeadDebugTab() {
           <>
             <div className="flex items-center justify-between rounded-2xl border border-border bg-[color:var(--surface-subtle)] p-4">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Current AI Pre-Meeting Analysis Status</p>
+                <p className="text-xs font-medium text-muted-foreground">Last Rescore / Brief Job Status</p>
                 <p className="mt-1 text-sm font-semibold">{leadData.company_name}</p>
               </div>
               <AiStatusBadge status={leadData.ai_processing_status} />
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <RerunButton label="Re-run Enrichment" icon={Sparkles} onRun={() => enrichMutation.mutate()} pending={enrichMutation.isPending} />
+              <RerunButton label="Re-run Firmographic Enrichment (queued)" icon={Sparkles} onRun={() => enrichMutation.mutate()} pending={enrichMutation.isPending} />
               <RerunButton label="Re-run Company Verification" icon={Building2} onRun={() => verificationMutation.mutate()} pending={verificationMutation.isPending} />
-              <RerunButton label="Re-run Profiling & Strategy + Product Matching" icon={BrainCircuit} onRun={() => profilingMutation.mutate()} pending={profilingMutation.isPending} />
+              <RerunButton label="Profiling & Strategy + Product Matching (legacy, not in pipeline)" icon={BrainCircuit} onRun={() => profilingMutation.mutate()} pending={profilingMutation.isPending} />
               <RerunButton label="Re-run Scoring + ICP + Qualification" icon={Zap} onRun={() => rescoreMutation.mutate()} pending={rescoreMutation.isPending} />
-              <RerunButton label="Re-run Lead Analysis" icon={Zap} onRun={() => analysisMutation.mutate()} pending={analysisMutation.isPending} />
-              <RerunButton label="Re-run BANTC Questions" icon={ClipboardList} onRun={() => bantcMutation.mutate()} pending={bantcMutation.isPending} />
+              <RerunButton label="Re-run Revenue Intelligence Analysis" icon={Zap} onRun={() => analysisMutation.mutate()} pending={analysisMutation.isPending} />
+              <RerunButton label="Generate BANTC Questions" icon={ClipboardList} onRun={() => bantcMutation.mutate()} pending={bantcMutation.isPending} />
             </div>
 
             <Button onClick={runFullPipeline} disabled={pipelineRunning} className="w-full gap-2 bg-[var(--brand)] text-white hover:opacity-90">
