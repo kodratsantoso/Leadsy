@@ -52,6 +52,21 @@ use Illuminate\Support\Facades\Route;
 | RBAC enforced via 'permission' middleware on sensitive endpoints.
 */
 
+/*
+ * Route model binding keys are always integers, so constrain them here.
+ *
+ * Without this, `leads/{lead}/progress` (registered earlier in this file) happily
+ * matches `GET /api/leads/ai-screening/progress` with {lead} = "ai-screening". Binding
+ * then asks PostgreSQL for a lead whose id is that string, which fails with SQLSTATE
+ * 22P02 — so the AI Screening Monitor answered 500 on every load and the page could
+ * never come up. Laravel matches in registration order, so any literal path that shares
+ * a shape with an earlier wildcard is shadowed; a pattern fixes the whole class of
+ * collision rather than one ordering at a time.
+ */
+foreach (['lead', 'activity', 'contact'] as $numericParam) {
+    Route::pattern($numericParam, '[0-9]+');
+}
+
 // ── Health Check (Public) ──
 Route::get('health', function () {
     return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);

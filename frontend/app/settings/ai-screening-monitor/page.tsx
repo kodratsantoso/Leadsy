@@ -244,7 +244,10 @@ export default function AiScreeningMonitorPage() {
   }
 
   const connected = progress?.success === true;
-  const runs = connected ? runsData?.data ?? [] : [];
+  // Recent runs come from their own endpoint and were fine all along — but this line
+  // used to blank them whenever the *progress* query failed, so a fault in one half of
+  // the page hid the working half. Same mistake the backend was making one level down.
+  const runs = runsData?.success === true ? runsData.data ?? [] : [];
   const schedulerStatus: SchedulerStatus = connected ? progress.scheduler.status : "never_seen";
   const schedulerMeta = SCHEDULER_META[schedulerStatus];
   const isLive = schedulerStatus === "healthy";
