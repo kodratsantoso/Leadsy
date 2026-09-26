@@ -11,7 +11,7 @@ interface SourceEvidence {
   other_sources?: string[];
 }
 
-interface ProfilingData {
+export interface ProfilingData {
   company_name?: string;
   legal_name?: string;
   brand?: string;

@@ -49,47 +49,24 @@ import {
   TableShell,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/apiFetch";
+import type { Lead, QualificationStatus } from "@/types/api";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { CreateNewModal } from "@/components/ui/CreateNewModal";
 import { EditLeadModal } from "@/components/leads/EditLeadModal";
 import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
 
-type LeadRecord = {
-  id: number;
-  company_name: string;
-  brand?: string | null;
-  address?: string | null;
-  lat?: number | null;
-  lng?: number | null;
-  phone?: string | null;
-  email?: string | null;
-  website?: string | null;
-  business_category_id?: number | null;
-  company_size_estimate?: string | null;
-  estimated_closing_amount?: string | number | null;
-  realized_closing_amount?: string | number | null;
-  meeting_link?: string | null;
-  product_id?: number | null;
-  industry_id?: number | null;
-  sub_industry_id?: number | null;
-  qualification_status?: string | null;
-  lead_score?: number | null;
-  funnel_stage_id?: number | null;
-  funnel_stage?: { id: number; name: string } | null;
+/**
+ * A lead as this page receives it.
+ *
+ * Was a hand-maintained 35-field copy that had drifted from the API in three ways: it
+ * declared `parentLead`, which Laravel never sends (the relation serialises to
+ * `parent_lead`), typed `industry` as `{ name }` when the endpoint eager-loads the whole
+ * relation, and allowed `number` for amounts that always arrive as strings.
+ */
+type LeadRecord = Lead & {
+  /** Not on the model — an alias some list responses add alongside funnel_stage. */
   current_funnel_stage?: { id: number; name: string } | null;
-  industry?: { name: string } | null;
-  product?: { id: number; name: string } | null;
-  owner?: { id: number; name: string; email?: string | null } | null;
-  sources?: LeadSource[];
-  parent_lead_id?: number | null;
-  parentLead?: { id: number; company_name: string } | null;
-  subsidiaries?: { id: number; company_name: string }[] | null;
-  duplicate_status?: string | null;
-  lark_base_id?: string | null;
-  lark_table_id?: string | null;
-  external_id?: string | null;
-  contacts?: LeadContact[];
 };
 
 type LeadContact = {
@@ -184,7 +161,7 @@ type ImportLead = {
   branch_count?: number;
   operating_hours?: string;
   lead_score?: number;
-  qualification_status?: "pending" | "eligible" | "potential" | "not_eligible";
+  qualification_status?: QualificationStatus;
   external_place_id?: string;
   funnel_stage_id?: number;
   owner_id?: number;

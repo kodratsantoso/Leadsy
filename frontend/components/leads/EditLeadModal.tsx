@@ -5,6 +5,17 @@ import { apiList } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
 import { throwIfApiError } from '@/lib/apiError';
+import type {
+  AppUser,
+  BusinessCategory,
+  FunnelStage,
+  Industry,
+  Lead,
+  LeadChannelType,
+  LeadSourceType,
+  Product,
+  SubIndustry,
+} from '@/types/api';
 import { ErrorNotice } from '@/components/ui/error-notice';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -16,7 +27,29 @@ import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
-import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
+import { AiProfilingPanel, type ProfilingData } from "@/components/leads/AiProfilingPanel";
+
+/**
+ * What `PUT /api/leads/{id}` accepts from this form.
+ *
+ * Not simply `Partial<Lead>`, for two reasons worth keeping visible:
+ *  - `source_type` and `channel_type_id` are not columns on `leads`. UpdateLeadRequest
+ *    validates them, then LeadController strips them off and writes them to the lead's
+ *    source row instead — so they belong in the request, never in the entity.
+ *  - The amounts go out as numbers but come back as strings, because Laravel's
+ *    `decimal:2` cast serialises that way.
+ */
+type LeadUpdatePayload = Partial<
+  Omit<Lead, "estimated_closing_amount" | "realized_closing_amount" | "business_category_id" | "qualification_status">
+> & {
+  estimated_closing_amount?: number | null;
+  realized_closing_amount?: number | null;
+  /** Sent as the raw select value; Laravel's `exists` rule accepts a numeric string. */
+  business_category_id?: string | number | null;
+  qualification_status?: string | null;
+  source_type?: string | null;
+  channel_type_id?: number | null;
+};
 
 export function EditLeadModal({
   lead,
@@ -24,7 +57,7 @@ export function EditLeadModal({
   onOpenChange,
   onSuccess
 }: {
-  lead: any;
+  lead: Lead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -45,8 +78,8 @@ export function EditLeadModal({
     isOpen: boolean;
     title: string;
     endpoint: string;
-    additionalPayload?: Record<string, any>;
-    onSuccess?: (newItem: any) => void;
+    additionalPayload?: Record<string, unknown>;
+    onSuccess?: (newItem: { id: number; name?: string; slug?: string }) => void;
   }>({ isOpen: false, title: '', endpoint: '' });
 
   // Map state
@@ -54,7 +87,7 @@ export function EditLeadModal({
   const [locationFeedback, setLocationFeedback] = useState("");
   const [locationCenter, setLocationCenter] = useState({ lat: -6.2088, lng: 106.8456 });
   const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout">("idle");
-  const [profilingData, setProfilingData] = useState<any>(null);
+  const [profilingData, setProfilingData] = useState<ProfilingData | null>(null);
   const [profilingRetrying, setProfilingRetrying] = useState(false);
 
   const retryAiProfilingSync = async () => {
@@ -81,7 +114,7 @@ export function EditLeadModal({
   const [validationError, setValidationError] = useState<string>("");
 
   // Parent lead search
-  const [parentLeadSearch, setParentLeadSearch] = useState(lead?.parent_lead?.name || "");
+  const [parentLeadSearch, setParentLeadSearch] = useState(lead?.parent_lead?.company_name || "");
   const [debouncedParentSearch] = useDebounce(parentLeadSearch, 300);
   const { normalizeAmountInput, formatAmountInput } = useNumberFormat();
 
@@ -103,8 +136,8 @@ export function EditLeadModal({
         product_id: lead.product_id?.toString() || '',
         estimated_closing_amount: lead.estimated_closing_amount?.toString() || '',
         realized_closing_amount: lead.realized_closing_amount?.toString() || '',
-        source_type: lead.sources?.[0]?.source_type || lead.source_type || '',
-        channel_type_id: lead.sources?.[0]?.channel_type_id?.toString() || lead.channel_type_id?.toString() || '',
+        source_type: lead.sources?.[0]?.source_type || '',
+        channel_type_id: lead.sources?.[0]?.channel_type_id?.toString() || '',
         funnel_stage_id: lead.funnel_stage_id?.toString() || '',
         qualification_status: lead.qualification_status || 'pending',
         parent_lead_id: lead.parent_lead_id?.toString() || '',
@@ -169,29 +202,32 @@ export function EditLeadModal({
     enabled: open && (debouncedParentSearch?.length || 0) >= 2,
   });
 
-  const allIndustries: any[] = apiList(industriesData);
-  const products: any[] = apiList(productsData);
-  const businessCategories: any[] = apiList(businessCategoriesData);
-  const leadSources: any[] = apiList(leadSourcesData);
-  const funnelStages: any[] = apiList(funnelStagesData);
+  const allIndustries = apiList<Industry>(industriesData);
+  const products = apiList<Product>(productsData);
+  const businessCategories = apiList<BusinessCategory>(businessCategoriesData);
+  const leadSources = apiList<LeadSourceType>(leadSourcesData);
+  const funnelStages = apiList<FunnelStage>(funnelStagesData);
   
-  const usersList = apiList(assignableUsersData);
-  const salesUsers = usersList.filter((u: any) => ["sales_exec", "sales_manager", "admin", "super_admin"].includes(u.role?.name));
-  const presalesUsers = usersList.filter((u: any) => ["presales", "admin", "super_admin"].includes(u.role?.name));
-  const amUsers = usersList.filter((u: any) => ["account_manager", "admin", "super_admin"].includes(u.role?.name));
-  const csmUsers = usersList.filter((u: any) => ["csm", "admin", "super_admin"].includes(u.role?.name));
+  const usersList = apiList<AppUser>(assignableUsersData);
+  const salesUsers = usersList.filter((u) => ["sales_exec", "sales_manager", "admin", "super_admin"].includes(u.role?.name ?? ""));
+  const presalesUsers = usersList.filter((u) => ["presales", "admin", "super_admin"].includes(u.role?.name ?? ""));
+  const amUsers = usersList.filter((u) => ["account_manager", "admin", "super_admin"].includes(u.role?.name ?? ""));
+  const csmUsers = usersList.filter((u) => ["csm", "admin", "super_admin"].includes(u.role?.name ?? ""));
 
-  const parentLeadResults = apiList(parentLeadSearchData);
+  const parentLeadResults = apiList<Lead>(parentLeadSearchData);
   
-  const activeLeadSources = leadSources.filter((s: any) => s.is_active);
-  const selectedLeadSource = activeLeadSources.find((s: any) => s.slug === companyForm.source_type);
-  const activeLeadChannels: any[] = (selectedLeadSource?.channels ?? []).filter((c: any) => c.is_active);
-  const selectedIndustrySubIndustries: any[] =
-    allIndustries.find((i: any) => String(i.id) === companyForm.industry_id)?.sub_industries ?? [];
+  const activeLeadSources = leadSources.filter((s) => s.is_active);
+  const selectedLeadSource = activeLeadSources.find((s) => s.slug === companyForm.source_type);
+  const activeLeadChannels: LeadChannelType[] = (selectedLeadSource?.channels ?? []).filter((c) => c.is_active);
+  const selectedIndustrySubIndustries: SubIndustry[] =
+    allIndustries.find((i) => String(i.id) === companyForm.industry_id)?.sub_industries ?? [];
 
   // Mutations
   const updateLeadMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: LeadUpdatePayload) => {
+      // submitCompanyInfo already returns early without a lead; this keeps the closure
+      // honest rather than asserting non-null.
+      if (!lead) throw new Error('No lead is open to save.');
       const res = await apiFetch(`/leads/${lead.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -208,6 +244,7 @@ export function EditLeadModal({
 
   const submitCompanyInfo = () => {
     setValidationError("");
+    if (!lead) return;
     if (!companyForm.company_name.trim()) {
       setValidationError("Company Name is required.");
       return;
@@ -294,7 +331,9 @@ export function EditLeadModal({
           <ErrorNotice
             error={updateLeadMutation.error}
             fallbackTitle="This lead could not be saved."
-            onRetry={() => updateLeadMutation.mutate(updateLeadMutation.variables)}
+            onRetry={() => {
+              if (updateLeadMutation.variables) updateLeadMutation.mutate(updateLeadMutation.variables);
+            }}
           />
           {validationError && (
             <Badge variant="danger" className="justify-start rounded-lg px-3 py-2 text-left w-full">
@@ -380,7 +419,7 @@ export function EditLeadModal({
                     setProfilingStatus("idle");
                     setProfilingData(null);
                   }}
-                  onApply={(pData: any) => {
+                  onApply={(pData) => {
                     setCompanyForm((f) => ({
                       ...f,
                       company_name: pData.company_name || f.company_name,
@@ -491,7 +530,7 @@ export function EditLeadModal({
                   }}
                   placeholder="— Select industry —"
                 >
-                  {allIndustries.map((ind: any) => (
+                  {allIndustries.map((ind) => (
                     <option key={ind.id} value={String(ind.id)}>{ind.name}</option>
                   ))}
                   <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
@@ -520,7 +559,7 @@ export function EditLeadModal({
                   placeholder="— Select sub-industry —"
                   disabled={!companyForm.industry_id}
                 >
-                  {selectedIndustrySubIndustries.map((sub: any) => (
+                  {selectedIndustrySubIndustries.map((sub) => (
                     <option key={sub.id} value={String(sub.id)}>{sub.name}</option>
                   ))}
                   {companyForm.industry_id && (
@@ -566,7 +605,7 @@ export function EditLeadModal({
                   }}
                   placeholder="— Select category —"
                 >
-                  {businessCategories.map((cat: any) => (
+                  {businessCategories.map((cat) => (
                     <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
                   ))}
                   <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
@@ -654,7 +693,7 @@ export function EditLeadModal({
                   }}
                   placeholder="— Select product —"
                 >
-                  {products.map((p: any) => (
+                  {products.map((p) => (
                     <option key={p.id} value={String(p.id)}>{p.name}</option>
                   ))}
                   <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
@@ -682,7 +721,7 @@ export function EditLeadModal({
                   }}
                   placeholder="— Unassigned —"
                 >
-                  {funnelStages.map((stage: any) => (
+                  {funnelStages.map((stage) => (
                     <option key={stage.id} value={String(stage.id)}>{stage.name}</option>
                   ))}
                   <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
@@ -715,7 +754,7 @@ export function EditLeadModal({
                         endpoint: '/settings/lead-sources',
                         onSuccess: (newItem) => {
                           qc.invalidateQueries({ queryKey: ['lead-source-types'] });
-                          setCompanyForm((f) => ({ ...f, source_type: newItem.slug, channel_type_id: '' }));
+                          setCompanyForm((f) => ({ ...f, source_type: newItem.slug ?? '', channel_type_id: '' }));
                         }
                       });
                     } else {
@@ -724,7 +763,7 @@ export function EditLeadModal({
                   }}
                   placeholder="— Select source —"
                 >
-                  {activeLeadSources.map((src: any) => (
+                  {activeLeadSources.map((src) => (
                     <option key={src.id} value={src.slug}>{src.name}</option>
                   ))}
                   <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
@@ -754,7 +793,7 @@ export function EditLeadModal({
                   placeholder={companyForm.source_type ? "— Select channel —" : "— Select a source first —"}
                   disabled={!companyForm.source_type}
                 >
-                  {activeLeadChannels.map((ch: any) => (
+                  {activeLeadChannels.map((ch) => (
                     <option key={ch.id} value={String(ch.id)}>{ch.name}</option>
                   ))}
                   {companyForm.source_type && (
@@ -775,7 +814,7 @@ export function EditLeadModal({
                   onChange={(e) => setCompanyForm((f) => ({ ...f, owner_id: e.target.value }))}
                 >
                   <option value="">-- Lead Pool --</option>
-                  {salesUsers.map((u: any) => (
+                  {salesUsers.map((u) => (
                     <option key={u.id} value={String(u.id)}>{u.name}</option>
                   ))}
                   {salesUsers.length === 0 && <option value="" disabled>Loading users...</option>}
@@ -788,7 +827,7 @@ export function EditLeadModal({
                   onChange={(e) => setCompanyForm((f) => ({ ...f, presales_owner_id: e.target.value }))}
                 >
                   <option value="">-- Unassigned --</option>
-                  {presalesUsers.map((u: any) => (
+                  {presalesUsers.map((u) => (
                     <option key={u.id} value={String(u.id)}>{u.name}</option>
                   ))}
                 </Select>
@@ -800,7 +839,7 @@ export function EditLeadModal({
                   onChange={(e) => setCompanyForm((f) => ({ ...f, am_owner_id: e.target.value }))}
                 >
                   <option value="">-- Unassigned --</option>
-                  {amUsers.map((u: any) => (
+                  {amUsers.map((u) => (
                     <option key={u.id} value={String(u.id)}>{u.name}</option>
                   ))}
                 </Select>
@@ -812,7 +851,7 @@ export function EditLeadModal({
                   onChange={(e) => setCompanyForm((f) => ({ ...f, csm_owner_id: e.target.value }))}
                 >
                   <option value="">-- Unassigned --</option>
-                  {csmUsers.map((u: any) => (
+                  {csmUsers.map((u) => (
                     <option key={u.id} value={String(u.id)}>{u.name}</option>
                   ))}
                 </Select>
@@ -828,8 +867,8 @@ export function EditLeadModal({
                 <div className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_8%,transparent)] px-3 py-2">
                   <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
                   <span className="flex-1 text-sm font-medium">
-                    {parentLeadResults.find((r: any) => String(r.id) === companyForm.parent_lead_id)?.company_name
-                      ?? lead?.parentLead?.company_name
+                    {parentLeadResults.find((r) => String(r.id) === companyForm.parent_lead_id)?.company_name
+                      ?? lead?.parent_lead?.company_name
                       ?? `Lead #${companyForm.parent_lead_id}`}
                   </span>
                   <button
@@ -857,8 +896,8 @@ export function EditLeadModal({
                   {parentLeadResults.length > 0 && (
                     <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-card shadow-lg">
                       {parentLeadResults
-                        .filter((r: any) => String(r.id) !== String(lead?.id))
-                        .map((r: any) => (
+                        .filter((r) => String(r.id) !== String(lead?.id))
+                        .map((r) => (
                           <button
                             key={r.id}
                             type="button"

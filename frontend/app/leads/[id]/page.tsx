@@ -2197,13 +2197,13 @@ export default function LeadDetailPage() {
                 {/* Parent company */}
                 <div>
                   <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Parent Company</p>
-                  {leadData.parentLead ? (
+                  {leadData.parent_lead ? (
                     <Link
-                      href={`/leads/${leadData.parentLead.id}`}
+                      href={`/leads/${leadData.parent_lead.id}`}
                       className="flex items-center gap-2 rounded-lg border border-[var(--brand)]/30 bg-[color-mix(in_oklch,var(--brand)_6%,transparent)] px-3 py-2 transition-colors hover:bg-[color-mix(in_oklch,var(--brand)_10%,transparent)]"
                     >
                       <Building2 className="h-4 w-4 shrink-0 text-[var(--brand)]" />
-                      <span className="font-medium text-[var(--brand)]">{leadData.parentLead.company_name}</span>
+                      <span className="font-medium text-[var(--brand)]">{leadData.parent_lead.company_name}</span>
                       <ExternalLink className="ml-auto h-3 w-3 text-[var(--brand)]/60" />
                     </Link>
                   ) : (
@@ -2241,7 +2241,7 @@ export default function LeadDetailPage() {
                   </div>
                 )}
 
-                {!leadData.parentLead && (!leadData.subsidiaries || leadData.subsidiaries.length === 0) && (
+                {!leadData.parent_lead && (!leadData.subsidiaries || leadData.subsidiaries.length === 0) && (
                   <p className="text-xs text-muted-foreground">
                     No group company relationship set. Use the edit button to link this lead to a parent company.
                   </p>
