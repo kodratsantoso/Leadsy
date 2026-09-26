@@ -37,6 +37,14 @@ class AiOrchestrationService
         $routes = $this->priorityResolver->getRoutesForFeature($functionName);
         $promptContent = $this->promptTemplates->compilePrompt($functionName, $promptContent, $context);
 
+        // How long this feature needs, and how much it may write, are properties of the
+        // feature — not of whichever provider happens to answer. They live on the prompt
+        // template so a feature can be tuned without being pinned to one provider.
+        $tuning = \App\Models\AiPromptTemplate::query()
+            ->where('feature_name', $functionName)
+            ->where('is_active', true)
+            ->first(['timeout_seconds', 'max_tokens']);
+
         $promptStringForCheck = is_array($promptContent) 
             ? (($promptContent['user'] ?? '') . ' ' . ($promptContent['system'] ?? ''))
             : $promptContent;
@@ -62,8 +70,19 @@ class AiOrchestrationService
             }
 
             for ($attempt = 0; $attempt <= ($route->max_retries ?? 1); $attempt++) {
-                $effectiveTimeout = max((int) ($route->timeout_seconds ?: 60), 60);
-                $result = $this->tryModel($route, $functionName, $promptContent, $context, $effectiveTimeout, $isFallback);
+                $effectiveTimeout = max(
+                    (int) ($tuning?->timeout_seconds ?: $route->timeout_seconds ?: 60),
+                    60
+                );
+                $result = $this->tryModel(
+                    $route,
+                    $functionName,
+                    $promptContent,
+                    $context,
+                    $effectiveTimeout,
+                    $isFallback,
+                    $tuning?->max_tokens
+                );
                 if ($result['success']) {
                     $this->putCachedResult($functionName, $promptContent, $context, $route->cache_ttl_minutes, $result);
 
@@ -80,7 +99,7 @@ class AiOrchestrationService
     /*  PRIVATE */
     /* ──────────────────────────────────────────── */
 
-    private function tryModel(AiFeatureRoute $route, string $functionName, string|array $prompt, array $context, int $timeout, ?bool $isFallback = false): array
+    private function tryModel(AiFeatureRoute $route, string $functionName, string|array $prompt, array $context, int $timeout, ?bool $isFallback = false, ?int $maxTokensOverride = null): array
     {
         $model = $route->aiModel()->with('provider')->first();
         if (! $model || ! $model->provider) {
@@ -93,7 +112,7 @@ class AiOrchestrationService
         try {
             $apiKey = $provider->decrypted_api_key;
             $baseUrl = $provider->base_url ?? $this->defaultBaseUrl($provider->slug);
-            $body = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $route->max_tokens ?? $provider->max_tokens_default, $context);
+            $body = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $maxTokensOverride ?? $route->max_tokens ?? $provider->max_tokens_default, $context);
 
             $effectiveTimeout = max($timeout, (int) ($provider->timeout_seconds ?? 60), 60);
 

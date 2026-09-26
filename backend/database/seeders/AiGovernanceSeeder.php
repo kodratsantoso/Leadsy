@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\AiFeatureRoute;
 use App\Models\AiPromptTemplate;
 use Illuminate\Database\Seeder;
 
@@ -13,32 +12,10 @@ class AiGovernanceSeeder extends Seeder
      */
     public function run(): void
     {
-        $model = \App\Models\AiModel::first();
-        if (!$model) {
-            $model = \App\Models\AiModel::create([
-                'provider_id' => 1,
-                'name' => 'gemini-1.5-flash',
-                'description' => 'Gemini 1.5 Flash',
-                'context_window' => 1000000,
-                'cost_per_1k_tokens' => 0.00,
-                'is_active' => true,
-                'capabilities' => ['text'],
-                'is_default' => true,
-            ]);
-        }
-
-        $route = AiFeatureRoute::updateOrCreate(
-            ['feature_name' => 'product_specification_comparison'],
-            [
-                'ai_model_id' => $model->id,
-                'priority' => 1,
-                'max_retries' => 1,
-                'timeout_seconds' => 30,
-                'cost_sensitivity' => 'medium',
-                'complexity_mode' => 'standard',
-                'is_active' => true,
-            ]
-        );
+        // Neither a model nor a feature route is created here any more. This used to
+        // invent a gemini-1.5-flash row when the catalog was empty and pin the feature to
+        // it — a provider choice made by a seeder, overriding the routing table operators
+        // configure in Settings -> AI Defaults.
 
         $template = AiPromptTemplate::updateOrCreate(
             ['feature_name' => 'product_specification_comparison', 'template_name' => 'default_diff'],

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\AiFeatureRoute;
 use App\Models\AiPromptTemplate;
 use Illuminate\Database\Seeder;
 
@@ -13,10 +12,15 @@ class LeadEnrichmentAiConfigSeeder extends Seeder
      */
     public function run(): void
     {
-        $model = \App\Models\AiModel::where('name', 'gemini-1.5-flash')->first();
-        if (!$model) {
-            $model = \App\Models\AiModel::first();
-        }
+        // No model is chosen here on purpose. Which provider answers a feature is set in
+        // Settings -> AI Defaults (Feature Routing / Global AI Routing) and belongs to
+        // whoever operates the system — not to a seeder picking a model by name. This used
+        // to pin every feature below to gemini-1.5-flash, which silently overrode the
+        // routing table, because a feature's own route replaces the global chain.
+        //
+        // The per-feature tuning these features genuinely need travels with the prompt
+        // template instead (see the timeout_seconds / max_tokens columns added by
+        // 2026_09_26_100000_move_feature_tuning_off_provider_routes).
 
         $features = [
             [
@@ -183,25 +187,13 @@ class LeadEnrichmentAiConfigSeeder extends Seeder
         ];
 
         foreach ($features as $f) {
-            AiFeatureRoute::updateOrCreate(
-                ['feature_name' => $f['route']],
-                [
-                    'ai_model_id' => $model?->id ?? 1,
-                    'priority' => 1,
-                    'max_retries' => 1,
-                    'timeout_seconds' => $f['timeout_seconds'] ?? 60,
-                    'max_tokens' => $f['max_tokens'] ?? null,
-                    'cost_sensitivity' => 'medium',
-                    'complexity_mode' => 'standard',
-                    'is_active' => true,
-                ]
-            );
-
             $template = AiPromptTemplate::updateOrCreate(
                 ['feature_name' => $f['route'], 'template_name' => 'default_v1'],
                 [
                     'description' => $f['description'],
                     'is_active' => true,
+                    'timeout_seconds' => $f['timeout_seconds'] ?? null,
+                    'max_tokens' => $f['max_tokens'] ?? null,
                 ]
             );
 
