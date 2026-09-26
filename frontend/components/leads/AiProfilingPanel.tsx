@@ -64,6 +64,10 @@ interface AiProfilingPanelProps {
   onClose: () => void;
   onRetrySync?: () => void;
   retryingSync?: boolean;
+  /** Seconds since the run was dispatched, so the wait is visible rather than blank. */
+  elapsedSeconds?: number;
+  /** Running longer than usual, but not given up on. */
+  slow?: boolean;
 }
 
 const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, icon, children, defaultOpen = true }) => {
@@ -125,6 +129,8 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
   onClose,
   onRetrySync,
   retryingSync,
+  elapsedSeconds = 0,
+  slow = false,
 }) => {
   if (status === "idle") return null;
 
@@ -146,7 +152,27 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
           <p className="text-sm text-muted-foreground animate-pulse text-center px-4">
             Menelusuri website resmi, direktori bisnis, registry pemerintah (Kemendag), platform lowongan kerja, dan sumber publik lainnya...
           </p>
-          <p className="text-xs text-muted-foreground/70">Cross-referencing multiple sources for verified intelligence</p>
+          {/* A blank spinner for a minute reads as broken. Showing the clock — and what
+              counts as normal — is the difference between waiting and worrying. */}
+          <p className="text-xs text-muted-foreground/70 tabular-nums">
+            {elapsedSeconds > 0 ? `Berjalan ${elapsedSeconds} detik` : "Cross-referencing multiple sources"}
+            {" · "}
+            <span className="text-muted-foreground/60">biasanya 20–60 detik</span>
+          </p>
+          {slow && (
+            <div className="mx-4 flex flex-col gap-2 rounded-lg border border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 px-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Lebih lama dari biasanya, tapi <b className="text-foreground">masih berjalan</b> — perusahaan besar
+                memang butuh waktu lebih. Tetap ditunggu sampai 3 menit.
+              </p>
+              {onRetrySync && (
+                <Button size="sm" variant="outline" onClick={onRetrySync} disabled={retryingSync} className="self-start gap-2">
+                  {retryingSync ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  {retryingSync ? "Menjalankan langsung..." : "Jalankan langsung saja"}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -165,8 +191,13 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
           <div className="flex items-center gap-3 text-[var(--status-warning)]">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <div>
-              <p className="font-semibold text-foreground">Masih diproses di background</p>
-              <p className="text-xs text-muted-foreground">Belum ada hasil dalam waktu normal — kemungkinan antrian proses sedang lambat. Bisa ditunggu, atau coba jalankan langsung (tanpa antrian; bisa gagal untuk perusahaan besar karena butuh waktu lebih lama).</p>
+              <p className="font-semibold text-foreground">Berhenti menunggu setelah 3 menit</p>
+              <p className="text-xs text-muted-foreground">
+                Proses ini sudah melewati batas waktunya sendiri (3 menit), jadi kemungkinan besar
+                antriannya tidak berjalan — bukan sekadar lambat. Menunggu lebih lama tidak akan
+                membantu. Jalankan langsung tanpa antrian, atau minta admin memeriksa antrian di
+                Settings → AI Screening Monitor.
+              </p>
             </div>
           </div>
           {onRetrySync && (

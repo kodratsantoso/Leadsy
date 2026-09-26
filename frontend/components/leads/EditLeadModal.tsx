@@ -39,6 +39,18 @@ import { AiProfilingPanel, type ProfilingData } from "@/components/leads/AiProfi
  *  - The amounts go out as numbers but come back as strings, because Laravel's
  *    `decimal:2` cast serialises that way.
  */
+/**
+ * How long the UI waits for a queued profiling run, and how often it checks.
+ *
+ * 180s matches RunAiLeadProfilingJob::$timeout — past that the job has been killed, so
+ * there is genuinely nothing left to wait for. Anything shorter reports a healthy run
+ * as stuck.
+ */
+const AI_PROFILING_POLL_MS = 2000;
+const AI_PROFILING_MAX_ATTEMPTS = 90;
+/** After this long the run is unusual, but still running — say so without giving up. */
+const AI_PROFILING_SLOW_AFTER_SECONDS = 45;
+
 type LeadUpdatePayload = Partial<
   Omit<Lead, "estimated_closing_amount" | "realized_closing_amount" | "business_category_id" | "qualification_status">
 > & {
@@ -89,6 +101,7 @@ export function EditLeadModal({
   const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout">("idle");
   const [profilingData, setProfilingData] = useState<ProfilingData | null>(null);
   const [profilingRetrying, setProfilingRetrying] = useState(false);
+  const [profilingElapsed, setProfilingElapsed] = useState(0);
 
   const retryAiProfilingSync = async () => {
     setProfilingRetrying(true);
@@ -362,6 +375,7 @@ export function EditLeadModal({
                     onClick={async () => {
                       setProfilingStatus("researching");
                       setProfilingData(null);
+                      setProfilingElapsed(0);
                       try {
                         const res = await apiFetch("/leads/ai-profiling/start", {
                           method: "POST",
@@ -371,12 +385,20 @@ export function EditLeadModal({
                         const json = await res.json();
                         if (json.success && json.data) {
                           let currentData = json.data;
-                          // Give up after 40s and offer a manual no-queue
-                          // retry instead of polling forever with no feedback.
+                          // Poll for as long as the job itself is allowed to run.
+                          //
+                          // This used to give up after 40s (20 x 2s) — shorter than the
+                          // job's normal runtime. AiLeadProfilingService puts a profiling
+                          // call at "~20-60s historically" and the job's own $timeout is
+                          // 180s, so a perfectly healthy queue routinely blew past the
+                          // frontend's patience and the user was told it looked stuck.
+                          // Now the give-up point means what it says: the job is past the
+                          // deadline it set for itself.
                           let attempts = 0;
-                          const maxAttempts = 20;
+                          const maxAttempts = AI_PROFILING_MAX_ATTEMPTS;
                           const interval = setInterval(async () => {
                             attempts++;
+                            setProfilingElapsed(attempts * (AI_PROFILING_POLL_MS / 1000));
                             const statusRes = await apiFetch(`/leads/ai-profiling/${currentData.id}/status`);
                             const statusJson = await statusRes.json();
                             if (statusJson.success && statusJson.data) {
@@ -396,7 +418,7 @@ export function EditLeadModal({
                               clearInterval(interval);
                               setProfilingStatus("failed");
                             }
-                          }, 2000);
+                          }, AI_PROFILING_POLL_MS);
                         } else {
                           setProfilingStatus("failed");
                         }
@@ -412,6 +434,8 @@ export function EditLeadModal({
                 </div>
                 <AiProfilingPanel
                   status={profilingStatus}
+                  elapsedSeconds={profilingElapsed}
+                  slow={profilingElapsed >= AI_PROFILING_SLOW_AFTER_SECONDS}
                   data={profilingData}
                   onRetrySync={retryAiProfilingSync}
                   retryingSync={profilingRetrying}
