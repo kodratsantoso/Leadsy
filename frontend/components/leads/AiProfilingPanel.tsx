@@ -68,6 +68,8 @@ interface AiProfilingPanelProps {
   elapsedSeconds?: number;
   /** Running longer than usual, but not given up on. */
   slow?: boolean;
+  /** Why the run ended: the AI came back empty, or we could not reach the server. */
+  failureReason?: "ai" | "unreachable";
 }
 
 const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, icon, children, defaultOpen = true }) => {
@@ -131,6 +133,7 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
   retryingSync,
   elapsedSeconds = 0,
   slow = false,
+  failureReason = "ai",
 }) => {
   if (status === "idle") return null;
 
@@ -176,13 +179,38 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
         </div>
       )}
 
+      {/* Two very different failures used to share one message. Telling someone to try a
+          more specific company name when the server was simply unreachable sends them off
+          editing input that was never the problem. */}
       {status === "failed" && (
-        <div className="flex items-center gap-3 text-destructive py-4 px-4 bg-destructive/10 m-3 rounded-lg border border-destructive/20 text-sm">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <div>
-            <p className="font-semibold">Research Failed</p>
-            <p className="text-xs text-muted-foreground">Tidak dapat mengumpulkan detail profiling untuk nama perusahaan ini. Coba nama yang lebih spesifik atau tambahkan lokasi.</p>
+        <div className="flex flex-col gap-3 text-destructive py-4 px-4 bg-destructive/10 m-3 rounded-lg border border-destructive/20 text-sm">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            {failureReason === "unreachable" ? (
+              <div>
+                <p className="font-semibold text-foreground">Koneksi ke server terputus</p>
+                <p className="text-xs text-muted-foreground">
+                  Status proses tidak bisa dibaca — biasanya karena server sedang restart saat
+                  deployment. <b className="text-foreground">Prosesnya sendiri kemungkinan tetap berjalan</b>,
+                  hanya tidak bisa kami pantau. Tutup panel ini dan coba lagi sebentar lagi.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold">Research Failed</p>
+                <p className="text-xs text-muted-foreground">
+                  AI tidak menemukan cukup informasi publik untuk nama perusahaan ini. Coba nama
+                  yang lebih spesifik atau tambahkan lokasi.
+                </p>
+              </div>
+            )}
           </div>
+          {failureReason === "unreachable" && onRetrySync && (
+            <Button size="sm" variant="outline" onClick={onRetrySync} disabled={retryingSync} className="self-start gap-2">
+              {retryingSync ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {retryingSync ? "Menjalankan langsung..." : "Coba lagi sekarang"}
+            </Button>
+          )}
         </div>
       )}
 

@@ -50,6 +50,8 @@ const AI_PROFILING_POLL_MS = 2000;
 const AI_PROFILING_MAX_ATTEMPTS = 90;
 /** After this long the run is unusual, but still running — say so without giving up. */
 const AI_PROFILING_SLOW_AFTER_SECONDS = 45;
+/** Consecutive unreadable status checks tolerated (10s) before calling the server unreachable. */
+const AI_PROFILING_MAX_CONSECUTIVE_FAILURES = 5;
 
 type LeadUpdatePayload = Partial<
   Omit<Lead, "estimated_closing_amount" | "realized_closing_amount" | "business_category_id" | "qualification_status">
@@ -102,6 +104,7 @@ export function EditLeadModal({
   const [profilingData, setProfilingData] = useState<ProfilingData | null>(null);
   const [profilingRetrying, setProfilingRetrying] = useState(false);
   const [profilingElapsed, setProfilingElapsed] = useState(0);
+  const [profilingFailureReason, setProfilingFailureReason] = useState<"ai" | "unreachable">("ai");
 
   const retryAiProfilingSync = async () => {
     setProfilingRetrying(true);
@@ -376,6 +379,7 @@ export function EditLeadModal({
                       setProfilingStatus("researching");
                       setProfilingData(null);
                       setProfilingElapsed(0);
+                      setProfilingFailureReason("ai");
                       try {
                         const res = await apiFetch("/leads/ai-profiling/start", {
                           method: "POST",
@@ -395,6 +399,7 @@ export function EditLeadModal({
                           // Now the give-up point means what it says: the job is past the
                           // deadline it set for itself.
                           let attempts = 0;
+                          let consecutiveFailures = 0;
                           const maxAttempts = AI_PROFILING_MAX_ATTEMPTS;
                           const interval = setInterval(async () => {
                             attempts++;
@@ -402,6 +407,7 @@ export function EditLeadModal({
                             const statusRes = await apiFetch(`/leads/ai-profiling/${currentData.id}/status`);
                             const statusJson = await statusRes.json();
                             if (statusJson.success && statusJson.data) {
+                              consecutiveFailures = 0;
                               currentData = statusJson.data;
                               if (currentData.status === "ready_for_review") {
                                 clearInterval(interval);
@@ -409,20 +415,32 @@ export function EditLeadModal({
                                 setProfilingData(currentData.current_output_json);
                               } else if (currentData.status === "failed") {
                                 clearInterval(interval);
+                                setProfilingFailureReason("ai");
                                 setProfilingStatus("failed");
                               } else if (attempts >= maxAttempts) {
                                 clearInterval(interval);
                                 setProfilingStatus("timeout");
                               }
                             } else {
-                              clearInterval(interval);
-                              setProfilingStatus("failed");
+                              // One unreadable poll is not a failed run. The backend
+                              // restarts on every deploy, and a status check that lands in
+                              // that window used to end the whole thing and tell the user
+                              // their company name was the problem. The job itself is
+                              // unaffected by any of this — it is running on the server.
+                              consecutiveFailures++;
+                              if (consecutiveFailures >= AI_PROFILING_MAX_CONSECUTIVE_FAILURES) {
+                                clearInterval(interval);
+                                setProfilingFailureReason("unreachable");
+                                setProfilingStatus("failed");
+                              }
                             }
                           }, AI_PROFILING_POLL_MS);
                         } else {
+                          setProfilingFailureReason("unreachable");
                           setProfilingStatus("failed");
                         }
                       } catch {
+                        setProfilingFailureReason("unreachable");
                         setProfilingStatus("failed");
                       }
                     }}
@@ -435,6 +453,7 @@ export function EditLeadModal({
                 <AiProfilingPanel
                   status={profilingStatus}
                   elapsedSeconds={profilingElapsed}
+                  failureReason={profilingFailureReason}
                   slow={profilingElapsed >= AI_PROFILING_SLOW_AFTER_SECONDS}
                   data={profilingData}
                   onRetrySync={retryAiProfilingSync}
