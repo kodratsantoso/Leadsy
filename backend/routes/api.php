@@ -650,6 +650,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
         Route::post('providers/{aiProvider}/reveal-key', [AiSettingsController::class, 'revealKey']);
         Route::post('providers/{aiProvider}/copy-key-audit', [AiSettingsController::class, 'auditCopyKey']);
         Route::post('providers/{aiProvider}/models', [AiSettingsController::class, 'storeModel']);
+        Route::put('providers/{aiProvider}/models/{model}', [AiSettingsController::class, 'updateModel']);
         Route::delete('providers/{aiProvider}/models/{model}', [AiSettingsController::class, 'destroyModel']);
         Route::get('providers/{aiProvider}/available-models', [AiSettingsController::class, 'discoverModels']);
         Route::put('feature-routes/{featureName}', [AiSettingsController::class, 'saveFeatureRoutes']);

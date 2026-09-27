@@ -162,6 +162,43 @@ class AiSettingsController extends Controller
     }
 
     /**
+     * Change an existing model — in practice, give it the prices it never had.
+     *
+     * Only create and delete existed, so the 48 catalogued models with no pricing could
+     * not be corrected: the only route was to delete and re-add, and ai_feature_routes
+     * cascades on model delete, so that would silently drop the routing an operator had
+     * configured. Cost reporting fell back to a cost_tier guess for all of them as a
+     * direct result.
+     */
+    public function updateModel(Request $request, AiProvider $aiProvider, AiModel $model): JsonResponse
+    {
+        abort_unless($model->ai_provider_id === $aiProvider->id, 404, 'That model does not belong to this provider.');
+
+        $data = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'context_window' => 'nullable|integer|min:1',
+            'capabilities' => 'nullable|array',
+            'cost_tier' => 'nullable|in:low,medium,high',
+            'default_usage_type' => 'nullable|string|max:255',
+            'status' => 'nullable|in:active,deprecated',
+            'cost_per_million_input_tokens' => 'nullable|numeric|min:0',
+            'cost_per_million_output_tokens' => 'nullable|numeric|min:0',
+            'pricing_source' => 'nullable|in:openrouter_api,manual',
+        ]);
+
+        // Touching either price re-stamps how and when it was set, so the Usage page can
+        // tell a figure someone verified from one nobody has looked at in months.
+        if (array_key_exists('cost_per_million_input_tokens', $data) || array_key_exists('cost_per_million_output_tokens', $data)) {
+            $data['pricing_source'] = $data['pricing_source'] ?? 'manual';
+            $data['pricing_synced_at'] = now();
+        }
+
+        $model->update($data);
+
+        return response()->json(['data' => $model->fresh()]);
+    }
+
+    /**
      * List models actually available to this provider's configured API key,
      * for the "Add Model" dropdown. Falls back gracefully (supported: false)
      * for providers/keys where that isn't possible — the frontend then keeps

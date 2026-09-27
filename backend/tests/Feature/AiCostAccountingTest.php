@@ -166,4 +166,63 @@ class AiCostAccountingTest extends TestCase
         $this->assertSame(1.0, $snap['rate']);
         $this->assertSame(1.5, $snap['converted']);
     }
+
+    /* ── Phase C: an existing model's prices must be correctable ── */
+
+    private function superAdmin(): \App\Models\User
+    {
+        $role = \App\Models\Role::firstOrCreate(['name' => 'super_admin'], ['display_name' => 'Super Admin', 'level' => 100]);
+
+        return \App\Models\User::factory()->create(['role_id' => $role->id]);
+    }
+
+    public function test_an_existing_models_prices_can_be_corrected(): void
+    {
+        $model = $this->model(null, null);
+
+        $this->actingAs($this->superAdmin())
+            ->putJson("/api/settings/ai-default/providers/{$model->ai_provider_id}/models/{$model->id}", [
+                'cost_per_million_input_tokens' => 1.32,
+                'cost_per_million_output_tokens' => 3.96,
+            ])
+            ->assertOk();
+
+        $model->refresh();
+        $this->assertTrue($model->hasRealPricing());
+        $this->assertSame('manual', $model->pricing_source);
+        $this->assertNotNull($model->pricing_synced_at, 'When a price was set is part of trusting it.');
+    }
+
+    public function test_pricing_a_model_moves_its_cost_from_guessed_to_measured(): void
+    {
+        // The point of the endpoint: before it existed the only way to price a model was
+        // to delete and re-add it, and ai_feature_routes cascades on delete — so fixing a
+        // price would silently drop the routing somebody had configured.
+        $model = $this->model(null, null, 'high');
+        $this->assertSame('estimated', $this->estimate($model, 1_000_000, 1_000_000)['basis']);
+
+        $this->actingAs($this->superAdmin())
+            ->putJson("/api/settings/ai-default/providers/{$model->ai_provider_id}/models/{$model->id}", [
+                'cost_per_million_input_tokens' => 1.32,
+                'cost_per_million_output_tokens' => 3.96,
+            ])->assertOk();
+
+        $after = $this->estimate($model->fresh(), 1_000_000, 1_000_000);
+        $this->assertSame('measured', $after['basis']);
+        $this->assertEqualsWithDelta(5.28, $after['cost'], 0.0001);
+    }
+
+    public function test_a_model_cannot_be_edited_through_another_provider(): void
+    {
+        $model = $this->model(null, null);
+        $other = $this->model(null, null);
+
+        $this->actingAs($this->superAdmin())
+            ->putJson("/api/settings/ai-default/providers/{$other->ai_provider_id}/models/{$model->id}", [
+                'cost_per_million_input_tokens' => 99.0,
+            ])
+            ->assertNotFound();
+
+        $this->assertNull($model->fresh()->cost_per_million_input_tokens);
+    }
 }
