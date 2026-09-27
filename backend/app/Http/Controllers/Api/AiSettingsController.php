@@ -172,7 +172,10 @@ class AiSettingsController extends Controller
      */
     public function updateModel(Request $request, AiProvider $aiProvider, AiModel $model): JsonResponse
     {
-        abort_unless($model->ai_provider_id === $aiProvider->id, 404, 'That model does not belong to this provider.');
+        // Loose-but-explicit: a bigint can arrive from the driver as a string depending
+        // on PDO settings, and a strict comparison would then 404 a perfectly valid
+        // model — a failure that would look like "saving the price does nothing".
+        abort_unless((int) $model->ai_provider_id === (int) $aiProvider->id, 404, 'That model does not belong to this provider.');
 
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
