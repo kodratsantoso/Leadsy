@@ -33,6 +33,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { apiFetch } from "@/lib/apiFetch";
+import { throwIfApiError } from "@/lib/apiError";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,10 @@ type ProviderModel = {
   name: string;
   cost_tier?: string;
   status?: string;
+  cost_per_million_input_tokens?: number | null;
+  cost_per_million_output_tokens?: number | null;
+  pricing_source?: string | null;
+  pricing_synced_at?: string | null;
 };
 
 type Provider = {
@@ -406,6 +411,9 @@ export default function AiDefaultsPage() {
   const [addingModelFor, setAddingModelFor] = useState<number | null>(null);
   const [newModelName, setNewModelName] = useState("");
   const [newModelTier, setNewModelTier] = useState("medium");
+  const [pricingModelId, setPricingModelId] = useState<number | null>(null);
+  const [pricingIn, setPricingIn] = useState("");
+  const [pricingOut, setPricingOut] = useState("");
   const [newModelInputPrice, setNewModelInputPrice] = useState("");
   const [newModelOutputPrice, setNewModelOutputPrice] = useState("");
   const [newModelPricingSource, setNewModelPricingSource] = useState<"manual" | "openrouter_api" | null>(null);
@@ -568,6 +576,28 @@ export default function AiDefaultsPage() {
     },
     onSuccess: (payload) => {
       setRevealedKeys((current) => ({ ...current, [payload.data.provider_id]: payload.data.api_key }));
+    },
+  });
+
+  // Prices could only be set while ADDING a model, so the 48 models already in the
+  // catalog had no way to get them — and their cost stayed a cost_tier guess. Deleting
+  // and re-adding was the only route, and that cascades away the feature routing.
+  const updateModelPricingMutation = useMutation({
+    mutationFn: async ({ providerId, modelId, input, output }: { providerId: number; modelId: number; input: string; output: string }) => {
+      const res = await apiFetch(`/settings/ai-default/providers/${providerId}/models/${modelId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cost_per_million_input_tokens: input === "" ? null : Number(input),
+          cost_per_million_output_tokens: output === "" ? null : Number(output),
+        }),
+      });
+      await throwIfApiError(res, "That price could not be saved.");
+      return res.json();
+    },
+    onSuccess: async () => {
+      await invalidate();
+      setPricingModelId(null);
     },
   });
 
@@ -1016,17 +1046,73 @@ export default function AiDefaultsPage() {
                           </div>
                           <div className="mt-4 space-y-2">
                             {provider.models.map((model) => (
-                              <div key={model.id} className="flex items-center justify-between rounded-2xl border border-border/70 px-4 py-3 text-sm">
-                                <div>
-                                  <p className="font-medium">{model.name}</p>
-                                  <p className="text-xs text-muted-foreground">{model.cost_tier ?? "medium"} tier</p>
+                              <div key={model.id} className="rounded-2xl border border-border/70 px-4 py-3 text-sm">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="font-medium">{model.name}</p>
+                                    {/* Whether this model's cost is measured or guessed is
+                                        the single most useful thing to know here. */}
+                                    {model.cost_per_million_input_tokens != null && model.cost_per_million_output_tokens != null ? (
+                                      <p className="text-xs text-muted-foreground">
+                                        <span className="text-[var(--status-success)]">
+                                          ${model.cost_per_million_input_tokens} in / ${model.cost_per_million_output_tokens} out
+                                        </span>{" "}
+                                        per 1M tokens
+                                        {model.pricing_source ? ` · ${model.pricing_source === "openrouter_api" ? "auto-fetched" : "manual"}` : ""}
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs text-[var(--status-warning)]">
+                                        No price set — cost is guessed from the {model.cost_tier ?? "medium"} tier
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex shrink-0 gap-2">
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setPricingModelId(pricingModelId === model.id ? null : model.id);
+                                        setPricingIn(model.cost_per_million_input_tokens?.toString() ?? "");
+                                        setPricingOut(model.cost_per_million_output_tokens?.toString() ?? "");
+                                      }}
+                                    >
+                                      {pricingModelId === model.id ? "Cancel" : "Set price"}
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={() => deleteModelMutation.mutate({ providerId: provider.id, modelId: model.id })}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
                                 </div>
-                                <Button
-                                  variant="destructive"
-                                  onClick={() => deleteModelMutation.mutate({ providerId: provider.id, modelId: model.id })}
-                                >
-                                  Delete
-                                </Button>
+
+                                {pricingModelId === model.id && (
+                                  <div className="mt-3 grid gap-3 border-t border-border/70 pt-3 md:grid-cols-[1fr_1fr_auto]">
+                                    <div>
+                                      <label className="mb-1 block text-xs text-muted-foreground">Input price (USD / 1M tokens)</label>
+                                      <Input type="number" step="0.0001" min="0" value={pricingIn} placeholder="e.g. 1.32"
+                                        onChange={(e) => setPricingIn(e.target.value)} />
+                                    </div>
+                                    <div>
+                                      <label className="mb-1 block text-xs text-muted-foreground">Output price (USD / 1M tokens)</label>
+                                      <Input type="number" step="0.0001" min="0" value={pricingOut} placeholder="e.g. 3.96"
+                                        onChange={(e) => setPricingOut(e.target.value)} />
+                                    </div>
+                                    <div className="flex items-end">
+                                      <Button
+                                        disabled={updateModelPricingMutation.isPending}
+                                        onClick={() => updateModelPricingMutation.mutate({
+                                          providerId: provider.id, modelId: model.id, input: pricingIn, output: pricingOut,
+                                        })}
+                                      >
+                                        {updateModelPricingMutation.isPending ? "Saving…" : "Save price"}
+                                      </Button>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground md:col-span-3">
+                                      Both sides are needed for an exact cost — with only one set, the tier guess is still used.
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
