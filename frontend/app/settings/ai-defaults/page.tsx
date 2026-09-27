@@ -230,6 +230,38 @@ type RouteDraftState = Record<
   }[]
 >;
 
+/**
+ * A readable name for an AI feature.
+ *
+ * The catalog on the server carries proper names, but every call site fell back to
+ * printing the raw key when a feature was missing from it — so the settings page showed
+ * "lead_icp_matching" and "ps_task_breakdown_generation" to users. Missing entries are
+ * now humanised instead of leaking the variable name, and acronyms keep their case.
+ */
+const FEATURE_ACRONYMS: Record<string, string> = {
+  ai: "AI",
+  icp: "ICP",
+  bantc: "BANTC",
+  cs: "CS",
+  ps: "PS",
+  kpi: "KPI",
+  idx: "IDX",
+  crm: "CRM",
+};
+
+function featureLabel(key: string | null | undefined, catalog: { key: string; label: string }[]): string {
+  if (!key) return "Prompt Template";
+
+  const known = catalog.find((item) => item.key === key)?.label;
+  if (known) return known;
+
+  return key
+    .split("_")
+    .filter(Boolean)
+    .map((word) => FEATURE_ACRONYMS[word] ?? word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 const tabs = [
   { key: "providers", label: "Providers", icon: Bot },
   { key: "routing", label: "Feature Routing", icon: GitBranch },
@@ -1193,7 +1225,7 @@ export default function AiDefaultsPage() {
                       : "border-border bg-background/70 hover:border-[var(--brand)]/30"
                   )}
                 >
-                  <p className="font-medium">{featureCatalog.find((item) => item.key === template.feature_name)?.label ?? template.feature_name}</p>
+                  <p className="font-medium">{featureLabel(template.feature_name, featureCatalog)}</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">
                     Active v{template.active_version?.version ?? "—"}
                   </p>
@@ -1209,7 +1241,7 @@ export default function AiDefaultsPage() {
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h3 className="text-xl font-semibold">
-                    {featureCatalog.find((item) => item.key === activePromptFeature)?.label ?? "Prompt Template"}
+                    {featureLabel(activePromptFeature, featureCatalog)}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Prompt edits create a new version. Nothing is overwritten silently, and activation is explicit.
@@ -1527,7 +1559,7 @@ export default function AiDefaultsPage() {
                         <tr key={log.id} className="hover:bg-[color:var(--surface-subtle)]">
                           <td className="py-3 px-4 text-xs whitespace-nowrap text-muted-foreground">{fmtDate(log.created_at)}</td>
                           <td className="py-3 px-4 text-sm font-medium">
-                            <span className="block">{featureCatalog.find((f) => f.key === log.function_name)?.label || log.function_name}</span>
+                            <span className="block">{featureLabel(log.function_name, featureCatalog)}</span>
                             <span className="text-[10px] font-mono text-muted-foreground">{log.function_name}</span>
                           </td>
                           <td className="py-3 px-4 font-medium">{log.model_name}</td>
