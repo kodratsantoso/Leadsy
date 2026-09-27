@@ -95,8 +95,15 @@ class SyncAiPromptTemplatesCommand extends Command
                 continue;
             }
 
-            if (preg_match_all("/->call\(\s*'([a-z_]+)'/", (string) file_get_contents($file->getPathname()), $m)) {
-                $keys = array_merge($keys, $m[1]);
+            $body = (string) file_get_contents($file->getPathname());
+
+            // Two ways a feature reaches a prompt: routed through ->call(), or looked up
+            // directly. Meeting Summary uses the second for its seven per-meeting-type
+            // prompts, which is exactly why they went unnoticed for so long.
+            foreach (["/->call\(\s*'([a-z_]+)'/", "/getActiveVersionForFeature\(\s*'([a-z_]+)'/"] as $pattern) {
+                if (preg_match_all($pattern, $body, $m)) {
+                    $keys = array_merge($keys, $m[1]);
+                }
             }
         }
 

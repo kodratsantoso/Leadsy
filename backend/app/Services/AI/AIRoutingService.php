@@ -55,6 +55,19 @@ class AIRoutingService
         'ps_task_breakdown_generation' => 'Professional Service Task Breakdown',
         'professional_service_task_breakdown' => 'Professional Service Task Breakdown (legacy key)',
         'product_specification_comparison' => 'Product Specification Comparison',
+
+        // Meeting Summary is one AI call ('meeting_summary') whose prompt is assembled
+        // from a general instruction plus one per meeting type. They are fetched by
+        // MeetingSummaryGenerationService through getActiveVersionForFeature(), not
+        // ->call(), which is why they never appeared in this catalog and the settings
+        // page listed them by their variable names.
+        'meeting_summary_general_prompt' => 'Meeting Summary — General (all meeting types)',
+        'meeting_summary_discovery_prompt' => 'Meeting Summary — Discovery',
+        'meeting_summary_demo_prompt' => 'Meeting Summary — Demo',
+        'meeting_summary_follow_up_prompt' => 'Meeting Summary — Follow-up',
+        'meeting_summary_proposal_discussion_prompt' => 'Meeting Summary — Proposal Discussion',
+        'meeting_summary_closing_discussion_prompt' => 'Meeting Summary — Closing Discussion',
+        'meeting_summary_handover_csm_prompt' => 'Meeting Summary — Handover to CSM',
     ];
 
     public function listRoutes(?string $featureName = null): Collection

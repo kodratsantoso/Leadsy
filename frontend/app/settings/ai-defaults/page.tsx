@@ -255,7 +255,11 @@ function featureLabel(key: string | null | undefined, catalog: { key: string; la
   const known = catalog.find((item) => item.key === key)?.label;
   if (known) return known;
 
-  return key
+  // A trailing "_prompt" is how these keys are written, not something a reader needs:
+  // "Meeting Summary Discovery Prompt" says Prompt twice on a page of prompts.
+  const trimmed = key.replace(/_prompt$/, "");
+
+  return trimmed
     .split("_")
     .filter(Boolean)
     .map((word) => FEATURE_ACRONYMS[word] ?? word.charAt(0).toUpperCase() + word.slice(1))
