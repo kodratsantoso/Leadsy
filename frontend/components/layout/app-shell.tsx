@@ -209,25 +209,28 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (item.children?.length) {
         const isChildActive = item.children.some((child) => pathname.startsWith(child.href));
         if (isChildActive) {
-          setExpandedMenus((prev) => ({ ...prev, [item.href]: true }));
+          setExpandedMenus({ [item.href]: true });
         }
       }
     });
   }, [pathname, visibleNavItems]);
 
+  /**
+   * One group open at a time.
+   *
+   * Groups used to accumulate: every one ever opened stayed open, so after a few clicks
+   * the sidebar was a wall of links and the item you wanted had scrolled out of view.
+   * Opening a group now closes the rest, and clicking the open one still closes it.
+   */
   const toggleMenu = (href: string) => {
     if (collapsed) {
       setCollapsed(false);
-      setExpandedMenus((prev) => ({
-        ...prev,
-        [href]: true,
-      }));
-    } else {
-      setExpandedMenus((prev) => ({
-        ...prev,
-        [href]: !prev[href],
-      }));
+      setExpandedMenus({ [href]: true });
+
+      return;
     }
+
+    setExpandedMenus((prev) => (prev[href] ? {} : { [href]: true }));
   };
 
   useEffect(() => {
