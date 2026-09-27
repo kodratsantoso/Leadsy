@@ -92,4 +92,78 @@ class AiCostAccountingTest extends TestCase
 
         $this->assertSame('measured', AiRequest::first()->pricing_basis);
     }
+
+    /* ── Phase B: the rupiah conversion must be frozen when the call runs ── */
+
+    private function currencies(string $activeCode, float $idrPerUsd = 17543.8596): void
+    {
+        \App\Models\Currency::updateOrCreate(['code' => 'IDR'], ['name' => 'Rupiah', 'symbol' => 'Rp', 'exchange_rate' => 1.0]);
+        \App\Models\Currency::updateOrCreate(['code' => 'USD'], ['name' => 'US Dollar', 'symbol' => '$', 'exchange_rate' => $idrPerUsd]);
+
+        $active = \App\Models\Currency::where('code', $activeCode)->firstOrFail();
+        \App\Models\CurrencySetting::truncate();
+        \App\Models\CurrencySetting::create(['currency_id' => $active->id]);
+    }
+
+    private function snapshot(float $costUsd): array
+    {
+        $svc = app(\App\Services\AI\AiOrchestrationService::class);
+        $ref = new \ReflectionMethod($svc, 'snapshotCurrencyConversion');
+        $ref->setAccessible(true);
+
+        return $ref->invoke($svc, $costUsd);
+    }
+
+    public function test_the_rupiah_amount_is_computed_from_todays_rate_at_call_time(): void
+    {
+        $this->currencies('IDR');
+
+        $snap = $this->snapshot(1.0);
+
+        $this->assertSame('IDR', $snap['code']);
+        $this->assertEqualsWithDelta(17543.8596, $snap['rate'], 0.01);
+        $this->assertEqualsWithDelta(17543.8596, $snap['converted'], 0.01);
+    }
+
+    public function test_a_later_rate_change_does_not_move_an_already_recorded_cost(): void
+    {
+        // The whole point of freezing it: a historical report must not drift when the
+        // rate moves. All 329 rows in the live database have a null snapshot, so today
+        // the rupiah figure is recomputed at report time with whatever rate is current.
+        $this->currencies('IDR', 17543.8596);
+        $atCallTime = $this->snapshot(2.0);
+
+        $model = $this->model(1.32, 3.96);
+        AiRequest::create([
+            'ai_model_id' => $model->id,
+            'function_name' => 'lead_analysis',
+            'prompt_tokens' => 1000,
+            'completion_tokens' => 500,
+            'estimated_cost_usd' => 2.0,
+            'pricing_basis' => 'measured',
+            'cost_currency_code' => $atCallTime['code'],
+            'cost_converted' => $atCallTime['converted'],
+            'exchange_rate_snapshot' => $atCallTime['rate'],
+            'status' => 'success',
+        ]);
+
+        // The rupiah weakens sharply afterwards.
+        $this->currencies('IDR', 20000.0);
+
+        $row = AiRequest::first();
+        $this->assertEqualsWithDelta(35087.7192, (float) $row->cost_converted, 0.05);
+        $this->assertEqualsWithDelta(17543.8596, (float) $row->exchange_rate_snapshot, 0.01);
+        $this->assertSame('IDR', $row->cost_currency_code);
+    }
+
+    public function test_no_conversion_is_invented_when_the_active_currency_is_usd(): void
+    {
+        $this->currencies('USD');
+
+        $snap = $this->snapshot(1.5);
+
+        $this->assertSame('USD', $snap['code']);
+        $this->assertSame(1.0, $snap['rate']);
+        $this->assertSame(1.5, $snap['converted']);
+    }
 }
