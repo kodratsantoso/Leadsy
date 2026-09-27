@@ -21,7 +21,7 @@ class PsTaskBreakdownAiSeeder extends Seeder
             // over the global chain.
 
             $template = AiPromptTemplate::updateOrCreate(
-                ['feature_name' => 'professional_service_task_breakdown'],
+                ['feature_name' => 'ps_task_breakdown_generation'],
                 [
                     'template_name' => 'Professional Service Task Breakdown',
                     'description' => 'Generates structured task and subtask breakdown for Professional Services projects',
