@@ -149,4 +149,39 @@ class ApiErrorTranslatorTest extends TestCase
         $this->assertSame(422, $handled->getStatusCode());
         $this->assertStringContainsString('Estimated closing amount is required', $handled->getContent());
     }
+
+    public function test_an_index_name_is_never_turned_into_a_field_name(): void
+    {
+        // lead_sources_identity_unique used to surface as "Sources Identity" — a field
+        // on no form, pointing the user at something that does not exist. An index name
+        // is a label someone chose in a migration, not a column list.
+        $e = new QueryException(
+            'pgsql',
+            'update "lead_sources" ...',
+            [],
+            new PDOException('SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key value violates unique constraint "lead_sources_identity_unique"')
+        );
+        $e->errorInfo = ['23505', 7, 'duplicate key value'];
+
+        [$status, $body] = $this->translate($e);
+
+        $this->assertSame(409, $status);
+        $this->assertStringNotContainsString('Sources Identity', $body['message']);
+        $this->assertStringNotContainsString('lead_sources', $body['message']);
+        $this->assertStringContainsString('one of these values', $body['message']);
+    }
+
+    public function test_an_expression_index_does_not_leak_sql_into_the_message(): void
+    {
+        $e = new QueryException('pgsql', 'insert ...', [], new PDOException(
+            "SQLSTATE[23505]: Unique violation: 7 ERROR:  duplicate key\nDETAIL:  Key (lead_id, source_type, COALESCE(source_ref, ''::character varying))=(5, lark, ) already exists."
+        ));
+        $e->errorInfo = ['23505', 7, 'duplicate key value'];
+
+        [, $body] = $this->translate($e);
+
+        $this->assertStringNotContainsString('COALESCE', $body['message']);
+        $this->assertStringNotContainsString('::', $body['message']);
+        $this->assertStringContainsString('Source Type', $body['message']);
+    }
 }

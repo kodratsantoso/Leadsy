@@ -494,19 +494,32 @@ class LeadController extends Controller
             $this->ensureLeadReadyForPipeline($request, $lead);
         }
 
-        // Track funnel stage change
-        if (isset($data['funnel_stage_id']) && $data['funnel_stage_id'] != $lead->funnel_stage_id) {
-            $lead->funnelHistory()->create([
-                'from_stage_id' => $lead->funnel_stage_id,
-                'to_stage_id' => $data['funnel_stage_id'],
-                'moved_by' => $request->user()?->id,
-            ]);
-        }
+        // One transaction for the whole save.
+        //
+        // Without it these four writes were independent: the lead was committed first,
+        // and a failure in any later step — a unique violation while syncing the source
+        // row, an audit insert that could not complete — surfaced as an error while the
+        // edit had already been stored. The user saw "Another record already uses this
+        // …", reopened the lead, and found their change applied after all. An error that
+        // is wrong about whether anything was saved is worse than no error, because it
+        // teaches people to distrust every message the system shows them.
+        //
+        // Now the save either happens completely or not at all, which is also what the
+        // 500 copy in ApiErrorTranslator promises.
+        DB::transaction(function () use ($request, $lead, $data, $original, $sourceType, $channelTypeId) {
+            if (isset($data['funnel_stage_id']) && $data['funnel_stage_id'] != $lead->funnel_stage_id) {
+                $lead->funnelHistory()->create([
+                    'from_stage_id' => $lead->funnel_stage_id,
+                    'to_stage_id' => $data['funnel_stage_id'],
+                    'moved_by' => $request->user()?->id,
+                ]);
+            }
 
-        $lead->update($data);
-        $this->syncLeadSource($lead, $sourceType, $channelTypeId);
+            $lead->update($data);
+            $this->syncLeadSource($lead, $sourceType, $channelTypeId);
 
-        AuditService::logUpdated('leads', $lead, $original);
+            AuditService::logUpdated('leads', $lead, $original);
+        });
 
         return response()->json(['data' => $lead->fresh(['industry', 'funnelStage', 'sources.channelType'])]);
     }
@@ -607,7 +620,6 @@ class LeadController extends Controller
             ?? LeadSourceType::where('slug', $sourceType)->value('slug')
             ?? 'other';
 
-        $source = $lead->sources()->orderBy('id')->first();
         $payload = [
             'source_type' => $sourceType,
             'channel_type_id' => $channel?->id,
@@ -615,8 +627,25 @@ class LeadController extends Controller
             'last_verified_at' => now()->toDateString(),
         ];
 
-        if ($source) {
-            $source->update($payload);
+        // lead_sources carries a unique index on
+        // (lead_id, source_type, COALESCE(source_ref, '')). This used to always update
+        // whichever row happened to be first, so re-pointing that row at a source_type
+        // another row already held collided with the index — and the save failed with a
+        // duplicate-key error naming a field ("Sources Identity") that appears on no
+        // form. Prefer the row that already holds the target type; only then fall back
+        // to the primary row, which by definition cannot now collide.
+        $existing = $lead->sources()->where('source_type', $sourceType)->first();
+
+        if ($existing) {
+            $existing->update($payload);
+
+            return;
+        }
+
+        $primary = $lead->sources()->orderBy('id')->first();
+
+        if ($primary) {
+            $primary->update($payload);
 
             return;
         }

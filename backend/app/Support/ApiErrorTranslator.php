@@ -195,9 +195,11 @@ class ApiErrorTranslator
             return [
                 'status' => 409,
                 'code' => 'DUPLICATE_VALUE',
-                'message' => $field
-                    ? "Another record already uses this {$field}."
-                    : 'Another record already uses one of these values.',
+                'message' => match (true) {
+                    $field === null => 'Another record already uses one of these values.',
+                    str_contains($field, ' + ') => "Another record already uses this combination of {$field}.",
+                    default => "Another record already uses this {$field}.",
+                },
                 'hint' => 'Values that must be unique cannot be shared between two leads. Search for the existing record, or change the value.',
             ];
         }
@@ -271,22 +273,31 @@ class ApiErrorTranslator
         ];
     }
 
-    /** Pull a readable field name out of "...unique constraint \"leads_email_unique\"". */
+    /**
+     * The column(s) a unique violation was actually on, when the driver tells us.
+     *
+     * Only PostgreSQL's `DETAIL: Key (col)=(value) already exists.` is trusted, because
+     * it names real columns. Deriving a field from the *index* name is guesswork that
+     * reads as fact: `lead_sources_identity_unique` became "Sources Identity", a field
+     * that exists on no form and sent the user looking for something that isn't there.
+     * Index names are labels chosen by whoever wrote the migration, not column lists.
+     *
+     * MySQL's `for key 'name'` has the same problem, so it is not used either. Without a
+     * trustworthy column, the caller says something true but general instead.
+     */
     private function fieldFromConstraint(string $raw): ?string
     {
-        if (preg_match('/Key \((?<cols>[^)]+)\)=/', $raw, $m)) {
-            return $this->humanize($m['cols']);
-        }
+        if (preg_match('/Key \((?<cols>.+)\)=\(/', $raw, $m)) {
+            // Expression indexes appear here too, e.g. COALESCE(source_ref, ''::varchar).
+            // Those are not field names a user could act on, so they are dropped.
+            $columns = collect(explode(',', $m['cols']))
+                ->map(fn (string $c) => trim($c))
+                ->reject(fn (string $c) => $c === '' || str_contains($c, '(') || str_contains($c, "'"))
+                ->map(fn (string $c) => $this->humanize($c))
+                ->filter()
+                ->values();
 
-        if (preg_match('/unique constraint "(?<name>[^"]+)"/i', $raw, $m)) {
-            $name = preg_replace('/_unique$/', '', $m['name']);
-            $name = preg_replace('/^[a-z0-9]+_/', '', (string) $name);
-
-            return $name ? $this->humanize($name) : null;
-        }
-
-        if (preg_match("/for key '(?<name>[^']+)'/i", $raw, $m)) {
-            return $this->humanize(preg_replace('/_unique$/', '', $m['name']) ?: $m['name']);
+            return $columns->isNotEmpty() ? $columns->join(' + ') : null;
         }
 
         return null;
