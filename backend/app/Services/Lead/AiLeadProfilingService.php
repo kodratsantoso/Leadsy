@@ -138,6 +138,16 @@ class AiLeadProfilingService
             $profileData['company_name'] = $profileData['legal_name'];
         }
 
+        // Carry the state of the research through to the screen. Without it a profile
+        // that came back mostly null looks like the AI failing, when the real answer is
+        // that it was never given anything to work from — and the operator cannot tell
+        // those apart, so nobody fixes the thing that is actually broken.
+        $profileData['research_status'] = [
+            'available' => $research['available'],
+            'reason' => $research['reason'] ?? null,
+            'source_count' => count($research['sources'] ?? []),
+        ];
+
         $profileData['evidence'] = [
             'website_sources' => $profileData['sources'] ?? [],
         ];

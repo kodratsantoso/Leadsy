@@ -53,6 +53,8 @@ export interface ProfilingData {
   confidence?: "low" | "medium" | "high";
   evidence?: SourceEvidence;
   sources?: string[];
+  /** Whether Leadsy could search the web before asking the model. */
+  research_status?: { available: boolean; reason?: string | null; source_count?: number };
   lat?: number;
   lng?: number;
 }
@@ -235,6 +237,30 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
             </Button>
           )}
         </div>
+      )}
+
+      {/* A profile full of blanks reads as "the AI is useless" when the real answer is
+          that it had nothing to read. Google Programmable Search needs both an API key
+          and a Search Engine ID; with either missing, the model is told to return null
+          rather than guess — which is correct, and invisible unless stated. */}
+      {status === "ready_for_review" && data?.research_status && !data.research_status.available && (
+        <div className="m-3 flex gap-3 rounded-lg border border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
+          <div className="text-xs">
+            <p className="font-semibold text-foreground">Profiled without web research</p>
+            <p className="mt-0.5 text-muted-foreground">
+              {data.research_status.reason || "Web search was unavailable."} Fields the model could not
+              verify are left empty on purpose rather than guessed. Configure Google Programmable Search
+              under Settings → Integration Setting → Google → Custom Search JSON API to get sourced results.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {status === "ready_for_review" && data?.research_status?.available && (
+        <p className="mx-3 mt-3 text-xs text-[var(--status-success)]">
+          Based on {data.research_status.source_count ?? 0} web source(s).
+        </p>
       )}
 
       {status === "ready_for_review" && data && (
