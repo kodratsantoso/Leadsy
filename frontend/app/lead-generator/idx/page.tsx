@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { throwIfApiError } from "@/lib/apiError";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { ArrowLeft, Search, Loader2, Plus, CheckCircle, SearchCode, DatabaseBackup } from "lucide-react";
 import Link from "next/link";
 
@@ -44,7 +46,7 @@ export default function IdxGeneratorPage() {
   });
 
   // Fetch companies
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["idx-companies", activeSearch, industry, subIndustry, page],
     queryFn: async () => {
       let url = `/lead-generator/idx-companies?page=${page}&per_page=50`;
@@ -53,7 +55,7 @@ export default function IdxGeneratorPage() {
       if (subIndustry) url += `&sub_industry=${encodeURIComponent(subIndustry)}`;
       
       const res = await apiFetch(url);
-      if (!res.ok) throw new Error("Failed to fetch IDX companies");
+      await throwIfApiError(res, "The IDX company list could not be loaded.");
       return res.json();
     },
   });
@@ -264,7 +266,15 @@ export default function IdxGeneratorPage() {
               </TableEmpty>
             ) : isError ? (
               <TableEmpty colSpan={6}>
-                <span className="text-destructive">Failed to load data. Ensure IDX dataset is cached.</span>
+                {/* The old copy guessed one cause ("ensure IDX dataset is cached") for
+                    every failure. The server now says which it is — a missing dataset, a
+                    permission problem, or a fault worth a reference code. */}
+                <ErrorNotice
+                  error={error}
+                  fallbackTitle="The IDX company list could not be loaded."
+                  onRetry={() => refetch()}
+                  className="text-left"
+                />
               </TableEmpty>
             ) : companies.length === 0 ? (
               <TableEmpty colSpan={6}>
