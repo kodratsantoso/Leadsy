@@ -127,6 +127,10 @@ type UsageOverview = {
     estimated_calls?: number;
     unlabelled_calls?: number;
     measured_calls?: number;
+    /** Calls with no frozen rupiah conversion — re-converted at today's rate. */
+    unfrozen_calls?: number;
+    unfrozen_cost_usd?: number;
+    legacy_fallback_rate?: number | null;
     is_converted?: boolean;
     currency_code?: string;
     success_rate: number | null;
@@ -287,6 +291,7 @@ function CostConfidence({
     estimated_calls?: number;
     unlabelled_calls?: number;
     measured_calls?: number;
+    unfrozen_calls?: number;
   };
 }) {
   if (!summary || summary.total_calls === 0) return null;
@@ -294,18 +299,31 @@ function CostConfidence({
   const estimated = summary.estimated_calls ?? 0;
   const unlabelled = summary.unlabelled_calls ?? 0;
 
-  if (estimated === 0 && unlabelled === 0) {
-    return <p className="mt-2 text-xs text-[var(--status-success)]">Based on each model&apos;s configured prices.</p>;
-  }
+  const unfrozen = summary.unfrozen_calls ?? 0;
 
   const parts: string[] = [];
   if (estimated > 0) parts.push(`${estimated} estimated from tier`);
   if (unlabelled > 0) parts.push(`${unlabelled} not labelled`);
 
   return (
-    <p className="mt-2 text-xs text-[var(--status-warning)]">
-      {parts.join(", ")} of {summary.total_calls} calls — set per-model prices for an exact figure.
-    </p>
+    <>
+      {parts.length === 0 ? (
+        <p className="mt-2 text-xs text-[var(--status-success)]">Based on each model&apos;s configured prices.</p>
+      ) : (
+        <p className="mt-2 text-xs text-[var(--status-warning)]">
+          {parts.join(", ")} of {summary.total_calls} calls — set per-model prices for an exact figure.
+        </p>
+      )}
+      {unfrozen > 0 && (
+        /* A call records the exchange rate in force when it ran, so old reports do not
+           drift. Calls made before that was recorded are re-converted at today's rate,
+           which means their share of this figure changes whenever the rupiah moves. */
+        <p className="mt-1 text-xs text-muted-foreground">
+          {unfrozen} of {summary.total_calls} calls predate the frozen exchange rate and are converted at
+          today&apos;s rate, so that part of this total shifts as the rupiah moves.
+        </p>
+      )}
+    </>
   );
 }
 
