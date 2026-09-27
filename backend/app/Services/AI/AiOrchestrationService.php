@@ -187,6 +187,22 @@ class AiOrchestrationService
         if (is_array($prompt)) {
             $systemPrompt = $prompt['system'] ?? null;
             $userPrompt = $prompt['user'] ?? '';
+
+            // The output contract was assembled by compilePrompt() and then dropped here,
+            // because only 'system' and 'user' were ever read. Prompts that end with
+            // "Return a JSON object conforming strictly to the contract" — lead_ai_profiling
+            // among them — were therefore asking the model to match a shape it had never
+            // been shown. It filled in the obvious fields (name, address, phone, website)
+            // and omitted everything it had no reason to know about: sub_industry,
+            // business_category, company_size, business_model. Those were exactly the
+            // fields reported missing from the profiler.
+            $contract = $prompt['output_contract'] ?? null;
+
+            if (! empty($contract)) {
+                $userPrompt = trim($userPrompt)
+                    ."\n\nReturn ONLY a JSON object with exactly these keys, using null where a value cannot be verified:\n"
+                    .json_encode($contract, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            }
         } else {
             $userPrompt = $prompt;
         }
