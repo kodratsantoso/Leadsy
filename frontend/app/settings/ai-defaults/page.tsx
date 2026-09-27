@@ -34,6 +34,7 @@ import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { apiFetch } from "@/lib/apiFetch";
 import { throwIfApiError } from "@/lib/apiError";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { cn } from "@/lib/utils";
 
@@ -332,6 +333,16 @@ function CostConfidence({
   );
 }
 
+/** Parse a typed price, tolerating the comma decimal separator used in Indonesia. */
+function toPrice(value: string): number | null {
+  const trimmed = value.trim().replace(",", ".");
+  if (trimmed === "") return null;
+
+  const parsed = Number(trimmed);
+
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
 const tabs = [
   { key: "providers", label: "Providers", icon: Bot },
   { key: "routing", label: "Feature Routing", icon: GitBranch },
@@ -588,8 +599,11 @@ export default function AiDefaultsPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cost_per_million_input_tokens: input === "" ? null : Number(input),
-          cost_per_million_output_tokens: output === "" ? null : Number(output),
+          // A comma decimal ("1,32") makes Number() return NaN, which JSON.stringify
+          // writes as null — the price would silently clear instead of saving. Accept
+          // the separator people actually type.
+          cost_per_million_input_tokens: toPrice(input),
+          cost_per_million_output_tokens: toPrice(output),
         }),
       });
       await throwIfApiError(res, "That price could not be saved.");
@@ -1108,9 +1122,18 @@ export default function AiDefaultsPage() {
                                         {updateModelPricingMutation.isPending ? "Saving…" : "Save price"}
                                       </Button>
                                     </div>
-                                    <p className="text-[11px] text-muted-foreground md:col-span-3">
-                                      Both sides are needed for an exact cost — with only one set, the tier guess is still used.
-                                    </p>
+                                    <div className="md:col-span-3">
+                                      {/* A failed save rendered nothing at all, so a rejected
+                                          price was indistinguishable from a dead button. */}
+                                      <ErrorNotice
+                                        error={updateModelPricingMutation.error}
+                                        fallbackTitle="That price could not be saved."
+                                        className="mb-2"
+                                      />
+                                      <p className="text-[11px] text-muted-foreground">
+                                        Both sides are needed for an exact cost — with only one set, the tier guess is still used.
+                                      </p>
+                                    </div>
                                   </div>
                                 )}
                               </div>

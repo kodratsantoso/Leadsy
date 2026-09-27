@@ -58,7 +58,10 @@ class AiScreeningMonitorController extends Controller
 
         if ($heartbeat) {
             $lastSeenAt = Carbon::parse($heartbeat['completed_at'] ?? $heartbeat['invoked_at']);
-            $minutesAgo = $lastSeenAt->diffInMinutes(now());
+            // Carbon returns a float here, and it was being rendered straight onto the
+            // page as "3.5433464333333333m ago". Nobody needs sub-second precision on
+            // how long ago the scheduler last checked in.
+            $minutesAgo = (int) floor($lastSeenAt->diffInMinutes(now()));
             $heartbeatStatus = match (true) {
                 $minutesAgo <= 15 => 'healthy',
                 $minutesAgo <= 60 => 'stale',

@@ -356,7 +356,7 @@ export default function AiScreeningMonitorPage() {
           <div className="hidden shrink-0 text-right text-sm sm:block">
             <div className="text-muted-foreground">Last run</div>
             <div className="font-medium tabular-nums">
-              {connected && progress.scheduler.minutes_ago != null ? `${progress.scheduler.minutes_ago}m ago` : "never"}
+              {connected && progress.scheduler.minutes_ago != null ? `${Math.max(0, Math.floor(progress.scheduler.minutes_ago))}m ago` : "never"}
             </div>
           </div>
         </div>
