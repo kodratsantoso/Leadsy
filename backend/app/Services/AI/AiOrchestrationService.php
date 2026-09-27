@@ -155,9 +155,9 @@ class AiOrchestrationService
             // Extract content & tokens based on provider
             [$content, $promptTokens, $completionTokens] = $this->parseResponse($provider->provider_type ?: $provider->slug, $decoded);
 
-            $cost = $this->estimateCost($model, $promptTokens, $completionTokens);
+            ['cost' => $cost, 'basis' => $pricingBasis] = $this->estimateCost($model, $promptTokens, $completionTokens);
 
-            $this->logRequest($model, $functionName, $promptTokens, $completionTokens, $cost, $latencyMs, 'success', null, $isFallback);
+            $this->logRequest($model, $functionName, $promptTokens, $completionTokens, $cost, $latencyMs, 'success', null, $isFallback, $pricingBasis);
 
             // NOTE: usage accounting used to be double-logged here into the legacy
             // `ai_usage_logs` table (AiUsageLog). That table/page was retired
@@ -274,16 +274,22 @@ class AiOrchestrationService
         };
     }
 
-    private function estimateCost(AiModel $model, int $promptTokens, int $completionTokens): float
+    /**
+     * @return array{cost: float, basis: 'measured'|'estimated'}
+     */
+    private function estimateCost(AiModel $model, int $promptTokens, int $completionTokens): array
     {
         // Prefer the model's real, per-token pricing (auto-fetched from OpenRouter,
         // or manually entered for providers that don't expose pricing via their API).
         if ($model->hasRealPricing()) {
-            return round(
-                ($promptTokens * $model->cost_per_million_input_tokens
-                    + $completionTokens * $model->cost_per_million_output_tokens) / 1_000_000,
-                6,
-            );
+            return [
+                'cost' => round(
+                    ($promptTokens * $model->cost_per_million_input_tokens
+                        + $completionTokens * $model->cost_per_million_output_tokens) / 1_000_000,
+                    6,
+                ),
+                'basis' => 'measured',
+            ];
         }
 
         // Fallback: rough cost per 1M tokens (USD) by coarse tier, for models that
@@ -295,10 +301,15 @@ class AiOrchestrationService
             default => ['prompt' => 1.00,  'completion' => 3.00],
         };
 
-        return round(
-            ($promptTokens * $rates['prompt'] + $completionTokens * $rates['completion']) / 1_000_000,
-            6,
-        );
+        // A guess, and it is recorded as one. Without this the Usage & Health totals
+        // read as measured spend when 48 of 50 models have no prices configured.
+        return [
+            'cost' => round(
+                ($promptTokens * $rates['prompt'] + $completionTokens * $rates['completion']) / 1_000_000,
+                6,
+            ),
+            'basis' => 'estimated',
+        ];
     }
 
     /**
@@ -340,7 +351,8 @@ class AiOrchestrationService
         int $latencyMs,
         string $status,
         ?string $error = null,
-        ?bool $isFallback = false
+        ?bool $isFallback = false,
+        ?string $pricingBasis = null
     ): void {
         $currencySnapshot = $this->snapshotCurrencyConversion($cost);
 
@@ -351,6 +363,7 @@ class AiOrchestrationService
             'prompt_tokens' => $promptTokens,
             'completion_tokens' => $completionTokens,
             'estimated_cost_usd' => $cost,
+            'pricing_basis' => $pricingBasis,
             'cost_currency_code' => $currencySnapshot['code'],
             'cost_converted' => $currencySnapshot['converted'],
             'exchange_rate_snapshot' => $currencySnapshot['rate'],

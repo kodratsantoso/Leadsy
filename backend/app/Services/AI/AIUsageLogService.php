@@ -60,6 +60,12 @@ class AIUsageLogService
                 DB::raw('SUM(CASE WHEN ai_requests.fallback_used IS TRUE THEN 1 ELSE 0 END) as fallback_count'),
                 DB::raw('COALESCE(SUM(ai_requests.prompt_tokens), 0) as total_tokens_in'),
                 DB::raw('COALESCE(SUM(ai_requests.completion_tokens), 0) as total_tokens_out'),
+                // How much of this total is a tier guess rather than the model's own
+                // prices. Presenting both as one number made the page unusable for the
+                // question it exists to answer: what does the AI actually cost us.
+                DB::raw("COALESCE(SUM(CASE WHEN ai_requests.pricing_basis = 'estimated' THEN ai_requests.estimated_cost_usd ELSE 0 END), 0) as estimated_cost_portion_usd"),
+                DB::raw("SUM(CASE WHEN ai_requests.pricing_basis = 'estimated' THEN 1 ELSE 0 END) as estimated_calls"),
+                DB::raw("SUM(CASE WHEN ai_requests.pricing_basis IS NULL THEN 1 ELSE 0 END) as unlabelled_calls"),
                 DB::raw('MAX(ai_requests.created_at) as last_used_at')
             )
             ->groupBy('ai_providers.id', 'ai_providers.name', 'ai_providers.slug');
@@ -134,6 +140,9 @@ class AIUsageLogService
         $fallbackCount = (int) $perProvider->sum('fallback_count');
         $totalTokensIn = (int) $perProvider->sum('total_tokens_in');
         $totalTokensOut = (int) $perProvider->sum('total_tokens_out');
+        $estimatedPortionUsd = (float) $perProvider->sum('estimated_cost_portion_usd');
+        $estimatedCalls = (int) $perProvider->sum('estimated_calls');
+        $unlabelledCalls = (int) $perProvider->sum('unlabelled_calls');
 
         return [
             'summary' => [
@@ -148,6 +157,11 @@ class AIUsageLogService
                 'total_tokens_in' => $totalTokensIn,
                 'total_tokens_out' => $totalTokensOut,
                 'total_tokens' => $totalTokensIn + $totalTokensOut,
+                // Cost confidence, so the figure above can be read honestly.
+                'estimated_cost_portion_usd' => round($estimatedPortionUsd, 4),
+                'estimated_calls' => $estimatedCalls,
+                'unlabelled_calls' => $unlabelledCalls,
+                'measured_calls' => max(0, $totalCalls - $estimatedCalls - $unlabelledCalls),
                 'has_data' => $totalCalls > 0,
                 'last_used_provider' => $latestRequest?->aiModel?->provider?->name,
                 'last_used_model' => $latestRequest?->aiModel?->name,

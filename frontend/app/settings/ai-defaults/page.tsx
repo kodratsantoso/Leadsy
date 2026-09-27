@@ -122,6 +122,11 @@ type UsageOverview = {
     total_calls: number;
     total_cost_usd: number;
     total_cost_converted?: number;
+    /** How much of the total came from a tier guess rather than the model's own prices. */
+    estimated_cost_portion_usd?: number;
+    estimated_calls?: number;
+    unlabelled_calls?: number;
+    measured_calls?: number;
     is_converted?: boolean;
     currency_code?: string;
     success_rate: number | null;
@@ -264,6 +269,44 @@ function featureLabel(key: string | null | undefined, catalog: { key: string; la
     .filter(Boolean)
     .map((word) => FEATURE_ACRONYMS[word] ?? word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+/**
+ * States plainly how much of a cost total is actually measured.
+ *
+ * "estimated" means the model had no per-1M-token prices configured, so the cost came
+ * from a coarse guess keyed off its cost_tier — which for deepseek-v4-pro overstates
+ * input cost by nearly 4x. "not labelled" are rows written before the basis was
+ * recorded; we cannot tell, and pretending otherwise would be worse.
+ */
+function CostConfidence({
+  summary,
+}: {
+  summary?: {
+    total_calls: number;
+    estimated_calls?: number;
+    unlabelled_calls?: number;
+    measured_calls?: number;
+  };
+}) {
+  if (!summary || summary.total_calls === 0) return null;
+
+  const estimated = summary.estimated_calls ?? 0;
+  const unlabelled = summary.unlabelled_calls ?? 0;
+
+  if (estimated === 0 && unlabelled === 0) {
+    return <p className="mt-2 text-xs text-[var(--status-success)]">Based on each model&apos;s configured prices.</p>;
+  }
+
+  const parts: string[] = [];
+  if (estimated > 0) parts.push(`${estimated} estimated from tier`);
+  if (unlabelled > 0) parts.push(`${unlabelled} not labelled`);
+
+  return (
+    <p className="mt-2 text-xs text-[var(--status-warning)]">
+      {parts.join(", ")} of {summary.total_calls} calls — set per-model prices for an exact figure.
+    </p>
+  );
 }
 
 const tabs = [
@@ -1352,6 +1395,11 @@ export default function AiDefaultsPage() {
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Cost ({usageOverview?.summary.is_converted ? usageOverview.summary.currency_code : 'USD'})</p>
               <p className="mt-3 text-3xl font-semibold">{formatCurrency(usageOverview?.summary.total_cost_converted ?? usageOverview?.summary.total_cost_usd ?? 0, { decimals: 4 })}</p>
+              {/* A cost derived from a cost_tier guess used to look identical to one
+                  derived from the model's real per-token prices. Only 2 of 50 models
+                  have prices configured, so saying which is which is the difference
+                  between a number you can budget from and one you cannot. */}
+              <CostConfidence summary={usageOverview?.summary} />
             </CardContent></Card>
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Success Rate</p>
