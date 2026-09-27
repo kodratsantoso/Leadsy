@@ -16,7 +16,8 @@ class AiLeadProfilingService
     public function __construct(
         private readonly AiOrchestrationService $ai,
         private readonly LeadDiscoveryService $discovery,
-        private readonly LeadMasterDataMapperService $mapper
+        private readonly LeadMasterDataMapperService $mapper,
+        private readonly \App\Services\Search\CompanyWebResearchService $webResearch
     ) {}
 
     /**
@@ -90,11 +91,22 @@ class AiLeadProfilingService
         $subIndustries = SubIndustry::where('is_active', true)->pluck('name')->toArray();
         $businessCategories = BusinessCategory::where('is_active', true)->pluck('name')->toArray();
 
+        // Search first, then ask. The prompt instructs the model to consult the official
+        // site, Kemendag and JobStreet, but it has no way to reach them: a web-search
+        // tool is wired only on the Gemini branch, and routing sends this to BytePlus.
+        // Rather than leave it recalling Indonesian SMEs from training data, Leadsy does
+        // the searching and hands over real snippets with their URLs.
+        $research = $this->webResearch->research($companyName);
+
         $response = $this->ai->call('lead_ai_profiling', '', [
             'company_name' => $companyName,
             'available_industries' => implode(', ', $industries),
             'available_sub_industries' => implode(', ', $subIndustries),
             'available_business_categories' => implode(', ', $businessCategories),
+            'web_research' => $research['available']
+                ? $research['findings']
+                : 'No web research is available for this company ('.($research['reason'] ?? 'unknown').'). '
+                    .'Return null for anything you cannot verify — do not fill gaps from memory.',
             'web_search' => true,
         ]);
 
@@ -264,11 +276,20 @@ class AiLeadProfilingService
         $subIndustries = SubIndustry::where('is_active', true)->pluck('name')->toArray();
         $businessCategories = BusinessCategory::where('is_active', true)->pluck('name')->toArray();
 
+        // Stage 1 of the screening pipeline runs this path, so it needs the same real
+        // sources as the standalone profiler — otherwise every automatically screened
+        // lead is profiled from the model's memory alone.
+        $research = $this->webResearch->research($companyName, $lead->tenant_id);
+
         $response = $this->ai->call('lead_ai_profiling', '', [
             'company_name' => $companyName,
             'available_industries' => implode(', ', $industries),
             'available_sub_industries' => implode(', ', $subIndustries),
             'available_business_categories' => implode(', ', $businessCategories),
+            'web_research' => $research['available']
+                ? $research['findings']
+                : 'No web research is available for this company ('.($research['reason'] ?? 'unknown').'). '
+                    .'Return null for anything you cannot verify — do not fill gaps from memory.',
             'web_search' => true,
         ]);
 
