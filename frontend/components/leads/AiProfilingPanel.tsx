@@ -248,10 +248,13 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
           <div className="text-xs">
             <p className="font-semibold text-foreground">Profiled without web research</p>
+            {/* The server's reason already names the setting to configure, so repeating
+                it here printed the same sentence twice on screen. */}
             <p className="mt-0.5 text-muted-foreground">
-              {data.research_status.reason || "Web search was unavailable."} Fields the model could not
-              verify are left empty on purpose rather than guessed. Configure Google Programmable Search
-              under Settings → Integration Setting → Google → Custom Search JSON API to get sourced results.
+              {data.research_status.reason || "Web search was unavailable."}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              Fields the model could not verify are left empty on purpose rather than guessed.
             </p>
           </div>
         </div>
