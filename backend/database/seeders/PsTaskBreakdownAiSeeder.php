@@ -2,8 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\AiFeatureRoute;
-use App\Models\AiModel;
 use App\Models\AiPromptTemplate;
 use App\Models\AiPromptTemplateVersion;
 use Illuminate\Database\Seeder;
@@ -17,28 +15,13 @@ class PsTaskBreakdownAiSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function () {
-            // Get default model or fallback
-            $model = AiModel::where('name', 'gemini-1.5-pro')->first() 
-                ?? AiModel::first();
-            
-            if (!$model) {
-                return; // No AI model available
-            }
-
-            // Create Feature Route
-            AiFeatureRoute::updateOrCreate(
-                ['feature_name' => 'professional_service_task_breakdown'],
-                [
-                    'ai_model_id' => $model->id,
-                    'priority' => 1,
-                    'max_retries' => 2,
-                ]
-            );
-
-            // Create Prompt Template
+            // No feature route is created here. Which provider answers this feature is set
+            // in Settings -> AI Defaults; pinning it to gemini-1.5-pro from a seeder
+            // silently overrode that table, because a feature's own route takes precedence
+            // over the global chain.
 
             $template = AiPromptTemplate::updateOrCreate(
-                ['feature_name' => 'professional_service_task_breakdown'],
+                ['feature_name' => 'ps_task_breakdown_generation'],
                 [
                     'template_name' => 'Professional Service Task Breakdown',
                     'description' => 'Generates structured task and subtask breakdown for Professional Services projects',

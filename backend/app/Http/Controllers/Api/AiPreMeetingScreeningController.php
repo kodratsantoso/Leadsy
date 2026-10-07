@@ -8,6 +8,9 @@ use App\Models\Lead;
 use App\Services\Sales\PreMeetingAiScreeningOrchestratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Carbon;
 
 class AiPreMeetingScreeningController extends Controller
 {
@@ -26,6 +29,49 @@ class AiPreMeetingScreeningController extends Controller
         return response()->json([
             'success' => true,
             'unassessed_count' => $count,
+        ]);
+    }
+
+    /**
+     * GET /api/v1/leads/ai-screening/scheduler-heartbeat
+     * Reports whether `leadsy:screen-unassessed` has actually been invoked
+     * recently — by anything (the scheduler container, a manual run, the
+     * "Screen a Few Now" button). This is the one thing that kept being
+     * impossible to answer from inside the app during past outages: is the
+     * scheduler container even running? Now it's a read from this endpoint
+     * instead of needing server/container access.
+     */
+    public function schedulerHeartbeat(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
+        $heartbeat = Cache::get('leadsy_scheduler_heartbeat');
+
+        if (! $heartbeat) {
+            return response()->json([
+                'success' => true,
+                'status' => 'never_seen',
+                'message' => 'leadsy:screen-unassessed has not run since this cache key\'s TTL — either it has never run, or it hasn\'t run in over 7 days.',
+            ]);
+        }
+
+        $lastSeenAt = Carbon::parse($heartbeat['completed_at'] ?? $heartbeat['invoked_at']);
+        $minutesAgo = $lastSeenAt->diffInMinutes(now());
+
+        // The command is scheduled every 10 minutes; anything comfortably
+        // past that without a fresh heartbeat means whatever should be
+        // invoking it (the scheduler container) has stopped.
+        $status = match (true) {
+            $minutesAgo <= 15 => 'healthy',
+            $minutesAgo <= 60 => 'stale',
+            default => 'dead',
+        };
+
+        return response()->json([
+            'success' => true,
+            'status' => $status,
+            'minutes_ago' => $minutesAgo,
+            'detail' => $heartbeat,
         ]);
     }
 
@@ -181,12 +227,54 @@ class AiPreMeetingScreeningController extends Controller
 
         @set_time_limit(180);
 
-        $result = $this->orchestrator->screenLead($lead, $request->user()->id);
+        $result = $this->orchestrator->screenLead($lead, $request->user()->id, 'manual_force_run_sync');
 
         return response()->json([
             'success' => $result['success'] ?? false,
             'data' => $result,
         ], ($result['success'] ?? false) ? 200 : 422);
+    }
+
+    /**
+     * POST /api/v1/leads/ai-screening/run-backfill
+     * Manual "run now" button for the backlog: screens a small, bounded
+     * batch of unassessed leads in-process and returns the result.
+     *
+     * Deliberately does NOT shell out (no exec()/proc_open()) — an
+     * HTTP-reachable endpoint that constructs and runs a shell command is a
+     * remote-code-execution risk surface even with careful escaping, and
+     * isn't worth it here. It also does NOT use terminating()/afterResponse
+     * — confirmed via live testing on this deployment that the response
+     * doesn't actually detach early, so anything registered there still
+     * blocks the caller for its full duration.
+     *
+     * Given both of those are off the table, this just runs synchronously
+     * and keeps the batch small enough (default 2 leads, ~35s budget) to
+     * usually finish inside typical reverse-proxy gateway timeouts. A slow
+     * lead can still make this time out client-side — that's an
+     * acceptable failure mode (nothing is lost; just click it again or
+     * wait for the next scheduled run), unlike exec()'s risk profile.
+     */
+    public function runBackfillNow(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
+        $limit = min(max((int) $request->input('limit', 2), 1), 3);
+        $maxSeconds = min(max((int) $request->input('max_seconds', 35), 10), 60);
+
+        @set_time_limit($maxSeconds + 15);
+
+        Artisan::call('leadsy:screen-unassessed', [
+            '--limit' => $limit,
+            '--max-seconds' => $maxSeconds,
+            '--source' => 'manual_button',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Backfill batch complete.',
+            'output' => Artisan::output(),
+        ]);
     }
 
     /**

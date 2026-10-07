@@ -234,8 +234,8 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
       {/* SUCCESS NOTIFICATION */}
       {showSuccessNotification && (
         <div className="absolute top-0 right-0 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
-            <CheckCircle className="h-5 w-5 text-green-500" />
+          <div className="bg-[var(--status-success-soft)] border border-[color:var(--status-success)]/30 text-[var(--status-success)] px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <CheckCircle className="h-5 w-5 text-[var(--status-success)]" />
             <div>
               <p className="font-bold text-sm">Success</p>
               <p className="text-xs">Pre-Meeting Brief generated successfully!</p>
@@ -281,11 +281,11 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
 
       {/* WARNINGS */}
       {activeBrief.industry_context_completeness_score === 0 && (
-        <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0" />
+        <div className="bg-[var(--status-warning-soft)]0/10 border border-[color:var(--status-warning)]/50 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-[var(--status-warning)] mt-0.5 shrink-0" />
           <div className="text-sm">
-            <h4 className="font-semibold text-yellow-800 dark:text-yellow-400">Missing Industry Context</h4>
-            <p className="text-yellow-700 dark:text-yellow-300 mt-1">
+            <h4 className="font-semibold text-[var(--status-warning)]">Missing Industry Context</h4>
+            <p className="text-[var(--status-warning)] mt-1">
               Industry or Business Category context is missing. The generated strategies and question guides are based on general product fits.
             </p>
           </div>
@@ -313,18 +313,18 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-3">
               <Card className={cn("p-6", 
-                activeBrief.readiness_status === 'Ready' && "border-green-500/50 bg-green-500/5",
-                activeBrief.readiness_status === 'Needs Clarification' && "border-yellow-500/50 bg-yellow-500/5",
-                activeBrief.readiness_status === 'Not Ready' && "border-red-500/50 bg-red-500/5"
+                activeBrief.readiness_status === 'Ready' && "border-[color:var(--status-success)]/50 bg-[var(--status-success-soft)]0/5",
+                activeBrief.readiness_status === 'Needs Clarification' && "border-[color:var(--status-warning)]/50 bg-[var(--status-warning-soft)]0/5",
+                activeBrief.readiness_status === 'Not Ready' && "border-[color:var(--status-danger)]/50 bg-[var(--status-danger-soft)]0/5"
               )}>
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Readiness Status</p>
                     <h3 className="text-2xl font-bold mt-1">{activeBrief.readiness_status}</h3>
                   </div>
-                  {activeBrief.readiness_status === 'Ready' && <CheckCircle className="h-6 w-6 text-green-500" />}
-                  {activeBrief.readiness_status === 'Needs Clarification' && <AlertCircle className="h-6 w-6 text-yellow-500" />}
-                  {activeBrief.readiness_status === 'Not Ready' && <AlertTriangle className="h-6 w-6 text-red-500" />}
+                  {activeBrief.readiness_status === 'Ready' && <CheckCircle className="h-6 w-6 text-[var(--status-success)]" />}
+                  {activeBrief.readiness_status === 'Needs Clarification' && <AlertCircle className="h-6 w-6 text-[var(--status-warning)]" />}
+                  {activeBrief.readiness_status === 'Not Ready' && <AlertTriangle className="h-6 w-6 text-[var(--status-danger)]" />}
                 </div>
               </Card>
               
@@ -346,9 +346,9 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                       <div key={i} className="flex flex-col gap-1 p-3 rounded-md bg-secondary/30 border">
                         <div className="flex justify-between items-center">
                           <span className="font-semibold text-sm">{item.item}</span>
-                          {item.status === 'pass' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                          {item.status === 'partial' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
-                          {item.status === 'fail' && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                          {item.status === 'pass' && <CheckCircle className="h-4 w-4 text-[var(--status-success)]" />}
+                          {item.status === 'partial' && <AlertCircle className="h-4 w-4 text-[var(--status-warning)]" />}
+                          {item.status === 'fail' && <AlertTriangle className="h-4 w-4 text-[var(--status-danger)]" />}
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">{item.details}</p>
                       </div>
@@ -392,7 +392,7 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                   <div><strong>Business Category:</strong> {custContext.business_category_context || 'Unknown'}</div>
                 </div>
                 {custContext.missing_data && custContext.missing_data.length > 0 && (
-                  <div className="mt-4 text-sm bg-yellow-500/10 p-3 rounded-md text-yellow-800 dark:text-yellow-400">
+                  <div className="mt-4 text-sm bg-[var(--status-warning-soft)]0/10 p-3 rounded-md text-[var(--status-warning)]">
                     <strong>Missing Data:</strong> {custContext.missing_data.join(', ')}
                   </div>
                 )}
@@ -445,7 +445,7 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
               {['budget', 'authority', 'need', 'timeline', 'competitor', 'challenge'].map((bKey) => {
                 const section = bantc[bKey];
                 if (!section) return null;
-                const confColor = section.confidence === 'High' ? 'text-green-500 bg-green-500/10' : (section.confidence === 'Medium' ? 'text-yellow-500 bg-yellow-500/10' : 'text-red-500 bg-red-500/10');
+                const confColor = section.confidence === 'High' ? 'text-[var(--status-success)] bg-[var(--status-success-soft)]0/10' : (section.confidence === 'Medium' ? 'text-[var(--status-warning)] bg-[var(--status-warning-soft)]0/10' : 'text-[var(--status-danger)] bg-[var(--status-danger-soft)]0/10');
                 
                 return (
                   <Card key={bKey} className="flex flex-col">
@@ -520,8 +520,8 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                     <div key={i} className="p-5 hover:bg-muted/10 transition-colors">
                       <div className="flex gap-2 items-center mb-3">
                         <Badge variant="outline" className={
-                          q.priority === 'critical' ? 'border-red-500 text-red-500' :
-                          q.priority === 'high' ? 'border-orange-500 text-orange-500' :
+                          q.priority === 'critical' ? 'border-[color:var(--status-danger)]/30 text-[var(--status-danger)]' :
+                          q.priority === 'high' ? 'border-[color:var(--status-warning)]/30 text-[var(--status-warning)]' :
                           'border-border'
                         }>{q.priority}</Badge>
                         <Badge variant="neutral">{q.category}</Badge>
@@ -534,12 +534,12 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                       
                       <div className="grid sm:grid-cols-2 gap-3 text-sm">
                         {q.what_good_answer_indicates && (
-                          <div className="bg-green-500/10 text-green-800 dark:text-green-300 p-3 rounded-md">
+                          <div className="bg-[var(--status-success-soft)]0/10 text-[var(--status-success)] p-3 rounded-md">
                             <span className="font-semibold block mb-1">Good Indicator</span> {q.what_good_answer_indicates}
                           </div>
                         )}
                         {q.what_risk_answer_indicates && (
-                          <div className="bg-red-500/10 text-red-800 dark:text-red-300 p-3 rounded-md">
+                          <div className="bg-[var(--status-danger-soft)]0/10 text-[var(--status-danger)] p-3 rounded-md">
                             <span className="font-semibold block mb-1">Risk Indicator</span> {q.what_risk_answer_indicates}
                           </div>
                         )}
@@ -562,8 +562,8 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
         {activeTab === 'resistance' && (
           <div className="space-y-6">
             <Card className={cn(
-              resistance.resistance_level === 'high' ? "border-red-500/50" : 
-              resistance.resistance_level === 'medium' ? "border-yellow-500/50" : "border-green-500/50"
+              resistance.resistance_level === 'high' ? "border-[color:var(--status-danger)]/50" : 
+              resistance.resistance_level === 'medium' ? "border-[color:var(--status-warning)]/50" : "border-[color:var(--status-success)]/50"
             )}>
               <CardHeader className="pb-3 border-b">
                 <div className="flex justify-between items-center">
@@ -581,9 +581,9 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                 
                 <div className="grid sm:grid-cols-2 gap-6">
                   {resistance.resistance_signals_to_validate && resistance.resistance_signals_to_validate.length > 0 && (
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
-                      <h4 className="font-semibold text-sm mb-3 text-red-600">Signals to Validate</h4>
-                      <ul className="list-disc pl-4 text-sm space-y-1.5 text-red-800 dark:text-red-300">
+                    <div className="bg-[var(--status-danger-soft)]0/5 border border-[color:var(--status-danger)]/20 rounded-lg p-4">
+                      <h4 className="font-semibold text-sm mb-3 text-[var(--status-danger)]">Signals to Validate</h4>
+                      <ul className="list-disc pl-4 text-sm space-y-1.5 text-[var(--status-danger)]">
                         {resistance.resistance_signals_to_validate.map((s: string, i: number) => <li key={i}>{s}</li>)}
                       </ul>
                     </div>
@@ -643,7 +643,7 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                   )}
 
                   {strategy.what_not_to_pitch_yet && (
-                    <div className="bg-red-500/10 border-l-4 border-red-500 p-3 text-sm text-red-800 dark:text-red-300">
+                    <div className="bg-[var(--status-danger-soft)]0/10 border-l-4 border-[color:var(--status-danger)]/30 p-3 text-sm text-[var(--status-danger)]">
                       <strong>Do NOT pitch yet:</strong> {strategy.what_not_to_pitch_yet}
                     </div>
                   )}
@@ -682,8 +682,8 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
                   
                   {demoCycle.demo_sequence_rule && (
                     <div className="mt-6 pt-6 border-t grid sm:grid-cols-2 gap-4 text-xs">
-                      <div><strong className="text-green-600 block">Show First:</strong> {demoCycle.demo_sequence_rule.show_first}</div>
-                      <div><strong className="text-red-600 block">Avoid Early:</strong> {demoCycle.demo_sequence_rule.avoid_showing_early}</div>
+                      <div><strong className="text-[var(--status-success)] block">Show First:</strong> {demoCycle.demo_sequence_rule.show_first}</div>
+                      <div><strong className="text-[var(--status-danger)] block">Avoid Early:</strong> {demoCycle.demo_sequence_rule.avoid_showing_early}</div>
                     </div>
                   )}
                 </CardContent>
@@ -741,17 +741,17 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
 
               {/* RISKS */}
               <div className="space-y-4">
-                <h3 className="text-lg font-bold flex items-center"><AlertTriangle className="w-5 h-5 mr-2 text-red-500"/> Risk Analysis</h3>
+                <h3 className="text-lg font-bold flex items-center"><AlertTriangle className="w-5 h-5 mr-2 text-[var(--status-danger)]"/> Risk Analysis</h3>
                 
-                <Card className="border-red-500/20">
+                <Card className="border-[color:var(--status-danger)]/20">
                   <CardContent className="p-0 divide-y divide-red-500/10">
                     {['meeting_risks', 'demo_risks', 'deal_risks', 'adoption_risks'].map((rKey) => {
                       const rList = risks[rKey];
                       if (!rList || rList.length === 0) return null;
                       return (
                         <div key={rKey} className="p-4">
-                          <h4 className="text-xs font-bold uppercase text-red-800 dark:text-red-400 mb-2">{rKey.replace(/_/g, ' ')}</h4>
-                          <ul className="list-disc pl-5 text-sm space-y-1 text-red-900/80 dark:text-red-300">
+                          <h4 className="text-xs font-bold uppercase text-[var(--status-danger)] mb-2">{rKey.replace(/_/g, ' ')}</h4>
+                          <ul className="list-disc pl-5 text-sm space-y-1 text-[var(--status-danger)]/80 dark:text-[var(--status-danger)]">
                             {rList.map((r: string, i: number) => <li key={i}>{r}</li>)}
                           </ul>
                         </div>

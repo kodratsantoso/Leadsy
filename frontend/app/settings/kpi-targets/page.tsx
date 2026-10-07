@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -98,10 +99,10 @@ export default function KpiTargetsPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Role KPI Targets</h1>
-        <p className="text-sm text-muted-foreground">Configure specific performance targets for individual team members.</p>
-      </div>
+      <PageHeader
+        title="Role KPI Targets"
+        description="Configure specific performance targets for individual team members."
+      />
 
       <div className="grid gap-6 md:grid-cols-4">
         <div className="md:col-span-1 space-y-4">

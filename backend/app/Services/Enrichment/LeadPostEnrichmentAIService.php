@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * @deprecated This service used to dispatch ScoreLeadJob/QualifyLeadJob/
  * ICPMatchLeadJob independently after enrichment. That's now covered by
- * the unified 9-stage pipeline (RunLeadAiPipelineJob ->
+ * the unified Pre-Meeting AI pipeline (RunLeadAiPipelineJob ->
  * PreMeetingAiScreeningOrchestratorService), which EnrichLeadJob dispatches
  * directly. Keeping this class (emptied) rather than deleting it in case
  * anything still type-hints it via the container — no code calls trigger()

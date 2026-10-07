@@ -88,6 +88,50 @@ class LeadScoringService
         return $this->scoreLead($lead, false);
     }
 
+    /**
+     * Persist a fallback/heuristic score with a real LeadScore history record
+     * behind it — callers (e.g. the Pre-Meeting orchestrator's safeguard
+     * paths) used to write straight to `leads.lead_score` via $lead->update(),
+     * which left the score-history table empty. Any page reading the latest
+     * LeadScore relation (the Lead detail page's Score card) would then show
+     * "—" while list views reading `leads.lead_score` directly showed the
+     * real number, so the two disagreed. Route every fallback through here
+     * instead so both always agree.
+     */
+    public function applyFallbackScore(Lead $lead, int $score, string $reason): LeadScore
+    {
+        $score = max(0, min(100, $score));
+        $now = Carbon::now();
+        $grade = self::gradeForScore($score);
+
+        return DB::transaction(function () use ($lead, $score, $grade, $reason, $now) {
+            /** @var LeadScore $scoreRecord */
+            $scoreRecord = $lead->scores()->create([
+                'tenant_id' => $lead->tenant_id,
+                'score' => $score,
+                'grade' => $grade,
+                'score_breakdown' => [[
+                    'factor_key' => 'fallback_heuristic',
+                    'factor' => 'Fallback Heuristic',
+                    'value' => (string) $score,
+                    'weight' => 100,
+                    'raw_score' => $score,
+                    'score_contribution' => $score,
+                    'reason' => $reason,
+                ]],
+                'calculated_at' => $now,
+                'last_scored_at' => $now,
+            ]);
+
+            $lead->update([
+                'lead_score' => $score,
+                'ai_explanation' => $reason,
+            ]);
+
+            return $scoreRecord->fresh();
+        });
+    }
+
     public function applyManualOverride(Lead $lead, int $score, string $reason, ?User $reviewer = null): LeadScore
     {
         $score = max(0, min(100, $score));

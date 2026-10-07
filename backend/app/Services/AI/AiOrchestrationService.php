@@ -37,6 +37,14 @@ class AiOrchestrationService
         $routes = $this->priorityResolver->getRoutesForFeature($functionName);
         $promptContent = $this->promptTemplates->compilePrompt($functionName, $promptContent, $context);
 
+        // How long this feature needs, and how much it may write, are properties of the
+        // feature — not of whichever provider happens to answer. They live on the prompt
+        // template so a feature can be tuned without being pinned to one provider.
+        $tuning = \App\Models\AiPromptTemplate::query()
+            ->where('feature_name', $functionName)
+            ->where('is_active', true)
+            ->first(['timeout_seconds', 'max_tokens']);
+
         $promptStringForCheck = is_array($promptContent) 
             ? (($promptContent['user'] ?? '') . ' ' . ($promptContent['system'] ?? ''))
             : $promptContent;
@@ -62,8 +70,19 @@ class AiOrchestrationService
             }
 
             for ($attempt = 0; $attempt <= ($route->max_retries ?? 1); $attempt++) {
-                $effectiveTimeout = max((int) ($route->timeout_seconds ?: 60), 60);
-                $result = $this->tryModel($route, $functionName, $promptContent, $context, $effectiveTimeout, $isFallback);
+                $effectiveTimeout = max(
+                    (int) ($tuning?->timeout_seconds ?: $route->timeout_seconds ?: 60),
+                    60
+                );
+                $result = $this->tryModel(
+                    $route,
+                    $functionName,
+                    $promptContent,
+                    $context,
+                    $effectiveTimeout,
+                    $isFallback,
+                    $tuning?->max_tokens
+                );
                 if ($result['success']) {
                     $this->putCachedResult($functionName, $promptContent, $context, $route->cache_ttl_minutes, $result);
 
@@ -80,7 +99,7 @@ class AiOrchestrationService
     /*  PRIVATE */
     /* ──────────────────────────────────────────── */
 
-    private function tryModel(AiFeatureRoute $route, string $functionName, string|array $prompt, array $context, int $timeout, ?bool $isFallback = false): array
+    private function tryModel(AiFeatureRoute $route, string $functionName, string|array $prompt, array $context, int $timeout, ?bool $isFallback = false, ?int $maxTokensOverride = null): array
     {
         $model = $route->aiModel()->with('provider')->first();
         if (! $model || ! $model->provider) {
@@ -93,7 +112,7 @@ class AiOrchestrationService
         try {
             $apiKey = $provider->decrypted_api_key;
             $baseUrl = $provider->base_url ?? $this->defaultBaseUrl($provider->slug);
-            $body = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $route->max_tokens ?? $provider->max_tokens_default, $context);
+            $body = $this->buildRequestBody($provider->provider_type ?: $provider->slug, $model->name, $prompt, $maxTokensOverride ?? $route->max_tokens ?? $provider->max_tokens_default, $context);
 
             $effectiveTimeout = max($timeout, (int) ($provider->timeout_seconds ?? 60), 60);
 
@@ -136,9 +155,9 @@ class AiOrchestrationService
             // Extract content & tokens based on provider
             [$content, $promptTokens, $completionTokens] = $this->parseResponse($provider->provider_type ?: $provider->slug, $decoded);
 
-            $cost = $this->estimateCost($model, $promptTokens, $completionTokens);
+            ['cost' => $cost, 'basis' => $pricingBasis] = $this->estimateCost($model, $promptTokens, $completionTokens);
 
-            $this->logRequest($model, $functionName, $promptTokens, $completionTokens, $cost, $latencyMs, 'success', null, $isFallback);
+            $this->logRequest($model, $functionName, $promptTokens, $completionTokens, $cost, $latencyMs, 'success', null, $isFallback, $pricingBasis);
 
             // NOTE: usage accounting used to be double-logged here into the legacy
             // `ai_usage_logs` table (AiUsageLog). That table/page was retired
@@ -168,6 +187,22 @@ class AiOrchestrationService
         if (is_array($prompt)) {
             $systemPrompt = $prompt['system'] ?? null;
             $userPrompt = $prompt['user'] ?? '';
+
+            // The output contract was assembled by compilePrompt() and then dropped here,
+            // because only 'system' and 'user' were ever read. Prompts that end with
+            // "Return a JSON object conforming strictly to the contract" — lead_ai_profiling
+            // among them — were therefore asking the model to match a shape it had never
+            // been shown. It filled in the obvious fields (name, address, phone, website)
+            // and omitted everything it had no reason to know about: sub_industry,
+            // business_category, company_size, business_model. Those were exactly the
+            // fields reported missing from the profiler.
+            $contract = $prompt['output_contract'] ?? null;
+
+            if (! empty($contract)) {
+                $userPrompt = trim($userPrompt)
+                    ."\n\nReturn ONLY a JSON object with exactly these keys, using null where a value cannot be verified:\n"
+                    .json_encode($contract, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            }
         } else {
             $userPrompt = $prompt;
         }
@@ -200,7 +235,13 @@ class AiOrchestrationService
                 ],
                 'response_format' => ['type' => 'json_object'],
                 'max_tokens' => $maxTokens ?? 4096,
-                'tools' => ($context['web_search'] ?? false) ? [['type' => 'web_search']] : null,
+                // No 'tools' web-search param here: the /chat/completions endpoint
+                // these providers use doesn't support a {type: 'web_search'} tool —
+                // sending it caused an immediate provider-side 400 on every call
+                // that requested web_search (lead_ai_profiling, pre_meeting_brief
+                // generation, contact deep search). Callers still get the
+                // web-search-driven prompt template; only Google Gemini currently
+                // wires an actual server-side search tool (see the branch above).
             ], fn ($value) => $value !== null),
         };
     }
@@ -249,16 +290,22 @@ class AiOrchestrationService
         };
     }
 
-    private function estimateCost(AiModel $model, int $promptTokens, int $completionTokens): float
+    /**
+     * @return array{cost: float, basis: 'measured'|'estimated'}
+     */
+    private function estimateCost(AiModel $model, int $promptTokens, int $completionTokens): array
     {
         // Prefer the model's real, per-token pricing (auto-fetched from OpenRouter,
         // or manually entered for providers that don't expose pricing via their API).
         if ($model->hasRealPricing()) {
-            return round(
-                ($promptTokens * $model->cost_per_million_input_tokens
-                    + $completionTokens * $model->cost_per_million_output_tokens) / 1_000_000,
-                6,
-            );
+            return [
+                'cost' => round(
+                    ($promptTokens * $model->cost_per_million_input_tokens
+                        + $completionTokens * $model->cost_per_million_output_tokens) / 1_000_000,
+                    6,
+                ),
+                'basis' => 'measured',
+            ];
         }
 
         // Fallback: rough cost per 1M tokens (USD) by coarse tier, for models that
@@ -270,10 +317,15 @@ class AiOrchestrationService
             default => ['prompt' => 1.00,  'completion' => 3.00],
         };
 
-        return round(
-            ($promptTokens * $rates['prompt'] + $completionTokens * $rates['completion']) / 1_000_000,
-            6,
-        );
+        // A guess, and it is recorded as one. Without this the Usage & Health totals
+        // read as measured spend when 48 of 50 models have no prices configured.
+        return [
+            'cost' => round(
+                ($promptTokens * $rates['prompt'] + $completionTokens * $rates['completion']) / 1_000_000,
+                6,
+            ),
+            'basis' => 'estimated',
+        ];
     }
 
     /**
@@ -315,7 +367,8 @@ class AiOrchestrationService
         int $latencyMs,
         string $status,
         ?string $error = null,
-        ?bool $isFallback = false
+        ?bool $isFallback = false,
+        ?string $pricingBasis = null
     ): void {
         $currencySnapshot = $this->snapshotCurrencyConversion($cost);
 
@@ -326,6 +379,7 @@ class AiOrchestrationService
             'prompt_tokens' => $promptTokens,
             'completion_tokens' => $completionTokens,
             'estimated_cost_usd' => $cost,
+            'pricing_basis' => $pricingBasis,
             'cost_currency_code' => $currencySnapshot['code'],
             'cost_converted' => $currencySnapshot['converted'],
             'exchange_rate_snapshot' => $currencySnapshot['rate'],

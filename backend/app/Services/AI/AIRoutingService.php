@@ -43,6 +43,31 @@ class AIRoutingService
         'lead_enrichment_summary' => 'Lead Enrichment Summary',
         'lead_ai_profiling' => 'Lead AI Company Profiling',
         'meeting_summary' => 'Meeting Summary Generation',
+
+        // Added 2026-09-27. These were called or had templates but no entry here, so the
+        // settings UI fell back to printing the raw key — "lead_icp_matching" on screen.
+        'lead_enrichment' => 'Lead Firmographic Enrichment',
+        'lead_icp_matching' => 'Lead ICP Matching',
+        'competitive_battle_card' => 'Competitive Battle Card',
+        'customer_success_playbook' => 'Customer Success Playbook',
+        'cs_playbook_ai' => 'Customer Success Playbook',
+        'ai_account_review_generator' => 'Account Review Generator',
+        'ps_task_breakdown_generation' => 'Professional Service Task Breakdown',
+        'professional_service_task_breakdown' => 'Professional Service Task Breakdown (legacy key)',
+        'product_specification_comparison' => 'Product Specification Comparison',
+
+        // Meeting Summary is one AI call ('meeting_summary') whose prompt is assembled
+        // from a general instruction plus one per meeting type. They are fetched by
+        // MeetingSummaryGenerationService through getActiveVersionForFeature(), not
+        // ->call(), which is why they never appeared in this catalog and the settings
+        // page listed them by their variable names.
+        'meeting_summary_general_prompt' => 'Meeting Summary — General (all meeting types)',
+        'meeting_summary_discovery_prompt' => 'Meeting Summary — Discovery',
+        'meeting_summary_demo_prompt' => 'Meeting Summary — Demo',
+        'meeting_summary_follow_up_prompt' => 'Meeting Summary — Follow-up',
+        'meeting_summary_proposal_discussion_prompt' => 'Meeting Summary — Proposal Discussion',
+        'meeting_summary_closing_discussion_prompt' => 'Meeting Summary — Closing Discussion',
+        'meeting_summary_handover_csm_prompt' => 'Meeting Summary — Handover to CSM',
     ];
 
     public function listRoutes(?string $featureName = null): Collection

@@ -143,7 +143,9 @@ class AIPromptTemplateService
             return $input;
         }
 
-        $replacements = ['{{input}}' => $input];
+        // {{input}} is deliberately NOT substituted here — compose() owns it, and doing
+        // it twice appended the caller's prompt a second time.
+        $replacements = [];
         foreach ($variables as $key => $value) {
             $replacements['{{'.$key.'}}'] = is_scalar($value) ? (string) $value : json_encode($value, JSON_PRETTY_PRINT);
         }
@@ -151,20 +153,50 @@ class AIPromptTemplateService
         if ($version->system_prompt || $version->user_prompt) {
             $system = strtr((string) $version->system_prompt, $replacements);
             $user = strtr((string) $version->user_prompt, $replacements);
-            
+
             return [
-                'system' => str_contains($system, '{{input}}') ? str_replace('{{input}}', $input, $system) : $system,
-                'user' => str_contains($user, '{{input}}') ? str_replace('{{input}}', $input, $user) : $user,
+                'system' => $system,
+                'user' => $this->compose($user, $input),
                 'output_contract' => $version->output_contract_json,
             ];
         }
 
-        $template = $version->content;
-        $compiled = strtr((string) $template, $replacements);
+        return $this->compose(strtr((string) $version->content, $replacements), $input);
+    }
 
-        return str_contains($compiled, '{{input}}')
-            ? str_replace('{{input}}', $input, $compiled)
-            : $compiled;
+    /**
+     * Put an editable template and the prompt a service built together.
+     *
+     * `{{input}}` marks where the caller's prompt belongs, and a template that uses it
+     * decides the whole shape. A template WITHOUT it used to mean the caller's prompt was
+     * thrown away — which is how `lead_enrichment` ended up sending literal
+     * "{{company_name}}" to the model: the DB template replaced the controller's fully
+     * rendered prompt and carried placeholders nothing had filled in.
+     *
+     * That made adding a template to a feature a destructive act, so 21 of 24 features
+     * could not safely be given one. Now a template with no `{{input}}` is treated as
+     * instructions that come first, and what the service assembled follows it. Giving a
+     * feature a template is additive, and an operator can still take full control by
+     * writing `{{input}}` where the data should land.
+     */
+    private function compose(string $template, string $input): string
+    {
+        if (str_contains($template, '{{input}}')) {
+            return str_replace('{{input}}', $input, $template);
+        }
+
+        $template = trim($template);
+        $input = trim($input);
+
+        if ($template === '') {
+            return $input;
+        }
+
+        if ($input === '') {
+            return $template;
+        }
+
+        return $template."\n\n".$input;
     }
 
     public function previewPrompt(

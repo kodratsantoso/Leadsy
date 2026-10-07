@@ -306,7 +306,7 @@ export default function DeletedLeadsPage() {
             </Link>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Trash2 className="h-6 w-6 text-rose-500" />
+            <Trash2 className="h-6 w-6 text-[var(--status-danger)]" />
             Keranjang Sampah & Retensi Leads
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -347,15 +347,15 @@ export default function DeletedLeadsPage() {
           className={cn(
             "p-3.5 rounded-xl border text-sm flex items-center justify-between shadow-xs transition-all",
             feedback.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
-              : "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300"
+              ? "bg-[var(--status-success-soft)]0/10 border-[color:var(--status-success)]/30 text-[var(--status-success)]"
+              : "bg-[var(--status-danger-soft)]0/10 border-[color:var(--status-danger)]/30 text-[var(--status-danger)]"
           )}
         >
           <div className="flex items-center gap-2">
             {feedback.type === "success" ? (
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--status-success)]" />
             ) : (
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+              <AlertCircle className="h-4 w-4 shrink-0 text-[var(--status-danger)]" />
             )}
             <span>{feedback.message}</span>
           </div>
@@ -391,14 +391,14 @@ export default function DeletedLeadsPage() {
         {/* Card 2: Within Retention */}
         <Card className="border border-border/70 shadow-xs">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center justify-between text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            <CardDescription className="flex items-center justify-between text-xs font-medium text-[var(--status-success)]">
               <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="h-2 w-2 rounded-full bg-[var(--status-success-soft)]0" />
                 Dalam Masa Retensi
               </span>
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <ShieldCheck className="h-4 w-4 text-[var(--status-success)]" />
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            <CardTitle className="text-2xl font-bold text-[var(--status-success)]">
               {isLoading ? <span className="inline-block h-7 w-16 bg-muted animate-pulse rounded" /> : summary.within_retention}
             </CardTitle>
           </CardHeader>
@@ -410,14 +410,14 @@ export default function DeletedLeadsPage() {
         {/* Card 3: Expiring Soon */}
         <Card className="border border-border/70 shadow-xs">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center justify-between text-xs font-medium text-amber-600 dark:text-amber-400">
+            <CardDescription className="flex items-center justify-between text-xs font-medium text-[var(--status-warning)]">
               <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                <span className="h-2 w-2 rounded-full bg-[var(--status-warning-soft)]0" />
                 Segera Kedaluwarsa (≤14 Hari)
               </span>
-              <Clock className="h-4 w-4 text-amber-500" />
+              <Clock className="h-4 w-4 text-[var(--status-warning)]" />
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+            <CardTitle className="text-2xl font-bold text-[var(--status-warning)]">
               {isLoading ? <span className="inline-block h-7 w-16 bg-muted animate-pulse rounded" /> : summary.expiring_soon}
             </CardTitle>
           </CardHeader>
@@ -429,14 +429,14 @@ export default function DeletedLeadsPage() {
         {/* Card 4: Retention Policy & Expired */}
         <Card className="border border-border/70 shadow-xs">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center justify-between text-xs font-medium text-rose-600 dark:text-rose-400">
+            <CardDescription className="flex items-center justify-between text-xs font-medium text-[var(--status-danger)]">
               <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                <span className="h-2 w-2 rounded-full bg-[var(--status-danger-soft)]0" />
                 Kedaluwarsa / Siap Purge
               </span>
-              <AlertTriangle className="h-4 w-4 text-rose-500" />
+              <AlertTriangle className="h-4 w-4 text-[var(--status-danger)]" />
             </CardDescription>
-            <CardTitle className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+            <CardTitle className="text-2xl font-bold text-[var(--status-danger)]">
               {isLoading ? <span className="inline-block h-7 w-16 bg-muted animate-pulse rounded" /> : summary.expired}
             </CardTitle>
           </CardHeader>
@@ -550,7 +550,7 @@ export default function DeletedLeadsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setBatchRestoreOpen(true)}
-                className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-600 hover:text-white dark:text-emerald-400 text-xs font-medium"
+                className="bg-[var(--status-success-soft)]0/10 text-[var(--status-success)] border-[color:var(--status-success)]/30 hover:bg-[var(--status-success)] hover:text-white dark:text-[var(--status-success)] text-xs font-medium"
               >
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
                 Pulihkan Terpilih ({selectedIds.length})
@@ -641,7 +641,7 @@ export default function DeletedLeadsPage() {
               <TableRow>
                 <TableCell colSpan={7} className="py-12 text-center">
                   <div className="max-w-md mx-auto space-y-3">
-                    <AlertCircle className="h-8 w-8 text-rose-500 mx-auto" />
+                    <AlertCircle className="h-8 w-8 text-[var(--status-danger)] mx-auto" />
                     <p className="text-sm font-semibold text-foreground">Gagal memuat data dari server</p>
                     <p className="text-xs text-muted-foreground">{error?.message || "Terjadi kesalahan jaringan"}</p>
                     <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -735,8 +735,8 @@ export default function DeletedLeadsPage() {
                         variant="neutral"
                         className={cn(
                           "text-[11px] font-normal capitalize px-2 py-0.5",
-                          primarySource === "lark_base" && "bg-sky-500/10 text-sky-600 border-sky-500/20",
-                          primarySource === "google_maps" && "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                          primarySource === "lark_base" && "bg-[var(--status-info-soft)]0/10 text-[var(--status-info)] border-[color:var(--status-info)]/20",
+                          primarySource === "google_maps" && "bg-[var(--status-warning-soft)]0/10 text-[var(--status-warning)] border-[color:var(--status-warning)]/20",
                           primarySource === "website" && "bg-purple-500/10 text-purple-600 border-purple-500/20"
                         )}
                       >
@@ -755,7 +755,7 @@ export default function DeletedLeadsPage() {
                       {lead.is_expired ? (
                         <Badge
                           variant="danger"
-                          className="bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 text-xs font-medium flex items-center gap-1 w-fit"
+                          className="bg-[var(--status-danger-soft)]0/15 text-[var(--status-danger)] border-[color:var(--status-danger)]/30 text-xs font-medium flex items-center gap-1 w-fit"
                         >
                           <AlertTriangle className="h-3 w-3" />
                           Kedaluwarsa
@@ -763,9 +763,9 @@ export default function DeletedLeadsPage() {
                       ) : lead.days_remaining <= 14 ? (
                         <Badge
                           variant="outline"
-                          className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 text-xs font-medium flex items-center gap-1 w-fit"
+                          className="bg-[var(--status-warning-soft)]0/15 text-[var(--status-warning)] border-[color:var(--status-warning)]/30 text-xs font-medium flex items-center gap-1 w-fit"
                         >
-                          <Clock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                          <Clock className="h-3 w-3 text-[var(--status-warning)]" />
                           {lead.days_remaining === 1 && lead.hours_remaining <= 24
                             ? `${lead.hours_remaining} jam tersisa`
                             : `${lead.days_remaining} hari tersisa`}
@@ -773,9 +773,9 @@ export default function DeletedLeadsPage() {
                       ) : (
                         <Badge
                           variant="outline"
-                          className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs font-medium flex items-center gap-1 w-fit"
+                          className="bg-[var(--status-success-soft)]0/15 text-[var(--status-success)] border-[color:var(--status-success)]/30 text-xs font-medium flex items-center gap-1 w-fit"
                         >
-                          <ShieldCheck className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                          <ShieldCheck className="h-3 w-3 text-[var(--status-success)]" />
                           {lead.days_remaining} hari tersisa
                         </Badge>
                       )}
@@ -795,7 +795,7 @@ export default function DeletedLeadsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setRestoreModalLead(lead)}
-                          className="h-8 px-2.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 border-emerald-500/30"
+                          className="h-8 px-2.5 text-xs text-[var(--status-success)] hover:text-[var(--status-success)] hover:bg-[color:var(--status-success)]/100/10 border-[color:var(--status-success)]/30"
                           title="Pulihkan lead ke pipeline aktif"
                         >
                           <RotateCcw className="h-3.5 w-3.5 mr-1" />
@@ -807,7 +807,7 @@ export default function DeletedLeadsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setForceDeleteModalLead(lead)}
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/100/10"
                             title="Hapus permanen"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -883,7 +883,7 @@ export default function DeletedLeadsPage() {
               size="sm"
               onClick={() => restoreModalLead && restoreMutation.mutate(restoreModalLead.id)}
               disabled={restoreMutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-[var(--status-success)] hover:opacity-90 text-white"
             >
               {restoreMutation.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
               Pulihkan Sekarang
@@ -911,7 +911,7 @@ export default function DeletedLeadsPage() {
               size="sm"
               onClick={() => batchRestoreMutation.mutate(selectedIds)}
               disabled={batchRestoreMutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="bg-[var(--status-success)] hover:opacity-90 text-white"
             >
               {batchRestoreMutation.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
               Pulihkan {selectedIds.length} Leads
@@ -928,7 +928,7 @@ export default function DeletedLeadsPage() {
         description="PERINGATAN: Tindakan ini tidak dapat dibatalkan!"
       >
         <div className="space-y-4 py-2">
-          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+          <div className="p-3 bg-[var(--status-danger-soft)]0/10 border border-[color:var(--status-danger)]/20 rounded-xl text-xs text-[var(--status-danger)] flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <div>
               Data lead <strong>{forceDeleteModalLead?.company_name}</strong> dan seluruh riwayat relasinya akan dihapus
@@ -960,7 +960,7 @@ export default function DeletedLeadsPage() {
         description="PERINGATAN: Tindakan penghapusan massal ini tidak dapat dibatalkan!"
       >
         <div className="space-y-4 py-2">
-          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
+          <div className="p-3 bg-[var(--status-danger-soft)]0/10 border border-[color:var(--status-danger)]/20 rounded-xl text-xs text-[var(--status-danger)] flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <div>
               Sebanyak <strong>{selectedIds.length} leads</strong> akan dihapus secara fisik dan permanen dari

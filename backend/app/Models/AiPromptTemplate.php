@@ -42,6 +42,8 @@ class AiPromptTemplate extends Model
         'template_name',
         'description',
         'is_active',
+        'timeout_seconds',
+        'max_tokens',
         'created_by',
         'updated_by',
         'active_version_id',
@@ -49,6 +51,8 @@ class AiPromptTemplate extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'timeout_seconds' => 'integer',
+        'max_tokens' => 'integer',
     ];
 
     public function versions(): HasMany

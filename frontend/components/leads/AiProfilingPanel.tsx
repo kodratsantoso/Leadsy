@@ -11,7 +11,7 @@ interface SourceEvidence {
   other_sources?: string[];
 }
 
-interface ProfilingData {
+export interface ProfilingData {
   company_name?: string;
   legal_name?: string;
   brand?: string;
@@ -53,15 +53,25 @@ interface ProfilingData {
   confidence?: "low" | "medium" | "high";
   evidence?: SourceEvidence;
   sources?: string[];
+  /** Whether Leadsy could search the web before asking the model. */
+  research_status?: { available: boolean; reason?: string | null; source_count?: number };
   lat?: number;
   lng?: number;
 }
 
 interface AiProfilingPanelProps {
-  status: "idle" | "researching" | "ready_for_review" | "failed";
+  status: "idle" | "researching" | "ready_for_review" | "failed" | "timeout";
   data: ProfilingData | null;
   onApply: (data: ProfilingData) => void;
   onClose: () => void;
+  onRetrySync?: () => void;
+  retryingSync?: boolean;
+  /** Seconds since the run was dispatched, so the wait is visible rather than blank. */
+  elapsedSeconds?: number;
+  /** Running longer than usual, but not given up on. */
+  slow?: boolean;
+  /** Why the run ended: the AI came back empty, or we could not reach the server. */
+  failureReason?: "ai" | "unreachable";
 }
 
 const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, icon, children, defaultOpen = true }) => {
@@ -121,6 +131,11 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
   data,
   onApply,
   onClose,
+  onRetrySync,
+  retryingSync,
+  elapsedSeconds = 0,
+  slow = false,
+  failureReason = "ai",
 }) => {
   if (status === "idle") return null;
 
@@ -142,18 +157,113 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
           <p className="text-sm text-muted-foreground animate-pulse text-center px-4">
             Menelusuri website resmi, direktori bisnis, registry pemerintah (Kemendag), platform lowongan kerja, dan sumber publik lainnya...
           </p>
-          <p className="text-xs text-muted-foreground/70">Cross-referencing multiple sources for verified intelligence</p>
+          {/* A blank spinner for a minute reads as broken. Showing the clock — and what
+              counts as normal — is the difference between waiting and worrying. */}
+          <p className="text-xs text-muted-foreground/70 tabular-nums">
+            {elapsedSeconds > 0 ? `Berjalan ${elapsedSeconds} detik` : "Cross-referencing multiple sources"}
+            {" · "}
+            <span className="text-muted-foreground/60">biasanya 20–60 detik</span>
+          </p>
+          {slow && (
+            <div className="mx-4 flex flex-col gap-2 rounded-lg border border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 px-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Lebih lama dari biasanya, tapi <b className="text-foreground">masih berjalan</b> — perusahaan besar
+                memang butuh waktu lebih. Tetap ditunggu sampai 3 menit.
+              </p>
+              {onRetrySync && (
+                <Button size="sm" variant="outline" onClick={onRetrySync} disabled={retryingSync} className="self-start gap-2">
+                  {retryingSync ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  {retryingSync ? "Menjalankan langsung..." : "Jalankan langsung saja"}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
+      {/* Two very different failures used to share one message. Telling someone to try a
+          more specific company name when the server was simply unreachable sends them off
+          editing input that was never the problem. */}
       {status === "failed" && (
-        <div className="flex items-center gap-3 text-destructive py-4 px-4 bg-destructive/10 m-3 rounded-lg border border-destructive/20 text-sm">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <div>
-            <p className="font-semibold">Research Failed</p>
-            <p className="text-xs text-muted-foreground">Tidak dapat mengumpulkan detail profiling untuk nama perusahaan ini. Coba nama yang lebih spesifik atau tambahkan lokasi.</p>
+        <div className="flex flex-col gap-3 text-destructive py-4 px-4 bg-destructive/10 m-3 rounded-lg border border-destructive/20 text-sm">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            {failureReason === "unreachable" ? (
+              <div>
+                <p className="font-semibold text-foreground">Koneksi ke server terputus</p>
+                <p className="text-xs text-muted-foreground">
+                  Status proses tidak bisa dibaca — biasanya karena server sedang restart saat
+                  deployment. <b className="text-foreground">Prosesnya sendiri kemungkinan tetap berjalan</b>,
+                  hanya tidak bisa kami pantau. Tutup panel ini dan coba lagi sebentar lagi.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold">Research Failed</p>
+                <p className="text-xs text-muted-foreground">
+                  AI tidak menemukan cukup informasi publik untuk nama perusahaan ini. Coba nama
+                  yang lebih spesifik atau tambahkan lokasi.
+                </p>
+              </div>
+            )}
+          </div>
+          {failureReason === "unreachable" && onRetrySync && (
+            <Button size="sm" variant="outline" onClick={onRetrySync} disabled={retryingSync} className="self-start gap-2">
+              {retryingSync ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {retryingSync ? "Menjalankan langsung..." : "Coba lagi sekarang"}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {status === "timeout" && (
+        <div className="flex flex-col gap-3 py-4 px-4 bg-[var(--status-warning)]/10 m-3 rounded-lg border border-[var(--status-warning)]/30 text-sm">
+          <div className="flex items-center gap-3 text-[var(--status-warning)]">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold text-foreground">Berhenti menunggu setelah 3 menit</p>
+              <p className="text-xs text-muted-foreground">
+                Proses ini sudah melewati batas waktunya sendiri (3 menit), jadi kemungkinan besar
+                antriannya tidak berjalan — bukan sekadar lambat. Menunggu lebih lama tidak akan
+                membantu. Jalankan langsung tanpa antrian, atau minta admin memeriksa antrian di
+                Settings → AI Screening Monitor.
+              </p>
+            </div>
+          </div>
+          {onRetrySync && (
+            <Button size="sm" variant="outline" onClick={onRetrySync} disabled={retryingSync} className="self-start gap-2">
+              {retryingSync ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {retryingSync ? "Menjalankan langsung..." : "Coba Jalankan Langsung"}
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* A profile full of blanks reads as "the AI is useless" when the real answer is
+          that it had nothing to read. Google Programmable Search needs both an API key
+          and a Search Engine ID; with either missing, the model is told to return null
+          rather than guess — which is correct, and invisible unless stated. */}
+      {status === "ready_for_review" && data?.research_status && !data.research_status.available && (
+        <div className="m-3 flex gap-3 rounded-lg border border-[var(--status-warning)]/30 bg-[var(--status-warning)]/10 px-4 py-3">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
+          <div className="text-xs">
+            <p className="font-semibold text-foreground">Profiled without web research</p>
+            {/* The server's reason already names the setting to configure, so repeating
+                it here printed the same sentence twice on screen. */}
+            <p className="mt-0.5 text-muted-foreground">
+              {data.research_status.reason || "Web search was unavailable."}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              Fields the model could not verify are left empty on purpose rather than guessed.
+            </p>
           </div>
         </div>
+      )}
+
+      {status === "ready_for_review" && data?.research_status?.available && (
+        <p className="mx-3 mt-3 text-xs text-[var(--status-success)]">
+          Based on {data.research_status.source_count ?? 0} web source(s).
+        </p>
       )}
 
       {status === "ready_for_review" && data && (

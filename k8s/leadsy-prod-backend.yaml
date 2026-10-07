@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: leadsy-backend-storage
+  namespace: leadsy-prod
+  labels:
+    app.kubernetes.io/name: leadsy-backend
+    app.kubernetes.io/part-of: leadsy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-k8s
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-backend
+    app.kubernetes.io/part-of: leadsy
+spec:
+  selector:
+    app: leadsy-backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leadsy-backend
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-backend
+    app.kubernetes.io/name: leadsy-backend
+    app.kubernetes.io/part-of: leadsy
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: leadsy-backend
+  template:
+    metadata:
+      labels:
+        app: leadsy-backend
+        app.kubernetes.io/name: leadsy-backend
+        app.kubernetes.io/part-of: leadsy
+    spec:
+      initContainers:
+        - name: prepare-storage
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - mkdir -p /storage/framework/views /storage/framework/cache/data /storage/framework/sessions /storage/logs && chmod -R 775 /storage
+          volumeMounts:
+            - name: backend-storage
+              mountPath: /storage
+      containers:
+        - name: backend
+          image: 10.43.110.114:5000/leadsy-backend:__IMAGE_TAG__
+          imagePullPolicy: Always
+          env:
+            - name: APP_ENV
+              value: production
+            - name: APP_DEBUG
+              value: "false"
+            - name: APP_URL
+              value: https://leadsy.virtuenet.space
+            - name: FRONTEND_URL
+              value: https://leadsy.virtuenet.space
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: app-key
+            - name: DB_CONNECTION
+              value: pgsql
+            - name: DB_HOST
+              value: leadsy-production-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_DATABASE
+              value: leads
+            - name: DB_USERNAME
+              value: leads
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: db-password
+            - name: REDIS_HOST
+              value: leadsy-redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_CLIENT
+              value: predis
+            - name: CACHE_STORE
+              value: redis
+            - name: QUEUE_CONNECTION
+              value: redis
+            - name: SESSION_DRIVER
+              value: redis
+            - name: WHATSAPP_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: whatsapp-webhook-secret
+            - name: AUTO_MIGRATE
+              value: "true"
+            - name: AUTO_SEED_BASELINE
+              value: "false"
+            - name: SEED_DEMO_DATA
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          volumeMounts:
+            - name: backend-storage
+              mountPath: /var/www/html/storage
+      volumes:
+        - name: backend-storage
+          persistentVolumeClaim:
+            claimName: leadsy-backend-storage

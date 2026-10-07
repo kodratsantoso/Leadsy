@@ -6,7 +6,7 @@ import { Building2, Loader2, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/apiFetch";
 import { useDebounce } from "@/hooks/useDebounce";
-import { cn } from "@/lib/utils";
+import { cn, apiList } from "@/lib/utils";
 
 export type PickedLead = {
   id: number;
@@ -32,7 +32,7 @@ export function LeadPicker({
     enabled: debouncedQuery.trim().length >= 2,
   });
 
-  const results: PickedLead[] = data?.data ?? data ?? [];
+  const results: PickedLead[] = apiList<PickedLead>(data);
 
   if (selected) {
     return (

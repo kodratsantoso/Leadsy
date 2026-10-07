@@ -33,6 +33,8 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
 import { apiFetch } from "@/lib/apiFetch";
+import { throwIfApiError } from "@/lib/apiError";
+import { ErrorNotice } from "@/components/ui/error-notice";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +45,10 @@ type ProviderModel = {
   name: string;
   cost_tier?: string;
   status?: string;
+  cost_per_million_input_tokens?: number | null;
+  cost_per_million_output_tokens?: number | null;
+  pricing_source?: string | null;
+  pricing_synced_at?: string | null;
 };
 
 type Provider = {
@@ -122,6 +128,15 @@ type UsageOverview = {
     total_calls: number;
     total_cost_usd: number;
     total_cost_converted?: number;
+    /** How much of the total came from a tier guess rather than the model's own prices. */
+    estimated_cost_portion_usd?: number;
+    estimated_calls?: number;
+    unlabelled_calls?: number;
+    measured_calls?: number;
+    /** Calls with no frozen rupiah conversion — re-converted at today's rate. */
+    unfrozen_calls?: number;
+    unfrozen_cost_usd?: number;
+    legacy_fallback_rate?: number | null;
     is_converted?: boolean;
     currency_code?: string;
     success_rate: number | null;
@@ -230,6 +245,104 @@ type RouteDraftState = Record<
   }[]
 >;
 
+/**
+ * A readable name for an AI feature.
+ *
+ * The catalog on the server carries proper names, but every call site fell back to
+ * printing the raw key when a feature was missing from it — so the settings page showed
+ * "lead_icp_matching" and "ps_task_breakdown_generation" to users. Missing entries are
+ * now humanised instead of leaking the variable name, and acronyms keep their case.
+ */
+const FEATURE_ACRONYMS: Record<string, string> = {
+  ai: "AI",
+  icp: "ICP",
+  bantc: "BANTC",
+  cs: "CS",
+  ps: "PS",
+  kpi: "KPI",
+  idx: "IDX",
+  crm: "CRM",
+};
+
+function featureLabel(key: string | null | undefined, catalog: { key: string; label: string }[]): string {
+  if (!key) return "Prompt Template";
+
+  const known = catalog.find((item) => item.key === key)?.label;
+  if (known) return known;
+
+  // A trailing "_prompt" is how these keys are written, not something a reader needs:
+  // "Meeting Summary Discovery Prompt" says Prompt twice on a page of prompts.
+  const trimmed = key.replace(/_prompt$/, "");
+
+  return trimmed
+    .split("_")
+    .filter(Boolean)
+    .map((word) => FEATURE_ACRONYMS[word] ?? word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+/**
+ * States plainly how much of a cost total is actually measured.
+ *
+ * "estimated" means the model had no per-1M-token prices configured, so the cost came
+ * from a coarse guess keyed off its cost_tier — which for deepseek-v4-pro overstates
+ * input cost by nearly 4x. "not labelled" are rows written before the basis was
+ * recorded; we cannot tell, and pretending otherwise would be worse.
+ */
+function CostConfidence({
+  summary,
+}: {
+  summary?: {
+    total_calls: number;
+    estimated_calls?: number;
+    unlabelled_calls?: number;
+    measured_calls?: number;
+    unfrozen_calls?: number;
+  };
+}) {
+  if (!summary || summary.total_calls === 0) return null;
+
+  const estimated = summary.estimated_calls ?? 0;
+  const unlabelled = summary.unlabelled_calls ?? 0;
+
+  const unfrozen = summary.unfrozen_calls ?? 0;
+
+  const parts: string[] = [];
+  if (estimated > 0) parts.push(`${estimated} estimated from tier`);
+  if (unlabelled > 0) parts.push(`${unlabelled} not labelled`);
+
+  return (
+    <>
+      {parts.length === 0 ? (
+        <p className="mt-2 text-xs text-[var(--status-success)]">Based on each model&apos;s configured prices.</p>
+      ) : (
+        <p className="mt-2 text-xs text-[var(--status-warning)]">
+          {parts.join(", ")} of {summary.total_calls} calls — set per-model prices for an exact figure.
+        </p>
+      )}
+      {unfrozen > 0 && (
+        /* A call records the exchange rate in force when it ran, so old reports do not
+           drift. Calls made before that was recorded are re-converted at today's rate,
+           which means their share of this figure changes whenever the rupiah moves. */
+        <p className="mt-1 text-xs text-muted-foreground">
+          {unfrozen} of {summary.total_calls} calls predate the frozen exchange rate and are converted at
+          today&apos;s rate, so that part of this total shifts as the rupiah moves.
+        </p>
+      )}
+    </>
+  );
+}
+
+/** Parse a typed price, tolerating the comma decimal separator used in Indonesia. */
+function toPrice(value: string): number | null {
+  const trimmed = value.trim().replace(",", ".");
+  if (trimmed === "") return null;
+
+  const parsed = Number(trimmed);
+
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
 const tabs = [
   { key: "providers", label: "Providers", icon: Bot },
   { key: "routing", label: "Feature Routing", icon: GitBranch },
@@ -309,6 +422,9 @@ export default function AiDefaultsPage() {
   const [addingModelFor, setAddingModelFor] = useState<number | null>(null);
   const [newModelName, setNewModelName] = useState("");
   const [newModelTier, setNewModelTier] = useState("medium");
+  const [pricingModelId, setPricingModelId] = useState<number | null>(null);
+  const [pricingIn, setPricingIn] = useState("");
+  const [pricingOut, setPricingOut] = useState("");
   const [newModelInputPrice, setNewModelInputPrice] = useState("");
   const [newModelOutputPrice, setNewModelOutputPrice] = useState("");
   const [newModelPricingSource, setNewModelPricingSource] = useState<"manual" | "openrouter_api" | null>(null);
@@ -471,6 +587,31 @@ export default function AiDefaultsPage() {
     },
     onSuccess: (payload) => {
       setRevealedKeys((current) => ({ ...current, [payload.data.provider_id]: payload.data.api_key }));
+    },
+  });
+
+  // Prices could only be set while ADDING a model, so the 48 models already in the
+  // catalog had no way to get them — and their cost stayed a cost_tier guess. Deleting
+  // and re-adding was the only route, and that cascades away the feature routing.
+  const updateModelPricingMutation = useMutation({
+    mutationFn: async ({ providerId, modelId, input, output }: { providerId: number; modelId: number; input: string; output: string }) => {
+      const res = await apiFetch(`/settings/ai-default/providers/${providerId}/models/${modelId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // A comma decimal ("1,32") makes Number() return NaN, which JSON.stringify
+          // writes as null — the price would silently clear instead of saving. Accept
+          // the separator people actually type.
+          cost_per_million_input_tokens: toPrice(input),
+          cost_per_million_output_tokens: toPrice(output),
+        }),
+      });
+      await throwIfApiError(res, "That price could not be saved.");
+      return res.json();
+    },
+    onSuccess: async () => {
+      await invalidate();
+      setPricingModelId(null);
     },
   });
 
@@ -919,17 +1060,82 @@ export default function AiDefaultsPage() {
                           </div>
                           <div className="mt-4 space-y-2">
                             {provider.models.map((model) => (
-                              <div key={model.id} className="flex items-center justify-between rounded-2xl border border-border/70 px-4 py-3 text-sm">
-                                <div>
-                                  <p className="font-medium">{model.name}</p>
-                                  <p className="text-xs text-muted-foreground">{model.cost_tier ?? "medium"} tier</p>
+                              <div key={model.id} className="rounded-2xl border border-border/70 px-4 py-3 text-sm">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className="font-medium">{model.name}</p>
+                                    {/* Whether this model's cost is measured or guessed is
+                                        the single most useful thing to know here. */}
+                                    {model.cost_per_million_input_tokens != null && model.cost_per_million_output_tokens != null ? (
+                                      <p className="text-xs text-muted-foreground">
+                                        <span className="text-[var(--status-success)]">
+                                          ${model.cost_per_million_input_tokens} in / ${model.cost_per_million_output_tokens} out
+                                        </span>{" "}
+                                        per 1M tokens
+                                        {model.pricing_source ? ` · ${model.pricing_source === "openrouter_api" ? "auto-fetched" : "manual"}` : ""}
+                                      </p>
+                                    ) : (
+                                      <p className="text-xs text-[var(--status-warning)]">
+                                        No price set — cost is guessed from the {model.cost_tier ?? "medium"} tier
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex shrink-0 gap-2">
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setPricingModelId(pricingModelId === model.id ? null : model.id);
+                                        setPricingIn(model.cost_per_million_input_tokens?.toString() ?? "");
+                                        setPricingOut(model.cost_per_million_output_tokens?.toString() ?? "");
+                                      }}
+                                    >
+                                      {pricingModelId === model.id ? "Cancel" : "Set price"}
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={() => deleteModelMutation.mutate({ providerId: provider.id, modelId: model.id })}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
                                 </div>
-                                <Button
-                                  variant="destructive"
-                                  onClick={() => deleteModelMutation.mutate({ providerId: provider.id, modelId: model.id })}
-                                >
-                                  Delete
-                                </Button>
+
+                                {pricingModelId === model.id && (
+                                  <div className="mt-3 grid gap-3 border-t border-border/70 pt-3 md:grid-cols-[1fr_1fr_auto]">
+                                    <div>
+                                      <label className="mb-1 block text-xs text-muted-foreground">Input price (USD / 1M tokens)</label>
+                                      <Input type="number" step="0.0001" min="0" value={pricingIn} placeholder="e.g. 1.32"
+                                        onChange={(e) => setPricingIn(e.target.value)} />
+                                    </div>
+                                    <div>
+                                      <label className="mb-1 block text-xs text-muted-foreground">Output price (USD / 1M tokens)</label>
+                                      <Input type="number" step="0.0001" min="0" value={pricingOut} placeholder="e.g. 3.96"
+                                        onChange={(e) => setPricingOut(e.target.value)} />
+                                    </div>
+                                    <div className="flex items-end">
+                                      <Button
+                                        disabled={updateModelPricingMutation.isPending}
+                                        onClick={() => updateModelPricingMutation.mutate({
+                                          providerId: provider.id, modelId: model.id, input: pricingIn, output: pricingOut,
+                                        })}
+                                      >
+                                        {updateModelPricingMutation.isPending ? "Saving…" : "Save price"}
+                                      </Button>
+                                    </div>
+                                    <div className="md:col-span-3">
+                                      {/* A failed save rendered nothing at all, so a rejected
+                                          price was indistinguishable from a dead button. */}
+                                      <ErrorNotice
+                                        error={updateModelPricingMutation.error}
+                                        fallbackTitle="That price could not be saved."
+                                        className="mb-2"
+                                      />
+                                      <p className="text-[11px] text-muted-foreground">
+                                        Both sides are needed for an exact cost — with only one set, the tier guess is still used.
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1193,7 +1399,7 @@ export default function AiDefaultsPage() {
                       : "border-border bg-background/70 hover:border-[var(--brand)]/30"
                   )}
                 >
-                  <p className="font-medium">{featureCatalog.find((item) => item.key === template.feature_name)?.label ?? template.feature_name}</p>
+                  <p className="font-medium">{featureLabel(template.feature_name, featureCatalog)}</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">
                     Active v{template.active_version?.version ?? "—"}
                   </p>
@@ -1209,7 +1415,7 @@ export default function AiDefaultsPage() {
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h3 className="text-xl font-semibold">
-                    {featureCatalog.find((item) => item.key === activePromptFeature)?.label ?? "Prompt Template"}
+                    {featureLabel(activePromptFeature, featureCatalog)}
                   </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Prompt edits create a new version. Nothing is overwritten silently, and activation is explicit.
@@ -1316,6 +1522,11 @@ export default function AiDefaultsPage() {
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Total Cost ({usageOverview?.summary.is_converted ? usageOverview.summary.currency_code : 'USD'})</p>
               <p className="mt-3 text-3xl font-semibold">{formatCurrency(usageOverview?.summary.total_cost_converted ?? usageOverview?.summary.total_cost_usd ?? 0, { decimals: 4 })}</p>
+              {/* A cost derived from a cost_tier guess used to look identical to one
+                  derived from the model's real per-token prices. Only 2 of 50 models
+                  have prices configured, so saying which is which is the difference
+                  between a number you can budget from and one you cannot. */}
+              <CostConfidence summary={usageOverview?.summary} />
             </CardContent></Card>
             <Card><CardContent className="p-5 pt-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Success Rate</p>
@@ -1527,7 +1738,7 @@ export default function AiDefaultsPage() {
                         <tr key={log.id} className="hover:bg-[color:var(--surface-subtle)]">
                           <td className="py-3 px-4 text-xs whitespace-nowrap text-muted-foreground">{fmtDate(log.created_at)}</td>
                           <td className="py-3 px-4 text-sm font-medium">
-                            <span className="block">{featureCatalog.find((f) => f.key === log.function_name)?.label || log.function_name}</span>
+                            <span className="block">{featureLabel(log.function_name, featureCatalog)}</span>
                             <span className="text-[10px] font-mono text-muted-foreground">{log.function_name}</span>
                           </td>
                           <td className="py-3 px-4 font-medium">{log.model_name}</td>

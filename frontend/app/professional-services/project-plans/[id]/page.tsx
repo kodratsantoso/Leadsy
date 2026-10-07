@@ -20,12 +20,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { describeThrown, type ApiErrorInfo } from "@/lib/apiError";
+import { ErrorNotice } from "@/components/ui/error-notice";
+import { useToast } from "@/components/ui/toast";
 
 export default function ProjectPlanDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const toast = { error: (m: string) => console.log(m), success: (m: string) => console.log(m) };
+  const toast = useToast();
   const [plan, setPlan] = useState<PsProjectPlan | null>(null);
+  const [loadError, setLoadError] = useState<ApiErrorInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeTab, setActiveTab] = useState('Overview');
@@ -34,9 +38,12 @@ export default function ProjectPlanDetailPage() {
     try {
       const data = await getProjectPlan(Number(params.id));
       setPlan(data);
+      setLoadError(null);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load project plan.");
+      // Keep the reason: a plan that is missing, one the user has no access to, and a
+      // backend that is down all used to end at the same "Project Plan Not Found" screen.
+      setLoadError(describeThrown(err, "This project plan could not be loaded."));
     } finally {
       setIsLoading(false);
     }
@@ -54,8 +61,8 @@ export default function ProjectPlanDetailPage() {
       await updateProjectPlanStatus(plan!.id, newStatus);
       toast.success(`Project moved to ${newStatus}`);
       await loadPlan();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update status");
+    } catch (err) {
+      toast.fromError(err, "The project status could not be changed.");
     } finally {
       setIsUpdating(false);
     }
@@ -71,10 +78,18 @@ export default function ProjectPlanDetailPage() {
 
   if (!plan) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center">
-        <h3 className="text-xl font-bold">Project Plan Not Found</h3>
+      <div className="mx-auto max-w-2xl p-12">
+        <ErrorNotice
+          // The request may also succeed and simply return nothing, which is a real answer:
+          // the plan is gone. Say that, rather than leaving the screen blank.
+          error={loadError ?? describeThrown(new Error("This project plan does not exist. It may have been deleted."))}
+          onRetry={() => {
+            setIsLoading(true);
+            loadPlan();
+          }}
+        />
         <Button variant="outline" className="mt-4" onClick={() => router.push("/professional-services/project-plans")}>
-          Go Back
+          Back to project plans
         </Button>
       </div>
     );

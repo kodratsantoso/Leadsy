@@ -20,6 +20,7 @@ import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { LeadPicker, type PickedLead } from "@/components/settings/ai-testing/LeadPicker";
 import { PreMeetingScreeningModal } from "@/components/leads/PreMeetingScreeningModal";
 import { apiFetch } from "@/lib/apiFetch";
+import { runAiScreening } from "@/lib/aiScreeningPipeline";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const TABS = [
@@ -99,47 +100,33 @@ function SingleLeadDebugTab() {
       onError: (err: any) => setFeedback({ type: "error", msg: err.message }),
     });
 
-  const enrichMutation = useRerunMutation("/enrich/retry", "Enrichment");
+  const enrichMutation = useRerunMutation("/enrich/retry", "Firmographic Enrichment");
   const verificationMutation = useRerunMutation("/verification/run", "Company Verification");
-  const profilingMutation = useRerunMutation("/run-profiling-strategy", "Profiling & Strategy + Product Matching");
+  const profilingMutation = useRerunMutation("/run-profiling-strategy", "Profiling & Strategy + Product Matching (legacy)");
   const rescoreMutation = useRerunMutation("/rescore", "Scoring + ICP + Qualification");
-  const analysisMutation = useRerunMutation("/revenue-analysis", "Lead Analysis");
+  const analysisMutation = useRerunMutation("/revenue-analysis", "Revenue Intelligence Analysis");
   const bantcMutation = useRerunMutation("/bantc-questions/generate", "BANTC Questions");
 
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const runFullPipeline = async () => {
     if (!selected) return;
     setPipelineRunning(true);
-    setFeedback({ type: "success", msg: "Starting full 9-stage pipeline..." });
+    setFeedback({ type: "success", msg: "Starting full pipeline..." });
     try {
-      const dispatchRes = await apiFetch(`/leads/${selected.id}/ai-screening/dispatch`, { method: "POST" });
-      const dispatchJson = await dispatchRes.json();
-      if (!dispatchRes.ok || !dispatchJson.success) {
-        throw new Error(dispatchJson?.error || dispatchJson?.message || "Failed to start pipeline.");
-      }
+      const outcome = await runAiScreening(selected.id, {
+        onProgress: (elapsedSeconds) =>
+          setFeedback({ type: "success", msg: `Running full pipeline... (${elapsedSeconds}s elapsed)` }),
+      });
 
-      let done = false;
-      let attempts = 0;
-      const maxAttempts = 90;
-      while (!done && attempts < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 2000));
-        attempts++;
-        const statusRes = await apiFetch(`/leads/${selected.id}/ai-screening/status`);
-        if (statusRes.ok) {
-          const statusJson = await statusRes.json();
-          if (statusJson.status === "completed") {
-            done = true;
-            setFeedback({
-              type: "success",
-              msg: `Full pipeline completed. Score: ${statusJson.data?.lead_score ?? "—"} (${statusJson.data?.qualification_status ?? "—"}).`,
-            });
-          } else if (statusJson.status === "failed") {
-            throw new Error(statusJson.error || "Pipeline failed on server.");
-          }
-        }
-      }
-      if (!done) {
-        setFeedback({ type: "error", msg: "Pipeline timed out after 180 seconds; it may still complete in the background." });
+      if (outcome.status === "completed") {
+        setFeedback({
+          type: "success",
+          msg: `Full pipeline completed. Score: ${outcome.data?.lead_score ?? "—"} (${outcome.data?.qualification_status ?? "—"}).`,
+        });
+      } else if (outcome.status === "failed") {
+        throw new Error(outcome.error);
+      } else {
+        setFeedback({ type: "error", msg: "Pipeline timed out after 10 minutes; it may still complete in the background." });
       }
       invalidate();
     } catch (err: any) {
@@ -155,7 +142,7 @@ function SingleLeadDebugTab() {
         <div>
           <CardTitle>Single Lead Debug</CardTitle>
           <CardDescription>
-            Search a lead and re-run any of the 9 Pre-Meeting AI functions individually, or the full pipeline at once.
+            Search a lead and re-run an individual AI function, or the whole Pre-Meeting pipeline at once. Not every function below is a pipeline stage — the labels say which.
           </CardDescription>
         </div>
       </CardHeader>
@@ -166,24 +153,24 @@ function SingleLeadDebugTab() {
           <>
             <div className="flex items-center justify-between rounded-2xl border border-border bg-[color:var(--surface-subtle)] p-4">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Current AI Pre-Meeting Analysis Status</p>
+                <p className="text-xs font-medium text-muted-foreground">Last Rescore / Brief Job Status</p>
                 <p className="mt-1 text-sm font-semibold">{leadData.company_name}</p>
               </div>
               <AiStatusBadge status={leadData.ai_processing_status} />
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <RerunButton label="Re-run Enrichment" icon={Sparkles} onRun={() => enrichMutation.mutate()} pending={enrichMutation.isPending} />
+              <RerunButton label="Re-run Firmographic Enrichment (queued)" icon={Sparkles} onRun={() => enrichMutation.mutate()} pending={enrichMutation.isPending} />
               <RerunButton label="Re-run Company Verification" icon={Building2} onRun={() => verificationMutation.mutate()} pending={verificationMutation.isPending} />
-              <RerunButton label="Re-run Profiling & Strategy + Product Matching" icon={BrainCircuit} onRun={() => profilingMutation.mutate()} pending={profilingMutation.isPending} />
+              <RerunButton label="Profiling & Strategy + Product Matching (legacy, not in pipeline)" icon={BrainCircuit} onRun={() => profilingMutation.mutate()} pending={profilingMutation.isPending} />
               <RerunButton label="Re-run Scoring + ICP + Qualification" icon={Zap} onRun={() => rescoreMutation.mutate()} pending={rescoreMutation.isPending} />
-              <RerunButton label="Re-run Lead Analysis" icon={Zap} onRun={() => analysisMutation.mutate()} pending={analysisMutation.isPending} />
-              <RerunButton label="Re-run BANTC Questions" icon={ClipboardList} onRun={() => bantcMutation.mutate()} pending={bantcMutation.isPending} />
+              <RerunButton label="Re-run Revenue Intelligence Analysis" icon={Zap} onRun={() => analysisMutation.mutate()} pending={analysisMutation.isPending} />
+              <RerunButton label="Generate BANTC Questions" icon={ClipboardList} onRun={() => bantcMutation.mutate()} pending={bantcMutation.isPending} />
             </div>
 
             <Button onClick={runFullPipeline} disabled={pipelineRunning} className="w-full gap-2 bg-[var(--brand)] text-white hover:opacity-90">
               {pipelineRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-              {pipelineRunning ? "Running Full Pipeline..." : "Run Full Pipeline (All 9 Functions)"}
+              {pipelineRunning ? "Running Full Pipeline..." : "Run Full Pipeline"}
             </Button>
 
             {feedback && (
@@ -227,7 +214,7 @@ function BulkBackfillTab() {
           <div>
             <CardTitle>Screen Unassessed Leads</CardTitle>
             <CardDescription>
-              Run the full 9-stage Pre-Meeting AI pipeline for older leads created before this automation existed.
+              Run the full Pre-Meeting AI pipeline for older leads created before this automation existed.
             </CardDescription>
           </div>
           <Button

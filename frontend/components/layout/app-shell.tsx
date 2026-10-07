@@ -9,7 +9,7 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft, TestTube2
+  HeartPulse, ArrowRightLeft, TestTube2, Trash2
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -17,7 +17,7 @@ import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { canAccessPath } from "@/lib/permissions";
 import { apiFetch } from "@/lib/apiFetch";
-import { ProductTour } from "@/components/ProductTour/ProductTour";
+import { ProductTour, PRODUCT_TOUR_ENABLED } from "@/components/ProductTour/ProductTour";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "./GlobalSearch";
 
@@ -71,7 +71,16 @@ export const navItems: NavItem[] = [
       { href: "/lead-generator/idx", icon: Building2, label: "IDX Public Companies" },
     ],
   },
-  { href: "/leads",                  icon: Building2,       label: "Leads" },
+  {
+    href: "/leads",
+    icon: Building2,
+    label: "Leads",
+    children: [
+      { href: "/leads", icon: Building2, label: "All Leads" },
+      { href: "/leads/by-industry", icon: Layers, label: "By Industry" },
+      { href: "/leads/trash", icon: Trash2, label: "Trash" },
+    ],
+  },
   { href: "/products",               icon: Package,         label: "Products" },
   {
     href: "/professional-services",
@@ -114,6 +123,7 @@ export const navItems: NavItem[] = [
       { href: "/settings/targets/kpi",     icon: Activity,     label: "Target KPI", group: "User & Targets" },
       { href: "/settings/ai-defaults",    icon: Bot,          label: "AI Defaults", group: "AI Intelligence" },
       { href: "/settings/ai-testing-console", icon: TestTube2, label: "AI Testing Console", group: "AI Intelligence" },
+      { href: "/settings/ai-screening-monitor", icon: HeartPulse, label: "AI Screening Monitor", group: "AI Intelligence" },
       { href: "/settings/icp-profiles",   icon: Target,       label: "ICP Profiles", group: "AI Intelligence" },
       { href: "/settings/industries",     icon: Layers,       label: "Industries", group: "CRM Taxonomy" },
       { href: "/settings/business-categories", icon: Briefcase,    label: "Business Categories", group: "CRM Taxonomy" },
@@ -180,6 +190,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const visibleNavItems = useMemo(() => {
     return navItems
@@ -198,25 +209,28 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (item.children?.length) {
         const isChildActive = item.children.some((child) => pathname.startsWith(child.href));
         if (isChildActive) {
-          setExpandedMenus((prev) => ({ ...prev, [item.href]: true }));
+          setExpandedMenus({ [item.href]: true });
         }
       }
     });
   }, [pathname, visibleNavItems]);
 
+  /**
+   * One group open at a time.
+   *
+   * Groups used to accumulate: every one ever opened stayed open, so after a few clicks
+   * the sidebar was a wall of links and the item you wanted had scrolled out of view.
+   * Opening a group now closes the rest, and clicking the open one still closes it.
+   */
   const toggleMenu = (href: string) => {
     if (collapsed) {
       setCollapsed(false);
-      setExpandedMenus((prev) => ({
-        ...prev,
-        [href]: true,
-      }));
-    } else {
-      setExpandedMenus((prev) => ({
-        ...prev,
-        [href]: !prev[href],
-      }));
+      setExpandedMenus({ [href]: true });
+
+      return;
     }
+
+    setExpandedMenus((prev) => (prev[href] ? {} : { [href]: true }));
   };
 
   useEffect(() => {
@@ -234,6 +248,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       .then((res) => res.json())
       .then((data) => setAppVersion(data?.version ?? null))
       .catch(() => {/* silently ignore */});
+  }, []);
+
+  // The logged-in user's role/permissions are cached in localStorage at login
+  // time and never updated after that — if an admin changes this user's role
+  // elsewhere, the sidebar/permission checks kept using the stale snapshot
+  // until the next full login. Re-sync from the server on every app load.
+  useEffect(() => {
+    apiFetch("/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.data) setUser(json.data);
+      })
+      .catch(() => {/* keep the cached user if this fails */});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -392,16 +420,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              data-tour="tour-trigger"
-              tooltip="Take a tour"
-              onClick={() => window.dispatchEvent(new Event("leadsy:start-tour"))}
-            >
-              <HelpCircle className="h-4 w-4" />
-            </Button>
+            {PRODUCT_TOUR_ENABLED && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                data-tour="tour-trigger"
+                tooltip="Take a tour"
+                onClick={() => window.dispatchEvent(new Event("leadsy:start-tour"))}
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+            )}
 
             {/* Theme toggle */}
             <ThemeToggle />

@@ -16,7 +16,8 @@ class AiLeadProfilingService
     public function __construct(
         private readonly AiOrchestrationService $ai,
         private readonly LeadDiscoveryService $discovery,
-        private readonly LeadMasterDataMapperService $mapper
+        private readonly LeadMasterDataMapperService $mapper,
+        private readonly \App\Services\Search\CompanyWebResearchService $webResearch
     ) {}
 
     /**
@@ -28,8 +29,48 @@ class AiLeadProfilingService
      */
     public function startProfiling(string $companyName, ?int $userId = null): AiGeneratedOutput
     {
-        // 1. Create a placeholder output record
-        $output = AiGeneratedOutput::create([
+        $output = $this->createPlaceholderOutput($companyName, $userId);
+
+        // Trigger async profiling
+        \App\Jobs\RunAiLeadProfilingJob::dispatch($output, $companyName);
+
+        return $output;
+    }
+
+    /**
+     * Same as startProfiling(), but runs inline instead of dispatching to
+     * the queue. A queued RunAiLeadProfilingJob silently never completes if
+     * the queue worker is down — the dispatch call still succeeds, so the
+     * caller sees no error, just a "researching" status that never
+     * advances. A single profiling call is one AI round-trip (~20-60s
+     * historically), short enough to run inline within the HTTP request
+     * without needing the queue's retry/backoff machinery.
+     */
+    public function startProfilingSync(string $companyName, ?int $userId = null): AiGeneratedOutput
+    {
+        $output = $this->createPlaceholderOutput($companyName, $userId);
+
+        try {
+            $this->performProfiling($output, $companyName);
+        } catch (\Throwable $e) {
+            Log::error("[AiLeadProfiling] Profiling failed for {$companyName}", ['error' => $e->getMessage()]);
+
+            $original = $output->original_output_json ?? [];
+            $current = $output->current_output_json ?? [];
+
+            $output->update([
+                'status' => 'failed',
+                'original_output_json' => array_merge(is_array($original) ? $original : [], ['error' => $e->getMessage()]),
+                'current_output_json' => array_merge(is_array($current) ? $current : [], ['error' => $e->getMessage()]),
+            ]);
+        }
+
+        return $output->fresh();
+    }
+
+    private function createPlaceholderOutput(string $companyName, ?int $userId = null): AiGeneratedOutput
+    {
+        return AiGeneratedOutput::create([
             'entity_type' => 'App\Models\Lead',
             'entity_id' => 0, // Placeholder before actual Lead creation
             'feature_key' => 'lead_ai_profiling',
@@ -39,11 +80,6 @@ class AiLeadProfilingService
             'original_output_json' => ['company_name' => $companyName],
             'current_output_json' => ['company_name' => $companyName],
         ]);
-
-        // 2. Trigger async profiling
-        \App\Jobs\RunAiLeadProfilingJob::dispatch($output, $companyName);
-
-        return $output;
     }
 
     /**
@@ -55,11 +91,22 @@ class AiLeadProfilingService
         $subIndustries = SubIndustry::where('is_active', true)->pluck('name')->toArray();
         $businessCategories = BusinessCategory::where('is_active', true)->pluck('name')->toArray();
 
+        // Search first, then ask. The prompt instructs the model to consult the official
+        // site, Kemendag and JobStreet, but it has no way to reach them: a web-search
+        // tool is wired only on the Gemini branch, and routing sends this to BytePlus.
+        // Rather than leave it recalling Indonesian SMEs from training data, Leadsy does
+        // the searching and hands over real snippets with their URLs.
+        $research = $this->webResearch->research($companyName);
+
         $response = $this->ai->call('lead_ai_profiling', '', [
             'company_name' => $companyName,
             'available_industries' => implode(', ', $industries),
             'available_sub_industries' => implode(', ', $subIndustries),
             'available_business_categories' => implode(', ', $businessCategories),
+            'web_research' => $research['available']
+                ? $research['findings']
+                : 'No web research is available for this company ('.($research['reason'] ?? 'unknown').'). '
+                    .'Return null for anything you cannot verify — do not fill gaps from memory.',
             'web_search' => true,
         ]);
 
@@ -70,7 +117,15 @@ class AiLeadProfilingService
         $rawJson = preg_replace('/^```(?:json)?\s*|\s*```$/s', '', trim($response['content']));
         $profileData = json_decode($rawJson, true);
         if (!is_array($profileData)) {
-            throw new \Exception('Failed to parse AI profiling response JSON.');
+            // Surface why parsing failed (e.g. truncated output from hitting
+            // max_tokens) instead of a bare generic message — this is stored
+            // on the AiGeneratedOutput record and is otherwise the only clue
+            // available without direct server log access.
+            throw new \Exception(sprintf(
+                'Failed to parse AI profiling response JSON (%s). Raw response (last 500 chars): %s',
+                json_last_error_msg(),
+                mb_substr($rawJson, -500)
+            ));
         }
 
         if (!empty($profileData['candidates']) && is_array($profileData['candidates'])) {
@@ -82,6 +137,16 @@ class AiLeadProfilingService
         if (empty($profileData['company_name']) && !empty($profileData['legal_name'])) {
             $profileData['company_name'] = $profileData['legal_name'];
         }
+
+        // Carry the state of the research through to the screen. Without it a profile
+        // that came back mostly null looks like the AI failing, when the real answer is
+        // that it was never given anything to work from — and the operator cannot tell
+        // those apart, so nobody fixes the thing that is actually broken.
+        $profileData['research_status'] = [
+            'available' => $research['available'],
+            'reason' => $research['reason'] ?? null,
+            'source_count' => count($research['sources'] ?? []),
+        ];
 
         $profileData['evidence'] = [
             'website_sources' => $profileData['sources'] ?? [],
@@ -221,11 +286,20 @@ class AiLeadProfilingService
         $subIndustries = SubIndustry::where('is_active', true)->pluck('name')->toArray();
         $businessCategories = BusinessCategory::where('is_active', true)->pluck('name')->toArray();
 
+        // Stage 1 of the screening pipeline runs this path, so it needs the same real
+        // sources as the standalone profiler — otherwise every automatically screened
+        // lead is profiled from the model's memory alone.
+        $research = $this->webResearch->research($companyName, $lead->tenant_id);
+
         $response = $this->ai->call('lead_ai_profiling', '', [
             'company_name' => $companyName,
             'available_industries' => implode(', ', $industries),
             'available_sub_industries' => implode(', ', $subIndustries),
             'available_business_categories' => implode(', ', $businessCategories),
+            'web_research' => $research['available']
+                ? $research['findings']
+                : 'No web research is available for this company ('.($research['reason'] ?? 'unknown').'). '
+                    .'Return null for anything you cannot verify — do not fill gaps from memory.',
             'web_search' => true,
         ]);
 

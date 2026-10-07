@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Layers, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Layers, Loader2, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
@@ -184,6 +185,15 @@ export default function IndustriesPage() {
                   </button>
 
                   <div className="flex items-center gap-1">
+                    <Link href={`/leads/industry/${industry.id}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        tooltip={`Lihat Leads — ${industry.name}`}
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                    </Link>
                     <Button
                       variant="ghost"
                       size="icon-sm"

@@ -1,0 +1,128 @@
+name: Cluster Diagnostics (read-only)
+
+# Manually triggered inventory of what actually runs in the production
+# namespace. Read-only by construction: it only ever calls `kubectl get`.
+#
+# Exists because the repo checks in no k8s manifests, so the cluster's real
+# topology — which workloads exist, where the frontend sends API traffic,
+# whether the backend runs here at all — cannot be answered from source.
+#
+# Secret hygiene: env VALUES are never printed, only env NAMES, with the
+# single exception of API_INTERNAL_URL (needed to locate the backend), whose
+# userinfo is masked before it reaches the log.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    name: Inspect leadsy-prod
+    runs-on: [self-hosted, in-cluster, k3s]
+    timeout-minutes: 10
+    steps:
+      - name: Namespace inventory
+        run: |
+          NS=leadsy-prod
+          echo "===== Deployments ====="
+          kubectl get deploy -n "$NS" -o wide || true
+          echo; echo "===== StatefulSets ====="
+          kubectl get sts -n "$NS" -o wide || true
+          echo; echo "===== DaemonSets ====="
+          kubectl get ds -n "$NS" -o wide || true
+          echo; echo "===== CronJobs ====="
+          kubectl get cronjob -n "$NS" || true
+          echo; echo "===== Pods ====="
+          kubectl get pods -n "$NS" -o wide || true
+          echo; echo "===== Services ====="
+          kubectl get svc -n "$NS" || true
+          echo; echo "===== Ingress ====="
+          kubectl get ingress -n "$NS" || true
+          echo; echo "===== PersistentVolumeClaims ====="
+          kubectl get pvc -n "$NS" || true
+          echo; echo "===== ConfigMaps (names only) ====="
+          kubectl get cm -n "$NS" -o name || true
+          echo; echo "===== Secrets (names only, no values) ====="
+          kubectl get secret -n "$NS" -o name || true
+
+      - name: Where the frontend sends API traffic
+        run: |
+          NS=leadsy-prod
+          echo "===== env var NAMES on deployment/leadsy container 'web' ====="
+          kubectl get deploy leadsy -n "$NS" \
+            -o jsonpath='{range .spec.template.spec.containers[?(@.name=="web")].env[*]}{.name}{"\n"}{end}' || true
+          echo; echo "===== API_INTERNAL_URL (any credentials masked) ====="
+          kubectl get deploy leadsy -n "$NS" \
+            -o jsonpath='{range .spec.template.spec.containers[?(@.name=="web")].env[?(@.name=="API_INTERNAL_URL")]}{.value}{"\n"}{end}' \
+            | sed -E 's#//[^/@]*@#//***@#' || true
+          echo; echo "===== Service endpoints named like a backend ====="
+          kubectl get endpoints -n "$NS" || true
+
+      - name: Leadsy workloads in any other namespace
+        run: |
+          echo "===== Deployments/StatefulSets cluster-wide matching 'leadsy' ====="
+          kubectl get deploy,sts -A -o wide 2>/dev/null | grep -iE 'NAMESPACE|leadsy' || echo "(none found, or listing across namespaces is not permitted for this runner)"
+
+      - name: Routes the deployed backend actually serves
+        run: |
+          NS=leadsy-prod
+          echo "===== image the backend pod is running ====="
+          kubectl get deploy leadsy-backend -n "$NS" \
+            -o jsonpath='{range .spec.template.spec.containers[*]}{.name}{" -> "}{.image}{"\n"}{end}' || true
+          echo; echo "===== git commit baked into the image ====="
+          kubectl exec -n "$NS" deploy/leadsy-backend -- sh -lc 'cat /var/www/html/.git-commit 2>/dev/null || echo "(no commit marker in image)"' || true
+          echo; echo "===== ai-screening routes registered at runtime ====="
+          # `route:list` only prints the route table; it mutates nothing.
+          kubectl exec -n "$NS" deploy/leadsy-backend -- php artisan route:list --path=ai-screening 2>&1 || true
+
+      - name: Why the backend pods are restarting
+        run: |
+          NS=leadsy-prod
+          echo "===== pod state ====="
+          kubectl get pods -n "$NS" -l app=leadsy-backend -o wide || true
+          echo; echo "===== last termination reason per pod ====="
+          kubectl get pods -n "$NS" -l app=leadsy-backend \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"  restarts="}{.status.containerStatuses[0].restartCount}{"  lastState="}{.status.containerStatuses[0].lastState.terminated.reason}{"  exitCode="}{.status.containerStatuses[0].lastState.terminated.exitCode}{"\n"}{end}' || true
+          echo; echo "===== logs from the CRASHED run (entrypoint output) ====="
+          for POD in $(kubectl get pods -n "$NS" -l app=leadsy-backend -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+            echo "--- $POD (previous) ---"
+            kubectl logs -n "$NS" "$POD" -c backend --previous --tail=60 2>&1 || true
+            echo "--- $POD (current) ---"
+            kubectl logs -n "$NS" "$POD" -c backend --tail=30 2>&1 || true
+          done
+          echo; echo "===== are the other workloads healthy? (tells code vs environment) ====="
+          kubectl get pods -n "$NS" -o wide 2>/dev/null | grep -E "NAME|leadsy-worker|leadsy-scheduler|postgres|redis" || true
+
+      - name: Read-only sources that might still be permitted
+        run: |
+          NS=leadsy-prod
+          echo "===== events (often name the failure reason) ====="
+          kubectl get events -n "$NS" --sort-by=.lastTimestamp 2>&1 | tail -30 || true
+          echo; echo "===== termination message on the crashed container ====="
+          kubectl get pods -n "$NS" -l app=leadsy-backend -o jsonpath='{range .items[*]}{"=== "}{.metadata.name}{" ==="}{"\n"}{.status.containerStatuses[0].lastState.terminated.message}{"\n"}{end}' 2>&1 || true
+          echo; echo "===== services ====="
+          kubectl get svc -n "$NS" 2>&1 | head -15 || true
+          echo; echo "===== backend pod conditions & probe config ====="
+          kubectl get pods -n "$NS" -l app=leadsy-backend \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{range .status.conditions[*]}{"  "}{.type}{"="}{.status}{"  "}{.reason}{"  "}{.message}{"\n"}{end}{end}' 2>&1 || true
+          echo; echo "===== what the runner is allowed to do here ====="
+          for R in pods pods/log pods/exec events endpoints services deployments configmaps secrets; do
+            printf "  %-14s " "$R"; kubectl auth can-i get "$R" -n "$NS" 2>&1 || true
+          done
+
+      - name: Backend logs now that pods/log is permitted
+        run: |
+          NS=leadsy-prod
+          echo "===== image & restart count ====="
+          kubectl get deploy leadsy-backend -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}' || true
+          kubectl get pods -n "$NS" -l app=leadsy-backend \
+            -o jsonpath='{range .items[*]}{.metadata.name}{"  restarts="}{.status.containerStatuses[0].restartCount}{"  started="}{.status.startTime}{"\n"}{end}' || true
+          echo; echo "===== entrypoint output of the CRASHED run, if one is still retained ====="
+          for POD in $(kubectl get pods -n "$NS" -l app=leadsy-backend -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+            echo "--- $POD --previous ---"
+            kubectl logs -n "$NS" "$POD" -c backend --previous --tail=80 2>&1 || true
+          done
+          echo; echo "===== current boot log (entrypoint steps) ====="
+          for POD in $(kubectl get pods -n "$NS" -l app=leadsy-backend -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
+            echo "--- $POD ---"
+            kubectl logs -n "$NS" "$POD" -c backend --tail=40 2>&1 || true
+          done

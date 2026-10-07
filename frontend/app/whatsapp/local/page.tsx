@@ -425,7 +425,7 @@ export default function LocalWhatsAppPage() {
   return (
     <div className="flex w-full h-[calc(100vh-56px)] overflow-hidden bg-background">
       {/* 1. Far-Left Vertical Icon Sidebar (WhatsApp Web Style Sidebar Navigation) */}
-      <div className="w-[60px] h-full shrink-0 flex flex-col items-center justify-between py-4 border-r border-border bg-zinc-100 dark:bg-zinc-900/40">
+      <div className="w-[60px] h-full shrink-0 flex flex-col items-center justify-between py-4 border-r border-border bg-muted dark:bg-zinc-900/40">
         <div className="flex flex-col items-center gap-6 w-full">
           {/* User Profile Avatar */}
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--brand)] text-[11px] font-extrabold text-[color:var(--brand-foreground)]">
@@ -572,7 +572,7 @@ export default function LocalWhatsAppPage() {
                         )}
                       >
                         {/* Avatar */}
-                        <div className="h-10 w-10 shrink-0 rounded-full bg-stone-200 dark:bg-neutral-800 flex items-center justify-center font-bold text-xs text-neutral-600 dark:text-neutral-300">
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-muted dark:bg-neutral-800 flex items-center justify-center font-bold text-xs text-neutral-600 dark:text-neutral-300">
                           {conv.contact?.name?.slice(0, 2).toUpperCase() || "WA"}
                         </div>
 
@@ -602,7 +602,7 @@ export default function LocalWhatsAppPage() {
                             </span>
 
                             {meta?.assignee_id && (
-                              <span className="rounded-full px-1.5 py-0.5 text-[8px] font-semibold bg-blue-500/10 text-blue-500 max-w-[80px] truncate">
+                              <span className="rounded-full px-1.5 py-0.5 text-[8px] font-semibold bg-[var(--status-info-soft)]0/10 text-[var(--status-info)] max-w-[80px] truncate">
                                 {meta.assignee_id === currentUserId ? "Me" : (assignableUsers.find(u => u.id === meta.assignee_id)?.name ?? `User #${meta.assignee_id}`)}
                               </span>
                             )}
@@ -689,8 +689,8 @@ export default function LocalWhatsAppPage() {
                             <div className={cn(
                               "max-w-[70%] rounded-xl px-3 py-2 text-xs shadow-xs relative border border-border/10",
                               isOutbound 
-                                ? "bg-emerald-100/95 dark:bg-emerald-950/40 text-neutral-800 dark:text-neutral-100 rounded-tr-none" 
-                                : "bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100 rounded-tl-none"
+                                ? "bg-[color:var(--status-success)]/95 dark:bg-[color:var(--status-success)]/40 text-foreground dark:text-neutral-100 rounded-tr-none" 
+                                : "bg-white dark:bg-neutral-800 text-foreground dark:text-neutral-100 rounded-tl-none"
                             )}>
                               <p className="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
                               
@@ -699,7 +699,7 @@ export default function LocalWhatsAppPage() {
                                   {msg.sent_at ? new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
                                 </span>
                                 {isOutbound && (
-                                  <CheckCheck className="h-3.5 w-3.5 text-sky-500 font-bold" />
+                                  <CheckCheck className="h-3.5 w-3.5 text-[var(--status-info)] font-bold" />
                                 )}
                               </div>
                             </div>
@@ -957,7 +957,7 @@ export default function LocalWhatsAppPage() {
 
         {/* Tab 2: Connection Status (Device Linking Portal) */}
         {tab === "session" && (
-          <div className="flex-1 overflow-y-auto p-8 bg-zinc-50 dark:bg-zinc-950/20">
+          <div className="flex-1 overflow-y-auto p-8 bg-muted dark:bg-zinc-950/20">
             <div className="max-w-4xl mx-auto space-y-6">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">WhatsApp Web Device Link</h1>
@@ -1064,7 +1064,7 @@ export default function LocalWhatsAppPage() {
 
         {/* Tab 3: Direct Message Form */}
         {tab === "direct" && (
-          <div className="flex-1 overflow-y-auto p-8 bg-zinc-50 dark:bg-zinc-950/20">
+          <div className="flex-1 overflow-y-auto p-8 bg-muted dark:bg-zinc-950/20">
             <div className="max-w-lg mx-auto">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
@@ -1104,7 +1104,7 @@ export default function LocalWhatsAppPage() {
 
         {/* Tab 4: Broadcast Campaigns */}
         {tab === "broadcast" && (
-          <div className="flex-1 overflow-y-auto p-8 bg-zinc-50 dark:bg-zinc-950/20">
+          <div className="flex-1 overflow-y-auto p-8 bg-muted dark:bg-zinc-950/20">
             <div className="max-w-3xl mx-auto space-y-6">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
@@ -1181,7 +1181,7 @@ export default function LocalWhatsAppPage() {
 
         {/* Tab 5: Settings / Privacy Rules */}
         {tab === "settings" && (
-          <div className="flex-1 overflow-y-auto p-8 bg-zinc-50 dark:bg-zinc-950/20">
+          <div className="flex-1 overflow-y-auto p-8 bg-muted dark:bg-zinc-950/20">
             <div className="max-w-2xl mx-auto space-y-6">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-2">

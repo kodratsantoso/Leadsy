@@ -1,0 +1,161 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leadsy-worker
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-worker
+    app.kubernetes.io/part-of: leadsy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: leadsy-worker
+  template:
+    metadata:
+      labels:
+        app: leadsy-worker
+        app.kubernetes.io/part-of: leadsy
+    spec:
+      containers:
+        - name: worker
+          image: 10.43.110.114:5000/leadsy-backend:__IMAGE_TAG__
+          imagePullPolicy: Always
+          args: ["php", "artisan", "horizon"]
+          env:
+            - name: APP_ENV
+              value: production
+            - name: APP_DEBUG
+              value: "false"
+            - name: APP_URL
+              value: https://leadsy.virtuenet.space
+            - name: FRONTEND_URL
+              value: https://leadsy.virtuenet.space
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: app-key
+            - name: DB_CONNECTION
+              value: pgsql
+            - name: DB_HOST
+              value: leadsy-production-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_DATABASE
+              value: leads
+            - name: DB_USERNAME
+              value: leads
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: db-password
+            - name: REDIS_HOST
+              value: leadsy-redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_CLIENT
+              value: predis
+            - name: CACHE_STORE
+              value: redis
+            - name: QUEUE_CONNECTION
+              value: redis
+            - name: SESSION_DRIVER
+              value: redis
+            - name: AUTO_MIGRATE
+              value: "false"
+            - name: AUTO_SEED_BASELINE
+              value: "false"
+            - name: SEED_DEMO_DATA
+              value: "false"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leadsy-scheduler
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-scheduler
+    app.kubernetes.io/part-of: leadsy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: leadsy-scheduler
+  template:
+    metadata:
+      labels:
+        app: leadsy-scheduler
+        app.kubernetes.io/part-of: leadsy
+    spec:
+      containers:
+        - name: scheduler
+          image: 10.43.110.114:5000/leadsy-backend:__IMAGE_TAG__
+          imagePullPolicy: Always
+          args: ["php", "artisan", "schedule:work"]
+          env:
+            - name: APP_ENV
+              value: production
+            - name: APP_DEBUG
+              value: "false"
+            - name: APP_URL
+              value: https://leadsy.virtuenet.space
+            - name: FRONTEND_URL
+              value: https://leadsy.virtuenet.space
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: app-key
+            - name: DB_CONNECTION
+              value: pgsql
+            - name: DB_HOST
+              value: leadsy-production-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_DATABASE
+              value: leads
+            - name: DB_USERNAME
+              value: leads
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: db-password
+            - name: REDIS_HOST
+              value: leadsy-redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_CLIENT
+              value: predis
+            - name: CACHE_STORE
+              value: redis
+            - name: QUEUE_CONNECTION
+              value: redis
+            - name: SESSION_DRIVER
+              value: redis
+            - name: AUTO_MIGRATE
+              value: "false"
+            - name: AUTO_SEED_BASELINE
+              value: "false"
+            - name: SEED_DEMO_DATA
+              value: "false"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

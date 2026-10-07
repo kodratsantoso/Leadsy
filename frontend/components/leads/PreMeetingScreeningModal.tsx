@@ -24,6 +24,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
+import { runAiScreening } from "@/lib/aiScreeningPipeline";
 
 interface PendingLeadItem {
   id: number;
@@ -199,46 +200,16 @@ export function PreMeetingScreeningModal({
       let resultItem: ProcessedLeadResult;
 
       try {
-        // Dispatch background job (near-instant response, no Cloudflare 100s timeout)
-        const dispatchRes = await apiFetch(`/leads/${lead.id}/ai-screening/dispatch`, {
-          method: "POST",
+        const outcome = await runAiScreening(lead.id, {
+          shouldStop: () => stopRequestedRef.current,
         });
-        const dispatchJson = await dispatchRes.json();
 
-        if (!dispatchRes.ok || !dispatchJson.success) {
-          throw new Error(dispatchJson?.error || dispatchJson?.message || `Failed to start screening (${dispatchRes.status})`);
+        if (outcome.status === "failed") {
+          throw new Error(outcome.error);
         }
 
-        // Poll status every 2 seconds until completed or max timeout (180 seconds)
-        let isDone = false;
-        let pollAttempts = 0;
-        const maxAttempts = 90; // 90 * 2000ms = 180s
-        let completedData: any = null;
-
-        while (!isDone && pollAttempts < maxAttempts) {
-          if (stopRequestedRef.current) {
-            break;
-          }
-
-          await new Promise((r) => setTimeout(r, 2000));
-          pollAttempts++;
-
-          try {
-            const statusRes = await apiFetch(`/leads/${lead.id}/ai-screening/status`);
-            if (statusRes.ok) {
-              const statusJson = await statusRes.json();
-              if (statusJson.status === "completed") {
-                isDone = true;
-                completedData = statusJson.data;
-                break;
-              } else if (statusJson.status === "failed") {
-                throw new Error(statusJson.error || "AI Screening failed on server.");
-              }
-            }
-          } catch (pollErr: any) {
-            if (pollAttempts >= maxAttempts) throw pollErr;
-          }
-        }
+        const isDone = outcome.status === "completed";
+        const completedData = isDone && outcome.status === "completed" ? outcome.data : null;
 
         clearInterval(stageInterval);
         const duration = Math.round((performance.now() - startTime) / 100) / 10;
@@ -338,24 +309,24 @@ export function PreMeetingScreeningModal({
             </div>
           </div>
 
-          <div className="p-3.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 flex flex-col">
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+          <div className="p-3.5 rounded-2xl border border-[color:var(--status-success)]/20 bg-[var(--status-success-soft)]0/5 flex flex-col">
+            <span className="text-xs text-[var(--status-success)] font-medium flex items-center gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" /> Assessed (Success)
             </span>
             <div className="flex items-baseline gap-1.5 mt-1">
-              <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+              <span className="text-2xl font-bold text-[var(--status-success)]">
                 {stats.eligible + stats.potential + stats.notEligible}
               </span>
               <span className="text-xs text-muted-foreground">/ {totalLeads}</span>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex flex-col">
-            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+          <div className="p-3.5 rounded-2xl border border-[color:var(--status-warning)]/20 bg-[var(--status-warning-soft)]0/5 flex flex-col">
+            <span className="text-xs text-[var(--status-warning)] font-medium flex items-center gap-1">
               <Activity className="h-3.5 w-3.5" /> Remaining
             </span>
             <div className="flex items-baseline gap-1.5 mt-1">
-              <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{remainingCount}</span>
+              <span className="text-2xl font-bold text-[var(--status-warning)]">{remainingCount}</span>
               <span className="text-xs text-muted-foreground">leads</span>
             </div>
           </div>
@@ -392,14 +363,14 @@ export function PreMeetingScreeningModal({
           </div>
           <div className="text-muted-foreground">
             {isRunning ? (
-              <span className="inline-flex items-center gap-1.5 text-emerald-500 font-medium">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+              <span className="inline-flex items-center gap-1.5 text-[var(--status-success)] font-medium">
+                <span className="h-2 w-2 rounded-full bg-[var(--status-success-soft)]0 animate-ping" />
                 Live Processing Active
               </span>
             ) : isPaused ? (
-              <span className="text-amber-500 font-medium">⏸️ Assessment Paused</span>
+              <span className="text-[var(--status-warning)] font-medium">⏸️ Assessment Paused</span>
             ) : isDone ? (
-              <span className="text-emerald-500 font-medium">🎉 Assessment Completed</span>
+              <span className="text-[var(--status-success)] font-medium">🎉 Assessment Completed</span>
             ) : (
               <span>Ready to start</span>
             )}
@@ -490,7 +461,7 @@ export function PreMeetingScreeningModal({
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {item.success ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-[var(--status-success)] shrink-0" />
                     ) : (
                       <XCircle className="h-4 w-4 text-destructive shrink-0" />
                     )}
@@ -565,7 +536,7 @@ export function PreMeetingScreeningModal({
               <Button
                 variant="secondary"
                 onClick={handlePause}
-                className="gap-2 border-amber-500/30 text-amber-600 bg-amber-500/10 hover:bg-amber-500/20"
+                className="gap-2 border-[color:var(--status-warning)]/30 text-[var(--status-warning)] bg-[var(--status-warning-soft)]0/10 hover:bg-[color:var(--status-warning)]/100/20"
               >
                 <Pause className="h-4 w-4" /> Pause Assessment
               </Button>
@@ -582,7 +553,7 @@ export function PreMeetingScreeningModal({
                   onSuccess();
                   onOpenChange(false);
                 }}
-                className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
+                className="gap-2 bg-[var(--status-success)] text-white hover:bg-[var(--status-success)]"
               >
                 <CheckCircle2 className="h-4 w-4" /> Finished & Refresh Leads
               </Button>

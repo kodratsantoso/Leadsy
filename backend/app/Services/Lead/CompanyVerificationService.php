@@ -163,21 +163,21 @@ class CompanyVerificationService
      */
     protected function resolveViaAi(Lead $lead): array
     {
-        $prompt = "You are a corporate intelligence agent. Resolve the identity of this lead:\n" .
+        $prompt = "You are a corporate intelligence agent supporting an Indonesian sales team. Resolve the identity of this lead:\n" .
             "Company Name: {$lead->company_name}\n" .
             "Brand: {$lead->brand}\n" .
             "Website: {$lead->website}\n" .
             "Industry: " . ($lead->industry?->name ?? 'Unknown') . "\n" .
             "Address: {$lead->address}\n\n" .
             "Analyze whether this matches registered entities, typical abbreviations, and operational presence.\n" .
-            "Return JSON matching this schema:\n" .
+            "Return JSON matching this schema (write \"reasoning\" in Bahasa Indonesia; keep every other key and value in English exactly as specified):\n" .
             "{\n" .
             "  \"legal_name_resolved\": \"string\",\n" .
             "  \"legal_status\": \"VERIFIED|PARTIALLY_VERIFIED|UNVERIFIED\",\n" .
             "  \"legal_confidence\": integer,\n" .
             "  \"entity_match_confidence\": integer,\n" .
             "  \"operational_confidence\": integer,\n" .
-            "  \"reasoning\": \"string\"\n" .
+            "  \"reasoning\": \"string, in Bahasa Indonesia\"\n" .
             "}";
 
         try {

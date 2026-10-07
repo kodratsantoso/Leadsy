@@ -37,9 +37,26 @@ class LeadGeneratorIdxController extends Controller
             );
         }
 
-        // If cache is empty, try to populate it once
+        // If the cache is empty, try to populate it from the shipped dataset.
         if (IdxCompanyCache::count() === 0) {
             $this->cacheService->refreshCacheFromLocal();
+        }
+
+        // An empty cache with no dataset to load from is a broken install, not an empty
+        // search result — and the two used to look identical on screen. Say which it is,
+        // and name the file we looked for, so this does not need a developer to diagnose.
+        if (IdxCompanyCache::count() === 0 && $this->cacheService->datasetPath() === null) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'IDX_DATASET_MISSING',
+                    'message' => 'The IDX company dataset is not installed on this server, so there is nothing to search.',
+                    'hint' => 'The file ships with the application. Ask an administrator to check that one of these exists in the backend container: '
+                        .implode(' or ', IdxCompanyCacheService::DATASET_PATHS)
+                        .'. A volume mounted over storage/ will hide a copy kept there.',
+                ],
+                'message' => 'The IDX company dataset is not installed on this server, so there is nothing to search.',
+            ], 503);
         }
 
         $filters = [
@@ -86,6 +103,7 @@ class LeadGeneratorIdxController extends Controller
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+                'cached_companies' => IdxCompanyCache::count(),
             ]
         ]);
     }

@@ -92,6 +92,14 @@ class IdxToLeadMappingService
             'notes' => json_encode($normalizedData['raw_source_payload']),
         ]);
 
+        // Kicks off the same automatic Pre-Meeting AI pipeline every other
+        // lead-creation source already triggers (manual, import, Lark sync,
+        // Map Discovery, WhatsApp convert). IDX leads were deliberately left
+        // out of this originally because ai_mode was hardcoded to 'manual'
+        // above and the orchestrator used to skip 'manual' leads entirely —
+        // that skip gate no longer exists, so this is safe to enable now.
+        app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'idx_import');
+
         return $lead;
     }
 }

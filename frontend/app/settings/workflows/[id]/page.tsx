@@ -24,9 +24,10 @@ import "@xyflow/react/dist/style.css";
 import { ArrowLeft, Save, Play, CheckCircle2, AlertCircle, GripHorizontal, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { apiFetch } from "@/lib/apiFetch";
+import { throwIfApiError } from "@/lib/apiError";
+import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 
-const toast = { error: (m: string) => console.log(m), success: (m: string) => console.log(m) };
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -76,6 +77,7 @@ const nodeTypes = {
 // Builder Component (Wrapped in ReactFlowProvider)
 // ----------------------------------------------------------------------
 function WorkflowBuilder({ id }: { id: string }) {
+  const toast = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { screenToFlowPosition } = useReactFlow();
@@ -232,15 +234,15 @@ function WorkflowBuilder({ id }: { id: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nodes, edges }),
       });
-      if (!response.ok) throw new Error("Failed to sync workflow graph");
+      await throwIfApiError(response, "The workflow design could not be saved.");
       return response.json();
     },
     onSuccess: () => {
       toast.success("Workflow design saved successfully.");
       queryClient.invalidateQueries({ queryKey: ["workflow", id] });
     },
-    onError: () => {
-      toast.error("Failed to save workflow design.");
+    onError: (error) => {
+      toast.fromError(error, "The workflow design could not be saved.");
     }
   });
 
@@ -255,7 +257,7 @@ function WorkflowBuilder({ id }: { id: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Failed to add action");
+      await throwIfApiError(response, "The action could not be added.");
       return response.json();
     },
     onSuccess: () => {
@@ -263,8 +265,8 @@ function WorkflowBuilder({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["workflow", id] });
       setIsActionModalOpen(false);
     },
-    onError: () => {
-      toast.error("Failed to add action");
+    onError: (error) => {
+      toast.fromError(error, "The action could not be added.");
     }
   });
 
@@ -273,12 +275,15 @@ function WorkflowBuilder({ id }: { id: string }) {
       const response = await apiFetch(`/workflows/${id}/actions/${actionId}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete action");
+      await throwIfApiError(response, "The action could not be deleted.");
       return response.json();
     },
     onSuccess: () => {
       toast.success("Action deleted");
       queryClient.invalidateQueries({ queryKey: ["workflow", id] });
+    },
+    onError: (error) => {
+      toast.fromError(error, "The action could not be deleted.");
     },
   });
 
@@ -314,15 +319,15 @@ function WorkflowBuilder({ id }: { id: string }) {
       const response = await apiFetch(`/workflows/${id}/activate`, {
         method: "POST",
       });
-      if (!response.ok) throw new Error("Failed to activate workflow");
+      await throwIfApiError(response, "The workflow could not be activated.");
       return response.json();
     },
     onSuccess: () => {
       toast.success("Workflow activated successfully.");
       queryClient.invalidateQueries({ queryKey: ["workflow", id] });
     },
-    onError: () => {
-      toast.error("Failed to activate workflow.");
+    onError: (error) => {
+      toast.fromError(error, "The workflow could not be activated.");
     }
   });
 

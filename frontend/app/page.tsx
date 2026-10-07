@@ -100,6 +100,26 @@ type SourceChannelAggregate = {
   channel_type_id?: number | null;
 };
 
+/**
+ * Whether a metric's change is good news. Most metrics improve as they rise,
+ * but some (duplicate rate) improve as they fall — colouring those by direction
+ * alone told the reader a worsening number was an improvement.
+ * Returns null when there is nothing to judge.
+ */
+function deltaIsGood(change?: string | null, lowerIsBetter?: boolean): boolean | null {
+  if (!change) return null;
+  const rising = change.startsWith("+");
+  const falling = change.startsWith("-");
+  if (!rising && !falling) return null;
+  return lowerIsBetter ? falling : rising;
+}
+
+function deltaToneClass(change?: string | null, lowerIsBetter?: boolean): string {
+  const good = deltaIsGood(change, lowerIsBetter);
+  if (good === null) return "text-muted-foreground";
+  return good ? "text-[var(--status-success)]" : "text-[var(--status-danger)]";
+}
+
 function PipelineHealthBadge({ health }: { health?: string }) {
   const cfg = {
     healthy: "bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[var(--status-success)]/40",
@@ -206,7 +226,7 @@ function CountdownWidget() {
         <span>{formatNum(timeLeft.minutes)}</span>
         <span className="text-muted-foreground font-sans font-medium text-[10px]">m</span>
         <span className="text-muted-foreground/50">:</span>
-        <span className="text-rose-500">{formatNum(timeLeft.seconds)}</span>
+        <span className="text-[var(--status-danger)]">{formatNum(timeLeft.seconds)}</span>
         <span className="text-muted-foreground font-sans font-medium text-[10px]">s</span>
       </div>
     </div>
@@ -400,7 +420,6 @@ export default function DashboardPage() {
       value: dashboard.total_leads ?? "—",
       icon: Building2,
       change: dashboard.leads_change ?? null,
-      color: "from-[var(--brand)] to-[oklch(0.558_0.288_302.321)]",
       href: "/leads",
       trend: dashboard.metrics_trends?.total_leads ?? [],
     },
@@ -409,7 +428,6 @@ export default function DashboardPage() {
       value: dashboard.qualified_leads ?? "—",
       icon: Target,
       change: dashboard.qualified_change ?? null,
-      color: "from-[var(--status-success)] to-[oklch(0.627_0.194_149)]",
       href: "/leads?qualification_status=eligible",
       trend: dashboard.metrics_trends?.qualified_leads ?? [],
     },
@@ -418,7 +436,6 @@ export default function DashboardPage() {
       value: dashboard.pipeline_leads ?? dashboard.total_leads ?? "—",
       icon: TrendingUp,
       change: dashboard.pipeline_change ?? null,
-      color: "from-[var(--status-info)] to-[oklch(0.527_0.183_249)]",
       href: "/leads?pipeline_status=active",
       trend: dashboard.metrics_trends?.pipeline_leads ?? [],
     },
@@ -427,7 +444,7 @@ export default function DashboardPage() {
       value: dashboard.duplicate_rate ?? (dashboard.duplicate_ratio != null ? `${dashboard.duplicate_ratio}%` : "—"),
       icon: AlertTriangle,
       change: dashboard.duplicate_change ?? null,
-      color: "from-[var(--status-warning)] to-[oklch(0.65_0.22_50)]",
+      lowerIsBetter: true,
       href: "/leads?duplicate_status=duplicates",
       trend: dashboard.metrics_trends?.duplicate_rate ?? [],
     },
@@ -437,28 +454,28 @@ export default function DashboardPage() {
     {
       label: "Pending",
       value: dashboard.by_status?.pending ?? 0,
-      color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+      color: "text-[var(--status-warning)] bg-[var(--status-warning-soft)] border-[color:var(--status-warning)]/20",
       icon: RefreshCw,
       href: "/leads?qualification_status=pending"
     },
     {
       label: "Potential",
       value: dashboard.by_status?.potential ?? 0,
-      color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+      color: "text-[var(--status-info)] bg-[var(--status-info-soft)] border-[color:var(--status-info)]/20",
       icon: Activity,
       href: "/leads?qualification_status=potential"
     },
     {
       label: "Eligible",
       value: dashboard.by_status?.eligible ?? 0,
-      color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+      color: "text-[var(--status-success)] bg-[var(--status-success-soft)] border-[color:var(--status-success)]/20",
       icon: CheckCircle2,
       href: "/leads?qualification_status=eligible"
     },
     {
       label: "Not Eligible",
       value: dashboard.by_status?.not_eligible ?? 0,
-      color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+      color: "text-[var(--status-danger)] bg-[var(--status-danger-soft)] border-[color:var(--status-danger)]/20",
       icon: AlertTriangle,
       href: "/leads?qualification_status=not_eligible"
     }
@@ -557,20 +574,20 @@ export default function DashboardPage() {
           const estPct = formatNumber(step.estimated_percentage ?? 0, { decimals: 1 });
 
           return `
-            <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg shadow-xl text-white font-sans min-w-[220px]">
-              <div class="font-semibold text-sm mb-2 pb-1 border-b border-slate-800 text-white">${step.label}</div>
+            <div class="p-3 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl text-[var(--card-foreground)] font-sans min-w-[220px]">
+              <div class="font-semibold text-sm mb-2 pb-1 border-b border-[var(--border)]">${step.label}</div>
               <div class="space-y-1 text-xs">
                 <div class="flex justify-between gap-4">
-                  <span class="text-slate-400">Total Leads:</span>
-                  <span class="font-medium text-white">${totalLeads}</span>
+                  <span class="text-[var(--muted-foreground)]">Total Leads:</span>
+                  <span class="font-medium">${totalLeads}</span>
                 </div>
                 <div class="flex justify-between gap-4">
-                  <span class="text-slate-400">Presentase Konversi:</span>
-                  <span class="font-medium text-white">${conversionPct}%</span>
+                  <span class="text-[var(--muted-foreground)]">Presentase Konversi:</span>
+                  <span class="font-medium">${conversionPct}%</span>
                 </div>
                 <div class="flex justify-between gap-4">
-                  <span class="text-slate-400">Amount Estimated:</span>
-                  <span class="font-medium text-white">${estAmount} (${estPct}%)</span>
+                  <span class="text-[var(--muted-foreground)]">Amount Estimated:</span>
+                  <span class="font-medium">${estAmount} (${estPct}%)</span>
                 </div>
               </div>
             </div>
@@ -736,8 +753,8 @@ export default function DashboardPage() {
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{s.label}</p>
                             <p className="mt-1 text-2xl font-bold">{typeof s.value === "number" ? formatNumber(s.value, { decimals: 0 }) : s.value}</p>
                           </div>
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} shadow-lg`}>
-                            <s.icon className="h-5 w-5 text-white" />
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors group-hover:text-[var(--brand)]">
+                            <s.icon className="h-4 w-4" />
                           </div>
                         </div>
 
@@ -745,7 +762,7 @@ export default function DashboardPage() {
                         <div className="mt-4 flex w-full items-center justify-between gap-4">
                           <div className="text-xs font-semibold">
                             {s.change ? (
-                              <span className={s.change.startsWith("+") ? "text-emerald-500" : s.change.startsWith("-") ? "text-rose-500" : "text-muted-foreground"}>
+                              <span className={deltaToneClass(s.change, s.lowerIsBetter)}>
                                 {s.change}
                               </span>
                             ) : (
@@ -770,7 +787,7 @@ export default function DashboardPage() {
                                       opacityTo: 0.05
                                     }
                                   },
-                                  colors: [s.change?.startsWith("-") ? "#ef4444" : "#10b981"],
+                                  colors: [deltaIsGood(s.change, s.lowerIsBetter) === false ? "#ef4444" : "#10b981"],
                                   tooltip: { enabled: false }
                                 }}
                                 series={[{ data: s.trend }]}
@@ -1389,7 +1406,7 @@ export default function DashboardPage() {
                 <Card className="h-full">
                   <CardHeader>
                     <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-amber-500 animate-pulse" />
+                      <Zap className="h-4 w-4 text-[var(--brand)]" />
                       <div>
                         <CardTitle>Technical Trust Validation</CardTitle>
                         <CardDescription>Presales Solution Architect KPIs</CardDescription>
@@ -1406,15 +1423,15 @@ export default function DashboardPage() {
                         </div>
                         <div className="rounded-lg bg-muted/40 p-3">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">POC Success Rate</p>
-                          <p className="text-lg font-bold text-emerald-500">{salesAchievement.poc_success_rate}%</p>
+                          <p className="text-lg font-bold">{salesAchievement.poc_success_rate}%</p>
                         </div>
                         <div className="rounded-lg bg-muted/40 p-3">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Integration Fit</p>
-                          <p className="text-lg font-bold text-blue-500">{salesAchievement.integration_fit_score}%</p>
+                          <p className="text-lg font-bold">{salesAchievement.integration_fit_score}%</p>
                         </div>
                         <div className="rounded-lg bg-muted/40 p-3">
                           <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">SLA Response</p>
-                          <p className="text-lg font-bold text-amber-500">{salesAchievement.sla_response_time} hrs</p>
+                          <p className="text-lg font-bold">{salesAchievement.sla_response_time} hrs</p>
                         </div>
                       </div>
 
@@ -1681,11 +1698,11 @@ export default function DashboardPage() {
                       </div>
                       <div className="rounded-xl border border-border bg-background p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expected Buffer Rate</p>
-                        <p className="mt-1 text-xl font-bold text-amber-500">{salesAchievement.buffer_rate}%</p>
+                        <p className="mt-1 text-xl font-bold">{salesAchievement.buffer_rate}%</p>
                       </div>
                       <div className="rounded-xl border border-border bg-background p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company Target (Net)</p>
-                        <p className="mt-1 text-xl font-bold text-emerald-500">{formatCurrency(salesAchievement.net_target)}</p>
+                        <p className="mt-1 text-xl font-bold">{formatCurrency(salesAchievement.net_target)}</p>
                       </div>
                       <div className="rounded-xl border border-border bg-background p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Total Realized Revenue</p>
@@ -1712,9 +1729,9 @@ export default function DashboardPage() {
                               const isSdr = rep.tier_level === "SDR";
                               const isPresales = rep.tier_level === "PRESALES";
                               const barColor = isSdr
-                                ? "bg-indigo-500"
+                                ? "bg-[var(--status-info)]"
                                 : isPresales
-                                  ? "bg-emerald-500"
+                                  ? "bg-[var(--status-success)]"
                                   : "bg-[color:var(--brand)]";
                               return (
                                 <TableRow key={rep.id} className="hover:bg-muted/30">
@@ -1736,11 +1753,11 @@ export default function DashboardPage() {
                                   </TableCell>
                                   <TableCell className="text-xs font-medium uppercase">
                                     {rep.target_type === "pipeline_value" ? (
-                                      <span className="text-indigo-400 font-semibold">Pipeline Sourced</span>
+                                      <span className="text-[var(--status-info)] font-semibold">Pipeline Sourced</span>
                                     ) : rep.target_type === "opportunities" ? (
-                                      <span className="text-amber-400 font-semibold">Opportunities Assigned</span>
+                                      <span className="text-[var(--status-warning)] font-semibold">Opportunities Assigned</span>
                                     ) : (
-                                      <span className="text-emerald-400 font-semibold">Closed-Won</span>
+                                      <span className="text-[var(--status-success)] font-semibold">Closed-Won</span>
                                     )}
                                   </TableCell>
                                   <TableCell className="font-mono text-sm">

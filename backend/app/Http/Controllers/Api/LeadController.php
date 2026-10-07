@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Lead\BulkImportLeadsRequest;
+use App\Http\Requests\Lead\StoreLeadRequest;
+use App\Http\Requests\LeadActivity\StoreLeadActivityRequest;
+use App\Http\Requests\LeadActivity\UpdateLeadActivityRequest;
+use App\Http\Requests\Lead\UpdateLeadRequest;
 use App\Jobs\EnrichLeadContactsJob;
-use App\Jobs\EnrichLeadJob;
 use App\Jobs\RunLeadIntelligenceJob;
 use App\Jobs\ScoreLeadJob;
 use App\Models\FunnelStage;
@@ -33,6 +37,7 @@ use App\Services\Sales\LeadEvaluationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -43,20 +48,15 @@ class LeadController extends Controller
         private readonly LeadDiscoveryService $discovery,
     ) {}
 
-    /** GET /api/leads */
-    public function index(Request $request): JsonResponse
+    /**
+     * Shared filter set for the leads list and CSV export — keeps them from
+     * silently drifting apart (export used to only understand 3 of these).
+     */
+    private function applyLeadFilters($query, Request $request): void
     {
-        $query = Lead::visibleTo($request->user())
-            ->with([
-                'industry', 'subIndustry', 'businessCategory', 'funnelStage',
-                'owner', 'presalesOwner', 'amOwner', 'csmOwner',
-                'territory', 'product', 'sources.channelType',
-                'parentLead:id,company_name',
-                'contacts' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
-            ]);
-
-        // Filters
-        if ($request->filled('industry_id')) {
+        if ($request->get('industry_id') === 'unassigned') {
+            $query->whereNull('industry_id');
+        } elseif ($request->filled('industry_id')) {
             $query->where('industry_id', $request->industry_id);
         }
         if ($request->filled('funnel_stage_id')) {
@@ -190,6 +190,22 @@ class LeadController extends Controller
                     ->orWhere('email', 'ilike', $s);
             });
         }
+    }
+
+    /** GET /api/leads */
+    public function index(Request $request): JsonResponse
+    {
+        $query = Lead::visibleTo($request->user())
+            ->with([
+                'industry', 'subIndustry', 'businessCategory', 'funnelStage',
+                'owner', 'presalesOwner', 'amOwner', 'csmOwner',
+                'territory', 'product', 'sources.channelType',
+                'parentLead:id,company_name',
+                'contacts' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('id'),
+            ]);
+
+        // Filters
+        $this->applyLeadFilters($query, $request);
 
         // Sorting
         $sortField = $request->get('sort', 'created_at');
@@ -202,6 +218,44 @@ class LeadController extends Controller
         $leads = $query->paginate($request->get('per_page', 25));
 
         return response()->json($leads);
+    }
+
+    /**
+     * Leads grouped by industry, for the "Leads by Industry" browsing page —
+     * one row per active industry that has at least one lead, plus a synthetic
+     * "Un-Identified" bucket for leads with no industry_id set.
+     */
+    public function industrySummary(Request $request): JsonResponse
+    {
+        $base = Lead::visibleTo($request->user());
+
+        $counts = (clone $base)
+            ->select('industry_id', DB::raw('count(*) as total'))
+            ->whereNotNull('industry_id')
+            ->groupBy('industry_id')
+            ->with('industry:id,name')
+            ->get()
+            ->filter(fn ($row) => $row->industry !== null)
+            ->map(fn ($row) => [
+                'industry_id' => $row->industry_id,
+                'name' => $row->industry->name,
+                'count' => $row->total,
+            ])
+            ->sortBy('name')
+            ->values();
+
+        $unidentifiedCount = (clone $base)->whereNull('industry_id')->count();
+
+        return response()->json([
+            'data' => [
+                ...$counts,
+                [
+                    'industry_id' => null,
+                    'name' => 'Un-Identified',
+                    'count' => $unidentifiedCount,
+                ],
+            ],
+        ]);
     }
 
     public function assignableUsers(Request $request): JsonResponse
@@ -266,6 +320,8 @@ class LeadController extends Controller
 
     public function generateBantcQuestions(Request $request, Lead $lead): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
             abort(403);
         }
@@ -329,38 +385,9 @@ class LeadController extends Controller
     }
 
     /** POST /api/leads */
-    public function store(Request $request): JsonResponse
+    public function store(StoreLeadRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'company_name' => 'required|string|max:255',
-            'brand' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'lat' => 'nullable|numeric',
-            'lng' => 'nullable|numeric',
-            'website' => 'nullable|url|max:500',
-            'phone' => 'nullable|string|max:30',
-            'email' => 'nullable|email',
-            'industry_id' => 'nullable|exists:industries,id',
-            'sub_industry_id' => 'nullable|exists:sub_industries,id',
-            'business_category' => 'nullable|string|max:255',
-            'business_category_id' => 'nullable|exists:business_categories,id',
-            'external_place_id' => 'nullable|string|max:255',
-            'product_id' => 'nullable|exists:products,id',
-            'territory_id' => 'nullable|exists:territories,id',
-            'ai_mode' => 'nullable|in:full_ai,hybrid,manual',
-            'use_ai_reference' => 'nullable|boolean',
-            'company_size_estimate' => 'nullable|string|max:100',
-            'estimated_closing_amount' => 'nullable|numeric|min:0',
-            'realized_closing_amount' => 'nullable|numeric|min:0',
-            'funnel_stage_id' => 'nullable|exists:funnel_stages,id',
-            'owner_id' => 'nullable|exists:users,id',
-            'presales_owner_id' => 'nullable|exists:users,id',
-            'am_owner_id' => 'nullable|exists:users,id',
-            'csm_owner_id' => 'nullable|exists:users,id',
-            'source_type' => 'nullable|exists:lead_source_types,slug',
-            'channel_type_id' => 'nullable|exists:lead_channel_types,id',
-            'parent_lead_id' => 'nullable|exists:leads,id',
-        ]);
+        $data = $request->validated();
         $sourceType = $data['source_type'] ?? 'manual';
         $channelTypeId = $data['channel_type_id'] ?? null;
         unset($data['source_type']);
@@ -423,7 +450,7 @@ class LeadController extends Controller
         // Trigger the new Enrichment Service
         app(\App\Services\Enrichment\LeadEnrichmentTriggerService::class)->trigger($lead, 'manual_creation');
 
-        // Note: the full 9-stage Pre-Meeting AI pipeline (enrichment, verification,
+        // Note: the full Pre-Meeting AI pipeline (enrichment, verification,
         // strategy, ICP matching, scoring, qualification, analysis, product
         // matching, BANTC questions) is dispatched from inside EnrichLeadJob via
         // RunLeadAiPipelineJob — see PreMeetingAiScreeningOrchestratorService.
@@ -434,247 +461,15 @@ class LeadController extends Controller
         ], 201);
     }
 
-    /** POST /api/leads/batch-delete */
-    public function batchDelete(Request $request): JsonResponse
-    {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Hanya super_admin yang dapat melakukan batch delete.');
 
-        $data = $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'integer|exists:leads,id',
-        ]);
 
-        Lead::whereIn('id', $data['ids'])->delete();
 
-        return response()->json(['message' => 'Leads deleted successfully']);
-    }
 
-    /** GET /api/leads/trash */
-    public function trash(Request $request): JsonResponse
-    {
-        $retentionDays = max(1, (int) $request->input('retention_days', 90));
-        $now = Carbon::now();
-        $cutoff = $now->copy()->subDays($retentionDays);
 
-        $query = Lead::onlyTrashed()
-            ->with(['industry', 'sources.channelType', 'owner']);
 
-        if (! $request->user()->isSuperAdmin()) {
-            $query->where('tenant_id', $request->user()->tenant_id);
-        }
-
-        // Search
-        if ($request->filled('search')) {
-            $search = '%' . trim($request->search) . '%';
-            $query->where(function ($q) use ($search) {
-                $q->where('company_name', 'ilike', $search)
-                    ->orWhere('brand', 'ilike', $search)
-                    ->orWhere('email', 'ilike', $search)
-                    ->orWhere('phone', 'ilike', $search);
-            });
-        }
-
-        // Filter by source
-        if ($request->filled('source_type')) {
-            $query->whereHas('sources', fn ($sq) => $sq->where('source_type', $request->source_type));
-        }
-
-        // Filter by retention status
-        if ($request->filled('retention_status')) {
-            $status = $request->retention_status;
-            if ($status === 'expired') {
-                $query->where('deleted_at', '<', $cutoff);
-            } elseif ($status === 'expiring_soon') {
-                $expiringThreshold = $cutoff->copy()->addDays(14);
-                $query->where('deleted_at', '>=', $cutoff)
-                      ->where('deleted_at', '<=', $expiringThreshold);
-            } elseif ($status === 'active') {
-                $expiringThreshold = $cutoff->copy()->addDays(14);
-                $query->where('deleted_at', '>', $expiringThreshold);
-            }
-        }
-
-        // Summary calculations
-        $summaryBaseQuery = Lead::onlyTrashed();
-        if (! $request->user()->isSuperAdmin()) {
-            $summaryBaseQuery->where('tenant_id', $request->user()->tenant_id);
-        }
-        if ($request->filled('search')) {
-            $search = '%' . trim($request->search) . '%';
-            $summaryBaseQuery->where(function ($q) use ($search) {
-                $q->where('company_name', 'ilike', $search)
-                    ->orWhere('brand', 'ilike', $search)
-                    ->orWhere('email', 'ilike', $search)
-                    ->orWhere('phone', 'ilike', $search);
-            });
-        }
-        if ($request->filled('source_type')) {
-            $summaryBaseQuery->whereHas('sources', fn ($sq) => $sq->where('source_type', $request->source_type));
-        }
-
-        $totalDeleted = (clone $summaryBaseQuery)->count();
-        $expiredCount = (clone $summaryBaseQuery)->where('deleted_at', '<', $cutoff)->count();
-        $expiringThreshold = $cutoff->copy()->addDays(14);
-        $expiringSoonCount = (clone $summaryBaseQuery)
-            ->where('deleted_at', '>=', $cutoff)
-            ->where('deleted_at', '<=', $expiringThreshold)
-            ->count();
-        $withinRetentionCount = $totalDeleted - $expiredCount;
-
-        $perPage = min(100, max(10, (int) $request->input('per_page', 25)));
-        $leads = $query->orderBy('deleted_at', 'desc')->paginate($perPage);
-
-        // Transform collection to add retention properties
-        $leads->getCollection()->transform(function ($lead) use ($retentionDays, $now) {
-            $deletedAt = Carbon::parse($lead->deleted_at);
-            $purgeAt = $deletedAt->copy()->addDays($retentionDays);
-            $secondsRemaining = $now->diffInSeconds($purgeAt, false);
-            $isExpired = $secondsRemaining <= 0;
-            $daysRemaining = $isExpired ? 0 : (int) ceil($secondsRemaining / 86400);
-            $hoursRemaining = $isExpired ? 0 : (int) ceil($secondsRemaining / 3600);
-
-            $lead->retention_days = $retentionDays;
-            $lead->purge_at = $purgeAt->toIso8601String();
-            $lead->days_remaining = $daysRemaining;
-            $lead->hours_remaining = $hoursRemaining;
-            $lead->is_expired = $isExpired;
-            $lead->retention_status = $isExpired ? 'expired' : ($daysRemaining <= 14 ? 'expiring_soon' : 'active');
-
-            return $lead;
-        });
-
-        return response()->json([
-            'data' => $leads->items(),
-            'meta' => [
-                'current_page' => $leads->currentPage(),
-                'last_page' => $leads->lastPage(),
-                'per_page' => $leads->perPage(),
-                'total' => $leads->total(),
-            ],
-            'summary' => [
-                'total_deleted' => $totalDeleted,
-                'within_retention' => $withinRetentionCount,
-                'expiring_soon' => $expiringSoonCount,
-                'expired' => $expiredCount,
-                'retention_days' => $retentionDays,
-            ],
-        ]);
-    }
-
-    /** POST /api/leads/{id}/restore */
-    public function restore(Request $request, $id): JsonResponse
-    {
-        $lead = Lead::onlyTrashed()->findOrFail($id);
-
-        if (! $request->user()->isSuperAdmin() && $lead->tenant_id !== $request->user()->tenant_id) {
-            abort(403, 'Akses ditolak.');
-        }
-
-        $lead->restore();
-
-        AuditService::log('restored', 'leads', $lead);
-
-        return response()->json([
-            'message' => 'Lead berhasil dipulihkan.',
-            'data' => $lead->fresh(),
-        ]);
-    }
-
-    /** POST /api/leads/batch-restore */
-    public function batchRestore(Request $request): JsonResponse
-    {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Hanya super_admin yang dapat melakukan batch restore.');
-
-        $data = $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'integer',
-        ]);
-
-        $restored = Lead::onlyTrashed()->whereIn('id', $data['ids'])->restore();
-
-        AuditService::log('batch_restore', 'leads', null, null, [
-            'ids' => $data['ids'],
-            'restored_count' => $restored,
-        ]);
-
-        return response()->json([
-            'message' => "{$restored} leads berhasil dipulihkan.",
-            'restored_count' => $restored,
-        ]);
-    }
-
-    /** DELETE /api/leads/{id}/force-delete */
-    public function forceDelete(Request $request, $id): JsonResponse
-    {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Hanya super_admin yang dapat menghapus lead secara permanen.');
-
-        $lead = Lead::onlyTrashed()->findOrFail($id);
-
-        AuditService::log('force_deleted', 'leads', $lead);
-
-        $lead->forceDelete();
-
-        return response()->json([
-            'message' => 'Lead berhasil dihapus secara permanen.',
-        ]);
-    }
-
-    /** POST /api/leads/batch-force-delete */
-    public function batchForceDelete(Request $request): JsonResponse
-    {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Hanya super_admin yang dapat menghapus lead secara permanen.');
-
-        $data = $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'integer',
-        ]);
-
-        $leads = Lead::onlyTrashed()->whereIn('id', $data['ids'])->get();
-        $count = $leads->count();
-
-        foreach ($leads as $lead) {
-            $lead->forceDelete();
-        }
-
-        AuditService::log('batch_force_delete', 'leads', null, null, [
-            'ids' => $data['ids'],
-            'count' => $count,
-        ]);
-
-        return response()->json([
-            'message' => "{$count} leads berhasil dihapus secara permanen.",
-            'deleted_count' => $count,
-        ]);
-    }
-
-    /** POST /api/leads/purge-expired */
-    public function purgeExpired(Request $request): JsonResponse
-    {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Hanya super_admin yang dapat membersihkan lead kedaluwarsa.');
-
-        $retentionDays = max(1, (int) $request->input('retention_days', 90));
-        $cutoff = Carbon::now()->subDays($retentionDays);
-
-        $leads = Lead::onlyTrashed()->where('deleted_at', '<', $cutoff)->get();
-        $count = $leads->count();
-
-        foreach ($leads as $lead) {
-            $lead->forceDelete();
-        }
-
-        AuditService::log('purge_expired', 'leads', null, null, [
-            'retention_days' => $retentionDays,
-            'purged_count' => $count,
-        ]);
-
-        return response()->json([
-            'message' => "{$count} lead kedaluwarsa berhasil dibersihkan secara permanen.",
-            'purged_count' => $count,
-        ]);
-    }
 
     /** PUT /api/leads/{lead} */
-    public function update(Request $request, Lead $lead): JsonResponse
+    public function update(UpdateLeadRequest $request, Lead $lead): JsonResponse
     {
         if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
             abort(403);
@@ -682,39 +477,7 @@ class LeadController extends Controller
 
         $original = $lead->getAttributes();
 
-        $data = $request->validate([
-            'company_name' => 'sometimes|string|max:255',
-            'brand' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'lat' => 'nullable|numeric',
-            'lng' => 'nullable|numeric',
-            'website' => 'nullable|url|max:500',
-            'phone' => 'nullable|string|max:30',
-            'email' => 'nullable|email',
-            'industry_id' => 'nullable|exists:industries,id',
-            'sub_industry_id' => 'nullable|exists:sub_industries,id',
-            'business_category' => 'nullable|string|max:255',
-            'business_category_id' => 'nullable|exists:business_categories,id',
-            'company_size_estimate' => 'nullable|string|max:100',
-            'lead_score' => 'nullable|integer|min:0|max:100',
-            'estimated_closing_amount' => 'nullable|numeric|min:0',
-            'realized_closing_amount' => 'nullable|numeric|min:0',
-            'qualification_status' => 'nullable|in:pending,eligible,potential,not_eligible',
-            'ai_explanation' => 'nullable|string',
-            'funnel_stage_id' => 'nullable|exists:funnel_stages,id',
-            'owner_id' => 'nullable|exists:users,id',
-            'presales_owner_id' => 'nullable|exists:users,id',
-            'am_owner_id' => 'nullable|exists:users,id',
-            'csm_owner_id' => 'nullable|exists:users,id',
-            'product_id' => 'nullable|exists:products,id',
-            'source_type' => 'nullable|exists:lead_source_types,slug',
-            'channel_type_id' => 'nullable|exists:lead_channel_types,id',
-            'parent_lead_id' => ['nullable', 'exists:leads,id', function ($attribute, $value, $fail) use ($lead) {
-                if ((int) $value === $lead->id) {
-                    $fail('A lead cannot be a subsidiary of itself.');
-                }
-            }],
-        ]);
+        $data = $request->validated();
         $sourceType = $data['source_type'] ?? null;
         $channelTypeId = $data['channel_type_id'] ?? null;
         unset($data['source_type']);
@@ -731,19 +494,32 @@ class LeadController extends Controller
             $this->ensureLeadReadyForPipeline($request, $lead);
         }
 
-        // Track funnel stage change
-        if (isset($data['funnel_stage_id']) && $data['funnel_stage_id'] != $lead->funnel_stage_id) {
-            $lead->funnelHistory()->create([
-                'from_stage_id' => $lead->funnel_stage_id,
-                'to_stage_id' => $data['funnel_stage_id'],
-                'moved_by' => $request->user()?->id,
-            ]);
-        }
+        // One transaction for the whole save.
+        //
+        // Without it these four writes were independent: the lead was committed first,
+        // and a failure in any later step — a unique violation while syncing the source
+        // row, an audit insert that could not complete — surfaced as an error while the
+        // edit had already been stored. The user saw "Another record already uses this
+        // …", reopened the lead, and found their change applied after all. An error that
+        // is wrong about whether anything was saved is worse than no error, because it
+        // teaches people to distrust every message the system shows them.
+        //
+        // Now the save either happens completely or not at all, which is also what the
+        // 500 copy in ApiErrorTranslator promises.
+        DB::transaction(function () use ($request, $lead, $data, $original, $sourceType, $channelTypeId) {
+            if (isset($data['funnel_stage_id']) && $data['funnel_stage_id'] != $lead->funnel_stage_id) {
+                $lead->funnelHistory()->create([
+                    'from_stage_id' => $lead->funnel_stage_id,
+                    'to_stage_id' => $data['funnel_stage_id'],
+                    'moved_by' => $request->user()?->id,
+                ]);
+            }
 
-        $lead->update($data);
-        $this->syncLeadSource($lead, $sourceType, $channelTypeId);
+            $lead->update($data);
+            $this->syncLeadSource($lead, $sourceType, $channelTypeId);
 
-        AuditService::logUpdated('leads', $lead, $original);
+            AuditService::logUpdated('leads', $lead, $original);
+        });
 
         return response()->json(['data' => $lead->fresh(['industry', 'funnelStage', 'sources.channelType'])]);
     }
@@ -844,7 +620,6 @@ class LeadController extends Controller
             ?? LeadSourceType::where('slug', $sourceType)->value('slug')
             ?? 'other';
 
-        $source = $lead->sources()->orderBy('id')->first();
         $payload = [
             'source_type' => $sourceType,
             'channel_type_id' => $channel?->id,
@@ -852,8 +627,25 @@ class LeadController extends Controller
             'last_verified_at' => now()->toDateString(),
         ];
 
-        if ($source) {
-            $source->update($payload);
+        // lead_sources carries a unique index on
+        // (lead_id, source_type, COALESCE(source_ref, '')). This used to always update
+        // whichever row happened to be first, so re-pointing that row at a source_type
+        // another row already held collided with the index — and the save failed with a
+        // duplicate-key error naming a field ("Sources Identity") that appears on no
+        // form. Prefer the row that already holds the target type; only then fall back
+        // to the primary row, which by definition cannot now collide.
+        $existing = $lead->sources()->where('source_type', $sourceType)->first();
+
+        if ($existing) {
+            $existing->update($payload);
+
+            return;
+        }
+
+        $primary = $lead->sources()->orderBy('id')->first();
+
+        if ($primary) {
+            $primary->update($payload);
 
             return;
         }
@@ -861,15 +653,6 @@ class LeadController extends Controller
         $lead->sources()->create($payload);
     }
 
-    /** DELETE /api/leads/{lead} */
-    public function destroy(Lead $lead): JsonResponse
-    {
-        AuditService::logDeleted('leads', $lead);
-
-        $lead->delete();
-
-        return response()->json(null, 204);
-    }
 
     /** POST /api/leads/{lead}/push-to-funnel */
     public function pushToFunnel(Request $request, Lead $lead): JsonResponse
@@ -894,8 +677,10 @@ class LeadController extends Controller
     }
 
     /** POST /api/leads/{lead}/rescore */
-    public function rescore(Lead $lead): JsonResponse
+    public function rescore(Request $request, Lead $lead): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         // Run scoring synchronously — no dedicated queue worker in this deployment.
         // ScoreLeadJob is preserved for background use; manual rescore executes inline.
         try {
@@ -936,106 +721,7 @@ class LeadController extends Controller
         }
     }
 
-    /** POST /api/leads/{lead}/activities */
-    public function logActivity(Request $request, Lead $lead): JsonResponse
-    {
-        $data = $request->validate([
-            'activity_type' => 'required|string|max:100',
-            'description' => 'nullable|string',
-            'outcome' => 'nullable|string|max:1000',
-            'budget' => 'nullable|string',
-            'authority' => 'nullable|string',
-            'needs' => 'nullable|string',
-            'timeline' => 'nullable|string',
-            'competitor' => 'nullable|string',
-            'activity_date' => 'nullable|date',
-            'next_follow_up_date' => 'nullable|date',
-            'funnel_stage_id' => 'nullable|exists:funnel_stages,id',
-        ]);
 
-        $activity = $lead->activities()->create([
-            'activity_type' => $data['activity_type'],
-            'description' => $data['description'] ?? '',
-            'outcome' => $data['outcome'] ?? null,
-            'budget' => $data['budget'] ?? null,
-            'authority' => $data['authority'] ?? null,
-            'needs' => $data['needs'] ?? null,
-            'timeline' => $data['timeline'] ?? null,
-            'competitor' => $data['competitor'] ?? null,
-            'activity_date' => isset($data['activity_date']) ? $data['activity_date'] : now(),
-            'next_follow_up_date' => $data['next_follow_up_date'] ?? null,
-            'user_id' => $request->user()?->id,
-        ]);
-
-        // Sales explicitly named a competitor on this activity — sync it onto
-        // the Lead (previously never happened; only LeadActivity.competitor was
-        // written) and auto-generate a battle card for it.
-        if (\App\Services\Sales\CompetitiveBattleCardService::isMeaningfulCompetitorName($data['competitor'] ?? null)) {
-            $lead->update(['competitor' => $data['competitor']]);
-            \App\Jobs\GenerateBattleCardJob::dispatch($lead->id, $data['competitor']);
-        }
-
-        if (! empty($data['transcript_id'])) {
-            $transcript = $lead->transcripts()->find($data['transcript_id']);
-            if ($transcript && ! $transcript->activity_id) {
-                $transcript->update(['activity_id' => $activity->id]);
-            }
-        }
-
-        // Optionally move the lead to a new funnel stage
-        if (! empty($data['funnel_stage_id']) && $data['funnel_stage_id'] != $lead->funnel_stage_id) {
-            $lead->funnelHistory()->create([
-                'from_stage_id' => $lead->funnel_stage_id,
-                'to_stage_id' => $data['funnel_stage_id'],
-                'moved_by' => $request->user()?->id,
-            ]);
-            $lead->update(['funnel_stage_id' => $data['funnel_stage_id']]);
-            AuditService::log('stage_change_via_activity', 'leads', $lead, null, [
-                'from_stage_id' => $lead->funnel_stage_id,
-                'to_stage_id' => $data['funnel_stage_id'],
-                'activity_id' => $activity->id,
-            ]);
-        }
-
-        AuditService::log('log_activity', 'lead_activities', $activity, null, [
-            'activity_type' => $data['activity_type'],
-        ]);
-
-        app(\App\Services\Sales\LeadInteractionRescoreService::class)->triggerRescore($lead, "manual_activity:{$data['activity_type']}");
-
-        return response()->json(['data' => $activity->load('user')], 201);
-    }
-
-    /** POST /api/leads/{lead}/meetings */
-    public function logMeeting(Request $request, Lead $lead): JsonResponse
-    {
-        $data = $request->validate([
-            'meeting_date' => 'required|date',
-            'meeting_type' => 'nullable|string',
-            'summary' => 'nullable|string',
-            'participants' => 'nullable|array',
-            'key_points' => 'nullable|array',
-            'objections' => 'nullable|array',
-            'next_steps' => 'nullable|array',
-            'follow_up_date' => 'nullable|date',
-        ]);
-
-        $data['created_by'] = $request->user()?->id;
-
-        $meeting = $lead->meetings()->create($data);
-
-        // Also log it on the timeline globally
-        $lead->activities()->create([
-            'activity_type' => 'Meeting',
-            'description' => 'Logged a meeting: '.($data['summary'] ?? 'No summary'),
-            'activity_date' => $data['meeting_date'],
-            'related_entity_type' => get_class($meeting),
-            'related_entity_id' => $meeting->id,
-            'user_id' => $request->user()?->id,
-        ]);
-
-        return response()->json(['data' => $meeting], 201);
-    }
 
     /** POST /api/leads/{lead}/contacts/{contact}/set-primary */
     public function setPrimaryContact(Lead $lead, LeadContact $contact): JsonResponse
@@ -1156,50 +842,9 @@ class LeadController extends Controller
     }
 
     /** POST /api/leads/bulk-import — Import discovered leads into database */
-    public function bulkImport(Request $request): JsonResponse
+    public function bulkImport(BulkImportLeadsRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'leads' => 'required|array|min:1|max:500',
-            'leads.*.company_name' => 'required|string|max:255',
-            'leads.*.brand' => 'nullable|string|max:255',
-            'leads.*.address' => 'nullable|string',
-            'leads.*.lat' => 'nullable|numeric',
-            'leads.*.lng' => 'nullable|numeric',
-            'leads.*.phone' => 'nullable|string',
-            'leads.*.email' => 'nullable|email',
-            'leads.*.website' => 'nullable|url',
-            'leads.*.external_place_id' => 'nullable|string',
-            'leads.*.business_category' => 'nullable|string',
-            'leads.*.industry_id' => 'nullable|exists:industries,id',
-            'leads.*.sub_industry_id' => 'nullable|exists:sub_industries,id',
-            'leads.*.company_size_estimate' => 'nullable|string|max:100',
-            'leads.*.branch_count' => 'nullable|integer|min:0',
-            'leads.*.operating_hours' => 'nullable|string|max:255',
-            'leads.*.lead_score' => 'nullable|integer|min:0|max:100',
-            'leads.*.qualification_status' => 'nullable|in:pending,eligible,potential,not_eligible',
-            'leads.*.estimated_closing_amount' => 'nullable|numeric|min:0',
-            'leads.*.realized_closing_amount' => 'nullable|numeric|min:0',
-            'leads.*.funnel_stage_id' => 'nullable|exists:funnel_stages,id',
-            'leads.*.owner_id' => 'nullable|exists:users,id',
-            'leads.*.territory_id' => 'nullable|exists:territories,id',
-            'leads.*.product_id' => 'nullable|exists:products,id',
-            'leads.*.source_type' => 'nullable|exists:lead_source_types,slug',
-            'leads.*.channel_type_id' => 'nullable|exists:lead_channel_types,id',
-            'leads.*.contacts' => 'nullable|array|max:10',
-            'leads.*.contacts.*.name' => 'sometimes|required|string|max:255',
-            'leads.*.contacts.*.title' => 'nullable|string|max:255',
-            'leads.*.contacts.*.email' => 'nullable|email',
-            'leads.*.contacts.*.phone' => 'nullable|string|max:30',
-            'leads.*.contacts.*.linkedin_url' => 'nullable|string|max:500',
-            'leads.*.contacts.*.confidence' => 'nullable|in:high,medium,low',
-            'leads.*.contacts.*.is_primary' => 'nullable|boolean',
-            'leads.*.contacts.*.do_not_contact' => 'nullable|boolean',
-            'territory_id' => 'nullable|exists:territories,id',
-            'product_id' => 'nullable|exists:products,id',
-            'source_type' => 'nullable|exists:lead_source_types,slug',
-            'channel_type_id' => 'nullable|exists:lead_channel_types,id',
-            'ai_mode' => 'nullable|in:full_ai,hybrid,manual',
-        ]);
+        $data = $request->validated();
 
         $created = [];
         $skipped = [];
@@ -1285,34 +930,14 @@ class LeadController extends Controller
     /** GET /api/leads/export — CSV export */
     public function export(Request $request): StreamedResponse
     {
-        $query = Lead::with(['industry', 'funnelStage', 'product']);
+        // Same visibility scoping + filters as the list view, so "Export"
+        // downloads exactly what's currently on screen — it used to ignore
+        // most filters (and everyone's tenant/role visibility scope) and
+        // just dump every lead in the database.
+        $query = Lead::visibleTo($request->user())
+            ->with(['industry', 'funnelStage', 'product', 'owner', 'sources.channelType']);
 
-        if ($request->filled('industry_id')) {
-            $query->where('industry_id', $request->industry_id);
-        }
-        if ($request->filled('qualification_status')) {
-            if ($request->qualification_status === 'unassessed') {
-                $query->where(function ($q) {
-                    $q->whereNull('qualification_status')
-                        ->orWhere('qualification_status', 'pending')
-                        ->orWhereNull('lead_score');
-                })->whereNotIn('qualification_status', ['not_eligible', 'disqualified']);
-            } else {
-                $query->where('qualification_status', $request->qualification_status);
-            }
-        }
-        if ($request->filled('grade')) {
-            $grade = strtolower($request->grade);
-            if ($grade === 'hot' || $grade === 'a') {
-                $query->where('lead_score', '>=', 80);
-            } elseif ($grade === 'warm' || $grade === 'b') {
-                $query->whereBetween('lead_score', [60, 79]);
-            } elseif ($grade === 'cold' || $grade === 'c') {
-                $query->where('lead_score', '<', 60)->whereNotNull('lead_score');
-            } elseif ($grade === 'unscored' || $grade === 'none' || $grade === 'unassessed') {
-                $query->whereNull('lead_score');
-            }
-        }
+        $this->applyLeadFilters($query, $request);
 
         $leads = $query->orderBy('lead_score', 'desc')->get();
 
@@ -1326,22 +951,101 @@ class LeadController extends Controller
         return response()->stream(function () use ($leads) {
             $out = fopen('php://output', 'w');
             fputcsv($out, [
-                'ID', 'Company', 'Address', 'Industry', 'Email', 'Phone',
-                'Score', 'Status', 'Funnel Stage', 'Product', 'Created',
+                'ID', 'Company', 'Brand', 'Industry', 'Location', 'Address',
+                'Website', 'Phone', 'Email', 'Score', 'Grade', 'Qualification Status',
+                'Funnel Stage', 'Product', 'Owner Name', 'Owner Email',
+                'Source', 'Channel', 'Duplicate Status',
+                'Estimated Closing Amount', 'Realized Closing Amount', 'Created',
             ]);
 
             foreach ($leads as $lead) {
+                $primarySource = $lead->sources->first();
+
                 fputcsv($out, [
-                    $lead->id, $lead->company_name, $lead->address,
-                    $lead->industry?->name, $lead->email, $lead->phone,
-                    $lead->lead_score, $lead->qualification_status,
-                    $lead->funnelStage?->name, $lead->product?->name,
+                    $lead->id,
+                    $lead->company_name,
+                    $lead->brand,
+                    $lead->industry?->name,
+                    $this->extractLocationForExport($lead->address),
+                    $lead->address,
+                    $lead->website,
+                    $lead->phone,
+                    $lead->email,
+                    $lead->lead_score,
+                    self::gradeForScoreExport($lead->lead_score),
+                    $lead->qualification_status,
+                    $lead->funnelStage?->name,
+                    $lead->product?->name,
+                    $lead->owner?->name,
+                    $lead->owner?->email,
+                    $primarySource?->source_type,
+                    $primarySource?->channelType?->name,
+                    $lead->duplicate_status,
+                    $lead->estimated_closing_amount,
+                    $lead->realized_closing_amount,
                     $lead->created_at?->toDateTimeString(),
                 ]);
             }
 
             fclose($out);
         }, 200, $headers);
+    }
+
+    /**
+     * Best-effort "City, Province" from a free-text address — mirrors
+     * extractLocation() in frontend/app/leads/LeadsPageContent.tsx so the
+     * exported Location column matches what the Leads table shows.
+     */
+    private function extractLocationForExport(?string $address): ?string
+    {
+        if (empty($address)) {
+            return null;
+        }
+
+        $parts = array_values(array_filter(array_map('trim', explode(',', $address)), fn ($p) => $p !== ''));
+        if (empty($parts)) {
+            return null;
+        }
+
+        $last = count($parts) - 1;
+        if (strtolower($parts[$last]) === 'indonesia') {
+            array_pop($parts);
+            $last--;
+        }
+        if ($last >= 0) {
+            $parts[$last] = trim(preg_replace('/\s*\d{4,6}$/', '', $parts[$last]));
+        }
+        if (empty($parts)) {
+            return null;
+        }
+
+        $province = end($parts);
+        $city = null;
+        foreach (array_reverse($parts) as $part) {
+            if (preg_match('/^(kota|kabupaten)\s+(.+)$/i', $part, $m)) {
+                $city = $m[2];
+                break;
+            }
+        }
+
+        if ($city && strcasecmp($city, $province) !== 0) {
+            return "{$city}, {$province}";
+        }
+
+        return $province;
+    }
+
+    private static function gradeForScoreExport(?int $score): ?string
+    {
+        if ($score === null) {
+            return null;
+        }
+
+        return match (true) {
+            $score >= 80 => 'Hot',
+            $score >= 60 => 'Warm',
+            default => 'Cold',
+        };
     }
 
     /* ═══════════════════════════════════════════════════════════ */
@@ -1442,6 +1146,8 @@ class LeadController extends Controller
     /** POST /api/leads/{lead}/run-profiling-strategy — Consolidated AI Profiling and Strategy */
     public function runProfilingStrategy(Request $request, Lead $lead): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         $service = app(\App\Services\Lead\LeadProfilingAndStrategyService::class);
         $result = $service->profileAndStrategize($lead, $request->user()?->id);
 
@@ -1513,479 +1219,21 @@ class LeadController extends Controller
         return response()->json(['data' => $snapshot]);
     }
 
-    /** GET /api/leads/{lead}/activities — Get lead activities */
-    public function getActivities(Lead $lead): JsonResponse
-    {
-        $activities = $lead->activities()
-            ->with('user')
-            ->orderByDesc('activity_date')
-            ->paginate(50);
 
-        return response()->json($activities);
-    }
 
-    /** GET /api/leads/{lead}/progress — Get lead progress summary */
-    public function getProgress(Lead $lead): JsonResponse
-    {
-        $latestActivity = $lead->activities()->latest('activity_date')->first();
-        $latestMeeting = $lead->meetings()->latest('meeting_date')->first();
-        $latestEvaluation = $lead->aiEvaluations()->latest()->first();
-        
-        $nextFollowUpActivity = $lead->activities()
-            ->whereNotNull('next_follow_up_date')
-            ->orderBy('activity_date', 'desc')
-            ->first();
 
-        $latestScore = $lead->scores()->latest()->first();
-        $latestQualification = $lead->qualifications()->latest()->first();
 
-        return response()->json([
-            'lead_id' => $lead->id,
-            'total_activities' => $lead->activities()->count(),
-            'activity_breakdown' => $lead->activities()
-                ->select('activity_type')
-                ->selectRaw('COUNT(*) as count')
-                ->groupBy('activity_type')
-                ->get(),
-            'last_interaction' => $latestActivity ? [
-                'date' => $latestActivity->activity_date,
-                'type' => $latestActivity->activity_type,
-                'description' => $latestActivity->description,
-            ] : null,
-            'last_meeting' => $latestMeeting ? [
-                'date' => $latestMeeting->meeting_date,
-                'type' => $latestMeeting->meeting_type,
-                'summary' => $latestMeeting->summary,
-            ] : null,
-            'latest_evaluation' => $latestEvaluation ? [
-                'sentiment' => $latestEvaluation->sentiment,
-                'intent_level' => $latestEvaluation->intent_level,
-                'interest_level' => $latestEvaluation->interest_level,
-                'buying_signals' => $latestEvaluation->buying_signals,
-            ] : null,
-            'next_follow_up' => $nextFollowUpActivity ? [
-                'due_date' => $nextFollowUpActivity->next_follow_up_date,
-                'purpose' => $nextFollowUpActivity->activity_type . ': ' . \Illuminate\Support\Str::limit($nextFollowUpActivity->description, 50),
-                'assigned_to' => $nextFollowUpActivity->user_id,
-                'is_overdue' => \Carbon\Carbon::parse($nextFollowUpActivity->next_follow_up_date)->endOfDay()->isPast(),
-            ] : null,
-            'current_stage' => $lead->funnelStage?->name,
-            'current_score' => $latestScore?->score ?? $lead->lead_score,
-            'current_grade' => $latestScore?->grade,
-            'current_qualification' => $latestQualification?->qualified,
-        ]);
-    }
 
-    /* ═══════════════════════════════════════════════════════════ */
-    /*  MODULE B: Sales Activity & Evaluation */
-    /* ═══════════════════════════════════════════════════════════ */
 
-    /** PUT /api/leads/{lead}/activities/{activity} */
-    public function updateActivity(Request $request, Lead $lead, $activityId): JsonResponse
-    {
-        $activity = $lead->activities()->findOrFail($activityId);
-        $data = $request->validate([
-            'activity_type' => 'sometimes|string|max:100',
-            'description' => 'nullable|string',
-            'outcome' => 'nullable|string|max:1000',
-            'budget' => 'nullable|string',
-            'authority' => 'nullable|string',
-            'needs' => 'nullable|string',
-            'timeline' => 'nullable|string',
-            'competitor' => 'nullable|string',
-            'activity_date' => 'nullable|date',
-            'next_follow_up_date' => 'nullable|date',
-        ]);
-        $activity->update($data);
-        AuditService::log('update_activity', 'lead_activities', $activity, $activity->toArray());
 
-        if (\App\Services\Sales\CompetitiveBattleCardService::isMeaningfulCompetitorName($data['competitor'] ?? null)) {
-            $lead->update(['competitor' => $data['competitor']]);
-            \App\Jobs\GenerateBattleCardJob::dispatch($lead->id, $data['competitor']);
-        }
 
-        \App\Jobs\RunLeadIntelligenceJob::dispatch($lead->id);
 
-        return response()->json(['data' => $activity->load('user')]);
-    }
 
-    /** DELETE /api/leads/{lead}/activities/{activity} */
-    public function deleteActivity(Lead $lead, $activityId): JsonResponse
-    {
-        $activity = $lead->activities()->findOrFail($activityId);
-        $activity->delete();
 
-        AuditService::log('delete_activity', 'lead_activities', $activity, $activity->toArray());
 
-        return response()->json(['message' => 'Activity deleted']);
-    }
 
-    /** GET /api/leads/{lead}/meetings */
-    public function getMeetings(Lead $lead): JsonResponse
-    {
-        $meetings = $lead->meetings()
-            ->orderByDesc('meeting_date')
-            ->paginate(50);
 
-        return response()->json($meetings);
-    }
 
-    /** PUT /api/leads/{lead}/meetings/{meeting} */
-    public function updateMeeting(Request $request, Lead $lead, $meetingId): JsonResponse
-    {
-        $meeting = $lead->meetings()->findOrFail($meetingId);
-        $data = $request->validate([
-            'meeting_date' => 'sometimes|date',
-            'meeting_type' => 'nullable|string',
-            'summary' => 'nullable|string',
-            'participants' => 'nullable|array',
-            'key_points' => 'nullable|array',
-            'objections' => 'nullable|array',
-            'next_steps' => 'nullable|array',
-            'follow_up_date' => 'nullable|date',
-        ]);
-        $meeting->update($data);
-
-        return response()->json(['data' => $meeting]);
-    }
-
-    /** DELETE /api/leads/{lead}/meetings/{meeting} */
-    public function deleteMeeting(Lead $lead, $meetingId): JsonResponse
-    {
-        $meeting = $lead->meetings()->findOrFail($meetingId);
-        $meeting->delete();
-
-        AuditService::log('delete_meeting', 'lead_meetings', $meeting, $meeting->toArray());
-
-        return response()->json(['message' => 'Meeting deleted']);
-    }
-
-    /** GET /api/leads/{lead}/transcripts */
-    public function getTranscripts(Lead $lead): JsonResponse
-    {
-        $transcripts = $lead->transcripts()
-            ->with(['activity:id,activity_type,activity_date,description', 'documents', 'syncJobs'])
-            ->orderByDesc('recorded_at')
-            ->paginate(50);
-
-        return response()->json($transcripts);
-    }
-
-    /** POST /api/leads/{lead}/activities/analyze-transcript */
-    public function analyzeActivityTranscript(Request $request, Lead $lead): JsonResponse
-    {
-        try {
-            $data = $request->validate([
-                'transcript_text' => 'nullable|string',
-                'transcript_file' => 'nullable|file|max:51200|mimes:txt,vtt,srt,mp3,wav,m4a,mp4,mov,webm',
-            ]);
-
-            $filePath = null;
-            $fileName = null;
-            $fileMime = null;
-            $fileSize = null;
-            $transcriptText = $data['transcript_text'] ?? null;
-
-            if ($request->hasFile('transcript_file')) {
-                $file = $request->file('transcript_file');
-                $filePath = $file->store('lead-transcripts', 'public');
-                $fileName = $file->getClientOriginalName();
-                $fileMime = $file->getMimeType();
-                $fileSize = $file->getSize();
-
-                $extension = strtolower($file->getClientOriginalExtension());
-                if (in_array($extension, ['txt', 'vtt', 'srt'], true)) {
-                    $fileText = file_get_contents($file->getRealPath());
-                    if (is_string($fileText) && trim($fileText) !== '') {
-                        $transcriptText = trim($transcriptText ? "{$transcriptText}\n\n{$fileText}" : $fileText);
-                    }
-                }
-            }
-
-            if (! $transcriptText && ! $filePath) {
-                abort(422, 'Transcript text or a transcript file is required.');
-            }
-
-            $transcript = $lead->transcripts()->create([
-                'title' => 'Meeting Transcript ('.now()->format('Y-m-d').')',
-                'source_type' => 'meeting',
-                'transcript_text' => $transcriptText,
-                'file_path' => $filePath,
-                'file_name' => $fileName,
-                'file_mime' => $fileMime,
-                'file_size' => $fileSize,
-                'recorded_at' => now(),
-                'evaluation_status' => 'pending',
-            ]);
-
-            AuditService::log('create_transcript_for_activity', 'lead_transcripts', $transcript, null, [
-                'source_type' => 'meeting',
-            ]);
-
-            $analysisResult = null;
-            if ($transcriptText) {
-                $service = app(LeadEvaluationService::class);
-                $analysisResult = $service->evaluateActivityTranscript($lead, $transcriptText);
-
-                try {
-                    $service->evaluateTranscript($lead, $transcript);
-                } catch (\Exception $e) {
-                    // Ignore standard evaluation error
-                }
-            }
-
-            return response()->json([
-                'data' => [
-                    'transcript' => $transcript,
-                    'analysis' => $analysisResult,
-                ],
-            ], 201);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'message' => 'An unexpected server error occurred.',
-                'actual_error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ], 500);
-        }
-    }
-
-    /** POST /api/leads/{lead}/transcripts */
-    public function storeTranscript(Request $request, Lead $lead): JsonResponse
-    {
-        $data = $request->validate([
-            'title' => 'nullable|string|max:255',
-            'activity_id' => 'nullable|integer|exists:lead_activities,id',
-            'source_type' => 'required|in:whatsapp,meeting,manual,call,audio,video,file,transcript,link',
-            'transcript_text' => 'nullable|string',
-            'transcript_file' => 'nullable|file|max:51200|mimes:txt,vtt,srt,mp3,wav,m4a,mp4,mov,webm',
-            'source_id' => 'nullable|integer',
-            'recorded_at' => 'nullable|date',
-            'meeting_type' => 'nullable|string|max:100',
-        ]);
-
-        if (! empty($data['activity_id']) && ! $lead->activities()->whereKey($data['activity_id'])->exists()) {
-            abort(422, 'Selected activity does not belong to this lead.');
-        }
-
-        $filePath = null;
-        $fileName = null;
-        $fileMime = null;
-        $fileSize = null;
-        $transcriptText = $data['transcript_text'] ?? null;
-
-        if ($request->hasFile('transcript_file')) {
-            $file = $request->file('transcript_file');
-            $filePath = $file->store('lead-transcripts', 'public');
-            $fileName = $file->getClientOriginalName();
-            $fileMime = $file->getMimeType();
-            $fileSize = $file->getSize();
-
-            $extension = strtolower($file->getClientOriginalExtension());
-            if (in_array($extension, ['txt', 'vtt', 'srt'], true)) {
-                $fileText = file_get_contents($file->getRealPath());
-                if (is_string($fileText) && trim($fileText) !== '') {
-                    $transcriptText = trim($transcriptText ? "{$transcriptText}\n\n{$fileText}" : $fileText);
-                }
-            }
-        }
-
-        if (! $transcriptText && ! $filePath) {
-            abort(422, 'Transcript text or a transcript file is required.');
-        }
-
-        $transcript = $lead->transcripts()->create([
-            'activity_id' => $data['activity_id'] ?? null,
-            'title' => $data['title'] ?? null,
-            'source_type' => $data['source_type'],
-            'transcript_text' => $transcriptText,
-            'source_id' => $data['source_id'] ?? null,
-            'file_path' => $filePath,
-            'file_name' => $fileName,
-            'file_mime' => $fileMime,
-            'file_size' => $fileSize,
-            'recorded_at' => $data['recorded_at'] ?? now(),
-            'evaluation_status' => 'pending',
-            'meeting_type' => $data['meeting_type'] ?? 'General',
-        ]);
-
-        AuditService::log('create_transcript', 'lead_transcripts', $transcript, null, [
-            'source_type' => $data['source_type'],
-        ]);
-
-        if (!empty($transcriptText)) {
-            \Illuminate\Support\Facades\Bus::chain([
-                new \App\Jobs\AnalyzeTranscriptJob($transcript->id),
-                new \App\Jobs\SaveTranscriptAnalysisJob($transcript->id),
-                new \App\Jobs\SyncTranscriptAnalysisToLarkBaseJob($transcript->id),
-                new \App\Jobs\GenerateMeetingSummaryPdfJob($transcript->id),
-                new \App\Jobs\SyncMeetingSummaryPdfToLarkBaseJob($transcript->id),
-            ])->dispatch();
-        }
-
-        return response()->json(['data' => $transcript->load('activity:id,activity_type,activity_date,description')], 201);
-    }
-
-    /** PUT /api/leads/{lead}/transcripts/{transcript} */
-    public function updateTranscript(Request $request, Lead $lead, $transcriptId): JsonResponse
-    {
-        $transcript = $lead->transcripts()->findOrFail($transcriptId);
-
-        $data = $request->validate([
-            'title' => 'nullable|string|max:255',
-            'recorded_at' => 'nullable|date',
-            'meeting_type' => 'nullable|string|max:100',
-            'transcript_text' => 'nullable|string',
-        ]);
-
-        $updateData = [];
-        if (array_key_exists('title', $data)) $updateData['title'] = $data['title'];
-        if (array_key_exists('recorded_at', $data)) $updateData['recorded_at'] = $data['recorded_at'] ? Carbon::parse($data['recorded_at']) : null;
-        if (array_key_exists('meeting_type', $data)) $updateData['meeting_type'] = $data['meeting_type'];
-        if (array_key_exists('transcript_text', $data)) $updateData['transcript_text'] = $data['transcript_text'];
-
-        $transcript->update($updateData);
-
-        AuditService::log('update_transcript', 'lead_transcripts', $transcript, null, $updateData);
-
-        return response()->json(['data' => $transcript]);
-    }
-
-    /** POST /api/leads/{lead}/transcripts/fetch-link */
-    public function fetchTranscriptFromLink(Request $request, Lead $lead): JsonResponse
-    {
-        $data = $request->validate([
-            'meeting_link' => 'required|url',
-        ]);
-
-        $url = $data['meeting_link'];
-
-        if (!$lead->meeting_link) {
-            $lead->update(['meeting_link' => $url]);
-        }
-
-        $integration = \App\Models\LarkIntegration::where('tenant_id', $lead->tenant_id)->where('is_active', true)->first();
-        if (!$integration) {
-            abort(400, 'No active Lark integration found for this tenant.');
-        }
-
-        // Validate URL immediately
-        $parsed = \App\Services\Lark\LarkMeetingUrlParser::parse($url);
-        if (!$parsed['valid']) {
-            abort(400, 'Invalid Lark Meeting URL.');
-        }
-
-        // Application-level duplicate check for meetingId or minuteToken
-        if ($parsed['type'] === 'meetingId') {
-            $existing = \App\Models\LeadTranscript::where('meeting_id', $parsed['id'])
-                ->whereHas('lead', function($q) use ($lead) {
-                    $q->where('tenant_id', $lead->tenant_id);
-                })->first();
-                
-            if ($existing) {
-                return response()->json([
-                    'message' => 'Transcript already imported on lead: ' . $existing->lead_id,
-                    'duplicate' => true,
-                    'existing_id' => $existing->id,
-                    'lead_id' => $existing->lead_id
-                ], 409);
-            }
-        } elseif ($parsed['type'] === 'minuteToken') {
-            $existing = \App\Models\LeadTranscript::where('minute_token', $parsed['id'])
-                ->whereHas('lead', function($q) use ($lead) {
-                    $q->where('tenant_id', $lead->tenant_id);
-                })->first();
-                
-            if ($existing) {
-                return response()->json([
-                    'message' => 'Transcript already imported on lead: ' . $existing->lead_id,
-                    'duplicate' => true,
-                    'existing_id' => $existing->id,
-                    'lead_id' => $existing->lead_id
-                ], 409);
-            }
-        }
-
-        // Create pending transcript
-        $transcript = $lead->transcripts()->create([
-            'title' => 'Lark Meeting Transcript',
-            'source_type' => 'link',
-            'source_provider' => 'LARK',
-            'source_url' => $url,
-            'transcript_text' => '',
-            'recorded_at' => now(),
-            'evaluation_status' => 'pending',
-            'import_status' => 'VALIDATING_LINK'
-        ]);
-
-        \App\Services\AuditService::log('create_transcript', 'lead_transcripts', $transcript, null, [
-            'source_type' => 'link',
-            'fetch_source' => 'lark_link',
-        ]);
-
-        // Dispatch background job
-        \App\Jobs\ImportLarkMeetingTranscriptJob::dispatch($transcript->id);
-
-        return response()->json([
-            'data' => $transcript->load('activity:id,activity_type,activity_date,description'),
-            'message' => 'Transcript import job started successfully.',
-        ], 201);
-    }
-
-    /** DELETE /api/leads/{lead}/transcripts/{transcript} */
-    public function deleteTranscript(Lead $lead, $transcriptId): JsonResponse
-    {
-        $transcript = $lead->transcripts()->findOrFail($transcriptId);
-        if ($transcript->file_path) {
-            Storage::disk('public')->delete($transcript->file_path);
-        }
-        $transcript->delete();
-
-        AuditService::log('delete_transcript', 'lead_transcripts', $transcript, $transcript->toArray());
-
-        return response()->json(['message' => 'Transcript deleted']);
-    }
-
-    /** POST /api/leads/{lead}/transcripts/{transcript}/evaluate */
-    public function evaluateTranscript(Lead $lead, $transcriptId): JsonResponse
-    {
-        $transcript = $lead->transcripts()->findOrFail($transcriptId);
-
-        if (! trim((string) $transcript->transcript_text)) {
-            return response()->json([
-                'message' => 'This transcript has no text content yet. Add/paste transcript text before running AI analysis.',
-            ], 422);
-        }
-
-        $transcript->update(['evaluation_status' => 'pending']);
-        
-        \App\Jobs\AnalyzeTranscriptJob::dispatch($transcript->id);
-
-        return response()->json(['message' => 'Evaluation queued', 'data' => []], 202);
-    }
-
-    /** GET /api/leads/{lead}/evaluations */
-    public function getEvaluations(Lead $lead): JsonResponse
-    {
-        $evaluations = $lead->aiEvaluations()
-            ->orderByDesc('evaluated_at')
-            ->paginate(50);
-
-        return response()->json($evaluations);
-    }
-
-    /** GET /api/leads/{lead}/follow-ups */
-    public function getFollowUps(Lead $lead): JsonResponse
-    {
-        $followUps = $lead->followUps()
-            ->orderBy('due_date')
-            ->paginate(50);
-
-        return response()->json($followUps);
-    }
-
-    /* ═══════════════════════════════════════════════════════════ */
-    /*  MODULE C: Contact Enrichment Engine (Tier 2.5) */
-    /* ═══════════════════════════════════════════════════════════ */
 
     /** DELETE /api/leads/{lead}/contacts/{contact} */
     public function deleteContact(Lead $lead, LeadContact $contact): JsonResponse
@@ -2110,8 +1358,10 @@ class LeadController extends Controller
     }
 
     /** POST /api/leads/{lead}/revenue-analysis — Run Revenue Intelligence Analyst AI */
-    public function runRevenueAnalysis(Lead $lead, RevenueIntelligenceAnalysisService $service): JsonResponse
+    public function runRevenueAnalysis(Request $request, Lead $lead, RevenueIntelligenceAnalysisService $service): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         $analysis = $service->analyze($lead);
 
         AuditService::log('revenue_analysis', 'leads', $lead, null, [
@@ -2180,29 +1430,6 @@ class LeadController extends Controller
             'message' => $revenueCheck['summary'],
             'revenue_check' => $revenueCheck,
         ], 422));
-    }
-
-    /** POST /api/leads/{lead}/run-proofing-strategy */
-    public function runProofingStrategy(Lead $lead): JsonResponse
-    {
-        // 1. ICP Match
-        $icpService = app(\App\Services\Revenue\ICPMatchingService::class);
-        $icpService->matchLead($lead);
-
-        // 2. Score Lead
-        $scoreService = app(\App\Services\Lead\LeadScoringService::class);
-        $scoreService->scoreLead($lead);
-
-        // 3. Qualify Lead
-        $qualifyService = app(\App\Services\Lead\LeadQualificationService::class);
-        $qualifyService->qualifyLead($lead, useAi: true);
-
-        // 4. Dispatch Automated Enrichment (Background)
-        EnrichLeadJob::dispatch($lead->id);
-
-        return response()->json([
-            'message' => 'Score, ICP & Qualification refreshed successfully (Enrichment running in background).',
-        ]);
     }
 
     /** POST /api/leads/{lead}/run-intelligence */

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Runs the unified Pre-Meeting AI pipeline (9 stages — see
+ * Runs the unified Pre-Meeting AI pipeline (see
  * PreMeetingAiScreeningOrchestratorService) automatically whenever a lead is
  * created, regardless of source. This replaces the old, narrower automatic
  * chain (EnrichLeadJob -> LeadPostEnrichmentAIService -> Score/Qualify/ICPMatch
@@ -25,7 +25,9 @@ class RunLeadAiPipelineJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 2;
-    public int $timeout = 180;
+    // Same reasoning as RunPreMeetingAiScreeningJob: 9 sequential AI-calling
+    // stages can easily exceed 3 minutes.
+    public int $timeout = 600;
 
     public function __construct(public readonly int $leadId) {}
 
@@ -56,7 +58,7 @@ class RunLeadAiPipelineJob implements ShouldQueue
                 'started_at' => now()->toIso8601String(),
             ], 600);
 
-            $result = $orchestrator->screenLead($lead);
+            $result = $orchestrator->screenLead($lead, null, 'auto_on_creation');
 
             $lead->update(['ai_processing_status' => 'completed']);
 

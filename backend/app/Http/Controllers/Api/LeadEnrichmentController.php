@@ -17,8 +17,10 @@ class LeadEnrichmentController extends Controller
         private \App\Services\Enrichment\LeadEnrichmentTriggerService $triggerService
     ) {}
 
-    public function retry(Lead $lead)
+    public function retry(Request $request, Lead $lead)
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
         $this->triggerService->trigger($lead, 'manual_retry');
         
         return response()->json([

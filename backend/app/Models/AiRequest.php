@@ -50,7 +50,7 @@ class AiRequest extends Model
         'ai_model_id', 'user_id', 'function_name',
         'prompt_metadata', 'response_metadata',
         'prompt_tokens', 'completion_tokens',
-        'estimated_cost_usd', 'cost_currency_code', 'cost_converted', 'exchange_rate_snapshot',
+        'estimated_cost_usd', 'pricing_basis', 'cost_currency_code', 'cost_converted', 'exchange_rate_snapshot',
         'latency_ms', 'status', 'error_message', 'fallback_used',
     ];
 

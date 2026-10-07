@@ -31,10 +31,30 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     url = endpoint.startsWith("/api/") ? endpoint : `/api/${endpoint.replace(/^\//, "")}`;
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } catch (cause) {
+    // `fetch` rejects with a bare "TypeError: Failed to fetch" when the connection drops,
+    // the request is blocked, or the tab is offline. Callers used to see that string on
+    // screen, which says nothing. Turn it into an answer the caller can present, in the
+    // same JSON shape as a real API error so one code path handles both.
+    console.error("Request to", url, "could not be sent.", cause);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: {
+          code: "NETWORK_ERROR",
+          message:
+            typeof navigator !== "undefined" && navigator.onLine === false
+              ? "You are offline, so this request was never sent."
+              : "Could not reach the server, so this request was never sent.",
+          hint: "Check your connection and try again. Nothing was saved.",
+        },
+      }),
+      { status: 503, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
   if (response.status === 401) {
     // Attempted to access something unauthorized or token expired
@@ -44,16 +64,31 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     }
   }
 
-  // Intercept 500 Internal Server error directly from Next.js proxy if backend disconnected
+  // A 5xx that is not JSON did not come from Laravel — it is the Next.js proxy reporting
+  // that the backend is down, restarting, or took longer than the gateway allows. Laravel's
+  // own 5xx responses are JSON and already carry a reason and a reference code, so those
+  // pass straight through untouched.
   if (response.status >= 500) {
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
-       console.error("Critical Backend Failure or Disconnected Proxy.");
-       // Return a synthetic JSON response so callers can parse it properly
-       return new Response(JSON.stringify({ message: "Critical Backend Failure or Disconnected Proxy. The server took too long to respond (possibly an AI model timeout or 503) or the connection was lost." }), {
-         status: response.status,
-         headers: { 'Content-Type': 'application/json' }
-       });
+      console.error(`Backend returned a non-JSON ${response.status} for ${url} — proxy or gateway level failure.`);
+
+      const isTimeout = response.status === 504;
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: isTimeout ? "GATEWAY_TIMEOUT" : "BACKEND_UNAVAILABLE",
+            message: isTimeout
+              ? "This took too long to finish and the connection was closed."
+              : "The server is not responding right now.",
+            hint: isTimeout
+              ? "Long AI analyses keep running in the background — reload the page in a few minutes to see the result."
+              : "This usually happens for a minute or two during a deployment. Nothing was saved — try again shortly.",
+          },
+        }),
+        { status: response.status, headers: { "Content-Type": "application/json" } }
+      );
     }
   }
 
