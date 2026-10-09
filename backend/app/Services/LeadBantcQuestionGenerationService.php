@@ -74,6 +74,40 @@ class LeadBantcQuestionGenerationService
             ->values()
             ->implode('; ');
 
+        // Question guides curated per product were invisible here: this service used the
+        // product's NAME and match score but never read product_questions, and nothing
+        // else consumed that table either. So a team could write careful discovery
+        // questions on the Products page and the lead's guide would never reflect them.
+        $productQuestions = $lead->productMatches
+            ->sortByDesc('match_score')
+            ->take(3)
+            ->map(fn ($match) => $match->product?->questionGuide)
+            ->filter()
+            ->map(function ($guide) {
+                $questions = $guide->questions;
+
+                if (is_string($questions)) {
+                    $questions = json_decode($questions, true);
+                }
+
+                if (! is_array($questions)) {
+                    return null;
+                }
+
+                // Stored shape varies: a flat list, or grouped by BANTC dimension.
+                $flat = [];
+                array_walk_recursive($questions, function ($value) use (&$flat) {
+                    if (is_string($value) && trim($value) !== '') {
+                        $flat[] = trim($value);
+                    }
+                });
+
+                return $flat === [] ? null : ($guide->product?->name ?? 'Product').': '.implode(' | ', array_slice($flat, 0, 8));
+            })
+            ->filter()
+            ->values()
+            ->implode("\n");
+
         $latestScore = $lead->scores->sortByDesc('created_at')->first();
         $latestQualification = $lead->qualifications->sortByDesc('created_at')->first();
         $latestAnalysis = $lead->aiAnalyses->sortByDesc('created_at')->first();
@@ -97,6 +131,7 @@ class LeadBantcQuestionGenerationService
             'Realized Closing Amount' => $lead->realized_closing_amount,
             'Assigned Product' => $lead->product?->name,
             'Top Product Matches' => $topProductMatches,
+            'Curated Product Question Guides' => $productQuestions,
             'Known Contacts' => $contacts,
             'Lead Sources' => $sources,
             'AI Insight Summary' => $latestAnalysis?->business_opportunity_summary ?? $latestAnalysis?->company_summary,
