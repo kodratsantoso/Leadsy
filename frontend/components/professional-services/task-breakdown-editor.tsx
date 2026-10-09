@@ -119,7 +119,7 @@ export function TaskBreakdownEditor({ estimationId, onUpdate }: { estimationId: 
       cancelAdd();
       await loadTasks();
       onUpdate();
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       setError("Failed to add task. Please try again.");
     } finally {
@@ -161,7 +161,7 @@ export function TaskBreakdownEditor({ estimationId, onUpdate }: { estimationId: 
       cancelEdit();
       await loadTasks();
       onUpdate();
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       setError("Failed to update task. Please try again.");
     } finally {
@@ -181,7 +181,7 @@ export function TaskBreakdownEditor({ estimationId, onUpdate }: { estimationId: 
       await deleteEstimationTask(estimationId, task.id);
       await loadTasks();
       onUpdate();
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       setError("Failed to delete task. Please try again.");
     } finally {

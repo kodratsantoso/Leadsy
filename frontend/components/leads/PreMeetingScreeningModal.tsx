@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
 import { runAiScreening } from "@/lib/aiScreeningPipeline";
+import { describeThrown } from "@/lib/apiError";
 
 interface PendingLeadItem {
   id: number;
@@ -120,8 +121,8 @@ export function PreMeetingScreeningModal({
           setQueue(items);
         }
       }
-    } catch (err: any) {
-      setGeneralError(err?.message || "Error loading leads for screening.");
+    } catch (err) {
+      setGeneralError(describeThrown(err, "Error loading leads for screening.").title);
     } finally {
       setIsLoadingQueue(false);
     }
@@ -244,7 +245,7 @@ export function PreMeetingScreeningModal({
             elapsed_seconds: duration,
           };
         }
-      } catch (err: any) {
+      } catch (err) {
         clearInterval(stageInterval);
         const duration = Math.round((performance.now() - startTime) / 100) / 10;
         localErrors++;
@@ -252,7 +253,7 @@ export function PreMeetingScreeningModal({
           id: lead.id,
           company_name: lead.company_name,
           success: false,
-          error: err?.message || "Screening error",
+          error: describeThrown(err, "Screening error").title,
           elapsed_seconds: duration,
         };
       }

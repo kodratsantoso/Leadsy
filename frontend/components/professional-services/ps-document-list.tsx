@@ -15,12 +15,14 @@ import {
 } from "@/lib/api/professional-services";
 import { GenerateDocumentModal } from "./modals/generate-document-modal";
 import { SendSignatureModal } from "./modals/send-signature-modal";
+import { useToast } from "@/components/ui/toast";
 
 interface PsDocumentListProps {
   estimationId: number;
 }
 
 export function PsDocumentList({ estimationId }: PsDocumentListProps) {
+  const toast = useToast();
   const [documents, setDocuments] = useState<PsDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
@@ -49,8 +51,8 @@ export function PsDocumentList({ estimationId }: PsDocumentListProps) {
     try {
       await deleteEstimationDocument(id);
       loadDocuments();
-    } catch (e: any) {
-      alert(e.message || "Failed to delete");
+    } catch (e) {
+      toast.fromError(e, "Failed to delete");
     }
   };
 
@@ -58,8 +60,8 @@ export function PsDocumentList({ estimationId }: PsDocumentListProps) {
     try {
       await refreshDocumentSignatureStatus(id);
       loadDocuments();
-    } catch (e: any) {
-      alert(e.message || "Failed to refresh");
+    } catch (e) {
+      toast.fromError(e, "Failed to refresh");
     }
   };
 

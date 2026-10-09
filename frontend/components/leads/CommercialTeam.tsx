@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Users, UserPlus, Loader2, Trash2, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { describeThrown } from "@/lib/apiError";
 
 type RoleAssignment = {
   id: number;
@@ -82,12 +83,12 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
         })
       });
       const result = await res.json();
-      if (!res.ok) throw new Error(result.message || 'Failed to assign role.');
+      if (!res.ok) throw new Error(result?.message || 'Failed to assign role.');
       
       qc.invalidateQueries({ queryKey: ['lead-role-assignments', leadId] });
       setForm({ user_id: '', role_type: 'sales' });
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err) {
+      setErrorMsg(describeThrown(err).title);
     } finally {
       setAssigning(false);
     }
@@ -99,11 +100,11 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
       const res = await apiFetch(`/leads/${leadId}/role-assignments/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const result = await res.json().catch(() => ({}));
-        throw new Error(result.message || 'Failed to remove assignment.');
+        throw new Error(result?.message || 'Failed to remove assignment.');
       }
       qc.invalidateQueries({ queryKey: ['lead-role-assignments', leadId] });
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to remove assignment.');
+    } catch (err) {
+      setErrorMsg(describeThrown(err, 'Failed to remove assignment.').title);
     }
   };
 

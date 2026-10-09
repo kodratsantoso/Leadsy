@@ -22,6 +22,7 @@ import { PreMeetingScreeningModal } from "@/components/leads/PreMeetingScreening
 import { apiFetch } from "@/lib/apiFetch";
 import { runAiScreening } from "@/lib/aiScreeningPipeline";
 import { useAuthStore } from "@/store/useAuthStore";
+import { describeThrown } from "@/lib/apiError";
 
 const TABS = [
   { key: "single", label: "Single Lead Debug", icon: TestTube2 },
@@ -97,7 +98,7 @@ function SingleLeadDebugTab() {
         setFeedback({ type: "success", msg: `${successLabel} dispatched.` });
         invalidate();
       },
-      onError: (err: any) => setFeedback({ type: "error", msg: err.message }),
+      onError: (err: any) => setFeedback({ type: "error", msg: describeThrown(err).title }),
     });
 
   const enrichMutation = useRerunMutation("/enrich/retry", "Firmographic Enrichment");
@@ -129,8 +130,8 @@ function SingleLeadDebugTab() {
         setFeedback({ type: "error", msg: "Pipeline timed out after 10 minutes; it may still complete in the background." });
       }
       invalidate();
-    } catch (err: any) {
-      setFeedback({ type: "error", msg: err.message });
+    } catch (err) {
+      setFeedback({ type: "error", msg: describeThrown(err).title });
     } finally {
       setPipelineRunning(false);
     }

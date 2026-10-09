@@ -10,8 +10,11 @@ import { FileText, Plus, Receipt, CheckCircle, XCircle, ArrowRight, Loader2, Dol
 import { Badge } from '@/components/ui/badge';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { Modal } from '@/components/ui/modal';
+import { describeThrown } from "@/lib/apiError";
+import { useToast } from "@/components/ui/toast";
  
 export function OrderToCash({ leadId }: { leadId: string | number }) {
+  const toast = useToast();
   const qc = useQueryClient();
   const { formatCurrency, formatNumber, formatAmountInput, normalizeAmountInput } = useNumberFormat();
   
@@ -560,8 +563,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       }
       qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
       setShowQModal(false);
-    } catch (err: any) {
-      setErrorMessage(err.message);
+    } catch (err) {
+      setErrorMessage(describeThrown(err).title);
     } finally {
       setSavingQ(false);
     }
@@ -578,8 +581,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         throw new Error(err.message || 'Failed to delete quotation');
       }
       qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      toast.fromError(err, "That action could not be completed.");
     }
   };
 
@@ -726,8 +729,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       }
       qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
       setShowSOModal(false);
-    } catch (err: any) {
-      setErrorMessage(err.message);
+    } catch (err) {
+      setErrorMessage(describeThrown(err).title);
     } finally {
       setSavingSO(false);
     }
@@ -817,8 +820,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         throw new Error(err.message || 'Failed to update status');
       }
       qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      toast.fromError(err, "That action could not be completed.");
     }
   };
  
@@ -833,8 +836,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         throw new Error(err.message || 'Failed to execute transition');
       }
       qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      toast.fromError(err, "That action could not be completed.");
     }
   };
 
@@ -847,8 +850,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       }
       qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
       qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      toast.fromError(err, "That action could not be completed.");
     }
   };
  
@@ -860,8 +863,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         throw new Error(err.message || `Failed to ${action} sales order`);
       }
       qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      toast.fromError(err, "That action could not be completed.");
     }
   };
  
@@ -876,8 +879,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         throw new Error(err.message || 'Failed to delete sales order');
       }
       qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      toast.fromError(err, "That action could not be completed.");
     }
   };
 
@@ -900,8 +903,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         setViewPdfUrl(pdfUrl);
         setViewPdfTitle(type === 'quotation' ? 'Quotation PDF Preview' : 'Sales Order PDF Preview');
       }
-    } catch (err: any) {
-      setErrorMessage(err.message);
+    } catch (err) {
+      setErrorMessage(describeThrown(err).title);
     } finally {
       setGeneratingPdfId(null);
     }

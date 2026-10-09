@@ -15,6 +15,7 @@ import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import Link from "next/link";
+import { describeThrown } from "@/lib/apiError";
 import {
   Table,
   TableBody,
@@ -596,8 +597,8 @@ export default function IntegrationsSettingsPage() {
       });
       const json = await res.json();
       setConnectionResult(json.data || { status: "error", message: "Verification failed." });
-    } catch (err: any) {
-      setConnectionResult({ status: "error", message: err.message || "Connection test failed." });
+    } catch (err) {
+      setConnectionResult({ status: "error", message: describeThrown(err, "Connection test failed.").title });
     } finally {
       setTestingConnection(false);
     }
@@ -690,7 +691,7 @@ export default function IntegrationsSettingsPage() {
       setTimeout(() => setSuccessMsg(""), 4000);
     },
     onError: (err: any) => {
-      setErrorMsg(err?.message || "Failed to disconnect user session");
+      setErrorMsg(describeThrown(err, "Failed to disconnect user session").title);
       setTimeout(() => setErrorMsg(""), 5000);
     }
   });
@@ -788,7 +789,7 @@ export default function IntegrationsSettingsPage() {
       };
     },
     onError: (error: any) => {
-      setErrorMsg(error?.message || "Failed to check Google permissions");
+      setErrorMsg(describeThrown(error, "Failed to check Google permissions").title);
       setTimeout(() => setErrorMsg(""), 5000);
     },
   });
@@ -825,7 +826,7 @@ export default function IntegrationsSettingsPage() {
       setTimeout(() => setSuccessMsg(''), 4000);
     },
     onError: (error: any) => {
-      setErrorMsg(error?.message || 'Failed to save Lark configuration');
+      setErrorMsg(describeThrown(error, 'Failed to save Lark configuration').title);
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
@@ -842,7 +843,7 @@ export default function IntegrationsSettingsPage() {
       return json;
     },
     onError: (error: any) => {
-      setErrorMsg(error?.message || 'Failed to verify Lark connection');
+      setErrorMsg(describeThrown(error, 'Failed to verify Lark connection').title);
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
@@ -865,7 +866,7 @@ export default function IntegrationsSettingsPage() {
       refetchLarkConfig();
     },
     onError: (error: any) => {
-      setErrorMsg(error?.message || 'Failed to update Lark module state');
+      setErrorMsg(describeThrown(error, 'Failed to update Lark module state').title);
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
@@ -880,7 +881,7 @@ export default function IntegrationsSettingsPage() {
       return json;
     },
     onError: (error: any) => {
-      setErrorMsg(error?.message || 'Failed to load Lark Base tables');
+      setErrorMsg(describeThrown(error, 'Failed to load Lark Base tables').title);
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
@@ -900,7 +901,7 @@ export default function IntegrationsSettingsPage() {
       setTimeout(() => setSuccessMsg(''), 3000);
     },
     onError: (error: any) => {
-      setErrorMsg(error?.message || 'Failed to load Lark Base fields');
+      setErrorMsg(describeThrown(error, 'Failed to load Lark Base fields').title);
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
@@ -916,7 +917,7 @@ export default function IntegrationsSettingsPage() {
       return json;
     },
     onError: (error: any) => {
-      setErrorMsg(error?.message || 'Failed to preview Lark Base records');
+      setErrorMsg(describeThrown(error, 'Failed to preview Lark Base records').title);
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
@@ -958,7 +959,7 @@ export default function IntegrationsSettingsPage() {
       setTimeout(() => setSuccessMsg(''), 4000);
     },
     onError: (error: any) => {
-      setErrorMsg(error?.message || 'Failed to save Lark Base mapping');
+      setErrorMsg(describeThrown(error, 'Failed to save Lark Base mapping').title);
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
@@ -1002,9 +1003,9 @@ export default function IntegrationsSettingsPage() {
         status: "failed",
         direction: variables.direction,
         mappingName: variables.mappingName,
-        error: error?.message || "Failed to sync Lark Base mapping",
+        error: describeThrown(error, "Failed to sync Lark Base mapping").title,
       });
-      setErrorMsg(error?.message || 'Failed to sync Lark Base mapping');
+      setErrorMsg(describeThrown(error, 'Failed to sync Lark Base mapping').title);
       setTimeout(() => setErrorMsg(''), 5000);
     },
   });
@@ -1175,8 +1176,8 @@ export default function IntegrationsSettingsPage() {
         setTimeout(() => setErrorMsg(""), 5000);
         return false;
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Network error");
+    } catch (err) {
+      setErrorMsg(describeThrown(err, "Network error").title);
       setTimeout(() => setErrorMsg(""), 5000);
       return false;
     } finally {
@@ -1219,10 +1220,10 @@ export default function IntegrationsSettingsPage() {
         ...current,
         [platformId]: json?.data?.message || "Action completed",
       }));
-    } catch (err: any) {
+    } catch (err) {
       setPlatformStatus((current) => ({
         ...current,
-        [platformId]: err?.message || "Action failed",
+        [platformId]: describeThrown(err, "Action failed").title,
       }));
     }
   };

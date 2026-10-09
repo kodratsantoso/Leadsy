@@ -12,6 +12,7 @@ import {
   Plus, Target, CheckCircle, AlertTriangle, AlertCircle, RefreshCw, Printer, User, BrainCircuit, Activity, Info, FileText, Check, ShieldAlert, MonitorPlay, Zap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from "@/components/ui/toast";
 
 export type PreMeetingBriefType = {
   id: number;
@@ -50,6 +51,7 @@ export type PreMeetingBriefType = {
 };
 
 export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
+  const toast = useToast();
   const qc = useQueryClient();
   const [mode, setMode] = useState<'view' | 'form'>('view');
   const [activeTab, setActiveTab] = useState('overview');
@@ -267,7 +269,7 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
               </Select>
             </div>
           )}
-          <Button variant="outline" size="sm" onClick={() => alert("Follow-up task creation coming soon.")}>
+          <Button variant="outline" size="sm" onClick={() => toast.info("Follow-up task creation is not available yet.")}>
             <CheckCircle className="mr-2 h-4 w-4" /> Create Task
           </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()}>

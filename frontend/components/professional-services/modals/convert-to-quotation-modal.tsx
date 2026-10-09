@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { PsEstimation, quotationPreview, convertToQuotation } from "@/lib/api/professional-services";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { useToast } from "@/components/ui/toast";
 
 type ConvertToQuotationModalProps = {
   open: boolean;
@@ -17,6 +18,7 @@ type ConvertToQuotationModalProps = {
 };
 
 export function ConvertToQuotationModal({ open, onOpenChange, estimation, onSuccess }: ConvertToQuotationModalProps) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   
@@ -85,8 +87,8 @@ export function ConvertToQuotationModal({ open, onOpenChange, estimation, onSucc
       const res = await convertToQuotation(estimation.id, payload);
       onSuccess(res);
       onOpenChange(false);
-    } catch (e: any) {
-      alert("Failed to convert: " + (e.message || "Unknown error"));
+    } catch (e) {
+      toast.fromError(e, "Failed to convert.");
     } finally {
       setLoading(false);
     }

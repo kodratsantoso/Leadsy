@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { useToast } from "@/components/ui/toast";
 
 const NumberInput = ({ value, onChange, className, placeholder }: any) => {
   const displayValue = value ? new Intl.NumberFormat('en-US').format(Number(value)) : "";
@@ -24,6 +25,7 @@ const NumberInput = ({ value, onChange, className, placeholder }: any) => {
 };
 
 export default function RevenueTargetsPage() {
+  const toast = useToast();
   const { formatNumber, formatCurrency } = useNumberFormat();
   
   const [loading, setLoading] = useState(true);
@@ -122,7 +124,7 @@ export default function RevenueTargetsPage() {
         const e = await res.json();
         const details = e.error?.details || e.errors;
         const errorDetails = details ? JSON.stringify(details, null, 2) : "";
-        alert((e.message || "Failed to save target") + (errorDetails ? "\n" + errorDetails : ""));
+        toast.fromError(e, "Failed to save target.");
       }
     } catch (err) {
       console.error(err);
@@ -188,7 +190,7 @@ export default function RevenueTargetsPage() {
         fetchInitData();
       } else {
         const e = await res.json();
-        alert(e.error || e.message || "Failed to cascade");
+        toast.fromError(e, "Failed to cascade.");
       }
     } catch (err) {
       console.error(err);

@@ -30,6 +30,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { runAiScreening } from "@/lib/aiScreeningPipeline";
 import { safeJsonArray, safeRender } from "@/lib/utils";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { describeThrown } from "@/lib/apiError";
 import {
   clampPercent,
   formatQualificationStatus,
@@ -95,7 +96,7 @@ export function IntelligenceTab({
         setAiActionsFeedback({ type: 'success', msg: `${successLabel} dispatched.` });
         onLeadChanged();
       },
-      onError: (err: any) => setAiActionsFeedback({ type: 'error', msg: err.message }),
+      onError: (err: any) => setAiActionsFeedback({ type: 'error', msg: describeThrown(err).title }),
     });
 
   const aiEnrichMutation = useAiActionMutation('/enrich/retry', 'Firmographic Enrichment');
@@ -126,8 +127,8 @@ export function IntelligenceTab({
         setAiActionsFeedback({ type: 'error', msg: 'Pipeline timed out after 10 minutes; it may still complete in the background.' });
       }
       onLeadChanged();
-    } catch (err: any) {
-      setAiActionsFeedback({ type: 'error', msg: err.message });
+    } catch (err) {
+      setAiActionsFeedback({ type: 'error', msg: describeThrown(err).title });
     } finally {
       setAiPipelineRunning(false);
     }
@@ -156,8 +157,8 @@ export function IntelligenceTab({
         msg: `Full pipeline completed (synchronous). Score: ${data.lead_score ?? '—'} (${data.qualification_status ?? '—'}). Stages: ${(data.stages_executed || []).join(', ') || '—'}.`,
       });
       onLeadChanged();
-    } catch (err: any) {
-      setAiActionsFeedback({ type: 'error', msg: err.message });
+    } catch (err) {
+      setAiActionsFeedback({ type: 'error', msg: describeThrown(err).title });
     } finally {
       setAiSyncPipelineRunning(false);
     }

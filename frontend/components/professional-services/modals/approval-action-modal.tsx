@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { 
   PsEstimation, 
   submitEstimationApproval, 
@@ -22,6 +23,7 @@ export function ApprovalActionModal({
   actionType: "submit" | "approve" | "reject" | "request_revision";
   onSuccess: () => void;
 }) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState("");
 
@@ -40,9 +42,9 @@ export function ApprovalActionModal({
       onSuccess();
       onOpenChange(false);
       setText("");
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      alert(e.message || "Failed to process action");
+      toast.fromError(e, "Failed to process action");
     } finally {
       setLoading(false);
     }

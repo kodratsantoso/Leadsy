@@ -23,6 +23,7 @@ import {
 } from "@/lib/hooks/use-whatsapp";
 import { useAuthStore } from "@/store/useAuthStore";
 import { fetchAssignableUsers, type AssignableUser } from "@/lib/api/leads";
+import { describeThrown } from "@/lib/apiError";
 
 type Tab = "session" | "direct" | "broadcast" | "conversations" | "settings";
 type FolderFilter = "all" | "my" | "unassigned" | "assigned" | "resolved";
@@ -159,8 +160,8 @@ export default function LocalWhatsAppPage() {
       } else {
         setConvertError("Conversion failed");
       }
-    } catch (err: any) {
-      setConvertError(err?.message || "Conversion failed");
+    } catch (err) {
+      setConvertError(describeThrown(err, "Conversion failed").title);
     } finally {
       setConverting(false);
     }

@@ -8,6 +8,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/apiFetch";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { describeThrown } from "@/lib/apiError";
 
 type Mode = "login" | "register" | "2fa";
 type RegisterStep = "form" | "otp";
@@ -89,8 +90,8 @@ export default function LoginPage() {
             window.localStorage.setItem("lark_tenant_id", singleTenantId);
           }
         }
-      } catch (err: any) {
-        setTenantFetchError(err.message || "Unable to load workspaces.");
+      } catch (err) {
+        setTenantFetchError(describeThrown(err, "Unable to load workspaces.").title);
       } finally {
         setTenantsLoading(false);
       }
@@ -129,7 +130,7 @@ export default function LoginPage() {
       let data: any = null;
       try {
         data = rawText ? JSON.parse(rawText) : null;
-      } catch (err: any) {
+      } catch (err) {
         console.error("JSON parse failure rawText:", rawText);
         throw new Error(`Invalid response from backend: ${rawText.slice(0, 150)}`);
       }
@@ -143,11 +144,11 @@ export default function LoginPage() {
 
       setAuth(data.token, data.user);
       router.push("/");
-    } catch (err: any) {
+    } catch (err) {
       setError(
-        err.message?.includes("fetch") || err.message?.includes("Failed to fetch")
+        describeThrown(err).isOffline
           ? "Cannot connect to the backend. Please ensure the server is running."
-          : err.message || "An unexpected error occurred."
+          : describeThrown(err, "An unexpected error occurred.").title
       );
     } finally {
       setLoginLoading(false);
@@ -171,8 +172,8 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data?.message || "Invalid 2FA code or recovery code.");
       setAuth(data.token, data.user);
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+    } catch (err) {
+      setError(describeThrown(err, "An unexpected error occurred.").title);
     } finally {
       setLoginLoading(false);
     }
@@ -210,8 +211,8 @@ export default function LoginPage() {
       }
 
       window.location.href = data.auth_url;
-    } catch (err: any) {
-      setError(err.message || "Unable to continue with Lark SSO.");
+    } catch (err) {
+      setError(describeThrown(err, "Unable to continue with Lark SSO.").title);
       setLarkLoginLoading(false);
     }
   };
@@ -237,8 +238,8 @@ export default function LoginPage() {
       setCountdown(60);
       setSuccess("Verification code sent! Check your email.");
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch (err: any) {
-      setError(err.message || "Failed to send verification code.");
+    } catch (err) {
+      setError(describeThrown(err, "Failed to send verification code.").title);
     } finally {
       setSendingOtp(false);
     }
@@ -291,8 +292,8 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data?.message || "Registration failed.");
       setAuth(data.token, data.user);
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
+    } catch (err) {
+      setError(describeThrown(err, "Registration failed. Please try again.").title);
     } finally {
       setRegisterLoading(false);
     }
@@ -316,8 +317,8 @@ export default function LoginPage() {
       setCountdown(60);
       setSuccess("New verification code sent!");
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch (err: any) {
-      setError(err.message || "Failed to resend code.");
+    } catch (err) {
+      setError(describeThrown(err, "Failed to resend code.").title);
     } finally {
       setSendingOtp(false);
     }

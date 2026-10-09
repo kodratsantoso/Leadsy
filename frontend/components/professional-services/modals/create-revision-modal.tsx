@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { 
   PsEstimation, 
   createEstimationRevision 
@@ -16,6 +17,7 @@ export function CreateRevisionModal({
   onOpenChange: (open: boolean) => void;
   estimation: PsEstimation;
 }) {
+  const toast = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState("");
@@ -27,9 +29,9 @@ export function CreateRevisionModal({
       onOpenChange(false);
       setReason("");
       router.push(`/professional-services/estimations/${newEstimation.id}`);
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      alert(e.message || "Failed to create revision");
+      toast.fromError(e, "Failed to create revision");
     } finally {
       setLoading(false);
     }

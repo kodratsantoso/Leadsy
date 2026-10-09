@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { apiFetch } from '@/lib/apiFetch';
+import { describeThrown } from "@/lib/apiError";
 
 /* ── Types ── */
 
@@ -164,8 +165,8 @@ export function useWhatsApp() {
       const res = await apiFetch(url);
       const data = await res.json();
       return data.data || [];
-    } catch (err: any) {
-      setError(err?.message || 'Failed to fetch conversations');
+    } catch (err) {
+      setError(describeThrown(err, 'Failed to fetch conversations').title);
       return [];
     } finally {
       setLoading(false);
