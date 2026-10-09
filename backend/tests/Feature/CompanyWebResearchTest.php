@@ -20,6 +20,35 @@ class CompanyWebResearchTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** @var array<string, string|false> */
+    private array $originalEnv = [];
+
+    private const SEARCH_ENV = ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_ENGINE_ID'];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        foreach (self::SEARCH_ENV as $key) {
+            $this->originalEnv[$key] = getenv($key);
+        }
+    }
+
+    /**
+     * putenv() is process-wide, and these tests set search credentials that other tests
+     * assert the ABSENCE of — OpenSearchTest checks for a 503 when no key is configured.
+     * Without this, running the suite in one process made it fail depending on order.
+     */
+    protected function tearDown(): void
+    {
+        foreach (self::SEARCH_ENV as $key) {
+            $original = $this->originalEnv[$key] ?? false;
+            $original === false ? putenv($key) : putenv("{$key}={$original}");
+        }
+
+        parent::tearDown();
+    }
+
     private function fakeSearch(array $items): void
     {
         Http::fake([
