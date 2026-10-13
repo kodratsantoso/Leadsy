@@ -16,7 +16,7 @@ class WebSearchManager
 {
     public const ORDER_KEY = 'WEB_RESEARCH_PROVIDER_ORDER';
 
-    public const DEFAULT_ORDER = ['tavily', 'google', 'serper', 'brave'];
+    public const DEFAULT_ORDER = ['tavily', 'google', 'serper', 'brave', 'yahoo'];
 
     /** @var array<string, WebSearchProvider> */
     private array $providers;
@@ -27,8 +27,9 @@ class WebSearchManager
         TavilySearchClient $tavily,
         BraveSearchClient $brave,
         SerperSearchClient $serper,
+        YahooSearchClient $yahoo,
     ) {
-        foreach ([$tavily, $google, $serper, $brave] as $provider) {
+        foreach ([$tavily, $google, $serper, $brave, $yahoo] as $provider) {
             $this->providers[$provider->key()] = $provider;
         }
     }

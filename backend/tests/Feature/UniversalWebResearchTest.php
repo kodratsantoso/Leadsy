@@ -53,4 +53,30 @@ class UniversalWebResearchTest extends TestCase
 
         $this->assertSame([], $pages);
     }
+
+    public function test_yahoo_free_scraper_acts_as_automatic_fallback(): void
+    {
+        putenv('TAVILY_API_KEY');
+        putenv('SERPER_API_KEY');
+        putenv('BRAVE_SEARCH_API_KEY');
+        putenv('GOOGLE_SEARCH_API_KEY');
+
+        Http::fake([
+            'https://search.yahoo.com/search*' => Http::response('
+                <html><body>
+                    <li>
+                        <a href="https://r.search.yahoo.com/_ylt=123/RU=https%3a%2f%2fparagon-innovation.com/RK=2/RS=abc"><h3>Paragon Technology and Innovation</h3></a>
+                        <div class="compText"><p>Produsen kosmetik terkemuka Wardah dan Make Over di Indonesia.</p></div>
+                    </li>
+                </body></html>
+            ', 200),
+            'https://paragon-innovation.com*' => Http::response('<html><body><h1>Paragon Official</h1><p>Alamat kantor pusat Jakarta.</p></body></html>', 200, ['Content-Type' => 'text/html']),
+        ]);
+
+        $result = app(CompanyWebResearchService::class)->research('PT Paragon Technology');
+
+        $this->assertTrue($result['available']);
+        $this->assertContains('yahoo', $result['providers'] ?? []);
+        $this->assertStringContainsString('Wardah dan Make Over', $result['findings']);
+    }
 }

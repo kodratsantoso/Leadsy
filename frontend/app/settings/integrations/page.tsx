@@ -250,7 +250,7 @@ const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   TAVILY_API_KEY:                 { category: "maps", key: "TAVILY_API_KEY",                 value: "",        is_secret: true,  is_active: true, value_type: "string"  },
   BRAVE_SEARCH_API_KEY:           { category: "maps", key: "BRAVE_SEARCH_API_KEY",           value: "",        is_secret: true,  is_active: true, value_type: "string"  },
   SERPER_API_KEY:                 { category: "maps", key: "SERPER_API_KEY",                 value: "",        is_secret: true,  is_active: true, value_type: "string"  },
-  WEB_RESEARCH_PROVIDER_ORDER:    { category: "maps", key: "WEB_RESEARCH_PROVIDER_ORDER",    value: "tavily,google,serper,brave", is_secret: false, is_active: true, value_type: "string" },
+  WEB_RESEARCH_PROVIDER_ORDER:    { category: "maps", key: "WEB_RESEARCH_PROVIDER_ORDER",    value: "tavily,google,serper,brave,yahoo", is_secret: false, is_active: true, value_type: "string" },
 };
 
 const googlePermissionVariant = (status: GooglePermissionStatus): "success" | "warning" | "danger" => {
@@ -2150,11 +2150,11 @@ export default function IntegrationsSettingsPage() {
                   </div>
                   <div>
                     <label className="text-sm font-semibold">Urutan Prioritas Provider</label>
-                    <p className="mt-0.5 text-xs text-muted-foreground">Pisahkan dengan koma (default: tavily,google,serper,brave).</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Pisahkan dengan koma (default: tavily,google,serper,brave,yahoo). <strong>Yahoo Search</strong> otomatis aktif sebagai fallback 100% gratis tanpa API key.</p>
                     <Input
                       className="mt-2 font-mono"
                       type="text"
-                      placeholder="tavily,google,serper,brave"
+                      placeholder="tavily,google,serper,brave,yahoo"
                       value={mapsConfig.WEB_RESEARCH_PROVIDER_ORDER.value}
                       onChange={(e) => setMapsConfig({
                         ...mapsConfig,
