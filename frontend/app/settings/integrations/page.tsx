@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ComponentType, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink, Sparkles } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
@@ -247,6 +247,10 @@ const DEFAULT_MAPS: Record<string, IntegrationConfig> = {
   VERTEX_AI_VECTOR_SEARCH_LOCATION: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_LOCATION", value: "", is_secret: false, is_active: true, value_type: "string" },
   VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_INDEX_ENDPOINT_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
   VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID: { category: "maps", key: "VERTEX_AI_VECTOR_SEARCH_DEPLOYED_INDEX_ID", value: "", is_secret: false, is_active: true, value_type: "string" },
+  TAVILY_API_KEY:                 { category: "maps", key: "TAVILY_API_KEY",                 value: "",        is_secret: true,  is_active: true, value_type: "string"  },
+  BRAVE_SEARCH_API_KEY:           { category: "maps", key: "BRAVE_SEARCH_API_KEY",           value: "",        is_secret: true,  is_active: true, value_type: "string"  },
+  SERPER_API_KEY:                 { category: "maps", key: "SERPER_API_KEY",                 value: "",        is_secret: true,  is_active: true, value_type: "string"  },
+  WEB_RESEARCH_PROVIDER_ORDER:    { category: "maps", key: "WEB_RESEARCH_PROVIDER_ORDER",    value: "tavily,google,serper,brave", is_secret: false, is_active: true, value_type: "string" },
 };
 
 const googlePermissionVariant = (status: GooglePermissionStatus): "success" | "warning" | "danger" => {
@@ -2076,6 +2080,88 @@ export default function IntegrationsSettingsPage() {
                         ...mapsConfig,
                         GOOGLE_SEARCH_SITE_SEARCH: { ...mapsConfig.GOOGLE_SEARCH_SITE_SEARCH, value: e.target.value },
                       })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Universal Web Research Providers for AI Profiling */}
+              <div className="rounded-xl border border-border p-4 bg-muted/10">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-[var(--brand)]" />
+                      Universal Web Research Providers (AI Profiling)
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Layanan pencarian live web yang digunakan otomatis oleh semua AI Provider (OpenAI, Claude, BytePlus, Gemini).
+                    </p>
+                  </div>
+                  <Badge variant="outline">Multi-Provider Fallback</Badge>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-semibold">Tavily API Key (Rekomendasi Utama)</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">API search khusus LLM (free tier ±1.000 req/bulan di tavily.com).</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="password"
+                      placeholder="tvly-..."
+                      value={mapsConfig.TAVILY_API_KEY.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        TAVILY_API_KEY: { ...mapsConfig.TAVILY_API_KEY, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Serper API Key</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Google search API cepat tanpa perlu Programmable Engine (serper.dev).</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="password"
+                      placeholder="serper key..."
+                      value={mapsConfig.SERPER_API_KEY.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        SERPER_API_KEY: { ...mapsConfig.SERPER_API_KEY, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Brave Search API Key</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Pencarian independen global (brave.com/search/api).</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="password"
+                      placeholder="BSA..."
+                      value={mapsConfig.BRAVE_SEARCH_API_KEY.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        BRAVE_SEARCH_API_KEY: { ...mapsConfig.BRAVE_SEARCH_API_KEY, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Urutan Prioritas Provider</label>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Pisahkan dengan koma (default: tavily,google,serper,brave).</p>
+                    <Input
+                      className="mt-2 font-mono"
+                      type="text"
+                      placeholder="tavily,google,serper,brave"
+                      value={mapsConfig.WEB_RESEARCH_PROVIDER_ORDER.value}
+                      onChange={(e) => setMapsConfig({
+                        ...mapsConfig,
+                        WEB_RESEARCH_PROVIDER_ORDER: { ...mapsConfig.WEB_RESEARCH_PROVIDER_ORDER, value: e.target.value },
+                      })}
+                      autoComplete="off"
+                      spellCheck={false}
                     />
                   </div>
                 </div>

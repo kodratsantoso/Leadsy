@@ -138,14 +138,15 @@ class AiLeadProfilingService
             $profileData['company_name'] = $profileData['legal_name'];
         }
 
-        // Carry the state of the research through to the screen. Without it a profile
-        // that came back mostly null looks like the AI failing, when the real answer is
-        // that it was never given anything to work from — and the operator cannot tell
-        // those apart, so nobody fixes the thing that is actually broken.
+        // Carry the state of the research through to the screen.
         $profileData['research_status'] = [
             'available' => $research['available'],
             'reason' => $research['reason'] ?? null,
             'source_count' => count($research['sources'] ?? []),
+            'providers' => $research['providers'] ?? [],
+            'provider_labels' => $research['provider_labels'] ?? [],
+            'pages_read' => $research['pages_read'] ?? 0,
+            'official_website' => $research['official_website'] ?? null,
         ];
 
         $profileData['evidence'] = [
@@ -235,6 +236,7 @@ class AiLeadProfilingService
         return [
             'company_name' => $pick('legal_company_name', 'legal_name', 'company_name'),
             'legal_name' => $pick('legal_name', 'legal_company_name', 'company_name'),
+            'entity_selection_note' => $pick('entity_selection_note'),
             'brand' => $pick('brand_name', 'brand'),
             'abbreviation' => $pick('abbreviation'),
             'year_established' => $pick('year_established'),
@@ -251,6 +253,8 @@ class AiLeadProfilingService
             'industry' => $pick('industry'),
             'sub_industry' => $pick('sub_industry'),
             'business_category' => $pick('business_category'),
+            'secondary_industries' => $pick('secondary_industries') ?? [],
+            'secondary_business_categories' => $pick('secondary_business_categories') ?? [],
             'primary_sector' => $pick('primary_sector'),
             'vertical' => $pick('vertical'),
             'core_product' => $pick('core_product'),
@@ -259,6 +263,7 @@ class AiLeadProfilingService
             'company_size_estimate' => $pick('company_size_estimate'),
             'operational_area_type' => $pick('operational_area_type'),
             'branch_count' => $pick('branch_count'),
+            'office_locations' => $pick('office_locations') ?? [],
             'business_model' => $pick('business_model'),
             'target_market' => $pick('target_market'),
             'corporate_structure' => $pick('corporate_structure'),
@@ -267,6 +272,9 @@ class AiLeadProfilingService
             'certifications_or_registrations' => $pick('certifications_or_registrations'),
             'customer_story' => $pick('brief_customer_story', 'customer_story'),
             'presales_perspective' => $pick('presales_perspective'),
+            'sales_notes' => $pick('sales_notes') ?? [],
+            'discrepancies' => $pick('discrepancies') ?? [],
+            'source_validation' => $pick('source_validation') ?? [],
             'confidence' => $pick('confidence'),
             'sources' => $pick('sources') ?? [],
         ];
@@ -389,6 +397,7 @@ class AiLeadProfilingService
             'business_category' => $businessCategoryName,
             'company_size_estimate' => $companySize,
             'customer_story' => !empty($profileData['customer_story']) ? $profileData['customer_story'] : ($lead->customer_story ?: null),
+            'ai_profile_json' => $profileData,
             'lat' => $profileData['lat'] ?? $lead->lat,
             'lng' => $profileData['lng'] ?? $lead->lng,
             'external_place_id' => $profileData['external_place_id'] ?? $lead->external_place_id,

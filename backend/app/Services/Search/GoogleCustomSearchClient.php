@@ -2,7 +2,7 @@
 
 namespace App\Services\Search;
 
-use App\Models\IntegrationConfig;
+use App\Services\Search\Contracts\WebSearchProvider;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -21,9 +21,31 @@ use Illuminate\Support\Facades\Log;
  * research and contact discovery in one place where a change to either can break the
  * other. Only the credential lookup is shared in spirit, reading the same config keys.
  */
-class GoogleCustomSearchClient
+class GoogleCustomSearchClient implements WebSearchProvider
 {
     private const ENDPOINT = 'https://customsearch.googleapis.com/customsearch/v1';
+
+    private const API_KEY_KEYS = ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_CUSTOM_SEARCH_API_KEY', 'GOOGLE_MAPS_BROWSER_API_KEY'];
+
+    private const ENGINE_ID_KEYS = ['GOOGLE_SEARCH_ENGINE_ID', 'GOOGLE_CUSTOM_SEARCH_ENGINE_ID', 'GOOGLE_CSE_ID'];
+
+    public function __construct(private readonly SearchConfig $config) {}
+
+    public function key(): string
+    {
+        return 'google';
+    }
+
+    public function label(): string
+    {
+        return 'Google Custom Search';
+    }
+
+    public function isConfigured(?int $tenantId = null): bool
+    {
+        return $this->config->value(self::API_KEY_KEYS, $tenantId) !== null
+            && $this->config->value(self::ENGINE_ID_KEYS, $tenantId) !== null;
+    }
 
     /**
      * Run one query.
@@ -38,17 +60,9 @@ class GoogleCustomSearchClient
             return ['success' => false, 'results' => [], 'error' => 'Empty search query.'];
         }
 
-        $apiKey = $this->configValue([
-            'GOOGLE_SEARCH_API_KEY',
-            'GOOGLE_CUSTOM_SEARCH_API_KEY',
-            'GOOGLE_MAPS_BROWSER_API_KEY',
-        ], $tenantId);
+        $apiKey = $this->config->value(self::API_KEY_KEYS, $tenantId);
 
-        $searchEngineId = $this->configValue([
-            'GOOGLE_SEARCH_ENGINE_ID',
-            'GOOGLE_CUSTOM_SEARCH_ENGINE_ID',
-            'GOOGLE_CSE_ID',
-        ], $tenantId);
+        $searchEngineId = $this->config->value(self::ENGINE_ID_KEYS, $tenantId);
 
         if (! $apiKey || ! $searchEngineId) {
             return [
@@ -65,8 +79,8 @@ class GoogleCustomSearchClient
                 'q' => $query,
                 'num' => max(1, min(10, $limit)),
                 // Indonesian companies are the subject, so bias the index accordingly.
-                'gl' => $this->configValue(['GOOGLE_SEARCH_GL'], $tenantId) ?: 'id',
-                'hl' => $this->configValue(['GOOGLE_SEARCH_HL'], $tenantId) ?: 'id',
+                'gl' => $this->config->value(['GOOGLE_SEARCH_GL'], $tenantId) ?: 'id',
+                'hl' => $this->config->value(['GOOGLE_SEARCH_HL'], $tenantId) ?: 'id',
                 'safe' => 'off',
             ], fn ($v) => $v !== null && $v !== ''));
         } catch (\Throwable $e) {
@@ -92,35 +106,5 @@ class GoogleCustomSearchClient
             ->all();
 
         return ['success' => true, 'results' => $results];
-    }
-
-    /** Reads an integration setting, preferring an env override. */
-    private function configValue(array $keys, ?int $tenantId): ?string
-    {
-        foreach ($keys as $key) {
-            $value = env($key);
-            if (is_string($value) && trim($value) !== '') {
-                return trim($value);
-            }
-
-            $record = IntegrationConfig::query()
-                ->where('key', $key)
-                ->where('is_active', true)
-                ->where(function ($query) use ($tenantId) {
-                    $query->whereNull('tenant_id');
-                    if ($tenantId !== null) {
-                        $query->orWhere('tenant_id', $tenantId);
-                    }
-                })
-                ->orderByRaw('tenant_id is null')
-                ->latest()
-                ->first();
-
-            if (is_string($record?->value) && trim($record->value) !== '') {
-                return trim($record->value);
-            }
-        }
-
-        return null;
     }
 }

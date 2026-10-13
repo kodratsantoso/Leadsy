@@ -14,6 +14,7 @@ interface SourceEvidence {
 export interface ProfilingData {
   company_name?: string;
   legal_name?: string;
+  entity_selection_note?: string | null;
   brand?: string;
   abbreviation?: string;
   year_established?: string;
@@ -34,6 +35,8 @@ export interface ProfilingData {
   business_category?: string;
   business_category_id?: number | string;
   business_category_name?: string;
+  secondary_industries?: string[];
+  secondary_business_categories?: string[];
   primary_sector?: string;
   vertical?: string;
   core_product?: string;
@@ -42,6 +45,7 @@ export interface ProfilingData {
   company_size_estimate?: string;
   operational_area_type?: string;
   branch_count?: number | string | null;
+  office_locations?: Array<{ city?: string; province?: string; country?: string; address?: string; type?: string }>;
   business_model?: string;
   target_market?: string;
   corporate_structure?: string;
@@ -50,11 +54,28 @@ export interface ProfilingData {
   certifications_or_registrations?: string;
   customer_story?: string;
   presales_perspective?: string;
+  sales_notes?: {
+    potential_needs?: string[];
+    departments_to_approach?: string[];
+    pain_points?: string[];
+    solution_angles?: string[];
+    discovery_questions?: string[];
+  };
+  discrepancies?: Array<{ topic?: string; detail?: string; recommendation?: string }>;
+  source_validation?: Array<{ field?: string; status?: string; source_url?: string; note?: string }>;
   confidence?: "low" | "medium" | "high";
   evidence?: SourceEvidence;
   sources?: string[];
   /** Whether Leadsy could search the web before asking the model. */
-  research_status?: { available: boolean; reason?: string | null; source_count?: number };
+  research_status?: {
+    available: boolean;
+    reason?: string | null;
+    source_count?: number;
+    providers?: string[];
+    provider_labels?: string[];
+    pages_read?: number;
+    official_website?: string | null;
+  };
   lat?: number;
   lng?: number;
 }
@@ -261,9 +282,17 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
       )}
 
       {status === "ready_for_review" && data?.research_status?.available && (
-        <p className="mx-3 mt-3 text-xs text-[var(--status-success)]">
-          Based on {data.research_status.source_count ?? 0} web source(s).
-        </p>
+        <div className="mx-3 mt-3 flex items-center justify-between text-xs text-[var(--status-success)] bg-[var(--status-success-bg)] px-3 py-1.5 rounded-md border border-[var(--status-success-border)]">
+          <span>
+            Berdasarkan {data.research_status.source_count ?? 0} sumber web
+            {data.research_status.pages_read ? ` & ${data.research_status.pages_read} halaman situs resmi` : ""}
+          </span>
+          {data.research_status.provider_labels && data.research_status.provider_labels.length > 0 && (
+            <span className="text-[10px] opacity-80">
+              Provider: {data.research_status.provider_labels.join(", ")}
+            </span>
+          )}
+        </div>
       )}
 
       {status === "ready_for_review" && data && (
@@ -319,10 +348,88 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
             <Field label="Sertifikasi / Registrasi" value={data.certifications_or_registrations} />
           </Section>
 
+          {data.entity_selection_note && (
+            <div className="bg-muted/30 border border-border/60 rounded-lg p-2.5 text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">Catatan Entitas: </span>
+              {data.entity_selection_note}
+            </div>
+          )}
+
           {data.customer_story && (
             <Section title="Company Overview" icon={<TrendingUp className="h-3.5 w-3.5" />}>
               <div className="bg-muted/40 p-3 rounded-lg">
                 <p className="text-xs leading-relaxed text-foreground/90">{data.customer_story}</p>
+              </div>
+            </Section>
+          )}
+
+          {data.sales_notes && (
+            (data.sales_notes.potential_needs?.length ?? 0) > 0 ||
+            (data.sales_notes.departments_to_approach?.length ?? 0) > 0 ||
+            (data.sales_notes.pain_points?.length ?? 0) > 0 ||
+            (data.sales_notes.solution_angles?.length ?? 0) > 0 ||
+            (data.sales_notes.discovery_questions?.length ?? 0) > 0
+          ) && (
+            <Section title="B2B Sales & Presales Notes" icon={<Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />} defaultOpen={true}>
+              <div className="space-y-3 p-1">
+                {data.sales_notes.departments_to_approach && data.sales_notes.departments_to_approach.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-semibold text-foreground/80 block mb-1">Departemen / Stakeholder Target:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {data.sales_notes.departments_to_approach.map((dept, i) => (
+                        <Badge key={i} variant="outline" className="text-[11px] font-normal py-0.5">
+                          {dept}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {data.sales_notes.potential_needs && data.sales_notes.potential_needs.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-semibold text-foreground/80 block mb-1">Potential Business & Tech Needs:</span>
+                    <ul className="list-disc list-inside space-y-0.5 text-xs text-muted-foreground">
+                      {data.sales_notes.potential_needs.map((item, i) => (
+                        <li key={i}><span className="text-foreground/90">{item}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {data.sales_notes.pain_points && data.sales_notes.pain_points.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-semibold text-foreground/80 block mb-1">Probable Industry Pain Points:</span>
+                    <ul className="list-disc list-inside space-y-0.5 text-xs text-muted-foreground">
+                      {data.sales_notes.pain_points.map((item, i) => (
+                        <li key={i}><span className="text-foreground/90">{item}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {data.sales_notes.solution_angles && data.sales_notes.solution_angles.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-semibold text-foreground/80 block mb-1">Recommended Solution Angles:</span>
+                    <ul className="list-disc list-inside space-y-0.5 text-xs text-muted-foreground">
+                      {data.sales_notes.solution_angles.map((item, i) => (
+                        <li key={i}><span className="text-foreground/90">{item}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {data.sales_notes.discovery_questions && data.sales_notes.discovery_questions.length > 0 && (
+                  <div className="bg-[var(--brand)]/5 border border-[var(--brand)]/20 p-2.5 rounded-lg">
+                    <span className="text-[11px] font-semibold text-[var(--brand)] block mb-1.5 flex items-center gap-1.5">
+                      <Target className="h-3.5 w-3.5" /> Discovery Questions (First Meeting):
+                    </span>
+                    <ol className="list-decimal list-inside space-y-1 text-xs text-foreground/90">
+                      {data.sales_notes.discovery_questions.map((q, i) => (
+                        <li key={i} className="leading-snug">{q}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
               </div>
             </Section>
           )}
