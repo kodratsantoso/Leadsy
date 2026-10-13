@@ -695,7 +695,11 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
       const res = await apiFetch("/leads/ai-profiling/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company_name: formState.company_name.trim(), sync: true }),
+        body: JSON.stringify({
+          company_name: formState.company_name.trim(),
+          website: formState.website?.trim() || undefined,
+          sync: true,
+        }),
       });
       const json = await res.json();
       if (json.success && json.data?.status === "ready_for_review") {
@@ -2509,7 +2513,10 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                     const res = await apiFetch("/leads/ai-profiling/start", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ company_name: formState.company_name.trim() }),
+                      body: JSON.stringify({
+                        company_name: formState.company_name.trim(),
+                        website: formState.website?.trim() || undefined,
+                      }),
                     });
                     const json = await res.json();
                     if (json.success && json.data) {

@@ -47,6 +47,7 @@ class CompanyWebResearchTest extends TestCase
 
     public function test_an_unconfigured_search_is_reported_rather_than_faked(): void
     {
+        putenv('WEB_RESEARCH_PROVIDER_ORDER=google');
         putenv('GOOGLE_SEARCH_API_KEY');
         putenv('GOOGLE_SEARCH_ENGINE_ID');
 
@@ -59,6 +60,7 @@ class CompanyWebResearchTest extends TestCase
 
     public function test_no_results_is_not_the_same_as_search_being_broken(): void
     {
+        putenv('WEB_RESEARCH_PROVIDER_ORDER=google');
         putenv('GOOGLE_SEARCH_API_KEY=test-key');
         putenv('GOOGLE_SEARCH_ENGINE_ID=test-cx');
         $this->fakeSearch([]);

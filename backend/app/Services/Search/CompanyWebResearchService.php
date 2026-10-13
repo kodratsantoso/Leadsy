@@ -49,21 +49,25 @@ class CompanyWebResearchService
     /**
      * @return array{available: bool, findings: string, sources: list<string>, reason?: string, providers?: list<string>, provider_labels?: list<string>, official_website?: ?string, pages_read?: int}
      */
-    public function research(string $companyName, ?int $tenantId = null): array
+    public function research(string $companyName, ?string $knownWebsite = null, ?int $tenantId = null): array
     {
         $companyName = trim($companyName);
+        $knownWebsite = trim((string) $knownWebsite);
+        if ($knownWebsite !== '' && ! preg_match('#^https?://#i', $knownWebsite)) {
+            $knownWebsite = 'https://'.$knownWebsite;
+        }
 
         if ($companyName === '') {
             return ['available' => false, 'findings' => '', 'sources' => [], 'reason' => 'No company name given.'];
         }
 
-        $cacheKey = 'company_research:v2:'.($tenantId ?? 'global').':'.sha1(Str::lower($companyName));
+        $cacheKey = 'company_research:v3:'.($tenantId ?? 'global').':'.sha1(Str::lower($companyName.'|'.$knownWebsite));
         $cached = Cache::get($cacheKey);
         if (is_array($cached)) {
             return $cached;
         }
 
-        $result = $this->runResearch($companyName, $tenantId);
+        $result = $this->runResearch($companyName, $knownWebsite ?: null, $tenantId);
 
         // Only successful research is cached: a failure is usually a missing key, and
         // caching it would keep reporting "unconfigured" for a week after it is fixed.
@@ -74,19 +78,26 @@ class CompanyWebResearchService
         return $result;
     }
 
-    private function runResearch(string $companyName, ?int $tenantId): array
+    private function runResearch(string $companyName, ?string $knownWebsite, ?int $tenantId): array
     {
         $quoted = '"'.$companyName.'"';
 
-        // Each query targets a different kind of fact, because one generic search returns
-        // ten variations of the same homepage and tells the model nothing extra.
+        // Target practical company intelligence using clean, engine-agnostic query syntax
+        // that works reliably across both API engines (Google/Tavily) and free scrapers (Yahoo).
         $queries = [
-            'Profile' => $quoted.' perusahaan profil alamat kontak',
-            'Official site' => $quoted.' (site:co.id OR site:com) about OR tentang',
-            'Registry' => $quoted.' (AHU OR Kemendag OR "akta pendirian" OR NIB)',
-            'People' => $quoted.' site:linkedin.com/company',
-            'Headcount' => $quoted.' (jobstreet OR glints OR karir OR lowongan) karyawan',
+            'Profile' => $quoted.' profil perusahaan',
+            'About' => $quoted.' tentang kami profil bisnis',
+            'Business' => $quoted.' produk layanan jasa solusi',
+            'Contact' => $quoted.' kontak telepon alamat kantor',
+            'LinkedIn' => $quoted.' site:linkedin.com/company',
         ];
+
+        if ($knownWebsite) {
+            $host = parse_url($knownWebsite, PHP_URL_HOST);
+            if ($host) {
+                $queries['Official Domain'] = "site:{$host} {$quoted}";
+            }
+        }
 
         $sections = [];
         $sources = [];
@@ -95,6 +106,17 @@ class CompanyWebResearchService
         $tripped = [];
         $anySucceeded = false;
         $lastError = null;
+
+        // If an official website is already known from Lead record, fetch it directly
+        $sitePages = [];
+        $officialSite = $knownWebsite;
+        if ($officialSite) {
+            $sitePages = $this->pages->fetchCompanySite($officialSite);
+            if ($sitePages !== []) {
+                $anySucceeded = true;
+                $providersUsed[] = 'direct_site';
+            }
+        }
 
         foreach ($queries as $label => $query) {
             $result = $this->search->search($query, $tenantId, 4, $tripped);
@@ -133,12 +155,14 @@ class CompanyWebResearchService
             return ['available' => false, 'findings' => '', 'sources' => [], 'reason' => $lastError ?? 'Search unavailable.'];
         }
 
-        if ($sections === []) {
-            return ['available' => false, 'findings' => '', 'sources' => [], 'reason' => 'No public results found for this company name.'];
+        if ($sitePages === []) {
+            $officialSite = $this->guessOfficialSite($companyName, $allResults);
+            $sitePages = $officialSite ? $this->pages->fetchCompanySite($officialSite) : [];
         }
 
-        $officialSite = $this->guessOfficialSite($companyName, $allResults);
-        $sitePages = $officialSite ? $this->pages->fetchCompanySite($officialSite) : [];
+        if ($sections === [] && $sitePages === []) {
+            return ['available' => false, 'findings' => '', 'sources' => [], 'reason' => 'No public results found for this company name.'];
+        }
 
         $pageSections = [];
         foreach ($sitePages as $page) {

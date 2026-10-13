@@ -36,6 +36,8 @@ class CompanyPageFetcher
 
     private const CONTACT_PATTERN = '/contact|kontak|hubungi|call-us/i';
 
+    private const SERVICES_PATTERN = '/service|layanan|produk|product|solution|solusi|bisnis/i';
+
     public function __construct(private readonly HostResolver $resolver) {}
 
     /**
@@ -51,7 +53,7 @@ class CompanyPageFetcher
         $pages = [$home['page']];
         $seen = [rtrim($home['page']['url'], '/')];
 
-        foreach ([self::ABOUT_PATTERN, self::CONTACT_PATTERN] as $pattern) {
+        foreach ([self::ABOUT_PATTERN, self::SERVICES_PATTERN, self::CONTACT_PATTERN] as $pattern) {
             $link = $this->findLink($home['links'], $pattern, $home['page']['url'], $seen);
             if ($link === null) {
                 continue;

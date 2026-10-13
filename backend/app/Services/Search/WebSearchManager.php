@@ -47,8 +47,6 @@ class WebSearchManager
             ? array_values(array_filter(array_map(fn ($v) => strtolower(trim($v)), explode(',', $raw))))
             : self::DEFAULT_ORDER;
 
-        $order = array_values(array_unique(array_merge($order, self::DEFAULT_ORDER)));
-
         $ordered = [];
         foreach ($order as $key) {
             $provider = $this->providers[$key] ?? null;
@@ -114,6 +112,10 @@ class WebSearchManager
 
     public function label(string $key): string
     {
+        if ($key === 'direct_site') {
+            return 'Official Website (Direct Crawl)';
+        }
+
         return isset($this->providers[$key]) ? $this->providers[$key]->label() : $key;
     }
 }

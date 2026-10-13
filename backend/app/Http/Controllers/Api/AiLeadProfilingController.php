@@ -21,9 +21,13 @@ class AiLeadProfilingController extends Controller
     {
         $request->validate([
             'company_name' => 'required|string|max:255',
+            'website' => 'nullable|string|max:255',
+            'lead_id' => 'nullable|integer',
         ]);
 
-        $companyName = $request->input('company_name');
+        $companyName = (string) $request->input('company_name');
+        $website = $request->filled('website') ? (string) $request->input('website') : null;
+        $leadId = $request->filled('lead_id') ? (int) $request->input('lead_id') : null;
         $userId = $request->user()?->id;
 
         // Default path dispatches to the queue (fast response, no gateway
@@ -36,9 +40,9 @@ class AiLeadProfilingController extends Controller
         // default, for exactly that reason.
         if ($request->boolean('sync')) {
             @set_time_limit(120);
-            $output = $this->profilingService->startProfilingSync($companyName, $userId);
+            $output = $this->profilingService->startProfilingSync($companyName, $website, $leadId, $userId);
         } else {
-            $output = $this->profilingService->startProfiling($companyName, $userId);
+            $output = $this->profilingService->startProfiling($companyName, $website, $leadId, $userId);
         }
 
         return response()->json([

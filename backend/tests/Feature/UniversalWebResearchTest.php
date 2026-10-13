@@ -56,6 +56,7 @@ class UniversalWebResearchTest extends TestCase
 
     public function test_yahoo_free_scraper_acts_as_automatic_fallback(): void
     {
+        putenv('WEB_RESEARCH_PROVIDER_ORDER');
         putenv('TAVILY_API_KEY');
         putenv('SERPER_API_KEY');
         putenv('BRAVE_SEARCH_API_KEY');
@@ -78,5 +79,22 @@ class UniversalWebResearchTest extends TestCase
         $this->assertTrue($result['available']);
         $this->assertContains('yahoo', $result['providers'] ?? []);
         $this->assertStringContainsString('Wardah dan Make Over', $result['findings']);
+    }
+
+    public function test_known_website_triggers_direct_crawling_of_official_site(): void
+    {
+        putenv('WEB_RESEARCH_PROVIDER_ORDER');
+
+        Http::fake([
+            'https://kalbe.co.id*' => Http::response('<html><head><title>Kalbe Farma</title></head><body><h1>Tentang Kalbe</h1><p>Perusahaan farmasi terkemuka di Asia Tenggara didirikan 1966.</p></body></html>', 200, ['Content-Type' => 'text/html']),
+            'https://search.yahoo.com/search*' => Http::response('<html><body><li><div class="compText"><p>Produk obat dan nutrisi.</p></div></li></body></html>', 200),
+        ]);
+
+        $result = app(CompanyWebResearchService::class)->research('PT Kalbe Farma Tbk', 'https://kalbe.co.id');
+
+        $this->assertTrue($result['available']);
+        $this->assertContains('direct_site', $result['providers'] ?? []);
+        $this->assertSame('https://kalbe.co.id', $result['official_website']);
+        $this->assertStringContainsString('Perusahaan farmasi terkemuka di Asia Tenggara', $result['findings']);
     }
 }

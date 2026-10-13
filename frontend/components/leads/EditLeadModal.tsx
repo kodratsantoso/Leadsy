@@ -112,7 +112,12 @@ export function EditLeadModal({
       const res = await apiFetch("/leads/ai-profiling/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company_name: companyForm.company_name.trim(), sync: true }),
+        body: JSON.stringify({
+          company_name: companyForm.company_name.trim(),
+          website: companyForm.website?.trim() || undefined,
+          lead_id: lead?.id,
+          sync: true,
+        }),
       });
       const json = await res.json();
       if (json.success && json.data?.status === "ready_for_review") {
@@ -384,7 +389,11 @@ export function EditLeadModal({
                         const res = await apiFetch("/leads/ai-profiling/start", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ company_name: companyForm.company_name.trim() }),
+                          body: JSON.stringify({
+                            company_name: companyForm.company_name.trim(),
+                            website: companyForm.website?.trim() || undefined,
+                            lead_id: lead?.id,
+                          }),
                         });
                         const json = await res.json();
                         if (json.success && json.data) {

@@ -24,15 +24,17 @@ class AiLeadProfilingService
      * Start the AI lead profiling process.
      *
      * @param string $companyName
+     * @param string|null $website
+     * @param int|null $leadId
      * @param int|null $userId
      * @return AiGeneratedOutput
      */
-    public function startProfiling(string $companyName, ?int $userId = null): AiGeneratedOutput
+    public function startProfiling(string $companyName, ?string $website = null, ?int $leadId = null, ?int $userId = null): AiGeneratedOutput
     {
-        $output = $this->createPlaceholderOutput($companyName, $userId);
+        $output = $this->createPlaceholderOutput($companyName, $website, $leadId, $userId);
 
         // Trigger async profiling
-        \App\Jobs\RunAiLeadProfilingJob::dispatch($output, $companyName);
+        \App\Jobs\RunAiLeadProfilingJob::dispatch($output, $companyName, $website, $leadId);
 
         return $output;
     }
@@ -46,12 +48,12 @@ class AiLeadProfilingService
      * historically), short enough to run inline within the HTTP request
      * without needing the queue's retry/backoff machinery.
      */
-    public function startProfilingSync(string $companyName, ?int $userId = null): AiGeneratedOutput
+    public function startProfilingSync(string $companyName, ?string $website = null, ?int $leadId = null, ?int $userId = null): AiGeneratedOutput
     {
-        $output = $this->createPlaceholderOutput($companyName, $userId);
+        $output = $this->createPlaceholderOutput($companyName, $website, $leadId, $userId);
 
         try {
-            $this->performProfiling($output, $companyName);
+            $this->performProfiling($output, $companyName, $website, $leadId);
         } catch (\Throwable $e) {
             Log::error("[AiLeadProfiling] Profiling failed for {$companyName}", ['error' => $e->getMessage()]);
 
@@ -68,35 +70,42 @@ class AiLeadProfilingService
         return $output->fresh();
     }
 
-    private function createPlaceholderOutput(string $companyName, ?int $userId = null): AiGeneratedOutput
+    private function createPlaceholderOutput(string $companyName, ?string $website = null, ?int $leadId = null, ?int $userId = null): AiGeneratedOutput
     {
+        $payload = ['company_name' => $companyName];
+        if (!empty($website)) {
+            $payload['website'] = $website;
+        }
+
         return AiGeneratedOutput::create([
             'entity_type' => 'App\Models\Lead',
-            'entity_id' => 0, // Placeholder before actual Lead creation
+            'entity_id' => $leadId ?? 0,
             'feature_key' => 'lead_ai_profiling',
             'status' => 'researching',
             'generated_by' => $userId,
             'generated_at' => Carbon::now(),
-            'original_output_json' => ['company_name' => $companyName],
-            'current_output_json' => ['company_name' => $companyName],
+            'original_output_json' => $payload,
+            'current_output_json' => $payload,
         ]);
     }
 
     /**
      * Perform the actual profiling process.
      */
-    public function performProfiling(AiGeneratedOutput $output, string $companyName): void
+    public function performProfiling(AiGeneratedOutput $output, string $companyName, ?string $website = null, ?int $leadId = null): void
     {
+        if (empty($website) && !empty($leadId)) {
+            $lead = \App\Models\Lead::find($leadId);
+            $website = $lead?->website ?: $lead?->website_domain;
+        }
+
         $industries = Industry::where('is_active', true)->pluck('name')->toArray();
         $subIndustries = SubIndustry::where('is_active', true)->pluck('name')->toArray();
         $businessCategories = BusinessCategory::where('is_active', true)->pluck('name')->toArray();
 
-        // Search first, then ask. The prompt instructs the model to consult the official
-        // site, Kemendag and JobStreet, but it has no way to reach them: a web-search
-        // tool is wired only on the Gemini branch, and routing sends this to BytePlus.
-        // Rather than leave it recalling Indonesian SMEs from training data, Leadsy does
-        // the searching and hands over real snippets with their URLs.
-        $research = $this->webResearch->research($companyName);
+        // Search and crawl official site first, then ask AI. Leadsy fetches the official
+        // homepage, about, and service pages directly so the model receives real facts.
+        $research = $this->webResearch->research($companyName, $website);
 
         $response = $this->ai->call('lead_ai_profiling', '', [
             'company_name' => $companyName,
@@ -167,6 +176,10 @@ class AiLeadProfilingService
             $profileData['lat'] = $mapsDetails['lat'] ?? ($profileData['lat'] ?? null);
             $profileData['lng'] = $mapsDetails['lng'] ?? ($profileData['lng'] ?? null);
             $profileData['external_place_id'] = $mapsDetails['external_place_id'] ?? ($profileData['external_place_id'] ?? null);
+        }
+
+        if (empty($profileData['website']) && !empty($research['official_website'])) {
+            $profileData['website'] = $research['official_website'];
         }
 
         if (!empty($profileData['industry'])) {
