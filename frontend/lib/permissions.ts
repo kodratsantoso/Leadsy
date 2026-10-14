@@ -41,6 +41,7 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   // the Session Timeout / Password Policy panel inside it is conditionally
   // rendered for integrations.manage holders only.
   "/settings/security": { any: [] },
+  "/settings/system-playbook": { any: [] },
   "/settings/backup": { any: ["integrations.manage"] },
   "/settings": { any: ["users.manage", "ai.manage", "integrations.manage", "audit.view", "products.view", "products.edit", "leads.edit"] },
 };

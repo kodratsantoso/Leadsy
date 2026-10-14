@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity } from "lucide-react";
+import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { canAccessPath } from "@/lib/permissions";
@@ -62,6 +62,7 @@ const categories = [
     name: "System & Security",
     desc: "Audit trailing, session governance, alerts, and system recovery.",
     items: [
+      { icon: BookOpen,  title: "System & AI Playbook",  desc: "Panduan alur operasional Leadsy, direktori 33 kapabilitas AI, workflow & output", href: "/settings/system-playbook", color: "bg-[color:var(--brand)]" },
       { icon: Shield,    title: "Security",              desc: "Session timeout, password policy, auth settings",                   href: "/settings/security",      color: "bg-[color:var(--status-danger)]" },
       { icon: Globe,     title: "Environment",           desc: "Runtime environment overview and configuration",                     href: "/settings/environment",   color: "bg-[color:var(--status-info)]" },
       { icon: Bell,      title: "Notifications",         desc: "In-app, email, and integration alert preferences",                  href: "/settings/notifications", color: "bg-[color:var(--brand)]" },
