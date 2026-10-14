@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 class AIRoutingService
 {
     public const FEATURE_CATALOG = [
-        'lead_profiling_strategy' => 'Lead Profiling & Strategy',
         'lead_analysis' => 'Lead Analysis',
         'lead_scoring' => 'Lead Scoring Analysis',
         'qualification_analysis' => 'Qualification Analysis',
@@ -17,8 +16,6 @@ class AIRoutingService
         'product_understanding' => 'Product Understanding',
         'icp_generation' => 'ICP Profile Generation',
         'meeting_evaluation' => 'Meeting Evaluation',
-        'conversation_evaluation' => 'Conversation Evaluation',
-        'transcript_evaluation' => 'Transcript Evaluation',
         'activity_transcript_analysis' => 'Activity Transcript Analysis',
         'next_action_recommendation' => 'Next Action Recommendation',
         'recommendation_engine' => 'Recommendation Engine',
@@ -44,16 +41,12 @@ class AIRoutingService
         'lead_ai_profiling' => 'Lead AI Company Profiling',
         'meeting_summary' => 'Meeting Summary Generation',
 
-        // Added 2026-09-27. These were called or had templates but no entry here, so the
-        // settings UI fell back to printing the raw key — "lead_icp_matching" on screen.
         'lead_enrichment' => 'Lead Firmographic Enrichment',
         'lead_icp_matching' => 'Lead ICP Matching',
         'competitive_battle_card' => 'Competitive Battle Card',
-        'customer_success_playbook' => 'Customer Success Playbook',
         'cs_playbook_ai' => 'Customer Success Playbook',
         'ai_account_review_generator' => 'Account Review Generator',
         'ps_task_breakdown_generation' => 'Professional Service Task Breakdown',
-        'professional_service_task_breakdown' => 'Professional Service Task Breakdown (legacy key)',
         'product_specification_comparison' => 'Product Specification Comparison',
 
         // Meeting Summary is one AI call ('meeting_summary') whose prompt is assembled

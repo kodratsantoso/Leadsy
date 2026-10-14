@@ -28,7 +28,7 @@ class LeadProfilingAndStrategyService
         }
 
         $context = $this->buildContext($lead, $products);
-        $result = $this->ai->call('lead_profiling_strategy', $context);
+        $result = $this->ai->call('lead_ai_profiling', $context);
 
         if (!$result['success'] || empty($result['content'])) {
             return [

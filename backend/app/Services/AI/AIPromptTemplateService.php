@@ -373,18 +373,7 @@ G. SOURCES
                 'Extract what was actually discussed. Keep sentiment and intent calibrated when the meeting content is thin or ambiguous.',
                 'Return only valid JSON matching the feature prompt schema.'
             ),
-            'conversation_evaluation' => $this->featureTemplate(
-                'Conversation Evaluation',
-                'Evaluate a sales interaction from transcript, meeting, call, WhatsApp, or manual notes.',
-                'Classify sentiment, intent, interest, objections, buying signals, next best action, and confidence using only the interaction text.',
-                'Return only valid JSON with sentiment, intent_level, interest_level, objections_detected, buying_signals, next_best_action, and confidence_score.'
-            ),
-            'transcript_evaluation' => $this->featureTemplate(
-                'Transcript Evaluation',
-                'Extract structured insights from a meeting or call transcript.',
-                'Detect customer intent, objections, sentiment, requirements, risks, and follow-up actions. Also extract BANTC values (Budget, Authority, Needs, Timeline, Competitor) if mentioned in the transcript. Ignore filler and avoid over-reading vague statements.',
-                'Return only valid JSON matching the transcript evaluation schema requested by the feature prompt. bantc_extracted should be a nested object with keys: budget, authority, needs, timeline, competitor. Make sure to include eligibility_reason, presales_analysis, presales_recommendation, next_best_action, and estimated_closing_date (YYYY-MM-DD).'
-            ),
+
             'activity_transcript_analysis' => $this->featureTemplate(
                 'Activity Transcript Analysis',
                 'Analyze a meeting transcript and extract comprehensive meeting notes, the outcome, and BANTC qualification variables.',
@@ -523,6 +512,18 @@ G. SOURCES
                 'Generate an actionable, step-by-step tactical playbook for Customer Success Managers facing client risk or growth scenarios.',
                 'Provide prioritized actions (first 24 hours, 72 hours, 7 days), diagnostic questions, stakeholder talking points, and tailored communication drafts.',
                 'Return ONLY valid JSON with keys: scenario_title (string), immediate_actions (array of strings), diagnostic_questions (array of strings), stakeholder_talking_points (array of strings), outreach_message_draft (string), expected_outcome (string).'
+            ),
+            'ps_task_breakdown_generation' => $this->featureTemplate(
+                'Professional Service Task Breakdown AI',
+                'Generate structured task and subtask breakdown for Professional Services projects based on project scope, objectives, and deliverables.',
+                'Break down into logical project delivery phases. Suggest roles and complexity levels based on available system options. Return null for base_mandays if scope is insufficient.',
+                'Return ONLY valid JSON with keys: task_breakdown (array of tasks with subtasks, deliverables, suggested_role, complexity, base_mandays), summary (total_base_mandays, confidence_level, pm_review_notes, missing_information_affecting_estimation).'
+            ),
+            'product_specification_comparison' => $this->featureTemplate(
+                'Product Specification Comparison AI',
+                'Compare current CRM product data with newly scraped website text and return differences and update recommendations.',
+                'Analyze scraped text against the current product json. Identify field differences, changes, and update recommendations with confidence score.',
+                'Return ONLY valid JSON with keys: latest_snapshot (object), changes (array of updated/added/removed fields), confidence_score (number), highlights (array).'
             ),
         ];
     }
