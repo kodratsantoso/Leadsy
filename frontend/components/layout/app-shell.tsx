@@ -9,7 +9,7 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft, TestTube2, Trash2
+  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -138,6 +138,7 @@ export const navItems: NavItem[] = [
       { href: "/settings/webhooks",        icon: Webhook,      label: "Webhooks", group: "Integrations" },
       { href: "/settings/api",             icon: FileText,     label: "API Documentation", group: "Integrations" },
       { href: "/settings/integrations/lark-base", icon: Database, label: "Lark Base Sync", group: "Integrations" },
+      { href: "/settings/system-playbook", icon: BookOpen,     label: "System & AI Playbook", group: "System & Security" },
       { href: "/settings/security",        icon: Shield,       label: "Security", group: "System & Security" },
       { href: "/settings/company",         icon: Building2,    label: "Company Settings", group: "System & Security" },
       { href: "/settings/workflows",       icon: GitBranch,    label: "Custom Workflows", group: "System & Security" },
@@ -384,6 +385,25 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+
+        {/* System & AI Playbook quick button */}
+        <div className="border-t border-sidebar-border p-2">
+          <Link
+            href="/settings/system-playbook"
+            data-tour="nav-system-playbook"
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors",
+              pathname === "/settings/system-playbook"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+              collapsed && "justify-center px-0"
+            )}
+            title={collapsed ? "System & AI Playbook" : undefined}
+          >
+            <BookOpen className="h-4 w-4 shrink-0 text-[color:var(--brand)]" />
+            {!collapsed && <span className="truncate">System & AI Playbook</span>}
+          </Link>
+        </div>
 
         {/* Version badge */}
         {appVersion && (
