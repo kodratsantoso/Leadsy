@@ -9,8 +9,11 @@ import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
+import { readApiError } from "@/lib/apiError";
+import { useToast } from "@/components/ui/toast";
 
 export default function KpiTargetsPage() {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [targets, setTargets] = useState<any[]>([]);
@@ -108,7 +111,7 @@ export default function KpiTargetsPage() {
       });
 
       if (bulkPayload.length === 0) {
-        alert("No values to save.");
+        toast.info("Nothing to save — no values were entered.");
         setSaving(false);
         return;
       }
@@ -119,12 +122,12 @@ export default function KpiTargetsPage() {
       });
 
       if (res.ok) {
-        alert("KPI Targets saved successfully!");
+        toast.success("KPI targets saved.");
         fetchInitData();
       } else {
-        const e = await res.json();
-        const details = e.errors ? JSON.stringify(e.errors) : (e.error?.details || "");
-        alert(`${e.message || "Failed to save targets"} \n${details}`);
+        // The server now classifies its own failures and names the offending fields,
+        // so the raw JSON dump this used to print is no longer the only clue.
+        toast.fromError(await readApiError(res, "KPI targets could not be saved."));
       }
     } catch (err) {
       console.error(err);

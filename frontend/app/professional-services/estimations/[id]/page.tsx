@@ -18,6 +18,7 @@ import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { ConvertToQuotationModal } from "@/components/professional-services/modals/convert-to-quotation-modal";
 import { PsDocumentList } from "@/components/professional-services/ps-document-list";
 import { GovernancePanel } from "@/components/professional-services/governance/governance-panel";
+import { describeThrown } from "@/lib/apiError";
 
 export default function EstimationDetailPage() {
   const router = useRouter();
@@ -58,8 +59,8 @@ export default function EstimationDetailPage() {
       const plan = await createProjectPlanFromEstimation(estimationId);
       toast({ title: "Project Plan Created", description: `Plan ${plan.project_plan_number} generated.` });
       router.push(`/professional-services/project-plans/${plan.id}`);
-    } catch (error: any) {
-      toast({ title: "Failed to create project plan", description: error.message || "Unknown error", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Failed to create project plan", description: describeThrown(error, "Unknown error").title, variant: "destructive" });
     } finally {
       setActionLoading(false);
     }

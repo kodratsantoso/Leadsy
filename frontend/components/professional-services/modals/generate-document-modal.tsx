@@ -5,6 +5,7 @@ import { generateEstimationDocument } from "@/lib/api/professional-services";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 
 interface GenerateDocumentModalProps {
   estimationId: number;
@@ -14,6 +15,7 @@ interface GenerateDocumentModalProps {
 }
 
 export function GenerateDocumentModal({ estimationId, open, onOpenChange, onSuccess }: GenerateDocumentModalProps) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState("estimation");
   const [includeCommercial, setIncludeCommercial] = useState(true);
@@ -30,8 +32,8 @@ export function GenerateDocumentModal({ estimationId, open, onOpenChange, onSucc
       });
       onSuccess();
       onOpenChange(false);
-    } catch (e: any) {
-      alert(e.message || "Failed to generate document.");
+    } catch (e) {
+      toast.fromError(e, "Failed to generate document.");
     } finally {
       setLoading(false);
     }

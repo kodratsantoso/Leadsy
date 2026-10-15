@@ -7,6 +7,7 @@ import { Clock, HardDrive, RefreshCw, Download, Trash2, Loader2, FileDown, Check
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
+import { describeThrown } from "@/lib/apiError";
 
 type BackupFile = {
   filename: string;
@@ -49,7 +50,7 @@ export default function BackupPage() {
       setTimeout(() => setFeedback(""), 5000);
     },
     onError: (error: Error) => {
-      setFeedback(error.message);
+      setFeedback(describeThrown(error).title);
       setTimeout(() => setFeedback(""), 5000);
     },
   });
@@ -70,8 +71,8 @@ export default function BackupPage() {
       URL.revokeObjectURL(url);
       setFeedback(`Downloaded ${filename} successfully.`);
       setTimeout(() => setFeedback(""), 5000);
-    } catch (err: any) {
-      setFeedback(err.message || "Failed to download backup.");
+    } catch (err) {
+      setFeedback(describeThrown(err, "Failed to download backup.").title);
       setTimeout(() => setFeedback(""), 5000);
     } finally {
       setDownloadingFile(null);
@@ -95,7 +96,7 @@ export default function BackupPage() {
       setTimeout(() => setFeedback(""), 5000);
     },
     onError: (error: Error) => {
-      setFeedback(error.message);
+      setFeedback(describeThrown(error).title);
       setTimeout(() => setFeedback(""), 5000);
     },
     onSettled: () => {

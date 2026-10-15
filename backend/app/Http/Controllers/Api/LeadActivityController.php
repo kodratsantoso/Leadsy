@@ -40,11 +40,13 @@ class LeadActivityController extends Controller
             'user_id' => $request->user()?->id,
         ]);
 
-        // Sales explicitly named a competitor on this activity — sync it onto
-        // the Lead (previously never happened; only LeadActivity.competitor was
-        // written) and auto-generate a battle card for it.
+        // Everything the salesperson answered goes up to the lead, not just competitor.
+        // Only `competitor` used to be lifted, so budget, authority, needs and timeline
+        // stayed on the activity and the lead stayed blank — 25 activities carried
+        // answers against 9 leads, and the two screens disagreed.
+        app(\App\Services\Lead\LeadBantcSyncService::class)->apply($lead, $data, 'manual');
+
         if (\App\Services\Sales\CompetitiveBattleCardService::isMeaningfulCompetitorName($data['competitor'] ?? null)) {
-            $lead->update(['competitor' => $data['competitor']]);
             \App\Jobs\GenerateBattleCardJob::dispatch($lead->id, $data['competitor']);
         }
 

@@ -5,6 +5,7 @@ import { sendDocumentForSignature, PsDocument } from "@/lib/api/professional-ser
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 
 interface SendSignatureModalProps {
   document: PsDocument;
@@ -14,6 +15,7 @@ interface SendSignatureModalProps {
 }
 
 export function SendSignatureModal({ document, open, onOpenChange, onSuccess }: SendSignatureModalProps) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [subject, setSubject] = useState(`Signature Request: ${document.document_title}`);
   const [message, setMessage] = useState("Please review and sign the attached document.");
@@ -25,7 +27,7 @@ export function SendSignatureModal({ document, open, onOpenChange, onSuccess }: 
 
   const handleSend = async () => {
     if (!customerName || !customerEmail || !internalName || !internalEmail) {
-      alert("Please fill in both customer and internal signer details.");
+      toast.error("Please fill in both customer and internal signer details.");
       return;
     }
 
@@ -41,8 +43,8 @@ export function SendSignatureModal({ document, open, onOpenChange, onSuccess }: 
       });
       onSuccess();
       onOpenChange(false);
-    } catch (e: any) {
-      alert(e.message || "Failed to send signature request.");
+    } catch (e) {
+      toast.fromError(e, "Failed to send signature request.");
     } finally {
       setLoading(false);
     }

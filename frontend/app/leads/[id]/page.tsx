@@ -38,6 +38,7 @@ import { ProfessionalServicesTab } from '@/components/leads/tabs/professional-se
 import { ProjectPlansTab } from '@/components/leads/tabs/project-plans-tab';
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { AnalysisReportDialog } from '@/components/leads/reports/AnalysisReportDialog';
+import { useToast } from "@/components/ui/toast";
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -588,6 +589,7 @@ function AddContactModal({
 /* ── Main page ─────────────────────────────────────────────────────── */
 
 export default function LeadDetailPage() {
+  const toast = useToast();
   const params = useParams();
   const leadId = params.id as string;
   const qc = useQueryClient();
@@ -3248,7 +3250,7 @@ export default function LeadDetailPage() {
                                   const res = await apiFetch(`/transcripts/${tr.id}/meeting-summary/download`);
                                   if (!res.ok) {
                                     const err = await res.json().catch(() => ({}));
-                                    alert(err.message || 'Failed to fetch PDF. Please ensure it has been generated.');
+                                    toast.fromError(err, "The PDF could not be opened. It may not have been generated yet.");
                                     return;
                                   }
                                   const blob = await res.blob();
@@ -3256,7 +3258,7 @@ export default function LeadDetailPage() {
                                   setPdfPreviewUrl(url);
                                   setShowPdfModal(true);
                                 } catch (error) {
-                                  alert('Error loading PDF preview');
+                                  toast.error("The PDF preview could not be loaded.");
                                 }
                               }}
                             >
@@ -3425,7 +3427,7 @@ export default function LeadDetailPage() {
                                   const res = await apiFetch(`/transcripts/${tr.id}/meeting-summary/download`);
                                   if (!res.ok) {
                                     const err = await res.json().catch(() => ({}));
-                                    alert(err.message || 'Failed to download PDF. Please ensure it has been generated.');
+                                    toast.fromError(err, "The PDF could not be downloaded. It may not have been generated yet.");
                                     return;
                                   }
                                   const blob = await res.blob();
@@ -3446,7 +3448,7 @@ export default function LeadDetailPage() {
                                   a.remove();
                                   window.URL.revokeObjectURL(url);
                                 } catch (error) {
-                                  alert('Error downloading PDF');
+                                  toast.error("The PDF could not be downloaded.");
                                 }
                               }}
                             >

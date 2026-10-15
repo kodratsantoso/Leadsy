@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Key, Copy, Check, FileText, Code2, AlertTriangle, RefreshCw, Calendar, Clock } from "lucide-react";
 import { BackToSettings } from "../_components/back-to-settings";
 import { apiFetch } from "@/lib/apiFetch";
+import { describeThrown } from "@/lib/apiError";
 
 export default function ApiDocumentationPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -47,14 +48,14 @@ export default function ApiDocumentationPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || "Failed to generate token");
+        throw new Error(data?.message || "Failed to generate token");
       }
       
       setToken(data.token);
       setCopied(false);
       fetchTokenStatus();
-    } catch (err: any) {
-      setError(err.message || "Failed to generate token.");
+    } catch (err) {
+      setError(describeThrown(err, "Failed to generate token.").title);
     } finally {
       setIsGenerating(false);
     }

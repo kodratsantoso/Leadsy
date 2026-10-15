@@ -422,13 +422,18 @@ JSON
             $previousCompetitor = $lead->competitor;
             $newCompetitor = $parsed['bantc']['competitor'] ?? $lead->competitor;
 
-            $lead->update([
-                'budget' => $parsed['bantc']['budget'] ?? $lead->budget,
-                'authority' => $parsed['bantc']['authority'] ?? $lead->authority,
-                'needs' => $parsed['bantc']['needs'] ?? $lead->needs,
-                'timeline' => $parsed['bantc']['timeline'] ?? $lead->timeline,
+            // Through the shared rule, so an answer a salesperson typed is not quietly
+            // replaced by the next transcript. `?? $lead->budget` used to mean the AI
+            // won whenever it had an opinion.
+            app(\App\Services\Lead\LeadBantcSyncService::class)->apply($lead, [
+                'budget' => $parsed['bantc']['budget'] ?? null,
+                'authority' => $parsed['bantc']['authority'] ?? null,
+                'needs' => $parsed['bantc']['needs'] ?? null,
+                'timeline' => $parsed['bantc']['timeline'] ?? null,
                 'competitor' => $newCompetitor,
-            ]);
+            ], 'ai');
+
+            $lead->refresh();
 
             // Auto-generate a battle card only when the meeting transcript
             // confirmed a real (non-blank) competitor name that's different

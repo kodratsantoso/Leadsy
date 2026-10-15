@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/ui/toast";
 import { 
   getDigitalSignatureSettings, 
   createDigitalSignatureSetting, 
@@ -15,6 +16,7 @@ import {
 } from "@/lib/api/professional-services";
 
 export default function DigitalSignatureSettingsPage() {
+  const toast = useToast();
   const router = useRouter();
   const [settings, setSettings] = useState<DigitalSignatureConnection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,11 +64,11 @@ export default function DigitalSignatureSettingsPage() {
         await createDigitalSignatureSetting(payload);
       }
       
-      alert("Settings saved successfully.");
+      toast.success("Settings saved.");
       setApiKey("");
       loadSettings();
-    } catch (e: any) {
-      alert(e.message || "Failed to save settings");
+    } catch (e) {
+      toast.fromError(e, "Failed to save settings.");
     } finally {
       setSaving(false);
     }

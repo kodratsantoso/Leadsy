@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Lock, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/apiFetch";
+import { describeThrown } from "@/lib/apiError";
 
 export function TwoFactorAuthSettings() {
   const { user, setAuth } = useAuthStore();
@@ -23,11 +24,11 @@ export function TwoFactorAuthSettings() {
     try {
       const res = await apiFetch("/auth/2fa/generate", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to generate 2FA");
+      if (!res.ok) throw new Error(data?.message || "Failed to generate 2FA");
       setSecret(data.secret);
       setQrCodeSvg(data.qr_code_svg);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(describeThrown(err).title);
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,7 @@ export function TwoFactorAuthSettings() {
         body: JSON.stringify({ secret, code }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to verify code");
+      if (!res.ok) throw new Error(data?.message || "Failed to verify code");
       
       setRecoveryCodes(data.recovery_codes);
       setSuccess("2FA enabled successfully.");
@@ -54,8 +55,8 @@ export function TwoFactorAuthSettings() {
       if (user && currentToken) {
         setAuth(currentToken, { ...user, two_factor_enabled: true });
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(describeThrown(err).title);
     } finally {
       setLoading(false);
     }
@@ -74,7 +75,7 @@ export function TwoFactorAuthSettings() {
         body: JSON.stringify({ code }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to disable 2FA");
+      if (!res.ok) throw new Error(data?.message || "Failed to disable 2FA");
       
       setSuccess("2FA disabled successfully.");
       setSecret("");
@@ -86,8 +87,8 @@ export function TwoFactorAuthSettings() {
       if (user && currentToken) {
         setAuth(currentToken, { ...user, two_factor_enabled: false });
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(describeThrown(err).title);
     } finally {
       setLoading(false);
     }

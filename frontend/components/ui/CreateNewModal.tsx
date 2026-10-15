@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
+import { describeThrown } from "@/lib/apiError";
 
 interface CreateNewModalProps {
   isOpen: boolean;
@@ -52,16 +53,16 @@ export function CreateNewModal({
       const json = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(json.message || "Failed to create item.");
+        throw new Error(json?.message || "Failed to create item.");
       }
       
       const newItem = json.data || json;
       onSuccess(newItem);
       setInputValue("");
       onClose();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to create item.");
+      setError(describeThrown(err, "Failed to create item.").title);
     } finally {
       setIsSubmitting(false);
     }

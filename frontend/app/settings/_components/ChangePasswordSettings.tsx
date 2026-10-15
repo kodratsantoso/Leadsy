@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Lock, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { describeThrown } from "@/lib/apiError";
 
 export function ChangePasswordSettings() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -34,14 +35,14 @@ export function ChangePasswordSettings() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.errors?.current_password?.[0] || data.errors?.password?.[0] || data.message || "Failed to change password.");
+        throw new Error(data.errors?.current_password?.[0] || data.errors?.password?.[0] || data?.message || "Failed to change password.");
       }
       setSuccess("Password changed. Your other sessions have been signed out.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(describeThrown(err).title);
     } finally {
       setLoading(false);
     }

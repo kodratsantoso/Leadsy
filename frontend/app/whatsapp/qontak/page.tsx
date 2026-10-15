@@ -23,6 +23,7 @@ import {
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import { useAuthStore } from "@/store/useAuthStore";
 import { fetchAssignableUsers, type AssignableUser } from "@/lib/api/leads";
+import { describeThrown } from "@/lib/apiError";
 
 type Folder = "all" | "my" | "unassigned" | "assigned" | "resolved";
 type SortOption = "newest" | "oldest" | "relevance";
@@ -170,8 +171,8 @@ export default function MekariQontakPage() {
       } else {
         setConvertError("Conversion failed");
       }
-    } catch (err: any) {
-      setConvertError(err?.message || "Conversion failed");
+    } catch (err) {
+      setConvertError(describeThrown(err, "Conversion failed").title);
     } finally {
       setConverting(false);
     }

@@ -349,8 +349,8 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error("Gagal memuat insight");
       const json = await res.json();
       setAiData(json.data);
-    } catch (err: any) {
-      setAiError(err.message || "Gagal menghubungi server");
+    } catch (err) {
+      setAiError(describeThrown(err, "Gagal menghubungi server").title);
     } finally {
       setAiLoading(false);
     }
@@ -2189,4 +2189,5 @@ function TeamPerformancePanel({
 }
 
 import { ConfidentialityDashboard } from "@/components/dashboard/confidentiality/ConfidentialityDashboard";
+import { describeThrown } from "@/lib/apiError";
 

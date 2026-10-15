@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Clock, Key, Loader2, CheckCircle2, AlertCircle, Save } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { describeThrown } from "@/lib/apiError";
 
 type SecuritySettings = {
   session_timeout_minutes: number | null;
@@ -39,11 +40,11 @@ export function SessionSecuritySettings() {
         body: JSON.stringify(settings),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to save security settings.");
+      if (!res.ok) throw new Error(data?.message || "Failed to save security settings.");
       setSettings(data.data);
       setSuccess("Security settings saved.");
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeThrown(e).title);
     } finally {
       setSaving(false);
     }

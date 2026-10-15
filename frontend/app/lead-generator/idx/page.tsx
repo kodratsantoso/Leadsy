@@ -23,8 +23,10 @@ import {
   TableEmpty,
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/components/ui/toast";
 
 export default function IdxGeneratorPage() {
+  const toast = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -75,10 +77,10 @@ export default function IdxGeneratorPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["idx-companies"] });
       setSelectedIds([]);
-      alert(`Import complete: ${data.results.imported} imported, ${data.results.skipped} skipped.`);
+      toast.success(`Import complete — ${data.results.imported} imported, ${data.results.skipped} skipped.`);
     },
     onError: (err) => {
-      alert(err.message);
+      toast.fromError(err, "The import could not be completed.");
     }
   });
 

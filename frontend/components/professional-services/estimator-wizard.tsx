@@ -60,7 +60,7 @@ export function EstimatorWizard() {
           const defaultCmplx = conf.complexity_levels.find((c: any) => c.multiplier === "1.00") || conf.complexity_levels[0];
           setComplexityId(defaultCmplx.id);
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
@@ -203,7 +203,7 @@ export function EstimatorWizard() {
 
       const res = await createEstimation(payload as any);
       router.push(`/professional-services/estimations/${res.id}`);
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
     } finally {
       setSubmitting(false);
