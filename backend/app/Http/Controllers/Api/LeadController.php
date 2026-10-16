@@ -295,6 +295,7 @@ class LeadController extends Controller
             'bantcQuestionGuide',
             'parentLead:id,company_name',
             'subsidiaries:id,company_name,address,qualification_status,lead_score',
+            'discoveryRecord',
         ]);
 
         return response()->json(['data' => $lead]);
