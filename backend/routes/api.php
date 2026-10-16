@@ -511,6 +511,11 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('leads/{lead}/bantc-questions/generate', [LeadController::class, 'generateBantcQuestions'])->middleware('permission:leads.edit');
     Route::put('leads/{lead}/bantc-questions', [LeadController::class, 'saveBantcQuestions'])->middleware('permission:leads.edit');
 
+    // Presales Discovery Workspace Routes
+    Route::get('leads/{lead}/discovery', [\App\Http\Controllers\Api\LeadDiscoveryController::class, 'show'])->middleware('permission:leads.view');
+    Route::put('leads/{lead}/discovery', [\App\Http\Controllers\Api\LeadDiscoveryController::class, 'update'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/discovery/validate', [\App\Http\Controllers\Api\LeadDiscoveryController::class, 'validateCompleteness'])->middleware('permission:leads.view');
+
     // Revenue Intelligence Routes (Module D — ICP, Conversion, Prescriptive, Rules, Feedback)
     Route::post('leads/{lead}/icp-match', [LeadController::class, 'icpMatch'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/predict-conversion', [LeadController::class, 'predictConversion'])->middleware('permission:leads.edit');

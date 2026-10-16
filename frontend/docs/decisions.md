@@ -1,5 +1,12 @@
 # Architecture Decision Records (ADR)
 
+## ADR-029: Presales Discovery Workspace & Completeness Architecture
+- **Date**: 2026-10-16
+- **Status**: Active
+- **Decision**: Introduce `lead_discovery_records` linked 1:1 to `leads`, storing structured presales sections (business context, systems architecture, governance, risks), field-level provenance (`confirmed`, `assumption`, `ai_suggested`), and deterministic completeness evaluation via `DiscoveryCompletenessService`. BANT qualification remains centralized in `leads` (SSOT) and is referenced without duplicate data entry.
+- **Rationale**: Meets Presales & Solution Architecture requirements for standardized discovery, gap validation, and traceable assumptions before solution design, preventing unverified outputs from passing as confirmed customer facts.
+- **Impact**: Backend provides `/api/leads/{id}/discovery` endpoints and feature tests. Frontend mounts `DiscoveryWorkspaceTab` in Lead Detail page with live completeness scoring and gap tracking.
+
 ## ADR-028: Isolated Confidentiality Engine
 - **Date**: 2026-06-27
 - **Status**: Active

@@ -562,6 +562,11 @@ class Lead extends Model
         return $this->hasOne(LeadBantcQuestionGuide::class);
     }
 
+    public function discoveryRecord(): HasOne
+    {
+        return $this->hasOne(LeadDiscoveryRecord::class);
+    }
+
     public function qualificationWorkflowReviews(): HasMany
     {
         return $this->hasMany(QualificationWorkflowReview::class);

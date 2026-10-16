@@ -4,8 +4,17 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.28.0** — 2026-09-09
+Current release: **v1.29.0** — 2026-10-16
  
+## What's New in v1.29.0 (Presales & Solution Architecture Foundation — Increment 1 Discovery Workspace)
+
+- **Presales Discovery & Qualification Workspace** — Implemented structured discovery architecture (`lead_discovery_records` schema and `LeadDiscoveryRecord` model) linked 1:1 to `Lead`. Centralizes business context, technical/systems architecture, governance personas, and technical constraints.
+- **Deterministic Discovery Completeness & Readiness Engine** — Built `DiscoveryCompletenessService` evaluating qualification completeness (0–100%) and solution design readiness based on filled mandatory sections and verified requirements.
+- **Field-Level Provenance & Fact/Assumption Separation** — Introduced strict provenance categorization (`confirmed`, `assumption`, `ai_suggested`) to prevent unverified machine drafts from masquerading as confirmed client requirements.
+- **Unified BANT Qualification Snapshot** — Seamlessly integrated BANT qualification (`budget`, `authority`, `needs`, `timeline`, and provenance) from the single source of truth in `leads` without redundant data entry.
+- **Discovery Workspace UI Tab** — Mounted `DiscoveryWorkspaceTab` under the *AI Intelligence* tab group in the Lead Detail view with category filters, real-time completeness progress, and provenance breakdown.
+- **APIs & Automated Feature Tests** — Added `GET /api/leads/{id}/discovery`, `PUT /api/leads/{id}/discovery`, and `POST /api/leads/{id}/discovery/validate` with automated feature test coverage (`LeadDiscoveryTest`).
+
 ## What's New in v1.28.0 (Sprint 5 AI Polish & Source Quality — 100% AI Roadmap Completion)
 
 - **G3.7 Executive Account Review Generator (QBR / Monthly Review)** — Created `AccountReviewGeneratorService` hooked into `AiOrchestrationService` (`feature: ai_account_review_generator`). Synthesizes account health metrics, milestone completions, satisfaction feedback, and forward expansion roadmaps into executive-ready business reviews. Exposed `POST /api/leads/{lead}/account-review/generate`.

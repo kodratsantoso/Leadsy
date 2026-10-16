@@ -36,6 +36,7 @@ import { CommercialTeam } from '@/components/leads/CommercialTeam';
 import { OrderToCash } from '@/components/leads/OrderToCash';
 import { ProfessionalServicesTab } from '@/components/leads/tabs/professional-services-tab';
 import { ProjectPlansTab } from '@/components/leads/tabs/project-plans-tab';
+import { DiscoveryWorkspaceTab } from '@/components/leads/tabs/DiscoveryWorkspaceTab';
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { AnalysisReportDialog } from '@/components/leads/reports/AnalysisReportDialog';
 import { useToast } from "@/components/ui/toast";
@@ -148,7 +149,7 @@ function qualificationLabel(value?: string | null) {
  */
 const LEAD_TAB_GROUPS: { label: string; tabs: string[] }[] = [
   { label: 'Profile', tabs: ['Overview', 'Contacts', 'Team'] },
-  { label: 'AI Intelligence', tabs: ['Intelligence', 'Pre-Meeting Brief', 'Revenue'] },
+  { label: 'AI Intelligence', tabs: ['Discovery', 'Intelligence', 'Pre-Meeting Brief', 'Revenue'] },
   { label: 'Commercial', tabs: ['Orders', 'Professional Services', 'Projects'] },
   { label: 'History', tabs: ['Activities', 'Transcripts', 'Customer Journey'] },
 ];
@@ -3470,6 +3471,11 @@ export default function LeadDetailPage() {
       {/* ── PRE-MEETING BRIEF TAB ── */}
       {activeTab === 'pre-meeting brief' && (
         <PreMeetingBriefTab leadId={leadId} />
+      )}
+
+      {/* ── PRESALES DISCOVERY TAB ── */}
+      {activeTab === 'discovery' && (
+        <DiscoveryWorkspaceTab leadId={leadId} lead={lead} />
       )}
 
       {/* ── Add Contact Modal ── */}
