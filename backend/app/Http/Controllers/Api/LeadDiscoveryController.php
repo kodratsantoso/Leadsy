@@ -57,7 +57,27 @@ class LeadDiscoveryController extends Controller
             'sections' => 'nullable|array',
             'field_sources' => 'nullable|array',
             'qualification_status' => 'nullable|string|in:unqualified,in_progress,qualified,disqualified',
+            'bantc' => 'nullable|array',
+            'bantc.budget' => 'nullable|string',
+            'bantc.authority' => 'nullable|string',
+            'bantc.needs' => 'nullable|string',
+            'bantc.timeline' => 'nullable|string',
+            'bantc.competitor' => 'nullable|string',
         ]);
+
+        if (array_key_exists('bantc', $validated) && is_array($validated['bantc'])) {
+            $appliedFields = app(\App\Services\Lead\LeadBantcSyncService::class)->apply(
+                $lead,
+                $validated['bantc'],
+                'manual'
+            );
+
+            if (in_array('competitor', $appliedFields, true) && \App\Services\Sales\CompetitiveBattleCardService::isMeaningfulCompetitorName($validated['bantc']['competitor'] ?? null)) {
+                \App\Jobs\GenerateBattleCardJob::dispatch($lead->id, $validated['bantc']['competitor']);
+            }
+
+            $lead->refresh();
+        }
 
         $record = LeadDiscoveryRecord::firstOrNew(['lead_id' => $lead->id]);
 

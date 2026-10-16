@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   RefreshCw,
   ExternalLink,
+  Edit3,
+  Check,
 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
@@ -123,6 +125,21 @@ export function DiscoveryWorkspaceTab({ leadId, lead }: DiscoveryWorkspaceTabPro
   const [isDirty, setIsDirty] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("all");
 
+  const [bantc, setBantc] = useState<{
+    budget: string;
+    authority: string;
+    needs: string;
+    timeline: string;
+    competitor: string;
+  }>({
+    budget: "",
+    authority: "",
+    needs: "",
+    timeline: "",
+    competitor: "",
+  });
+  const [isEditingBantc, setIsEditingBantc] = useState(false);
+
   const { data, isLoading, error, refetch } = useQuery<DiscoveryResponse>({
     queryKey: ["lead-discovery", leadId],
     queryFn: async () => {
@@ -139,6 +156,15 @@ export function DiscoveryWorkspaceTab({ leadId, lead }: DiscoveryWorkspaceTabPro
       setSections(data.data.sections || {});
       setFieldSources(data.data.field_sources || {});
       setQualificationStatus(data.data.qualification_status || "in_progress");
+      if (data.evaluation?.bantc_status) {
+        setBantc({
+          budget: data.evaluation.bantc_status.budget || "",
+          authority: data.evaluation.bantc_status.authority || "",
+          needs: data.evaluation.bantc_status.needs || "",
+          timeline: data.evaluation.bantc_status.timeline || "",
+          competitor: data.evaluation.bantc_status.competitor || "",
+        });
+      }
       setIsDirty(false);
     }
   }, [data]);
@@ -152,6 +178,7 @@ export function DiscoveryWorkspaceTab({ leadId, lead }: DiscoveryWorkspaceTabPro
           sections,
           field_sources: fieldSources,
           qualification_status: qualificationStatus,
+          bantc,
         }),
       });
 
@@ -164,7 +191,9 @@ export function DiscoveryWorkspaceTab({ leadId, lead }: DiscoveryWorkspaceTabPro
     },
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: ["lead-discovery", leadId] });
+      qc.invalidateQueries({ queryKey: ["lead", leadId] });
       setIsDirty(false);
+      setIsEditingBantc(false);
       toast.success(
         "Discovery Workspace Saved",
         `Completeness score updated to ${updated.evaluation?.score ?? 0}%.`
@@ -216,14 +245,16 @@ export function DiscoveryWorkspaceTab({ leadId, lead }: DiscoveryWorkspaceTabPro
     return "neutral" as const;
   };
 
-  const provenanceBadge = (prov: ProvenanceType) => {
+  const provenanceBadge = (prov: string | ProvenanceType | undefined) => {
     switch (prov) {
       case "confirmed":
+      case "manual":
         return { label: "Confirmed Fact", variant: "success" as const };
       case "assumption":
         return { label: "Assumption", variant: "warning" as const };
+      case "ai":
       case "ai_suggested":
-        return { label: "AI Suggested", variant: "brand" as const };
+        return { label: "AI Extracted", variant: "brand" as const };
       default:
         return { label: "Unspecified", variant: "neutral" as const };
     }
@@ -347,70 +378,129 @@ export function DiscoveryWorkspaceTab({ leadId, lead }: DiscoveryWorkspaceTabPro
         </CardContent>
       </Card>
 
-      {/* BANTC Live Synchronized Card (Read-Only Reference to avoid redundant data entry) */}
+      {/* BANTC Live Synchronized & Editable Qualification Card */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">BANT Qualification Snapshot</CardTitle>
+              <CardTitle className="text-base">BANTC Commercial Qualification & Clarification</CardTitle>
               <Badge variant="outline" className="text-[11px]">
                 Synchronized with Lead Profile
               </Badge>
+              {isEditingBantc && (
+                <Badge variant="brand" className="text-[10px]">
+                  Editing Mode
+                </Badge>
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Single source of truth from commercial qualification
-            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isEditingBantc ? "default" : "outline"}
+                size="xs"
+                onClick={() => setIsEditingBantc((v) => !v)}
+              >
+                <Edit3 className="mr-1.5 h-3.5 w-3.5" />
+                {isEditingBantc ? "View Snapshot" : "Edit BANTC"}
+              </Button>
+            </div>
           </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Synchronized single source of truth for commercial qualification. AI extractions from meeting transcripts can be reviewed, edited, or confirmed directly below.
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-border bg-muted/10 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">Budget</span>
-                <Badge variant={provenanceBadge(evaluation?.bantc_status?.sources?.budget as ProvenanceType).variant} className="text-[10px]">
-                  {evaluation?.bantc_status?.sources?.budget || "auto"}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm font-medium">
-                {evaluation?.bantc_status?.budget || <span className="text-xs italic text-muted-foreground">Not defined yet</span>}
-              </p>
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              {
+                key: "budget" as const,
+                label: "Budget",
+                icon: "💰",
+                placeholder: "e.g. Rp 500 Juta - Rp 1 Milyar",
+              },
+              {
+                key: "authority" as const,
+                label: "Authority",
+                icon: "👑",
+                placeholder: "e.g. CTO & Procurement Head",
+              },
+              {
+                key: "needs" as const,
+                label: "Needs",
+                icon: "🎯",
+                placeholder: "e.g. ERP overhaul & WhatsApp API",
+              },
+              {
+                key: "timeline" as const,
+                label: "Timeline",
+                icon: "📅",
+                placeholder: "e.g. Deployment Q1 2027",
+              },
+              {
+                key: "competitor" as const,
+                label: "Competitor",
+                icon: "⚔️",
+                placeholder: "e.g. Vendor Incumbent / SAP / Lark",
+              },
+            ].map((col) => {
+              const rawSource = evaluation?.bantc_status?.sources?.[col.key];
+              const sourceLabel = rawSource || "auto";
+              const isAi = rawSource === "ai" || rawSource === "ai_suggested";
 
-            <div className="rounded-xl border border-border bg-muted/10 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">Authority</span>
-                <Badge variant={provenanceBadge(evaluation?.bantc_status?.sources?.authority as ProvenanceType).variant} className="text-[10px]">
-                  {evaluation?.bantc_status?.sources?.authority || "auto"}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm font-medium">
-                {evaluation?.bantc_status?.authority || <span className="text-xs italic text-muted-foreground">Not defined yet</span>}
-              </p>
-            </div>
+              return (
+                <div
+                  key={col.key}
+                  className={cn(
+                    "rounded-xl border p-3 transition-colors",
+                    isEditingBantc ? "border-brand/40 bg-card" : "border-border bg-muted/10"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <span>{col.icon}</span>
+                      <span>{col.label}</span>
+                    </span>
+                    <Badge variant={provenanceBadge(rawSource).variant} className="text-[10px]">
+                      {isAi ? "AI Meeting" : (rawSource === "manual" ? "Confirmed" : sourceLabel)}
+                    </Badge>
+                  </div>
 
-            <div className="rounded-xl border border-border bg-muted/10 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">Needs</span>
-                <Badge variant={provenanceBadge(evaluation?.bantc_status?.sources?.needs as ProvenanceType).variant} className="text-[10px]">
-                  {evaluation?.bantc_status?.sources?.needs || "auto"}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm font-medium">
-                {evaluation?.bantc_status?.needs || <span className="text-xs italic text-muted-foreground">Not defined yet</span>}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-border bg-muted/10 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground">Timeline</span>
-                <Badge variant={provenanceBadge(evaluation?.bantc_status?.sources?.timeline as ProvenanceType).variant} className="text-[10px]">
-                  {evaluation?.bantc_status?.sources?.timeline || "auto"}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm font-medium">
-                {evaluation?.bantc_status?.timeline || <span className="text-xs italic text-muted-foreground">Not defined yet</span>}
-              </p>
-            </div>
+                  {isEditingBantc ? (
+                    <div className="mt-2 space-y-1.5">
+                      <Textarea
+                        rows={3}
+                        className="text-xs resize-none min-h-[72px]"
+                        value={bantc[col.key]}
+                        onChange={(e) => {
+                          setBantc((prev) => ({ ...prev, [col.key]: e.target.value }));
+                          setIsDirty(true);
+                        }}
+                        placeholder={col.placeholder}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mt-1.5">
+                      <p className="text-sm font-medium line-clamp-3" title={bantc[col.key] || undefined}>
+                        {bantc[col.key] || (
+                          <span className="text-xs italic text-muted-foreground">Not defined yet</span>
+                        )}
+                      </p>
+                      {isAi && bantc[col.key] && (
+                        <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-1.5">
+                          <span className="text-[10px] text-muted-foreground">From transcript</span>
+                          <button
+                            type="button"
+                            className="text-[10px] font-semibold text-[color:var(--brand)] hover:underline"
+                            onClick={() => setIsEditingBantc(true)}
+                          >
+                            Clarify / Edit
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

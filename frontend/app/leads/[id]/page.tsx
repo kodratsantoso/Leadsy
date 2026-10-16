@@ -3487,6 +3487,42 @@ export default function LeadDetailPage() {
                       )}
                     </div>
 
+                    {/* BANTC Extracted Preview */}
+                    {(tr.bantc_json || evaluation?.bantc_extracted) && (
+                      <div className="border-t border-border px-4 py-3 bg-muted/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-semibold text-foreground/85 flex items-center gap-1.5">
+                            <Target className="h-3.5 w-3.5 text-primary" />
+                            Extracted Meeting BANTC Qualification:
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            Synchronized to Discovery Workspace
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                          {(() => {
+                            const b = tr.bantc_json || evaluation?.bantc_extracted || {};
+                            return [
+                              { label: 'Budget', val: b.budget, icon: '💰' },
+                              { label: 'Authority', val: b.authority, icon: '👑' },
+                              { label: 'Needs', val: b.needs, icon: '🎯' },
+                              { label: 'Timeline', val: b.timeline, icon: '📅' },
+                              { label: 'Competitor', val: b.competitor, icon: '⚔️' },
+                            ].map((item) => (
+                              <div key={item.label} className="p-2 rounded border border-border/60 bg-card">
+                                <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
+                                  <span>{item.icon}</span> {item.label}
+                                </span>
+                                <p className="text-[11px] font-medium mt-0.5 line-clamp-2" title={item.val || 'Not mentioned'}>
+                                  {item.val || <span className="text-muted-foreground/50 italic">Not mentioned</span>}
+                                </p>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Evaluation result */}
                     {isExpanded && evaluation && (
                       <div className="border-t border-border bg-[color-mix(in_oklch,var(--brand)_4%,transparent)] p-4 space-y-4">

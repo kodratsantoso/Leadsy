@@ -29,7 +29,7 @@ class DiscoveryCompletenessService
 
         $checklist = [];
         $missingRequired = [];
-        $totalItems = count($standardSections) + 4; // +4 for BANT (Budget, Authority, Needs, Timeline)
+        $totalItems = count($standardSections) + 5; // +5 for BANTC (Budget, Authority, Needs, Timeline, Competitor)
         $completedItems = 0;
 
         $provenanceCounts = [
@@ -39,19 +39,24 @@ class DiscoveryCompletenessService
             'unspecified' => 0,
         ];
 
-        // 1. Evaluate BANT from Lead model
+        // 1. Evaluate BANTC from Lead model
         $bantFields = [
-            'budget' => ['label' => 'BANT: Budget', 'value' => $lead->budget],
-            'authority' => ['label' => 'BANT: Authority / Decision Maker', 'value' => $lead->authority],
-            'needs' => ['label' => 'BANT: Needs & Requirements', 'value' => $lead->needs],
-            'timeline' => ['label' => 'BANT: Target Timeline', 'value' => $lead->timeline],
+            'budget' => ['label' => 'BANTC: Budget', 'value' => $lead->budget],
+            'authority' => ['label' => 'BANTC: Authority / Decision Maker', 'value' => $lead->authority],
+            'needs' => ['label' => 'BANTC: Needs & Requirements', 'value' => $lead->needs],
+            'timeline' => ['label' => 'BANTC: Target Timeline', 'value' => $lead->timeline],
+            'competitor' => ['label' => 'BANTC: Competitor / Alternatives', 'value' => $lead->competitor],
         ];
 
         $bantcSources = is_array($lead->bantc_sources) ? $lead->bantc_sources : [];
+        $normalizedSources = [];
 
         foreach ($bantFields as $key => $meta) {
             $isFilled = ! empty(trim((string) $meta['value']));
-            $prov = $bantcSources[$key] ?? ($isFilled ? 'confirmed' : 'unspecified');
+            $rawEntry = $bantcSources[$key] ?? null;
+            $provSource = is_array($rawEntry) ? ($rawEntry['source'] ?? null) : $rawEntry;
+            $prov = $provSource ?? ($isFilled ? 'confirmed' : 'unspecified');
+            $normalizedSources[$key] = $prov;
 
             if ($isFilled) {
                 $completedItems++;
@@ -71,7 +76,7 @@ class DiscoveryCompletenessService
                 'category' => 'qualification',
                 'required' => true,
                 'status' => $isFilled ? 'completed' : 'incomplete',
-                'provenance' => $isFilled ? ($bantcSources[$key] ?? 'confirmed') : 'unspecified',
+                'provenance' => $isFilled ? $prov : 'unspecified',
                 'value' => $meta['value'] ?: null,
             ];
         }
@@ -147,7 +152,8 @@ class DiscoveryCompletenessService
                 'needs' => $lead->needs,
                 'timeline' => $lead->timeline,
                 'competitor' => $lead->competitor,
-                'sources' => $bantcSources,
+                'sources' => $normalizedSources,
+                'raw_sources' => $bantcSources,
             ],
         ];
     }

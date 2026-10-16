@@ -19,12 +19,12 @@ class LeadBantcQuestionGenerationService
             'subIndustry',
             'funnelStage',
             'owner',
-            'product',
+            'product.questionGuide',
             'contacts',
             'sources.channelType',
             'scores',
             'qualifications',
-            'productMatches.product',
+            'productMatches.product.questionGuide',
             'aiAnalyses',
             'revenueAnalyses',
         ]);
@@ -67,46 +67,43 @@ class LeadBantcQuestionGenerationService
             ->values()
             ->implode(', ');
 
-        $topProductMatches = $lead->productMatches
+        $initialProductId = $lead->product_id;
+        $initialProduct = $lead->product;
+
+        // 1. Initial Product Question Guide (Priority 1)
+        $curatedGuides = [];
+        if ($initialProduct && $initialProduct->questionGuide) {
+            $formattedInitialGuide = $this->formatQuestionGuide($initialProduct->questionGuide, "[PRIMARY INITIAL PRODUCT] {$initialProduct->name}");
+            if ($formattedInitialGuide) {
+                $curatedGuides[] = $formattedInitialGuide;
+            }
+        }
+
+        // 2. Secondary Matching Products from Intelligence (Priority 2)
+        // Exclude the initial product if it was already matched to avoid duplicate context
+        $secondaryMatches = $lead->productMatches
+            ->filter(fn ($match) => $match->product_id && $match->product_id !== $initialProductId)
             ->sortByDesc('match_score')
-            ->take(3)
+            ->take(3);
+
+        $topProductMatches = $secondaryMatches
             ->map(fn ($match) => trim(($match->product?->name ?? 'Product').' ('.($match->match_score ?? 0).'% match)'))
             ->values()
             ->implode('; ');
 
-        // Question guides curated per product were invisible here: this service used the
-        // product's NAME and match score but never read product_questions, and nothing
-        // else consumed that table either. So a team could write careful discovery
-        // questions on the Products page and the lead's guide would never reflect them.
-        $productQuestions = $lead->productMatches
-            ->sortByDesc('match_score')
-            ->take(3)
-            ->map(fn ($match) => $match->product?->questionGuide)
-            ->filter()
-            ->map(function ($guide) {
-                $questions = $guide->questions;
-
-                if (is_string($questions)) {
-                    $questions = json_decode($questions, true);
+        foreach ($secondaryMatches as $match) {
+            if ($match->product?->questionGuide) {
+                $formattedSecondary = $this->formatQuestionGuide(
+                    $match->product->questionGuide,
+                    "[SECONDARY MATCHED PRODUCT ({$match->match_score}%)] {$match->product->name}"
+                );
+                if ($formattedSecondary) {
+                    $curatedGuides[] = $formattedSecondary;
                 }
+            }
+        }
 
-                if (! is_array($questions)) {
-                    return null;
-                }
-
-                // Stored shape varies: a flat list, or grouped by BANTC dimension.
-                $flat = [];
-                array_walk_recursive($questions, function ($value) use (&$flat) {
-                    if (is_string($value) && trim($value) !== '') {
-                        $flat[] = trim($value);
-                    }
-                });
-
-                return $flat === [] ? null : ($guide->product?->name ?? 'Product').': '.implode(' | ', array_slice($flat, 0, 8));
-            })
-            ->filter()
-            ->values()
-            ->implode("\n");
+        $productQuestions = implode("\n", array_filter($curatedGuides));
 
         $latestScore = $lead->scores->sortByDesc('created_at')->first();
         $latestQualification = $lead->qualifications->sortByDesc('created_at')->first();
@@ -129,8 +126,8 @@ class LeadBantcQuestionGenerationService
             'Latest Qualification' => $latestQualification?->qualified,
             'Estimated Closing Amount' => $lead->estimated_closing_amount,
             'Realized Closing Amount' => $lead->realized_closing_amount,
-            'Assigned Product' => $lead->product?->name,
-            'Top Product Matches' => $topProductMatches,
+            'Primary Initial Product (Priority 1 - User Assigned)' => $initialProduct?->name,
+            'Secondary Intelligence Matching Products (Priority 2)' => $topProductMatches,
             'Curated Product Question Guides' => $productQuestions,
             'Known Contacts' => $contacts,
             'Lead Sources' => $sources,
@@ -159,6 +156,10 @@ BANTC means:
 4. Timeline — urgency, milestones, implementation window, target decision date
 5. Competition — incumbent solution, alternatives, vendor comparison, switching risk
 
+PRODUCT FOCUS & PRIORITY INSTRUCTIONS:
+- Primary Initial Product Priority: If 'Primary Initial Product (Priority 1 - User Assigned)' is present, discovery questions MUST be prioritized and centered primarily around this assigned Initial Product. Use its curated question guide directly.
+- Secondary Matching Products: Use 'Secondary Intelligence Matching Products' strictly as secondary background, cross-sell, or expansion angles, never letting them displace the Initial Product focus.
+
 TASK:
 Generate 12-15 open-ended questions that help the user qualify this lead and decide what to do next. Make the questions specific to the lead context and product signals when available.
 
@@ -179,6 +180,33 @@ EXAMPLE FORMAT:
   ]
 }
 PROMPT;
+    }
+
+    private function formatQuestionGuide(mixed $guide, string $label): ?string
+    {
+        if (! $guide) {
+            return null;
+        }
+
+        $questions = $guide->questions ?? null;
+
+        if (is_string($questions)) {
+            $questions = json_decode($questions, true);
+        }
+
+        if (! is_array($questions)) {
+            return null;
+        }
+
+        // Stored shape varies: a flat list, or grouped by BANTC dimension.
+        $flat = [];
+        array_walk_recursive($questions, function ($value) use (&$flat) {
+            if (is_string($value) && trim($value) !== '') {
+                $flat[] = trim($value);
+            }
+        });
+
+        return $flat === [] ? null : "{$label}: ".implode(' | ', array_slice($flat, 0, 8));
     }
 
     private function parseQuestions(string $content): array

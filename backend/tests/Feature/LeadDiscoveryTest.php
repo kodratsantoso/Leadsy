@@ -182,4 +182,39 @@ class LeadDiscoveryTest extends TestCase
                 'message',
             ]);
     }
+
+    public function test_can_update_bantc_via_discovery_and_sync_with_lead(): void
+    {
+        $user = $this->makeUser();
+        $lead = $this->makeLead($user);
+
+        $payload = [
+            'bantc' => [
+                'budget' => 'Rp 1.5 Milyar',
+                'authority' => 'Dewan Direksi & CTO',
+                'needs' => 'Full ERP Transformation',
+                'timeline' => 'Q2 2027',
+                'competitor' => 'SAP S/4HANA',
+            ],
+        ];
+
+        $response = $this->actingAs($user)
+            ->putJson("/api/leads/{$lead->id}/discovery", $payload);
+
+        $response->assertOk();
+
+        $lead->refresh();
+        $this->assertSame('Rp 1.5 Milyar', $lead->budget);
+        $this->assertSame('Dewan Direksi & CTO', $lead->authority);
+        $this->assertSame('Full ERP Transformation', $lead->needs);
+        $this->assertSame('Q2 2027', $lead->timeline);
+        $this->assertSame('SAP S/4HANA', $lead->competitor);
+
+        $sources = $lead->bantc_sources;
+        $this->assertSame('manual', $sources['competitor']['source'] ?? null);
+
+        $bantcStatus = $response->json('evaluation.bantc_status');
+        $this->assertSame('SAP S/4HANA', $bantcStatus['competitor']);
+        $this->assertSame('manual', $bantcStatus['sources']['competitor']);
+    }
 }

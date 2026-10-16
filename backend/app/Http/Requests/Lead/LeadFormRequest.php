@@ -58,6 +58,11 @@ abstract class LeadFormRequest extends FormRequest
             'product_id' => 'nullable|exists:products,id',
             'source_type' => 'nullable|exists:lead_source_types,slug',
             'channel_type_id' => 'nullable|exists:lead_channel_types,id',
+            'budget' => 'nullable|string|max:255',
+            'authority' => 'nullable|string|max:255',
+            'needs' => 'nullable|string',
+            'timeline' => 'nullable|string|max:255',
+            'competitor' => 'nullable|string|max:255',
         ];
     }
 }

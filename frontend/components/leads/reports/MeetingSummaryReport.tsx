@@ -448,6 +448,63 @@ export function MeetingSummaryReport({ transcript, lead }: { transcript: any, le
             ))}
           </div>
 
+          {/* Section: BANTC Qualification Snapshot */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-indigo-600" />
+                <h3 className="font-bold text-slate-800 tracking-tight uppercase text-xs">
+                  MEETING BANTC QUALIFICATION SUMMARY
+                </h3>
+              </div>
+              <Badge variant="brand" className="bg-indigo-100 text-indigo-700 text-[11px] px-2.5 py-0.5 border-0 font-medium">
+                Synchronized with Lead Discovery
+              </Badge>
+            </div>
+            <div className="grid grid-cols-5 gap-3">
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-none">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                  <span>💰</span> Budget
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  {(transcript.bantc_json?.budget) || <span className="italic text-slate-400">Not mentioned</span>}
+                </p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-none">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                  <span>👑</span> Authority
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  {(transcript.bantc_json?.authority) || <span className="italic text-slate-400">Not mentioned</span>}
+                </p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-none">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                  <span>🎯</span> Needs
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  {(transcript.bantc_json?.needs) || <span className="italic text-slate-400">Not mentioned</span>}
+                </p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-none">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                  <span>📅</span> Timeline
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  {(transcript.bantc_json?.timeline) || <span className="italic text-slate-400">Not mentioned</span>}
+                </p>
+              </div>
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-none">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                  <span>⚔️</span> Competitor
+                </div>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  {(transcript.bantc_json?.competitor) || <span className="italic text-slate-400">None mentioned</span>}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Section Divider */}
           <div className="flex items-center gap-4 bg-slate-50 -mx-10 px-10 py-4 border-y border-slate-100">
             <Badge className="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-3 font-bold text-xs border-0">PAGE 2</Badge>
