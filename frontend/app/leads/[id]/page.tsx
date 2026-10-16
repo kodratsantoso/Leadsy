@@ -2050,65 +2050,6 @@ export default function LeadDetailPage() {
             </div>
           </div>
 
-            {/* AI Pre-Meeting Pipeline Status Card — read-only; the 9 underlying
-                functions now run automatically on lead creation. Manual re-run
-                is superadmin-only via Settings > AI Testing Console. */}
-            <div className="rounded-lg border border-border bg-card p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold">AI Pre-Meeting Analysis Status</h3>
-                <Badge variant={
-                  leadData.ai_processing_status === 'completed' ? 'success' :
-                  leadData.ai_processing_status === 'processing' ? 'warning' :
-                  leadData.ai_processing_status === 'failed' ? 'danger' : 'outline'
-                } className="flex items-center gap-1.5">
-                  {leadData.ai_processing_status === 'processing' && <Loader2 className="h-3 w-3 animate-spin" />}
-                  {leadData.ai_processing_status === 'completed' ? 'Selesai'
-                    : leadData.ai_processing_status === 'processing' ? 'Sedang Diproses...'
-                    : leadData.ai_processing_status === 'failed' ? 'Gagal — Hubungi Admin'
-                    : 'Menunggu'}
-                </Badge>
-              </div>
-              <div className="flex flex-col gap-2 text-sm">
-                <div className="flex justify-between border-b border-border/40 pb-2">
-                  <span className="text-muted-foreground">Last Run</span>
-                  <span className="font-medium">{leadData.last_enriched_at ? new Date(leadData.last_enriched_at).toLocaleString() : 'Never'}</span>
-                </div>
-                {leadData.enrichment_metadata && typeof leadData.enrichment_metadata === 'object' && (
-                  <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground text-xs">Hasil Pengayaan Data</span>
-                      {leadData.enrichment_metadata.source && (
-                        <Badge variant="outline" className="text-[10px] uppercase font-semibold">
-                          Sumber: {String(leadData.enrichment_metadata.source).replace(/_/g, ' ')}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    {Array.isArray(leadData.enrichment_metadata.fields_updated) && leadData.enrichment_metadata.fields_updated.length > 0 ? (
-                      <div>
-                        <span className="text-muted-foreground text-[11px] block mb-1">Kolom yang Diperbarui:</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {leadData.enrichment_metadata.fields_updated.map((field: string, idx: number) => (
-                            <Badge key={idx} variant="outline" className="bg-background text-[11px] font-medium capitalize">
-                              ✓ {field.replace(/_/g, ' ')}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ) : leadData.enrichment_metadata.message ? (
-                      <p className="text-muted-foreground">{leadData.enrichment_metadata.message}</p>
-                    ) : null}
-
-                    {leadData.enrichment_metadata.orchestrated_by_ai && (
-                      <div className="pt-1 flex items-center gap-1.5 text-[11px] text-[var(--brand)] font-medium">
-                        <Sparkles className="h-3 w-3" /> Diproses otomatis oleh AI Orchestrator
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
           {/* Row 2: Sales Info + Group Company */}
           <div className="grid gap-6 md:grid-cols-2">
             {/* Sales Information */}
