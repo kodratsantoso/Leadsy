@@ -150,4 +150,7 @@ jobs:
       environment: production
       target_namespace: leadsy-prod
       source_commit: ${{ github.sha }}
+      image: 10.43.110.114:5000/leadsy-frontend:${{ github.sha }}
+      rollout_status: success
+      smoke_http_status: "200"
     secrets: inherit

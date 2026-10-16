@@ -1826,13 +1826,8 @@ export default function LeadDetailPage() {
  
       {/* ── SALES STAGE FLOW ── */}
       <div className="rounded-lg border border-border bg-card p-4 space-y-4 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">Sales Stage Flow</span>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
-              {funnelStages?.find((s: any) => s.id === (leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id))?.name || 'No Stage'}
-            </Badge>
-          </div>
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <span className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">Sales Stage Flow</span>
         </div>
  
         {/* Chevron Progress Flow */}
@@ -1899,24 +1894,18 @@ export default function LeadDetailPage() {
           </div>
         </div>
  
-        {/* Footer info & button */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-sm font-semibold">{funnelStages?.find((s: any) => s.id === (leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id))?.name || 'No Stage'}</span>
-          </div>
- 
-          {/* Complete Step button (moves to the next stage in sequence) */}
-          {(() => {
-            const currentStageId = leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id;
-            const currentStageIndex = funnelStages.findIndex((s: any) => s.id === currentStageId);
-            const nextStage = currentStageIndex !== -1 && currentStageIndex < funnelStages.length - 1 
-              ? funnelStages[currentStageIndex + 1] 
-              : null;
- 
-            if (!nextStage) return null;
- 
-            return (
+        {/* Complete Step button (moves to the next stage in sequence) */}
+        {(() => {
+          const currentStageId = leadData.funnelStage?.id || leadData.funnel_stage_id || leadData.current_funnel_stage?.id;
+          const currentStageIndex = funnelStages.findIndex((s: any) => s.id === currentStageId);
+          const nextStage = currentStageIndex !== -1 && currentStageIndex < funnelStages.length - 1 
+            ? funnelStages[currentStageIndex + 1] 
+            : null;
+
+          if (!nextStage) return null;
+
+          return (
+            <div className="flex items-center justify-end pt-2 border-t border-border/50">
               <Button 
                 size="sm" 
                 onClick={() => openLogActivityWithStage(nextStage.id)}
@@ -1924,9 +1913,9 @@ export default function LeadDetailPage() {
               >
                 Complete Step
               </Button>
-            );
-          })()}
-        </div>
+            </div>
+          );
+        })()}
       </div>
 
       {!['eligible', 'potential'].includes(leadData.qualification_status ?? '') && canMarkEligible ? (
