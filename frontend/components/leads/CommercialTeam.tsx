@@ -86,6 +86,8 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
       if (!res.ok) throw new Error(result?.message || 'Failed to assign role.');
       
       qc.invalidateQueries({ queryKey: ['lead-role-assignments', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead', String(leadId)] });
       setForm({ user_id: '', role_type: 'sales' });
     } catch (err) {
       setErrorMsg(describeThrown(err).title);
@@ -103,6 +105,8 @@ export function CommercialTeam({ leadId }: { leadId: string | number }) {
         throw new Error(result?.message || 'Failed to remove assignment.');
       }
       qc.invalidateQueries({ queryKey: ['lead-role-assignments', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead', leadId] });
+      qc.invalidateQueries({ queryKey: ['lead', String(leadId)] });
     } catch (err) {
       setErrorMsg(describeThrown(err, 'Failed to remove assignment.').title);
     }

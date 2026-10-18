@@ -2243,15 +2243,15 @@ export default function LeadDetailPage() {
                 </div>
                 <div className="rounded-lg bg-muted/20 p-3 border border-border/40">
                   <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Presales Architect</span>
-                  <span className="font-medium text-foreground">{leadData.presalesOwner?.name || 'Unassigned'}</span>
+                  <span className="font-medium text-foreground">{leadData.presales_owner?.name || leadData.presalesOwner?.name || 'Unassigned'}</span>
                 </div>
                 <div className="rounded-lg bg-muted/20 p-3 border border-border/40">
                   <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Account Manager</span>
-                  <span className="font-medium text-foreground">{leadData.amOwner?.name || 'Unassigned'}</span>
+                  <span className="font-medium text-foreground">{leadData.am_owner?.name || leadData.amOwner?.name || 'Unassigned'}</span>
                 </div>
                 <div className="rounded-lg bg-muted/20 p-3 border border-border/40">
                   <span className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Customer Success</span>
-                  <span className="font-medium text-foreground">{leadData.csmOwner?.name || 'Unassigned'}</span>
+                  <span className="font-medium text-foreground">{leadData.csm_owner?.name || leadData.csmOwner?.name || 'Unassigned'}</span>
                 </div>
               </div>
             </div>
