@@ -18,6 +18,21 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     headers.set("Content-Type", "application/json");
   }
 
+  // Guard against stringified "undefined" or "null" variables in endpoint path
+  if (endpoint.includes("/undefined") || endpoint.includes("/null")) {
+    console.warn("[apiFetch] Prevented call to invalid URL with undefined/null: " + endpoint);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: {
+          code: "INVALID_IDENTIFIER",
+          message: "Resource identifier is undefined.",
+        },
+      }),
+      { status: 404, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   // Always use the Next.js proxy (/api/...) so that:
   //  - In Docker: the server-side rewrite forwards to the backend via the internal network (backend:8000)
   //  - In local dev: the rewrite forwards to localhost:3001

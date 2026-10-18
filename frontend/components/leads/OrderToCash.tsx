@@ -49,6 +49,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const { data: leadDataQuery } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}`).then(r => r.json()),
+    enabled: !!leadId && leadId !== 'undefined',
   });
   const leadObj = leadDataQuery?.data || {};
   const contacts = leadObj.contacts || [];
@@ -335,11 +336,13 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const { data: qData, isLoading: loadingQ } = useQuery({
     queryKey: ['lead-quotations', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}/quotations`).then(r => r.json()),
+    enabled: !!leadId && leadId !== 'undefined',
   });
  
   const { data: soData, isLoading: loadingSO } = useQuery({
     queryKey: ['lead-sales-orders', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}/sales-orders`).then(r => r.json()),
+    enabled: !!leadId && leadId !== 'undefined',
   });
  
   const quotations = qData?.data || [];

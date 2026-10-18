@@ -702,6 +702,7 @@ export default function LeadDetailPage() {
   const { data: lead, isLoading: leadLoading } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}`).then((r) => r.json()),
+    enabled: !!leadId && leadId !== 'undefined',
   });
 
   // Google Maps setup
