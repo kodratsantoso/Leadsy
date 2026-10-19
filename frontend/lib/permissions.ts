@@ -3,7 +3,8 @@ export type NavPermissionRule = {
 };
 
 export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
-  "/": { any: ["leads.view", "products.view", "audit.view"] },
+  "/": { any: [] },
+  "/dashboard": { any: ["leads.view", "products.view", "audit.view"] },
   "/lead-generator/platforms": { any: ["leads.view", "leads.create"] },
   "/lead-generator": { any: ["leads.view", "leads.create"] },
   "/map": { any: ["maps.view"] },

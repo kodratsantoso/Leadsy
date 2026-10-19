@@ -60,7 +60,7 @@ function MekariLogoIcon({ className }: { className?: string }) {
 }
 
 export const navItems: NavItem[] = [
-  { href: "/",                       icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/dashboard",               icon: LayoutDashboard, label: "Dashboard" },
   {
     href: "/lead-generator",
     icon: RadioTower,
@@ -156,7 +156,7 @@ function ThemedLogo({ collapsed }: { collapsed: boolean }) {
 
   if (collapsed) {
     return (
-      <Link href="/" className="mx-auto">
+      <Link href="/dashboard" className="mx-auto">
         <Image
           src={src}
           alt="Leadsy"
@@ -170,7 +170,7 @@ function ThemedLogo({ collapsed }: { collapsed: boolean }) {
   }
 
   return (
-    <Link href="/" className="flex items-center min-w-0">
+    <Link href="/dashboard" className="flex items-center min-w-0">
       <Image
         src={src}
         alt="Leadsy"
@@ -286,8 +286,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             const hasChildren = Boolean(item.children?.length);
             const isExpanded = expandedMenus[item.href] ?? false;
             const isActive =
-              item.href === "/"
-                ? pathname === "/"
+              item.href === "/dashboard"
+                ? pathname === "/dashboard"
                 : pathname.startsWith(item.href) || Boolean(item.children?.some((child) => pathname.startsWith(child.href)));
             
             const itemContent = (

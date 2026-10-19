@@ -143,7 +143,7 @@ export default function LoginPage() {
       }
 
       setAuth(data.token, data.user);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       setError(
         describeThrown(err).isOffline
@@ -171,7 +171,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Invalid 2FA code or recovery code.");
       setAuth(data.token, data.user);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       setError(describeThrown(err, "An unexpected error occurred.").title);
     } finally {
@@ -291,7 +291,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Registration failed.");
       setAuth(data.token, data.user);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       setError(describeThrown(err, "Registration failed. Please try again.").title);
     } finally {

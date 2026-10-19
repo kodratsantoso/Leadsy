@@ -14,17 +14,19 @@ export default function Template({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const setAuth = useAuthStore((state) => state.setAuth);
   const [mounted, setMounted] = useState(false);
+  const isLandingRoute = pathname === "/";
   const isPublicAuthRoute = pathname === "/login" || pathname.startsWith("/auth/");
+  const isPublicRoute = isLandingRoute || isPublicAuthRoute;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (mounted && !token && !isPublicAuthRoute) {
+    if (mounted && !token && !isPublicRoute) {
       router.push("/login");
     }
-  }, [mounted, token, isPublicAuthRoute, router]);
+  }, [mounted, token, isPublicRoute, router]);
 
   useEffect(() => {
     if (!mounted || !token || isPublicAuthRoute) return;
@@ -54,8 +56,8 @@ export default function Template({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-background" />; // Stop hydration mismatch visually
   }
 
-  // Bypass the app shell for the login route
-  if (isPublicAuthRoute) {
+  // Bypass the app shell for public routes (landing page & login/auth)
+  if (isPublicRoute) {
     return <>{children}</>;
   }
 
@@ -65,7 +67,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
   }
 
   if (user && !canAccessPath(pathname, user)) {
-    router.push("/");
+    router.push("/dashboard");
     return <div className="min-h-screen bg-background" />;
   }
 
