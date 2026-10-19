@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
-import { FutureBackground } from "@/components/landing/FutureBackground";
+import { CosmicBackground } from "@/components/landing/CosmicBackground";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
 import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <div className="relative min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20 selection:text-primary antialiased overflow-x-hidden">
-      {/* Elegant Future Apps Moving Background */}
-      <FutureBackground />
+      {/* Modern Deep Space Interactive Background */}
+      <CosmicBackground />
 
       <LandingNavbar />
       <main className="relative z-10 flex-1 flex flex-col">
