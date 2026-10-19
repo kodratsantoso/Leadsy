@@ -1944,7 +1944,7 @@ export default function LeadDetailPage() {
           unchanged — activeTab is still the lowercased label, which ?tab= links
           and setActiveTab() calls elsewhere depend on. */}
       <div className="border-b border-border">
-        <div className="flex items-stretch overflow-x-auto">
+        <div className="flex items-stretch overflow-x-auto scroll-smooth">
           {LEAD_TAB_GROUPS.map((group, groupIndex) => (
             <div
               key={group.label}
@@ -1957,10 +1957,13 @@ export default function LeadDetailPage() {
                 {group.tabs.map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setActiveTab(tab.toLowerCase())}
-                    className={`whitespace-nowrap border-b-2 px-4 pb-3 pt-1.5 text-sm font-medium transition-colors ${
+                    onClick={(e) => {
+                      setActiveTab(tab.toLowerCase());
+                      e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }}
+                    className={`whitespace-nowrap border-b-2 px-4 pb-3 pt-1.5 text-sm font-medium transition-all duration-200 ${
                       activeTab === tab.toLowerCase()
-                        ? 'border-[var(--brand)] text-foreground'
+                        ? 'border-[var(--brand)] text-foreground font-semibold'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
                     }`}
                   >

@@ -13,19 +13,10 @@ import { cn } from "@/lib/utils";
 export function LandingNavbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("#features");
   const { resolved } = useTheme();
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const logoSrc = resolved === "dark" ? "/Leadsy_logo_dark.png" : "/Leadsy_logo_light.png";
 
   const navLinks = [
     { label: "Fitur Unggulan", href: "#features" },
@@ -34,6 +25,48 @@ export function LandingNavbar() {
     { label: "Perbandingan", href: "#comparison" },
     { label: "Keamanan Enterprise", href: "#security" },
   ];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+
+      // Scroll Spy to detect current section
+      const scrollPos = window.scrollY + 120;
+      for (let i = navLinks.length - 1; i >= 0; i--) {
+        const link = navLinks[i];
+        const el = document.querySelector(link.href);
+        if (el) {
+          const top = (el as HTMLElement).offsetTop;
+          if (scrollPos >= top) {
+            setActiveSection(link.href);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [navLinks]);
+
+  const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("#")) {
+      e.preventDefault();
+      const target = document.querySelector(href);
+      if (target) {
+        const navHeight = 80;
+        const targetPos = target.getBoundingClientRect().top + window.pageYOffset - navHeight;
+        window.scrollTo({
+          top: targetPos,
+          behavior: "smooth",
+        });
+        setActiveSection(href);
+        setMobileOpen(false);
+      }
+    }
+  };
+
+  const logoSrc = resolved === "dark" ? "/Leadsy_logo_dark.png" : "/Leadsy_logo_light.png";
 
   return (
     <header
@@ -64,17 +97,29 @@ export function LandingNavbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2 bg-muted/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/50">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-xs lg:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/80 px-3 py-1.5 rounded-full transition-all duration-150"
-              >
-                {link.label}
-              </a>
-            ))}
+          {/* Desktop Navigation with Smooth Scroll Tabs */}
+          <nav className="hidden md:flex items-center gap-1 bg-muted/40 backdrop-blur-md p-1.5 rounded-full border border-border/50 relative">
+            {navLinks.map((link) => {
+              const isActive = activeSection === link.href;
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleSmoothScroll(e, link.href)}
+                  className={cn(
+                    "text-xs lg:text-sm font-medium px-3.5 py-1.5 rounded-full transition-all duration-300 relative",
+                    isActive
+                      ? "bg-background text-primary font-semibold shadow-xs shadow-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  )}
+                >
+                  {link.label}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full" />
+                  )}
+                </a>
+              );
+            })}
           </nav>
 
           {/* Actions */}
@@ -123,16 +168,24 @@ export function LandingNavbar() {
       {mobileOpen && (
         <div className="sm:hidden border-b border-border/80 bg-background/95 backdrop-blur-2xl px-5 pt-3 pb-6 animate-in slide-in-from-top-4 duration-200">
           <nav className="flex flex-col gap-2 mb-4">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground py-2 px-3 rounded-md hover:bg-muted/50 transition-colors"
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = activeSection === link.href;
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleSmoothScroll(e, link.href)}
+                  className={cn(
+                    "text-sm font-medium py-2 px-3 rounded-md transition-colors",
+                    isActive
+                      ? "bg-primary/10 text-primary font-semibold border-l-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
           </nav>
           <div className="pt-2 border-t border-border flex flex-col gap-2">
             {token ? (

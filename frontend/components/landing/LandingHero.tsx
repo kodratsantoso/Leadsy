@@ -72,7 +72,19 @@ export function LandingHero() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <a href="#pipeline" className="w-full sm:w-auto">
+            <a
+              href="#pipeline"
+              onClick={(e) => {
+                e.preventDefault();
+                const target = document.querySelector("#pipeline");
+                if (target) {
+                  const navHeight = 80;
+                  const targetPos = target.getBoundingClientRect().top + window.pageYOffset - navHeight;
+                  window.scrollTo({ top: targetPos, behavior: "smooth" });
+                }
+              }}
+              className="w-full sm:w-auto"
+            >
               <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 text-base px-6 h-12 border-border/80 hover:bg-muted/60 font-medium">
                 <Bot className="w-4 h-4 text-primary" />
                 Lihat Cara Kerja AI Pipeline
