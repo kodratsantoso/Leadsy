@@ -72,6 +72,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
+    use \App\Models\Traits\BelongsToTenant;
 
     protected $fillable = [
         'name', 'email', 'password', 'role_id', 'tenant_id', 'direct_manager_id',

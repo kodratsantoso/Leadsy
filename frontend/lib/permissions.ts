@@ -55,6 +55,10 @@ export function canAccessPath(path: string, user: any): boolean {
   if (!user) {
     return false;
   }
+  // SaaS Platform Admin is strictly reserved for platform superadmins
+  if (path.startsWith("/admin")) {
+    return user?.role?.name === "super_admin";
+  }
   if (user?.role?.name === "super_admin") {
     return true;
   }

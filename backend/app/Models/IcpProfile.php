@@ -54,6 +54,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class IcpProfile extends Model
 {
+    use \App\Models\Traits\BelongsToTenant;
+
     protected $fillable = [
         'tenant_id',
         'name', 'description',

@@ -246,6 +246,7 @@ class Lead extends Model
 {
     use HasFactory;
     use SoftDeletes;
+    use \App\Models\Traits\BelongsToTenant;
 
     protected $fillable = [
         'company_name', 'brand', 'address', 'lat', 'lng',

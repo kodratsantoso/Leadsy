@@ -770,7 +770,19 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     });
 });
 
+// ── SaaS Platform Admin Console (Superadmin Only) ──
+Route::prefix('platform')->middleware(['auth:sanctum', 'superadmin'])->group(function () {
+    Route::get('metrics', [\App\Http\Controllers\Api\PlatformAdminController::class, 'metrics']);
+    Route::get('tenants', [\App\Http\Controllers\Api\PlatformAdminController::class, 'indexTenants']);
+    Route::post('tenants', [\App\Http\Controllers\Api\PlatformAdminController::class, 'storeTenant']);
+    Route::get('tenants/{id}', [\App\Http\Controllers\Api\PlatformAdminController::class, 'showTenant']);
+    Route::put('tenants/{id}', [\App\Http\Controllers\Api\PlatformAdminController::class, 'updateTenant']);
+    Route::patch('tenants/{id}/toggle-status', [\App\Http\Controllers\Api\PlatformAdminController::class, 'toggleStatus']);
+    Route::post('tenants/{id}/impersonate', [\App\Http\Controllers\Api\PlatformAdminController::class, 'impersonate']);
+});
+
 // ── Lark Webhooks (Public) ──
 Route::prefix('webhooks')->group(function () {
     Route::post('lark', [LarkController::class, 'handleWebhook']);
 });
+
