@@ -25,8 +25,10 @@ export default function Template({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (mounted && !token && !isPublicRoute) {
       router.push("/login");
+    } else if (mounted && token && isPublicAuthRoute) {
+      router.push("/dashboard");
     }
-  }, [mounted, token, isPublicRoute, router]);
+  }, [mounted, token, isPublicRoute, isPublicAuthRoute, router]);
 
   useEffect(() => {
     if (!mounted || !token || isPublicAuthRoute) return;
@@ -66,7 +68,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-background" />; 
   }
 
-  if (user && !canAccessPath(pathname, user)) {
+  if (user && pathname !== "/dashboard" && !canAccessPath(pathname, user)) {
     router.push("/dashboard");
     return <div className="min-h-screen bg-background" />;
   }

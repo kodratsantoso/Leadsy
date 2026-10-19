@@ -18,8 +18,15 @@ const inputCls =
 
 export default function LoginPage() {
   const router = useRouter();
+  const token = useAuthStore((state) => state.token);
   const setAuth = useAuthStore((state) => state.setAuth);
   const { resolved } = useTheme();
+
+  useEffect(() => {
+    if (token) {
+      window.location.href = "/dashboard";
+    }
+  }, [token]);
 
   // ── Shared state ──
   const [mode, setMode] = useState<Mode>("login");
@@ -143,7 +150,7 @@ export default function LoginPage() {
       }
 
       setAuth(data.token, data.user);
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       setError(
         describeThrown(err).isOffline
@@ -171,7 +178,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Invalid 2FA code or recovery code.");
       setAuth(data.token, data.user);
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       setError(describeThrown(err, "An unexpected error occurred.").title);
     } finally {
@@ -291,7 +298,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || "Registration failed.");
       setAuth(data.token, data.user);
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       setError(describeThrown(err, "Registration failed. Please try again.").title);
     } finally {

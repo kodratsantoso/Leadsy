@@ -49,9 +49,8 @@ export default function LarkCallbackPage() {
         setStatus("success");
         setMessage("Authenticated successfully. Redirecting...");
         window.setTimeout(() => {
-          router.replace("/");
-          router.refresh();
-        }, 700);
+          window.location.href = "/dashboard";
+        }, 500);
       } catch (err: unknown) {
         setStatus("error");
         setMessage((err as Error)?.message || "Lark SSO login failed. Please try again.");
