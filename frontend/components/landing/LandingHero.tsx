@@ -39,11 +39,6 @@ export function LandingHero() {
 
   return (
     <section className="relative pt-28 pb-20 md:pt-36 md:pb-32 overflow-hidden">
-      {/* Background Glow Orbs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] md:w-[900px] md:h-[500px] bg-primary/15 rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="absolute top-1/3 left-1/4 w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -z-10" />
-      <div className="absolute top-1/2 right-1/4 w-[350px] h-[350px] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none -z-10" />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Top Copy */}
         <div className="text-center max-w-4xl mx-auto space-y-6">
