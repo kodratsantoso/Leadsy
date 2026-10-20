@@ -789,6 +789,8 @@ Route::prefix('platform')->middleware(['auth:sanctum', 'superadmin'])->group(fun
     Route::get('ai-telemetry', [\App\Http\Controllers\Api\PlatformAdminController::class, 'aiTelemetry']);
     Route::get('plans', [\App\Http\Controllers\Api\PlatformAdminController::class, 'plans']);
     Route::get('audit-logs', [\App\Http\Controllers\Api\PlatformAdminController::class, 'platformAuditLogs']);
+    Route::get('diagnostics', [\App\Http\Controllers\Api\PlatformAdminController::class, 'diagnostics']);
+    Route::post('tenants/{id}/flush-cache', [\App\Http\Controllers\Api\PlatformAdminController::class, 'flushTenantCache']);
 });
 
 // ── Lark Webhooks (Public) ──

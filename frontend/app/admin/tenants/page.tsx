@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Building2, Plus, Search, Shield, Users, Layers,
   CheckCircle2, AlertTriangle, ExternalLink, SlidersHorizontal,
-  Lock, Unlock, ArrowRight, UserCheck, HardDrive, RefreshCw
+  Lock, Unlock, ArrowRight, UserCheck, HardDrive, RefreshCw, RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,7 @@ export default function PlatformAdminTenantsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Modals
   const [isProvisionOpen, setIsProvisionOpen] = useState(false);
@@ -127,6 +128,21 @@ export default function PlatformAdminTenantsPage() {
     }
   };
 
+  const handleFlushCache = async (tenant: TenantItem) => {
+    try {
+      const res = await apiFetch(`/api/platform/tenants/${tenant.id}/flush-cache`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setNotice(`Cache memory successfully cleared for ${tenant.name}`);
+        setTimeout(() => setNotice(null), 4000);
+      }
+    } catch (e) {
+      console.error("Failed to flush tenant cache:", e);
+    }
+  };
+
   // Filter client-side by plan if selected
   const filteredTenants = tenants.filter((t) => {
     if (planFilter !== "all" && t.plan !== planFilter) return false;
@@ -148,6 +164,15 @@ export default function PlatformAdminTenantsPage() {
         }}
         isRefreshing={refreshing}
       />
+
+      {notice && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-4 py-3 text-xs text-cyan-300 shadow-sm backdrop-blur-sm">
+          <span>{notice}</span>
+          <button onClick={() => setNotice(null)} className="text-slate-400 hover:text-white">
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Overview Stat Bento */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -427,6 +452,16 @@ export default function PlatformAdminTenantsPage() {
                             title="Edit Tenant Quotas & Parameters"
                           >
                             <SlidersHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleFlushCache(tenant)}
+                            className="h-8 rounded-lg px-2 text-xs hover:bg-muted text-slate-400 hover:text-cyan-400"
+                            title="Flush Tenant Memory Cache"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
                           </Button>
 
                           {!isDefaultWorkspace && (
