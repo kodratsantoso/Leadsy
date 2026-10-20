@@ -11,8 +11,11 @@ interface AuditLogItem {
   tenant_id?: number;
   user_id?: number;
   action: string;
-  auditable_type?: string;
-  auditable_id?: number;
+  module?: string;
+  record_type?: string;
+  record_id?: number;
+  before_value?: any;
+  after_value?: any;
   old_values?: any;
   new_values?: any;
   ip_address?: string;
@@ -160,7 +163,7 @@ export default function PlatformAuditLogsPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-400">{log.ip_address || "127.0.0.1"}</td>
                       <td className="px-4 py-3 max-w-xs truncate text-[11px] text-slate-400">
-                        {log.new_values ? JSON.stringify(log.new_values) : "—"}
+                        {log.after_value ? JSON.stringify(log.after_value) : log.new_values ? JSON.stringify(log.new_values) : "—"}
                       </td>
                     </tr>
                   ))}
