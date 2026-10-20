@@ -779,6 +779,16 @@ Route::prefix('platform')->middleware(['auth:sanctum', 'superadmin'])->group(fun
     Route::put('tenants/{id}', [\App\Http\Controllers\Api\PlatformAdminController::class, 'updateTenant']);
     Route::patch('tenants/{id}/toggle-status', [\App\Http\Controllers\Api\PlatformAdminController::class, 'toggleStatus']);
     Route::post('tenants/{id}/impersonate', [\App\Http\Controllers\Api\PlatformAdminController::class, 'impersonate']);
+
+    // Extended Control Plane modules
+    Route::get('infrastructure', [\App\Http\Controllers\Api\PlatformAdminController::class, 'infrastructure']);
+    Route::post('infrastructure/retry-job/{id}', [\App\Http\Controllers\Api\PlatformAdminController::class, 'retryFailedJob']);
+    Route::post('infrastructure/purge-failed-jobs', [\App\Http\Controllers\Api\PlatformAdminController::class, 'purgeFailedJobs']);
+    Route::get('feature-flags', [\App\Http\Controllers\Api\PlatformAdminController::class, 'featureFlags']);
+    Route::put('tenants/{id}/features', [\App\Http\Controllers\Api\PlatformAdminController::class, 'updateTenantFeatures']);
+    Route::get('ai-telemetry', [\App\Http\Controllers\Api\PlatformAdminController::class, 'aiTelemetry']);
+    Route::get('plans', [\App\Http\Controllers\Api\PlatformAdminController::class, 'plans']);
+    Route::get('audit-logs', [\App\Http\Controllers\Api\PlatformAdminController::class, 'platformAuditLogs']);
 });
 
 // ── Lark Webhooks (Public) ──

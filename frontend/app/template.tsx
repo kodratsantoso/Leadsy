@@ -1,6 +1,8 @@
 "use client";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { PlatformShell } from "@/components/platform-admin/PlatformShell";
+import { ImpersonationBanner } from "@/components/layout/ImpersonationBanner";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -73,5 +75,15 @@ export default function Template({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-background" />;
   }
 
-  return <AppShell>{children}</AppShell>;
+  // Dedicated SaaS Platform Control Plane Shell
+  if (pathname.startsWith("/admin")) {
+    return <PlatformShell>{children}</PlatformShell>;
+  }
+
+  return (
+    <AppShell>
+      <ImpersonationBanner />
+      {children}
+    </AppShell>
+  );
 }

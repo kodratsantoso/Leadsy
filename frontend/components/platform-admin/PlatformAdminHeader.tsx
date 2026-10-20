@@ -16,8 +16,13 @@ export function PlatformAdminHeader({ onRefresh, isRefreshing }: PlatformAdminHe
   const pathname = usePathname();
 
   const tabs = [
-    { href: "/admin/tenants", label: "Tenant Directory", icon: Building2 },
-    { href: "/admin/metrics", label: "SaaS Telemetry & Health", icon: BarChart3 },
+    { href: "/admin/tenants", label: "Tenants Directory", icon: Building2 },
+    { href: "/admin/metrics", label: "SaaS Telemetry", icon: BarChart3 },
+    { href: "/admin/plans", label: "Plans & Billing", icon: Shield },
+    { href: "/admin/feature-flags", label: "Feature Flags", icon: Zap },
+    { href: "/admin/infrastructure", label: "Infrastructure & Queues", icon: Shield },
+    { href: "/admin/ai-accounting", label: "AI Accounting", icon: Zap },
+    { href: "/admin/audit-logs", label: "Audit Logs", icon: Shield },
   ];
 
   return (

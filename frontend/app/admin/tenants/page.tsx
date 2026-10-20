@@ -98,6 +98,22 @@ export default function PlatformAdminTenantsPage() {
       });
       const json = await res.json();
       if (res.ok && json.data?.token) {
+        // Save original superadmin session so banner can restore it anytime
+        const currentToken = useAuthStore.getState().token;
+        const currentUser = useAuthStore.getState().user;
+        if (currentToken && currentUser) {
+          localStorage.setItem(
+            "leadsy_impersonation_meta",
+            JSON.stringify({
+              original_token: currentToken,
+              original_user: currentUser,
+              tenant_name: tenant.name,
+              tenant_id: tenant.id,
+              started_at: new Date().toISOString(),
+            })
+          );
+        }
+
         // Store support impersonation token and switch workspace
         if (json.data.user) {
           useAuthStore.getState().setAuth(json.data.token, json.data.user);
