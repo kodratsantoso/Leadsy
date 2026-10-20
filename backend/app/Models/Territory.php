@@ -35,6 +35,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Territory extends Model
 {
+    use \App\Models\Traits\BelongsToTenant;
+
     protected $fillable = [
         'tenant_id', 'name', 'center_lat', 'center_lng', 'radius_meters', 'metadata', 'created_by',
     ];

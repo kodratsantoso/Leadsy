@@ -70,6 +70,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class Product extends Model
 {
+    use \App\Models\Traits\BelongsToTenant;
+
     protected $fillable = [
         'tenant_id',
         'name', 'website_url', 'category', 'description', 'target_industry',

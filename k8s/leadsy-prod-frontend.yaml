@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: leadsy
+  namespace: leadsy-prod
+  labels:
+    app: leadsy
+    app.kubernetes.io/part-of: leadsy
+spec:
+  type: NodePort
+  selector:
+    app: leadsy
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      nodePort: 30087
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leadsy
+  namespace: leadsy-prod
+  labels:
+    app: leadsy
+    app.kubernetes.io/name: leadsy
+    app.kubernetes.io/part-of: leadsy
+    team: presales
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: leadsy
+  template:
+    metadata:
+      labels:
+        app: leadsy
+        app.kubernetes.io/name: leadsy
+        team: presales
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - pd-proc-prod-01
+      containers:
+        - name: web
+          image: 10.43.110.114:5000/leadsy-frontend:__IMAGE_TAG__
+          imagePullPolicy: Always
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: NEXT_PUBLIC_API_BASE_URL
+              value: https://leadsy.tech
+            - name: NEXT_PUBLIC_SITE_URL
+              value: https://leadsy.tech
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: leadsy-ingress
+  namespace: leadsy-prod
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  rules:
+    - host: leadsy.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: leadsy
+                port:
+                  number: 3000

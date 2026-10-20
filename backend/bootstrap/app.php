@@ -15,7 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->alias([
+            'tenant' => \App\Http\Middleware\IdentifyTenant::class,
+            'superadmin' => \App\Http\Middleware\EnsureSuperAdmin::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+        ]);
+
+        $middleware->api(append: [
+            \App\Http\Middleware\IdentifyTenant::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (Throwable $e, Request $request) {

@@ -386,6 +386,23 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
+        {/* SaaS Platform Admin Quick Launcher for Superadmins */}
+        {user?.role?.name === "super_admin" && (
+          <div className="border-t border-sidebar-border p-2">
+            <Link
+              href="/admin/tenants"
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all border border-primary/25 bg-primary/10 text-primary shadow-sm hover:bg-primary/20",
+                collapsed && "justify-center px-0"
+              )}
+              title={collapsed ? "SaaS Platform Admin" : undefined}
+            >
+              <Shield className="h-4 w-4 shrink-0 text-primary" />
+              {!collapsed && <span className="truncate">SaaS Platform Admin</span>}
+            </Link>
+          </div>
+        )}
+
         {/* System & AI Playbook quick button */}
         <div className="border-t border-sidebar-border p-2">
           <Link
@@ -453,6 +470,20 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Button>
             )}
 
+            {/* SaaS Platform Admin Top Launcher for Superadmins */}
+            {user?.role?.name === "super_admin" && (
+              <Link href="/admin/tenants">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden sm:flex items-center gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 font-semibold text-xs h-8 shadow-sm"
+                >
+                  <Shield className="h-3.5 w-3.5" />
+                  <span>SaaS Admin</span>
+                </Button>
+              </Link>
+            )}
+
             {/* Theme toggle */}
             <ThemeToggle />
 
@@ -475,12 +506,22 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-border bg-card shadow-xl z-50">
+                <div className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-border bg-card shadow-xl z-50 p-1">
                   <div className="border-b border-border px-3 py-2.5">
                     <p className="text-xs font-medium">{user?.name ?? "User"}</p>
                     <p className="text-[10px] text-muted-foreground">{user?.email}</p>
                   </div>
                   <div className="p-1">
+                    {user?.role?.name === "super_admin" && (
+                      <Link
+                        href="/admin/tenants"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 border-b border-border/50 mb-1"
+                      >
+                        <Shield className="h-3.5 w-3.5" />
+                        SaaS Platform Admin
+                      </Link>
+                    )}
                     <button
                       onClick={() => { setUserMenuOpen(false); logout(); }}
                       className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-[color:var(--status-danger)] transition-colors hover:bg-[color:var(--status-danger-soft)]"

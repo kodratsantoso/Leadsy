@@ -113,7 +113,8 @@ jobs:
           kubectl rollout status deployment/leadsy-worker -n "${NAMESPACE}" --timeout=300s
           kubectl rollout status deployment/leadsy-scheduler -n "${NAMESPACE}" --timeout=300s
 
-          echo "Updating frontend image..."
+          echo "Applying frontend runtime and ingress (leadsy.tech)..."
+          render k8s/leadsy-prod-frontend.yaml | kubectl apply -n "${NAMESPACE}" -f -
           kubectl set image deployment/leadsy web="${REGISTRY}/leadsy-frontend:${TAG}" -n "${NAMESPACE}"
           kubectl rollout status deployment/leadsy -n "${NAMESPACE}" --timeout=180s
 
@@ -128,17 +129,23 @@ jobs:
           kubectl patch service/backend -n "${NAMESPACE}" --type=merge \
             -p '{"spec":{"selector":{"app":"leadsy-backend"},"ports":[{"name":"http","port":8000,"protocol":"TCP","targetPort":8000}]}}'
           kubectl wait --for=condition=ready pod -l app=leadsy-backend -n "${NAMESPACE}" --timeout=60s
-          curl --fail --silent --show-error --max-time 30 https://leadsy.virtuenet.space/api/health
+          curl --fail --silent --show-error --max-time 30 https://leadsy.tech/api/health
           trap - ERR
           echo "Kubernetes backend is serving the public API."
 
       - name: Health Smoke Test
         run: |
           set -euo pipefail
-          echo "Verifying public frontend and backend endpoints..."
-          curl --fail --silent --show-error --max-time 30 -o /dev/null https://leadsy.virtuenet.space/
-          curl --fail --silent --show-error --max-time 30 https://leadsy.virtuenet.space/api/health
-          echo "Smoke test passed: frontend and Kubernetes backend are online."
+          echo "Verifying public frontend and backend endpoints at https://leadsy.tech..."
+          curl --fail --silent --show-error --max-time 30 -o /dev/null https://leadsy.tech/
+          curl --fail --silent --show-error --max-time 30 https://leadsy.tech/api/health
+          echo "Verifying 301 redirect from https://leadsy.virtuenet.space..."
+          REDIRECT_CODE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://leadsy.virtuenet.space/)"
+          if [ "${REDIRECT_CODE}" != "301" ]; then
+            echo "Expected HTTP 301 from https://leadsy.virtuenet.space/, got ${REDIRECT_CODE}" >&2
+            exit 1
+          fi
+          echo "Smoke test passed: https://leadsy.tech is online and leadsy.virtuenet.space redirects with 301."
 
   record:
     name: Record deployment in VirtueDev

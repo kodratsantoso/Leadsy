@@ -48,6 +48,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class WorkflowDefinition extends Model
 {
     use SoftDeletes;
+    use \App\Models\Traits\BelongsToTenant;
 
     protected $fillable = [
         'tenant_id', 'name', 'base_record_type', 'category', 'status',

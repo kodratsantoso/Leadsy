@@ -41,6 +41,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class RevenueRule extends Model
 {
+    use \App\Models\Traits\BelongsToTenant;
+
     protected $fillable = [
         'tenant_id', 'name', 'description', 'condition_type', 'condition_value',
         'action', 'severity', 'is_active', 'priority', 'created_by',
