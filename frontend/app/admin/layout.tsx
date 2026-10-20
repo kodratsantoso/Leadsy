@@ -6,9 +6,11 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { ShieldAlert, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { isSuperAdminUser } from "@/lib/permissions";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const [mounted, setMounted] = useState(false);
 
@@ -20,27 +22,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!mounted) return;
 
     // Check if user is logged in
-    const token = typeof window !== "undefined" ? localStorage.getItem("leadsy_token") : null;
     if (!token) {
       router.replace("/login");
       return;
     }
 
     // Check if user has superadmin role
-    if (user && user.role?.name !== "super_admin") {
+    if (user && !isSuperAdminUser(user)) {
       router.replace("/dashboard");
     }
-  }, [mounted, user, router]);
+  }, [mounted, token, user, router]);
 
-  if (!mounted) {
+  if (!mounted || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <RefreshCw className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (user && user.role?.name !== "super_admin") {
+  if (!isSuperAdminUser(user)) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center p-6 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-destructive/10 text-destructive mb-4">

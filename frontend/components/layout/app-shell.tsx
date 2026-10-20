@@ -15,7 +15,7 @@ import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNod
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { canAccessPath } from "@/lib/permissions";
+import { canAccessPath, isSuperAdminUser } from "@/lib/permissions";
 import { apiFetch } from "@/lib/apiFetch";
 import { ProductTour, PRODUCT_TOUR_ENABLED } from "@/components/ProductTour/ProductTour";
 import { Button } from "@/components/ui/button";
@@ -387,7 +387,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         {/* SaaS Platform Admin Quick Launcher for Superadmins */}
-        {user?.role?.name === "super_admin" && (
+        {isSuperAdminUser(user) && (
           <div className="border-t border-sidebar-border p-2">
             <Link
               href="/admin/tenants"
@@ -512,7 +512,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <p className="text-[10px] text-muted-foreground">{user?.email}</p>
                   </div>
                   <div className="p-1">
-                    {user?.role?.name === "super_admin" && (
+                    {isSuperAdminUser(user) && (
                       <Link
                         href="/admin/tenants"
                         onClick={() => setUserMenuOpen(false)}

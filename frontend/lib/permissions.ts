@@ -51,15 +51,21 @@ export function getUserPermissionNames(user: any): string[] {
   return (user?.role?.permissions || []).map((permission: any) => permission.name).filter(Boolean);
 }
 
+export function isSuperAdminUser(user: any): boolean {
+  if (!user) return false;
+  const roleName = typeof user.role === "string" ? user.role : user.role?.name;
+  return roleName === "super_admin";
+}
+
 export function canAccessPath(path: string, user: any): boolean {
   if (!user) {
     return false;
   }
   // SaaS Platform Admin is strictly reserved for platform superadmins
   if (path.startsWith("/admin")) {
-    return user?.role?.name === "super_admin";
+    return isSuperAdminUser(user);
   }
-  if (user?.role?.name === "super_admin") {
+  if (isSuperAdminUser(user)) {
     return true;
   }
 

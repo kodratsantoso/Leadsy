@@ -99,8 +99,9 @@ export default function PlatformAdminTenantsPage() {
       const json = await res.json();
       if (res.ok && json.data?.token) {
         // Store support impersonation token and switch workspace
-        localStorage.setItem("leadsy_token", json.data.token);
         if (json.data.user) {
+          useAuthStore.getState().setAuth(json.data.token, json.data.user);
+        } else {
           useAuthStore.getState().setUser(json.data.user);
         }
         window.location.href = "/dashboard";
