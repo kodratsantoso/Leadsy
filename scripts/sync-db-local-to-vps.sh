@@ -110,5 +110,5 @@ echo "      Cleanup complete."
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Sync complete. Verify the VPS app at https://leadsy.virtuenet.space"
+echo "  Sync complete. Verify the VPS app at https://leadsy.tech"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

@@ -105,9 +105,10 @@ run production workloads.
 - Images: built on the runner from `backend/Dockerfile.production` and
   `frontend/Dockerfile.production` and pushed to the in-cluster registry `10.43.110.114:5000` as
   `leadsy-backend:<commit sha>` and `leadsy-frontend:<commit sha>` (plus `:latest`).
-- Namespace: `leadsy-production`. The workflow rolls `deployment/backend`, `deployment/worker`
-  (same backend image), and `deployment/frontend` with `kubectl set image` +
-  `kubectl rollout status`, then smoke-tests `https://leadsy.virtuenet.space`.
+- Namespace: `leadsy-prod`. The workflow rolls `deployment/leadsy-backend`, `deployment/leadsy-worker`,
+  `deployment/leadsy-scheduler` (same backend image), and `deployment/leadsy` (frontend) with
+  `kubectl apply` + `kubectl set image` + `kubectl rollout status`, then smoke-tests `https://leadsy.tech`
+  (and verifies that `https://leadsy.virtuenet.space` redirects with HTTP 301 to `https://leadsy.tech`).
 - Required secrets: the workflow references no GitHub repository secrets; the runner's in-cluster
   service account provides `docker` and `kubectl`. Runtime configuration is injected from
   Kubernetes Secrets/ConfigMaps in the namespace; the variable *names* are in `.env.example`
@@ -117,9 +118,10 @@ run production workloads.
 - Runtime dependencies: PostgreSQL/MySQL per `DB_CONNECTION` on a persistent volume, Redis for
   cache and queues (the `worker` deployment), an S3-compatible bucket (`AWS_*`), the WhatsApp
   sidecar service, and the Lark Open API.
-- Edge routing is Cloudflare (`*.virtuenet.space` -> `187.127.115.170`) into the nginx
+- Edge routing is Cloudflare (`leadsy.tech` -> `187.127.115.170`, with `leadsy.virtuenet.space`
+  permanently 301-redirected to `https://leadsy.tech`) into the nginx
   `load-balancer` container on `vn-core-prod-02`, then a Kubernetes NodePort. The cluster has
-  no ingress controller and no cert-manager, so `Ingress` objects do not route public traffic.
+  no cert-manager, so TLS terminates at the edge `load-balancer`.
 - Ownership: GitHub team `virtuenet` (`virtuenet-prasetia/virtuenet`).
 
 Deployment evidence is the Actions run URL, the image tag (commit SHA), `kubectl rollout status`

@@ -74,9 +74,9 @@ Sumber Lead → Leadsy (Qualify + Score + Match) → Pipeline / CRM → Sales Ex
 ### Deployment Topology
 
 ```
-Internet → Traefik (HTTPS)
-              ├── leadsy.virtuenet.space       → Frontend (Next.js, port 3000)
-              └── leadsy.virtuenet.space/api/* → Backend (Laravel, port 8000)
+Internet → Cloudflare / Edge Proxy (HTTPS)
+              ├── leadsy.tech       → Frontend (Next.js, port 3000)
+              └── leadsy.tech/api/* → Backend (Laravel, port 8000)
                         ├── PostgreSQL (port 5432, internal)
                         ├── Redis (port 6379, internal)
                         └── WhatsApp Sidecar (port 3002, internal)

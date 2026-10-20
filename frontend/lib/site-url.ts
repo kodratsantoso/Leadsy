@@ -9,5 +9,5 @@ export function getSiteUrl(): string {
   const api = process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/$/, "");
   if (api?.startsWith("http")) return api;
 
-  return "https://leadsy.virtuenet.space";
+  return "https://leadsy.tech";
 }

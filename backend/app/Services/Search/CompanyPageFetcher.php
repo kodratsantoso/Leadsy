@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
  */
 class CompanyPageFetcher
 {
-    private const USER_AGENT = 'LeadsyResearchBot/1.0 (+https://leadsy.virtuenet.space)';
+    private const USER_AGENT = 'LeadsyResearchBot/1.0 (+https://leadsy.tech)';
 
     private const MAX_BYTES = 1_500_000;
 
