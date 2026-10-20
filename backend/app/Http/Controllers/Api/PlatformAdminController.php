@@ -718,16 +718,124 @@ class PlatformAdminController extends Controller
     public function aiTelemetry(): JsonResponse
     {
         return TenantContext::withoutTenantScope(function () {
-            $totalLeadsScored = Lead::whereNotNull('qualification_score')->count();
-            $estimatedTotalTokens = $totalLeadsScored * 2450; // Average ~2.45k tokens per qualified lead
-            $estimatedTotalCost = round(($estimatedTotalTokens / 1000000) * 1.50, 2); // Blended rate $1.50/M tokens
+            // Real telemetry from ai_requests
+            $totalRequests = \App\Models\AiRequest::count();
+            $totalPromptTokens = (int) \App\Models\AiRequest::sum('prompt_tokens');
+            $totalCompletionTokens = (int) \App\Models\AiRequest::sum('completion_tokens');
+            $totalTokens = $totalPromptTokens + $totalCompletionTokens;
+            $totalCostUsd = (float) \App\Models\AiRequest::sum('estimated_cost_usd');
+            $totalCostConverted = (float) \App\Models\AiRequest::sum('cost_converted');
+            $avgLatency = (int) \App\Models\AiRequest::avg('latency_ms');
+            $successCount = \App\Models\AiRequest::where('status', 'success')->count();
+            $successRate = $totalRequests > 0 ? round(($successCount / $totalRequests) * 100, 1) : 100.0;
 
-            // Breakdown by tenant
+            // Models distribution from real ai_requests joined with ai_models and ai_providers
+            $modelStats = DB::table('ai_requests')
+                ->leftJoin('ai_models', 'ai_requests.ai_model_id', '=', 'ai_models.id')
+                ->leftJoin('ai_providers', 'ai_models.ai_provider_id', '=', 'ai_providers.id')
+                ->select(
+                    'ai_models.id as model_id',
+                    DB::raw("COALESCE(ai_models.name, 'Default Engine') as model"),
+                    DB::raw("COALESCE(ai_providers.name, 'System Provider') as provider_name"),
+                    'ai_models.cost_per_million_input_tokens',
+                    'ai_models.cost_per_million_output_tokens',
+                    DB::raw('COUNT(*) as total_calls'),
+                    DB::raw('COALESCE(SUM(ai_requests.prompt_tokens), 0) as prompt_tokens'),
+                    DB::raw('COALESCE(SUM(ai_requests.completion_tokens), 0) as completion_tokens'),
+                    DB::raw('COALESCE(SUM(COALESCE(ai_requests.prompt_tokens, 0) + COALESCE(ai_requests.completion_tokens, 0)), 0) as tokens'),
+                    DB::raw('COALESCE(SUM(ai_requests.estimated_cost_usd), 0) as cost_usd'),
+                    DB::raw('AVG(ai_requests.latency_ms) as avg_latency')
+                )
+                ->groupBy('ai_models.id', 'ai_models.name', 'ai_providers.name', 'ai_models.cost_per_million_input_tokens', 'ai_models.cost_per_million_output_tokens')
+                ->orderByDesc('tokens')
+                ->get();
+
+            $modelsDistribution = $modelStats->map(function ($m) use ($totalTokens) {
+                return [
+                    'model' => $m->model,
+                    'provider' => $m->provider_name,
+                    'percentage' => $totalTokens > 0 ? round(($m->tokens / $totalTokens) * 100, 1) : 0,
+                    'tokens' => (int) $m->tokens,
+                    'prompt_tokens' => (int) $m->prompt_tokens,
+                    'completion_tokens' => (int) $m->completion_tokens,
+                    'total_calls' => (int) $m->total_calls,
+                    'cost_usd' => round((float) $m->cost_usd, 4),
+                    'input_price' => (float) ($m->cost_per_million_input_tokens ?? 0.1),
+                    'output_price' => (float) ($m->cost_per_million_output_tokens ?? 0.6),
+                ];
+            });
+
+            // Feature breakdown
+            $featuresBreakdown = DB::table('ai_requests')
+                ->select(
+                    'function_name',
+                    DB::raw('COUNT(*) as total_calls'),
+                    DB::raw('COALESCE(SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)), 0) as total_tokens'),
+                    DB::raw('COALESCE(SUM(estimated_cost_usd), 0) as total_cost_usd'),
+                    DB::raw('AVG(latency_ms) as avg_latency')
+                )
+                ->groupBy('function_name')
+                ->orderByDesc('total_tokens')
+                ->get()
+                ->map(function ($f) {
+                    return [
+                        'function_name' => $f->function_name,
+                        'total_calls' => (int) $f->total_calls,
+                        'total_tokens' => (int) $f->total_tokens,
+                        'total_cost_usd' => round((float) $f->total_cost_usd, 4),
+                        'avg_latency' => round((float) $f->avg_latency),
+                    ];
+                });
+
+            // Providers list with health & status
+            $providers = \App\Models\AiProvider::with('models')
+                ->get()
+                ->map(function ($p) {
+                    return [
+                        'id' => $p->id,
+                        'name' => $p->name,
+                        'slug' => $p->slug,
+                        'provider_type' => $p->provider_type,
+                        'base_url' => $p->base_url,
+                        'status' => $p->status,
+                        'default_model' => $p->default_model,
+                        'api_key_masked' => $p->api_key_last4 ? '••••••••' . $p->api_key_last4 : '••••••••',
+                        'last_tested_at' => $p->last_tested_at?->toIso8601String(),
+                        'last_test_status' => $p->last_test_status,
+                        'last_test_message' => $p->last_test_message,
+                        'last_used_at' => $p->last_used_at?->toIso8601String(),
+                        'last_used_model' => $p->last_used_model,
+                        'timeout_seconds' => $p->timeout_seconds,
+                        'models' => $p->models->map(fn ($m) => [
+                            'id' => $m->id,
+                            'name' => $m->name,
+                            'cost_tier' => $m->cost_tier,
+                            'cost_per_million_input_tokens' => $m->cost_per_million_input_tokens,
+                            'cost_per_million_output_tokens' => $m->cost_per_million_output_tokens,
+                            'pricing_source' => $m->pricing_source,
+                            'status' => $m->status,
+                        ]),
+                    ];
+                });
+
+            // Tenants consumption with real joined tokens
+            $tenantTokensMap = DB::table('ai_requests')
+                ->join('users', 'ai_requests.user_id', '=', 'users.id')
+                ->select(
+                    'users.tenant_id',
+                    DB::raw('COUNT(*) as requests_count'),
+                    DB::raw('COALESCE(SUM(COALESCE(ai_requests.prompt_tokens, 0) + COALESCE(ai_requests.completion_tokens, 0)), 0) as total_tokens'),
+                    DB::raw('COALESCE(SUM(ai_requests.estimated_cost_usd), 0) as total_cost_usd')
+                )
+                ->whereNotNull('users.tenant_id')
+                ->groupBy('users.tenant_id')
+                ->get()
+                ->keyBy('tenant_id');
+
             $tenants = Tenant::withCount('leads')
                 ->get()
-                ->map(function ($t) {
-                    $tokens = $t->leads_count * 2450;
-                    $cost = round(($tokens / 1000000) * 1.50, 2);
+                ->map(function ($t) use ($tenantTokensMap) {
+                    $tokenData = $tenantTokensMap->get($t->id);
                     $plan = $t->metadata['plan'] ?? 'starter';
                     $budgetCap = match ($plan) {
                         'enterprise' => 500.0,
@@ -736,11 +844,15 @@ class PlatformAdminController extends Controller
                         default => 50.0,
                     };
 
+                    $tokens = $tokenData ? (int) $tokenData->total_tokens : ($t->leads_count * 1250);
+                    $cost = $tokenData ? round((float) $tokenData->total_cost_usd, 4) : round(($tokens / 1000000) * 0.40, 4);
+                    $requests = $tokenData ? (int) $tokenData->requests_count : $t->leads_count;
+
                     return [
                         'tenant_id' => $t->id,
                         'tenant_name' => $t->name,
                         'plan' => $plan,
-                        'leads_analyzed' => $t->leads_count,
+                        'leads_analyzed' => $requests,
                         'tokens_consumed' => $tokens,
                         'estimated_cost_usd' => $cost,
                         'budget_cap_usd' => $budgetCap,
@@ -748,22 +860,48 @@ class PlatformAdminController extends Controller
                     ];
                 });
 
+            // Recent live execution logs
+            $recentLogs = \App\Models\AiRequest::with('aiModel.provider')
+                ->latest()
+                ->take(30)
+                ->get()
+                ->map(fn ($r) => [
+                    'id' => $r->id,
+                    'function_name' => $r->function_name,
+                    'model_name' => $r->aiModel?->name ?? 'Default Engine',
+                    'provider_name' => $r->aiModel?->provider?->name ?? 'BytePlus ModelArk',
+                    'prompt_tokens' => (int) $r->prompt_tokens,
+                    'completion_tokens' => (int) $r->completion_tokens,
+                    'total_tokens' => (int) (($r->prompt_tokens ?? 0) + ($r->completion_tokens ?? 0)),
+                    'cost_usd' => round((float) $r->estimated_cost_usd, 6),
+                    'cost_converted' => round((float) $r->cost_converted, 2),
+                    'currency_code' => $r->cost_currency_code ?? 'IDR',
+                    'latency_ms' => (int) $r->latency_ms,
+                    'status' => $r->status,
+                    'error_message' => $r->error_message,
+                    'created_at' => $r->created_at?->toIso8601String(),
+                ]);
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'summary' => [
-                        'total_tokens_consumed' => $estimatedTotalTokens,
-                        'total_cost_usd' => $estimatedTotalCost,
-                        'total_requests' => $totalLeadsScored,
-                        'active_models' => ['gpt-4o', 'gpt-4o-mini', 'gemini-1.5-pro', 'claude-3-5-sonnet'],
+                        'total_tokens_consumed' => $totalTokens,
+                        'prompt_tokens' => $totalPromptTokens,
+                        'completion_tokens' => $totalCompletionTokens,
+                        'total_cost_usd' => round($totalCostUsd, 4),
+                        'total_cost_idr' => round($totalCostConverted, 2),
+                        'total_requests' => $totalRequests,
+                        'avg_latency_ms' => $avgLatency,
+                        'success_rate' => $successRate,
+                        'active_providers_count' => $providers->where('status', 'active')->count(),
+                        'active_models' => $modelStats->pluck('model')->toArray(),
                     ],
-                    'models_distribution' => [
-                        ['model' => 'gpt-4o-mini', 'percentage' => 64, 'tokens' => round($estimatedTotalTokens * 0.64)],
-                        ['model' => 'gpt-4o', 'percentage' => 22, 'tokens' => round($estimatedTotalTokens * 0.22)],
-                        ['model' => 'gemini-1.5-pro', 'percentage' => 10, 'tokens' => round($estimatedTotalTokens * 0.10)],
-                        ['model' => 'claude-3-5-sonnet', 'percentage' => 4, 'tokens' => round($estimatedTotalTokens * 0.04)],
-                    ],
+                    'providers' => $providers,
+                    'models_distribution' => $modelsDistribution,
+                    'features_breakdown' => $featuresBreakdown,
                     'tenants' => $tenants,
+                    'recent_logs' => $recentLogs,
                 ],
             ]);
         });

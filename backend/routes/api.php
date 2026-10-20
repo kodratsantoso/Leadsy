@@ -787,6 +787,19 @@ Route::prefix('platform')->middleware(['auth:sanctum', 'superadmin'])->group(fun
     Route::get('feature-flags', [\App\Http\Controllers\Api\PlatformAdminController::class, 'featureFlags']);
     Route::put('tenants/{id}/features', [\App\Http\Controllers\Api\PlatformAdminController::class, 'updateTenantFeatures']);
     Route::get('ai-telemetry', [\App\Http\Controllers\Api\PlatformAdminController::class, 'aiTelemetry']);
+    Route::prefix('ai-settings')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\AiSettingsController::class, 'index']);
+        Route::post('providers', [\App\Http\Controllers\Api\AiSettingsController::class, 'storeProvider']);
+        Route::put('providers/{aiProvider}', [\App\Http\Controllers\Api\AiSettingsController::class, 'updateProvider']);
+        Route::delete('providers/{aiProvider}', [\App\Http\Controllers\Api\AiSettingsController::class, 'destroyProvider']);
+        Route::post('providers/{aiProvider}/test', [\App\Http\Controllers\Api\AiSettingsController::class, 'testProvider']);
+        Route::post('providers/{aiProvider}/reveal-key', [\App\Http\Controllers\Api\AiSettingsController::class, 'revealKey']);
+        Route::post('providers/{aiProvider}/models', [\App\Http\Controllers\Api\AiSettingsController::class, 'storeModel']);
+        Route::put('providers/{aiProvider}/models/{model}', [\App\Http\Controllers\Api\AiSettingsController::class, 'updateModel']);
+        Route::delete('providers/{aiProvider}/models/{model}', [\App\Http\Controllers\Api\AiSettingsController::class, 'destroyModel']);
+        Route::get('providers/{aiProvider}/available-models', [\App\Http\Controllers\Api\AiSettingsController::class, 'discoverModels']);
+        Route::put('feature-routes/{featureName}', [\App\Http\Controllers\Api\AiSettingsController::class, 'saveFeatureRoutes']);
+    });
     Route::get('plans', [\App\Http\Controllers\Api\PlatformAdminController::class, 'plans']);
     Route::get('audit-logs', [\App\Http\Controllers\Api\PlatformAdminController::class, 'platformAuditLogs']);
     Route::get('diagnostics', [\App\Http\Controllers\Api\PlatformAdminController::class, 'diagnostics']);
