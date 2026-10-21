@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Building2, Plus, Search, Shield, Users, Layers,
   CheckCircle2, AlertTriangle, ExternalLink, SlidersHorizontal,
-  Lock, Unlock, ArrowRight, UserCheck, HardDrive, RefreshCw, RotateCcw
+  Lock, Unlock, ArrowRight, ArrowUpRight, UserCheck, HardDrive, RefreshCw, RotateCcw, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -331,12 +332,22 @@ export default function PlatformAdminTenantsPage() {
                       {/* Organization Info */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold text-sm shadow-sm">
+                          <Link
+                            href={`/admin/tenants/${tenant.id}`}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold text-sm shadow-sm hover:bg-primary hover:text-primary-foreground transition-colors"
+                            title="Open Tenant 360° Console"
+                          >
                             {tenant.name.slice(0, 2).toUpperCase()}
-                          </div>
+                          </Link>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-foreground">{tenant.name}</span>
+                              <Link
+                                href={`/admin/tenants/${tenant.id}`}
+                                className="font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-1.5"
+                              >
+                                {tenant.name}
+                                <ArrowUpRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                              </Link>
                               {isDefaultWorkspace && (
                                 <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
                                   Default Root
@@ -444,6 +455,18 @@ export default function PlatformAdminTenantsPage() {
                       {/* Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <Link href={`/admin/tenants/${tenant.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-lg px-2 text-xs border-primary/30 text-primary hover:bg-primary/10 gap-1"
+                              title="Inspect Full Tenant 360° Management Console"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">360°</span>
+                            </Button>
+                          </Link>
+
                           <Button
                             variant="ghost"
                             size="sm"

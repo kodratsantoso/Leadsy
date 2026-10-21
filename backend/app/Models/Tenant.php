@@ -67,11 +67,19 @@ class Tenant extends Model
         'name', 'slug', 'status', 'metadata',
         'legal_name', 'brand_name', 'logo_path', 'address', 'tax_number',
         'signatory_name', 'signatory_position', 'signatory_image_path',
+        'plan_id', 'trial_ends_at', 'subscription_ends_at', 'billing_cycle',
     ];
 
     protected $casts = [
         'metadata' => 'array',
+        'trial_ends_at' => 'datetime',
+        'subscription_ends_at' => 'datetime',
     ];
+
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class, 'plan_id');
+    }
 
     public function bankAccounts(): HasMany
     {

@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.24.0',
-    'released_at' => '2026-09-13',
+    'version' => '1.30.0',
+    'released_at' => '2026-10-21',
     'type' => 'minor',
-    'notes' => 'System Audit remediation (Fase 0-4): modul Customer Success baru, Session Timeout & Password Policy sungguhan, perluasan Global Search, rekonsiliasi 3 sumber revenue, dan puluhan perbaikan RBAC/WhatsApp/Professional Services.',
+    'notes' => 'SaaS Platform Admin Phase 1 & 2: Dynamic Plan Builder & Packaging Engine, Live MRR/ARR recalculation, and Tenant 360° Management Console with 7 operational tabs.',
 ];

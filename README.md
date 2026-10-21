@@ -4,8 +4,23 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.29.0** — 2026-10-16
+Current release: **v1.30.0** — 2026-10-21
  
+## What's New in v1.30.0 (SaaS Platform Admin Phase 1 & 2: Dynamic Plan Packaging & Tenant 360 Console)
+
+- **Dynamic Plan & Packaging Engine (Phase 1)** — Implemented database-driven product tiers (`plans` table and `Plan` model) replacing static mock arrays. Supports configurable seat limits, extra seat unit pricing, lead database quotas, disk storage limits (GB), monthly AI budget caps (USD), and WhatsApp channels.
+- **Live MRR / ARR Financial Recalculation** — Added dynamic platform telemetry aggregating active tenant subscriptions, annual billing discounts, and live Monthly Recurring Revenue / Annual Recurring Revenue.
+- **Plan Packaging Safeguards** — Built deletion protection preventing removal of product plans currently linked to active tenant organizations.
+- **Dedicated Tenant 360° Management Console (Phase 2)** — Created `/admin/tenants/[id]` with 7 dedicated operational inspection tabs:
+  1. *Overview & Resource Quotas:* Real-time gauges for Seats, Leads, Disk, and AI Budget Cap with token usage telemetry and corporate legal metadata.
+  2. *Users & Team Roster:* Direct user roster with one-click secure temporary password generation modal and suspension toggles.
+  3. *Subscriptions & Lifecycle:* Plan reassignment, monthly/annual cycles, and 1-click trial extensions (+7, +14, +30 days).
+  4. *Modules & Entitlements:* Granular feature flags with inheritance resolution between plan defaults and tenant custom overrides.
+  5. *Integrations Health:* Lark Bitable 2-way sync status and WhatsApp multi-device gateway connectivity.
+  6. *Activity Audit Trail:* Tamper-evident workspace-specific audit logs.
+  7. *Danger Zone:* Organization read-only lock/suspension, immutable full JSON data dump export, and Redis cache flushes.
+- **Tenant Directory Navigation** — Added quick 360° Console launch links across all organization records in the Tenants Directory.
+
 ## What's New in v1.29.0 (Presales & Solution Architecture Foundation — Increment 1 Discovery Workspace)
 
 - **Presales Discovery & Qualification Workspace** — Implemented structured discovery architecture (`lead_discovery_records` schema and `LeadDiscoveryRecord` model) linked 1:1 to `Lead`. Centralizes business context, technical/systems architecture, governance personas, and technical constraints.

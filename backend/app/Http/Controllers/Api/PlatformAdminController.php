@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Lead;
+use App\Models\Plan;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
@@ -913,76 +914,480 @@ class PlatformAdminController extends Controller
     public function plans(): JsonResponse
     {
         return TenantContext::withoutTenantScope(function () {
-            $plans = [
-                [
-                    'id' => 'starter',
-                    'name' => 'Starter Tier',
-                    'price_monthly' => 49,
-                    'price_annual' => 470,
-                    'seats_limit' => 5,
-                    'leads_limit' => 1000,
-                    'features' => ['Lead Management', 'Basic AI Qualification', 'Local WhatsApp Gateway', 'Community Support'],
-                    'is_popular' => false,
-                ],
-                [
-                    'id' => 'pro',
-                    'name' => 'Professional Growth',
-                    'price_monthly' => 149,
-                    'price_annual' => 1430,
-                    'seats_limit' => 25,
-                    'leads_limit' => 10000,
-                    'features' => ['Everything in Starter', 'Lark Bitable 2-Way Sync', 'AI DeepSearch & Enrichment', 'Qontak WhatsApp Cloud API', 'Priority Support'],
-                    'is_popular' => true,
-                ],
-                [
-                    'id' => 'enterprise',
-                    'name' => 'Enterprise Custom',
-                    'price_monthly' => 499,
-                    'price_annual' => 4790,
-                    'seats_limit' => 100,
-                    'leads_limit' => 100000,
-                    'features' => ['Everything in Pro', 'Order-to-Cash & Invoicing', 'Dedicated Redis Queue Isolation', 'Custom Domain Branding', 'SLA 99.9% & 24/7 Support'],
-                    'is_popular' => false,
-                ],
-            ];
+            $tiers = Plan::orderBy('price_monthly')->get();
 
-            $tenants = Tenant::select('id', 'name', 'status', 'metadata', 'created_at')->get();
-            $planCounts = [
-                'starter' => 0,
-                'pro' => 0,
-                'enterprise' => 0,
-                'trial' => 0,
-            ];
+            $tenants = Tenant::with('plan')->select('id', 'name', 'status', 'metadata', 'plan_id', 'billing_cycle', 'trial_ends_at', 'subscription_ends_at', 'created_at')->get();
+            $planCounts = [];
+            foreach ($tiers as $tier) {
+                $planCounts[$tier->code] = 0;
+            }
+            $planCounts['trial'] = 0;
 
-            $mrr = 0;
+            $mrr = 0.0;
             foreach ($tenants as $t) {
                 if ($t->status === 'trial') {
-                    $planCounts['trial']++;
+                    $planCounts['trial'] = ($planCounts['trial'] ?? 0) + 1;
                     continue;
                 }
-                $plan = $t->metadata['plan'] ?? 'enterprise';
-                if (isset($planCounts[$plan])) {
-                    $planCounts[$plan]++;
-                } else {
-                    $planCounts['starter']++;
-                }
 
-                $mrr += match ($plan) {
-                    'enterprise' => 499,
-                    'pro' => 149,
-                    'starter' => 49,
-                    default => 49,
-                };
+                $plan = $t->plan ?? $tiers->firstWhere('code', $t->metadata['plan'] ?? 'enterprise') ?? $tiers->first();
+                if ($plan) {
+                    $code = $plan->code;
+                    $planCounts[$code] = ($planCounts[$code] ?? 0) + 1;
+                    if ($t->billing_cycle === 'annual') {
+                        $mrr += ($plan->price_annual > 0 ? $plan->price_annual / 12 : $plan->price_monthly);
+                    } else {
+                        $mrr += $plan->price_monthly;
+                    }
+                }
             }
 
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'mrr' => $mrr,
-                    'arr' => $mrr * 12,
+                    'mrr' => round($mrr, 2),
+                    'arr' => round($mrr * 12, 2),
                     'plan_counts' => $planCounts,
-                    'tiers' => $plans,
+                    'tiers' => $tiers,
+                    'total_tenants' => $tenants->count(),
+                    'paying_tenants' => $tenants->where('status', 'active')->count(),
                 ],
+            ]);
+        });
+    }
+
+    /**
+     * Create a new plan tier.
+     */
+    public function storePlan(Request $request): JsonResponse
+    {
+        return TenantContext::withoutTenantScope(function () use ($request) {
+            $validated = $request->validate([
+                'code' => 'required|string|max:50|unique:plans,code',
+                'name' => 'required|string|max:100',
+                'description' => 'nullable|string|max:500',
+                'price_monthly' => 'required|numeric|min:0',
+                'price_annual' => 'required|numeric|min:0',
+                'currency' => 'nullable|string|max:10',
+                'seats_limit' => 'required|integer|min:1',
+                'price_per_additional_seat' => 'nullable|numeric|min:0',
+                'leads_limit' => 'required|integer|min:1',
+                'disk_limit_gb' => 'required|integer|min:1',
+                'ai_budget_cap_usd' => 'required|numeric|min:0',
+                'whatsapp_channels_limit' => 'nullable|integer|min:0',
+                'features' => 'nullable|array',
+                'modules' => 'nullable|array',
+                'is_popular' => 'nullable|boolean',
+                'is_public' => 'nullable|boolean',
+                'status' => 'nullable|string|in:active,archived',
+            ]);
+
+            $plan = Plan::create($validated);
+
+            AuditLog::create([
+                'tenant_id' => null,
+                'user_id' => $request->user()?->id,
+                'action' => 'plan.created',
+                'module' => 'platform',
+                'record_type' => Plan::class,
+                'record_id' => $plan->id,
+                'before_value' => null,
+                'after_value' => $validated,
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Plan '{$plan->name}' successfully created.",
+                'data' => $plan,
+            ], 201);
+        });
+    }
+
+    /**
+     * Update an existing plan tier.
+     */
+    public function updatePlan(Request $request, int $id): JsonResponse
+    {
+        return TenantContext::withoutTenantScope(function () use ($request, $id) {
+            $plan = Plan::findOrFail($id);
+
+            $validated = $request->validate([
+                'code' => "sometimes|string|max:50|unique:plans,code,{$plan->id}",
+                'name' => 'sometimes|string|max:100',
+                'description' => 'nullable|string|max:500',
+                'price_monthly' => 'sometimes|numeric|min:0',
+                'price_annual' => 'sometimes|numeric|min:0',
+                'currency' => 'nullable|string|max:10',
+                'seats_limit' => 'sometimes|integer|min:1',
+                'price_per_additional_seat' => 'nullable|numeric|min:0',
+                'leads_limit' => 'sometimes|integer|min:1',
+                'disk_limit_gb' => 'sometimes|integer|min:1',
+                'ai_budget_cap_usd' => 'sometimes|numeric|min:0',
+                'whatsapp_channels_limit' => 'nullable|integer|min:0',
+                'features' => 'nullable|array',
+                'modules' => 'nullable|array',
+                'is_popular' => 'nullable|boolean',
+                'is_public' => 'nullable|boolean',
+                'status' => 'nullable|string|in:active,archived',
+            ]);
+
+            $before = $plan->toArray();
+            $plan->update($validated);
+
+            AuditLog::create([
+                'tenant_id' => null,
+                'user_id' => $request->user()?->id,
+                'action' => 'plan.updated',
+                'module' => 'platform',
+                'record_type' => Plan::class,
+                'record_id' => $plan->id,
+                'before_value' => $before,
+                'after_value' => $validated,
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Plan '{$plan->name}' updated successfully.",
+                'data' => $plan,
+            ]);
+        });
+    }
+
+    /**
+     * Delete or archive a plan tier.
+     */
+    public function destroyPlan(Request $request, int $id): JsonResponse
+    {
+        return TenantContext::withoutTenantScope(function () use ($request, $id) {
+            $plan = Plan::findOrFail($id);
+
+            $activeTenantsCount = Tenant::where('plan_id', $plan->id)->count();
+            if ($activeTenantsCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot delete plan '{$plan->name}'. It is currently assigned to {$activeTenantsCount} active workspace(s). Archive the plan instead.",
+                ], 422);
+            }
+
+            $before = $plan->toArray();
+            $plan->delete();
+
+            AuditLog::create([
+                'tenant_id' => null,
+                'user_id' => $request->user()?->id,
+                'action' => 'plan.deleted',
+                'module' => 'platform',
+                'record_type' => Plan::class,
+                'record_id' => $id,
+                'before_value' => $before,
+                'after_value' => null,
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Plan deleted successfully.",
+            ]);
+        });
+    }
+
+    /**
+     * Tenant 360° deep inspection console data.
+     */
+    public function tenantDeep(Request $request, int $id): JsonResponse
+    {
+        return TenantContext::withoutTenantScope(function () use ($id) {
+            $tenant = Tenant::with(['plan', 'bankAccounts'])->withCount(['leads', 'users'])->findOrFail($id);
+
+            // Users in this workspace
+            $users = User::where('tenant_id', $tenant->id)
+                ->with('role:id,name,description')
+                ->select('id', 'name', 'email', 'phone', 'role_id', 'is_active', 'created_at', 'updated_at')
+                ->orderBy('id')
+                ->get()
+                ->map(fn ($u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'phone' => $u->phone,
+                    'role_name' => $u->role?->name ?? 'User',
+                    'is_active' => (bool) $u->is_active,
+                    'created_at' => $u->created_at?->toIso8601String(),
+                ]);
+
+            // Quotas from plan or metadata fallback
+            $plan = $tenant->plan;
+            $maxUsers = $plan?->seats_limit ?? (int) ($tenant->metadata['max_users'] ?? 25);
+            $maxLeads = $plan?->leads_limit ?? (int) ($tenant->metadata['max_leads'] ?? 10000);
+            $diskLimitGb = $plan?->disk_limit_gb ?? (int) ($tenant->metadata['storage_limit_gb'] ?? 25);
+            $aiBudgetCap = $plan?->ai_budget_cap_usd ?? 150.00;
+
+            // Live AI Spend for this tenant's users
+            $userIds = $users->pluck('id')->toArray();
+            $aiSpendUsd = 0.0;
+            $aiTokensConsumed = 0;
+            if (!empty($userIds)) {
+                $aiStats = DB::table('ai_requests')
+                    ->whereIn('user_id', $userIds)
+                    ->select(
+                        DB::raw('COALESCE(SUM(estimated_cost_usd), 0) as total_cost'),
+                        DB::raw('COALESCE(SUM(COALESCE(prompt_tokens, 0) + COALESCE(completion_tokens, 0)), 0) as total_tokens')
+                    )
+                    ->first();
+                $aiSpendUsd = (float) ($aiStats->total_cost ?? 0.0);
+                $aiTokensConsumed = (int) ($aiStats->total_tokens ?? 0);
+            }
+
+            // Integrations status check
+            $lark = \App\Models\LarkIntegration::where('tenant_id', $tenant->id)->first();
+            $integrationsCount = \App\Models\IntegrationConnection::where('tenant_id', $tenant->id)->count();
+
+            // Modules resolution: Plan defaults merged with Tenant metadata overrides
+            $planModules = $plan?->modules ?? [];
+            $tenantOverrides = $tenant->metadata['modules'] ?? [];
+            $resolvedModules = array_merge($planModules, $tenantOverrides);
+
+            // Recent audit logs for this tenant
+            $recentLogs = AuditLog::where(function ($q) use ($tenant) {
+                    $q->where('tenant_id', $tenant->id)
+                      ->orWhere(function ($sub) use ($tenant) {
+                          $sub->where('record_type', Tenant::class)->where('record_id', $tenant->id);
+                      });
+                })
+                ->latest('created_at')
+                ->take(15)
+                ->get()
+                ->map(fn ($l) => [
+                    'id' => $l->id,
+                    'action' => $l->action,
+                    'module' => $l->module,
+                    'status' => $l->status,
+                    'ip_address' => $l->ip_address,
+                    'created_at' => $l->created_at?->toIso8601String(),
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'tenant' => [
+                        'id' => $tenant->id,
+                        'name' => $tenant->name,
+                        'slug' => $tenant->slug,
+                        'status' => $tenant->status,
+                        'legal_name' => $tenant->legal_name,
+                        'brand_name' => $tenant->brand_name,
+                        'logo_path' => $tenant->logo_path,
+                        'address' => $tenant->address,
+                        'tax_number' => $tenant->tax_number,
+                        'signatory_name' => $tenant->signatory_name,
+                        'signatory_position' => $tenant->signatory_position,
+                        'billing_cycle' => $tenant->billing_cycle ?? 'monthly',
+                        'trial_ends_at' => $tenant->trial_ends_at?->toIso8601String(),
+                        'subscription_ends_at' => $tenant->subscription_ends_at?->toIso8601String(),
+                        'created_at' => $tenant->created_at?->toIso8601String(),
+                    ],
+                    'plan' => $plan ? [
+                        'id' => $plan->id,
+                        'code' => $plan->code,
+                        'name' => $plan->name,
+                        'price_monthly' => $plan->price_monthly,
+                        'price_annual' => $plan->price_annual,
+                        'seats_limit' => $plan->seats_limit,
+                        'leads_limit' => $plan->leads_limit,
+                        'disk_limit_gb' => $plan->disk_limit_gb,
+                        'ai_budget_cap_usd' => $plan->ai_budget_cap_usd,
+                        'whatsapp_channels_limit' => $plan->whatsapp_channels_limit,
+                        'features' => $plan->features,
+                    ] : null,
+                    'quotas' => [
+                        'users' => [
+                            'used' => $tenant->users_count,
+                            'max' => $maxUsers,
+                            'percent' => min(100, round(($tenant->users_count / max(1, $maxUsers)) * 100, 1)),
+                        ],
+                        'leads' => [
+                            'used' => $tenant->leads_count,
+                            'max' => $maxLeads,
+                            'percent' => min(100, round(($tenant->leads_count / max(1, $maxLeads)) * 100, 1)),
+                        ],
+                        'disk' => [
+                            'used_gb' => round(($tenant->leads_count * 0.001) + 0.5, 2),
+                            'max_gb' => $diskLimitGb,
+                            'percent' => min(100, round(((($tenant->leads_count * 0.001) + 0.5) / max(1, $diskLimitGb)) * 100, 1)),
+                        ],
+                        'ai' => [
+                            'spend_usd' => round($aiSpendUsd, 4),
+                            'tokens_consumed' => $aiTokensConsumed,
+                            'budget_cap_usd' => $aiBudgetCap,
+                            'percent' => min(100, round(($aiSpendUsd / max(1, $aiBudgetCap)) * 100, 1)),
+                        ],
+                    ],
+                    'users' => $users,
+                    'modules' => $resolvedModules,
+                    'integrations' => [
+                        'lark' => [
+                            'connected' => (bool) ($lark && $lark->is_active),
+                            'app_id' => $lark?->app_id ? '••••••••' . substr($lark->app_id, -4) : null,
+                        ],
+                        'connections_count' => $integrationsCount,
+                    ],
+                    'recent_logs' => $recentLogs,
+                ],
+            ]);
+        });
+    }
+
+    /**
+     * Reset a tenant user's password from admin support console.
+     */
+    public function resetTenantUserPassword(Request $request, int $tenantId, int $userId): JsonResponse
+    {
+        return TenantContext::withoutTenantScope(function () use ($request, $tenantId, $userId) {
+            $user = User::where('tenant_id', $tenantId)->findOrFail($userId);
+
+            $tempPassword = 'Ldsy!' . Str::random(10) . '#26';
+            $user->password = Hash::make($tempPassword);
+            $user->save();
+
+            AuditLog::create([
+                'tenant_id' => $tenantId,
+                'user_id' => $request->user()?->id,
+                'action' => 'tenant.user_password_reset_by_admin',
+                'module' => 'platform',
+                'record_type' => User::class,
+                'record_id' => $user->id,
+                'before_value' => null,
+                'after_value' => ['target_user_email' => $user->email],
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Temporary password generated for {$user->email}.",
+                'data' => [
+                    'temporary_password' => $tempPassword,
+                    'email' => $user->email,
+                ],
+            ]);
+        });
+    }
+
+    /**
+     * Toggle active state of a user within a tenant.
+     */
+    public function toggleTenantUserActive(Request $request, int $tenantId, int $userId): JsonResponse
+    {
+        return TenantContext::withoutTenantScope(function () use ($request, $tenantId, $userId) {
+            $user = User::where('tenant_id', $tenantId)->findOrFail($userId);
+            $newState = !$user->is_active;
+            $user->is_active = $newState;
+            $user->save();
+
+            AuditLog::create([
+                'tenant_id' => $tenantId,
+                'user_id' => $request->user()?->id,
+                'action' => 'tenant.user_status_toggled',
+                'module' => 'platform',
+                'record_type' => User::class,
+                'record_id' => $user->id,
+                'before_value' => ['is_active' => !$newState],
+                'after_value' => ['is_active' => $newState],
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "User {$user->name} is now " . ($newState ? 'active' : 'suspended') . ".",
+                'data' => $user,
+            ]);
+        });
+    }
+
+    /**
+     * Update tenant subscription parameters (Plan, Trial Extension, Billing Cycle).
+     */
+    public function updateTenantSubscription(Request $request, int $id): JsonResponse
+    {
+        return TenantContext::withoutTenantScope(function () use ($request, $id) {
+            $tenant = Tenant::findOrFail($id);
+
+            $validated = $request->validate([
+                'plan_id' => 'required|exists:plans,id',
+                'billing_cycle' => 'required|in:monthly,annual',
+                'status' => 'nullable|in:active,trial,suspended',
+                'trial_days_extension' => 'nullable|integer|min:1|max:90',
+            ]);
+
+            $plan = Plan::findOrFail($validated['plan_id']);
+            $tenant->plan_id = $plan->id;
+            $tenant->billing_cycle = $validated['billing_cycle'];
+
+            if (!empty($validated['status'])) {
+                $tenant->status = $validated['status'];
+            }
+
+            if (!empty($validated['trial_days_extension'])) {
+                $currentEnd = $tenant->trial_ends_at ?: now();
+                $tenant->trial_ends_at = $currentEnd->addDays((int) $validated['trial_days_extension']);
+            }
+
+            // Also mirror in metadata['plan'] for backward compatibility
+            $meta = $tenant->metadata ?? [];
+            $meta['plan'] = $plan->code;
+            $tenant->metadata = $meta;
+            $tenant->save();
+
+            AuditLog::create([
+                'tenant_id' => $tenant->id,
+                'user_id' => $request->user()?->id,
+                'action' => 'tenant.subscription_updated',
+                'module' => 'platform',
+                'record_type' => Tenant::class,
+                'record_id' => $tenant->id,
+                'before_value' => null,
+                'after_value' => [
+                    'plan_code' => $plan->code,
+                    'plan_name' => $plan->name,
+                    'billing_cycle' => $tenant->billing_cycle,
+                    'trial_ends_at' => $tenant->trial_ends_at?->toIso8601String(),
+                ],
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Subscription updated for {$tenant->name}.",
+                'data' => $tenant->fresh(['plan']),
+            ]);
+        });
+    }
+
+    /**
+     * Export full tenant configuration and metadata snapshot.
+     */
+    public function exportTenantData(Request $request, int $id): JsonResponse
+    {
+        return TenantContext::withoutTenantScope(function () use ($id) {
+            $tenant = Tenant::with(['plan', 'bankAccounts', 'users.role'])->findOrFail($id);
+
+            return response()->json([
+                'export_version' => '1.0',
+                'exported_at' => now()->toIso8601String(),
+                'tenant' => $tenant,
             ]);
         });
     }

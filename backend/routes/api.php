@@ -800,7 +800,19 @@ Route::prefix('platform')->middleware(['auth:sanctum', 'superadmin'])->group(fun
         Route::get('providers/{aiProvider}/available-models', [\App\Http\Controllers\Api\AiSettingsController::class, 'discoverModels']);
         Route::put('feature-routes/{featureName}', [\App\Http\Controllers\Api\AiSettingsController::class, 'saveFeatureRoutes']);
     });
+    // Plans & Packaging Management
     Route::get('plans', [\App\Http\Controllers\Api\PlatformAdminController::class, 'plans']);
+    Route::post('plans', [\App\Http\Controllers\Api\PlatformAdminController::class, 'storePlan']);
+    Route::put('plans/{id}', [\App\Http\Controllers\Api\PlatformAdminController::class, 'updatePlan']);
+    Route::delete('plans/{id}', [\App\Http\Controllers\Api\PlatformAdminController::class, 'destroyPlan']);
+
+    // Tenant 360° Management Console Endpoints
+    Route::get('tenants/{id}/deep', [\App\Http\Controllers\Api\PlatformAdminController::class, 'tenantDeep']);
+    Route::post('tenants/{id}/users/{userId}/reset-password', [\App\Http\Controllers\Api\PlatformAdminController::class, 'resetTenantUserPassword']);
+    Route::post('tenants/{id}/users/{userId}/toggle-active', [\App\Http\Controllers\Api\PlatformAdminController::class, 'toggleTenantUserActive']);
+    Route::patch('tenants/{id}/subscription', [\App\Http\Controllers\Api\PlatformAdminController::class, 'updateTenantSubscription']);
+    Route::get('tenants/{id}/export', [\App\Http\Controllers\Api\PlatformAdminController::class, 'exportTenantData']);
+
     Route::get('audit-logs', [\App\Http\Controllers\Api\PlatformAdminController::class, 'platformAuditLogs']);
     Route::get('diagnostics', [\App\Http\Controllers\Api\PlatformAdminController::class, 'diagnostics']);
     Route::post('tenants/{id}/flush-cache', [\App\Http\Controllers\Api\PlatformAdminController::class, 'flushTenantCache']);
