@@ -155,7 +155,12 @@ export default function TenantDeepConsolePage({ params }: { params: Promise<{ id
 
       if (plansRes.ok) {
         const pJson = await plansRes.json();
-        setAvailablePlans(pJson.data || []);
+        const tiers = Array.isArray(pJson.data)
+          ? pJson.data
+          : Array.isArray(pJson.data?.tiers)
+          ? pJson.data.tiers
+          : [];
+        setAvailablePlans(tiers);
       }
     } catch (e) {
       console.error("Error fetching tenant 360:", e);
@@ -730,7 +735,7 @@ export default function TenantDeepConsolePage({ params }: { params: Promise<{ id
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {users.map((u) => (
+                  {(users || []).map((u) => (
                     <tr key={u.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -890,7 +895,7 @@ export default function TenantDeepConsolePage({ params }: { params: Promise<{ id
                   Select Product Tier Plan
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {availablePlans.map((p) => {
+                  {(Array.isArray(availablePlans) ? availablePlans : []).map((p) => {
                     const isSelected = selectedPlanId === p.id;
                     return (
                       <div
@@ -1125,14 +1130,14 @@ export default function TenantDeepConsolePage({ params }: { params: Promise<{ id
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {recent_logs.length === 0 ? (
+                  {(!recent_logs || recent_logs.length === 0) ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-8 text-center text-xs text-muted-foreground">
                         No audit records found for this workspace.
                       </td>
                     </tr>
                   ) : (
-                    recent_logs.map((log) => (
+                    (recent_logs || []).map((log) => (
                       <tr key={log.id} className="hover:bg-muted/20 transition-colors">
                         <td className="px-6 py-3.5 font-mono text-xs text-muted-foreground">
                           {new Date(log.created_at).toLocaleString()}
