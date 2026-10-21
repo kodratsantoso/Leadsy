@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   Building2, Shield, Users, Layers, Activity, HardDrive, Key, RefreshCw,
   RotateCcw, AlertTriangle, CheckCircle2, ChevronRight, ArrowLeft, ArrowUpRight,
@@ -98,9 +98,9 @@ interface PlanOption {
   disk_limit_gb: number;
 }
 
-export default function TenantDeepConsolePage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const tenantId = parseInt(resolvedParams.id, 10);
+export default function TenantDeepConsolePage() {
+  const params = useParams();
+  const tenantId = params?.id ? parseInt(params.id as string, 10) : 1;
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<
