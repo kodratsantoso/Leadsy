@@ -255,3 +255,25 @@
 - **Decision**: Rather than duplicate existing architectures, we will complete the missing Master Data UI/API layers (Service Categories, Roles, Rate Cards, etc.) and strictly enforce lifecycle status locks (e.g. archiving instead of hard deleting). Hardcoded templates (e.g. PDF blade) will remain as-is for now to prioritize execution and logic stability over dynamic templating, unless specifically required.
 - **Rationale**: The Phase 1-8 modules successfully introduced the core domain models, but lacked the necessary UI configuration screens and backend API protections for production readiness.
 - **Impact**: Will introduce multiple new backend controllers and frontend Settings pages. Will strictly enforce middleware permissions on all PS routes.
+
+## ADR-035: SaaS Platform Control Plane Decoupling & Tenant 360 Console
+- **Date**: 2026-10-20
+- **Status**: Active
+- **Decision**: Decouple the SaaS Platform Superadmin operational surface from the tenant CRM application shell by introducing a dedicated `PlatformShell` (`frontend/components/admin/PlatformShell.tsx`) and the `/admin/*` route tree. Built the Tenant 360 Console (`/admin/tenants/[id]`) with health metrics, SRE diagnostics probes, cache flush triggers, and impersonation safety banners. Centralized AI cost, token usage, and provider routing into the platform admin space, hiding sensitive infrastructure settings from standard tenant spaces.
+- **Rationale**: Multi-tenant SaaS requires strict operational isolation between platform-level operator tasks (tenant health, SRE probes, billing, impersonation) and tenant-level CRM business logic. Mixing platform controls into tenant settings introduced security risks and cluttered the tenant experience.
+- **Impact**: Superadmins now have an isolated, enterprise-grade Control Plane at `/admin`. Standard tenant users operate solely within `/` and tenant settings without seeing platform telemetry or AI cost dials.
+
+## ADR-036: Dynamic Plan Packaging & Feature Matrix
+- **Date**: 2026-10-21
+- **Status**: Active
+- **Decision**: Implement Dynamic Plan Packaging (`frontend/app/admin/plans`) allowing SaaS operators to dynamically define and edit pricing tiers (e.g. Starter, Pro, Enterprise), monthly/annual pricing, and feature matrices. Safely unpack plan tier collections and enforce client-side navigation safety using Next.js `useParams`.
+- **Rationale**: Hardcoded plan tiers and static limits prevented agile packaging, trial tier provisioning, and enterprise custom discounting.
+- **Impact**: Operators can update plan inclusions and pricing dynamically without code changes or database rebuilds.
+
+## ADR-037: Migration to 3-Node K3s Cluster & Edge Routing Standardization
+- **Date**: 2026-10-20
+- **Status**: Active
+- **Decision**: Formally retire Coolify and migrate production deployment to a 3-node K3s cluster. Deployments are orchestrated strictly via GitHub Actions using self-hosted in-cluster runners (`runs-on: [self-hosted, in-cluster, k3s]`) into the `leadsy-prod` namespace. Production domain is consolidated on `https://leadsy.tech`, with `https://leadsy.virtuenet.space` permanently 301-redirected via Cloudflare and the edge load-balancer.
+- **Rationale**: Standalone Docker/Coolify setups lacked zero-downtime rolling updates, persistent volume safety, in-cluster service discovery, and automated worker/scheduler scaling required for production enterprise load.
+- **Impact**: GitHub push to `main` deploys images `leadsy-backend:<sha>` and `leadsy-frontend:<sha>` to the in-cluster registry with rollout verification. Root `AGENTS.md` and frontend governance strictly reflect this deployment contract.
+

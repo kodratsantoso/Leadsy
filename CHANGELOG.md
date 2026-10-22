@@ -9,6 +9,50 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.30.0] — 2026-10-21 · Minor Release
+
+### Fitur Baru & Peningkatan Arsitektur
+- **SaaS Platform Admin & Tenant 360 Console (Phase 1 & 2)** — Mengimplementasikan dynamic packaging tier (`frontend/app/admin/plans`) dengan telemetry MRR/ARR langsung, serta Tenant 360 Console (`frontend/app/admin/tenants/[id]`) untuk inspeksi kuota resources, team roster, modul/entitlements, dan audit trail per tenant.
+- **SaaS Control Plane Decoupling** — Memisahkan antarmuka Superadmin Platform dari CRM tenant menggunakan `PlatformShell` mandiri, menyembunyikan konfigurasi token/cost AI sensitif dari tenant biasa.
+- **K3s Cluster Deployment Contract** — Memformalkan migrasi deployment produksi dari Coolify ke cluster 3-node K3s via GitHub Actions in-cluster runner ke namespace `leadsy-prod`, dengan domain produksi tunggal `https://leadsy.tech`.
+- **UI/UX ProMax Skill Integration** — Mengadopsi skill `ui-ux-promax` untuk standardisasi visual & interaksi SaaS enterprise tier-1.
+- **Map & Territory Discovery High-Velocity UX Overhaul** — Visualisasi radius interaktif (`<Circle>`), click-to-pinpoint pusat territory di peta, deteksi otomatis GPS lokasi sales, tombol preset radius (`[1 km]`, `[3 km]`, `[5 km]`, `[10 km]`, `[25 km]`), manajemen preset territory tersimpan, multi-select & batch import lead ke pipeline dalam 1-klik, indikator kontak langsung (Phone/Web), dan shortcut chat WhatsApp langsung.
+
+## [1.29.0] — 2026-10-15 · Minor Release
+
+### Fitur Baru
+- **Presales Discovery & Qualification Workspace** — Ruang kerja terstruktur (`lead_discovery_records`) untuk menyatukan konteks bisnis, arsitektur sistem teknis, kendala, dan persona stakeholder.
+- **Discovery Completeness Engine** — Layanan penilaian kelengkapan kualifikasi solusi (0–100%) dan kesiapan *solution design*.
+- **Pemisahan Fakta & Asumsi (Field Provenance)** — Menandai data dengan label `confirmed`, `assumption`, dan `ai_suggested` guna mencegah asumsi AI disalahartikan sebagai fakta klien.
+
+## [1.28.0] — 2026-10-05 · Minor Release
+
+### Fitur Baru & AI Polish
+- **Executive Account Review Generator (QBR)** — Generator review bisnis berkala otomatis menggabungkan health metrics, milestone, dan saran ekspansi.
+- **Context-Aware CS Playbook AI** — Panduan taktis intervensi risiko akun dan draf komunikasi sales B2B.
+- **Lead Source Quality Analytics** — Engine evaluasi dan pemeringkatan kualitas kanal akuisisi (Google Maps, WhatsApp, IDX, CSV).
+
+## [1.27.0] — 2026-09-28 · Minor Release
+
+### Fitur Baru
+- **Contract Renewal & Upsell/Cross-Sell Intelligence** — Deteksi dini jendela perpanjangan kontrak (critical <= 30 hari) dan peluang cross-sell katalog produk.
+- **NPS & CSAT Tracking** — Pengumpulan dan analisis sentimen kepuasan pelanggan dengan deteksi detractor otomatis.
+- **Proactive CSM Alerts** — Sistem alert otomatis berkala untuk risiko retensi akun.
+
+## [1.26.0] — 2026-09-21 · Minor Release
+
+### Fitur Baru
+- **Multi-Factor Customer Health Score Engine** — Penilaian kesehatan akun aktif berdasarkan 4 dimensi (aktivitas, milestone onboarding, sentimen AI, stabilitas relasi).
+- **Post-Won Automated Onboarding Workflow** — Otomasi penerbitan milestone onboarding pasca deal Closed Won.
+- **Proactive Churn Risk Detection** — Alert deteksi dini risiko churn akibat penurunan intensitas komunikasi.
+
+## [1.25.0] — 2026-09-17 · Minor Release
+
+### Fitur Baru
+- **Stalled Deal Detection** — Monitoring kesepakatan macet di funnel pipeline yang melebihi ambang batas inaktivitas (default 14 hari).
+- **AI-Powered Funnel Stage Recommendation** — Rekomendasi kemajuan stage prospek berdasarkan skor dan validasi BANT-C.
+- **AI Competitive Battle Card Generation** — Pembuatan kartu tanding kompetitor instan dengan talking points dan penanganan keberatan.
+
 ## [1.24.0] — 2026-09-13 · Minor Release
 
 ### Fitur Baru

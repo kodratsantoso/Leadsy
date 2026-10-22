@@ -20,6 +20,7 @@ Current release: **v1.30.0** — 2026-10-21
   6. *Activity Audit Trail:* Tamper-evident workspace-specific audit logs.
   7. *Danger Zone:* Organization read-only lock/suspension, immutable full JSON data dump export, and Redis cache flushes.
 - **Tenant Directory Navigation** — Added quick 360° Console launch links across all organization records in the Tenants Directory.
+- **Map & Territory Discovery High-Velocity UX Overhaul** — Implemented visual interactive radius circle overlay (`<Circle>`), click-to-pinpoint territory center on map canvas, GPS current location auto-detection, quick radius preset pills (`[1 km]`, `[3 km]`, `[5 km]`, `[10 km]`, `[25 km]`), saved territory presets management, bulk selection & 1-click batch lead import to pipeline, instant contact availability indicators (Phone/Web badges), and direct WhatsApp communication links.
 
 ## What's New in v1.29.0 (Presales & Solution Architecture Foundation — Increment 1 Discovery Workspace)
 

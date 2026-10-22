@@ -67,6 +67,12 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/whatsapp/page.tsx`
 - `frontend/app/lead-generator/page.tsx`
 - `frontend/app/lead-generator/platforms/page.tsx`
+- `frontend/app/lead-generator/idx/page.tsx`
+- `frontend/app/admin/page.tsx`
+- `frontend/app/admin/tenants/page.tsx`
+- `frontend/app/admin/tenants/[id]/page.tsx`
+- `frontend/app/admin/plans/page.tsx`
+- `frontend/app/admin/plans/[id]/page.tsx`
 
 ## Post-Refactor Cleanup Applied
 
@@ -95,8 +101,11 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/components/ui/ai-output-container.tsx` — unified AI output JSON viewer/editor with version history and manual approval controls.
 - `frontend/components/ui/ai-highlights-widget.tsx` — global widget for rendering AI risk/opportunity/gap highlights requiring human resolution.
 - `frontend/lib/hooks/use-number-format.ts` — added the shared number/currency display contract used by operational pages.
-- `frontend/AGENTS.md` — strengthened the runtime UI governance lock with post-refactor enforcement rules.
+- `frontend/AGENTS.md` — strengthened the runtime UI governance lock with post-refactor enforcement rules and aligned deployment contract with 3-node K3s in-cluster runner architecture.
 - `AGENTS.md` — added repository-root guidance pointing contributors to the active frontend governance files.
+- `frontend/app/admin/*` — decoupled SaaS Platform Control Plane with dedicated `PlatformShell`, platform-wide telemetry, SRE diagnostic probes, cache flush actions, and centralized AI cost dials.
+- `frontend/app/admin/tenants/[id]` — Tenant 360 console providing real-time tenant health, DB metrics, audit logs, and impersonation safety banner.
+- `frontend/app/admin/plans/*` — Dynamic Plan Packaging with dynamic tier cards, feature matrix editors, and safe collection unpacking.
 
 ## Product Tour System
 

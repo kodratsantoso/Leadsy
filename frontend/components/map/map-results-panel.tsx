@@ -6,14 +6,18 @@ import {
   Brain,
   Building2,
   CheckCircle2,
+  CheckSquare,
   ChevronRight,
   Globe,
   Loader2,
   MapPin,
+  MessageCircle,
   Phone,
+  Plus,
   PlusCircle,
   ShieldAlert,
   Sparkles,
+  Square,
   Star,
   Tag,
   TrendingUp,
@@ -40,10 +44,12 @@ type ResultPanelProps = {
   onSelect: (id: string | null) => void;
   onHover: (id: string | null) => void;
   onAdd: (lead: DiscoveredLead, aiMode: AiMode) => void;
+  onAddBatch?: (leads: DiscoveredLead[], aiMode: AiMode) => Promise<void>;
   onAnalyze?: () => void;
   aiMode: AiMode;
   isDetailFetching?: boolean;
   isAnalyzing?: boolean;
+  isBatchAdding?: boolean;
   selectedProductId?: number | null;
 };
 
@@ -80,7 +86,8 @@ function FitScoreGauge({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1">
-        <ProgressiveFluxLoader layout="feature"
+        <ProgressiveFluxLoader
+          layout="feature"
           value={score}
           showLabel={false}
           barClassName="h-2"
@@ -100,18 +107,25 @@ export function MapResultsPanel({
   onSelect,
   onHover,
   onAdd,
+  onAddBatch,
   onAnalyze,
   aiMode,
   isDetailFetching,
   isAnalyzing,
+  isBatchAdding,
   selectedProductId,
 }: ResultPanelProps) {
   const [sortKey, setSortKey] = useState<SortKey>("default");
   const [fitFilter, setFitFilter] = useState<FitFilter>("all");
+  const [selectedPlaceIds, setSelectedPlaceIds] = useState<Set<string>>(new Set());
 
   const selectedLead = results.find((r) => r.external_place_id === selectedId);
-
   const hasAnyAnalysis = results.some((r) => r.fit_analysis != null);
+
+  // Statistics
+  const newLeads = results.filter((r) => !r.dedup?.is_duplicate);
+  const duplicateCount = results.length - newLeads.length;
+  const highFitCount = results.filter((r) => r.fit_analysis?.fit_level === "high").length;
 
   // Filter
   let displayed = results.filter((r) => {
@@ -128,10 +142,43 @@ export function MapResultsPanel({
     displayed = [...displayed].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
   }
 
+  // Toggle selection for bulk import
+  const handleToggleSelectAllNew = () => {
+    const validNewIds = newLeads
+      .map((r) => r.external_place_id)
+      .filter((id): id is string => Boolean(id));
+
+    if (selectedPlaceIds.size >= validNewIds.length && validNewIds.length > 0) {
+      setSelectedPlaceIds(new Set());
+    } else {
+      setSelectedPlaceIds(new Set(validNewIds));
+    }
+  };
+
+  const handleTogglePlace = (placeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = new Set(selectedPlaceIds);
+    if (next.has(placeId)) {
+      next.delete(placeId);
+    } else {
+      next.add(placeId);
+    }
+    setSelectedPlaceIds(next);
+  };
+
+  const handleRunBatchAdd = async () => {
+    if (!onAddBatch || selectedPlaceIds.size === 0) return;
+    const selectedList = results.filter(
+      (r) => r.external_place_id && selectedPlaceIds.has(r.external_place_id)
+    );
+    await onAddBatch(selectedList, aiMode);
+    setSelectedPlaceIds(new Set());
+  };
+
   return (
-    <div className="relative flex w-full shrink-0 flex-col border-l border-border bg-background p-4 sm:w-[420px]">
+    <div className="relative flex w-full shrink-0 flex-col border-l border-border bg-background p-4 sm:w-[440px]">
       <Card className="flex h-full flex-col">
-        <CardHeader>
+        <CardHeader className="space-y-3 pb-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">Discovery Results</CardTitle>
@@ -148,10 +195,28 @@ export function MapResultsPanel({
             ) : null}
           </div>
 
+          {/* Quick Territory Coverage Stats Bar */}
+          {!selectedId && totalCount > 0 ? (
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-[color:var(--surface-subtle)] p-2 text-center text-xs">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase font-semibold">New Leads</p>
+                <p className="font-bold text-foreground text-sm">{newLeads.length}</p>
+              </div>
+              <div className="border-x border-border/80">
+                <p className="text-[10px] text-muted-foreground uppercase font-semibold">In Pipeline</p>
+                <p className="font-bold text-[color:var(--status-success)] text-sm">{duplicateCount}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase font-semibold">High Fit</p>
+                <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{highFitCount}</p>
+              </div>
+            </div>
+          ) : null}
+
           {/* Analyze + sort/filter bar — only shown on list view */}
           {!selectedId && totalCount > 0 ? (
-            <div className="space-y-2 pt-1">
-              {/* Analyze button */}
+            <div className="space-y-2 pt-0.5">
+              {/* Product Fit Button */}
               {selectedProductId ? (
                 <Button
                   variant={hasAnyAnalysis ? "outline" : "default"}
@@ -194,6 +259,40 @@ export function MapResultsPanel({
                   </Select>
                 </div>
               ) : null}
+
+              {/* Batch Import Bar */}
+              {newLeads.length > 0 && onAddBatch ? (
+                <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={handleToggleSelectAllNew}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    {selectedPlaceIds.size > 0 && selectedPlaceIds.size >= newLeads.length ? (
+                      <CheckSquare className="h-4 w-4 text-[color:var(--brand)]" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )}
+                    <span>Select All New ({newLeads.length})</span>
+                  </button>
+
+                  {selectedPlaceIds.size > 0 ? (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={handleRunBatchAdd}
+                      disabled={isBatchAdding}
+                    >
+                      {isBatchAdding ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <PlusCircle className="h-3.5 w-3.5" />
+                      )}
+                      <span>Add ({selectedPlaceIds.size}) to Leads</span>
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </CardHeader>
@@ -212,7 +311,7 @@ export function MapResultsPanel({
             <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center text-muted-foreground">
               <Building2 className="h-10 w-10 opacity-30" />
               <p className="text-sm font-medium">No businesses found yet.</p>
-              <p className="max-w-xs text-sm">Run a discovery scan to populate this list.</p>
+              <p className="max-w-xs text-xs">Pick a target territory and run a discovery scan to populate leads.</p>
             </div>
           ) : null}
 
@@ -221,42 +320,59 @@ export function MapResultsPanel({
             ? displayed.map((result) => {
                 const isDuplicate = result.dedup?.is_duplicate;
                 const fit = result.fit_analysis;
+                const isChecked = result.external_place_id ? selectedPlaceIds.has(result.external_place_id) : false;
 
                 return (
-                  <button
+                  <div
                     key={result.external_place_id}
                     onMouseEnter={() => onHover(result.external_place_id!)}
                     onMouseLeave={() => onHover(null)}
                     onClick={() => onSelect(result.external_place_id!)}
                     className={cn(
-                      "flex w-full items-start gap-3 border-b border-border/70 px-1 py-4 text-left transition-colors",
-                      hoveredId === result.external_place_id && "bg-accent/20",
-                      isDuplicate && "opacity-80"
+                      "group flex w-full cursor-pointer items-start gap-3 border-b border-border/70 px-2 py-3.5 text-left transition-colors hover:bg-accent/20 rounded-xl",
+                      hoveredId === result.external_place_id && "bg-accent/25",
+                      isDuplicate && "opacity-75"
                     )}
                   >
+                    {/* Checkbox for Bulk Add */}
+                    {!isDuplicate && onAddBatch ? (
+                      <div
+                        onClick={(e) => handleTogglePlace(result.external_place_id!, e)}
+                        className="mt-1 cursor-pointer text-muted-foreground hover:text-[color:var(--brand)] shrink-0"
+                      >
+                        {isChecked ? (
+                          <CheckSquare className="h-4 w-4 text-[color:var(--brand)]" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </div>
+                    ) : isDuplicate ? (
+                      <div className="mt-1 text-[color:var(--status-success)] shrink-0" title="Already in Pipeline">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                    ) : null}
+
                     {/* Icon */}
                     <div className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                      fit?.fit_level === "high"   ? "bg-[color:var(--status-success-soft)]" :
-                      fit?.fit_level === "medium" ? "bg-[color:var(--status-warning-soft)]" :
-                      "bg-[color:var(--surface-subtle)]"
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                      fit?.fit_level === "high"   ? "bg-[color:var(--status-success-soft)] text-emerald-600" :
+                      fit?.fit_level === "medium" ? "bg-[color:var(--status-warning-soft)] text-amber-600" :
+                      "bg-[color:var(--surface-subtle)] text-[color:var(--brand)]"
                     )}>
-                      {isDuplicate ? (
-                        <CheckCircle2 className="h-4 w-4 text-[color:var(--status-success)]" />
-                      ) : fit?.fit_level === "high" ? (
-                        <TrendingUp className="h-4 w-4 text-[color:var(--status-success)]" />
+                      {fit?.fit_level === "high" ? (
+                        <TrendingUp className="h-4 w-4" />
                       ) : (
-                        <Building2 className="h-4 w-4 text-[color:var(--brand)]" />
+                        <Building2 className="h-4 w-4" />
                       )}
                     </div>
 
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="truncate font-medium leading-tight">{result.company_name}</p>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <p className="truncate font-semibold text-sm leading-tight">{result.company_name}</p>
                         <div className="flex shrink-0 items-center gap-1">
                           {result.rating ? (
-                            <Badge variant="warning">
-                              <Star className="h-3 w-3" />
+                            <Badge variant="warning" className="text-[10px] py-0 px-1.5">
+                              <Star className="h-2.5 w-2.5 mr-0.5" />
                               {result.rating}
                             </Badge>
                           ) : null}
@@ -264,24 +380,61 @@ export function MapResultsPanel({
                         </div>
                       </div>
 
-                      <p className="truncate text-sm text-muted-foreground">{result.address}</p>
+                      <p className="truncate text-xs text-muted-foreground">{result.address}</p>
 
-                      <div className="flex flex-wrap gap-1.5">
+                      {/* Contact & Category Badges */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                         {result.business_category ? (
-                          <Badge variant="neutral">{result.business_category.split(",")[0]}</Badge>
+                          <Badge variant="neutral" className="text-[10px] py-0 px-1.5">
+                            {result.business_category.split(",")[0]}
+                          </Badge>
                         ) : null}
-                        {isDuplicate ? <Badge variant="success">In Pipeline</Badge> : null}
+
+                        {result.phone ? (
+                          <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                            <Phone className="h-2.5 w-2.5 mr-1" /> Phone
+                          </span>
+                        ) : null}
+
+                        {result.website ? (
+                          <span className="inline-flex items-center text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                            <Globe className="h-2.5 w-2.5 mr-1" /> Web
+                          </span>
+                        ) : null}
+
+                        {isDuplicate ? (
+                          <Badge variant="success" className="text-[10px] py-0 px-1.5">In Pipeline</Badge>
+                        ) : null}
+
                         {fit ? <FitLevelBadge level={fit.fit_level} /> : null}
                       </div>
 
                       {/* Mini fit score bar */}
                       {fit ? (
-                        <FitScoreGauge score={fit.fit_score} />
+                        <div className="pt-1">
+                          <FitScoreGauge score={fit.fit_score} />
+                        </div>
                       ) : null}
                     </div>
 
-                    <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-                  </button>
+                    {/* Inline Quick Add Button */}
+                    {!isDuplicate ? (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        tooltip="Add to Leads"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAdd(result, aiMode);
+                        }}
+                        className="shrink-0 text-muted-foreground hover:text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/50" />
+                    )}
+                  </div>
                 );
               })
             : (
@@ -314,6 +467,9 @@ function DetailView({
   const fit = lead.fit_analysis;
   const isDuplicate = lead.dedup?.is_duplicate;
 
+  const rawPhone = lead.phone ? lead.phone.replace(/[^0-9]/g, "") : "";
+  const whatsappNumber = rawPhone.startsWith("0") ? `62${rawPhone.slice(1)}` : rawPhone;
+
   return (
     <div className="space-y-4 py-1">
       {/* Status badges */}
@@ -340,22 +496,36 @@ function DetailView({
 
       {/* Name */}
       <div>
-        <h2 className="text-xl font-semibold">{lead.company_name}</h2>
+        <h2 className="text-xl font-bold tracking-tight">{lead.company_name}</h2>
         {lead.business_category ? (
-          <div className="mt-2">
+          <div className="mt-1.5">
             <Badge variant="neutral">{lead.business_category}</Badge>
           </div>
         ) : null}
       </div>
 
-      {/* Add to Leads */}
-      {!isDuplicate ? (
-        <Button className="w-full" onClick={() => onAdd(lead, aiMode)}>
-          <PlusCircle className="h-4 w-4" />
-          Add to Leads Pipeline
-          {fit && fit.fit_level === "high" ? " ★" : ""}
-        </Button>
-      ) : null}
+      {/* Action Buttons: Add to Leads & Direct WhatsApp */}
+      <div className="flex flex-col gap-2">
+        {!isDuplicate ? (
+          <Button className="w-full" onClick={() => onAdd(lead, aiMode)}>
+            <PlusCircle className="h-4 w-4" />
+            Add to Leads Pipeline
+            {fit && fit.fit_level === "high" ? " ★" : ""}
+          </Button>
+        ) : null}
+
+        {whatsappNumber && (
+          <a
+            href={`https://wa.me/${whatsappNumber}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400 transition-colors"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Direct WhatsApp Outreach ({lead.phone})
+          </a>
+        )}
+      </div>
 
       {/* Product Fit Analysis card */}
       {fit ? (

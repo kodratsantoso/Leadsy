@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { APIProvider, Map } from "@vis.gl/react-google-maps";
+import { APIProvider, Map, Circle, AdvancedMarker } from "@vis.gl/react-google-maps";
 import Link from "next/link";
-import { Loader2, MapPin } from "lucide-react";
+import { Crosshair, Loader2, MapPin, Navigation, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/apiFetch";
 import {
@@ -32,17 +32,32 @@ export default function MapPage() {
   const [isMapsEnabled, setIsMapsEnabled] = useState(true);
   const [loadingKey, setLoadingKey] = useState(true);
 
-  const { isSearching, isAnalyzing, error, searchPlaces, addToLeads, getPlaceDetails, analyzeProductFit } = useMapDiscovery();
+  const {
+    isSearching,
+    isAnalyzing,
+    error,
+    searchPlaces,
+    addToLeads,
+    addBatchToLeads,
+    getPlaceDetails,
+    analyzeProductFit,
+    geocodeArea,
+  } = useMapDiscovery();
 
   const [results, setResults] = useState<DiscoveredLead[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isDetailFetching, setIsDetailFetching] = useState(false);
+  const [isBatchAdding, setIsBatchAdding] = useState(false);
   const [currentAiMode, setCurrentAiMode] = useState<AiMode>("hybrid");
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [zoom, setZoom] = useState(13);
+
+  // Active territory context
+  const [activeArea, setActiveArea] = useState<GeocodeResult | null>(null);
+  const [radius, setRadius] = useState<number>(3000);
 
   const [filters, setFilters] = useState({ hasPhone: false, newOnly: false });
   const [feedback, setFeedback] = useState("");
@@ -61,7 +76,21 @@ export default function MapPage() {
         setIsMapsEnabled(settings.GOOGLE_MAPS_ENABLED === undefined ? true : isEnabledFlag(settings.GOOGLE_MAPS_ENABLED));
 
         if (Number.isFinite(lat) && Number.isFinite(lng)) {
-          setCenter({ lat, lng });
+          const defaultLoc = { lat, lng };
+          setCenter(defaultLoc);
+          setActiveArea({
+            place_id: "default_center",
+            formatted_address: "Default Region Center",
+            lat,
+            lng,
+          });
+        } else {
+          setActiveArea({
+            place_id: "default_center",
+            formatted_address: "Jakarta, Indonesia",
+            lat: DEFAULT_CENTER.lat,
+            lng: DEFAULT_CENTER.lng,
+          });
         }
       })
       .catch(() => {
@@ -97,7 +126,7 @@ export default function MapPage() {
     );
     setResults(discovered);
     setCenter({ lat: params.lat, lng: params.lng });
-    setZoom(14);
+    setZoom(params.radius > 10000 ? 11 : params.radius > 5000 ? 13 : 14);
   };
 
   const handleSelect = async (placeId: string | null) => {
@@ -135,11 +164,47 @@ export default function MapPage() {
       if (result?.ai_warning) {
         setFeedback(`Lead added. ⚠ ${result.ai_warning}`);
       } else {
-        setFeedback("Lead added to leads queue successfully.");
+        setFeedback(`Lead "${lead.company_name}" added to pipeline successfully.`);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setFeedback(`Unable to add lead: ${message}`);
+    }
+  };
+
+  const handleAddBatch = async (leadsToAdd: DiscoveredLead[], aiMode: AiMode) => {
+    if (leadsToAdd.length === 0) return;
+    setIsBatchAdding(true);
+    setFeedback(`Adding ${leadsToAdd.length} leads to pipeline…`);
+    try {
+      const { added, failed } = await addBatchToLeads(
+        leadsToAdd,
+        aiMode,
+        selectedProductId ?? undefined,
+        (completed, total) => {
+          setFeedback(`Importing leads to pipeline: ${completed}/${total} processed…`);
+        }
+      );
+
+      const addedSet = new Set(added);
+      setResults((prev) =>
+        prev.map((r) =>
+          r.external_place_id && addedSet.has(r.external_place_id)
+            ? { ...r, dedup: { is_duplicate: true, status: "existing_new_pic", recommendation: "skip" } }
+            : r
+        )
+      );
+
+      if (failed.length > 0) {
+        setFeedback(`Added ${added.length} leads. (${failed.length} skipped or failed).`);
+      } else {
+        setFeedback(`Successfully imported ${added.length} leads to pipeline!`);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Batch add failed";
+      setFeedback(`Batch import error: ${message}`);
+    } finally {
+      setIsBatchAdding(false);
     }
   };
 
@@ -154,7 +219,6 @@ export default function MapPage() {
       return;
     }
 
-    // Merge analysis results back into results array
     setResults((prev) =>
       prev.map((r) => {
         const placeId = r.external_place_id;
@@ -170,6 +234,33 @@ export default function MapPage() {
     );
   };
 
+  // Map Click to Pin Territory Center
+  const handleMapClick = async (ev: { detail: { latLng: google.maps.LatLngLiteral | null } }) => {
+    const loc = ev.detail.latLng;
+    if (!loc) return;
+
+    const pinnedArea: GeocodeResult = {
+      place_id: `pinned_${Date.now()}`,
+      formatted_address: `Pinned Location (${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)})`,
+      lat: loc.lat,
+      lng: loc.lng,
+    };
+    setActiveArea(pinnedArea);
+    setCenter(loc);
+    setFeedback(`Territory center pinned to: ${pinnedArea.formatted_address}`);
+
+    // Try reverse geocoding to human-readable address
+    try {
+      const res = await geocodeArea(`${loc.lat},${loc.lng}`);
+      if (res) {
+        setActiveArea(res);
+        setFeedback(`Territory centered at: ${res.formatted_address}`);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const filteredResults = results.filter((r) => {
     if (filters.hasPhone && !r.phone) return false;
     if (filters.newOnly && r.dedup?.is_duplicate) return false;
@@ -180,17 +271,24 @@ export default function MapPage() {
     <div className="flex h-full flex-col gap-4 p-4">
       <Card data-tour="map-discovery">
         <CardHeader>
-          <div>
-            <CardTitle>Maps Discovery</CardTitle>
-            <CardDescription>
-              Discover businesses in a geographic radius and analyze product fit with AI-powered scoring.
-            </CardDescription>
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-lg">Map & Territory Discovery</CardTitle>
+              <CardDescription>
+                Discover businesses within a geographic radius, visualize sales territory boundaries, and analyze product fit.
+              </CardDescription>
+            </div>
+            {feedback ? (
+              <Badge variant="info" className="shrink-0 max-w-md truncate">
+                {feedback}
+              </Badge>
+            ) : null}
           </div>
-          {feedback ? <Badge variant="info">{feedback}</Badge> : null}
         </CardHeader>
       </Card>
 
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card">
+        {/* Search Panel with Saved Territories and Radius Controls */}
         <MapSearchPanel
           onSearch={handleSearch}
           onReset={() => {
@@ -201,16 +299,22 @@ export default function MapPage() {
           isSearching={isSearching}
           resultCount={results.length}
           onAreaFound={(area) => {
+            setActiveArea(area);
             setCenter({ lat: area.lat, lng: area.lng });
-            setZoom(14);
+            setZoom(radius > 10000 ? 11 : radius > 5000 ? 13 : 14);
           }}
           filters={filters}
           onFilterChange={setFilters}
           onMessage={setFeedback}
           selectedProductId={selectedProductId}
           onProductChange={setSelectedProductId}
+          radius={radius}
+          onRadiusChange={setRadius}
+          activeArea={activeArea}
+          onAreaSelect={setActiveArea}
         />
 
+        {/* Map Canvas with Visual Radius Circle and Center Pin */}
         <div className="relative flex-1 bg-[color:var(--surface-subtle)]">
           {isMapsEnabled && apiKey ? (
             <APIProvider apiKey={apiKey}>
@@ -221,11 +325,42 @@ export default function MapPage() {
                 zoom={zoom}
                 onCenterChanged={(ev) => setCenter(ev.detail.center)}
                 onZoomChanged={(ev) => setZoom(ev.detail.zoom)}
+                onClick={handleMapClick}
                 gestureHandling={"greedy"}
                 disableDefaultUI={false}
                 mapTypeControl={false}
                 streetViewControl={false}
               >
+                {/* Visual Territory Radius Circle */}
+                {activeArea && (
+                  <>
+                    <Circle
+                      center={{ lat: activeArea.lat, lng: activeArea.lng }}
+                      radius={radius}
+                      strokeColor="#4f46e5"
+                      strokeOpacity={0.85}
+                      strokeWeight={2}
+                      fillColor="#4f46e5"
+                      fillOpacity={0.09}
+                    />
+                    <AdvancedMarker
+                      position={{ lat: activeArea.lat, lng: activeArea.lng }}
+                      title={`Territory Center: ${activeArea.formatted_address}`}
+                      style={{ zIndex: 999 }}
+                    >
+                      <div className="flex flex-col items-center pointer-events-none origin-bottom">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-indigo-600 text-white shadow-xl animate-bounce">
+                          <Crosshair className="h-4 w-4" />
+                        </div>
+                        <div className="mt-0.5 whitespace-nowrap rounded-md bg-card/95 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-foreground shadow-md border border-border">
+                          Center ({(radius / 1000).toFixed(1)} km)
+                        </div>
+                      </div>
+                    </AdvancedMarker>
+                  </>
+                )}
+
+                {/* Discovered Lead Markers */}
                 <MapMarkersLayer
                   results={filteredResults}
                   selectedId={selectedId}
@@ -247,7 +382,7 @@ export default function MapPage() {
                       <h3 className="mb-2 text-lg font-semibold text-foreground">
                         {isMapsEnabled ? "Google Maps Configuration Required" : "Google Maps Integration Disabled"}
                       </h3>
-                      <p className="max-w-md text-sm">
+                      <p className="max-w-md text-sm text-muted-foreground">
                         {isMapsEnabled
                           ? "Please insert your Google Maps Browser API Key in the settings page to render the map."
                           : "Enable Google Maps integration in settings to render the map interface on this page."}
@@ -262,6 +397,14 @@ export default function MapPage() {
             </div>
           )}
 
+          {/* Floating Map Helper Badge */}
+          {activeArea && (
+            <div className="pointer-events-none absolute bottom-4 left-4 z-40 hidden sm:flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border shadow-md">
+              <Navigation className="h-3.5 w-3.5 text-[color:var(--brand)]" />
+              <span>Click anywhere on the map to re-pin territory center</span>
+            </div>
+          )}
+
           {error && (
             <div className="absolute left-1/2 top-4 z-50 -translate-x-1/2">
               <Badge variant="danger">{error}</Badge>
@@ -269,6 +412,7 @@ export default function MapPage() {
           )}
         </div>
 
+        {/* Results Panel with Batch Actions and Contact Indicators */}
         {(results.length > 0 || isSearching) && (
           <MapResultsPanel
             results={filteredResults}
@@ -278,9 +422,11 @@ export default function MapPage() {
             onSelect={handleSelect}
             onHover={setHoveredId}
             onAdd={handleAddLead}
+            onAddBatch={handleAddBatch}
             onAnalyze={handleAnalyzeProductFit}
             isDetailFetching={isDetailFetching}
             isAnalyzing={isAnalyzing}
+            isBatchAdding={isBatchAdding}
             aiMode={currentAiMode}
             selectedProductId={selectedProductId}
           />

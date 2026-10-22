@@ -245,6 +245,36 @@ export function useMapDiscovery() {
     }
   }, []);
 
+  const addBatchToLeads = useCallback(async (
+    places: DiscoveredLead[],
+    aiMode: "full_ai" | "hybrid" | "manual",
+    productId?: number,
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<{ added: string[]; failed: { placeId: string; error: string }[] }> => {
+    setIsSearching(true);
+    const added: string[] = [];
+    const failed: { placeId: string; error: string }[] = [];
+    let done = 0;
+
+    for (const place of places) {
+      if (!place.external_place_id) continue;
+      try {
+        await addToLeads(place, aiMode, productId);
+        added.push(place.external_place_id);
+      } catch (err) {
+        failed.push({
+          placeId: place.external_place_id,
+          error: err instanceof Error ? err.message : "Failed to add",
+        });
+      }
+      done++;
+      onProgress?.(done, places.length);
+    }
+
+    setIsSearching(false);
+    return { added, failed };
+  }, [addToLeads]);
+
   const getSearchHistory = useCallback(async () => {
     try {
       const res = await apiFetch("/maps/search-history");
@@ -264,6 +294,7 @@ export function useMapDiscovery() {
     getPlaceDetails,
     analyzeProductFit,
     addToLeads,
+    addBatchToLeads,
     getSearchHistory,
   };
 }
