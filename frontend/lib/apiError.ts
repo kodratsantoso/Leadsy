@@ -179,10 +179,34 @@ export function describeThrown(e: unknown, fallbackTitle = "Something went wrong
     };
   }
 
+  // Extract a readable title if e is an Error object whose message is not "[object Object]"
+  let title = e instanceof Error && e.message && e.message !== "[object Object]" ? e.message : undefined;
+  let detail: string | undefined;
+
+  // If title was not found or was "[object Object]", unpack potential object payloads
+  if (!title && e && typeof e === "object") {
+    const obj = e as Record<string, any>;
+    if (typeof obj.message === "string" && obj.message && obj.message !== "[object Object]") {
+      title = obj.message;
+    } else if (typeof obj.error === "string" && obj.error) {
+      title = obj.error;
+    } else if (typeof obj.error?.message === "string" && obj.error.message) {
+      title = obj.error.message;
+    } else if (typeof obj.data?.error === "string" && obj.data.error) {
+      title = obj.data.error;
+    }
+    if (typeof obj.hint === "string") {
+      detail = obj.hint;
+    } else if (typeof obj.error?.hint === "string") {
+      detail = obj.error.hint;
+    }
+  }
+
   return {
     status: 0,
     code: "UNKNOWN",
-    title: e instanceof Error && e.message ? e.message : fallbackTitle,
+    title: title || fallbackTitle,
+    detail,
     fields: {},
     isOffline: false,
   };

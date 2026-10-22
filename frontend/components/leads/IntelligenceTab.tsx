@@ -30,7 +30,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { runAiScreening } from "@/lib/aiScreeningPipeline";
 import { safeJsonArray, safeRender } from "@/lib/utils";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
-import { describeThrown } from "@/lib/apiError";
+import { describeThrown, readApiError } from "@/lib/apiError";
 import {
   clampPercent,
   formatQualificationStatus,
@@ -88,9 +88,11 @@ export function IntelligenceTab({
     useMutation({
       mutationFn: async () => {
         const res = await apiFetch(`/leads/${leadId}${endpoint}`, { method: 'POST' });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body?.message || body?.error || `Failed: ${endpoint}`);
-        return body;
+        if (!res.ok) {
+          const errorInfo = await readApiError(res, `Failed: ${endpoint}`);
+          throw new Error(errorInfo.title);
+        }
+        return await res.json().catch(() => ({}));
       },
       onSuccess: () => {
         setAiActionsFeedback({ type: 'success', msg: `${successLabel} dispatched.` });
@@ -147,10 +149,23 @@ export function IntelligenceTab({
     setAiActionsFeedback({ type: 'success', msg: 'Running full pipeline synchronously (no queue) — this can take several minutes, please keep this tab open...' });
     try {
       const res = await apiFetch(`/leads/${leadId}/ai-screening`, { method: 'POST' });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.success) {
-        throw new Error(json?.data?.error || json?.error || json?.message || 'Pipeline failed on server.');
+      if (!res.ok) {
+        const errorInfo = await readApiError(res, 'Pipeline failed on server.');
+        const detailMsg = errorInfo.detail ? ` (${errorInfo.detail})` : '';
+        throw new Error(`${errorInfo.title}${detailMsg}`);
       }
+
+      const json = await res.json().catch(() => ({}));
+      if (!json.success) {
+        const serverError =
+          (typeof json.error?.message === 'string' && json.error.message) ||
+          (typeof json.message === 'string' && json.message) ||
+          (typeof json.error === 'string' && json.error) ||
+          (typeof json.data?.error === 'string' && json.data.error) ||
+          'Pipeline failed on server.';
+        throw new Error(serverError);
+      }
+
       const data = json.data ?? {};
       setAiActionsFeedback({
         type: 'success',

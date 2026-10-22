@@ -22,7 +22,7 @@ import { PreMeetingScreeningModal } from "@/components/leads/PreMeetingScreening
 import { apiFetch } from "@/lib/apiFetch";
 import { runAiScreening } from "@/lib/aiScreeningPipeline";
 import { useAuthStore } from "@/store/useAuthStore";
-import { describeThrown } from "@/lib/apiError";
+import { describeThrown, readApiError } from "@/lib/apiError";
 
 const TABS = [
   { key: "single", label: "Single Lead Debug", icon: TestTube2 },
@@ -90,9 +90,11 @@ function SingleLeadDebugTab() {
     useMutation({
       mutationFn: async () => {
         const res = await apiFetch(`/leads/${selected!.id}${endpoint}`, { method: "POST" });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json?.message || json?.error || `Failed: ${endpoint}`);
-        return json;
+        if (!res.ok) {
+          const errorInfo = await readApiError(res, `Failed: ${endpoint}`);
+          throw new Error(errorInfo.title);
+        }
+        return await res.json().catch(() => ({}));
       },
       onSuccess: () => {
         setFeedback({ type: "success", msg: `${successLabel} dispatched.` });
