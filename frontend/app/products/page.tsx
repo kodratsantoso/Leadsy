@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Package, Loader2, Pencil, Trash2, Layers, Globe, Tag, Sparkles, Building2, CheckCircle2 } from "lucide-react";
+import { Plus, Package, Loader2, Pencil, Trash2, Layers, Globe, Tag, Sparkles, Building2, CheckCircle2, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
@@ -228,8 +228,8 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Filter Bar & Category Slicers */}
-      <div className="space-y-3">
+      {/* Filter Bar */}
+      <div className="space-y-2.5">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <FilterBarSearch
@@ -237,6 +237,22 @@ export default function ProductsPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search products by name, description, or category..."
             />
+          </div>
+          <div className="w-full sm:w-64">
+            <Select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              <option value="all">All Categories ({rawProducts.length})</option>
+              {categories.map((cat) => {
+                const count = rawProducts.filter((p) => p.category === cat).length;
+                return (
+                  <option key={cat} value={cat}>
+                    {cat} ({count})
+                  </option>
+                );
+              })}
+            </Select>
           </div>
           <div className="w-full sm:w-44">
             <Select
@@ -250,38 +266,60 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Category Pills */}
-        {categories.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <span className="text-xs font-medium text-muted-foreground mr-1">Category:</span>
+        {/* Active Filter Indicators */}
+        {(selectedCategory !== "all" || selectedStatus !== "all" || search.trim()) && (
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
+            <span>Active filters:</span>
+            {selectedCategory !== "all" && (
+              <Badge variant="neutral" className="gap-1 pl-2 pr-1.5 py-0.5">
+                <span className="max-w-[220px] truncate">{selectedCategory}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory("all")}
+                  className="rounded-full hover:bg-muted p-0.5 text-muted-foreground hover:text-foreground"
+                  title="Remove category filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {selectedStatus !== "all" && (
+              <Badge variant="neutral" className="gap-1 pl-2 pr-1.5 py-0.5">
+                <span>{selectedStatus === "active" ? "Active Only" : "Inactive Only"}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatus("all")}
+                  className="rounded-full hover:bg-muted p-0.5 text-muted-foreground hover:text-foreground"
+                  title="Remove status filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {search.trim() && (
+              <Badge variant="neutral" className="gap-1 pl-2 pr-1.5 py-0.5">
+                <span className="max-w-[150px] truncate">"{search}"</span>
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="rounded-full hover:bg-muted p-0.5 text-muted-foreground hover:text-foreground"
+                  title="Clear search"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
             <button
               type="button"
-              onClick={() => setSelectedCategory("all")}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                selectedCategory === "all"
-                  ? "bg-primary text-primary-foreground shadow-xs"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
+              onClick={() => {
+                setSelectedCategory("all");
+                setSelectedStatus("all");
+                setSearch("");
+              }}
+              className="text-xs text-primary hover:underline ml-1 font-medium"
             >
-              All ({rawProducts.length})
+              Reset all
             </button>
-            {categories.map((cat) => {
-              const count = rawProducts.filter((p) => p.category === cat).length;
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                    selectedCategory === cat
-                      ? "bg-primary text-primary-foreground shadow-xs"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {cat} ({count})
-                </button>
-              );
-            })}
           </div>
         )}
       </div>
