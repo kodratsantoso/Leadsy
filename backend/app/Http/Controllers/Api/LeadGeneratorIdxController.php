@@ -59,24 +59,37 @@ class LeadGeneratorIdxController extends Controller
             ], 503);
         }
 
+        $tenantId = $request->user()->tenant_id;
+
+        // Precompute duplicate status across all cached IDX companies for global counters & server-side filtering
+        $allIdx = IdxCompanyCache::all(['idx_code', 'company_name', 'website']);
+        $allIdxItems = $allIdx->map(fn ($c) => [
+            'idx_code' => $c->idx_code,
+            'company_name' => $c->company_name,
+            'website' => $c->website,
+        ])->all();
+
+        $allDuplicatesMap = $this->duplicateService->findDuplicatesForBatch($allIdxItems, $tenantId);
+        $duplicateIdxCodes = array_keys(array_filter($allDuplicatesMap, fn ($d) => $d['is_duplicate']));
+
         $filters = [
             'keyword' => $request->query('keyword', ''),
+            'sector' => $request->query('sector', ''),
+            'listing_board' => $request->query('listing_board', ''),
             'industry' => $request->query('industry', ''),
             'sub_industry' => $request->query('sub_industry', ''),
+            'status' => $request->query('status', 'all'), // 'all' | 'new' | 'in_leads'
         ];
         
         $perPage = (int) $request->query('per_page', 50);
 
-        $paginator = $this->discoveryService->search($filters, $perPage);
+        $paginator = $this->discoveryService->search($filters, $perPage, $duplicateIdxCodes);
 
-        // Normalize data and check duplicates in high-performance batch
-        $tenantId = $request->user()->tenant_id;
         $normalizedItems = collect($paginator->items())->map(fn ($c) => $this->normalizer->normalize($c))->all();
-        $duplicatesMap = $this->duplicateService->findDuplicatesForBatch($normalizedItems, $tenantId);
 
-        $items = collect($normalizedItems)->map(function ($item) use ($duplicatesMap) {
+        $items = collect($normalizedItems)->map(function ($item) use ($allDuplicatesMap) {
             $code = $item['idx_code'] ?? '';
-            $dupInfo = $duplicatesMap[$code] ?? ['is_duplicate' => false, 'lead_id' => null, 'lead_company_name' => null];
+            $dupInfo = $allDuplicatesMap[$code] ?? ['is_duplicate' => false, 'lead_id' => null, 'lead_company_name' => null];
 
             $item['is_duplicate'] = $dupInfo['is_duplicate'];
             $item['lead_id'] = $dupInfo['lead_id'];
@@ -85,7 +98,7 @@ class LeadGeneratorIdxController extends Controller
         });
 
         // Log search if there's a keyword or filter
-        if ($filters['keyword'] || $filters['industry'] || $filters['sub_industry']) {
+        if ($filters['keyword'] || $filters['sector'] || $filters['listing_board'] || $filters['industry'] || $filters['sub_industry'] || $filters['status'] !== 'all') {
             AuditService::log(
                 'search',
                 'lead_generator_idx',
@@ -95,6 +108,10 @@ class LeadGeneratorIdxController extends Controller
             );
         }
 
+        $totalCached = $allIdx->count();
+        $totalInLeads = count($duplicateIdxCodes);
+        $totalNew = $totalCached - $totalInLeads;
+
         return response()->json([
             'data' => $items,
             'meta' => [
@@ -102,15 +119,38 @@ class LeadGeneratorIdxController extends Controller
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
-                'cached_companies' => IdxCompanyCache::count(),
-                'in_leads_count' => $items->where('is_duplicate', true)->count(),
+                'cached_companies' => $totalCached,
+                'total_in_leads' => $totalInLeads,
+                'total_new' => $totalNew,
             ]
         ]);
     }
 
-    public function filters()
+    public function filters(Request $request)
     {
-        return response()->json($this->discoveryService->getFilters());
+        $tenantId = $request->user()->tenant_id;
+        $filters = $this->discoveryService->getFilters();
+
+        $allIdx = IdxCompanyCache::all(['idx_code', 'company_name', 'website']);
+        $allIdxItems = $allIdx->map(fn ($c) => [
+            'idx_code' => $c->idx_code,
+            'company_name' => $c->company_name,
+            'website' => $c->website,
+        ])->all();
+
+        $allDuplicatesMap = $this->duplicateService->findDuplicatesForBatch($allIdxItems, $tenantId);
+        $duplicateIdxCodes = array_keys(array_filter($allDuplicatesMap, fn ($d) => $d['is_duplicate']));
+
+        $totalCached = $allIdx->count();
+        $totalInLeads = count($duplicateIdxCodes);
+
+        $filters['summary'] = [
+            'total' => $totalCached,
+            'in_leads' => $totalInLeads,
+            'new' => $totalCached - $totalInLeads,
+        ];
+
+        return response()->json($filters);
     }
 
     public function import(Request $request)
