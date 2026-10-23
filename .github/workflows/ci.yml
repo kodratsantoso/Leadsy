@@ -26,7 +26,7 @@ jobs:
 
       - name: PHP Syntax Check
         run: |
-          docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html php:8.2-cli sh -c \
+          docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html php:8.2.35-cli sh -c \
             "find app bootstrap config database routes tests -name '*.php' -print0 | xargs -0 -n 1 php -l"
 
       - name: Composer Install and Unit Tests
@@ -35,7 +35,7 @@ jobs:
             composer install --ignore-platform-reqs --prefer-dist --no-interaction
           docker run --rm -v "$PWD/backend:/var/www/html" -w /var/www/html \
             -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: \
-            php:8.2-cli sh -c "cp -n .env.example .env && php artisan key:generate && php artisan test --testsuite=Unit && php artisan test --filter ExampleTest"
+            php:8.2.35-cli sh -c "cp -n .env.example .env && php artisan key:generate && php artisan test --testsuite=Unit && php artisan test --filter ExampleTest"
 
   test-frontend:
     name: Frontend Quality Gates
@@ -50,7 +50,7 @@ jobs:
           docker run --rm \
             -v "$PWD:/workspace" \
             -w /workspace \
-            node:20-bookworm \
+            node:22.23.4-bookworm \
             bash -lc 'node --version && npm --version && npm ci && npm ci --prefix frontend && npm run build'
 
   deploy:
