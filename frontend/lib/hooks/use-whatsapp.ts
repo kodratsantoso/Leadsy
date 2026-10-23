@@ -91,7 +91,12 @@ export function useWhatsApp() {
       const res = await apiFetch('/whatsapp/session/init', { method: 'POST' });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `HTTP ${res.status}`);
+        const errorMsg =
+          (typeof body.error === "object" && body.error?.message) ||
+          (typeof body.error === "string" ? body.error : null) ||
+          body.message ||
+          `HTTP ${res.status}`;
+        throw new Error(errorMsg);
       }
       return await res.json();
     } catch (err: unknown) {

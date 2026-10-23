@@ -110,7 +110,7 @@ export async function readApiError(res: Response, fallbackTitle?: string): Promi
   }
 
   const fallback = fallbackFor(res.status);
-  const err = (body?.error ?? {}) as {
+  const err = (typeof body?.error === "object" && body?.error !== null ? body.error : {}) as {
     code?: string;
     message?: string;
     hint?: string;
@@ -124,9 +124,11 @@ export async function readApiError(res: Response, fallbackTitle?: string): Promi
   const serverMessage: string | undefined =
     typeof err.message === "string" && err.message
       ? err.message
-      : typeof body?.message === "string" && body.message
-        ? body.message
-        : undefined;
+      : typeof body?.error === "string" && body.error
+        ? body.error
+        : typeof body?.message === "string" && body.message
+          ? body.message
+          : undefined;
 
   return {
     status: res.status,

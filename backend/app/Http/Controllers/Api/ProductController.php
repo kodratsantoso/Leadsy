@@ -188,7 +188,13 @@ class ProductController extends Controller
         // At least one source must be provided
         if (! $pdfFile && ! $referenceUrl && ! $productName) {
             return response()->json([
-                'error' => 'Provide at least one of: product_name, reference_url, or pdf_file.',
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'VALIDATION_FAILED',
+                    'message' => 'Provide at least one of: product_name, reference_url, or pdf_file.',
+                ],
+                'message' => 'Provide at least one of: product_name, reference_url, or pdf_file.',
             ], 422);
         }
 
@@ -210,7 +216,15 @@ class ProductController extends Controller
         }
 
         if (! $result['success']) {
-            return response()->json(['error' => $result['error']], 422);
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'AI_GENERATION_FAILED',
+                    'message' => $result['error'] ?? 'AI generation failed. Please try again.',
+                ],
+                'message' => $result['error'] ?? 'AI generation failed. Please try again.',
+            ], 422);
         }
 
         AuditService::log(

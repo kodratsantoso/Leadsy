@@ -49,12 +49,21 @@ class ProductMetadataGenerationService
     {
         $content = $this->fetchUrlContent($url);
 
-        if ($content === null) {
-            return ['success' => false, 'error' => "Unable to fetch content from URL: {$url}"];
-        }
+        if ($content === null || strlen(trim($content)) < 100) {
+            if (!empty(trim($productName))) {
+                Log::info('[ProductMetadataGen] URL scraping yielded insufficient content; falling back to product name inference', [
+                    'url' => $url,
+                    'product_name' => $productName,
+                ]);
+                $fallback = $this->generate($productName, $availableCategories);
+                if ($fallback['success']) {
+                    return $fallback;
+                }
+            }
 
-        if (strlen(trim($content)) < 100) {
-            return ['success' => false, 'error' => 'The URL returned too little readable content for analysis.'];
+            return ['success' => false, 'error' => $content === null
+                ? "Unable to fetch content from URL: {$url}. Check if the website is accessible."
+                : 'The website returned too little readable content for analysis.'];
         }
 
         $prompt = $this->buildContentPrompt($content, $url, $productName, $availableCategories, 'website');
@@ -100,13 +109,19 @@ class ProductMetadataGenerationService
     private function fetchUrlContent(string $url): ?string
     {
         try {
-            $response = Http::timeout(20)
+            $normalizedUrl = trim($url);
+            if (!preg_match('#^https?://#i', $normalizedUrl)) {
+                $normalizedUrl = 'https://' . $normalizedUrl;
+            }
+
+            $response = Http::timeout(15)
+                ->connectTimeout(5)
                 ->withHeaders([
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                     'Accept-Language' => 'en-US,en;q=0.9,id;q=0.8',
                 ])
-                ->get($url);
+                ->get($normalizedUrl);
 
             if (! $response->successful()) {
                 Log::warning('[ProductMetadataGen] URL fetch failed', ['url' => $url, 'status' => $response->status()]);

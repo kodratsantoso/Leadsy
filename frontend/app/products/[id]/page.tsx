@@ -52,6 +52,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
+import { readApiError, flattenFieldErrors } from "@/lib/apiError";
 
 import { QuestionGuide } from "@/components/products/QuestionGuide";
 import { ProductScrapeAndCompare } from "@/components/products/ProductScrapeAndCompare";
@@ -234,10 +235,16 @@ export default function ProductDetailPage() {
   const [refPdfName, setRefPdfName] = useState("");
 
   const handleScrapeFromWebsite = () => {
-    const urlToUse = formWebsiteUrl.trim() || refUrl.trim();
+    let urlToUse = (formWebsiteUrl.trim() || refUrl.trim());
     if (!urlToUse) {
       toast.error("Please enter an Official Website URL to scrape.");
       return;
+    }
+    // Auto-prepend https:// if protocol is omitted
+    if (!/^https?:\/\//i.test(urlToUse)) {
+      urlToUse = `https://${urlToUse}`;
+      setFormWebsiteUrl(urlToUse);
+      setRefUrl(urlToUse);
     }
     aiGenerateMutation.mutate({
       source: "url",
@@ -343,8 +350,10 @@ export default function ProductDetailPage() {
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || "Failed to update product");
+        const errorInfo = await readApiError(res, "Failed to update product");
+        const fieldErrors = flattenFieldErrors(errorInfo.fields);
+        const msg = fieldErrors.length > 0 ? `${errorInfo.title} (${fieldErrors.join(", ")})` : errorInfo.title;
+        throw new Error(msg);
       }
       return res.json();
     },
@@ -354,7 +363,7 @@ export default function ProductDetailPage() {
       toast.success("Product details and tiers saved successfully.");
     },
     onError: (err: any) => {
-      toast.error(err.message || "Failed to save product.");
+      toast.error(err?.message || "Failed to save product.");
     },
   });
 
@@ -369,9 +378,9 @@ export default function ProductDetailPage() {
         body: fd,
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        const msg =
-          err.errors?.logo?.[0] || err.message || err.error || "Failed to upload product logo";
+        const errorInfo = await readApiError(res, "Failed to upload product logo");
+        const fieldErrors = flattenFieldErrors(errorInfo.fields);
+        const msg = fieldErrors.length > 0 ? `${errorInfo.title} (${fieldErrors.join(", ")})` : errorInfo.title;
         throw new Error(msg);
       }
       return res.json();
@@ -390,7 +399,7 @@ export default function ProductDetailPage() {
       toast.success("Product logo uploaded successfully.");
     },
     onError: (err: any) => {
-      setUploadError(err.message || "Failed to upload product logo");
+      setUploadError(err?.message || "Failed to upload product logo");
     },
   });
 
@@ -400,8 +409,8 @@ export default function ProductDetailPage() {
       setUploadError(null);
       const res = await apiFetch(`/products/${productId}/logo`, { method: "DELETE" });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to remove product logo");
+        const errorInfo = await readApiError(res, "Failed to remove product logo");
+        throw new Error(errorInfo.title);
       }
       return res.json();
     },
@@ -415,7 +424,7 @@ export default function ProductDetailPage() {
       toast.success("Product logo removed.");
     },
     onError: (err: any) => {
-      setUploadError(err.message || "Failed to remove product logo");
+      setUploadError(err?.message || "Failed to remove product logo");
     },
   });
 
@@ -449,8 +458,16 @@ export default function ProductDetailPage() {
       }
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? body.message ?? `Request failed (${res.status})`);
+        const errorInfo = await readApiError(res, "AI profiling failed");
+        let msg = errorInfo.title;
+        if (errorInfo.detail) {
+          msg += ` - ${errorInfo.detail}`;
+        }
+        const fieldErrors = flattenFieldErrors(errorInfo.fields);
+        if (fieldErrors.length > 0) {
+          msg += ` (${fieldErrors.join(", ")})`;
+        }
+        throw new Error(msg);
       }
       return res.json();
     },
@@ -500,7 +517,14 @@ export default function ProductDetailPage() {
       setAiError(null);
       toast.success("AI profiling complete! Product overview, targeting parameters, and tiers updated.");
     },
-    onError: (err: Error) => setAiError(err.message),
+    onError: (err: any) => {
+      const msg =
+        typeof err?.message === "string" && err.message !== "[object Object]"
+          ? err.message
+          : "Failed to generate AI reference. Please check the website URL and try again.";
+      setAiError(msg);
+      toast.error(msg);
+    },
   });
 
   const handleSave = () => saveMutation.mutate();
