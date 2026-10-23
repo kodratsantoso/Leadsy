@@ -88,6 +88,12 @@ class Product extends Model
         'keywords' => 'array',
     ];
 
+    protected $appends = [
+        'logo_url',
+        'starting_price',
+        'tiers_count',
+    ];
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -106,5 +112,30 @@ class Product extends Model
     public function tiers(): HasMany
     {
         return $this->hasMany(ProductTier::class);
+    }
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (!$this->logo_path) {
+            return null;
+        }
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path);
+    }
+
+    public function getStartingPriceAttribute(): ?float
+    {
+        if ($this->relationLoaded('tiers')) {
+            $min = $this->tiers->min('price');
+            return $min !== null ? (float) $min : null;
+        }
+        return null;
+    }
+
+    public function getTiersCountAttribute(): int
+    {
+        if ($this->relationLoaded('tiers')) {
+            return $this->tiers->count();
+        }
+        return 0;
     }
 }

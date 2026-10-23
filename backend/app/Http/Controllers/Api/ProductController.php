@@ -23,7 +23,23 @@ class ProductController extends Controller
             $query->where('status', $request->input('status'));
         }
 
-        return response()->json(['data' => $query->get()]);
+        if ($request->filled('category')) {
+            $query->where('category', $request->input('category'));
+        }
+
+        $products = $query->get();
+
+        $categories = Product::whereNotNull('category')
+            ->where('category', '!=', '')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category')
+            ->values();
+
+        return response()->json([
+            'data' => $products,
+            'categories' => $categories,
+        ]);
     }
 
     public function show(Product $product): JsonResponse
