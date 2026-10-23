@@ -4,8 +4,18 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.30.0** — 2026-10-21
+Current release: **v1.31.0** — 2026-10-23
  
+## What's New in v1.31.0 (Map & Territory Discovery UI/UX Craftsmanship & Intentional Pinning)
+
+- **Intentional Territory Pinning Mode** — Replaced accidental map click shifts with a deliberate "Set Center on Map" targeting mode. Moving the search center now requires active engagement, preventing incidental clicks from resetting sales territories.
+- **Collapsible Flexible Workspace Panels** — Added minimize/expand toggles for both the left search filters and right results panel, enabling sales reps to effortlessly switch between compact inspector view and full-screen geospatial territory exploration.
+- **Unified Clean Search Sidebar** — Eliminated nested card clutter in favor of an ergonomic, cohesive search workflow with sticky "Run Discovery Scan" action, integrated GPS targeting, and compact preset selectors.
+- **Interactive Fly-To Map Navigation** — Added one-click "Locate on Map" targeting on all result cards that smoothly animates camera focus and zooms directly to the business coordinate.
+- **Direct WhatsApp Communication & Quick Pipeline Ingestion** — Added direct chat links and instant 1-click addition to the pipeline directly from list cards.
+- **Leadsy Design System Governance Alignment** — Cleaned up rogue bouncing animations and hardcoded hex colors, standardizing radius circle overlays and territory target pins with theme variables (`--brand`).
+- **AI Sync Pipeline Error Safeguard** — Fixed object casting error preventing `[object Object]` from masking underlying gateway/network feedback.
+
 ## What's New in v1.30.0 (SaaS Platform Admin Phase 1 & 2: Dynamic Plan Packaging & Tenant 360 Console)
 
 - **Dynamic Plan & Packaging Engine (Phase 1)** — Implemented database-driven product tiers (`plans` table and `Plan` model) replacing static mock arrays. Supports configurable seat limits, extra seat unit pricing, lead database quotas, disk storage limits (GB), monthly AI budget caps (USD), and WhatsApp channels.

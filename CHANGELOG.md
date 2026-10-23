@@ -9,6 +9,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.31.0] — 2026-10-23 · Minor Release
+
+### Fitur Baru & Penyempurnaan Map & Territory UX
+- **Intentional Territory Pinning Mode** — Mencegah klik tidak sengaja di peta menggeser titik pusat territory (`handleMapClick`). Pengguna kini menggunakan mode eksplisit *"Set Center on Map"* dengan panduan visual dan cursor targeting.
+- **Collapsible Workspace Panels** — Mengatasi masalah peta terjepit di layar desktop/laptop dengan tombol toggle minimize/expand pada panel pencarian kiri dan panel hasil kanan (`PanelLeftOpen`, `PanelRightOpen`), memberikan ruang penjelajahan peta layar penuh.
+- **Unified Flat Search Sidebar** — Menghilangkan *box nesting fatigue* dari 4 Card kaku menjadi panel pencarian bersih beralur sekuensial; tombol *"Run Discovery Scan"* kini sticky dan selalu terlihat tanpa perlu scroll panjang ke bawah.
+- **Interactive Fly-To Map Navigation** — Tombol *"Locate on Map"* pada setiap kartu prospek langsung menggeser fokus dan zoom peta ke titik koordinat bisnis prospek yang bersangkutan secara halus.
+- **Direct WhatsApp & Quick Actions** — Tombol shortcut WhatsApp chat instan dan 1-klik tambah ke pipeline langsung pada kartu prospek tanpa harus membuka detail sub-layar.
+- **Brand Governance Markers & Radius Styling** — Menghilangkan animasi *bounce* yang mengganggu dan warna hardcoded; seluruh marker pusat territory dan lingkaran radius kini selaras dengan design token sistem Leadsy (`--brand`).
+- **Error Robustness** — Menangani parsing error pipeline AI sinkron agar tidak lagi menampilkan `[object Object]`.
+
 ## [1.30.0] — 2026-10-21 · Minor Release
 
 ### Fitur Baru & Peningkatan Arsitektur

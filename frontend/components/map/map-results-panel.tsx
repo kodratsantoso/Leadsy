@@ -7,7 +7,9 @@ import {
   Building2,
   CheckCircle2,
   CheckSquare,
+  ChevronLeft,
   ChevronRight,
+  Crosshair,
   Globe,
   Loader2,
   MapPin,
@@ -51,6 +53,9 @@ type ResultPanelProps = {
   isAnalyzing?: boolean;
   isBatchAdding?: boolean;
   selectedProductId?: number | null;
+  onFlyTo?: (lead: DiscoveredLead) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 };
 
 const FIT_LEVEL_CONFIG: Record<FitLevel, { label: string; variant: "success" | "warning" | "neutral" | "outline"; color: string }> = {
@@ -114,6 +119,9 @@ export function MapResultsPanel({
   isAnalyzing,
   isBatchAdding,
   selectedProductId,
+  onFlyTo,
+  isCollapsed = false,
+  onToggleCollapse,
 }: ResultPanelProps) {
   const [sortKey, setSortKey] = useState<SortKey>("default");
   const [fitFilter, setFitFilter] = useState<FitFilter>("all");
@@ -126,6 +134,28 @@ export function MapResultsPanel({
   const newLeads = results.filter((r) => !r.dedup?.is_duplicate);
   const duplicateCount = results.length - newLeads.length;
   const highFitCount = results.filter((r) => r.fit_analysis?.fit_level === "high").length;
+
+  if (isCollapsed) {
+    return (
+      <div className="flex h-full w-12 shrink-0 flex-col items-center justify-between border-l border-border bg-background py-4">
+        <div className="flex flex-col items-center gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onToggleCollapse}
+            tooltip="Expand Results Panel"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="h-4 w-px bg-border" />
+          <Badge variant="brand" className="text-[10px] px-1.5 py-0.5">
+            {results.length}
+          </Badge>
+        </div>
+      </div>
+    );
+  }
 
   // Filter
   let displayed = results.filter((r) => {
@@ -176,10 +206,10 @@ export function MapResultsPanel({
   };
 
   return (
-    <div className="relative flex w-full shrink-0 flex-col border-l border-border bg-background p-4 sm:w-[440px]">
+    <div className="relative flex w-full shrink-0 flex-col border-l border-border bg-background p-4 sm:w-[420px] lg:w-[440px]">
       <Card className="flex h-full flex-col">
         <CardHeader className="space-y-3 pb-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">Discovery Results</CardTitle>
               {totalCount > 0 && !selectedId ? (
@@ -188,11 +218,25 @@ export function MapResultsPanel({
                 </Badge>
               ) : null}
             </div>
-            {selectedId ? (
-              <Button variant="ghost" size="sm" onClick={() => onSelect(null)}>
-                Back to list
-              </Button>
-            ) : null}
+            <div className="flex items-center gap-1">
+              {selectedId ? (
+                <Button variant="ghost" size="sm" onClick={() => onSelect(null)}>
+                  Back to list
+                </Button>
+              ) : null}
+              {onToggleCollapse && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={onToggleCollapse}
+                  tooltip="Minimize Panel"
+                  className="h-7 w-7"
+                >
+                  <ChevronRight className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Quick Territory Coverage Stats Bar */}
@@ -417,23 +461,57 @@ export function MapResultsPanel({
                       ) : null}
                     </div>
 
-                    {/* Inline Quick Add Button */}
-                    {!isDuplicate ? (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        tooltip="Add to Leads"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAdd(result, aiMode);
-                        }}
-                        className="shrink-0 text-muted-foreground hover:text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/50" />
-                    )}
+                    {/* Inline Actions */}
+                    <div className="flex shrink-0 items-center gap-1">
+                      {onFlyTo && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          tooltip="Locate on Map"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onFlyTo(result);
+                          }}
+                          className="h-7 w-7 text-muted-foreground hover:text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
+                        >
+                          <Crosshair className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+
+                      {result.phone && (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          tooltip="Chat via WhatsApp"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const cleanPhone = result.phone!.replace(/[^0-9]/g, "");
+                            const formatted = cleanPhone.startsWith("0") ? "62" + cleanPhone.slice(1) : cleanPhone;
+                            window.open(`https://wa.me/${formatted}`, "_blank");
+                          }}
+                          className="h-7 w-7 text-emerald-600 hover:bg-emerald-500/10"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+
+                      {!isDuplicate ? (
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          tooltip="Add to Leads"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAdd(result, aiMode);
+                          }}
+                          className="h-7 w-7 text-muted-foreground hover:text-[color:var(--brand)] hover:bg-[color:var(--brand)]/10"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                      )}
+                    </div>
                   </div>
                 );
               })

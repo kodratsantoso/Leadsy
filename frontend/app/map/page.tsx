@@ -3,7 +3,19 @@
 import { useState, useEffect } from "react";
 import { APIProvider, Map, Circle, AdvancedMarker } from "@vis.gl/react-google-maps";
 import Link from "next/link";
-import { Crosshair, Loader2, MapPin, Navigation, Sparkles } from "lucide-react";
+import {
+  Crosshair,
+  Layers,
+  ListFilter,
+  Loader2,
+  MapPin,
+  Navigation,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Sparkles,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -58,6 +70,13 @@ export default function MapPage() {
   // Active territory context
   const [activeArea, setActiveArea] = useState<GeocodeResult | null>(null);
   const [radius, setRadius] = useState<number>(3000);
+
+  // Intentional Pin Mode (prevents accidental clicks from moving the territory center)
+  const [isPinModeActive, setIsPinModeActive] = useState(false);
+
+  // Panel Collapsible States
+  const [isSearchCollapsed, setIsSearchCollapsed] = useState(false);
+  const [isResultsCollapsed, setIsResultsCollapsed] = useState(false);
 
   const [filters, setFilters] = useState({ hasPhone: false, newOnly: false });
   const [feedback, setFeedback] = useState("");
@@ -127,6 +146,7 @@ export default function MapPage() {
     setResults(discovered);
     setCenter({ lat: params.lat, lng: params.lng });
     setZoom(params.radius > 10000 ? 11 : params.radius > 5000 ? 13 : 14);
+    setIsResultsCollapsed(false);
   };
 
   const handleSelect = async (placeId: string | null) => {
@@ -149,6 +169,12 @@ export default function MapPage() {
     } finally {
       setIsDetailFetching(false);
     }
+  };
+
+  const handleFlyTo = (lead: DiscoveredLead) => {
+    setCenter({ lat: lead.lat, lng: lead.lng });
+    setZoom(16);
+    setSelectedId(lead.external_place_id ?? null);
   };
 
   const handleAddLead = async (lead: DiscoveredLead, aiMode: AiMode) => {
@@ -234,14 +260,18 @@ export default function MapPage() {
     );
   };
 
-  // Map Click to Pin Territory Center
+  // Safe Click to Pin Territory Center (only triggered when isPinModeActive is true)
   const handleMapClick = async (ev: { detail: { latLng: google.maps.LatLngLiteral | null } }) => {
+    if (!isPinModeActive) return;
+
     const loc = ev.detail.latLng;
     if (!loc) return;
 
+    setIsPinModeActive(false);
+
     const pinnedArea: GeocodeResult = {
       place_id: `pinned_${Date.now()}`,
-      formatted_address: `Pinned Location (${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)})`,
+      formatted_address: `Pinned Territory (${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)})`,
       lat: loc.lat,
       lng: loc.lng,
     };
@@ -268,26 +298,39 @@ export default function MapPage() {
   });
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
-      <Card data-tour="map-discovery">
-        <CardHeader>
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="text-lg">Map & Territory Discovery</CardTitle>
-              <CardDescription>
-                Discover businesses within a geographic radius, visualize sales territory boundaries, and analyze product fit.
-              </CardDescription>
-            </div>
-            {feedback ? (
-              <Badge variant="info" className="shrink-0 max-w-md truncate">
-                {feedback}
-              </Badge>
-            ) : null}
+    <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
+      {/* ── Page Header Bar ── */}
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[color:var(--brand)] text-[color:var(--brand-foreground)] shadow-xs">
+            <MapPin className="h-5 w-5" />
           </div>
-        </CardHeader>
-      </Card>
+          <div>
+            <h1 className="text-base font-bold text-foreground">Map & Territory Discovery</h1>
+            <p className="text-xs text-muted-foreground">
+              Geospatial prospecting, radius scanning, and AI product-fit matching.
+            </p>
+          </div>
+        </div>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex items-center gap-2">
+          {feedback ? (
+            <Badge variant="info" className="shrink-0 max-w-sm truncate text-xs">
+              {feedback}
+            </Badge>
+          ) : null}
+
+          {/* Quick Stats Pill */}
+          {results.length > 0 && (
+            <Badge variant="brand" className="text-xs">
+              {results.length} Discovered
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* ── Main Workspace: Search Panel + Map Canvas + Results Panel ── */}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
         {/* Search Panel with Saved Territories and Radius Controls */}
         <MapSearchPanel
           onSearch={handleSearch}
@@ -312,10 +355,57 @@ export default function MapPage() {
           onRadiusChange={setRadius}
           activeArea={activeArea}
           onAreaSelect={setActiveArea}
+          isCollapsed={isSearchCollapsed}
+          onToggleCollapse={() => setIsSearchCollapsed(!isSearchCollapsed)}
         />
 
-        {/* Map Canvas with Visual Radius Circle and Center Pin */}
+        {/* ── Map Canvas ── */}
         <div className="relative flex-1 bg-[color:var(--surface-subtle)]">
+          {/* Floating Map Utility Bar */}
+          <div className="absolute top-3 left-3 z-30 flex items-center gap-2">
+            <Button
+              variant={isPinModeActive ? "default" : "secondary"}
+              size="sm"
+              onClick={() => {
+                const next = !isPinModeActive;
+                setIsPinModeActive(next);
+                if (next) {
+                  setFeedback("Pin mode active: Click anywhere on the map to set territory center.");
+                } else {
+                  setFeedback("");
+                }
+              }}
+              className="gap-1.5 text-xs h-8 shadow-md"
+            >
+              <Crosshair className={cn("h-3.5 w-3.5", isPinModeActive ? "animate-spin" : "")} />
+              <span>{isPinModeActive ? "Click map to set center" : "Set Center on Map"}</span>
+            </Button>
+
+            {isSearchCollapsed && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsSearchCollapsed(false)}
+                className="gap-1.5 text-xs h-8 shadow-md"
+              >
+                <PanelLeftOpen className="h-3.5 w-3.5" />
+                <span>Show Search</span>
+              </Button>
+            )}
+
+            {results.length > 0 && isResultsCollapsed && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsResultsCollapsed(false)}
+                className="gap-1.5 text-xs h-8 shadow-md"
+              >
+                <PanelRightOpen className="h-3.5 w-3.5" />
+                <span>Results ({results.length})</span>
+              </Button>
+            )}
+          </div>
+
           {isMapsEnabled && apiKey ? (
             <APIProvider apiKey={apiKey}>
               <Map
@@ -337,23 +427,23 @@ export default function MapPage() {
                     <Circle
                       center={{ lat: activeArea.lat, lng: activeArea.lng }}
                       radius={radius}
-                      strokeColor="#4f46e5"
-                      strokeOpacity={0.85}
+                      strokeColor="#6366f1"
+                      strokeOpacity={0.8}
                       strokeWeight={2}
-                      fillColor="#4f46e5"
-                      fillOpacity={0.09}
+                      fillColor="#6366f1"
+                      fillOpacity={0.08}
                     />
                     <AdvancedMarker
                       position={{ lat: activeArea.lat, lng: activeArea.lng }}
                       title={`Territory Center: ${activeArea.formatted_address}`}
                       style={{ zIndex: 999 }}
                     >
-                      <div className="flex flex-col items-center pointer-events-none origin-bottom">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-indigo-600 text-white shadow-xl animate-bounce">
-                          <Crosshair className="h-4 w-4" />
+                      <div className="flex flex-col items-center pointer-events-none origin-bottom select-none">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-[color:var(--brand)] text-[color:var(--brand-foreground)] shadow-md ring-2 ring-[color:var(--brand)]/30">
+                          <Crosshair className="h-3.5 w-3.5" />
                         </div>
-                        <div className="mt-0.5 whitespace-nowrap rounded-md bg-card/95 backdrop-blur px-2 py-0.5 text-[10px] font-bold text-foreground shadow-md border border-border">
-                          Center ({(radius / 1000).toFixed(1)} km)
+                        <div className="mt-1 whitespace-nowrap rounded-md bg-card/95 backdrop-blur px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-sm border border-border">
+                          Territory Center · {(radius / 1000).toFixed(1)} km
                         </div>
                       </div>
                     </AdvancedMarker>
@@ -398,10 +488,10 @@ export default function MapPage() {
           )}
 
           {/* Floating Map Helper Badge */}
-          {activeArea && (
-            <div className="pointer-events-none absolute bottom-4 left-4 z-40 hidden sm:flex items-center gap-2 rounded-xl bg-card/90 backdrop-blur px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border shadow-md">
+          {activeArea && !isPinModeActive && (
+            <div className="pointer-events-none absolute bottom-3 left-3 z-30 hidden sm:flex items-center gap-2 rounded-lg bg-card/90 backdrop-blur px-2.5 py-1 text-xs text-muted-foreground border border-border shadow-xs">
               <Navigation className="h-3.5 w-3.5 text-[color:var(--brand)]" />
-              <span>Click anywhere on the map to re-pin territory center</span>
+              <span>Center: <strong className="text-foreground">{activeArea.formatted_address.split(",")[0]}</strong> ({(radius / 1000).toFixed(1)} km)</span>
             </div>
           )}
 
@@ -412,7 +502,7 @@ export default function MapPage() {
           )}
         </div>
 
-        {/* Results Panel with Batch Actions and Contact Indicators */}
+        {/* Results Panel with Batch Actions, FlyTo, and Contact Indicators */}
         {(results.length > 0 || isSearching) && (
           <MapResultsPanel
             results={filteredResults}
@@ -424,11 +514,14 @@ export default function MapPage() {
             onAdd={handleAddLead}
             onAddBatch={handleAddBatch}
             onAnalyze={handleAnalyzeProductFit}
+            onFlyTo={handleFlyTo}
             isDetailFetching={isDetailFetching}
             isAnalyzing={isAnalyzing}
             isBatchAdding={isBatchAdding}
             aiMode={currentAiMode}
             selectedProductId={selectedProductId}
+            isCollapsed={isResultsCollapsed}
+            onToggleCollapse={() => setIsResultsCollapsed(!isResultsCollapsed)}
           />
         )}
       </div>
