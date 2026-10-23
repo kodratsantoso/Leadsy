@@ -69,20 +69,19 @@ class LeadGeneratorIdxController extends Controller
 
         $paginator = $this->discoveryService->search($filters, $perPage);
 
-        // Normalize data and check duplicates
+        // Normalize data and check duplicates in high-performance batch
         $tenantId = $request->user()->tenant_id;
-        $items = collect($paginator->items())->map(function ($cache) use ($tenantId) {
-            $normalized = $this->normalizer->normalize($cache);
-            
-            $isDuplicate = $this->duplicateService->findDuplicate(
-                $normalized['idx_code'], 
-                $normalized['company_name'], 
-                $normalized['website'], 
-                $tenantId
-            ) !== null;
-            
-            $normalized['is_duplicate'] = $isDuplicate;
-            return $normalized;
+        $normalizedItems = collect($paginator->items())->map(fn ($c) => $this->normalizer->normalize($c))->all();
+        $duplicatesMap = $this->duplicateService->findDuplicatesForBatch($normalizedItems, $tenantId);
+
+        $items = collect($normalizedItems)->map(function ($item) use ($duplicatesMap) {
+            $code = $item['idx_code'] ?? '';
+            $dupInfo = $duplicatesMap[$code] ?? ['is_duplicate' => false, 'lead_id' => null, 'lead_company_name' => null];
+
+            $item['is_duplicate'] = $dupInfo['is_duplicate'];
+            $item['lead_id'] = $dupInfo['lead_id'];
+            $item['lead_company_name'] = $dupInfo['lead_company_name'];
+            return $item;
         });
 
         // Log search if there's a keyword or filter
@@ -104,6 +103,7 @@ class LeadGeneratorIdxController extends Controller
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
                 'cached_companies' => IdxCompanyCache::count(),
+                'in_leads_count' => $items->where('is_duplicate', true)->count(),
             ]
         ]);
     }

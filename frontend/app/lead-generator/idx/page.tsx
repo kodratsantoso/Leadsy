@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { throwIfApiError } from "@/lib/apiError";
 import { ErrorNotice } from "@/components/ui/error-notice";
-import { ArrowLeft, Search, Loader2, Plus, CheckCircle, SearchCode, DatabaseBackup } from "lucide-react";
+import { ArrowLeft, Search, Loader2, Plus, CheckCircle, SearchCode, DatabaseBackup, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export default function IdxGeneratorPage() {
   
   const [industry, setIndustry] = useState("");
   const [subIndustry, setSubIndustry] = useState("");
+  const [duplicateFilter, setDuplicateFilter] = useState<"all" | "new" | "duplicate">("all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -106,6 +107,14 @@ export default function IdxGeneratorPage() {
   const companies = data?.data || [];
   const meta = data?.meta;
 
+  const inLeadsCount = companies.filter((c: any) => c.is_duplicate).length;
+  const newCount = companies.length - inLeadsCount;
+  const displayedCompanies = companies.filter((c: any) => {
+    if (duplicateFilter === "new") return !c.is_duplicate;
+    if (duplicateFilter === "duplicate") return c.is_duplicate;
+    return true;
+  });
+
   const getPageNumbers = () => {
     if (!meta) return [];
     const totalPages = meta.last_page;
@@ -128,7 +137,7 @@ export default function IdxGeneratorPage() {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const importable = companies.filter((c: any) => !c.is_duplicate).map((c: any) => c.idx_code);
+      const importable = displayedCompanies.filter((c: any) => !c.is_duplicate).map((c: any) => c.idx_code);
       setSelectedIds(importable);
     } else {
       setSelectedIds([]);
@@ -218,27 +227,49 @@ export default function IdxGeneratorPage() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card>      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="inline-flex items-center gap-1 p-1 bg-muted/70 rounded-lg text-xs font-medium border border-border/60">
+          <button
+            type="button"
+            onClick={() => setDuplicateFilter("all")}
+            className={`px-3 py-1.5 rounded-md transition-all ${duplicateFilter === "all" ? "bg-background shadow-xs text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            All ({companies.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setDuplicateFilter("new")}
+            className={`px-3 py-1.5 rounded-md transition-all ${duplicateFilter === "new" ? "bg-background shadow-xs text-emerald-700 dark:text-emerald-400 font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            New Only ({newCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setDuplicateFilter("duplicate")}
+            className={`px-3 py-1.5 rounded-md transition-all ${duplicateFilter === "duplicate" ? "bg-background shadow-xs text-blue-700 dark:text-blue-400 font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Already in Leads ({inLeadsCount})
+          </button>
+        </div>
 
-      <div className="flex justify-between items-center">
-        <div>
+        <div className="flex items-center gap-3 self-end sm:self-auto">
           {selectedIds.length > 0 && (
             <span className="text-sm text-muted-foreground font-medium">
               {selectedIds.length} selected
             </span>
           )}
+          <Button 
+            onClick={handleBulkImport} 
+            disabled={selectedIds.length === 0 || importMutation.isPending}
+          >
+            {importMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-2 h-4 w-4" />
+            )}
+            Add Selected to Leads
+          </Button>
         </div>
-        <Button 
-          onClick={handleBulkImport} 
-          disabled={selectedIds.length === 0 || importMutation.isPending}
-        >
-          {importMutation.isPending ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="mr-2 h-4 w-4" />
-          )}
-          Add Selected to Leads
-        </Button>
       </div>
 
       <TableShell>
@@ -250,7 +281,13 @@ export default function IdxGeneratorPage() {
                   type="checkbox" 
                   className="rounded border-gray-300 w-4 h-4"
                   onChange={handleSelectAll}
-                  checked={companies.length > 0 && selectedIds.length === companies.filter((c:any)=>!c.is_duplicate).length && selectedIds.length > 0}
+                  checked={
+                    displayedCompanies.filter((c: any) => !c.is_duplicate).length > 0 &&
+                    displayedCompanies
+                      .filter((c: any) => !c.is_duplicate)
+                      .every((c: any) => selectedIds.includes(c.idx_code))
+                  }
+                  disabled={displayedCompanies.filter((c: any) => !c.is_duplicate).length === 0}
                 />
               </TableHeaderCell>
               <TableHeaderCell>Ticker</TableHeaderCell>
@@ -278,12 +315,16 @@ export default function IdxGeneratorPage() {
                   className="text-left"
                 />
               </TableEmpty>
-            ) : companies.length === 0 ? (
+            ) : displayedCompanies.length === 0 ? (
               <TableEmpty colSpan={6}>
-                <div className="text-muted-foreground">No companies found matching your criteria.</div>
+                <div className="text-muted-foreground">
+                  {companies.length > 0
+                    ? `No companies matching "${duplicateFilter === "new" ? "New Only" : "Already in Leads"}" on this page.`
+                    : "No companies found matching your criteria."}
+                </div>
               </TableEmpty>
             ) : (
-              companies.map((company: any) => (
+              displayedCompanies.map((company: any) => (
                 <TableRow key={company.idx_code}>
                   <TableCell>
                     <input 
@@ -321,10 +362,19 @@ export default function IdxGeneratorPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {company.is_duplicate ? (
-                      <Badge variant="success" className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-0">
-                        <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
-                        In Leads
-                      </Badge>
+                      <div className="flex items-center justify-end gap-2">
+                        <Badge variant="success" className="px-2.5 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-0 font-medium">
+                          <CheckCircle className="mr-1 h-3.5 w-3.5" />
+                          In Leads
+                        </Badge>
+                        {company.lead_id && (
+                          <Link href={`/leads/${company.lead_id}`} target="_blank" rel="noreferrer">
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground">
+                              View <ExternalLink className="ml-1 h-3 w-3" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     ) : (
                       <Button
                         size="sm"
