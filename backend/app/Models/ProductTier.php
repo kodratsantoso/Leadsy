@@ -47,6 +47,7 @@ class ProductTier extends Model
         'subscription_duration_value',
         'subscription_duration_unit',
         'features',
+        'differentiator',
         'status',
     ];
 

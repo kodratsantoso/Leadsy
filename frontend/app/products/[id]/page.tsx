@@ -26,16 +26,30 @@ import {
   Building2,
   Users,
   Layers,
+  Pencil,
+  ExternalLink,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import {
+  TableShell,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeaderCell,
+  TableCell,
+  TableEmpty,
+} from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
 import { TagInput } from "@/components/ui/tag-input";
 import { apiFetch } from "@/lib/apiFetch";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 
@@ -47,10 +61,11 @@ type ProductTier = {
   id?: number;
   name: string;
   price: number;
-  pricing_type: "flat_rate" | "per_user" | "usage_based";
-  billing_period: "monthly" | "yearly" | "one_time" | "custom";
+  pricing_type: string;
+  billing_period: string;
   subscription_duration_value: number;
   subscription_duration_unit: "day" | "month" | "year" | "lifetime";
+  differentiator?: string | null;
   features?: string[] | null;
   status?: string | null;
 };
@@ -119,10 +134,95 @@ export default function ProductDetailPage() {
   const [formSoTerms, setFormSoTerms] = useState("");
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Copy Battlecard Pitch state
   const [hasCopiedPitch, setHasCopiedPitch] = useState(false);
+
+  // Tier Modal & Detail Popup States
+  const [isTierModalOpen, setIsTierModalOpen] = useState(false);
+  const [editingTierIndex, setEditingTierIndex] = useState<number | null>(null);
+  const [tierModalForm, setTierModalForm] = useState<ProductTier>({
+    name: "",
+    price: 0,
+    pricing_type: "flat_rate",
+    billing_period: "monthly",
+    subscription_duration_value: 1,
+    subscription_duration_unit: "month",
+    differentiator: "",
+    features: [],
+    status: "active",
+  });
+
+  const COMPANY_SIZE_OPTIONS = [
+    "1-10 (Startup)",
+    "11-50 (Small)",
+    "51-200 (Medium)",
+    "201-1,000 (Mid-Market)",
+    "1,000+ (Enterprise)",
+  ];
+
+  const toggleCompanySize = (option: string) => {
+    const rawTokens = formTargetCompanySize
+      .split(/[,;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    // Key prefix e.g. "1-10", "11-50"
+    const prefix = option.split(" ")[0];
+    const exists = rawTokens.some((t) => t.toLowerCase().includes(prefix.toLowerCase()));
+
+    let nextTokens: string[];
+    if (exists) {
+      nextTokens = rawTokens.filter((t) => !t.toLowerCase().includes(prefix.toLowerCase()));
+    } else {
+      nextTokens = [...rawTokens, option];
+    }
+    setFormTargetCompanySize(nextTokens.join(", "));
+  };
+
+  const openAddTierModal = () => {
+    setEditingTierIndex(null);
+    setTierModalForm({
+      name: "",
+      price: 0,
+      pricing_type: "flat_rate",
+      billing_period: "monthly",
+      subscription_duration_value: 1,
+      subscription_duration_unit: "month",
+      differentiator: "",
+      features: [],
+      status: "active",
+    });
+    setIsTierModalOpen(true);
+  };
+
+  const openEditTierModal = (tier: ProductTier, index: number) => {
+    setEditingTierIndex(index);
+    setTierModalForm({
+      ...tier,
+      differentiator: tier.differentiator || "",
+      features: Array.isArray(tier.features) ? [...tier.features] : [],
+    });
+    setIsTierModalOpen(true);
+  };
+
+  const handleSaveTierFromModal = () => {
+    if (!tierModalForm.name.trim()) {
+      toast.error("Please enter a Tier Name.");
+      return;
+    }
+    const updated = [...formTiers];
+    if (editingTierIndex !== null && editingTierIndex >= 0) {
+      updated[editingTierIndex] = { ...tierModalForm };
+    } else {
+      updated.push({ ...tierModalForm });
+    }
+    setFormTiers(updated);
+    setIsTierModalOpen(false);
+    toast.success(editingTierIndex !== null ? "Tier updated successfully." : "Tier added successfully.");
+  };
 
   // AI Generation State
   const [aiGenerated, setAiGenerated] = useState(false);
@@ -132,6 +232,19 @@ export default function ProductDetailPage() {
   const [refUrl, setRefUrl] = useState("");
   const [refPdfFile, setRefPdfFile] = useState<File | null>(null);
   const [refPdfName, setRefPdfName] = useState("");
+
+  const handleScrapeFromWebsite = () => {
+    const urlToUse = formWebsiteUrl.trim() || refUrl.trim();
+    if (!urlToUse) {
+      toast.error("Please enter an Official Website URL to scrape.");
+      return;
+    }
+    aiGenerateMutation.mutate({
+      source: "url",
+      productName: formName,
+      url: urlToUse,
+    });
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["products", productId],
@@ -218,6 +331,7 @@ export default function ProductDetailPage() {
         sales_order_terms_conditions: formSoTerms,
         tiers: formTiers.map((t) => ({
           ...t,
+          differentiator: t.differentiator || null,
           features: Array.isArray(t.features) ? t.features : [],
         })),
       };
@@ -271,6 +385,7 @@ export default function ProductDetailPage() {
       if (data?.logo_url) {
         setLogoUrl(data.logo_url);
       }
+      setLogoLoadFailed(false);
       setUploadError(null);
       toast.success("Product logo uploaded successfully.");
     },
@@ -295,6 +410,7 @@ export default function ProductDetailPage() {
       qc.invalidateQueries({ queryKey: ["products"] });
       setLogoPath(null);
       setLogoUrl(null);
+      setLogoLoadFailed(false);
       setUploadError(null);
       toast.success("Product logo removed.");
     },
@@ -354,6 +470,9 @@ export default function ProductDetailPage() {
         return Array.from(new Set([...current, ...incArr]));
       };
 
+      if (generated.name && (!formName.trim() || formName === "New Product")) {
+        setFormName(generated.name);
+      }
       if (generated.description) setFormDesc(generated.description);
       if (generated.category) setFormCategory(generated.category);
       if (generated.target_industry) setFormTargetIndustry(generated.target_industry);
@@ -368,9 +487,18 @@ export default function ProductDetailPage() {
       setFormKeywords(mergeArray(formKeywords, generated.keywords));
       setFormUseCases(mergeArray(formUseCases, generated.use_cases));
 
+      if (Array.isArray(generated.tiers) && generated.tiers.length > 0) {
+        setFormTiers((prev) => {
+          if (prev.length === 0) return generated.tiers;
+          const existingNames = new Set(prev.map((t) => t.name.toLowerCase()));
+          const newTiers = generated.tiers.filter((t: ProductTier) => !existingNames.has(t.name.toLowerCase()));
+          return [...prev, ...newTiers];
+        });
+      }
+
       setAiGenerated(true);
       setAiError(null);
-      toast.success("AI metadata generated! Review the fields and click Save Changes.");
+      toast.success("AI profiling complete! Product overview, targeting parameters, and tiers updated.");
     },
     onError: (err: Error) => setAiError(err.message),
   });
@@ -421,11 +549,12 @@ export default function ProductDetailPage() {
           </Button>
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted/60 border border-border overflow-hidden p-1">
-              {logoUrl || logoPath ? (
+              {(logoUrl || logoPath) && !logoLoadFailed ? (
                 <img
-                  src={logoUrl || `/storage/${logoPath}`}
+                  src={`/api/products/${productId}/logo?v=${encodeURIComponent(logoPath || '1')}`}
                   alt={formName}
                   className="h-full w-full object-contain"
+                  onError={() => setLogoLoadFailed(true)}
                 />
               ) : (
                 <Package className="h-6 w-6 text-primary" />
@@ -449,6 +578,23 @@ export default function ProductDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
+          {formWebsiteUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleScrapeFromWebsite}
+              disabled={aiGenerateMutation.isPending}
+              className="text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+              title="Scrape and auto-profile product from website URL"
+            >
+              {aiGenerateMutation.isPending && aiSource === "url" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              ⚡ AI Auto-Profile URL
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={handleCopyBattlecardPitch}
@@ -511,13 +657,45 @@ export default function ProductDetailPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-muted-foreground">Official Website URL</label>
-                  <Input
-                    value={formWebsiteUrl}
-                    onChange={(e) => setFormWebsiteUrl(e.target.value)}
-                    placeholder="https://example.com/product"
-                    type="url"
-                  />
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-muted-foreground">Official Website URL</label>
+                    {formWebsiteUrl && (
+                      <a
+                        href={formWebsiteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                      >
+                        Visit Site <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={formWebsiteUrl}
+                      onChange={(e) => {
+                        setFormWebsiteUrl(e.target.value);
+                        setRefUrl(e.target.value);
+                      }}
+                      placeholder="https://example.com/product"
+                      type="url"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleScrapeFromWebsite}
+                      disabled={!formWebsiteUrl.trim() || (aiGenerateMutation.isPending && aiSource === "url")}
+                      className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 text-xs shrink-0"
+                    >
+                      {aiGenerateMutation.isPending && aiSource === "url" ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Scrape & Profile
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground">CRM Status</label>
@@ -831,35 +1009,99 @@ export default function ProductDetailPage() {
         {/* 3. TARGETING & MATCH AI (WITH MODERN TAG INPUTS) */}
         {activeTab === "targeting" && (
           <Card>
-            <CardHeader>
-              <CardTitle>Targeting & Match AI</CardTitle>
-              <CardDescription>
-                Parameters evaluated by Product Match AI to automatically rank this solution for discovered Leads.
-              </CardDescription>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <CardTitle>Targeting & Match AI</CardTitle>
+                <CardDescription>
+                  Parameters evaluated by Product Match AI to automatically rank this solution for discovered Leads.
+                </CardDescription>
+              </div>
+              {formWebsiteUrl && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleScrapeFromWebsite}
+                  disabled={aiGenerateMutation.isPending}
+                  className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 text-xs shrink-0 self-start sm:self-auto"
+                >
+                  {aiGenerateMutation.isPending && aiSource === "url" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  ⚡ Auto-Extract from Website
+                </Button>
+              )}
             </CardHeader>
-            <CardContent className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Target Industry</label>
-                <Input
-                  value={formTargetIndustry}
-                  onChange={(e) => setFormTargetIndustry(e.target.value)}
-                  placeholder="e.g. Technology, Retail, Manufacturing, Finance"
-                />
-              </div>
+            <CardContent className="space-y-6">
+              {formWebsiteUrl && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-primary/20 bg-primary/5 text-xs text-foreground">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                    <span>
+                      Profil targeting dapat di-generate otomatis dari website resmi: <strong className="text-primary">{formWebsiteUrl}</strong>
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleScrapeFromWebsite}
+                    disabled={aiGenerateMutation.isPending}
+                    className="text-xs text-primary font-semibold hover:bg-primary/10 h-7 px-2.5 self-end sm:self-auto"
+                  >
+                    Auto-Profile Website →
+                  </Button>
+                </div>
+              )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Target Company Size</label>
-                <Input
-                  value={formTargetCompanySize}
-                  onChange={(e) => setFormTargetCompanySize(e.target.value)}
-                  placeholder="e.g. 50-500 employees, Enterprise"
-                />
-              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Target Industry</label>
+                  <Input
+                    value={formTargetIndustry}
+                    onChange={(e) => setFormTargetIndustry(e.target.value)}
+                    placeholder="e.g. Technology, Retail, Manufacturing, Finance"
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground">Target Buyer Persona</label>
-                <Input
-                  value={formTargetPersona}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-muted-foreground">Target Company Size</label>
+                    <span className="text-[10px] text-muted-foreground">Multiple choices supported</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {COMPANY_SIZE_OPTIONS.map((opt) => {
+                      const prefix = opt.split(" ")[0];
+                      const isSelected = formTargetCompanySize.toLowerCase().includes(prefix.toLowerCase());
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleCompanySize(opt)}
+                          className={cn(
+                            "px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                              : "bg-muted/30 text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
+                          )}
+                        >
+                          {isSelected ? "✓ " : "+ "}
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Input
+                    value={formTargetCompanySize}
+                    onChange={(e) => setFormTargetCompanySize(e.target.value)}
+                    placeholder="e.g. 11-50 (Small), 51-200 (Medium), Enterprise"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground">Target Buyer Persona</label>
+                  <Input
+                    value={formTargetPersona}
                   onChange={(e) => setFormTargetPersona(e.target.value)}
                   placeholder="e.g. Chief Technology Officer, HR Director, Operations Head"
                 />
@@ -939,152 +1181,291 @@ export default function ProductDetailPage() {
                   placeholder="Key differentiators compared to main competitors..."
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
         )}
 
-        {/* 4. TIERS (WITH TAGINPUT FOR FEATURES) */}
+        {/* 4. TIERS (LIST VIEW + DETAIL MODAL POPUP + DIFFERENTIATOR) */}
         {activeTab === "tiers" && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>SaaS Pricing Tiers</CardTitle>
-                <CardDescription>
-                  Manage commercial packages, billing intervals, and included features.
-                </CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  setFormTiers([
-                    ...formTiers,
-                    {
-                      name: "New Tier",
-                      price: 0,
-                      pricing_type: "flat_rate",
-                      billing_period: "monthly",
-                      subscription_duration_value: 1,
-                      subscription_duration_unit: "month",
-                      features: [],
-                      status: "active",
-                    },
-                  ])
-                }
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Tier
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {formTiers.length === 0 ? (
-                <div className="text-center p-12 border border-dashed border-border rounded-xl space-y-2">
-                  <Package className="mx-auto h-8 w-8 text-muted-foreground/40" />
-                  <p className="text-sm font-medium text-foreground">No pricing tiers defined</p>
-                  <p className="text-xs text-muted-foreground">Add tiers to calculate proposals and quotations.</p>
+          <>
+            <Card>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Product Commercial Tiers</CardTitle>
+                  <CardDescription>
+                    Manage pricing packages, billing intervals, differentiators, and bundled features.
+                  </CardDescription>
                 </div>
-              ) : (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {formTiers.map((tier, idx) => (
-                    <div
-                      key={idx}
-                      className="rounded-xl border border-border bg-card shadow-xs flex flex-col overflow-hidden relative group transition-all hover:border-primary/50 hover:shadow-md"
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {formWebsiteUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleScrapeFromWebsite}
+                      disabled={aiGenerateMutation.isPending}
+                      className="text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                      title="Scrape tiers & packages directly from website"
                     >
-                      <div className="flex items-center justify-between gap-3 p-4 bg-muted/20 border-b border-border">
-                        <Input
-                          className="flex-1 h-9 bg-background font-semibold"
-                          value={tier.name}
-                          onChange={(e) => {
-                            const nt = [...formTiers];
-                            nt[idx].name = e.target.value;
-                            setFormTiers(nt);
-                          }}
-                          placeholder="Tier Name (e.g. Starter, Pro)"
-                        />
+                      {aiGenerateMutation.isPending && aiSource === "url" ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                      )}
+                      Scrape Tiers from URL
+                    </Button>
+                  )}
+                  <Button onClick={openAddTierModal} size="sm">
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    Add Tier
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {formTiers.length === 0 ? (
+                  <div className="text-center p-12 border border-dashed border-border rounded-xl space-y-3">
+                    <Package className="mx-auto h-8 w-8 text-muted-foreground/40" />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">No pricing tiers defined</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Add tiers manually or scrape them automatically from the official website.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                      {formWebsiteUrl && (
                         <Button
                           variant="outline"
-                          size="icon"
-                          className="text-destructive h-9 w-9 shrink-0 bg-background hover:bg-destructive/10"
-                          onClick={() => setFormTiers(formTiers.filter((_, i) => i !== idx))}
+                          size="sm"
+                          onClick={handleScrapeFromWebsite}
+                          disabled={aiGenerateMutation.isPending}
+                          className="text-xs"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                          Scrape from Website
                         </Button>
-                      </div>
-
-                      <div className="p-4 space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                              Price (IDR)
-                            </label>
-                            <Input
-                              type="text"
-                              inputMode="numeric"
-                              value={formatAmountInput(String(tier.price || 0))}
-                              onChange={(e) => {
-                                const nt = [...formTiers];
-                                nt[idx].price = Number(normalizeAmountInput(e.target.value));
-                                setFormTiers(nt);
-                              }}
-                              placeholder="0"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                              Billing Period
-                            </label>
-                            <Select
-                              value={tier.billing_period}
-                              onChange={(e) => {
-                                const nt = [...formTiers];
-                                nt[idx].billing_period = e.target.value as any;
-                                setFormTiers(nt);
-                              }}
-                            >
-                              <option value="monthly">Monthly</option>
-                              <option value="yearly">Yearly</option>
-                              <option value="one_time">One Time</option>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-muted-foreground">Pricing Model</label>
-                          <Select
-                            value={tier.pricing_type}
-                            onChange={(e) => {
-                              const nt = [...formTiers];
-                              nt[idx].pricing_type = e.target.value as any;
-                              setFormTiers(nt);
-                            }}
-                          >
-                            <option value="flat_rate">Flat Rate (Package Price)</option>
-                            <option value="per_user">Per User / License</option>
-                            <option value="usage_based">Usage Based</option>
-                          </Select>
-                        </div>
-
-                        {/* Features using TagInput - NO MORE COMMA SPLIT BUG! */}
-                        <div className="pt-2 border-t border-border space-y-1.5">
-                          <label className="text-xs font-semibold text-muted-foreground block">
-                            Included Features (Press Enter to add)
-                          </label>
-                          <TagInput
-                            value={tier.features || []}
-                            onChange={(newFeatures) => {
-                              const nt = [...formTiers];
-                              nt[idx].features = newFeatures;
-                              setFormTiers(nt);
-                            }}
-                            placeholder="Add feature (e.g. 50GB Storage, 24/7 SLA)..."
-                          />
-                        </div>
-                      </div>
+                      )}
+                      <Button size="sm" onClick={openAddTierModal}>
+                        <Plus className="h-3.5 w-3.5 mr-1.5" />
+                        Create Tier Manually
+                      </Button>
                     </div>
-                  ))}
+                  </div>
+                ) : (
+                  <TableShell>
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableHeaderCell>Tier Name</TableHeaderCell>
+                          <TableHeaderCell>Pricing & Billing</TableHeaderCell>
+                          <TableHeaderCell>Pricing Model</TableHeaderCell>
+                          <TableHeaderCell>Differentiator / Perbedaan</TableHeaderCell>
+                          <TableHeaderCell>Features</TableHeaderCell>
+                          <TableHeaderCell>Status</TableHeaderCell>
+                          <TableHeaderCell className="text-right">Actions</TableHeaderCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {formTiers.map((tier, idx) => (
+                          <TableRow
+                            key={idx}
+                            className="cursor-pointer hover:bg-muted/30 transition-colors"
+                            onClick={() => openEditTierModal(tier, idx)}
+                          >
+                            <TableCell className="font-semibold text-foreground">
+                              <div className="flex items-center gap-2">
+                                <span>{tier.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <span className="font-bold text-foreground">
+                                  Rp {Number(tier.price || 0).toLocaleString("id-ID")}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground block capitalize">
+                                  / {tier.billing_period}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground capitalize">
+                              {tier.pricing_type?.replace(/_/g, " ") || "Flat Rate"}
+                            </TableCell>
+                            <TableCell className="max-w-[280px]">
+                              {tier.differentiator ? (
+                                <p className="text-xs text-foreground line-clamp-2" title={tier.differentiator}>
+                                  {tier.differentiator}
+                                </p>
+                              ) : (
+                                <span className="text-xs text-muted-foreground/60 italic">
+                                  Belum diisi
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {tier.features && tier.features.length > 0 ? (
+                                <div className="flex items-center gap-1.5">
+                                  <Badge variant="neutral" className="text-[10px] font-medium">
+                                    {tier.features.length} features
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={tier.status === "inactive" ? "neutral" : "success"}
+                                className="text-[10px] uppercase font-semibold"
+                              >
+                                {tier.status || "active"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div
+                                className="flex items-center justify-end gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-muted"
+                                  onClick={() => openEditTierModal(tier, idx)}
+                                  title="Edit Tier Details"
+                                >
+                                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                  onClick={() => setFormTiers(formTiers.filter((_, i) => i !== idx))}
+                                  title="Delete Tier"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableShell>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Modal Popup for Tier Detail & Editing */}
+            <Modal
+              open={isTierModalOpen}
+              onOpenChange={setIsTierModalOpen}
+              title={editingTierIndex !== null ? `Edit Tier: ${tierModalForm.name || "Commercial Package"}` : "Add Commercial Tier"}
+              description="Configure tier pricing, billing frequency, differentiating factors, and bundled features."
+              size="lg"
+              footer={
+                <div className="flex items-center justify-end gap-2 w-full">
+                  <Button variant="outline" onClick={() => setIsTierModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveTierFromModal}>
+                    {editingTierIndex !== null ? "Save Changes" : "Add Tier"}
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              }
+            >
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-muted-foreground">Tier / Package Name *</label>
+                    <Input
+                      value={tierModalForm.name}
+                      onChange={(e) => setTierModalForm({ ...tierModalForm, name: e.target.value })}
+                      placeholder="e.g. Starter, Professional, Enterprise"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground">Price (IDR) *</label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={formatAmountInput(String(tierModalForm.price || 0))}
+                      onChange={(e) =>
+                        setTierModalForm({
+                          ...tierModalForm,
+                          price: Number(normalizeAmountInput(e.target.value)),
+                        })
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground">Billing Period</label>
+                    <Select
+                      value={tierModalForm.billing_period}
+                      onChange={(e) => setTierModalForm({ ...tierModalForm, billing_period: e.target.value })}
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly / Annual</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="one_time">One Time / Lifetime</option>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground">Pricing Model</label>
+                    <Select
+                      value={tierModalForm.pricing_type}
+                      onChange={(e) => setTierModalForm({ ...tierModalForm, pricing_type: e.target.value })}
+                    >
+                      <option value="flat_rate">Flat Rate (Package Price)</option>
+                      <option value="per_user">Per User / License</option>
+                      <option value="usage_based">Usage Based</option>
+                      <option value="custom_quote">Custom Quote</option>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground">Status</label>
+                    <Select
+                      value={tierModalForm.status || "active"}
+                      onChange={(e) => setTierModalForm({ ...tierModalForm, status: e.target.value })}
+                    >
+                      <option value="active">Active (Available for quoting)</option>
+                      <option value="inactive">Inactive</option>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-muted-foreground">
+                        Differentiator / Perbedaan Produk
+                      </label>
+                      <span className="text-[10px] text-muted-foreground">
+                        Key distinction vs other tiers
+                      </span>
+                    </div>
+                    <Textarea
+                      rows={2}
+                      value={tierModalForm.differentiator || ""}
+                      onChange={(e) => setTierModalForm({ ...tierModalForm, differentiator: e.target.value })}
+                      placeholder="Jelaskan keunggulan unik atau perbedaan tier ini dibanding tier lainnya (misal: Cocok untuk tim berkembang s.d. 50 user dengan automasi WhatsApp dan SLA prioritas)..."
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-muted-foreground">
+                      Included Features (Press Enter to add tag)
+                    </label>
+                    <TagInput
+                      value={tierModalForm.features || []}
+                      onChange={(newFeatures) => setTierModalForm({ ...tierModalForm, features: newFeatures })}
+                      placeholder="Add feature (e.g. 50GB Storage, 24/7 SLA, Unlimited Chat)..."
+                    />
+                  </div>
+                </div>
+              </div>
+            </Modal>
+          </>
         )}
 
         {/* 5. QUESTION GUIDE */}
@@ -1193,11 +1574,12 @@ export default function ProductDetailPage() {
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         <span className="text-xs text-muted-foreground">Updating logo...</span>
                       </div>
-                    ) : logoUrl || logoPath ? (
+                    ) : (logoUrl || logoPath) && !logoLoadFailed ? (
                       <img
-                        src={logoUrl || `/storage/${logoPath}`}
+                        src={`/api/products/${productId}/logo?v=${encodeURIComponent(logoPath || '1')}`}
                         className="max-h-full max-w-full object-contain"
                         alt="Product Logo"
+                        onError={() => setLogoLoadFailed(true)}
                       />
                     ) : (
                       <div className="text-center space-y-1">

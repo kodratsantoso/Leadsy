@@ -30,6 +30,34 @@ type ProductRecord = {
   tiers?: any[];
 };
 
+function ProductCardLogo({
+  productId,
+  logoUrl,
+  logoPath,
+  name,
+}: {
+  productId: number;
+  logoUrl?: string | null;
+  logoPath?: string | null;
+  name: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const src = logoUrl || (logoPath ? `/api/products/${productId}/logo` : null);
+
+  if (!src || failed) {
+    return <Package className="h-5 w-5 text-primary" />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      className="h-full w-full object-contain"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export default function ProductsPage() {
   const qc = useQueryClient();
   const router = useRouter();
@@ -309,15 +337,12 @@ export default function ProductsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted/60 border border-border/60 overflow-hidden p-1">
-                        {product.logo_url || product.logo_path ? (
-                          <img
-                            src={product.logo_url || `/storage/${product.logo_path}`}
-                            alt={product.name}
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          <Package className="h-5 w-5 text-primary" />
-                        )}
+                        <ProductCardLogo
+                          productId={product.id}
+                          logoUrl={product.logo_url}
+                          logoPath={product.logo_path}
+                          name={product.name}
+                        />
                       </div>
                       <div>
                         {product.category && (

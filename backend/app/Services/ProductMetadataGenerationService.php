@@ -282,10 +282,11 @@ PROMPT;
 ## OUTPUT FORMAT
 Return ONLY valid JSON — no markdown, no code fences, no extra text:
 {
+  "product_name": "Official product name extracted from website or document",
   "description": "2-3 sentence product description explaining what it does and who it helps",
   "categories": ["Category from available list", "Another if applicable"],
   "target_industries": ["Industry 1", "Industry 2"],
-  "company_size": "e.g. 51-200, 201-500 employees",
+  "company_size": "e.g. 11-50, 51-200, 201-1000",
   "buyer_persona": ["Title 1", "Title 2", "Title 3"],
   "budget_range": "e.g. IDR 50M - 500M / year",
   "regions": ["Indonesia", "Malaysia"],
@@ -293,11 +294,21 @@ Return ONLY valid JSON — no markdown, no code fences, no extra text:
   "pain_points": ["Specific pain point 1", "Specific pain point 2", "Specific pain point 3"],
   "use_cases": ["Use case 1", "Use case 2", "Use case 3"],
   "competitor_context": "Brief description of key competitors and our differentiation",
-  "ideal_company_profile": "Concise description of the ideal target company"
+  "ideal_company_profile": "Concise description of the ideal target company",
+  "tiers": [
+    {
+      "name": "Starter / Standard / Enterprise plan name",
+      "price": 5000000,
+      "billing_period": "monthly",
+      "pricing_type": "flat_monthly",
+      "differentiator": "Key differentiation of this tier vs other tiers (e.g. For growing teams up to 50 users needing automation)",
+      "features": ["Feature 1", "Feature 2", "Feature 3"]
+    }
+  ]
 }
 
 All array fields must contain at least three concise items when possible.
-All string fields must be non-empty.
+All string fields must be non-empty. If pricing tiers are found on the website, extract them into the "tiers" array.
 INSTRUCTIONS;
     }
 
@@ -346,7 +357,9 @@ INSTRUCTIONS;
 
     private function normalise(array $raw, string $productName = '', array $availableCategories = []): array
     {
+        $extractedName = $this->toText($raw['product_name'] ?? $raw['name'] ?? '');
         $data = [
+            'name' => !empty($extractedName) ? $extractedName : $productName,
             'description' => $this->toText($raw['description'] ?? $raw['product_description'] ?? $raw['product_summary'] ?? $raw['solution_summary'] ?? $raw['summary'] ?? $raw['overview'] ?? $raw['product_overview'] ?? $raw['value_proposition'] ?? ''),
             'category' => implode(', ', $this->toList($raw['categories'] ?? $raw['category'] ?? [])),
             'target_industry' => implode(', ', $this->toList($raw['target_industries'] ?? $raw['target_industry'] ?? $raw['industries'] ?? [])),
@@ -359,9 +372,63 @@ INSTRUCTIONS;
             'use_cases' => $this->toList($raw['use_cases'] ?? $raw['recommended_use_cases'] ?? $raw['applications'] ?? []),
             'competitor_notes' => $this->toText($raw['competitor_context'] ?? $raw['competitor_notes'] ?? ''),
             'ideal_company_profile' => $this->toText($raw['ideal_company_profile'] ?? ''),
+            'tiers' => $this->normaliseTiers($raw['tiers'] ?? $raw['pricing_tiers'] ?? $raw['packages'] ?? $raw['pricing_plans'] ?? $raw['plans'] ?? []),
         ];
 
         return $this->fillMissingDefaults($data, $productName, $availableCategories);
+    }
+
+    private function normaliseTiers(mixed $rawTiers): array
+    {
+        if (!is_array($rawTiers)) {
+            return [];
+        }
+
+        $tiers = [];
+        $validPeriods = ['monthly', 'annual', 'one_off', 'quarterly'];
+        $validTypes = ['flat_monthly', 'per_user_monthly', 'usage_based', 'tiered_volume', 'custom_quote', 'one_time_license'];
+
+        foreach ($rawTiers as $tier) {
+            if (!is_array($tier) || empty($tier['name'])) {
+                continue;
+            }
+
+            $name = trim((string) $tier['name']);
+            $priceRaw = $tier['price'] ?? 0;
+            if (is_string($priceRaw)) {
+                $cleaned = preg_replace('/[^\d.]/', '', $priceRaw);
+                $price = is_numeric($cleaned) ? (float) $cleaned : 0;
+            } else {
+                $price = is_numeric($priceRaw) ? (float) $priceRaw : 0;
+            }
+
+            $period = strtolower((string) ($tier['billing_period'] ?? 'monthly'));
+            if (!in_array($period, $validPeriods, true)) {
+                $period = 'monthly';
+            }
+
+            $pricingType = strtolower((string) ($tier['pricing_type'] ?? 'flat_monthly'));
+            if (!in_array($pricingType, $validTypes, true)) {
+                $pricingType = 'flat_monthly';
+            }
+
+            $differentiator = $this->toText($tier['differentiator'] ?? $tier['perbedaan'] ?? $tier['highlight'] ?? '');
+            $features = $this->toList($tier['features'] ?? $tier['feature_list'] ?? []);
+
+            $tiers[] = [
+                'name' => $name,
+                'price' => $price,
+                'billing_period' => $period,
+                'pricing_type' => $pricingType,
+                'subscription_duration_value' => 1,
+                'subscription_duration_unit' => $period === 'annual' ? 'year' : 'month',
+                'differentiator' => $differentiator,
+                'features' => $features,
+                'status' => 'active',
+            ];
+        }
+
+        return $tiers;
     }
 
     private function fillMissingDefaults(array $data, string $productName = '', array $availableCategories = []): array

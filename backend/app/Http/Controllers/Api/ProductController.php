@@ -75,6 +75,7 @@ class ProductController extends Controller
             'tiers.*.subscription_duration_unit' => 'required|string|in:day,month,year,lifetime',
             'tiers.*.features' => 'nullable|array',
             'tiers.*.features.*' => 'required|string|max:500',
+            'tiers.*.differentiator' => 'nullable|string',
             'tiers.*.status' => 'nullable|in:active,inactive',
         ]);
 
@@ -128,6 +129,7 @@ class ProductController extends Controller
             'tiers.*.subscription_duration_unit' => 'required|string|in:day,month,year,lifetime',
             'tiers.*.features' => 'nullable|array',
             'tiers.*.features.*' => 'required|string|max:500',
+            'tiers.*.differentiator' => 'nullable|string',
             'tiers.*.status' => 'nullable|in:active,inactive',
         ]);
 
@@ -343,7 +345,7 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'logo_url' => Storage::disk('public')->url($path),
+            'logo_url' => "/api/products/{$product->id}/logo",
             'data' => $product,
             'message' => 'Product logo uploaded successfully.'
         ]);
@@ -365,6 +367,25 @@ class ProductController extends Controller
             'success' => true,
             'data' => $product,
             'message' => 'Product logo removed successfully.'
+        ]);
+    }
+
+    /**
+     * GET /api/products/{product}/logo
+     * Direct streaming of product logo to avoid symlink/CORS/APP_URL issues in any environment.
+     */
+    public function getLogo(Product $product)
+    {
+        if (!$product->logo_path || !Storage::disk('public')->exists($product->logo_path)) {
+            return response()->noContent(404);
+        }
+
+        $content = Storage::disk('public')->get($product->logo_path);
+        $mime = Storage::disk('public')->mimeType($product->logo_path) ?: 'image/png';
+
+        return response($content, 200, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'public, max-age=86400',
         ]);
     }
 

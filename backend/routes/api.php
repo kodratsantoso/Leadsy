@@ -360,6 +360,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('sales-orders/{order}/download-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'downloadPdfSo'])->middleware('permission:leads.view');
 
     // Product document branding
+    Route::get('products/{product}/logo', [\App\Http\Controllers\Api\ProductController::class, 'getLogo']);
     Route::post('products/{product}/logo', [\App\Http\Controllers\Api\ProductController::class, 'uploadLogo'])->middleware('permission:products.edit');
     Route::delete('products/{product}/logo', [\App\Http\Controllers\Api\ProductController::class, 'deleteLogo'])->middleware('permission:products.edit');
     Route::put('products/{product}/document-settings', [\App\Http\Controllers\Api\ProductController::class, 'updateDocumentSettings'])->middleware('permission:products.edit');

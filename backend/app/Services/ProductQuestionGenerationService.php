@@ -54,6 +54,17 @@ class ProductQuestionGenerationService
 
     private function buildPrompt(Product $product): string
     {
+        $product->loadMissing('tiers');
+
+        $tierSummary = $product->tiers->isNotEmpty()
+            ? $product->tiers->map(function ($tier) {
+                $diff = !empty($tier->differentiator) ? " | Differentiator: {$tier->differentiator}" : '';
+                $feats = is_array($tier->features) && count($tier->features) > 0 ? " | Key Features: " . implode(', ', $tier->features) : '';
+                $priceFormatted = $tier->price > 0 ? 'IDR ' . number_format($tier->price, 0, ',', '.') : 'Custom Quote / Free';
+                return "- {$tier->name} ({$priceFormatted}, {$tier->billing_period}, {$tier->pricing_type}){$diff}{$feats}";
+            })->implode("\n")
+            : null;
+
         $fields = array_filter([
             'Product Name' => $product->name,
             'Description' => $product->description,
@@ -69,10 +80,11 @@ class ProductQuestionGenerationService
             'Budget Range' => $product->budget_range,
             'Supported Regions' => $product->supported_regions,
             'Competitor Notes' => $product->competitor_notes,
+            'Product Packages & Tiers' => $tierSummary,
         ]);
 
         $productContext = collect($fields)
-            ->map(fn ($v, $k) => "- {$k}: {$v}")
+            ->map(fn ($v, $k) => "- {$k}:\n  {$v}")
             ->implode("\n");
 
         return <<<PROMPT

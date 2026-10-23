@@ -30,6 +30,7 @@ class ProductLogoUploadTest extends TestCase
         $product = Product::create([
             'name' => 'Enterprise Suite',
             'status' => 'active',
+            'tenant_id' => $user->tenant_id,
         ]);
 
         $file = UploadedFile::fake()->image('product-logo.png', 200, 200);

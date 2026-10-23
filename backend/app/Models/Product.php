@@ -119,7 +119,7 @@ class Product extends Model
         if (!$this->logo_path) {
             return null;
         }
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path);
+        return "/api/products/{$this->id}/logo";
     }
 
     public function getStartingPriceAttribute(): ?float
