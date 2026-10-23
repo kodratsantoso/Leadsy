@@ -28,6 +28,7 @@ import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { AiProfilingPanel, type ProfilingData } from "@/components/leads/AiProfilingPanel";
+import { useToast } from "@/components/ui/toast";
 
 /**
  * What `PUT /api/leads/{id}` accepts from this form.
@@ -77,6 +78,7 @@ export function EditLeadModal({
   onSuccess?: () => void;
 }) {
   const qc = useQueryClient();
+  const toast = useToast();
 
   const [companyForm, setCompanyForm] = useState({
     company_name: '', brand: '', address: '', lat: '', lng: '',
@@ -100,7 +102,7 @@ export function EditLeadModal({
   const [locationSearch, setLocationSearch] = useState("");
   const [locationFeedback, setLocationFeedback] = useState("");
   const [locationCenter, setLocationCenter] = useState({ lat: -6.2088, lng: 106.8456 });
-  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout">("idle");
+  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout" | "applied">("idle");
   const [profilingData, setProfilingData] = useState<ProfilingData | null>(null);
   const [profilingRetrying, setProfilingRetrying] = useState(false);
   const [profilingElapsed, setProfilingElapsed] = useState(0);
@@ -465,30 +467,120 @@ export function EditLeadModal({
                   failureReason={profilingFailureReason}
                   slow={profilingElapsed >= AI_PROFILING_SLOW_AFTER_SECONDS}
                   data={profilingData}
-                  onRetrySync={retryAiProfilingSync}
                   retryingSync={profilingRetrying}
                   onClose={() => {
                     setProfilingStatus("idle");
                     setProfilingData(null);
                   }}
-                  onApply={(pData) => {
-                    setCompanyForm((f) => ({
-                      ...f,
-                      company_name: pData.company_name || f.company_name,
-                      brand: pData.brand || f.brand,
-                      address: pData.address || f.address,
-                      phone: pData.phone || f.phone,
-                      email: pData.email || f.email,
-                      website: pData.website || f.website,
-                      lat: pData.lat ? String(pData.lat) : f.lat,
-                      lng: pData.lng ? String(pData.lng) : f.lng,
-                      industry_id: pData.industry_id ? String(pData.industry_id) : f.industry_id,
-                      sub_industry_id: pData.sub_industry_id ? String(pData.sub_industry_id) : f.sub_industry_id,
-                      business_category_id: pData.business_category_id ? String(pData.business_category_id) : f.business_category_id,
-                      company_size_estimate: pData.company_size || f.company_size_estimate,
-                    }));
-                    setProfilingStatus("idle");
-                    setProfilingData(null);
+                  onApply={async (pData) => {
+                    const resolveIndustryId = () => {
+                      if (pData.industry_id) return String(pData.industry_id);
+                      const name = (pData.industry_name || pData.industry || "").toLowerCase().trim();
+                      if (!name) return companyForm.industry_id;
+                      const found = allIndustries.find(
+                        (i) => i.name.toLowerCase() === name || (i as any).slug?.toLowerCase() === name
+                      );
+                      return found ? String(found.id) : companyForm.industry_id;
+                    };
+
+                    const resolvedIndId = resolveIndustryId();
+
+                    const resolveSubIndustryId = (indId: string) => {
+                      if (pData.sub_industry_id) return String(pData.sub_industry_id);
+                      const name = (pData.sub_industry_name || pData.sub_industry || "").toLowerCase().trim();
+                      if (!name) return companyForm.sub_industry_id;
+                      const ind = allIndustries.find((i) => String(i.id) === indId);
+                      const found = ind?.sub_industries?.find(
+                        (s) => s.name.toLowerCase() === name || (s as any).slug?.toLowerCase() === name
+                      );
+                      return found ? String(found.id) : companyForm.sub_industry_id;
+                    };
+
+                    const resolveBusinessCategoryId = () => {
+                      if (pData.business_category_id) return String(pData.business_category_id);
+                      const name = (pData.business_category_name || pData.business_category || "").toLowerCase().trim();
+                      if (!name) return companyForm.business_category_id;
+                      const found = businessCategories.find(
+                        (c) => c.name.toLowerCase() === name || (c as any).slug?.toLowerCase() === name
+                      );
+                      return found ? String(found.id) : companyForm.business_category_id;
+                    };
+
+                    const resolvedSubId = resolveSubIndustryId(resolvedIndId);
+                    const resolvedCatId = resolveBusinessCategoryId();
+
+                    const updatedForm = {
+                      ...companyForm,
+                      company_name: pData.company_name || companyForm.company_name,
+                      brand: pData.brand || companyForm.brand,
+                      address: pData.address || companyForm.address,
+                      phone: pData.phone || companyForm.phone,
+                      email: pData.email || companyForm.email,
+                      website: pData.website || companyForm.website,
+                      lat: pData.lat ? String(pData.lat) : companyForm.lat,
+                      lng: pData.lng ? String(pData.lng) : companyForm.lng,
+                      industry_id: resolvedIndId,
+                      sub_industry_id: resolvedSubId,
+                      business_category_id: resolvedCatId,
+                      company_size_estimate: pData.company_size || companyForm.company_size_estimate,
+                    };
+
+                    setCompanyForm(updatedForm);
+
+                    if (pData.lat && pData.lng) {
+                      setLocationCenter({ lat: Number(pData.lat), lng: Number(pData.lng) });
+                    }
+
+                    // If editing an existing lead, persist directly to DB so data is never lost!
+                    if (lead?.id) {
+                      try {
+                        const payload = {
+                          company_name: updatedForm.company_name.trim(),
+                          brand: updatedForm.brand.trim() || null,
+                          address: updatedForm.address.trim() || null,
+                          lat: updatedForm.lat ? Number(updatedForm.lat) : null,
+                          lng: updatedForm.lng ? Number(updatedForm.lng) : null,
+                          industry_id: updatedForm.industry_id ? Number(updatedForm.industry_id) : null,
+                          sub_industry_id: updatedForm.sub_industry_id ? Number(updatedForm.sub_industry_id) : null,
+                          phone: updatedForm.phone.trim() || null,
+                          email: updatedForm.email.trim() || null,
+                          website: updatedForm.website.trim() ? (updatedForm.website.trim().startsWith('http') ? updatedForm.website.trim() : `https://${updatedForm.website.trim()}`) : null,
+                          company_size_estimate: updatedForm.company_size_estimate || null,
+                          business_category_id: updatedForm.business_category_id || null,
+                          product_id: updatedForm.product_id ? Number(updatedForm.product_id) : null,
+                          estimated_closing_amount: updatedForm.estimated_closing_amount ? Number(updatedForm.estimated_closing_amount) : null,
+                          realized_closing_amount: updatedForm.realized_closing_amount ? Number(updatedForm.realized_closing_amount) : null,
+                          source_type: updatedForm.source_type || null,
+                          channel_type_id: updatedForm.channel_type_id ? Number(updatedForm.channel_type_id) : null,
+                          funnel_stage_id: updatedForm.funnel_stage_id ? Number(updatedForm.funnel_stage_id) : null,
+                          qualification_status: updatedForm.qualification_status || null,
+                          parent_lead_id: updatedForm.parent_lead_id ? Number(updatedForm.parent_lead_id) : null,
+                          owner_id: updatedForm.owner_id ? Number(updatedForm.owner_id) : null,
+                          presales_owner_id: updatedForm.presales_owner_id ? Number(updatedForm.presales_owner_id) : null,
+                          am_owner_id: updatedForm.am_owner_id ? Number(updatedForm.am_owner_id) : null,
+                          csm_owner_id: updatedForm.csm_owner_id ? Number(updatedForm.csm_owner_id) : null,
+                        };
+
+                        const res = await apiFetch(`/leads/${lead.id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(payload),
+                        });
+
+                        if (res.ok) {
+                          qc.invalidateQueries({ queryKey: ['leads'] });
+                          qc.invalidateQueries({ queryKey: ['lead', lead.id] });
+                          toast.success("AI profiling data applied and saved to lead successfully!");
+                          setProfilingStatus("applied");
+                          return;
+                        }
+                      } catch (err: any) {
+                        console.error("Auto-save profiling error", err);
+                      }
+                    }
+
+                    setProfilingStatus("applied");
+                    toast.success("AI profiling applied to form! Click 'Save Changes' to finalize.");
                   }}
                 />
               </div>

@@ -55,6 +55,7 @@ import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { CreateNewModal } from "@/components/ui/CreateNewModal";
 import { EditLeadModal } from "@/components/leads/EditLeadModal";
 import { AiProfilingPanel } from "@/components/leads/AiProfilingPanel";
+import { useToast } from "@/components/ui/toast";
 
 /**
  * A lead as this page receives it.
@@ -621,6 +622,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const toast = useToast();
   const { setting: numberFormatSetting, formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [createNewModalConfig, setCreateNewModalConfig] = useState<{
     isOpen: boolean;
@@ -685,7 +687,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [formError, setFormError] = useState("");
   const [formState, setFormState] = useState<LeadFormState>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
-  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout">("idle");
+  const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout" | "applied">("idle");
   const [profilingData, setProfilingData] = useState<any>(null);
   const [profilingRetrying, setProfilingRetrying] = useState(false);
 
@@ -2571,6 +2573,42 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
               setProfilingData(null);
             }}
             onApply={(pData: any) => {
+              const resolveIndustryId = () => {
+                if (pData.industry_id) return String(pData.industry_id);
+                const name = (pData.industry_name || pData.industry || "").toLowerCase().trim();
+                if (!name) return formState.industry_id;
+                const found = (allIndustries as any[])?.find(
+                  (i) => i.name?.toLowerCase() === name || i.slug?.toLowerCase() === name
+                );
+                return found ? String(found.id) : formState.industry_id;
+              };
+
+              const resolvedIndId = resolveIndustryId();
+
+              const resolveSubIndustryId = (indId: string) => {
+                if (pData.sub_industry_id) return String(pData.sub_industry_id);
+                const name = (pData.sub_industry_name || pData.sub_industry || "").toLowerCase().trim();
+                if (!name) return formState.sub_industry_id;
+                const ind = (allIndustries as any[])?.find((i) => String(i.id) === indId);
+                const found = ind?.sub_industries?.find(
+                  (s: any) => s.name?.toLowerCase() === name || s.slug?.toLowerCase() === name
+                );
+                return found ? String(found.id) : formState.sub_industry_id;
+              };
+
+              const resolveBusinessCategoryId = () => {
+                if (pData.business_category_id) return String(pData.business_category_id);
+                const name = (pData.business_category_name || pData.business_category || "").toLowerCase().trim();
+                if (!name) return formState.business_category_id;
+                const found = (businessCategories as any[])?.find(
+                  (c) => c.name?.toLowerCase() === name || c.slug?.toLowerCase() === name
+                );
+                return found ? String(found.id) : formState.business_category_id;
+              };
+
+              const resolvedSubId = resolveSubIndustryId(resolvedIndId);
+              const resolvedCatId = resolveBusinessCategoryId();
+
               setFormState((s) => ({
                 ...s,
                 company_name: pData.company_name || s.company_name,
@@ -2581,13 +2619,13 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                 website: pData.website || s.website,
                 lat: pData.lat ? String(pData.lat) : s.lat,
                 lng: pData.lng ? String(pData.lng) : s.lng,
-                industry_id: pData.industry_id ? String(pData.industry_id) : s.industry_id,
-                sub_industry_id: pData.sub_industry_id ? String(pData.sub_industry_id) : s.sub_industry_id,
-                business_category_id: pData.business_category_id ? String(pData.business_category_id) : s.business_category_id,
+                industry_id: resolvedIndId,
+                sub_industry_id: resolvedSubId,
+                business_category_id: resolvedCatId,
                 company_size_estimate: pData.company_size || s.company_size_estimate,
               }));
-              setProfilingStatus("idle");
-              setProfilingData(null);
+              setProfilingStatus("applied");
+              toast.success("AI profiling applied to form! Click 'Create Lead' below to save.");
             }}
           />
           <div className="grid gap-2">

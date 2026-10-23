@@ -81,7 +81,7 @@ export interface ProfilingData {
 }
 
 interface AiProfilingPanelProps {
-  status: "idle" | "researching" | "ready_for_review" | "failed" | "timeout";
+  status: "idle" | "researching" | "ready_for_review" | "failed" | "timeout" | "applied";
   data: ProfilingData | null;
   onApply: (data: ProfilingData) => void;
   onClose: () => void;
@@ -171,6 +171,18 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
           Dismiss
         </Button>
       </div>
+
+      {status === "applied" && (
+        <div className="flex items-center justify-between p-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+            <span>AI Profiling data applied to form successfully!</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={onClose} className="h-7 text-xs border-emerald-500/30">
+            Dismiss
+          </Button>
+        </div>
+      )}
 
       {status === "researching" && (
         <div className="flex flex-col items-center justify-center py-10 space-y-3">

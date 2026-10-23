@@ -1495,6 +1495,21 @@ export default function ProductDetailPage() {
               </div>
               <ProductScrapeAndCompare
                 product={{ ...product, website_url: formWebsiteUrl || product?.website_url }}
+                onApplied={(freshProduct) => {
+                  qc.invalidateQueries({ queryKey: ["products", productId] });
+                  if (freshProduct) {
+                    if (freshProduct.name) setFormName(freshProduct.name);
+                    if (freshProduct.description) setFormDesc(freshProduct.description);
+                    if (freshProduct.category) setFormCategory(freshProduct.category);
+                    if (freshProduct.target_industry) setFormTargetIndustry(freshProduct.target_industry);
+                    if (freshProduct.target_company_size) setFormTargetCompanySize(freshProduct.target_company_size);
+                    if (freshProduct.target_buyer_persona) setFormTargetPersona(freshProduct.target_buyer_persona);
+                    if (freshProduct.target_pain_points) setFormTargetPainPoints(freshProduct.target_pain_points);
+                    if (freshProduct.ideal_company_profile) setFormIdealCompanyProfile(freshProduct.ideal_company_profile);
+                    if (freshProduct.budget_range) setFormBudgetRange(freshProduct.budget_range);
+                    if (freshProduct.competitor_notes) setFormCompetitorNotes(freshProduct.competitor_notes);
+                  }
+                }}
               />
             </CardHeader>
             <CardContent>

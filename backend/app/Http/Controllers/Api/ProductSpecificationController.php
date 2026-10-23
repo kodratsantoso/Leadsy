@@ -57,9 +57,12 @@ class ProductSpecificationController extends Controller
         $product = Product::findOrFail($id);
         $comparison = ProductSpecificationComparison::where('product_id', $product->id)->findOrFail($comparisonId);
 
-        $comparisonService->applyApprovedSuggestions($comparison);
+        $updatedProduct = $comparisonService->applyApprovedSuggestions($comparison);
 
-        return response()->json(['status' => 'success']);
+        return response()->json([
+            'status' => 'success',
+            'data' => $updatedProduct ?? $product->fresh(),
+        ]);
     }
 
     /**

@@ -35,10 +35,19 @@ class ProductSpecificationComparisonService
             'name' => $product->name,
             'description' => $product->description,
             'category' => $product->category,
-            'features' => $product->features,
+            'target_industry' => $product->target_industry,
+            'target_company_size' => $product->target_company_size,
+            'target_buyer_persona' => $product->target_buyer_persona,
+            'budget_range' => $product->budget_range,
+            'supported_regions' => $product->supported_regions,
+            'keywords' => $product->keywords,
+            'target_pain_points' => $product->target_pain_points,
             'use_cases' => $product->use_cases,
-            'pricing_notes' => $product->pricing_notes,
-            'target_audience' => $product->target_audience,
+            'ideal_company_profile' => $product->ideal_company_profile,
+            'competitor_notes' => $product->competitor_notes,
+            'features' => $product->features ?? null,
+            'pricing_notes' => $product->budget_range,
+            'target_audience' => $product->target_buyer_persona,
         ];
 
         // Replace placeholders in prompt
@@ -151,25 +160,53 @@ class ProductSpecificationComparisonService
     public function applyApprovedSuggestions(ProductSpecificationComparison $comparison)
     {
         $product = $comparison->product;
-        $suggestions = $comparison->updateSuggestions()->where('status', 'approved')->get();
+        // Query both pending (awaiting user approval) and approved suggestions
+        $suggestions = $comparison->updateSuggestions()->whereIn('status', ['pending', 'approved'])->get();
 
         foreach ($suggestions as $suggestion) {
             $field = $suggestion->field_name;
-            if (in_array($field, ['description', 'category', 'pricing_notes', 'target_audience'])) {
-                $product->$field = $suggestion->suggested_value;
-            } elseif (in_array($field, ['features', 'use_cases'])) {
-                // If it's an array field in Product model
-                $decoded = json_decode($suggestion->suggested_value, true);
-                if ($decoded) {
-                    $product->$field = $decoded;
+            $val = $suggestion->suggested_value;
+
+            // Normalize alias field names
+            if ($field === 'pricing_notes') {
+                $field = 'budget_range';
+            } elseif ($field === 'target_audience') {
+                $field = 'target_buyer_persona';
+            }
+
+            if (in_array($field, [
+                'name',
+                'description',
+                'category',
+                'target_industry',
+                'target_company_size',
+                'target_buyer_persona',
+                'target_pain_points',
+                'ideal_company_profile',
+                'budget_range',
+                'supported_regions',
+                'competitor_notes',
+            ])) {
+                $product->$field = is_array($val) ? implode(', ', $val) : $val;
+            } elseif (in_array($field, ['features', 'use_cases', 'keywords'])) {
+                if (is_array($val)) {
+                    $product->$field = $val;
                 } else {
-                    $product->$field = $suggestion->suggested_value; // Fallback
+                    $decoded = json_decode((string) $val, true);
+                    $product->$field = is_array($decoded) ? $decoded : array_values(array_filter(array_map('trim', explode(',', (string) $val))));
                 }
             }
+
             $suggestion->update(['status' => 'applied']);
         }
 
         $product->save();
-        $comparison->update(['status' => 'approved']);
+        $comparison->update([
+            'status' => 'approved',
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+
+        return $product;
     }
 }

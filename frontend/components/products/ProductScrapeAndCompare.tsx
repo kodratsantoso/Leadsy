@@ -6,9 +6,11 @@ import { apiFetch } from "@/lib/apiFetch";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Loader2, Globe, Check, X } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 type Props = {
   product: any;
+  onApplied?: (updatedProduct?: any) => void;
 };
 
 function formatValue(val: any) {
@@ -33,8 +35,9 @@ function formatValue(val: any) {
   }
 }
 
-export function ProductScrapeAndCompare({ product }: Props) {
+export function ProductScrapeAndCompare({ product, onApplied }: Props) {
   const qc = useQueryClient();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -63,11 +66,24 @@ export function ProductScrapeAndCompare({ product }: Props) {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (comparisonId: number) => apiFetch(`/api/products/${product.id}/comparisons/${comparisonId}/approve`, { method: "POST" }),
-    onSuccess: () => {
+    mutationFn: async (comparisonId: number) => {
+      const res = await apiFetch(`/api/products/${product.id}/comparisons/${comparisonId}/approve`, { method: "POST" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to approve comparison");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["product-comparison", product.id] });
+      qc.invalidateQueries({ queryKey: ["products", product.id] });
       qc.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Product specification updates approved and saved successfully!");
       setShowModal(false);
+      onApplied?.(data?.data);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to apply updates.");
     }
   });
 
@@ -75,7 +91,11 @@ export function ProductScrapeAndCompare({ product }: Props) {
     mutationFn: (comparisonId: number) => apiFetch(`/api/products/${product.id}/comparisons/${comparisonId}/reject`, { method: "POST" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["product-comparison", product.id] });
+      toast.info("Comparison suggestions rejected.");
       setShowModal(false);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to reject updates.");
     }
   });
 
