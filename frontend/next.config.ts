@@ -17,6 +17,32 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "leadsy.virtuenet.space",
+          },
+        ],
+        destination: "https://leadsy.tech/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [
+          {
+            type: "host",
+            value: "leadgen.virtuenet.space",
+          },
+        ],
+        destination: "https://leadsy.tech/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -111,3 +111,23 @@ spec:
                 name: leadsy
                 port:
                   number: 3000
+    - host: leadsy.virtuenet.space
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: leadsy
+                port:
+                  number: 3000
+    - host: leadgen.virtuenet.space
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: leadsy
+                port:
+                  number: 3000
