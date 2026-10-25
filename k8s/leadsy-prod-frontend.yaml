@@ -66,6 +66,8 @@ spec:
               value: https://leadsy.tech
             - name: NEXT_PUBLIC_SITE_URL
               value: https://leadsy.tech
+            - name: API_INTERNAL_URL
+              value: http://backend-k8s:8000
           ports:
             - name: http
               containerPort: 3000

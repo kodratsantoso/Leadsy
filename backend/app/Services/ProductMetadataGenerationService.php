@@ -19,7 +19,7 @@ use Smalot\PdfParser\Parser as PdfParser;
  */
 class ProductMetadataGenerationService
 {
-    const MAX_CONTENT_CHARS = 6000;
+    const MAX_CONTENT_CHARS = 3500;
 
     public function __construct(private AiOrchestrationService $ai) {}
 
@@ -114,8 +114,8 @@ class ProductMetadataGenerationService
                 $normalizedUrl = 'https://' . $normalizedUrl;
             }
 
-            $response = Http::timeout(15)
-                ->connectTimeout(5)
+            $response = Http::timeout(6)
+                ->connectTimeout(3)
                 ->withHeaders([
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
