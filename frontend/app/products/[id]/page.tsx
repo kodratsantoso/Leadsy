@@ -99,6 +99,67 @@ type ProductRecord = {
   logo_url?: string | null;
 };
 
+function normalizeTierData(t: any): ProductTier {
+  let pricingType = String(t.pricing_type || "flat_rate").toLowerCase().trim();
+  const pricingTypeMap: Record<string, string> = {
+    flat_monthly: "flat_rate",
+    flat_rate: "flat_rate",
+    flat: "flat_rate",
+    fixed: "flat_rate",
+    package: "flat_rate",
+    one_time_license: "flat_rate",
+    per_user_monthly: "per_user",
+    per_user: "per_user",
+    per_seat: "per_user",
+    user: "per_user",
+    seat: "per_user",
+    usage_based: "usage_based",
+    usage: "usage_based",
+    tiered_volume: "usage_based",
+    custom_quote: "custom_quote",
+    custom: "custom_quote",
+  };
+  pricingType = pricingTypeMap[pricingType] || "flat_rate";
+
+  let billingPeriod = String(t.billing_period || "monthly").toLowerCase().trim();
+  const billingPeriodMap: Record<string, string> = {
+    monthly: "monthly",
+    month: "monthly",
+    annual: "yearly",
+    annually: "yearly",
+    yearly: "yearly",
+    year: "yearly",
+    quarterly: "quarterly",
+    one_time: "one_time",
+    one_off: "one_time",
+    lifetime: "one_time",
+    custom: "custom",
+  };
+  billingPeriod = billingPeriodMap[billingPeriod] || "monthly";
+
+  let durationUnit: "day" | "month" | "year" | "lifetime" = "month";
+  const unitRaw = String(t.subscription_duration_unit || "").toLowerCase().trim();
+  if (unitRaw === "day" || unitRaw === "year" || unitRaw === "lifetime") {
+    durationUnit = unitRaw;
+  } else if (billingPeriod === "yearly") {
+    durationUnit = "year";
+  }
+
+  return {
+    ...t,
+    id: t.id ? Number(t.id) : undefined,
+    name: String(t.name || "").trim() || "Standard",
+    price: typeof t.price === "number" ? t.price : (Number(String(t.price || 0).replace(/[^\d.]/g, "")) || 0),
+    pricing_type: pricingType,
+    billing_period: billingPeriod,
+    subscription_duration_value: Math.max(1, Number(t.subscription_duration_value) || 1),
+    subscription_duration_unit: durationUnit,
+    status: t.status === "inactive" ? "inactive" : "active",
+    features: Array.isArray(t.features) ? t.features.map(String) : [],
+    differentiator: t.differentiator || "",
+  };
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -336,7 +397,7 @@ export default function ProductDetailPage() {
         default_terms_conditions: formDefaultTerms,
         quotation_terms_conditions: formQtTerms,
         sales_order_terms_conditions: formSoTerms,
-        tiers: formTiers.map((t) => ({
+        tiers: formTiers.map(normalizeTierData).map((t) => ({
           ...t,
           differentiator: t.differentiator || null,
           features: Array.isArray(t.features) ? t.features : [],
@@ -487,9 +548,7 @@ export default function ProductDetailPage() {
         return Array.from(new Set([...current, ...incArr]));
       };
 
-      if (generated.name && (!formName.trim() || formName === "New Product")) {
-        setFormName(generated.name);
-      }
+      if (generated.name) setFormName(generated.name);
       if (generated.description) setFormDesc(generated.description);
       if (generated.category) setFormCategory(generated.category);
       if (generated.target_industry) setFormTargetIndustry(generated.target_industry);
@@ -504,18 +563,23 @@ export default function ProductDetailPage() {
       setFormKeywords(mergeArray(formKeywords, generated.keywords));
       setFormUseCases(mergeArray(formUseCases, generated.use_cases));
 
+      if (refUrl && !formWebsiteUrl) {
+        setFormWebsiteUrl(refUrl);
+      }
+
       if (Array.isArray(generated.tiers) && generated.tiers.length > 0) {
+        const normalizedIncoming = generated.tiers.map(normalizeTierData);
         setFormTiers((prev) => {
-          if (prev.length === 0) return generated.tiers;
+          if (prev.length === 0) return normalizedIncoming;
           const existingNames = new Set(prev.map((t) => t.name.toLowerCase()));
-          const newTiers = generated.tiers.filter((t: ProductTier) => !existingNames.has(t.name.toLowerCase()));
+          const newTiers = normalizedIncoming.filter((t: ProductTier) => !existingNames.has(t.name.toLowerCase()));
           return [...prev, ...newTiers];
         });
       }
 
       setAiGenerated(true);
       setAiError(null);
-      toast.success("AI profiling complete! Product overview, targeting parameters, and tiers updated.");
+      toast.success("AI profiling complete! Product overview, targeting parameters, and tiers updated. Click 'Save Changes' to persist.");
     },
     onError: (err: any) => {
       const msg =

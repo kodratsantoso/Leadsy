@@ -315,7 +315,7 @@ Return ONLY valid JSON — no markdown, no code fences, no extra text:
       "name": "Starter / Standard / Enterprise plan name",
       "price": 5000000,
       "billing_period": "monthly",
-      "pricing_type": "flat_monthly",
+      "pricing_type": "flat_rate",
       "differentiator": "Key differentiation of this tier vs other tiers (e.g. For growing teams up to 50 users needing automation)",
       "features": ["Feature 1", "Feature 2", "Feature 3"]
     }
@@ -400,8 +400,37 @@ INSTRUCTIONS;
         }
 
         $tiers = [];
-        $validPeriods = ['monthly', 'annual', 'one_off', 'quarterly'];
-        $validTypes = ['flat_monthly', 'per_user_monthly', 'usage_based', 'tiered_volume', 'custom_quote', 'one_time_license'];
+        $periodMap = [
+            'monthly' => 'monthly',
+            'month' => 'monthly',
+            'annual' => 'yearly',
+            'annually' => 'yearly',
+            'yearly' => 'yearly',
+            'year' => 'yearly',
+            'quarterly' => 'quarterly',
+            'one_time' => 'one_time',
+            'one_off' => 'one_time',
+            'lifetime' => 'one_time',
+            'custom' => 'custom',
+        ];
+
+        $pricingTypeMap = [
+            'flat_rate' => 'flat_rate',
+            'flat_monthly' => 'flat_rate',
+            'flat' => 'flat_rate',
+            'fixed' => 'flat_rate',
+            'package' => 'flat_rate',
+            'one_time_license' => 'flat_rate',
+            'per_user' => 'per_user',
+            'per_user_monthly' => 'per_user',
+            'per_seat' => 'per_user',
+            'user' => 'per_user',
+            'seat' => 'per_user',
+            'usage_based' => 'usage_based',
+            'tiered_volume' => 'usage_based',
+            'custom_quote' => 'custom_quote',
+            'custom' => 'custom_quote',
+        ];
 
         foreach ($rawTiers as $tier) {
             if (!is_array($tier) || empty($tier['name'])) {
@@ -417,15 +446,11 @@ INSTRUCTIONS;
                 $price = is_numeric($priceRaw) ? (float) $priceRaw : 0;
             }
 
-            $period = strtolower((string) ($tier['billing_period'] ?? 'monthly'));
-            if (!in_array($period, $validPeriods, true)) {
-                $period = 'monthly';
-            }
+            $periodRaw = strtolower((string) ($tier['billing_period'] ?? 'monthly'));
+            $period = $periodMap[$periodRaw] ?? 'monthly';
 
-            $pricingType = strtolower((string) ($tier['pricing_type'] ?? 'flat_monthly'));
-            if (!in_array($pricingType, $validTypes, true)) {
-                $pricingType = 'flat_monthly';
-            }
+            $pricingTypeRaw = strtolower((string) ($tier['pricing_type'] ?? 'flat_rate'));
+            $pricingType = $pricingTypeMap[$pricingTypeRaw] ?? 'flat_rate';
 
             $differentiator = $this->toText($tier['differentiator'] ?? $tier['perbedaan'] ?? $tier['highlight'] ?? '');
             $features = $this->toList($tier['features'] ?? $tier['feature_list'] ?? []);
@@ -436,7 +461,7 @@ INSTRUCTIONS;
                 'billing_period' => $period,
                 'pricing_type' => $pricingType,
                 'subscription_duration_value' => 1,
-                'subscription_duration_unit' => $period === 'annual' ? 'year' : 'month',
+                'subscription_duration_unit' => $period === 'yearly' ? 'year' : 'month',
                 'differentiator' => $differentiator,
                 'features' => $features,
                 'status' => 'active',

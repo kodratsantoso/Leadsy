@@ -69,8 +69,8 @@ class ProductController extends Controller
             'tiers' => 'nullable|array',
             'tiers.*.name' => 'required|string|max:255',
             'tiers.*.price' => 'required|numeric|min:0',
-            'tiers.*.pricing_type' => 'required|string|in:flat_rate,per_user,usage_based',
-            'tiers.*.billing_period' => 'required|string|in:monthly,yearly,one_time,custom',
+            'tiers.*.pricing_type' => 'required|string|in:flat_rate,per_user,usage_based,custom_quote,per_license,per_package,per_mandays,custom,flat_monthly,per_user_monthly,tiered_volume,one_time_license',
+            'tiers.*.billing_period' => 'required|string|in:monthly,yearly,quarterly,one_time,custom,annual,annually,one_off,lifetime',
             'tiers.*.subscription_duration_value' => 'required|integer|min:1',
             'tiers.*.subscription_duration_unit' => 'required|string|in:day,month,year,lifetime',
             'tiers.*.features' => 'nullable|array',
@@ -87,6 +87,7 @@ class ProductController extends Controller
 
         $tiersData = $data['tiers'] ?? [];
         foreach ($tiersData as $tierData) {
+            $tierData = $this->normalizeTierPayload($tierData);
             $product->tiers()->create($tierData);
         }
 
@@ -109,7 +110,7 @@ class ProductController extends Controller
             'target_buyer_persona' => 'nullable|string',
             'ideal_company_profile' => 'nullable|string',
             'ai_reference_material' => 'nullable|string',
-            'supported_regions' => 'nullable|string|max:255',
+            'supported_regions' => 'nullable|string|max:1000',
             'budget_range' => 'nullable|string|max:255',
             'target_company_size' => 'nullable|string|max:255',
             'use_cases' => 'nullable|array',
@@ -123,8 +124,8 @@ class ProductController extends Controller
             'tiers.*.id' => 'nullable|integer',
             'tiers.*.name' => 'required|string|max:255',
             'tiers.*.price' => 'required|numeric|min:0',
-            'tiers.*.pricing_type' => 'required|string|in:flat_rate,per_user,usage_based',
-            'tiers.*.billing_period' => 'required|string|in:monthly,yearly,one_time,custom',
+            'tiers.*.pricing_type' => 'required|string|in:flat_rate,per_user,usage_based,custom_quote,per_license,per_package,per_mandays,custom,flat_monthly,per_user_monthly,tiered_volume,one_time_license',
+            'tiers.*.billing_period' => 'required|string|in:monthly,yearly,quarterly,one_time,custom,annual,annually,one_off,lifetime',
             'tiers.*.subscription_duration_value' => 'required|integer|min:1',
             'tiers.*.subscription_duration_unit' => 'required|string|in:day,month,year,lifetime',
             'tiers.*.features' => 'nullable|array',
@@ -139,6 +140,7 @@ class ProductController extends Controller
         $tiersData = $data['tiers'] ?? [];
         $keepIds = [];
         foreach ($tiersData as $tierData) {
+            $tierData = $this->normalizeTierPayload($tierData);
             if (isset($tierData['id'])) {
                 $tier = $product->tiers()->findOrFail($tierData['id']);
                 $tier->update($tierData);
@@ -444,5 +446,30 @@ class ProductController extends Controller
             ->all();
 
         return array_values(array_unique(array_merge($existingCategories, $industryNames)));
+    }
+
+    private function normalizeTierPayload(array $tierData): array
+    {
+        $pricingTypeMap = [
+            'flat_monthly' => 'flat_rate',
+            'one_time_license' => 'flat_rate',
+            'per_user_monthly' => 'per_user',
+            'tiered_volume' => 'usage_based',
+        ];
+        if (isset($pricingTypeMap[$tierData['pricing_type'] ?? ''])) {
+            $tierData['pricing_type'] = $pricingTypeMap[$tierData['pricing_type']];
+        }
+
+        $billingPeriodMap = [
+            'annual' => 'yearly',
+            'annually' => 'yearly',
+            'one_off' => 'one_time',
+            'lifetime' => 'one_time',
+        ];
+        if (isset($billingPeriodMap[$tierData['billing_period'] ?? ''])) {
+            $tierData['billing_period'] = $billingPeriodMap[$tierData['billing_period']];
+        }
+
+        return $tierData;
     }
 }
