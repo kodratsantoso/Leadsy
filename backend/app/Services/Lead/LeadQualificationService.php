@@ -68,8 +68,11 @@ class LeadQualificationService
     }
 
     /**
-     * Shared persistence + funnel auto-routing for both qualifyLead() and
+     * Shared persistence of qualification for both qualifyLead() and
      * qualifyLeadWithAiHint().
+     *
+     * Note: Funnel stage (funnel_stage_id) is intentionally NOT auto-routed here.
+     * Funnel stage transitions must be driven by human sales activity and real-world interactions.
      */
     private function persistQualification(Lead $lead, array $ruleQualification, array $finalQualification): LeadQualification
     {
@@ -89,7 +92,7 @@ class LeadQualificationService
             'last_qualified_at' => Carbon::now(),
         ]);
 
-        // Step 4: Update lead qualification_status field
+        // Step 4: Update lead qualification_status field only
         $statusMap = [
             'yes' => 'eligible',
             'maybe' => 'potential',
@@ -100,27 +103,9 @@ class LeadQualificationService
             ? 'pending'
             : ($statusMap[$finalQualification['qualified']] ?? 'pending');
 
-        $updateData = [
+        $lead->update([
             'qualification_status' => $qualificationStatus,
-        ];
-
-        // Auto-Route Funnel Stage based on AI Qualification:
-        // - 'eligible' (yes) -> promote to Qualified (SQL) (ID 3)
-        // - 'potential' (maybe) -> promote to Contacted (ID 2)
-        // - 'not_eligible' (no) -> move to Nurture / Hold (ID 11)
-        if (is_null($lead->funnel_stage_id) || $lead->funnel_stage_id == 1) {
-            $stageMap = [
-                'eligible' => 3,     // Qualified (SQL)
-                'potential' => 2,    // Contacted
-                'not_eligible' => 11, // Nurture / Hold
-            ];
-            if (isset($stageMap[$qualificationStatus])) {
-                $updateData['funnel_stage_id'] = $stageMap[$qualificationStatus];
-                \Illuminate\Support\Facades\Log::info("[AutoRoute] Promoting Lead {$lead->id} to funnel stage {$stageMap[$qualificationStatus]} based on qualification: {$qualificationStatus}");
-            }
-        }
-
-        $lead->update($updateData);
+        ]);
 
         return $qualification;
     }
