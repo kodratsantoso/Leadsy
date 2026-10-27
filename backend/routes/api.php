@@ -559,6 +559,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('leads/ai-screening/bulk-selected', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'screenSelected']);
     Route::post('leads/{lead}/ai-screening/dispatch', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'dispatchSingle']);
     Route::get('leads/{lead}/ai-screening/status', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'statusSingle']);
+    Route::get('leads/{lead}/ai-screening/stream', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'streamSingle']);
     Route::post('leads/{lead}/ai-screening', [\App\Http\Controllers\Api\AiPreMeetingScreeningController::class, 'screenSingle']);
 
     Route::get('/leads/{lead}/pre-meeting-brief', [\App\Http\Controllers\Api\PreMeetingBriefController::class, 'show'])->middleware('permission:leads.view');

@@ -19,10 +19,15 @@ use Illuminate\Support\Facades\Log;
  */
 class AiOrchestrationService
 {
+    private PiiMaskingService $piiMasking;
+
     public function __construct(
         private AIPriorityResolverService $priorityResolver,
         private AIPromptTemplateService $promptTemplates,
-    ) {}
+        ?PiiMaskingService $piiMasking = null,
+    ) {
+        $this->piiMasking = $piiMasking ?? app(PiiMaskingService::class);
+    }
 
     /**
      * Execute an AI call for a named function.
@@ -36,6 +41,11 @@ class AiOrchestrationService
     {
         $routes = $this->priorityResolver->getRoutesForFeature($functionName);
         $promptContent = $this->promptTemplates->compilePrompt($functionName, $promptContent, $context);
+
+        // UU No. 27/2022 (UU PDP) — Anonymize sensitive PII before transmitting to external LLMs
+        $maskingResult = $this->piiMasking->mask($promptContent);
+        $promptContent = $maskingResult['masked'];
+        $piiTokenMap = $maskingResult['tokenMap'];
 
         // How long this feature needs, and how much it may write, are properties of the
         // feature — not of whichever provider happens to answer. They live on the prompt
@@ -84,6 +94,9 @@ class AiOrchestrationService
                     $tuning?->max_tokens
                 );
                 if ($result['success']) {
+                    if (!empty($piiTokenMap)) {
+                        $result['content'] = $this->piiMasking->unmask($result['content'], $piiTokenMap);
+                    }
                     $this->putCachedResult($functionName, $promptContent, $context, $route->cache_ttl_minutes, $result);
 
                     return $result;

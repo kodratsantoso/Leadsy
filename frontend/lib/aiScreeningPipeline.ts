@@ -58,6 +58,61 @@ export async function runAiScreening(
   const startedAt = Date.now();
   const elapsed = () => Math.round((Date.now() - startedAt) / 100) / 10;
 
+  // 1. Prioritize real-time Server-Sent Events (SSE) stream via fetch ReadableStream
+  try {
+    const streamRes = await apiFetch(`/leads/${leadId}/ai-screening/stream`);
+    if (streamRes.ok && streamRes.body) {
+      const reader = streamRes.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        if (shouldStop?.()) {
+          reader.cancel().catch(() => {});
+          return { status: "stopped", elapsedSeconds: elapsed() };
+        }
+
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split("\n\n");
+        buffer = blocks.pop() || "";
+
+        for (const block of blocks) {
+          const eventMatch = block.match(/^event:\s*(\w+)/m);
+          const dataMatch = block.match(/^data:\s*(.+)$/m);
+          const eventType = eventMatch ? eventMatch[1] : null;
+          const dataRaw = dataMatch ? dataMatch[1] : null;
+
+          if (dataRaw) {
+            try {
+              const parsed = JSON.parse(dataRaw);
+              if (eventType === "completed" || parsed.status === "completed") {
+                return { status: "completed", data: parsed.data ?? null, elapsedSeconds: elapsed() };
+              }
+              if (eventType === "failed" || parsed.status === "failed") {
+                return {
+                  status: "failed",
+                  error: parsed.error || "AI Screening failed on server.",
+                  elapsedSeconds: elapsed(),
+                };
+              }
+              if (eventType === "progress" && onProgress) {
+                onProgress(elapsed(), parsed.attempt ?? 1);
+              }
+            } catch {
+              // Ignore partial chunk parse error
+            }
+          }
+        }
+      }
+    }
+  } catch (streamErr) {
+    console.warn("[runAiScreening] SSE stream closed, transitioning to polling fallback:", streamErr);
+  }
+
+  // 2. Resilient polling fallback loop (if SSE stream closes early)
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     if (shouldStop?.()) return { status: "stopped", elapsedSeconds: elapsed() };
 

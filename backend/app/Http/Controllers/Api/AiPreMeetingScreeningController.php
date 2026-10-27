@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Carbon;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AiPreMeetingScreeningController extends Controller
 {
@@ -210,6 +211,94 @@ class AiPreMeetingScreeningController extends Controller
             'status' => ($cacheData['status'] ?? 'processing'),
             'lead_id' => $lead->id,
             'company_name' => $lead->company_name,
+        ]);
+    }
+
+    /**
+     * GET /api/leads/{lead}/ai-screening/stream
+     * Provides a real-time Server-Sent Events (SSE) stream for lead AI screening.
+     * Bypasses reverse proxy timeouts with X-Accel-Buffering: no.
+     */
+    public function streamSingle(Request $request, Lead $lead): StreamedResponse
+    {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+
+        return response()->stream(function () use ($lead) {
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            $maxAttempts = 150; // up to 300 seconds
+            $attempt = 0;
+            $leadId = $lead->id;
+
+            while ($attempt < $maxAttempts) {
+                if (connection_aborted()) {
+                    break;
+                }
+
+                $cacheData = Cache::get("lead_screening_{$leadId}");
+                $freshLead = Lead::find($leadId);
+
+                $isCompletedInDb = $freshLead && $freshLead->lead_score !== null 
+                    && !empty($freshLead->qualification_status) 
+                    && !in_array($freshLead->qualification_status, ['pending', 'unassessed']);
+
+                if ($isCompletedInDb || ($cacheData['status'] ?? '') === 'completed') {
+                    $score = $freshLead->lead_score ?? ($cacheData['lead_score'] ?? 50);
+                    $status = $freshLead->qualification_status ?? ($cacheData['qualification_status'] ?? 'potential');
+                    $grade = $score >= 80 ? 'Grade A' : ($score >= 60 ? 'Grade B' : 'Grade C');
+
+                    $payload = [
+                        'status' => 'completed',
+                        'data' => [
+                            'lead_id' => $freshLead->id,
+                            'company_name' => $freshLead->company_name,
+                            'lead_score' => $score,
+                            'qualification_status' => $status,
+                            'grade' => $grade,
+                            'brand' => $freshLead->brand,
+                            'website' => $freshLead->website,
+                            'phone' => $freshLead->phone,
+                            'email' => $freshLead->email,
+                            'industry' => $freshLead->industry?->name,
+                            'sub_industry' => $freshLead->subIndustry?->name,
+                            'business_category' => $freshLead->business_category,
+                            'company_size' => $freshLead->company_size,
+                            'elapsed_seconds' => $cacheData['elapsed_seconds'] ?? null,
+                        ],
+                    ];
+                    echo "event: completed\n";
+                    echo "data: " . json_encode($payload) . "\n\n";
+                    flush();
+                    break;
+                }
+
+                if (($cacheData['status'] ?? '') === 'failed') {
+                    $payload = [
+                        'status' => 'failed',
+                        'error' => $cacheData['error'] ?? 'AI Screening failed on server.',
+                    ];
+                    echo "event: failed\n";
+                    echo "data: " . json_encode($payload) . "\n\n";
+                    flush();
+                    break;
+                }
+
+                // Heartbeat progress event every 2 seconds
+                $currentStage = $cacheData['current_stage'] ?? ($cacheData['status'] ?? 'processing');
+                echo "event: progress\n";
+                echo "data: " . json_encode(['status' => 'processing', 'stage' => $currentStage, 'attempt' => $attempt]) . "\n\n";
+                flush();
+
+                sleep(2);
+                $attempt++;
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache, no-transform',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
         ]);
     }
 

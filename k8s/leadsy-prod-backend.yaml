@@ -55,6 +55,7 @@ spec:
         app.kubernetes.io/name: leadsy-backend
         app.kubernetes.io/part-of: leadsy
     spec:
+      terminationGracePeriodSeconds: 45
       initContainers:
         - name: prepare-storage
           image: busybox:1.36
@@ -69,6 +70,10 @@ spec:
         - name: backend
           image: 10.43.110.114:5000/leadsy-backend:__IMAGE_TAG__
           imagePullPolicy: Always
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]
           env:
             - name: APP_ENV
               value: production
