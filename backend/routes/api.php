@@ -525,8 +525,15 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/{lead}/revenue-check', [LeadController::class, 'revenueCheck'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/outcome', [LeadController::class, 'recordOutcome'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/revenue-intelligence', [LeadController::class, 'revenueIntelligence'])->middleware('permission:leads.view');
-    Route::post('leads/{lead}/revenue-analysis', [LeadController::class, 'runRevenueAnalysis'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/revenue-analysis', [LeadController::class, 'getRevenueAnalysis'])->middleware('permission:leads.view');
+
+    // Sales Cadence & Multi-Touch Sequence Routes (Sprint 3)
+    Route::get('sales-cadences', [\App\Http\Controllers\Api\SalesCadenceController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('sales-cadences', [\App\Http\Controllers\Api\SalesCadenceController::class, 'store'])->middleware('permission:leads.edit');
+    Route::get('sales-cadences/{id}', [\App\Http\Controllers\Api\SalesCadenceController::class, 'show'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/enroll-cadence', [\App\Http\Controllers\Api\SalesCadenceController::class, 'enrollLead'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/cadence-enrollments', [\App\Http\Controllers\Api\SalesCadenceController::class, 'leadEnrollments'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/copilot', [LeadController::class, 'copilot'])->middleware('permission:leads.view');
 
     // Lead Activity & Evaluation Routes (Module B — Activities, Meetings, Transcripts, Evaluations)
     Route::put('leads/{lead}/activities/{activity}', [LeadActivityController::class, 'updateActivity'])->middleware('permission:leads.edit');

@@ -1324,6 +1324,22 @@ class LeadController extends Controller
         return response()->json(['data' => $fresh]);
     }
 
+    /** POST /api/leads/{lead}/copilot */
+    public function copilot(Request $request, Lead $lead, \App\Services\AI\SalesCopilotService $service): JsonResponse
+    {
+        $validated = $request->validate([
+            'message' => 'required|string|max:1000',
+            'history' => 'nullable|array',
+        ]);
+
+        $result = $service->chat($lead, $validated['message'], $validated['history'] ?? []);
+
+        return response()->json([
+            'success' => true,
+            'data' => $result,
+        ]);
+    }
+
     /** POST /api/leads/{lead}/prescribe */
     public function prescribe(Lead $lead, PrescriptiveEngineService $service): JsonResponse
     {

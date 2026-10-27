@@ -9,7 +9,7 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen
+  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox
 } from "lucide-react";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -82,6 +82,7 @@ export const navItems: NavItem[] = [
     ],
   },
   { href: "/products",               icon: Package,         label: "Products" },
+  { href: "/inbox",                  icon: Inbox,           label: "Omnichannel Inbox" },
   {
     href: "/professional-services",
     icon: Briefcase,

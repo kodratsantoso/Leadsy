@@ -20,7 +20,7 @@ import {
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown, ChevronUp,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, Link as LinkIcon
+  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, GitBranch, Link as LinkIcon
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,9 @@ import { DiscoveryWorkspaceTab } from '@/components/leads/tabs/DiscoveryWorkspac
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { AnalysisReportDialog } from '@/components/leads/reports/AnalysisReportDialog';
 import { useToast } from "@/components/ui/toast";
+import { InContextSalesCopilotDrawer } from '@/components/leads/InContextSalesCopilotDrawer';
+import { EnrollCadenceModal } from '@/components/leads/EnrollCadenceModal';
+import { SalesCadenceStatusCard } from '@/components/leads/SalesCadenceStatusCard';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -599,6 +602,8 @@ export default function LeadDetailPage() {
   const currentUserId = authUser?.id;
   const { formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [isCadenceModalOpen, setIsCadenceModalOpen] = useState(false);
   const [createNewModalConfig, setCreateNewModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -1713,6 +1718,26 @@ export default function LeadDetailPage() {
           <Button
             variant="outline"
             size="sm"
+            className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-600 hover:text-white"
+            onClick={() => setIsCopilotOpen(true)}
+            title="In-Context Sales Copilot & Strategic AI Assistant"
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            AI Sales Copilot
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-border hover:bg-muted"
+            onClick={() => setIsCadenceModalOpen(true)}
+            title="Daftarkan lead ke Automated Sales Cadence Sequence"
+          >
+            <GitBranch className="mr-2 h-4 w-4 text-brand" />
+            Cadence
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             className="bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30 hover:bg-[var(--brand)] hover:text-white"
             onClick={() => runIntelligenceMutation.mutate()}
             disabled={runIntelligenceMutation.isPending}
@@ -1984,6 +2009,13 @@ export default function LeadDetailPage() {
       {/* ── OVERVIEW TAB ── */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          {/* Sales Cadence Multi-Touch Status Card */}
+          <SalesCadenceStatusCard
+            leadId={Number(leadId)}
+            leadName={leadData?.company_name || 'Lead'}
+            onOpenEnrollModal={() => setIsCadenceModalOpen(true)}
+          />
+
           {/* Row 1: Company Profile + Key Contacts */}
           <div className="grid gap-6 md:grid-cols-2">
             {/* Company Profile */}
@@ -4522,6 +4554,35 @@ export default function LeadDetailPage() {
           </div>
         </Modal>
       )}
+
+      {/* ── FLOATING SALES COPILOT LAUNCHER ── */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          type="button"
+          onClick={() => setIsCopilotOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-semibold text-xs shadow-xl hover:shadow-purple-500/30 hover:scale-105 active:scale-95 transition-all duration-200 border border-white/20 group"
+          title="Buka In-Context Sales Copilot"
+        >
+          <Sparkles className="h-4 w-4 animate-pulse group-hover:rotate-12 transition-transform" />
+          <span>Ask Sales Copilot</span>
+        </button>
+      </div>
+
+      {/* ── SALES COPILOT DRAWER ── */}
+      <InContextSalesCopilotDrawer
+        leadId={Number(leadId)}
+        leadName={leadData?.company_name || 'Lead'}
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+      />
+
+      {/* ── ENROLL CADENCE MODAL ── */}
+      <EnrollCadenceModal
+        leadId={Number(leadId)}
+        leadName={leadData?.company_name || 'Lead'}
+        isOpen={isCadenceModalOpen}
+        onClose={() => setIsCadenceModalOpen(false)}
+      />
     </div>
   );
 }
