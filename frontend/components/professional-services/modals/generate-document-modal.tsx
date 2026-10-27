@@ -47,6 +47,7 @@ export function GenerateDocumentModal({ estimationId, open, onOpenChange, onSucc
             <Select value={type} onChange={(e) => setType(e.target.value)}>
               <option value="estimation">Professional Services Estimation</option>
               <option value="sow">Statement of Work (SOW)</option>
+              <option value="bast">Berita Acara Serah Terima (BAST)</option>
               <option value="scope_agreement">Scope Agreement</option>
             </Select>
           </div>

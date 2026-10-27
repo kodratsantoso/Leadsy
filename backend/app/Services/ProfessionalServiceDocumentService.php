@@ -55,10 +55,19 @@ class ProfessionalServiceDocumentService
 
         $versionNumber = $latestDoc ? $latestDoc->version_number + 1 : 1;
 
-        $documentNumber = 'DOC-' . $estimation->estimation_number . '-V' . $versionNumber;
+        $prefix = match ($documentType) {
+            'sow' => 'SOW-',
+            'bast' => 'BAST-',
+            default => 'DOC-',
+        };
+        $documentNumber = $prefix . $estimation->estimation_number . '-V' . $versionNumber;
         
-        // Render PDF
-        $pdf = Pdf::loadView('pdf.ps-estimation-document', $data);
+        $data['documentNumber'] = $documentNumber;
+        $data['generatedAt'] = now();
+
+        // Render PDF (use dedicated BAST template when document_type is bast)
+        $viewName = $documentType === 'bast' ? 'pdf.ps-bast-document' : 'pdf.ps-estimation-document';
+        $pdf = Pdf::loadView($viewName, $data);
 
         // Save PDF to storage
         $safeFilename = Str::slug($estimation->title . '-' . $documentNumber) . '.pdf';
@@ -112,6 +121,7 @@ class ProfessionalServiceDocumentService
     {
         return match ($documentType) {
             'sow' => 'Statement of Work',
+            'bast' => 'Berita Acara Serah Terima (BAST)',
             'scope_agreement' => 'Scope Agreement',
             default => 'Professional Services Estimation',
         };

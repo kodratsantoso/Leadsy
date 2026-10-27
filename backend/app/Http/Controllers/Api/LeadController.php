@@ -1296,9 +1296,32 @@ class LeadController extends Controller
         $result = $service->predict($lead);
         AuditService::log('predict_conversion', 'leads', $lead, null, [
             'probability' => $result['probability_to_close'],
+            'slippage_risk' => $result['slippage_risk'] ?? 'low',
         ]);
 
         return response()->json(['data' => $result]);
+    }
+
+    /** GET /api/leads/{lead}/deal-slippage */
+    public function dealSlippage(Lead $lead, ConversionPredictionService $service): JsonResponse
+    {
+        $latest = $lead->conversionPredictions()->latest()->first();
+
+        // If prediction exists and is recent (< 24h), return it with slippage factors
+        if ($latest && $latest->created_at && $latest->created_at->diffInHours(now()) < 24) {
+            $factors = $latest->prediction_factors ?? [];
+            return response()->json(['data' => array_merge($latest->toArray(), [
+                'slippage_risk' => $factors['slippage_assessment']['risk'] ?? 'low',
+                'is_slipping' => $factors['slippage_assessment']['is_slipping'] ?? false,
+                'slippage_reasons' => $factors['slippage_assessment']['reasons'] ?? [],
+                'recovery_action' => $factors['slippage_assessment']['recovery_action'] ?? null,
+                'days_in_stage' => $factors['velocity_telemetry']['days_in_stage'] ?? 0,
+                'days_since_activity' => $factors['velocity_telemetry']['days_since_activity'] ?? 0,
+            ])]);
+        }
+
+        $fresh = $service->predict($lead);
+        return response()->json(['data' => $fresh]);
     }
 
     /** POST /api/leads/{lead}/prescribe */

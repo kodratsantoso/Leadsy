@@ -19,6 +19,11 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  TrendingUp,
+  Clock,
+  ArrowUpRight,
+  CheckCircle2,
+  RotateCw,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -108,6 +113,22 @@ export function IntelligenceTab({
   const aiProductMatchingMutation = useAiActionMutation('/match-products', 'Product Matching');
   const aiBantcMutation = useAiActionMutation('/bantc-questions/generate', 'BANTC Questions');
 
+  const predictConversionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/predict-conversion`, { method: 'POST' });
+      if (!res.ok) {
+        const errorInfo = await readApiError(res, 'Failed to predict conversion & slippage');
+        throw new Error(errorInfo.title);
+      }
+      return await res.json().catch(() => ({}));
+    },
+    onSuccess: () => {
+      setAiActionsFeedback({ type: 'success', msg: 'Win probability and deal slippage recalculated.' });
+      onLeadChanged();
+    },
+    onError: (err: any) => setAiActionsFeedback({ type: 'error', msg: describeThrown(err).title }),
+  });
+
 
   const runAiFullPipeline = async () => {
     setAiPipelineRunning(true);
@@ -186,6 +207,14 @@ export function IntelligenceTab({
   const scoreBreakdown = Array.isArray(latestScore?.score_breakdown) ? latestScore.score_breakdown : [];
   const icpMatch = revenueIntel?.data?.icp_match;
   const icpReasoning = icpMatch?.reasoning ?? icpMatch?.reason ?? icpMatch?.score_breakdown?.reasoning;
+
+  const latestPrediction = revenueIntel?.data?.latest_prediction;
+  const slippageFactors = latestPrediction?.prediction_factors?.slippage_assessment;
+  const velocityData = latestPrediction?.prediction_factors?.velocity_telemetry;
+  const winProb = latestPrediction?.probability_to_close ?? null;
+  const slippageRisk = slippageFactors?.risk ?? (leadData?.lead_score >= 60 ? 'low' : 'medium');
+  const isSlipping = slippageFactors?.is_slipping ?? false;
+  const slippageReasons = Array.isArray(slippageFactors?.reasons) ? slippageFactors.reasons : [];
 
   return (
         <div className="space-y-6">
@@ -266,12 +295,147 @@ export function IntelligenceTab({
                         {aiBantcMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ClipboardList className="h-3.5 w-3.5" />}
                         Generate BANTC Questions
                       </Button>
+                      <Button variant="outline" size="sm" onClick={() => predictConversionMutation.mutate()} disabled={predictConversionMutation.isPending} className="justify-start">
+                        {predictConversionMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <TrendingUp className="h-3.5 w-3.5 text-[var(--brand)]" />}
+                        Calculate Win Probability & Deal Slippage
+                      </Button>
                     </div>
                   </div>
                 </div>
               )}
             </div>
           )}
+
+          {/* ── PREDICTIVE DEAL SLIPPAGE & WIN PROBABILITY HERO CARD ── */}
+          <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+              <div>
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-[var(--brand)]" />
+                  Predictive Deal Slippage & Win Probability Engine
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Model probabilistik penutupan deal (Win Rate) dan deteksi dini risiko keterlambatan kuartal (Deal Slippage) berbasis BANTC & velocity pipeline.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => predictConversionMutation.mutate()}
+                  disabled={predictConversionMutation.isPending}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  {predictConversionMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RotateCw className="h-3.5 w-3.5 text-[var(--brand)]" />
+                  )}
+                  <span>Recalculate Win & Slippage</span>
+                </Button>
+                <Badge
+                  variant={
+                    slippageRisk === 'critical'
+                      ? 'danger'
+                      : slippageRisk === 'high'
+                      ? 'warning'
+                      : slippageRisk === 'medium'
+                      ? 'outline'
+                      : 'success'
+                  }
+                  className="text-xs px-3 py-1 font-bold uppercase tracking-wider"
+                >
+                  {slippageRisk === 'critical'
+                    ? 'Critical Slippage'
+                    : slippageRisk === 'high'
+                    ? 'Slippage Warning'
+                    : slippageRisk === 'medium'
+                    ? 'Cycle Extending'
+                    : 'On Track (Healthy)'}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Win Probability</span>
+                <span className="text-2xl font-bold text-foreground mt-0.5 block">
+                  {winProb !== null ? `${winProb}%` : '—'}
+                </span>
+                <ProgressiveFluxLoader
+                  layout="feature"
+                  value={clampPercent(winProb ?? 0)}
+                  showLabel={false}
+                  barClassName="h-1.5 mt-2"
+                  gradient="var(--brand)"
+                />
+                <span className="text-[11px] text-muted-foreground mt-1 block">
+                  Estimasi Sales Effort: <strong className="capitalize">{latestPrediction?.estimated_sales_effort ?? 'Moderate'}</strong>
+                </span>
+              </div>
+
+              <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Siklus Tahap (Velocity)</span>
+                <span className="text-xl font-bold text-foreground mt-0.5 block">
+                  {velocityData?.days_in_stage ?? 0} Hari
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Benchmark tahap {leadData.funnelStage?.name ?? 'ini'}: {velocityData?.benchmark_days ?? 14} hari
+                </span>
+              </div>
+
+              <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Interaksi Terakhir</span>
+                <span className="text-xl font-bold text-foreground mt-0.5 block">
+                  {velocityData?.days_since_activity ?? 0} Hari Lalu
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {(velocityData?.days_since_activity ?? 0) > 14
+                    ? 'Perlu re-engagement segera'
+                    : 'Engagement terkini terjaga'}
+                </span>
+              </div>
+
+              <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Expected Deal Size</span>
+                <span className="text-xl font-bold text-foreground mt-0.5 block">
+                  {latestPrediction?.expected_deal_size
+                    ? `Rp ${formatNumber(latestPrediction.expected_deal_size, { decimals: 0 })}`
+                    : leadData.estimated_closing_amount
+                    ? `Rp ${formatNumber(Number(leadData.estimated_closing_amount), { decimals: 0 })}`
+                    : '—'}
+                </span>
+                <span className="text-[11px] text-muted-foreground">Nilai estimasi penutupan</span>
+              </div>
+            </div>
+
+            {/* Diagnostic Alert Box when Slipping */}
+            {isSlipping && (
+              <div className="rounded-lg border border-[var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_7%,transparent)] p-3.5 space-y-2">
+                <span className="text-xs font-semibold text-[var(--status-danger)] flex items-center gap-1.5">
+                  <AlertCircle className="h-4 w-4" />
+                  Peringatan Dini: Deal Berisiko Meleset Dari Target Kuartal
+                </span>
+                {slippageReasons.length > 0 && (
+                  <ul className="space-y-1 pl-5 list-disc text-xs text-muted-foreground">
+                    {slippageReasons.map((reason: string, idx: number) => (
+                      <li key={idx}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+                {slippageFactors?.recovery_action && (
+                  <div className="mt-2 rounded bg-background/60 p-2.5 border border-border/60">
+                    <span className="text-[11px] font-semibold text-foreground block">
+                      Rekomendasi Pemulihan Akun (Tactical Recovery Action):
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {slippageFactors.recovery_action}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* ── BANTC QUALIFICATION & ELIGIBILITY STATUS HERO CARD ── */}
           <div className="rounded-lg border border-border bg-card p-6 shadow-sm space-y-4">

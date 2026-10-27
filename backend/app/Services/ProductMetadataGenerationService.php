@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Services\AI\AiOrchestrationService;
+use App\Services\AI\SemanticCacheService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -21,7 +22,14 @@ class ProductMetadataGenerationService
 {
     const MAX_CONTENT_CHARS = 3500;
 
-    public function __construct(private AiOrchestrationService $ai) {}
+    private SemanticCacheService $cache;
+
+    public function __construct(
+        private AiOrchestrationService $ai,
+        ?SemanticCacheService $cache = null
+    ) {
+        $this->cache = $cache ?? app(SemanticCacheService::class);
+    }
 
     /* ══════════════════════════════════════════════════════════════════
      * PUBLIC API
@@ -41,38 +49,42 @@ class ProductMetadataGenerationService
     }
 
     /**
-     * Generate by fetching and analysing a reference URL.
+     * Generate by fetching and analysing a reference URL with semantic caching.
      *
      * @return array{success: bool, data?: array, ai_model?: string|null, error?: string}
      */
     public function generateFromUrl(string $url, string $productName, array $availableCategories): array
     {
-        $content = $this->fetchUrlContent($url);
+        $cacheIdentifier = $url . '::' . strtolower(trim($productName));
 
-        if ($content === null || strlen(trim($content)) < 100) {
-            if (!empty(trim($productName))) {
-                Log::info('[ProductMetadataGen] URL scraping yielded insufficient content; falling back to product name inference', [
-                    'url' => $url,
-                    'product_name' => $productName,
-                ]);
-                $fallback = $this->generate($productName, $availableCategories);
-                if ($fallback['success']) {
-                    return $fallback;
+        return $this->cache->rememberAiResult('product_metadata_url', $cacheIdentifier, 10080, function () use ($url, $productName, $availableCategories) {
+            $content = $this->fetchUrlContent($url);
+
+            if ($content === null || strlen(trim($content)) < 100) {
+                if (!empty(trim($productName))) {
+                    Log::info('[ProductMetadataGen] URL scraping yielded insufficient content; falling back to product name inference', [
+                        'url' => $url,
+                        'product_name' => $productName,
+                    ]);
+                    $fallback = $this->generate($productName, $availableCategories);
+                    if ($fallback['success']) {
+                        return $fallback;
+                    }
                 }
+
+                return ['success' => false, 'error' => $content === null
+                    ? "Unable to fetch content from URL: {$url}. Check if the website is accessible."
+                    : 'The website returned too little readable content for analysis.'];
             }
 
-            return ['success' => false, 'error' => $content === null
-                ? "Unable to fetch content from URL: {$url}. Check if the website is accessible."
-                : 'The website returned too little readable content for analysis.'];
-        }
+            $prompt = $this->buildContentPrompt($content, $url, $productName, $availableCategories, 'website');
 
-        $prompt = $this->buildContentPrompt($content, $url, $productName, $availableCategories, 'website');
-
-        return $this->callAi($prompt, [
-            'product_name' => $productName,
-            'source_url' => $url,
-            'available_categories' => $availableCategories,
-        ]);
+            return $this->callAi($prompt, [
+                'product_name' => $productName,
+                'source_url' => $url,
+                'available_categories' => $availableCategories,
+            ]);
+        });
     }
 
     /**
@@ -108,6 +120,13 @@ class ProductMetadataGenerationService
 
     private function fetchUrlContent(string $url): ?string
     {
+        // 1. Check Semantic Cache first
+        $cached = $this->cache->getScrapedUrl($url);
+        if ($cached !== null && strlen(trim($cached)) >= 50) {
+            Log::info('[ProductMetadataGen] Scraped URL served from semantic cache', ['url' => $url]);
+            return $cached;
+        }
+
         try {
             $normalizedUrl = trim($url);
             if (!preg_match('#^https?://#i', $normalizedUrl)) {
@@ -130,8 +149,13 @@ class ProductMetadataGenerationService
             }
 
             $html = $response->body();
+            $extracted = $this->extractTextFromHtml($html);
 
-            return $this->extractTextFromHtml($html);
+            if (!empty($extracted) && strlen(trim($extracted)) >= 50) {
+                $this->cache->putScrapedUrl($url, $extracted, 14); // 14-day TTL
+            }
+
+            return $extracted;
         } catch (ConnectionException $e) {
             Log::warning('[ProductMetadataGen] URL connection error', ['url' => $url, 'error' => $e->getMessage()]);
 

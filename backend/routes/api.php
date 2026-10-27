@@ -520,6 +520,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     // Revenue Intelligence Routes (Module D — ICP, Conversion, Prescriptive, Rules, Feedback)
     Route::post('leads/{lead}/icp-match', [LeadController::class, 'icpMatch'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/predict-conversion', [LeadController::class, 'predictConversion'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/deal-slippage', [LeadController::class, 'dealSlippage'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/prescribe', [LeadController::class, 'prescribe'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/revenue-check', [LeadController::class, 'revenueCheck'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/outcome', [LeadController::class, 'recordOutcome'])->middleware('permission:leads.edit');
@@ -787,7 +788,10 @@ Route::prefix('platform')->middleware(['auth:sanctum', 'superadmin'])->group(fun
     // Extended Control Plane modules
     Route::get('infrastructure', [\App\Http\Controllers\Api\PlatformAdminController::class, 'infrastructure']);
     Route::post('infrastructure/retry-job/{id}', [\App\Http\Controllers\Api\PlatformAdminController::class, 'retryFailedJob']);
+    Route::post('infrastructure/retry-all-jobs', [\App\Http\Controllers\Api\PlatformAdminController::class, 'retryAllFailedJobs']);
+    Route::delete('infrastructure/failed-jobs/{id}', [\App\Http\Controllers\Api\PlatformAdminController::class, 'deleteFailedJob']);
     Route::post('infrastructure/purge-failed-jobs', [\App\Http\Controllers\Api\PlatformAdminController::class, 'purgeFailedJobs']);
+    Route::post('infrastructure/reset-semantic-cache', [\App\Http\Controllers\Api\PlatformAdminController::class, 'resetSemanticCacheStats']);
     Route::get('feature-flags', [\App\Http\Controllers\Api\PlatformAdminController::class, 'featureFlags']);
     Route::put('tenants/{id}/features', [\App\Http\Controllers\Api\PlatformAdminController::class, 'updateTenantFeatures']);
     Route::get('ai-telemetry', [\App\Http\Controllers\Api\PlatformAdminController::class, 'aiTelemetry']);

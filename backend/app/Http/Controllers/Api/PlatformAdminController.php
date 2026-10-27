@@ -478,19 +478,34 @@ class PlatformAdminController extends Controller
             try {
                 $failedJobsCount = DB::table('failed_jobs')->count();
                 $failedJobs = DB::table('failed_jobs')
-                    ->select('id', 'connection', 'queue', 'failed_at', 'exception')
+                    ->select('id', 'connection', 'queue', 'payload', 'failed_at', 'exception')
                     ->latest('failed_at')
-                    ->limit(20)
+                    ->limit(50)
                     ->get()
                     ->map(function ($job) {
+                        $jobName = 'Unknown Job';
+                        try {
+                            $decodedPayload = json_decode($job->payload, true);
+                            $jobName = $decodedPayload['displayName'] ?? ($decodedPayload['data']['commandName'] ?? 'Unknown Job');
+                        } catch (\Throwable $e) {}
+
                         return [
                             'id' => $job->id,
+                            'name' => class_basename($jobName),
+                            'full_class' => $jobName,
                             'connection' => $job->connection,
                             'queue' => $job->queue,
                             'failed_at' => $job->failed_at,
-                            'exception_summary' => Str::limit($job->exception, 120),
+                            'exception_summary' => Str::limit($job->exception, 140),
+                            'full_exception' => Str::limit($job->exception, 3000),
                         ];
                     });
+            } catch (\Throwable $e) {}
+
+            // Semantic Cache stats
+            $semanticCacheStats = [];
+            try {
+                $semanticCacheStats = app(\App\Services\AI\SemanticCacheService::class)->getStats();
             } catch (\Throwable $e) {}
 
             // Database metrics
@@ -527,6 +542,7 @@ class PlatformAdminController extends Controller
                         'failed_jobs_count' => $failedJobsCount,
                         'failed_jobs' => $failedJobs,
                     ],
+                    'semantic_cache' => $semanticCacheStats,
                     'database' => [
                         'connection' => config('database.default', 'pgsql'),
                         'version' => $dbVersion,
@@ -583,6 +599,44 @@ class PlatformAdminController extends Controller
     }
 
     /**
+     * Retry ALL failed background jobs at once.
+     */
+    public function retryAllFailedJobs(): JsonResponse
+    {
+        try {
+            Artisan::call('queue:retry', ['--all' => true]);
+            return response()->json([
+                'success' => true,
+                'message' => "All failed jobs have been queued for retry.",
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Failed to retry all jobs: " . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a single failed job from DLQ.
+     */
+    public function deleteFailedJob(int $id): JsonResponse
+    {
+        try {
+            DB::table('failed_jobs')->where('id', $id)->delete();
+            return response()->json([
+                'success' => true,
+                'message' => "Job #{$id} removed from dead-letter queue.",
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Failed to delete job: " . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Purge all failed queue jobs.
      */
     public function purgeFailedJobs(): JsonResponse
@@ -597,6 +651,25 @@ class PlatformAdminController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to purge jobs: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset semantic cache performance telemetry stats.
+     */
+    public function resetSemanticCacheStats(): JsonResponse
+    {
+        try {
+            app(\App\Services\AI\SemanticCacheService::class)->resetStats();
+            return response()->json([
+                'success' => true,
+                'message' => 'Semantic cache metrics have been reset successfully.',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset cache stats: ' . $e->getMessage(),
             ], 500);
         }
     }
