@@ -481,7 +481,7 @@ export async function deleteEstimationDocument(id: number): Promise<void> {
 
 export async function sendDocumentForSignature(
   id: number, 
-  payload: { subject: string; message: string; signers: any[] }
+  payload: { subject: string; message: string; provider?: string; signers: any[] }
 ): Promise<{ message: string; envelope: any; document: PsDocument }> {
   const data = await fetchApi<any>(`/professional-services/documents/${id}/send-signature`, {
     method: "POST",

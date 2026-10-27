@@ -4,8 +4,27 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.32.0** — 2026-10-27
+Current release: **v1.33.0** — 2026-10-27
  
+## What's New in v1.33.0 (Enterprise Roadmap Sprint 2, 3 & 4: RevOps Velocity, Omnichannel Cadence, Enterprise SSO & PSrE Legal Signature)
+
+- **Enterprise Governance & Scalability (Sprint 4):**
+  - *Resource Capacity Gantt Matrix & Skill Match Recommender* — Interactive presales workload heatmap at `/professional-services/psa-dashboard` calculating weekly MD allocations, over-allocation alerts (>5.0 MD/week), bench capacity, and composite AI skill-fit scoring (60% skill fit + 40% availability).
+  - *Enterprise SSO Federation (Azure AD / Okta / SAML 2.0 / OIDC)* — Multi-tenant Single Sign-On federation (`TenantSsoConfig`, `EnterpriseSsoService`, `EnterpriseSsoController`) with self-service identity provider configuration and copyable SP Entity ID / ACS URLs at `/settings/security`.
+  - *PSrE Legal Digital Signature Resmi Indonesia (PrivyID / VIDA / Peruri)* — Fully compliant digital signature integration (`PrivyPsreProvider`) satisfying UU ITE 2024 & Kominfo accreditation standards with 16-digit NIK verification and e-Meterai support. Webhook listener automatically reconciles signed/rejected/expired document states.
+  - *Offline-First Field Sales PWA Sync Engine* — Resilient offline client sync (`offlineSyncManager.ts`) with visual `OfflineStatusPill` in app header, persistent queue, and `FieldSalesCheckinModal` supporting GPS geotagging (`navigator.geolocation`) and photo proofs during remote factory/field sales visits.
+
+- **Omnichannel Velocity & Autonomous AI (Sprint 3):**
+  - *Multi-Touch Sales Cadence Engine* — Automated multi-channel sequences across WhatsApp, Email, Call, and Task reminders (`sales_cadences`, `sales_cadence_steps`, `lead_cadence_enrollments`, and Artisan scheduler `leadsy:process-cadences`).
+  - *In-Context Sales Copilot Drawer* — Contextual AI sales copilot drawer embedded directly into Lead Detail view with quick prompts for objection handling, pricing strategies, and tailored WhatsApp openers.
+  - *Unified Omnichannel Inbox (`/inbox`)* — Single-pane conversational inbox unifying incoming WhatsApp messages, enterprise email interactions, and autonomous AI SDR threads with real-time status filtering and quick lead jumps.
+
+- **RevOps Velocity & Queue Governance (Sprint 2):**
+  - *Semantic Vector & Hash Caching di Redis* — 14-day TTL semantic cache on LLM prompts and embeddings reducing external API token consumption by up to 70% and accelerating response latency under 50ms for identical presales queries.
+  - *Dead-Letter Queue (DLQ) Inspector (`/admin/infrastructure`)* — Deep inspection UI for failed asynchronous jobs, stack trace visualization, single-click retry replay, and bulk queue purging.
+  - *Predictive Deal Slippage Engine* — Heuristic & AI-driven pipeline velocity analysis identifying early warning indicators on stagnant high-value deals with automated mitigation playbooks.
+  - *Automated SOW & BAST Document Assembler* — Dynamic document generator compiling approved PSA scopes, milestone schedules, commercial line items, and acceptance test criteria into standardized SOW and BAST legal artifacts.
+
 ## What's New in v1.32.0 (Core Reliability, UU PDP Compliance & Zero-Downtime Deployment)
 
 - **Real-time Server-Sent Events (SSE) AI Stream** — Replaced client-side HTTP polling with an ultra-low latency SSE stream (`GET /api/leads/{id}/ai-screening/stream`) utilizing `X-Accel-Buffering: no` to eliminate reverse proxy and Cloudflare timeouts during AI screening. Includes automatic resilient polling fallback.

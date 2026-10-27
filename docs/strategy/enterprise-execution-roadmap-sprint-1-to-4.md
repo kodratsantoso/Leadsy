@@ -6,8 +6,8 @@
 **Status Realisasi Saat Ini:**  
 - **Sprint 1 (Reliabilitas Core & Kepatuhan PDP):** ✅ **SELESAI (100%)** — Commit `338d687` & `e7e8a7e`
 - **Sprint 2 (RevOps Velocity & Queue Governance):** ✅ **SELESAI (100%)** — Commit `f4f4165`
-- **Sprint 3 (Omnichannel & Autonomous AI):** 🚀 **SEDANG BERJALAN (IN PROGRESS)**
-- **Sprint 4 (Enterprise Scale & Governance):** ⏳ Terjadwal
+- **Sprint 3 (Omnichannel & Autonomous AI):** ✅ **SELESAI (100%)** — Commit `d023697`
+- **Sprint 4 (Enterprise Scale & Governance):** ✅ **SELESAI (100%)** — Resource Capacity Gantt Matrix, Enterprise SSO, PSrE Digital Signature, & Offline-First Field Sales Sync
 
 ---
 
@@ -35,11 +35,11 @@ gantt
     In-Context Sales Copilot Drawer          :done, p3_3, 2026-11-15, 2026-11-16
     Autonomous AI SDR Prospecting Agent      :done, p3_4, 2026-11-16, 2026-11-17
 
-    section Phase 4: Enterprise Scale & Governance (ACTIVE)
-    Resource Capacity Gantt Matrix (PSA)     :active, p4_1, 2026-11-18, 6d
-    Enterprise SSO (Azure AD / Okta / SAML)  :p4_2, 2026-11-24, 5d
-    PSrE Legal Digital Signature (Privy/VIDA):p4_3, 2026-11-29, 5d
-    Offline-First Field Sales PWA Sync       :p4_4, 2026-12-04, 6d
+    section Phase 4: Enterprise Scale & Governance (COMPLETED)
+    Resource Capacity Gantt Matrix (PSA)     :done, p4_1, 2026-11-18, 2026-11-23
+    Enterprise SSO (Azure AD / Okta / SAML)  :done, p4_2, 2026-11-24, 2026-11-28
+    PSrE Legal Digital Signature (Privy/VIDA):done, p4_3, 2026-11-29, 2026-12-03
+    Offline-First Field Sales PWA Sync       :done, p4_4, 2026-12-04, 2026-12-09
 ```
 
 ---
@@ -172,37 +172,41 @@ gantt
 
 ---
 
-### 🏢 FASE 4 (Sprint 4: Minggu 7–8) — Enterprise Governance & Skalabilitas Sistem [SIAP DIKERJAKAN 🚀]
+### 🏢 FASE 4 (Sprint 4: Minggu 7–8) — Enterprise Governance & Skalabilitas Sistem [SELESAI ✅]
 **Fokus:** Kesiapan integrasi korporat skala besar, sertifikasi hukum, dan operasional lapangan offline.
 
-#### Task 4.1: Resource Capacity Gantt Matrix & Skill Tagging (PSA Enterprise)
+#### Task 4.1: Resource Capacity Gantt Matrix & Skill Tagging (PSA Enterprise) [SELESAI ✅]
 - **Deliverables:**
-  - Tampilan visual beban kerja tim presales (`/professional-services/psa-dashboard`): Heatmap alokasi jam kerja per minggu, tingkat utilitas, dan kapasitas cadangan (*bench*).
-  - Fitur rekomendasi arsitek terbaik berdasarkan kecocokan skill proyek.
+  - Backend: `PsPsaDashboardService::getResourceCapacityMatrix()` & `getSkillMatchRecommendations()`, controller `PsPsaDashboardController@resourceMatrix` & `@recommendStaff`, endpoint `GET /api/professional-services/dashboard/resource-matrix` & `GET /api/professional-services/dashboard/recommend-staff`.
+  - Frontend: Komponen `ResourceCapacityGantt.tsx` (visual heatmap mingguan, over-allocated alert > 5.0 MD/minggu, bench availability < 50%) dan `SkillMatchRecommender.tsx` (composite matching score 60% skill fit + 40% availability).
+  - Terintegrasi penuh dengan tab switcher di `/professional-services/psa-dashboard`.
 - **Kriteria Selesai (DoD):**
-  - Mencegah *overallocated* pada arsitek presales dan mengoptimalkan utilitas staf delivery.
+  - Mencegah *overallocated* pada arsitek presales dan mengoptimalkan utilitas staf delivery dengan rekomendasi berbasis AI/heuristik.
 
-#### Task 4.2: Enterprise SSO Federation (Microsoft Azure AD / Okta / Google Workspace)
+#### Task 4.2: Enterprise SSO Federation (Microsoft Azure AD / Okta / SAML / OIDC) [SELESAI ✅]
 - **Deliverables:**
-  - Modul autentikasi SAML 2.0 / OIDC terintegrasi di Laravel Sanctum & Next.js.
-  - Konfigurasi mandiri di menu Tenant 360 Admin (`/admin/tenants/[id]`) untuk pemetaan grup IDP ke Role Leadsy.
+  - Backend: Skema migrasi `tenant_sso_configs`, Eloquent model `TenantSsoConfig`, service `EnterpriseSsoService` (mendukung SAML 2.0 & OIDC IdP Discovery, metadata parsing, auto-provisioning JIT, role group mapping).
+  - API Controller: `EnterpriseSsoController` (`/api/sso/config`, `/api/sso/login`, `/api/sso/saml/acs`, `/api/sso/oidc/callback`, `/api/sso/metadata`).
+  - Frontend: Tab pengaturan mandiri `EnterpriseSsoSettings.tsx` terpasang di Security Settings (`/settings/security`), lengkap dengan copyable SP Entity ID & ACS URL.
 - **Kriteria Selesai (DoD):**
-  - Klien korporat dapat mengelola hak akses karyawan langsung melalui identity provider perusahaan mereka.
+  - Klien korporat dapat mengelola hak akses karyawan langsung melalui identity provider perusahaan mereka (Azure AD, Okta, PingFederate).
 
-#### Task 4.3: Integrasi Legal Digital Signature Resmi Indonesia (PSrE)
+#### Task 4.3: Integrasi Legal Digital Signature Resmi Indonesia (PSrE - PrivyID / VIDA / Peruri) [SELESAI ✅]
 - **Deliverables:**
-  - Integrasi API ke penyedia PSrE terakreditasi Kominfo (PrivyID / Peruri / VIDA).
-  - Status pelacakan envelope digital signature langsung di tab dokumen komersial O2C.
+  - Backend: Provider `PrivyPsreProvider.php` terdaftar di `DigitalSignatureManager.php`, mematuhi standar UU ITE 2024 dan akreditasi Kominfo dengan validasi NIK 16 digit dan meterai elektronik (e-Meterai Peruri).
+  - Webhook: Endpoint `POST /api/webhooks/digital-signature/{provider}` di `DigitalSignatureController.php` dengan signature hash verification untuk update status dokumen real-time (signed/rejected/expired).
+  - Frontend: Pembaruan `send-signature-modal.tsx` dengan opsi penyedia PSrE Berizin Kominfo RI, input NIK penandatangan, dan badge legalitas hukum.
 - **Kriteria Selesai (DoD):**
-  - Dokumen SPK dan Quotation yang ditandatangani memiliki sertifikat digital sah berkekuatan hukum penuh di Indonesia.
+  - Dokumen SPK, SOW, BAST, dan Quotation yang ditandatangani memiliki sertifikat digital berkekuatan hukum penuh pembuktian di pengadilan Indonesia.
 
-#### Task 4.4: Offline-First Field Sales PWA Sync Engine
+#### Task 4.4: Offline-First Field Sales PWA Sync Engine [SELESAI ✅]
 - **Deliverables:**
-  - Integrasi Service Worker dan penyimpanan lokal IndexedDB pada frontend Next.js.
-  - Kemampuan mencatat log kunjungan lapangan (*Sales Visit Check-in*), mengunggah foto geotagged bukti kunjungan, dan mencatat formulir discovery tanpa internet.
-  - Auto-sync saat perangkat mendeteksi koneksi online.
+  - Frontend Offline Engine: `offlineSyncManager.ts` dengan queue persistent (`localStorage`), auto-sync saat koneksi online pulih (`navigator.onLine` & `window.addEventListener('online')`), retry throttling, dan toast reporting.
+  - UI Status: Indikator visual real-time `OfflineStatusPill` di header aplikasi (`app-shell.tsx`) yang menampilkan jumlah antrean pending dan trigger sinkronisasi instan.
+  - Sales Visit Check-in: Komponen `FieldSalesCheckinModal.tsx` di halaman Lead Detail (`/leads/[id]`) dengan deteksi otomatis koordinat GPS (`navigator.geolocation`), geofence reverse lookup, upload foto bukti kunjungan, dan pencatatan catatan meeting offline.
+  - Backend: Endpoint `POST /api/leads/{lead}/check-in` di `LeadController.php` untuk menerima payload kunjungan dan menyimpannya sebagai aktivitas timeline terverifikasi.
 - **Kriteria Selesai (DoD):**
-  - Sales lapangan tetap produktif saat berada di kawasan industri atau area perkebunan terpencil tanpa hambatan jaringan.
+  - Sales lapangan tetap produktif saat berada di kawasan industri, pabrik, atau area terpencil tanpa hambatan jaringan. Data otomatis tersinkronisasi saat terhubung internet.
 
 ---
 

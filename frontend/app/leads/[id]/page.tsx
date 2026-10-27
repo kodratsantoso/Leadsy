@@ -43,6 +43,7 @@ import { useToast } from "@/components/ui/toast";
 import { InContextSalesCopilotDrawer } from '@/components/leads/InContextSalesCopilotDrawer';
 import { EnrollCadenceModal } from '@/components/leads/EnrollCadenceModal';
 import { SalesCadenceStatusCard } from '@/components/leads/SalesCadenceStatusCard';
+import { FieldSalesCheckinModal } from '@/components/leads/FieldSalesCheckinModal';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -604,6 +605,7 @@ export default function LeadDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isCadenceModalOpen, setIsCadenceModalOpen] = useState(false);
+  const [isCheckinModalOpen, setIsCheckinModalOpen] = useState(false);
   const [createNewModalConfig, setCreateNewModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -1715,6 +1717,16 @@ export default function LeadDetailPage() {
                {larkBaseFeedback.msg}
              </span>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-600 hover:text-white"
+            onClick={() => setIsCheckinModalOpen(true)}
+            title="Field Sales Offline-Ready GPS Check-in"
+          >
+            <MapPin className="mr-2 h-4 w-4" />
+            Field Check-in
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -4582,6 +4594,14 @@ export default function LeadDetailPage() {
         leadName={leadData?.company_name || 'Lead'}
         isOpen={isCadenceModalOpen}
         onClose={() => setIsCadenceModalOpen(false)}
+      />
+
+      {/* ── FIELD SALES CHECK-IN MODAL ── */}
+      <FieldSalesCheckinModal
+        leadId={Number(leadId)}
+        leadName={leadData?.company_name || 'Lead'}
+        isOpen={isCheckinModalOpen}
+        onClose={() => setIsCheckinModalOpen(false)}
       />
     </div>
   );

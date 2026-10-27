@@ -5,6 +5,7 @@ interface User {
   id: number;
   name: string;
   email: string;
+  tenant_id?: number;
   role?: {
     name: string;
     permissions?: any[];

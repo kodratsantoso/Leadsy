@@ -451,8 +451,10 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
         Route::put('/project-plans/{id}', [\App\Http\Controllers\Api\PsProjectPlanController::class, 'update']);
         Route::put('/project-plans/{id}/status', [\App\Http\Controllers\Api\PsProjectPlanController::class, 'updateStatus']);
 
-        // Phase 8: PSA Lite Execution
+        // Phase 8: PSA Lite Execution & Enterprise Resource Governance
         Route::get('/psa-dashboard', [\App\Http\Controllers\Api\PsPsaDashboardController::class, 'index']);
+        Route::get('/psa-dashboard/resource-matrix', [\App\Http\Controllers\Api\PsPsaDashboardController::class, 'resourceMatrix']);
+        Route::post('/psa-dashboard/recommend-staff', [\App\Http\Controllers\Api\PsPsaDashboardController::class, 'recommendStaff']);
         
         Route::get('/settings/psa', [\App\Http\Controllers\Api\PsPsaSettingsController::class, 'show']);
         Route::put('/settings/psa', [\App\Http\Controllers\Api\PsPsaSettingsController::class, 'update']);
@@ -534,6 +536,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('leads/{lead}/enroll-cadence', [\App\Http\Controllers\Api\SalesCadenceController::class, 'enrollLead'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/cadence-enrollments', [\App\Http\Controllers\Api\SalesCadenceController::class, 'leadEnrollments'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/copilot', [LeadController::class, 'copilot'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/check-in', [LeadController::class, 'fieldCheckin'])->middleware('permission:leads.edit');
 
     // Lead Activity & Evaluation Routes (Module B — Activities, Meetings, Transcripts, Evaluations)
     Route::put('leads/{lead}/activities/{activity}', [LeadActivityController::class, 'updateActivity'])->middleware('permission:leads.edit');
@@ -831,10 +834,20 @@ Route::prefix('platform')->middleware(['auth:sanctum', 'superadmin'])->group(fun
     Route::get('audit-logs', [\App\Http\Controllers\Api\PlatformAdminController::class, 'platformAuditLogs']);
     Route::get('diagnostics', [\App\Http\Controllers\Api\PlatformAdminController::class, 'diagnostics']);
     Route::post('tenants/{id}/flush-cache', [\App\Http\Controllers\Api\PlatformAdminController::class, 'flushTenantCache']);
+
+    // Enterprise SSO Federation Routes (Sprint 4)
+    Route::get('tenants/{id}/sso-config', [\App\Http\Controllers\Api\EnterpriseSsoController::class, 'getConfig']);
+    Route::post('tenants/{id}/sso-config', [\App\Http\Controllers\Api\EnterpriseSsoController::class, 'saveConfig']);
+    Route::post('tenants/{id}/sso-config/test', [\App\Http\Controllers\Api\EnterpriseSsoController::class, 'testConnection']);
 });
 
-// ── Lark Webhooks (Public) ──
+// ── Enterprise SSO Auth Routes (Public) ──
+Route::get('auth/sso/{tenantSlug}/{provider}/login', [\App\Http\Controllers\Api\EnterpriseSsoController::class, 'getLoginUrl']);
+
+// ── Webhooks (Public) ──
 Route::prefix('webhooks')->group(function () {
     Route::post('lark', [LarkController::class, 'handleWebhook']);
+    Route::post('digital-signature/{provider}', [\App\Http\Controllers\Api\DigitalSignatureController::class, 'handleWebhook']);
 });
+
 

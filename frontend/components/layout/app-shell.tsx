@@ -9,8 +9,9 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox
+  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff
 } from "lucide-react";
+import { useOfflineSync } from "@/lib/offline/offlineSyncManager";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTheme } from "@/lib/theme-context";
@@ -150,6 +151,47 @@ export const navItems: NavItem[] = [
     ],
   },
 ];
+
+function OfflineStatusPill() {
+  const { isOnline, pendingCount, isSyncing, syncNow } = useOfflineSync();
+
+  if (!isOnline) {
+    return (
+      <div 
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px] font-semibold animate-pulse"
+        title="Jaringan terputus. Data kunjungan akan disimpan offline."
+      >
+        <WifiOff className="h-3 w-3" />
+        <span>Offline {pendingCount > 0 ? `(${pendingCount} pending)` : ''}</span>
+      </div>
+    );
+  }
+
+  if (pendingCount > 0) {
+    return (
+      <button
+        type="button"
+        onClick={() => syncNow()}
+        disabled={isSyncing}
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[11px] font-semibold hover:bg-blue-500/20 transition-colors"
+        title="Klik untuk menyinkronkan data offline sekarang"
+      >
+        <Wifi className="h-3 w-3" />
+        <span>{isSyncing ? 'Sinkronisasi...' : `Sinkron (${pendingCount})`}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div 
+      className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-medium"
+      title="Sistem terhubung secara online"
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
+      <span>Online</span>
+    </div>
+  );
+}
 
 function ThemedLogo({ collapsed }: { collapsed: boolean }) {
   const { resolved } = useTheme();
@@ -484,6 +526,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Button>
               </Link>
             )}
+
+            {/* Offline PWA Status indicator */}
+            <OfflineStatusPill />
 
             {/* Theme toggle */}
             <ThemeToggle />

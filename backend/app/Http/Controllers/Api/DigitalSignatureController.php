@@ -24,11 +24,16 @@ class DigitalSignatureController extends Controller
         $validated = $request->validate([
             'subject' => 'required|string',
             'message' => 'nullable|string',
+            'provider' => 'nullable|string|in:privy_psre,documenso,privy,vida',
             'signers' => 'required|array|min:1',
             'signers.*.type' => 'required|string|in:customer,internal',
             'signers.*.name' => 'required|string',
             'signers.*.email' => 'required|email',
+            'signers.*.nik' => 'nullable|string',
+            'signers.*.privy_id' => 'nullable|string',
         ]);
+
+        $requestedProvider = $validated['provider'] ?? 'privy_psre';
 
         // Save signers
         $document->signers()->delete(); // clear existing if any
@@ -44,7 +49,7 @@ class DigitalSignatureController extends Controller
         $document->load('signers');
 
         try {
-            $provider = $dsManager->getActiveProvider();
+            $provider = $dsManager->getActiveProvider($requestedProvider);
             $envelope = $provider->sendDocumentForSignature($document, $validated['subject'], $validated['message'] ?? '');
 
             AuditService::logUpdated('professional_service_documents', $document, ['status' => 'draft_generated']);
@@ -102,5 +107,48 @@ class DigitalSignatureController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+    }
+
+    /**
+     * Webhook receiver for Digital Signature & PSrE providers (Privy, Documenso, VIDA)
+     */
+    public function handleWebhook(Request $request, string $provider): JsonResponse
+    {
+        $payload = $request->all();
+        $envelopeId = $payload['envelope_id'] ?? $payload['document_id'] ?? null;
+        $event = $payload['event'] ?? $payload['status'] ?? 'document.signed';
+
+        if (!$envelopeId) {
+            return response()->json(['status' => 'ignored', 'message' => 'No envelope ID found in payload']);
+        }
+
+        $envelope = \App\Models\DigitalSignatureEnvelope::where('provider_envelope_id', $envelopeId)->first();
+
+        if ($envelope && $envelope->document) {
+            if (in_array(strtolower($event), ['document.signed', 'completed', 'signed'])) {
+                $envelope->update(['status' => 'completed']);
+                $envelope->document->update(['status' => 'signed']);
+                $envelope->document->signers()->update(['status' => 'signed']);
+
+                if ($envelope->document->lead) {
+                    app(LeadActivityService::class)->logActivity(
+                        $envelope->document->lead,
+                        'PSrE Document Signed',
+                        "Dokumen {$envelope->document->document_title} telah ditandatangani secara sah melalui {$provider}.",
+                        null
+                    );
+                }
+            } elseif (in_array(strtolower($event), ['document.rejected', 'declined'])) {
+                $envelope->update(['status' => 'rejected']);
+                $envelope->document->update(['status' => 'rejected']);
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'provider' => $provider,
+            'event' => $event,
+            'envelope_id' => $envelopeId,
+        ]);
     }
 }

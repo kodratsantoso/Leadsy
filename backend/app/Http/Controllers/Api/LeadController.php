@@ -1328,15 +1328,64 @@ class LeadController extends Controller
     public function copilot(Request $request, Lead $lead, \App\Services\AI\SalesCopilotService $service): JsonResponse
     {
         $validated = $request->validate([
-            'message' => 'required|string|max:1000',
+            'message' => 'nullable|string|max:1000',
+            'prompt' => 'nullable|string|max:1000',
             'history' => 'nullable|array',
         ]);
 
-        $result = $service->chat($lead, $validated['message'], $validated['history'] ?? []);
+        $query = $validated['prompt'] ?? $validated['message'] ?? 'Berikan rekomendasi strategi closing untuk lead ini.';
+        $result = $service->chat($lead, $query, $validated['history'] ?? []);
 
         return response()->json([
             'success' => true,
             'data' => $result,
+        ]);
+    }
+
+    /** POST /api/leads/{lead}/check-in (Offline-First Field Sales Sync) */
+    public function fieldCheckin(Request $request, Lead $lead, \App\Services\Sales\LeadActivityService $activityService): JsonResponse
+    {
+        $validated = $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+            'accuracy_meters' => 'nullable|numeric',
+            'location_name' => 'nullable|string|max:255',
+            'notes' => 'required|string|max:2000',
+            'meeting_outcome' => 'nullable|string|max:100',
+            'check_in_time' => 'nullable|string',
+        ]);
+
+        $locationDesc = $validated['location_name'] ?: "Koordinat: {$validated['latitude']}, {$validated['longitude']}";
+        $outcomeDesc = !empty($validated['meeting_outcome']) ? " [Hasil: {$validated['meeting_outcome']}]" : "";
+        $description = "Sales Field Visit di {$locationDesc}{$outcomeDesc}.\n\nCatatan: " . $validated['notes'];
+
+        $activity = $activityService->logActivity(
+            $lead,
+            'Field Visit Check-In',
+            $description,
+            $request->user()?->id,
+            [
+                'type' => 'field_visit',
+                'lat' => $validated['latitude'],
+                'lng' => $validated['longitude'],
+                'accuracy_meters' => $validated['accuracy_meters'] ?? null,
+                'location_name' => $validated['location_name'] ?? null,
+                'outcome' => $validated['meeting_outcome'] ?? null,
+                'check_in_time' => $validated['check_in_time'] ?? now()->toIso8601String(),
+            ]
+        );
+
+        if (!$lead->lat || !$lead->lng) {
+            $lead->update([
+                'lat' => $validated['latitude'],
+                'lng' => $validated['longitude'],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Check-in kunjungan lapangan untuk {$lead->company_name} berhasil disimpan.",
+            'data' => $activity,
         ]);
     }
 
