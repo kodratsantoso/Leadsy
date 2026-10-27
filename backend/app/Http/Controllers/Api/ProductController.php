@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Industry;
 use App\Models\Product;
 use App\Models\ProductQuestion;
+use App\Jobs\GenerateProductMetadataJob;
 use App\Services\AuditService;
 use App\Services\ProductMetadataGenerationService;
 use App\Services\ProductQuestionGenerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -248,6 +251,89 @@ class ProductController extends Controller
             'ai_model' => $result['ai_model'],
             'source' => $auditSource,
         ]);
+    }
+
+    /**
+     * POST /api/products/ai-generate/dispatch
+     *
+     * Queues an asynchronous background job to generate product metadata.
+     * Prevents reverse proxy and Cloudflare timeouts on heavy scraping/LLM queries.
+     */
+    public function aiGenerateDispatch(Request $request): JsonResponse
+    {
+        $request->validate([
+            'product_name' => 'nullable|string|max:255',
+            'reference_url' => 'nullable|url|max:2048',
+            'pdf_file' => 'nullable|file|mimes:pdf|max:10240', // 10 MB
+        ]);
+
+        $productName = trim($request->input('product_name', ''));
+        $referenceUrl = trim($request->input('reference_url', ''));
+        $pdfFile = $request->file('pdf_file');
+
+        if (! $pdfFile && ! $referenceUrl && ! $productName) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'VALIDATION_FAILED',
+                    'message' => 'Provide at least one of: product_name, reference_url, or pdf_file.',
+                ],
+                'message' => 'Provide at least one of: product_name, reference_url, or pdf_file.',
+            ], 422);
+        }
+
+        $pdfPath = null;
+        if ($pdfFile) {
+            $pdfPath = $pdfFile->store('temp_ai_uploads', 'local');
+        }
+
+        $availableCategories = $this->loadAvailableCategories();
+        $jobId = (string) Str::uuid();
+
+        Cache::put("product_ai_job_{$jobId}", [
+            'status' => 'processing',
+            'job_id' => $jobId,
+            'product_name' => $productName ?: null,
+            'source' => $pdfFile ? 'pdf' : ($referenceUrl ? 'url' : 'name'),
+            'started_at' => now()->toIso8601String(),
+        ], 900);
+
+        GenerateProductMetadataJob::dispatch(
+            $jobId,
+            $productName,
+            $referenceUrl,
+            $pdfPath,
+            $availableCategories,
+            $request->user()?->id
+        );
+
+        return response()->json([
+            'success' => true,
+            'job_id' => $jobId,
+            'status' => 'processing',
+            'message' => 'Product AI profiling job dispatched to background worker.',
+        ]);
+    }
+
+    /**
+     * GET /api/products/ai-generate/status/{jobId}
+     *
+     * Retrieves the status and result of a queued product AI profiling job.
+     */
+    public function aiGenerateStatus(Request $request, string $jobId): JsonResponse
+    {
+        $cached = Cache::get("product_ai_job_{$jobId}");
+
+        if (! $cached) {
+            return response()->json([
+                'success' => false,
+                'status' => 'not_found',
+                'message' => 'Profiling job not found or expired.',
+            ], 404);
+        }
+
+        return response()->json($cached);
     }
 
     // ── Question Guide ──────────────────────────────────────────────────────

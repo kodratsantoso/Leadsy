@@ -583,6 +583,8 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
 
     // Products — ai-generate must stay before the read/write split to avoid {product} collision.
     Route::post('products/ai-generate', [ProductController::class, 'aiGenerate'])->middleware('permission:products.edit');
+    Route::post('products/ai-generate/dispatch', [ProductController::class, 'aiGenerateDispatch'])->middleware('permission:products.edit');
+    Route::get('products/ai-generate/status/{jobId}', [ProductController::class, 'aiGenerateStatus'])->middleware('permission:products.edit');
     // Split from Route::apiResource() — was fully unguarded (2026-09-13 audit).
     Route::get('products', [ProductController::class, 'index'])->middleware('permission:products.view');
     Route::get('products/{product}', [ProductController::class, 'show'])->middleware('permission:products.view');

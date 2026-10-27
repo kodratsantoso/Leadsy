@@ -290,6 +290,7 @@ export default function ProductDetailPage() {
   const [aiGenerated, setAiGenerated] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSource, setAiSource] = useState<"name" | "url" | "pdf" | null>(null);
+  const [aiElapsedSeconds, setAiElapsedSeconds] = useState(0);
 
   const [refUrl, setRefUrl] = useState("");
   const [refPdfFile, setRefPdfFile] = useState<File | null>(null);
@@ -501,25 +502,25 @@ export default function ProductDetailPage() {
       url?: string;
       pdfFile?: File;
     }) => {
-      let res: Response;
+      let dispatchRes: Response;
       if (source === "pdf" && pdfFile) {
         const form = new FormData();
         form.append("pdf_file", pdfFile);
         if (productName) form.append("product_name", productName);
-        res = await apiFetch("/products/ai-generate", { method: "POST", body: form });
+        dispatchRes = await apiFetch("/products/ai-generate/dispatch", { method: "POST", body: form });
       } else {
         const body: Record<string, string> = {};
         if (productName) body.product_name = productName;
         if (source === "url" && url) body.reference_url = url;
-        res = await apiFetch("/products/ai-generate", {
+        dispatchRes = await apiFetch("/products/ai-generate/dispatch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
       }
 
-      if (!res.ok) {
-        const errorInfo = await readApiError(res, "AI profiling failed");
+      if (!dispatchRes.ok) {
+        const errorInfo = await readApiError(dispatchRes, "Failed to start AI profiling");
         let msg = errorInfo.title;
         if (errorInfo.detail) {
           msg += ` - ${errorInfo.detail}`;
@@ -530,7 +531,44 @@ export default function ProductDetailPage() {
         }
         throw new Error(msg);
       }
-      return res.json();
+
+      const dispatchData = await dispatchRes.json();
+      const jobId = dispatchData?.job_id;
+      if (!jobId) {
+        throw new Error("No job ID returned from background worker.");
+      }
+
+      // Poll background worker for completion (up to 4 minutes)
+      const maxAttempts = 120; // 120 * 2000ms = 240s
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        try {
+          const statusRes = await apiFetch(`/products/ai-generate/status/${jobId}`);
+          if (!statusRes.ok) continue;
+
+          const statusJson = await statusRes.json();
+          if (statusJson.status === "completed") {
+            return {
+              data: statusJson.data,
+              ai_model: statusJson.ai_model,
+              source: statusJson.source,
+            };
+          }
+          if (statusJson.status === "failed") {
+            throw new Error(statusJson.error || "AI profiling failed in background worker.");
+          }
+        } catch (pollErr: any) {
+          if (
+            pollErr.message &&
+            !pollErr.message.includes("Failed to fetch") &&
+            !pollErr.message.includes("NetworkError")
+          ) {
+            throw pollErr;
+          }
+        }
+      }
+
+      throw new Error("AI Profiling timed out after waiting for worker. Please try again.");
     },
     onMutate: (variables) => {
       setAiSource(variables.source);
@@ -676,11 +714,16 @@ export default function ProductDetailPage() {
               title="Scrape and auto-profile product from website URL"
             >
               {aiGenerateMutation.isPending && aiSource === "url" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  ⚡ Profiling ({aiElapsedSeconds}s)...
+                </>
               ) : (
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                <>
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                  ⚡ AI Auto-Profile URL
+                </>
               )}
-              ⚡ AI Auto-Profile URL
             </Button>
           )}
           <Button
@@ -777,11 +820,16 @@ export default function ProductDetailPage() {
                       className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 text-xs shrink-0"
                     >
                       {aiGenerateMutation.isPending && aiSource === "url" ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                          Profiling ({aiElapsedSeconds}s)...
+                        </>
                       ) : (
-                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        <>
+                          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                          Scrape & Profile
+                        </>
                       )}
-                      Scrape & Profile
                     </Button>
                   </div>
                 </div>
@@ -831,7 +879,10 @@ export default function ProductDetailPage() {
                         disabled={!refUrl.trim() || aiGenerateMutation.isPending}
                       >
                         {aiGenerateMutation.isPending && aiSource === "url" ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span className="flex items-center gap-1.5">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            {aiElapsedSeconds}s
+                          </span>
                         ) : (
                           "Analyze"
                         )}
@@ -887,7 +938,10 @@ export default function ProductDetailPage() {
                         disabled={!refPdfFile || aiGenerateMutation.isPending}
                       >
                         {aiGenerateMutation.isPending && aiSource === "pdf" ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span className="flex items-center gap-1.5">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            {aiElapsedSeconds}s
+                          </span>
                         ) : (
                           "Analyze"
                         )}
@@ -1113,11 +1167,16 @@ export default function ProductDetailPage() {
                   className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 text-xs shrink-0 self-start sm:self-auto"
                 >
                   {aiGenerateMutation.isPending && aiSource === "url" ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      Extracting ({aiElapsedSeconds}s)...
+                    </>
                   ) : (
-                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    <>
+                      <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                      ⚡ Auto-Extract from Website
+                    </>
                   )}
-                  ⚡ Auto-Extract from Website
                 </Button>
               )}
             </CardHeader>
@@ -1296,11 +1355,16 @@ export default function ProductDetailPage() {
                       title="Scrape tiers & packages directly from website"
                     >
                       {aiGenerateMutation.isPending && aiSource === "url" ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                          Scraping ({aiElapsedSeconds}s)...
+                        </>
                       ) : (
-                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        <>
+                          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                          Scrape Tiers from URL
+                        </>
                       )}
-                      Scrape Tiers from URL
                     </Button>
                   )}
                   <Button onClick={openAddTierModal} size="sm">
