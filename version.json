@@ -1,7 +1,7 @@
 {
-  "version": "1.30.0",
-  "codename": "saas-admin-plans-tenant360",
-  "last_updated": "2026-10-21",
+  "version": "1.32.0",
+  "codename": "core-reliability-pdp-sse",
+  "last_updated": "2026-10-27",
   "type": "minor",
-  "notes": "SaaS Platform Admin Phase 1 & 2: Dynamic Plan Builder & Packaging Engine, Live MRR/ARR recalculation, and Tenant 360° Management Console with 7 operational tabs."
+  "notes": "Core Reliability & Enterprise Compliance: Server-Sent Events (SSE) AI streaming, UU No. 27/2022 (UU PDP) PII masking gateway, and K3s Zero-Downtime Deployment Pod Hardening."
 }

@@ -4,8 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.31.0** — 2026-10-23
+Current release: **v1.32.0** — 2026-10-27
  
+## What's New in v1.32.0 (Core Reliability, UU PDP Compliance & Zero-Downtime Deployment)
+
+- **Real-time Server-Sent Events (SSE) AI Stream** — Replaced client-side HTTP polling with an ultra-low latency SSE stream (`GET /api/leads/{id}/ai-screening/stream`) utilizing `X-Accel-Buffering: no` to eliminate reverse proxy and Cloudflare timeouts during AI screening. Includes automatic resilient polling fallback.
+- **UU No. 27/2022 (UU PDP) PII Masking Gateway** — Implemented `PiiMaskingService` integrated directly into `AiOrchestrationService`. Automatically anonymizes NIK (16 digits), NPWP, bank account numbers, and payment cards before transmitting prompts to external LLMs (BytePlus, OpenAI, Gemini), and restores original tokens losslessly upon output receipt.
+- **K3s Zero-Downtime Deployment Pod Hardening** — Configured Kubernetes `preStop: exec: sleep 10` hooks, `terminationGracePeriodSeconds: 45`, and strict `maxUnavailable: 0` / `maxSurge: 1` rolling updates on both frontend and backend pod manifests. Guarantees ingress routers redirect traffic smoothly without 502/504 errors during rolling releases.
+- **Enterprise Architecture Audit & 4-Sprint Strategic Roadmap** — Added official enterprise audit documentation (`audit/2026-10-27_ENTERPRISE_AUDIT_REPORT.md`) and 4-sprint execution plan (`docs/strategy/enterprise-execution-roadmap-sprint-1-to-4.md`).
+
 ## What's New in v1.31.0 (Map & Territory Discovery UI/UX Craftsmanship & Intentional Pinning)
 
 - **Intentional Territory Pinning Mode** — Replaced accidental map click shifts with a deliberate "Set Center on Map" targeting mode. Moving the search center now requires active engagement, preventing incidental clicks from resetting sales territories.
