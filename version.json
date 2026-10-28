@@ -1,7 +1,7 @@
 {
-  "version": "1.32.0",
-  "codename": "core-reliability-pdp-sse",
-  "last_updated": "2026-10-27",
+  "version": "1.36.0",
+  "codename": "modular-lead-workspace-and-horizon-resilience",
+  "last_updated": "2026-10-28",
   "type": "minor",
-  "notes": "Core Reliability & Enterprise Compliance: Server-Sent Events (SSE) AI streaming, UU No. 27/2022 (UU PDP) PII masking gateway, and K3s Zero-Downtime Deployment Pod Hardening."
+  "notes": "Lead Workspace Tab Modularization (Contacts, Activities, Meetings, Transcripts, Customer Journey), Full Tailwind OKLch Color Tokenization, and Enterprise Horizon Worker Queue Supervision."
 }

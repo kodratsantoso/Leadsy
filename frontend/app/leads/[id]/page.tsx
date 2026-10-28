@@ -40,6 +40,8 @@ import { DiscoveryWorkspaceTab } from '@/components/leads/tabs/DiscoveryWorkspac
 import { ContactsTab } from '@/components/leads/tabs/ContactsTab';
 import { ActivitiesTab } from '@/components/leads/tabs/ActivitiesTab';
 import { MeetingsTab } from '@/components/leads/tabs/MeetingsTab';
+import { TranscriptsTab } from '@/components/leads/tabs/TranscriptsTab';
+import { CustomerJourneyTab } from '@/components/leads/tabs/CustomerJourneyTab';
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { AnalysisReportDialog } from '@/components/leads/reports/AnalysisReportDialog';
 import { useToast } from "@/components/ui/toast";
@@ -53,7 +55,7 @@ import { FieldSalesCheckinModal } from '@/components/leads/FieldSalesCheckinModa
 const SOURCE_STYLES: Record<string, string> = {
   LUSHA:   'bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)] border-[var(--brand)]/30',
   GOOGLE_SEARCH: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
-  LINKEDIN: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
+  LINKEDIN: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
   manual:  'bg-[color-mix(in_oklch,var(--status-success)_15%,transparent)] text-[var(--status-success)] border-[var(--status-success)]/30',
   website: 'bg-[color-mix(in_oklch,var(--status-info)_15%,transparent)] text-[var(--status-info)] border-[var(--status-info)]/30',
   other:   'bg-muted text-muted-foreground border-border',
@@ -1702,7 +1704,7 @@ export default function LeadDetailPage() {
                 {leadData.qualification_status === 'eligible' ? (
                   <CheckCircle className="w-3.5 h-3.5" />
                 ) : leadData.qualification_status === 'potential' ? (
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--brand)]" />
                 ) : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified' ? (
                   <XCircle className="w-3.5 h-3.5" />
                 ) : (
@@ -1723,7 +1725,7 @@ export default function LeadDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-600 hover:text-white"
+            className="bg-[var(--status-success)]/10 text-[var(--status-success)] border-[var(--status-success)]/30 hover:bg-[var(--status-success)] hover:text-white"
             onClick={() => setIsCheckinModalOpen(true)}
             title="Field Sales Offline-Ready GPS Check-in"
           >
@@ -1801,7 +1803,7 @@ export default function LeadDetailPage() {
               {leadData.qualification_status === 'eligible' ? (
                 <CheckCircle className="h-4 w-4 text-[var(--status-success)]" />
               ) : leadData.qualification_status === 'potential' ? (
-                <Sparkles className="h-4 w-4 text-amber-500" />
+                <Sparkles className="h-4 w-4 text-[var(--brand)]" />
               ) : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified' ? (
                 <XCircle className="h-4 w-4 text-[var(--status-danger)]" />
               ) : (
@@ -1844,13 +1846,13 @@ export default function LeadDetailPage() {
           </p>
         </div>
 
-        <div className={`rounded-lg border bg-card p-4 ${progressData.next_follow_up?.is_overdue ? 'border-red-200 dark:border-red-900/50' : 'border-border'}`}>
+        <div className={`rounded-lg border bg-card p-4 ${progressData.next_follow_up?.is_overdue ? 'border-[var(--status-danger)]/40' : 'border-border'}`}>
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">NEXT FOLLOW-UP</span>
-            <Calendar className={`h-4 w-4 ${progressData.next_follow_up?.is_overdue ? 'text-red-500 animate-pulse' : progressData.next_follow_up ? 'text-orange-500' : 'text-muted-foreground'}`} />
+            <Calendar className={`h-4 w-4 ${progressData.next_follow_up?.is_overdue ? 'text-[var(--status-danger)] animate-pulse' : progressData.next_follow_up ? 'text-[var(--status-warning)]' : 'text-muted-foreground'}`} />
           </div>
           <div className="flex items-center gap-2">
-            <div className={`text-sm font-bold ${progressData.next_follow_up?.is_overdue ? 'text-red-600 dark:text-red-400' : ''}`}>
+            <div className={`text-sm font-bold ${progressData.next_follow_up?.is_overdue ? 'text-[var(--status-danger)]' : ''}`}>
               {progressData.next_follow_up?.due_date
                 ? new Date(progressData.next_follow_up.due_date).toLocaleDateString()
                 : 'Not set'}
@@ -1901,13 +1903,13 @@ export default function LeadDetailPage() {
               }
  
               // Card styling classes
-              let bgClass = 'bg-slate-100 hover:bg-slate-200/80 text-muted-foreground dark:bg-slate-800/40 dark:hover:bg-slate-800/60';
+              let bgClass = 'bg-muted/50 hover:bg-muted text-muted-foreground';
               let borderClass = 'border-transparent';
               
               if (status === 'done') {
-                bgClass = 'bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-800 dark:text-emerald-400';
+                bgClass = 'bg-[var(--status-success)]/10 hover:bg-[var(--status-success)]/15 text-[var(--status-success)]';
               } else if (status === 'active') {
-                bgClass = 'bg-blue-600/10 text-blue-900 dark:text-blue-300 ring-2 ring-blue-500 ring-inset';
+                bgClass = 'bg-primary/10 text-primary ring-2 ring-primary ring-inset';
               }
  
               return (
@@ -2133,7 +2135,7 @@ export default function LeadDetailPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-emerald-500" />
+                  <DollarSign className="h-4 w-4 text-[var(--status-success)]" />
                   <h3 className="font-semibold">Commercial & Deal Pipeline</h3>
                 </div>
                 <button
@@ -2236,19 +2238,19 @@ export default function LeadDetailPage() {
                     <div className="grid grid-cols-3 gap-2 pt-1 text-center">
                       <div className="rounded-lg bg-muted/30 p-2">
                         <span className="block text-xs text-muted-foreground">Facts</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="font-bold text-[var(--status-success)]">
                           {leadData.discoveryRecord.provenance_counts?.fact ?? 0}
                         </span>
                       </div>
                       <div className="rounded-lg bg-muted/30 p-2">
                         <span className="block text-xs text-muted-foreground">Assumptions</span>
-                        <span className="font-bold text-amber-600 dark:text-amber-400">
+                        <span className="font-bold text-[var(--status-warning)]">
                           {leadData.discoveryRecord.provenance_counts?.assumption ?? 0}
                         </span>
                       </div>
                       <div className="rounded-lg bg-muted/30 p-2">
                         <span className="block text-xs text-muted-foreground">AI Extracted</span>
-                        <span className="font-bold text-blue-600 dark:text-blue-400">
+                        <span className="font-bold text-[var(--status-info)]">
                           {leadData.discoveryRecord.provenance_counts?.ai_extracted ?? 0}
                         </span>
                       </div>
@@ -2914,549 +2916,29 @@ export default function LeadDetailPage() {
 
       {/* ── TRANSCRIPTS TAB ── */}
       {activeTab === 'transcripts' && (
-        <div className="space-y-4">
-          {/* Action bar */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {transcriptsList.length > 0
-                ? `${transcriptsList.length} transcript${transcriptsList.length !== 1 ? 's' : ''}`
-                : 'No transcripts yet'}
-            </p>
-            <div className="flex gap-2">
-              {leadData?.meeting_link && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => fetchTranscriptLinkMutation.mutate(leadData.meeting_link)}
-                  disabled={fetchTranscriptLinkMutation.isPending}
-                >
-                  {fetchTranscriptLinkMutation.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
-                  Fetch from Lark
-                </Button>
-              )}
-              <Button size="sm" onClick={() => setShowTranscriptForm((v) => !v)}>
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                {showTranscriptForm ? 'Cancel' : 'Add Transcript'}
-              </Button>
-            </div>
-          </div>
-
-          {/* Feedback banner */}
-          {transcriptFeedback && (
-            <div className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium ${
-              transcriptFeedback.type === 'success'
-                ? 'bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]'
-                : 'bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
-            }`}>
-              {transcriptFeedback.type === 'success'
-                ? <CheckCircle className="h-4 w-4 shrink-0" />
-                : <AlertCircle className="h-4 w-4 shrink-0" />}
-              {transcriptFeedback.msg}
-            </div>
-          )}
-
-          {/* Add Transcript Form */}
-          {showTranscriptForm && (
-            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-              <h4 className="font-semibold text-sm">New Transcript</h4>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Title</label>
-                  <Input
-                    value={transcriptForm.title}
-                    onChange={(e) => setTranscriptForm((f) => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g. Discovery meeting transcript"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Meeting Type</label>
-                  <Select
-                    value={transcriptForm.meeting_type}
-                    onChange={(e) => setTranscriptForm((f) => ({ ...f, meeting_type: e.target.value }))}
-                  >
-                    <option value="General">General</option>
-                    <option value="Discovery">Discovery</option>
-                    <option value="Demo">Demo</option>
-                    <option value="Follow-up">Follow-up</option>
-                    <option value="Proposal Discussion">Proposal Discussion</option>
-                    <option value="Closing Discussion">Closing Discussion</option>
-                    <option value="Handover to CSM">Handover to CSM</option>
-                  </Select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Related Activity</label>
-                  <Select
-                    value={transcriptForm.activity_id}
-                    onChange={(e) => setTranscriptForm((f) => ({ ...f, activity_id: e.target.value }))}
-                    placeholder="— Not linked —"
-                  >
-                    {activitiesList.map((activity: any) => (
-                      <option key={activity.id} value={String(activity.id)}>
-                        {activity.activity_type} · {new Date(activity.activity_date).toLocaleDateString()}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Source Type</label>
-                  <Select
-                    value={transcriptForm.source_type}
-                    onChange={(e) => setTranscriptForm((f) => ({ ...f, source_type: e.target.value }))}
-                  >
-                    {Object.entries(TRANSCRIPT_SOURCES).map(([val, label]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </Select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Recorded At</label>
-                  <DateTimePicker
-                    value={transcriptForm.recorded_at}
-                    onChange={(d: Date | null) => setTranscriptForm((f) => ({ ...f, recorded_at: d ? d.toISOString() : '' }))}
-                  />
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Format: DD/MM/YYYY, HH:mm. Kosongkan untuk memakai waktu saat disimpan.
-                  </p>
-                </div>
-                {['video', 'audio', 'transcript'].includes(transcriptForm.source_type) && (
-                  <div className="sm:col-span-2">
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">File</label>
-                    <Input
-                      type="file"
-                      accept=".txt,.vtt,.srt,audio/*,video/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] ?? null;
-                        setTranscriptForm((f) => ({
-                          ...f,
-                          transcript_file: file,
-                          source_type: file?.type.startsWith('audio/')
-                            ? 'audio'
-                            : file?.type.startsWith('video/')
-                              ? 'video'
-                              : file
-                                ? 'transcript'
-                                : f.source_type,
-                        }));
-                      }}
-                    />
-                  </div>
-                )}
-                {transcriptForm.source_type === 'link' && (
-                  <div className="sm:col-span-2">
-                    <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Minutes / Meeting Link</label>
-                    <Input
-                      value={transcriptForm.meeting_link}
-                      onChange={(e) => setTranscriptForm((f) => ({ ...f, meeting_link: e.target.value }))}
-                      placeholder="https://..."
-                    />
-                  </div>
-                )}
-              </div>
-              {transcriptForm.source_type === 'manual' && (
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Transcript Text / Notes</label>
-                  <textarea
-                    value={transcriptForm.transcript_text}
-                    onChange={(e) => setTranscriptForm((f) => ({ ...f, transcript_text: e.target.value }))}
-                    rows={8}
-                    placeholder="Paste your meeting notes, call transcript, or conversation here..."
-                    className="min-h-[160px] w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15"
-                  />
-                </div>
-              )}
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={transcriptForm.analyze_after_save}
-                  onChange={(e) => setTranscriptForm((f) => ({ ...f, analyze_after_save: e.target.checked }))}
-                  className="h-4 w-4 rounded border-border"
-                />
-                Analyze with AI after saving when text is available
-              </label>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowTranscriptForm(false)}>Cancel</Button>
-                <Button
-                  onClick={() => {
-                    if (transcriptForm.source_type === 'link') {
-                      fetchTranscriptLinkMutation.mutate(transcriptForm.meeting_link);
-                    } else {
-                      storeTranscriptMutation.mutate(transcriptForm);
-                    }
-                  }}
-                  disabled={storeTranscriptMutation.isPending || fetchTranscriptLinkMutation.isPending || (
-                    transcriptForm.source_type === 'manual' && !transcriptForm.transcript_text.trim()
-                  ) || (
-                    ['video', 'audio', 'transcript'].includes(transcriptForm.source_type) && !transcriptForm.transcript_file
-                  ) || (
-                    transcriptForm.source_type === 'link' && !transcriptForm.meeting_link.trim()
-                  )}
-                >
-                  {(storeTranscriptMutation.isPending || fetchTranscriptLinkMutation.isPending) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {transcriptForm.source_type === 'link' ? 'Import & Analyze' : 'Save Transcript'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Transcript list */}
-          {transcriptsList.length === 0 && !showTranscriptForm ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
-              <FileText className="mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-muted-foreground">No transcripts yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">Paste meeting notes or call transcripts and run AI analysis.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {transcriptsList.map((tr: any) => {
-                const evaluation = evaluationsList.find(
-                  (ev: any) => ev.source_id === tr.id && ev.source_type?.endsWith('LeadTranscript')
-                );
-                const isExpanded = expandedEvalId === tr.id;
-                return (
-                  <div key={tr.id} className="rounded-xl border border-border bg-card overflow-hidden">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-3 p-4">
-                      <div className="space-y-1">
-                        {tr.title && <p className="text-sm font-semibold">{tr.title}</p>}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {tr.meeting_type && (
-                            <Badge variant="info">{tr.meeting_type}</Badge>
-                          )}
-                          {tr.meeting_type && !['discovery', 'demo', 'follow-up', 'proposal discussion', 'closing discussion', 'handover to csm'].includes(tr.meeting_type.toLowerCase()) && (
-                            <Badge variant="warning" className="text-xs">
-                              ⚠️ Unsupported: using General
-                            </Badge>
-                          )}
-                          <Badge variant="neutral">{TRANSCRIPT_SOURCES[tr.source_type] ?? tr.source_type}</Badge>
-                          {tr.import_status && !['COMPLETED', 'TRANSCRIPT_IMPORTED'].includes(tr.import_status) && (
-                            <Badge variant={tr.import_status === 'FAILED' ? 'danger' : 'warning'}>
-                              {tr.import_status === 'FAILED' ? 'Import Failed' : `Importing: ${tr.import_status}`}
-                            </Badge>
-                          )}
-                          <Badge variant={tr.evaluation_status === 'evaluated' ? 'success' : 'warning'}>
-                            {tr.evaluation_status}
-                          </Badge>
-                          {tr.documents?.length > 0 && (
-                            <Badge variant={tr.documents[0].generation_status === 'success' ? 'success' : 'neutral'}>
-                              PDF: {tr.documents[0].generation_status}
-                            </Badge>
-                          )}
-                          {tr.syncJobs?.length > 0 && (
-                            <Badge variant={tr.syncJobs[0].status === 'success' ? 'success' : (tr.syncJobs[0].status === 'failed' ? 'danger' : 'neutral')}>
-                              Lark Sync: {tr.syncJobs[0].status}
-                            </Badge>
-                          )}
-                          {tr.activity && (
-                            <Badge variant="info" className="text-[10px]">
-                              Linked: {tr.activity.activity_type}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(tr.recorded_at ?? tr.created_at).toLocaleString()}
-                          {tr.file_name ? ` · ${tr.file_name}` : ''}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        {tr.evaluation_status !== 'evaluated' && (
-                          <Button
-                            variant="outline"
-                            size="xs"
-                            onClick={() => { setEvaluatingTranscriptId(tr.id); evaluateTranscriptMutation.mutate(tr.id); }}
-                            disabled={(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' || !tr.transcript_text?.trim()}
-                            title={!tr.transcript_text?.trim() ? 'Add transcript text before AI analysis' : undefined}
-                          >
-                            {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing'
-                              ? <Loader2 className="h-3 w-3 animate-spin" />
-                              : <Sparkles className="h-3 w-3" />}
-                            {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' ? 'Analysing...' : 'Analyse with AI'}
-                          </Button>
-                        )}
-                        {evaluation && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="xs"
-                              onClick={() => { setEvaluatingTranscriptId(tr.id); evaluateTranscriptMutation.mutate(tr.id); }}
-                              disabled={(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' || !tr.transcript_text?.trim()}
-                              title="Re-run AI Analysis"
-                            >
-                              {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing'
-                                ? <Loader2 className="h-3 w-3 animate-spin" />
-                                : <RefreshCw className="h-3 w-3" />}
-                              {(evaluateTranscriptMutation.isPending && evaluatingTranscriptId === tr.id) || tr.evaluation_status === 'pending' || tr.evaluation_status === 'analyzing' ? 'Analysing...' : 'Re-analyse'}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={() => setExpandedEvalId(isExpanded ? null : tr.id)}
-                            >
-                              <span className="flex items-center gap-1">
-                                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                                {isExpanded ? 'Hide' : 'View'} Image Analysis
-                              </span>
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={async (e) => {
-                                e.preventDefault();
-                                try {
-                                  const res = await apiFetch(`/transcripts/${tr.id}/meeting-summary/download`);
-                                  if (!res.ok) {
-                                    const err = await res.json().catch(() => ({}));
-                                    toast.fromError(err, "The PDF could not be opened. It may not have been generated yet.");
-                                    return;
-                                  }
-                                  const blob = await res.blob();
-                                  const url = window.URL.createObjectURL(blob);
-                                  setPdfPreviewUrl(url);
-                                  setShowPdfModal(true);
-                                } catch (error) {
-                                  toast.error("The PDF preview could not be loaded.");
-                                }
-                              }}
-                            >
-                              <span className="flex items-center gap-1 text-red-500 hover:text-red-600">
-                                <FileDown className="h-3.5 w-3.5" />
-                                View PDF Analysis
-                              </span>
-                            </Button>
-
-                            {tr.lark_doc_url ? (
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                onClick={() => window.open(tr.lark_doc_url, '_blank')}
-                              >
-                                <span className="flex items-center gap-1 text-blue-500 hover:text-blue-600">
-                                  <LinkIcon className="h-3.5 w-3.5" />
-                                  View Lark Docs Link
-                                </span>
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                disabled
-                                title="Lark Doc has not been created or synced yet"
-                              >
-                                <span className="flex items-center gap-1 text-muted-foreground opacity-60">
-                                  <LinkIcon className="h-3.5 w-3.5" />
-                                  Lark Docs (Not Synced)
-                                </span>
-                              </Button>
-                            )}
-
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              disabled={generateMeetingSummaryPdfMutation.isPending && evaluatingTranscriptId === tr.id}
-                              onClick={() => {
-                                setEvaluatingTranscriptId(tr.id);
-                                generateMeetingSummaryPdfMutation.mutate({ transcriptId: tr.id, evaluationId: evaluation.id });
-                              }}
-                              title="Regenerate summary PDF, render image, build Lark Docs, and push all attachments to Lark Base."
-                            >
-                              <span className="flex items-center gap-1 text-indigo-500 hover:text-indigo-600">
-                                {generateMeetingSummaryPdfMutation.isPending && evaluatingTranscriptId === tr.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <RefreshCw className="h-3.5 w-3.5" />
-                                )}
-                                Sync & Push to Lark
-                              </span>
-                            </Button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => deleteTranscriptMutation.mutate(tr.id)}
-                          disabled={deleteTranscriptMutation.isPending}
-                          className="rounded p-1 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] hover:text-[var(--status-danger)]"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Transcript text preview */}
-                    <div className="border-t border-border px-4 py-3 bg-muted/20">
-                      {tr.transcript_text ? (
-                        <p className="text-xs text-muted-foreground line-clamp-3 whitespace-pre-wrap">{tr.transcript_text}</p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Media file saved. Add or paste transcript text before running AI analysis.
-                        </p>
-                      )}
-                    </div>
-
-                    {/* BANTC Extracted Preview */}
-                    {(tr.bantc_json || evaluation?.bantc_extracted) && (
-                      <div className="border-t border-border px-4 py-3 bg-muted/10">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-semibold text-foreground/85 flex items-center gap-1.5">
-                            <Target className="h-3.5 w-3.5 text-primary" />
-                            Extracted Meeting BANTC Qualification:
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            Synchronized to Discovery Workspace
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-                          {(() => {
-                            const b = tr.bantc_json || evaluation?.bantc_extracted || {};
-                            return [
-                              { label: 'Budget', val: b.budget, icon: '💰' },
-                              { label: 'Authority', val: b.authority, icon: '👑' },
-                              { label: 'Needs', val: b.needs, icon: '🎯' },
-                              { label: 'Timeline', val: b.timeline, icon: '📅' },
-                              { label: 'Competitor', val: b.competitor, icon: '⚔️' },
-                            ].map((item) => (
-                              <div key={item.label} className="p-2 rounded border border-border/60 bg-card">
-                                <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-                                  <span>{item.icon}</span> {item.label}
-                                </span>
-                                <p className="text-[11px] font-medium mt-0.5 line-clamp-2" title={item.val || 'Not mentioned'}>
-                                  {item.val || <span className="text-muted-foreground/50 italic">Not mentioned</span>}
-                                </p>
-                              </div>
-                            ));
-                          })()}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Evaluation result */}
-                    {isExpanded && evaluation && (
-                      <div className="border-t border-border bg-[color-mix(in_oklch,var(--brand)_4%,transparent)] p-4 space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-[var(--brand)]" />
-                          <h4 className="font-semibold text-sm">AI Transcript Analysis</h4>
-                        </div>
-
-                        <AnalysisReportDialog 
-                          open={isExpanded}
-                          onOpenChange={(open) => setExpandedEvalId(open ? tr.id : null)}
-                          transcript={tr}
-                          lead={lead?.data}
-                        />
-
-                        {tr.syncJobs?.length > 0 && (
-                          <div className="border-t border-border pt-4">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Lark Base Sync Status</p>
-                            <div className="space-y-3">
-                              {tr.syncJobs.map((job: any) => {
-                                const isSuccess = job.status === 'success';
-                                const isFailed = job.status === 'failed';
-                                const responseStr = job.response_json || "{}";
-                                let response: any = {};
-                                try { response = JSON.parse(responseStr); } catch (e) { response = {}; }
-                                
-                                return (
-                                  <div key={job.id} className="text-sm p-3 border rounded-lg bg-card shadow-sm">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <Badge variant={isSuccess ? 'success' : (isFailed ? 'danger' : 'warning')}>
-                                        {job.sync_type} - {job.status}
-                                      </Badge>
-                                      <span className="text-xs text-muted-foreground">{new Date(job.created_at).toLocaleString()}</span>
-                                    </div>
-                                    
-                                    {!isSuccess && job.error_message && (
-                                      <p className="text-xs text-[var(--status-danger)] mt-2 font-medium">{job.error_message}</p>
-                                    )}
-                                    {response.action === 'skipped' && (
-                                      <p className="text-xs text-muted-foreground mt-2 italic">Skipped: {response.reason}</p>
-                                    )}
-                                    
-                                    {!isSuccess && !job.lark_record_id && (
-                                      <p className="text-xs text-[var(--status-warning)] mt-2 italic">Warning: Missing Lark Record ID or Field Mappings. Ensure lead is synced first.</p>
-                                    )}
-                                    
-                                    {response.payload && Object.keys(response.payload).length > 0 && (
-                                      <div className="mt-3 bg-muted/30 p-2 rounded">
-                                        <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Synced Fields Payload</p>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                                          {Object.entries(response.payload).map(([k, v]) => (
-                                            <div key={k} className="flex flex-col">
-                                              <span className="font-semibold text-foreground/80">{k}</span>
-                                              <span className="text-muted-foreground line-clamp-2" title={typeof v === 'object' ? JSON.stringify(v) : String(v)}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border">
-                          <p className="text-[10px] text-muted-foreground">
-                            Analysed {new Date(evaluation.evaluated_at ?? evaluation.created_at).toLocaleString()}
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={generateMeetingSummaryPdfMutation.isPending}
-                              onClick={() => {
-                                setEvaluatingTranscriptId(tr.id);
-                                generateMeetingSummaryPdfMutation.mutate({ transcriptId: tr.id, evaluationId: evaluation.id });
-                              }}
-                            >
-                              {generateMeetingSummaryPdfMutation.isPending && evaluatingTranscriptId === tr.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                              Generate Summary PDF
-                            </Button>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={async (e) => {
-                                e.preventDefault();
-                                try {
-                                  const res = await apiFetch(`/transcripts/${tr.id}/meeting-summary/download`);
-                                  if (!res.ok) {
-                                    const err = await res.json().catch(() => ({}));
-                                    toast.fromError(err, "The PDF could not be downloaded. It may not have been generated yet.");
-                                    return;
-                                  }
-                                  const blob = await res.blob();
-                                  const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  let filename = 'meeting-summary.pdf';
-                                  const disposition = res.headers.get('Content-Disposition');
-                                  if (disposition && disposition.indexOf('attachment') !== -1) {
-                                    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
-                                    if (matches != null && matches[1]) {
-                                      filename = matches[1].replace(/['"]/g, '');
-                                    }
-                                  }
-                                  a.download = filename;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  a.remove();
-                                  window.URL.revokeObjectURL(url);
-                                } catch (error) {
-                                  toast.error("The PDF could not be downloaded.");
-                                }
-                              }}
-                            >
-                              <FileDown className="mr-2 h-4 w-4" />
-                              Download PDF
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <TranscriptsTab
+          leadData={leadData}
+          lead={lead}
+          transcriptsList={transcriptsList}
+          evaluationsList={evaluationsList}
+          activitiesList={activitiesList}
+          expandedEvalId={expandedEvalId}
+          setExpandedEvalId={setExpandedEvalId}
+          evaluatingTranscriptId={evaluatingTranscriptId}
+          setEvaluatingTranscriptId={setEvaluatingTranscriptId}
+          evaluateTranscriptMutation={evaluateTranscriptMutation}
+          fetchTranscriptLinkMutation={fetchTranscriptLinkMutation}
+          generateMeetingSummaryPdfMutation={generateMeetingSummaryPdfMutation}
+          deleteTranscriptMutation={deleteTranscriptMutation}
+          storeTranscriptMutation={storeTranscriptMutation}
+          showTranscriptForm={showTranscriptForm}
+          setShowTranscriptForm={setShowTranscriptForm}
+          transcriptForm={transcriptForm}
+          setTranscriptForm={setTranscriptForm}
+          transcriptFeedback={transcriptFeedback}
+          setPdfPreviewUrl={setPdfPreviewUrl}
+          setShowPdfModal={setShowPdfModal}
+        />
       )}
 
       {/* ── PRE-MEETING BRIEF TAB ── */}
@@ -4047,214 +3529,12 @@ export default function LeadDetailPage() {
       )}
       {/* ── CUSTOMER JOURNEY TAB ── */}
       {activeTab === 'customer journey' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between no-print">
-            <div>
-              <h2 className="text-lg font-bold">End-to-End Customer Journey</h2>
-              <p className="text-sm text-muted-foreground">Aggregated view of the entire relationship lifecycle.</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => window.print()}>
-              <Printer className="mr-2 h-4 w-4" /> Export to PDF
-            </Button>
-          </div>
-
-          {journeyFeedback && (
-            <div className="rounded-lg bg-[color-mix(in_oklch,var(--status-danger)_15%,transparent)] p-4 text-sm text-[var(--status-danger)]">
-              <div className="flex items-center gap-2 font-semibold">
-                <AlertCircle className="h-4 w-4" />
-                Generation Failed
-              </div>
-              <p className="mt-1">{journeyFeedback}</p>
-            </div>
-          )}
-
-          {!customerJourney?.data ? (
-            <div className="flex h-32 items-center justify-center text-muted-foreground">
-              Loading journey data...
-            </div>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-12 print:block print:space-y-8">
-              
-              {/* LEFT COLUMN: Timeline */}
-              <div className="md:col-span-3 print:col-span-12">
-                <div className="rounded-lg border border-border bg-card p-6">
-                  <h3 className="mb-4 font-semibold">Journey Timeline</h3>
-                  <div className="relative border-l border-border pl-4 space-y-6">
-                    {safeJsonArray(customerJourney.data.timeline).length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No events recorded.</p>
-                    ) : (
-                      safeJsonArray(customerJourney.data.timeline).map((event: any, i: number) => (
-                        <div key={i} className="relative">
-                          <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-[var(--brand)] outline outline-2 outline-card"></div>
-                          <div className="text-xs font-semibold text-[var(--brand)]">
-                            {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </div>
-                          <div className="mt-1 font-medium text-sm">{event.title}</div>
-                          {event.description && <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{event.description}</p>}
-                          {event.outcome && (
-                            <div className="mt-1">
-                              <Badge variant="outline" className="text-[10px]">{event.outcome}</Badge>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* CENTER COLUMN: Narrative & Intelligence */}
-              <div className="md:col-span-6 space-y-6 print:col-span-12">
-                
-                {/* Final Story block */}
-                <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-                  <div className="mb-4 flex items-center justify-between no-print">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-[var(--brand)]" />
-                      Final Customer Story
-                    </h3>
-                    <Button 
-                      variant="default" 
-                      size="sm"
-                      onClick={() => generateCustomerStoryMutation.mutate()}
-                      disabled={generateCustomerStoryMutation.isPending}
-                    >
-                      {generateCustomerStoryMutation.isPending ? 'Generating...' : customerJourney.data.final_customer_story ? 'Regenerate Story' : 'Generate Story'}
-                    </Button>
-                  </div>
-                  {/* Print Title */}
-                  <h3 className="hidden font-semibold flex items-center gap-2 mb-4 print:flex">
-                    Final Customer Story
-                  </h3>
-
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {!customerJourney.data.final_customer_story && !generateCustomerStoryMutation.isPending ? (
-                      <p className="text-muted-foreground italic text-center py-8">
-                        No customer story generated yet. Click generate to analyze the timeline and build a narrative.
-                      </p>
-                    ) : generateCustomerStoryMutation.isPending ? (
-                      <div className="py-8">
-                        <AILoader text="Analyzing journey timeline and writing narrative" />
-                      </div>
-                    ) : (
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                        {customerJourney.data.final_customer_story}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Meeting Intelligence */}
-                <div className="rounded-lg border border-border bg-card p-6">
-                  <h3 className="mb-4 font-semibold">Meeting Intelligence</h3>
-                  {safeJsonArray(customerJourney.data.meeting_intelligence).length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No meetings evaluated.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {safeJsonArray(customerJourney.data.meeting_intelligence).map((mtg: any, i: number) => (
-                        <div key={i} className="border border-border/50 bg-muted/20 p-4 rounded-md">
-                          <h4 className="font-medium text-sm mb-2">{mtg.title}</h4>
-                          {safeJsonArray(mtg.evaluations).map((ev: any, j: number) => (
-                            <div key={j} className="space-y-2 mt-2">
-                              <p className="text-xs text-muted-foreground">{ev.summary}</p>
-                              {ev.next_best_action && (
-                                <div className="text-xs bg-background p-2 rounded border border-border/50">
-                                  <strong>Next Action:</strong> {ev.next_best_action}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* RIGHT COLUMN: Insights */}
-              <div className="md:col-span-3 space-y-6 print:col-span-12">
-                
-                {/* Profile Snapshot */}
-                <div className="rounded-lg border border-border bg-[var(--brand-soft)]/20 p-6">
-                  <h3 className="mb-4 font-semibold">Customer Snapshot</h3>
-                  <div className="space-y-3 text-sm">
-                    <div><span className="text-muted-foreground">Company:</span> <strong className="block">{customerJourney.data.profile_snapshot?.company_name}</strong></div>
-                    <div><span className="text-muted-foreground">Industry:</span> <strong className="block">{customerJourney.data.profile_snapshot?.industry || '—'}</strong></div>
-                    <div><span className="text-muted-foreground">Size:</span> <strong className="block">{customerJourney.data.profile_snapshot?.size || '—'}</strong></div>
-                    <div><span className="text-muted-foreground">Owner:</span> <strong className="block">{customerJourney.data.profile_snapshot?.owner || '—'}</strong></div>
-                  </div>
-                </div>
-
-                {/* Pre Meeting Insights */}
-                {customerJourney.data.pre_meeting_insights && (
-                  <div className="rounded-lg border border-border bg-card p-6">
-                    <h3 className="mb-4 font-semibold">Pre-Meeting Insights</h3>
-                    <div className="space-y-3 text-sm">
-                      {customerJourney.data.pre_meeting_insights.objective_hypothesis?.inferred_goals && (
-                        <div><strong className="block">Inferred Goals:</strong> <span className="text-muted-foreground">{customerJourney.data.pre_meeting_insights.objective_hypothesis.inferred_goals}</span></div>
-                      )}
-                      {customerJourney.data.pre_meeting_insights.pain_points?.operational_pain && (
-                        <div><strong className="block">Operational Pain:</strong> <span className="text-muted-foreground">{customerJourney.data.pre_meeting_insights.pain_points.operational_pain}</span></div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Product Fit */}
-                <div className="rounded-lg border border-border bg-card p-6">
-                  <h3 className="mb-4 font-semibold">Product Fit</h3>
-                  {safeJsonArray(customerJourney.data.product_fit_analysis).length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No product matches calculated.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {safeJsonArray(customerJourney.data.product_fit_analysis).map((fit: any, i: number) => (
-                        <div key={i}>
-                          <div className="flex items-center justify-between mb-1">
-                            <strong className="text-sm">{fit.product}</strong>
-                            <Badge variant={fit.match_score > 70 ? 'success' : 'warning'}>{fit.match_score}%</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">ICP Match: {fit.icp_match ? 'Yes' : 'No'}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Post Meeting Status */}
-                <div className="rounded-lg border border-border bg-card p-6">
-                  <h3 className="mb-4 font-semibold">Post-Meeting Status</h3>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <span className="text-muted-foreground block mb-1">Qualification Status:</span>
-                      <Badge variant={customerJourney.data.post_meeting_analysis?.qualification_status === 'Eligible' ? 'success' : 'outline'}>
-                        {customerJourney.data.post_meeting_analysis?.qualification_status || 'Unknown'}
-                      </Badge>
-                    </div>
-                    {customerJourney.data.post_meeting_analysis?.risk_analysis && (
-                      <div className="pt-2 border-t border-border/50">
-                        <span className="text-muted-foreground block mb-1">Risk Summary:</span>
-                        <div className="text-xs space-y-1">
-                          <div><strong>Deal Risk:</strong> {customerJourney.data.post_meeting_analysis.risk_analysis.deal_risk_score}</div>
-                          <div><strong>Persona Risk:</strong> {customerJourney.data.post_meeting_analysis.risk_analysis.persona_risk}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Revenue Journey */}
-                <div className="rounded-lg border border-[var(--status-success)]/30 bg-[var(--status-success)]/5 p-6">
-                  <h3 className="mb-4 font-semibold">Revenue Journey</h3>
-                  <div className="space-y-3 text-sm">
-                    <div><span className="text-muted-foreground">Expected Value:</span> <strong className="block text-lg">{formatCurrency(Number(customerJourney.data.revenue_journey?.estimated_value || 0))}</strong></div>
-                    <div><span className="text-muted-foreground">Realized Value:</span> <strong className="block text-lg">{formatCurrency(Number(customerJourney.data.revenue_journey?.realized_value || 0))}</strong></div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-        </div>
+        <CustomerJourneyTab
+          customerJourney={customerJourney}
+          journeyFeedback={journeyFeedback}
+          generateCustomerStoryMutation={generateCustomerStoryMutation}
+          formatCurrency={formatCurrency}
+        />
       )}
 
       {/* ── Global Process Overlay ── */}

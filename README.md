@@ -4,8 +4,24 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.35.0** — 2026-10-28
+Current release: **v1.36.0** — 2026-10-28
  
+## What's New in v1.36.0 (Lead Workspace Modularization, Tokenized OKLch Palette & Horizon Queue Governance)
+
+- **Complete Lead Workspace Modularization (UX-004):**
+  - *Transcripts Tab Extraction* (`components/leads/tabs/TranscriptsTab.tsx`) — Decoupled 540+ lines of inline transcript logic into a dedicated component supporting manual notes, audio/video upload, Lark Minutes fetch, automated BANTC qualification extraction, Lark Base synchronization telemetry, and summary PDF report downloads.
+  - *Customer Journey Tab Extraction* (`components/leads/tabs/CustomerJourneyTab.tsx`) — Decoupled 200+ lines of end-to-end customer journey visualization into a modular component featuring lifecycle timelines, AI customer story generation, pre/post-meeting intelligence, and revenue journey summaries.
+  - *Massive Code Reduction* — Shrunk `frontend/app/leads/[id]/page.tsx` by more than 800 lines (from ~4,400 down to ~3,600 lines), drastically accelerating client-side re-render cycles, IDE responsiveness, and team maintainability.
+
+- **Tailwind OKLch Design Tokenization (UX-003):**
+  - Replaced legacy hardcoded Tailwind utility colors (`text-blue-500`, `text-indigo-500`, `text-red-500`, `text-emerald-500`, `text-amber-500`, `bg-blue-600`) with semantic OKLch CSS variables (`text-primary`, `text-[var(--brand)]`, `text-[var(--status-danger)]`, `text-[var(--status-success)]`, `text-[var(--status-warning)]`, `text-[var(--status-info)]`).
+  - Guarantees seamless dark mode adaptation, WCAG AA contrast compliance, and full adherence to `/root/AGENTS.md` Design Governance.
+
+- **Enterprise Horizon Queue Worker Governance (OPS-002):**
+  - *Dedicated Horizon Configuration* (`config/horizon.php` & `HorizonServiceProvider.php`) — Published and calibrated production queue supervisor with `auto` balancing strategy, max 5 worker processes, 256MB memory cap, 3 retry attempts, and exponential backoff (`[5, 30, 90]` seconds).
+  - *Extended Worker Timeouts* — Increased default job timeout from 60s to 180s to accommodate heavy background Puppeteer/Browsershot PDF generation and multi-step AI screening workflows without premature worker termination.
+  - *Role-Based Horizon Dashboard Gate* — Protected Horizon telemetry dashboard with strict role-based access (`isSuperAdmin`, `hasRole('admin')`, and configurable `HORIZON_AUTHORIZED_EMAILS`).
+
 ## What's New in v1.35.0 (Audit Plan Execution: Multi-Tenant IDOR Protection, Tab Modularization & In-Cluster Resilience)
 
 - **Multi-Tenant IDOR Protection & Automated Integration Tests (SEC-001):**

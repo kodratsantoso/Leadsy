@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.30.0',
-    'released_at' => '2026-10-21',
+    'version' => '1.36.0',
+    'released_at' => '2026-10-28',
     'type' => 'minor',
-    'notes' => 'SaaS Platform Admin Phase 1 & 2: Dynamic Plan Builder & Packaging Engine, Live MRR/ARR recalculation, and Tenant 360° Management Console with 7 operational tabs.',
+    'notes' => 'Lead Workspace Tab Modularization, Full Tailwind OKLch Color Tokenization, and Enterprise Horizon Worker Queue Supervision.',
 ];

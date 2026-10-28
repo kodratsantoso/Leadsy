@@ -1,5 +1,17 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-10-28 — v1.36.0 Lead Workspace Modularization, Tokenized OKLch Palette & Horizon Queue Governance
+- **Lead Detail View Modularization (UX-004):**
+  - Fully decoupled and extracted all remaining inline tab logic from `frontend/app/leads/[id]/page.tsx` into modular components:
+    - `components/leads/tabs/TranscriptsTab.tsx`: 540+ lines covering Lark Minutes, audio/video upload, AI BANTC extraction, Lark Base sync telemetry, and PDF generation.
+    - `components/leads/tabs/CustomerJourneyTab.tsx`: 200+ lines covering lifecycle timeline, AI customer story generation, pre/post-meeting intelligence, and revenue journey tracking.
+  - Reduced `page.tsx` by over 800 lines (from ~4,400 to ~3,600 lines), drastically accelerating client-side re-render cycles and developer maintainability.
+- **Tailwind OKLch Design Tokenization (UX-003):**
+  - Replaced legacy static colors (`text-blue-500`, `text-indigo-500`, `text-red-500`, `text-emerald-500`, `text-amber-500`, `bg-blue-600`) with semantic OKLch CSS variables (`text-primary`, `text-[var(--brand)]`, `text-[var(--status-danger)]`, `text-[var(--status-success)]`, `text-[var(--status-warning)]`, `text-[var(--status-info)]`).
+- **Enterprise Horizon Queue Worker Governance (OPS-002):**
+  - Published and customized `backend/config/horizon.php` and `HorizonServiceProvider.php`.
+  - Configured auto-balancing queue supervisors with 3 retries, exponential backoffs `[5, 30, 90]`, 180s worker timeouts, 256MB memory boundaries, and role-based gate authorization (`isSuperAdmin`, `hasRole('admin')`).
+
 ## 2026-10-28 — v1.35.0 Multi-Tenant IDOR Guards & Lead Tabs Modularization
 - **Multi-Tenant IDOR Protection (SEC-001):**
   - Enforced strict tenant boundary validation in `LeadOrderToCashController` and `QuotationWorkflowController`.

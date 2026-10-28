@@ -59,11 +59,12 @@ These improvements carry high return on investment and can be implemented safely
 - [x] Implement Quick Win 3 & 4 (Replace `alert()` in AI Accounting with toasts, Tokenize O2C Form Buttons).
 - [x] Build a standardized, accessible `ConfirmDialog` modal primitive in `frontend/components/ui/confirm-dialog.tsx`.
 - [x] Refactor the 8 settings pages currently using `window.confirm()` to use `ConfirmDialog`.
-- [x] Refactor `frontend/app/leads/[id]/page.tsx` into modular sub-tab components (`ContactsTab.tsx`, `ActivitiesTab.tsx`, `MeetingsTab.tsx`).
+- [x] Refactor `frontend/app/leads/[id]/page.tsx` into modular sub-tab components (`ContactsTab.tsx`, `ActivitiesTab.tsx`, `MeetingsTab.tsx`, `TranscriptsTab.tsx`, `CustomerJourneyTab.tsx`).
+- [x] Purge static Tailwind colors and enforce design token compliance across Lead Detail view.
 
 ### Phase 3: Infrastructure Resilience & Operations (Target: Sprint 3)
 - [x] Configure Kubernetes liveness and readiness probes for `deployment/leadsy-worker` and `leadsy-scheduler` in `k8s/leadsy-prod-workers.yaml`.
-- [ ] Set up automated Redis connection reconnection logic in Laravel queue daemon supervisor.
+- [x] Set up automated Redis connection reconnection logic in Laravel queue daemon supervisor (`backend/config/horizon.php` and `HorizonServiceProvider.php`).
 - [ ] Provision `leadsy-staging` namespace in K3s tied to branch `virtuenet`.
 
 ### Phase 4: Repository Cleanup & De-duplication (Target: Sprint 4)
