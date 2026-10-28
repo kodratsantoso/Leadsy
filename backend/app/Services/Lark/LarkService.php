@@ -158,6 +158,8 @@ class LarkService
                         $response = $pending->post($urlWithQuery, empty($data) ? new \stdClass() : $data);
                     } elseif ($method === 'PUT') {
                         $response = $pending->put($urlWithQuery, empty($data) ? new \stdClass() : $data);
+                    } elseif ($method === 'PATCH') {
+                        $response = $pending->patch($urlWithQuery, empty($data) ? new \stdClass() : $data);
                     } elseif ($method === 'DELETE') {
                         $response = $pending->delete($urlWithQuery, empty($data) ? [] : $data);
                     } else {

@@ -2,7 +2,7 @@
 ## Leadsy Enterprise — RevOps-to-Cash-to-Value Operating System
 
 - **Aplikasi:** Leadsy Enterprise
-- **Versi Rilis:** v1.41.0
+- **Versi Rilis:** v1.42.0
 - **URL Pengujian (Produksi):** [https://leadsy.tech](https://leadsy.tech)
 - **Status Sesi:** Pengujian Penerimaan Pengguna (UAT Sign-off)
 - **Target Penguji:** Product Owner, Solution Architect, Sales Lead, Project Manager, Finance Manager, Customer Success Lead.
@@ -113,7 +113,7 @@ Sebelum memulai pengujian, pastikan:
 
 ## 4. Lembar Persetujuan (Sign-off Acceptance)
 
-Dengan menandatangani dokumen ini, seluruh pemangku kepentingan menyatakan bahwa sistem **Leadsy Enterprise v1.41.0** telah diuji secara menyeluruh dan memenuhi kriteria penerimaan fungsional, arsitektural, dan operasional.
+Dengan menandatangani dokumen ini, seluruh pemangku kepentingan menyatakan bahwa sistem **Leadsy Enterprise v1.42.0** telah diuji secara menyeluruh dan memenuhi kriteria penerimaan fungsional, arsitektural, dan operasional.
 
 | Departemen | Nama Peninjau | Jabatan | Tanggal | Tanda Tangan |
 | :--- | :--- | :--- | :--- | :--- |
