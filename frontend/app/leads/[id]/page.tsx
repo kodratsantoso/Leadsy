@@ -49,6 +49,7 @@ import { InContextSalesCopilotDrawer } from '@/components/leads/InContextSalesCo
 import { EnrollCadenceModal } from '@/components/leads/EnrollCadenceModal';
 import { SalesCadenceStatusCard } from '@/components/leads/SalesCadenceStatusCard';
 import { FieldSalesCheckinModal } from '@/components/leads/FieldSalesCheckinModal';
+import { RolePerspectiveSwitcher, DepartmentPerspective } from '@/components/leads/RolePerspectiveSwitcher';
 
 /* ── Source badge ──────────────────────────────────────────────────── */
 
@@ -455,6 +456,7 @@ export default function LeadDetailPage() {
   const currentUserId = authUser?.id;
   const { formatNumber, formatCurrency, normalizeAmountInput, formatAmountInput } = useNumberFormat();
   const [activeTab, setActiveTab] = useState('overview');
+  const [perspective, setPerspective] = useState<DepartmentPerspective>('all');
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isCadenceModalOpen, setIsCadenceModalOpen] = useState(false);
   const [isCheckinModalOpen, setIsCheckinModalOpen] = useState(false);
@@ -1835,6 +1837,15 @@ export default function LeadDetailPage() {
           </div>
         </div>
       ) : null}
+
+      {/* Phase 7: Cross-Department Role Perspective Switcher (UI-ROLE-001) */}
+      <RolePerspectiveSwitcher
+        currentPerspective={perspective}
+        onPerspectiveChange={(p, tab) => {
+          setPerspective(p);
+          setActiveTab(tab);
+        }}
+      />
 
       {/* Tabs. Twelve of them in one flat row read as an undifferentiated list,
           so they are clustered by what the reader came to do. The labels are

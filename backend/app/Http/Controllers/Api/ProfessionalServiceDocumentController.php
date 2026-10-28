@@ -80,6 +80,87 @@ class ProfessionalServiceDocumentController extends Controller
         );
     }
 
+    public function convertToProjectPlan(Request $request, int $id): JsonResponse
+    {
+        $document = PsDocument::with(['estimation.lines', 'lead'])->findOrFail($id);
+
+        if ($document->document_type !== 'sow') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Hanya dokumen Statement of Work (SOW) yang dapat dikonversi menjadi Project Plan.',
+            ], 422);
+        }
+
+        $estimation = $document->estimation;
+        if (!$estimation) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Dokumen SOW tidak terikat dengan data Estimasi PSA.',
+            ], 422);
+        }
+
+        // Check if project plan already exists for this SOW/estimation
+        $existingPlan = \App\Models\PsProjectPlan::where('estimation_id', $estimation->id)->first();
+        if ($existingPlan) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Project Plan untuk SOW ini sudah ada sebelumnya.',
+                'data' => $existingPlan->load('tasks'),
+            ]);
+        }
+
+        $projectPlanNumber = 'PP-' . date('Ym') . '-' . str_pad((string)$document->id, 4, '0', STR_PAD_LEFT);
+        $companyName = $document->lead?->company_name ?? 'Pelanggan';
+
+        $projectPlan = \App\Models\PsProjectPlan::create([
+            'project_plan_number' => $projectPlanNumber,
+            'estimation_id' => $estimation->id,
+            'lead_id' => $document->lead_id,
+            'quotation_id' => $document->quotation_id,
+            'project_name' => "Implementasi SOW: {$companyName}",
+            'customer_name_snapshot' => $companyName,
+            'project_status' => 'planning',
+            'project_start_date' => now()->toDateString(),
+            'target_completion_date' => now()->addDays(60)->toDateString(),
+            'estimated_duration_days' => 60,
+            'total_estimated_mandays' => (float) ($estimation->total_mandays ?? 0),
+            'service_category_id' => $estimation->service_category_id,
+            'estimation_template_id' => $estimation->estimation_template_id,
+            'complexity_level_id' => $estimation->complexity_level_id,
+            'project_manager_id' => auth()->id(),
+            'solution_architect_id' => $estimation->architect_id ?? auth()->id(),
+            'delivery_notes' => "Rencana kerja diinisialisasi otomatis dari dokumen SOW #{$document->document_number}.",
+            'created_by' => auth()->id(),
+        ]);
+
+        // Auto-generate project tasks from estimation lines
+        if ($estimation->lines && $estimation->lines->count() > 0) {
+            foreach ($estimation->lines as $idx => $line) {
+                \App\Models\PsProjectTask::create([
+                    'project_plan_id' => $projectPlan->id,
+                    'task_name' => $line->task_name ?: "Deliverable Tahap " . ($idx + 1),
+                    'description' => $line->description ?: "Pekerjaan teknis sesuai klausul SOW.",
+                    'deliverable' => $line->deliverable_output ?: $line->task_name,
+                    'assigned_role_id' => $line->role_id,
+                    'estimated_mandays' => (float) ($line->mandays ?? 1.0),
+                    'planned_start_date' => now()->addDays($idx * 5)->toDateString(),
+                    'planned_end_date' => now()->addDays(($idx + 1) * 5)->toDateString(),
+                    'status' => 'not_started',
+                    'sort_order' => $idx + 1,
+                ]);
+            }
+        }
+
+        // Notify Project Manager and Delivery
+        app(\App\Services\Notification\CrossDepartmentNotificationService::class)->notifySowSigned($document);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Project Plan #{$projectPlanNumber} berhasil diinisialisasi dari SOW #{$document->document_number} beserta task deliverable.",
+            'data' => $projectPlan->load('tasks'),
+        ], 201);
+    }
+
     public function destroy(int $id): JsonResponse
     {
         $document = PsDocument::findOrFail($id);
@@ -94,3 +175,4 @@ class ProfessionalServiceDocumentController extends Controller
         return response()->json(['message' => 'Deleted successfully']);
     }
 }
+

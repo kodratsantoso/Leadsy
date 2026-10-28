@@ -273,6 +273,13 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads-duplicates/summary', [LeadController::class, 'getDuplicatesSummary'])->middleware('permission:leads.view');
     Route::get('leads/{lead}/recommend-bundles', [LeadController::class, 'recommendBundles'])->middleware('permission:leads.view');
     
+    // Phase 7: Commercial Invoices & Milestone Billing (FIN-001)
+    Route::get('leads/{lead}/invoices', [\App\Http\Controllers\Api\CommercialInvoiceController::class, 'index'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/invoices/from-bast/{document}', [\App\Http\Controllers\Api\CommercialInvoiceController::class, 'storeFromBast'])->middleware('permission:leads.edit');
+    Route::get('invoices/{id}', [\App\Http\Controllers\Api\CommercialInvoiceController::class, 'show'])->middleware('permission:leads.view');
+    Route::get('invoices/{id}/download', [\App\Http\Controllers\Api\CommercialInvoiceController::class, 'download']);
+    Route::patch('invoices/{id}/payment-status', [\App\Http\Controllers\Api\CommercialInvoiceController::class, 'recordPayment'])->middleware('permission:leads.edit');
+
     // Sprint 2: Engagement Hardening Routes (G2.2, G2.4, G2.3)
     Route::get('deals/stalled', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'getStalledDeals'])->middleware('permission:leads.view');
     Route::post('deals/stalled/check', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'runStalledDealCheck'])->middleware('permission:leads.edit');
@@ -442,6 +449,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
         Route::post('/professional-services/estimations/{id}/documents/generate', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'generate']);
         Route::get('/professional-services/documents/{id}', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'show']);
         Route::get('/professional-services/documents/{id}/download', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'download']);
+        Route::post('/professional-services/documents/{id}/convert-to-project-plan', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'convertToProjectPlan']);
         Route::delete('/professional-services/documents/{id}', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'destroy']);
         
         // Phase 5: Digital Signature

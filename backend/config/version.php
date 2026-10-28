@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.40.0',
+    'version' => '1.41.0',
     'released_at' => '2026-10-28',
     'type' => 'minor',
-    'notes' => 'Automated SOW & BAST Document Previewer (DOC-001), Global Duplicate Detection & Bulk Merge Console (LG-003), AI Smart Product Bundling & Margin Optimizer (AI-003), and Enterprise SLA Breach Automatic Escalation Daemon (OPS-004).',
+    'notes' => 'Automated Milestone Invoicing from Signed BAST (FIN-001), Cross-Department Real-Time Alert Dispatcher (NOTIF-001), SOW to Project Plan Auto-Converter (DELIV-002), and Role-Based Perspective Switcher on Deal Workspace (UI-ROLE-001).',
 ];

@@ -4,8 +4,24 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.40.0** — 2026-10-28
+Current release: **v1.41.0** — 2026-10-28
  
+## What's New in v1.41.0 (The Closed-Loop Cross-Department Unification)
+
+- **Automated Milestone Invoicing from Signed BAST (FIN-001):**
+  - *Commercial Invoices & Tax Engine* (`backend/app/Services/Finance/CommercialInvoiceService.php`) — Otomatisasi penerbitan faktur tagihan komersial resmi dari dokumen Berita Acara Serah Terima (BAST) dengan kalkulasi termin (DP 30%, BAST UAT 50%, BAST Final 20%), kode pajak PPN 11%, dan pemotongan PPh 23.
+  - *Printable Official Invoice Streamer* (`backend/resources/views/reports/commercial-invoice.blade.php`) — Generator PDF Faktur Penagihan resmi ber-watermark kriptografis PSrE lengkap dengan rincian rekening bank Mandiri dan disposisi inline browser.
+  - *Invoices Management Console* (`frontend/components/invoices/InvoicesListCard.tsx` & `GenerateInvoiceModal.tsx`) — Terpasang di Revenue Tab untuk pencatatan pembayaran instan (`paid`, `partially_paid`) dan monitoring piutang berjalan (*outstanding revenue*).
+
+- **Cross-Department Real-Time Handover Dispatcher (NOTIF-001):**
+  - *Enterprise Alert Engine* (`backend/app/Services/Notification/CrossDepartmentNotificationService.php`) — Mengalirkan notifikasi real-time ke Lark Interactive Card dan WhatsApp saat serah terima antar divisi: BAST selesai ➡️ alert ke Finance; SOW selesai ➡️ alert ke Project Manager; SLA Breach ➡️ alert eskalasi ke Sales Manager; Proyek selesai ➡️ alert ke Customer Success.
+
+- **SOW Deliverables to Project Plan Auto-Converter (DELIV-002):**
+  - *Instant WBS Generator* (`POST /api/professional-services/documents/{id}/convert-to-project-plan`) — Mengonversi daftar deliverable, alokasi hari kerja (*mandays*), dan role engineer dari dokumen SOW langsung menjadi `PsProjectPlan` dan `PsProjectTask` pada visualisasi Gantt Project Manager tanpa input ulang manual.
+
+- **Role-Based Perspective Switcher on Deal Workspace (UI-ROLE-001):**
+  - *Contextual Workspace Selector* (`frontend/components/leads/RolePerspectiveSwitcher.tsx`) — Quick-toggle selector sudut pandang di header lead untuk 5 peran enterprise: **Sales & Commercial**, **Solution Architect**, **Project Delivery (PM)**, **Finance & Accounting**, dan **Customer Success**.
+
 ## What's New in v1.40.0 (Delivery SOW/BAST Previewer, RevOps Duplication Console, AI Bundling & SLA Escalation Daemon)
 
 - **Automated SOW & BAST Document Previewer & Sign Flow (DOC-001):**

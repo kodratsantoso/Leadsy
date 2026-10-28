@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AILoader } from '@/components/ui/ai-loader';
+import { InvoicesListCard } from '@/components/invoices/InvoicesListCard';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { clampPercent, icpLabel, icpVariant } from '@/lib/leadDisplay';
 import { safeJsonArray } from '@/lib/utils';
@@ -497,6 +498,13 @@ export function RevenueTab({
                 </div>
               </div>
             )}
+
+            {/* Commercial Invoices & Milestone Billing (FIN-001) */}
+            <InvoicesListCard
+              leadId={leadData.id}
+              companyName={leadData.company_name || leadData.name || 'Pelanggan'}
+              quotationAmount={Number(leadData.estimated_deal_size || 100000000)}
+            />
           </div>
         </>
       )}

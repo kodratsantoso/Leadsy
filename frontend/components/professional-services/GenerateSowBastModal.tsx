@@ -18,6 +18,7 @@ import {
   PenTool,
   Clock,
   Sparkles,
+  FolderKanban,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -86,6 +87,22 @@ export function GenerateSowBastModal({
     },
   });
 
+  const convertPlanMutation = useMutation({
+    mutationFn: async () => {
+      if (!generatedDoc?.id) return;
+      return await apiFetch(`/professional-services/documents/${generatedDoc.id}/convert-to-project-plan`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: (res: any) => {
+      toast.success('Project Plan Berhasil Diinisialisasi', res.message);
+      queryClient.invalidateQueries({ queryKey: ['project-plans'] });
+    },
+    onError: (err: any) => {
+      toast.error('Gagal Menginisialisasi Project Plan', err.message || 'Terjadi kesalahan sistem.');
+    },
+  });
+
   const handleDownload = () => {
     if (!generatedDoc?.id) return;
     window.open(`/api/professional-services/documents/${generatedDoc.id}/download`, '_blank');
@@ -142,6 +159,21 @@ export function GenerateSowBastModal({
                   <Download className="h-4 w-4" />
                   Unduh PDF
                 </Button>
+                {generatedDoc?.document_type === 'sow' && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => convertPlanMutation.mutate()}
+                    disabled={convertPlanMutation.isPending}
+                    className="gap-1.5"
+                  >
+                    {convertPlanMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FolderKanban className="h-4 w-4" />
+                    )}
+                    Inisialisasi Project Plan
+                  </Button>
+                )}
                 {onOpenDigitalSignature && (
                   <Button
                     variant="default"

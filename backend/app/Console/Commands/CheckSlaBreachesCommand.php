@@ -56,6 +56,9 @@ class CheckSlaBreachesCommand extends Command
                     'activity_date' => now(),
                 ]);
 
+                app(\App\Services\Notification\CrossDepartmentNotificationService::class)
+                    ->notifySlaBreach($quote->lead, "Draft Quotation #{$quote->quotation_number} mengendap > 3 hari");
+
                 Log::warning("[SLA Breach Escalation] Lead #{$quote->lead_id} ({$quote->lead->company_name}) has stale draft quote #{$quote->quotation_number}.");
                 $breachesCount++;
             }
@@ -83,6 +86,9 @@ class CheckSlaBreachesCommand extends Command
                     'description' => "[SLA BREACH] Jadwal follow-up telah terlewat > 24 jam tanpa ada pencatatan interaksi baru oleh sales rep.",
                     'activity_date' => now(),
                 ]);
+
+                app(\App\Services\Notification\CrossDepartmentNotificationService::class)
+                    ->notifySlaBreach($lead, "Jadwal follow-up terlewat > 24 jam tanpa interaksi sales");
 
                 Log::warning("[SLA Breach Escalation] Lead #{$lead->id} ({$lead->company_name}) follow-up overdue by > 24 hours.");
                 $breachesCount++;
