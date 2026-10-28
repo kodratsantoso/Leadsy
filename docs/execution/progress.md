@@ -1,5 +1,23 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-10-28 — v1.35.0 Multi-Tenant IDOR Guards & Lead Tabs Modularization
+- **Multi-Tenant IDOR Protection (SEC-001):**
+  - Enforced strict tenant boundary validation in `LeadOrderToCashController` and `QuotationWorkflowController`.
+  - Created automated feature test suite `tests/Feature/OrderToCashMultiTenantTest.php` asserting HTTP 403 Forbidden on cross-tenant access attempts.
+- **Lead Detail Tab Modularization (UX-004):**
+  - Modularized `frontend/app/leads/[id]/page.tsx` by extracting inline tab code into decoupled components: `ContactsTab.tsx`, `ActivitiesTab.tsx`, and `MeetingsTab.tsx`.
+  - Zero-error TypeScript compilation verified via `npx tsc --noEmit`.
+- **Infrastructure Resilience (OPS-001):**
+  - Added native Kubernetes `livenessProbe` checks in `k8s/leadsy-prod-workers.yaml` for both queue worker and scheduler daemons.
+  - Hardened `backend/Dockerfile.production` with `Acquire::Retries "3"` and `--fix-missing`.
+
+## 2026-10-28 — v1.34.0 UI Dialog Governance & Multi-Tenancy Scope Expansion
+- **UI Dialog Governance & Accessibility Compliance (UX-001 & UX-002):**
+  - Built accessible `ConfirmDialog` primitive in `components/ui/confirm-dialog.tsx`.
+  - Eliminated 100% of native `window.confirm()` and `alert()` calls across settings, admin, and quotation workflows.
+- **Multi-Tenancy Global Scope Expansion (ARCH-002):**
+  - Applied `BelongsToTenant` trait across `LeadActivity`, `LeadScore`, `LeadQualification`, and `LeadSource`.
+
 ## 2026-05-26 — v1.2 Sales Execution Pro Kickoff
 - Added Lead Pool ownership controls as the first roadmap execution slice after the Beyond ShareCRM plan.
 - Leads API now supports `owner_id=unassigned`, assignable user lookup, lead claim, and lead assign/reassign actions.
