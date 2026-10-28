@@ -25,10 +25,22 @@ jobs:
         run: |
           docker system prune -af || true
           docker builder prune -af || true
+          rm -rf /tmp/runner/work/_temp/* /tmp/runner/work/_actions/* || true
           df -h /
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        run: |
+          git config --global --add safe.directory "$PWD" || true
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+          else
+            git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+          fi
+          git fetch origin ${{ github.sha }} --depth=1
+          git checkout -f FETCH_HEAD
+          git clean -fd
+          git log -1 --oneline
 
       - name: PHP Syntax Check
         run: |
@@ -58,10 +70,22 @@ jobs:
         run: |
           docker system prune -af || true
           docker builder prune -af || true
+          rm -rf /tmp/runner/work/_temp/* /tmp/runner/work/_actions/* || true
           df -h /
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        run: |
+          git config --global --add safe.directory "$PWD" || true
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+          else
+            git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+          fi
+          git fetch origin ${{ github.sha }} --depth=1
+          git checkout -f FETCH_HEAD
+          git clean -fd
+          git log -1 --oneline
 
       - name: Install Dependencies and Build
         run: |
@@ -88,10 +112,22 @@ jobs:
         run: |
           docker system prune -af || true
           docker builder prune -af || true
+          rm -rf /tmp/runner/work/_temp/* /tmp/runner/work/_actions/* || true
           df -h /
 
       - name: Checkout Code
-        uses: actions/checkout@v4
+        run: |
+          git config --global --add safe.directory "$PWD" || true
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+          else
+            git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+          fi
+          git fetch origin ${{ github.sha }} --depth=1
+          git checkout -f FETCH_HEAD
+          git clean -fd
+          git log -1 --oneline
 
       - name: Build and Push Backend Image
         run: |
@@ -184,8 +220,26 @@ jobs:
     runs-on: [self-hosted, in-cluster, k3s]
     timeout-minutes: 20
     steps:
+      - name: Runner Disk Hygiene (Pre-flight)
+        run: |
+          docker system prune -af || true
+          docker builder prune -af || true
+          rm -rf /tmp/runner/work/_temp/* /tmp/runner/work/_actions/* || true
+          df -h /
+
       - name: Checkout Code
-        uses: actions/checkout@v4
+        run: |
+          git config --global --add safe.directory "$PWD" || true
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+          else
+            git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+          fi
+          git fetch origin ${{ github.sha }} --depth=1
+          git checkout -f FETCH_HEAD
+          git clean -fd
+          git log -1 --oneline
 
       - name: Build and Push Staging Images
         run: |
