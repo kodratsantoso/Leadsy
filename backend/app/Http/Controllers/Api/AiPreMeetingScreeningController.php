@@ -130,17 +130,41 @@ class AiPreMeetingScreeningController extends Controller
     }
 
     /**
+     * Ensure the requesting user is authorized to interact with the given lead.
+     * Superadmins have system-wide access; tenant members can access leads within their tenant.
+     */
+    protected function authorizeLeadAccess(Request $request, Lead $lead): void
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        if ($user->isSuperAdmin()) {
+            return;
+        }
+
+        if ($user->tenant_id && $lead->tenant_id && $user->tenant_id !== $lead->tenant_id) {
+            abort(403, 'Unauthorized. Lead belongs to a different tenant.');
+        }
+    }
+
+    /**
      * POST /api/v1/leads/{lead}/ai-screening/dispatch
      * Dispatches AI screening to queue worker for background processing.
      */
     public function dispatchSingle(Request $request, Lead $lead): JsonResponse
     {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+        $this->authorizeLeadAccess($request, $lead);
 
         \Illuminate\Support\Facades\Cache::put("lead_screening_{$lead->id}", [
             'status' => 'processing',
             'lead_id' => $lead->id,
             'company_name' => $lead->company_name,
+            'current_stage' => 'profiling_and_enrichment',
+            'stage_label' => 'Entity Legitimacy & Deep Profiling',
+            'stage_number' => 1,
+            'total_stages' => 8,
             'started_at' => now()->toIso8601String(),
         ], 600);
 
@@ -161,7 +185,7 @@ class AiPreMeetingScreeningController extends Controller
      */
     public function statusSingle(Request $request, Lead $lead): JsonResponse
     {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+        $this->authorizeLeadAccess($request, $lead);
 
         $cacheData = \Illuminate\Support\Facades\Cache::get("lead_screening_{$lead->id}");
         $lead = $lead->fresh();
@@ -209,6 +233,10 @@ class AiPreMeetingScreeningController extends Controller
         return response()->json([
             'success' => true,
             'status' => ($cacheData['status'] ?? 'processing'),
+            'stage' => ($cacheData['current_stage'] ?? 'processing'),
+            'stage_label' => ($cacheData['stage_label'] ?? 'Evaluating Lead...'),
+            'stage_number' => ($cacheData['stage_number'] ?? 1),
+            'total_stages' => ($cacheData['total_stages'] ?? 8),
             'lead_id' => $lead->id,
             'company_name' => $lead->company_name,
         ]);
@@ -221,7 +249,7 @@ class AiPreMeetingScreeningController extends Controller
      */
     public function streamSingle(Request $request, Lead $lead): StreamedResponse
     {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+        $this->authorizeLeadAccess($request, $lead);
 
         return response()->stream(function () use ($lead) {
             if (ob_get_level()) {
@@ -287,8 +315,19 @@ class AiPreMeetingScreeningController extends Controller
 
                 // Heartbeat progress event every 2 seconds
                 $currentStage = $cacheData['current_stage'] ?? ($cacheData['status'] ?? 'processing');
+                $stageLabel = $cacheData['stage_label'] ?? 'Evaluating Lead...';
+                $stageNumber = $cacheData['stage_number'] ?? min($attempt + 1, 8);
+                $totalStages = $cacheData['total_stages'] ?? 8;
+
                 echo "event: progress\n";
-                echo "data: " . json_encode(['status' => 'processing', 'stage' => $currentStage, 'attempt' => $attempt]) . "\n\n";
+                echo "data: " . json_encode([
+                    'status' => 'processing',
+                    'stage' => $currentStage,
+                    'stage_label' => $stageLabel,
+                    'stage_number' => $stageNumber,
+                    'total_stages' => $totalStages,
+                    'attempt' => $attempt,
+                ]) . "\n\n";
                 flush();
 
                 sleep(2);
@@ -308,7 +347,7 @@ class AiPreMeetingScreeningController extends Controller
      */
     public function screenSingle(Request $request, Lead $lead): JsonResponse
     {
-        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
+        $this->authorizeLeadAccess($request, $lead);
 
         if ($request->boolean('async')) {
             return $this->dispatchSingle($request, $lead);

@@ -46,6 +46,10 @@ class RunPreMeetingAiScreeningJob implements ShouldQueue
                 'status' => 'processing',
                 'lead_id' => $this->leadId,
                 'company_name' => $lead->company_name,
+                'current_stage' => 'profiling_and_enrichment',
+                'stage_label' => 'Entity Legitimacy & Deep Profiling',
+                'stage_number' => 1,
+                'total_stages' => 8,
                 'started_at' => now()->toIso8601String(),
             ], 600);
 
@@ -53,6 +57,9 @@ class RunPreMeetingAiScreeningJob implements ShouldQueue
             
             Cache::put("lead_screening_{$this->leadId}", array_merge($result, [
                 'status' => 'completed',
+                'stage_number' => 8,
+                'total_stages' => 8,
+                'stage_label' => 'AI Screening Completed',
                 'completed_at' => now()->toIso8601String(),
             ]), 600);
 

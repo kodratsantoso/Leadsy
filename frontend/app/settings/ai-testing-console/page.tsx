@@ -117,8 +117,12 @@ function SingleLeadDebugTab() {
     setFeedback({ type: "success", msg: "Starting full pipeline..." });
     try {
       const outcome = await runAiScreening(selected.id, {
-        onProgress: (elapsedSeconds) =>
-          setFeedback({ type: "success", msg: `Running full pipeline... (${elapsedSeconds}s elapsed)` }),
+        onProgress: (elapsedSeconds, _attempt, stageInfo) => {
+          const stagePrefix = stageInfo?.label
+            ? `Stage ${stageInfo.number ?? '?'}/${stageInfo.total ?? 8}: ${stageInfo.label}`
+            : 'Running full pipeline...';
+          setFeedback({ type: "success", msg: `${stagePrefix} (${elapsedSeconds}s elapsed)` });
+        },
       });
 
       if (outcome.status === "completed") {

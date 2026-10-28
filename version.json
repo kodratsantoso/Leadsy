@@ -1,7 +1,7 @@
 {
-  "version": "1.37.0",
-  "codename": "ssot-purge-k3s-staging-and-cadence-scheduler",
+  "version": "1.38.0",
+  "codename": "modular-workspace-and-realtime-ai-sse-stream",
   "last_updated": "2026-10-28",
   "type": "minor",
-  "notes": "Purge deprecated root mirrors (ARCH-001), K3s staging pipeline with ordered CI runner gates (GOV-001), WhatsApp sidecar exponential backoff with jitter and healthcheck, and automated sales cadence scheduler cron (OPS-003)."
+  "notes": "Lead Workspace Modularization Phase 2 (OverviewTab & RevenueTab components) and Real-Time SSE Streaming with 8-Stage Telemetry for AI Pre-Meeting Screening pipeline."
 }

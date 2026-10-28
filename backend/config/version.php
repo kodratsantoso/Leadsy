@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.37.0',
+    'version' => '1.38.0',
     'released_at' => '2026-10-28',
     'type' => 'minor',
-    'notes' => 'Purge deprecated root mirrors, K3s staging pipeline with serialized CI runners, WhatsApp sidecar exponential backoff, and cadence scheduler cron.',
+    'notes' => 'Lead Workspace Modularization Phase 2 (OverviewTab & RevenueTab) and Real-Time SSE Streaming with 8-Stage Telemetry for AI Pre-Meeting Screening pipeline.',
 ];

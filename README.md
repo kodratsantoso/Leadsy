@@ -4,8 +4,20 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.37.0** — 2026-10-28
+Current release: **v1.38.0** — 2026-10-28
  
+## What's New in v1.38.0 (Lead Workspace Modularization Phase 2 & Real-Time SSE AI Screening Telemetry)
+
+- **Lead Workspace Modularization Phase 2 (UX-004 Phase 2):**
+  - *OverviewTab Component* (`frontend/components/leads/tabs/OverviewTab.tsx`) — Decoupled 376 lines covering company profile, key contacts, deal pipeline, presales discovery readiness, account team, follow-up timelines, corporate hierarchy, and Google Maps location preview into a dedicated component.
+  - *RevenueTab Component* (`frontend/components/leads/tabs/RevenueTab.tsx`) — Decoupled 380 lines covering revenue intelligence, ICP match analytics, conversion probability, prescriptive recommendations, revenue gate check, and product revenue history.
+  - *916 Lines Eliminated from Page View* — Shrunk `frontend/app/leads/[id]/page.tsx` from 3,645 down to 2,729 lines, drastically improving React render efficiency and code maintainability.
+
+- **Real-Time Server-Sent Events (SSE) AI Screening Stream (PERF-001):**
+  - *Multi-Tenant Access Authorization* — Replaced restrictive superadmin-only gates on single lead screening (`dispatchSingle`, `statusSingle`, `streamSingle`, `screenSingle`) with multi-tenant boundary checks (`authorizeLeadAccess`), enabling tenant sales reps and account managers to trigger and monitor AI evaluations seamlessly.
+  - *8-Stage Real-Time Telemetry* — Instrumented all 8 sequential AI screening stages (`profiling_and_enrichment`, `company_verification`, `icp_and_solution_matching`, `lead_scoring`, `lead_analysis`, `bantc_gatekeeper_qualification`, `product_matching`, `bantc_question_generation`) to emit live stage progress (`stage_number`, `total_stages`, `stage_label`) to Redis cache and HTTP SSE streams.
+  - *Adaptive Frontend Feedback* — Enhanced `aiScreeningPipeline.ts`, `IntelligenceTab.tsx`, `PreMeetingScreeningModal.tsx`, and `ai-testing-console/page.tsx` with live stage labels ("Stage 2/8: Company Legal & Domain Verification..."), eliminating arbitrary polling delays and providing transparent pipeline visibility.
+
 ## What's New in v1.37.0 (Purge Deprecated Root Mirrors, K3s Staging Pipeline & Cadence Scheduler Engine)
 
 - **Root Compatibility Mirror Purge (ARCH-001):**

@@ -20,6 +20,7 @@ use App\Services\Lead\LeadScoringService;
 use App\Services\LeadBantcQuestionGenerationService;
 use App\Services\Revenue\ICPMatchingService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -121,6 +122,7 @@ class PreMeetingAiScreeningOrchestratorService
             // =========================================================================
             // STAGE 1: Entity Legitimacy, Deep Profiling & Standardization
             // =========================================================================
+            $this->updateProgress($lead, 'profiling_and_enrichment', 'Entity Legitimacy & Deep Profiling', 1, 8);
             try {
                 $this->profilingService->profileAndEnrichLead($lead);
                 $lead = $lead->fresh();
@@ -139,6 +141,7 @@ class PreMeetingAiScreeningOrchestratorService
             // =========================================================================
             // STAGE 2: Company Verification (Legal Entity, IDX Listing & Domain Evidence)
             // =========================================================================
+            $this->updateProgress($lead, 'company_verification', 'Company Legal & Domain Verification', 2, 8);
             try {
                 $this->companyVerificationService->verifyLead($lead);
                 $lead = $lead->fresh();
@@ -150,6 +153,7 @@ class PreMeetingAiScreeningOrchestratorService
             // =========================================================================
             // STAGE 3: ICP Matching & Interaction Scoring
             // =========================================================================
+            $this->updateProgress($lead, 'icp_and_solution_matching', 'ICP & Solution Fit Matching', 3, 8);
             try {
                 $this->icpMatchingService->matchLead($lead);
                 $stagesExecuted[] = 'icp_and_solution_matching';
@@ -160,6 +164,7 @@ class PreMeetingAiScreeningOrchestratorService
             // =========================================================================
             // STAGE 4: Interaction Signal Mining & Lead Scoring
             // =========================================================================
+            $this->updateProgress($lead, 'lead_scoring', 'Predictive Scoring & Signal Mining', 4, 8);
             try {
                 $this->scoringService->scoreLead($lead);
                 $stagesExecuted[] = 'lead_scoring';
@@ -192,6 +197,7 @@ class PreMeetingAiScreeningOrchestratorService
             // company_size_band) in the same AI call, which Stage 6 uses instead of
             // making its own separate AI round-trip.
             // =========================================================================
+            $this->updateProgress($lead, 'lead_analysis', 'AI Strategic Analysis & Opportunity Signals', 5, 8);
             $qualificationHint = null;
             try {
                 $analysisResult = $this->analysisService->analyzeLeadWithQualificationHint($lead);
@@ -204,6 +210,7 @@ class PreMeetingAiScreeningOrchestratorService
             // =========================================================================
             // STAGE 6: BANTC Gatekeeper Qualification (Eligible / Potential / Unqualified)
             // =========================================================================
+            $this->updateProgress($lead, 'bantc_gatekeeper_qualification', 'BANTC Gatekeeper Qualification', 6, 8);
             try {
                 if ($qualificationHint && !empty($qualificationHint['success'])) {
                     $this->qualificationService->qualifyLeadWithAiHint($lead, $qualificationHint);
@@ -229,6 +236,7 @@ class PreMeetingAiScreeningOrchestratorService
             // =========================================================================
             // STAGE 7: Product Matching
             // =========================================================================
+            $this->updateProgress($lead, 'product_matching', 'Product Catalog Matching & Propensity', 7, 8);
             try {
                 $this->productMatchingService->matchLeadToProducts($lead, $userId);
                 $stagesExecuted[] = 'product_matching';
@@ -246,6 +254,7 @@ class PreMeetingAiScreeningOrchestratorService
             //
             // This briefly ran as a stage that generated questions and discarded
             // them, which cost an AI call per lead and could not reach anyone.
+            $this->updateProgress($lead, 'bantc_question_generation', 'Generating Adaptive BANTC Discovery Questions', 8, 8);
             try {
                 $bantcResult = $this->bantcQuestionService->generate($lead);
                 if (! empty($bantcResult['success']) && ! empty($bantcResult['questions'])) {
@@ -405,5 +414,26 @@ class PreMeetingAiScreeningOrchestratorService
             ->orderBy('id', 'desc')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Reports real-time screening stage progress to the Redis cache for SSE streaming.
+     */
+    protected function updateProgress(Lead $lead, string $stageKey, string $stageLabel, int $stageNumber, int $totalStages = 8): void
+    {
+        try {
+            Cache::put("lead_screening_{$lead->id}", [
+                'status' => 'processing',
+                'lead_id' => $lead->id,
+                'company_name' => $lead->company_name,
+                'current_stage' => $stageKey,
+                'stage_label' => $stageLabel,
+                'stage_number' => $stageNumber,
+                'total_stages' => $totalStages,
+                'updated_at' => now()->toIso8601String(),
+            ], 600);
+        } catch (\Throwable $e) {
+            // Non-blocking
+        }
     }
 }

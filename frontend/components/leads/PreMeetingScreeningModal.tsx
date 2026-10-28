@@ -203,6 +203,12 @@ export function PreMeetingScreeningModal({
       try {
         const outcome = await runAiScreening(lead.id, {
           shouldStop: () => stopRequestedRef.current,
+          onProgress: (_elapsed, _attempt, stageInfo) => {
+            if (stageInfo?.label) {
+              clearInterval(stageInterval);
+              setCurrentStage(`Stage ${stageInfo.number ?? '?'}/${stageInfo.total ?? 8}: ${stageInfo.label}`);
+            }
+          },
         });
 
         if (outcome.status === "failed") {

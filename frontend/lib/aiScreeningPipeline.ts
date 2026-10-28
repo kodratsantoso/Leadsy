@@ -20,9 +20,16 @@ export type AiScreeningOutcome =
   | { status: "timeout"; elapsedSeconds: number }
   | { status: "stopped"; elapsedSeconds: number };
 
+export type StageProgressInfo = {
+  stage?: string;
+  label?: string;
+  number?: number;
+  total?: number;
+};
+
 export type RunAiScreeningOptions = {
-  /** Called every `progressEvery` polls so callers can render elapsed time. */
-  onProgress?: (elapsedSeconds: number, attempt: number) => void;
+  /** Called on progress events so callers can render elapsed time and active stage metadata. */
+  onProgress?: (elapsedSeconds: number, attempt: number, stageInfo?: StageProgressInfo) => void;
   /** Polled before each wait; return true to abandon without failing. */
   shouldStop?: () => boolean;
   pollIntervalMs?: number;
@@ -99,7 +106,12 @@ export async function runAiScreening(
                 };
               }
               if (eventType === "progress" && onProgress) {
-                onProgress(elapsed(), parsed.attempt ?? 1);
+                onProgress(elapsed(), parsed.attempt ?? 1, {
+                  stage: parsed.stage,
+                  label: parsed.stage_label,
+                  number: parsed.stage_number,
+                  total: parsed.total_stages,
+                });
               }
             } catch {
               // Ignore partial chunk parse error
@@ -118,8 +130,6 @@ export async function runAiScreening(
 
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
 
-    if (onProgress && attempt % progressEvery === 0) onProgress(elapsed(), attempt);
-
     try {
       const statusRes = await apiFetch(`/leads/${leadId}/ai-screening/status`);
       if (!statusRes.ok) continue;
@@ -134,6 +144,15 @@ export async function runAiScreening(
           error: statusJson.error || "AI Screening failed on server.",
           elapsedSeconds: elapsed(),
         };
+      }
+
+      if (onProgress && attempt % progressEvery === 0) {
+        onProgress(elapsed(), attempt, {
+          stage: statusJson.stage,
+          label: statusJson.stage_label,
+          number: statusJson.stage_number,
+          total: statusJson.total_stages,
+        });
       }
     } catch (pollError) {
       // A dropped poll is not a failed pipeline; keep waiting unless this was

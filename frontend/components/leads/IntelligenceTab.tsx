@@ -135,8 +135,15 @@ export function IntelligenceTab({
     setAiActionsFeedback({ type: 'success', msg: 'Starting full pipeline...' });
     try {
       const outcome = await runAiScreening(leadId, {
-        onProgress: (elapsedSeconds) =>
-          setAiActionsFeedback({ type: 'success', msg: `Running full pipeline... (${elapsedSeconds}s elapsed)` }),
+        onProgress: (elapsedSeconds, _attempt, stageInfo) => {
+          const stagePrefix = stageInfo?.label
+            ? `Stage ${stageInfo.number ?? '?'}/${stageInfo.total ?? 8}: ${stageInfo.label}`
+            : 'Running full pipeline...';
+          setAiActionsFeedback({
+            type: 'success',
+            msg: `${stagePrefix} (${elapsedSeconds}s elapsed)`,
+          });
+        },
       });
 
       if (outcome.status === 'completed') {
