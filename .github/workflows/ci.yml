@@ -25,12 +25,16 @@ jobs:
       fail-fast: false
     timeout-minutes: 5
     steps:
-      - name: Prune Docker and Temp Files
+      - name: Prune Docker, Temp Files, Inodes, and Runner Workspaces
         run: |
-          docker system prune -af || true
+          docker system prune -af --volumes || true
           docker builder prune -af || true
           rm -rf /tmp/runner/work/_temp/* || true
-          df -h /
+          rm -rf /tmp/runner/work/_actions/* || true
+          rm -rf /tmp/runner/work/leadsy/* || true
+          rm -rf /tmp/* || true
+          df -h
+          df -i
 
   test-backend:
     name: Backend Quality Gates
