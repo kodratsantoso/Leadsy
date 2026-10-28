@@ -51,7 +51,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class LeadQualification extends Model
 {
+    use \App\Models\Traits\BelongsToTenant;
+
     protected $fillable = [
+        'tenant_id',
         'lead_id', 'qualified', 'business_type', 'company_size_band',
         'qualification_reason', 'last_qualified_at',
         'classification', 'score', 'dimension_breakdown', 'risk_flags',

@@ -5,6 +5,7 @@ import { Key, Copy, Check, FileText, Code2, AlertTriangle, RefreshCw, Calendar, 
 import { BackToSettings } from "../_components/back-to-settings";
 import { apiFetch } from "@/lib/apiFetch";
 import { describeThrown } from "@/lib/apiError";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function ApiDocumentationPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -12,6 +13,7 @@ export default function ApiDocumentationPage() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tokenStatus, setTokenStatus] = useState<{ created_at: string, last_used_at: string | null } | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   
   const fetchTokenStatus = async () => {
     try {
@@ -31,15 +33,14 @@ export default function ApiDocumentationPage() {
     fetchTokenStatus();
   }, []);
 
-  const generateToken = async () => {
+  const handleGenerateClick = () => {
+    setConfirmOpen(true);
+  };
+
+  const executeGenerateToken = async () => {
     setIsGenerating(true);
     setError(null);
     setToken(null);
-    
-    if (!confirm("Are you sure you want to generate a new Integration Token? Any previous integration tokens will be revoked immediately.")) {
-      setIsGenerating(false);
-      return;
-    }
 
     try {
       const response = await apiFetch("/auth/token/generate", {
@@ -53,6 +54,7 @@ export default function ApiDocumentationPage() {
       
       setToken(data.token);
       setCopied(false);
+      setConfirmOpen(false);
       fetchTokenStatus();
     } catch (err) {
       setError(describeThrown(err, "Failed to generate token.").title);
@@ -105,7 +107,7 @@ export default function ApiDocumentationPage() {
               </div>
             </div>
             <button
-              onClick={generateToken}
+              onClick={handleGenerateClick}
               disabled={isGenerating}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--brand)] text-[var(--brand-fg)] hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2"
             >
@@ -310,6 +312,17 @@ async function pushToLeadsy(larkRecord) {
 
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Generate New Integration Token"
+        description="Are you sure you want to generate a new Integration Token? Any previous integration tokens will be revoked immediately and connected services will need to be updated with the new token."
+        confirmLabel="Generate Token"
+        variant="warning"
+        isLoading={isGenerating}
+        onConfirm={executeGenerateToken}
+      />
     </div>
   );
 }

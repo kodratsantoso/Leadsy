@@ -55,7 +55,10 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  */
 class LeadActivity extends Model
 {
+    use \App\Models\Traits\BelongsToTenant;
+
     protected $fillable = [
+        'tenant_id',
         'lead_id', 'activity_type', 'description', 'activity_date',
         'outcome', 'budget', 'authority', 'needs', 'timeline', 'competitor',
         'next_follow_up_date',

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/apiFetch";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const NumberInput = ({ value, onChange, className, placeholder }: any) => {
   const displayValue = value ? new Intl.NumberFormat('en-US').format(Number(value)) : "";
@@ -35,6 +36,8 @@ export default function RevenueTargetsPage() {
   // Form state
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: number | null; name?: string }>({ open: false, id: null });
+  const [isDeleting, setIsDeleting] = useState(false);
   const defaultForm = {
     target_name: "",
     owner_type: "company",
@@ -131,17 +134,29 @@ export default function RevenueTargetsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure?")) return;
+  const handleDelete = (id: number, name?: string) => {
+    setDeleteConfirm({ open: true, id, name });
+  };
+
+  const confirmDeleteTarget = async () => {
+    if (!deleteConfirm.id) return;
+    setIsDeleting(true);
     try {
-      const res = await apiFetch(`/api/revenue-targets/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/revenue-targets/${deleteConfirm.id}`, { method: "DELETE" });
       if (res.ok) {
+        toast.success("Revenue target deleted successfully.");
+        setDeleteConfirm({ open: false, id: null });
         fetchInitData();
+      } else {
+        const e = await res.json();
+        toast.fromError(e, "Failed to delete target.");
       }
     } catch (err) {
-      console.error(err);
+      toast.fromError(err, "Failed to delete target.");
+    } finally {
+      setIsDeleting(false);
     }
-  }
+  };
 
   // --- Cascade Modal State ---
   const [cascadeOpen, setCascadeOpen] = useState(false);
@@ -391,7 +406,7 @@ export default function RevenueTargetsPage() {
                       <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(t)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20">
                         <Edit className="w-3.5 h-3.5"/>
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(t.id)} className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(t.id, t.target_name)} className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
                         <Trash className="w-3.5 h-3.5"/>
                       </Button>
                     </div>
@@ -402,6 +417,21 @@ export default function RevenueTargetsPage() {
           </TableBody>
         </Table>
       </Card>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm((prev) => ({ ...prev, open }))}
+        title="Delete Revenue Target"
+        description={
+          <span>
+            Are you sure you want to delete revenue target <strong>{deleteConfirm.name || "this target"}</strong>? This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Target"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteTarget}
+      />
     </div>
   );
 }

@@ -39,7 +39,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class LeadSource extends Model
 {
+    use \App\Models\Traits\BelongsToTenant;
+
     protected $fillable = [
+        'tenant_id',
         'lead_id', 'source_type', 'channel_type_id', 'source_ref', 'confidence', 'last_verified_at',
         'lark_app_token', 'lark_table_id',
     ];

@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/input";
 import { apiFetch } from "@/lib/apiFetch";
 import { throwIfApiError } from "@/lib/apiError";
 import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 
 type WorkflowDefinition = {
@@ -45,6 +46,7 @@ export default function WorkflowsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: number | null; name?: string }>({ open: false, id: null });
   const [newWorkflow, setNewWorkflow] = useState({
     name: "",
     base_record_type: "LeadQuotation",
@@ -164,11 +166,7 @@ export default function WorkflowsPage() {
                       <Button variant="ghost" size="icon" onClick={() => router.push(`/settings/workflows/${workflow.id}`)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => {
-                        if (confirm('Are you sure you want to delete this workflow?')) {
-                          deleteMutation.mutate(workflow.id);
-                        }
-                      }}>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm({ open: true, id: workflow.id, name: workflow.name })}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
@@ -227,6 +225,25 @@ export default function WorkflowsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm((prev) => ({ ...prev, open }))}
+        title="Delete Workflow"
+        description={
+          <span>
+            Are you sure you want to delete workflow <strong>{deleteConfirm.name || "this workflow"}</strong>? This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Workflow"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+        onConfirm={async () => {
+          if (!deleteConfirm.id) return;
+          await deleteMutation.mutateAsync(deleteConfirm.id);
+          setDeleteConfirm({ open: false, id: null });
+        }}
+      />
     </div>
   );
 }

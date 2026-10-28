@@ -36,6 +36,8 @@ import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Tabs } from "@/components/ui/tabs";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/apiFetch";
 
 interface ProviderModel {
@@ -216,6 +218,12 @@ export default function PlatformAiAccountingPage() {
   const [testingProviderId, setTestingProviderId] = useState<number | null>(null);
   const [testResult, setTestResult] = useState<{ providerId: number; success: boolean; message: string; latency_ms?: number } | null>(null);
 
+  // Confirm dialogs & toast
+  const toast = useToast();
+  const [deleteProviderConfirm, setDeleteProviderConfirm] = useState<{ open: boolean; id: number | null; name?: string }>({ open: false, id: null });
+  const [deleteModelConfirm, setDeleteModelConfirm] = useState<{ open: boolean; providerId: number | null; modelId: number | null; name?: string }>({ open: false, providerId: null, modelId: null });
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Fetch telemetry & settings
   const fetchAll = useCallback(async () => {
     try {
@@ -266,25 +274,40 @@ export default function PlatformAiAccountingPage() {
       if (res.ok) {
         setProviderModalOpen(false);
         setProviderForm(emptyProviderForm);
+        toast.success(isEdit ? "AI provider updated successfully." : "AI provider created successfully.");
         fetchAll();
       } else {
         const err = await res.json();
-        alert(err.message || "Failed to save AI provider.");
+        toast.error(err.message || "Failed to save AI provider.");
       }
     } catch (err: any) {
-      alert(err.message || "Network error saving provider.");
+      toast.error(err.message || "Network error saving provider.");
     } finally {
       setSavingProvider(false);
     }
   };
 
-  const handleDeleteProvider = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this AI provider? Models and assigned routes may be affected.")) return;
+  const handleDeleteProvider = (id: number, name?: string) => {
+    setDeleteProviderConfirm({ open: true, id, name });
+  };
+
+  const confirmDeleteProvider = async () => {
+    if (!deleteProviderConfirm.id) return;
+    setIsDeleting(true);
     try {
-      const res = await apiFetch(`/api/platform/ai-settings/providers/${id}`, { method: "DELETE" });
-      if (res.ok) fetchAll();
-    } catch (err) {
-      console.error("Failed to delete provider:", err);
+      const res = await apiFetch(`/api/platform/ai-settings/providers/${deleteProviderConfirm.id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("AI provider deleted successfully.");
+        setDeleteProviderConfirm({ open: false, id: null });
+        fetchAll();
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to delete AI provider.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Network error deleting provider.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -357,25 +380,40 @@ export default function PlatformAiAccountingPage() {
       if (res.ok) {
         setModelModalOpen(false);
         setModelForm(emptyModelForm);
+        toast.success(isEdit ? "AI model updated successfully." : "AI model created successfully.");
         fetchAll();
       } else {
         const err = await res.json();
-        alert(err.message || "Failed to save model.");
+        toast.error(err.message || "Failed to save model.");
       }
     } catch (err: any) {
-      alert(err.message || "Network error saving model.");
+      toast.error(err.message || "Network error saving model.");
     } finally {
       setSavingModel(false);
     }
   };
 
-  const handleDeleteModel = async (providerId: number, modelId: number) => {
-    if (!confirm("Are you sure you want to delete this model?")) return;
+  const handleDeleteModel = (providerId: number, modelId: number, name?: string) => {
+    setDeleteModelConfirm({ open: true, providerId, modelId, name });
+  };
+
+  const confirmDeleteModel = async () => {
+    if (!deleteModelConfirm.providerId || !deleteModelConfirm.modelId) return;
+    setIsDeleting(true);
     try {
-      const res = await apiFetch(`/api/platform/ai-settings/providers/${providerId}/models/${modelId}`, { method: "DELETE" });
-      if (res.ok) fetchAll();
-    } catch (err) {
-      console.error("Failed to delete model:", err);
+      const res = await apiFetch(`/api/platform/ai-settings/providers/${deleteModelConfirm.providerId}/models/${deleteModelConfirm.modelId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("AI model deleted successfully.");
+        setDeleteModelConfirm({ open: false, providerId: null, modelId: null });
+        fetchAll();
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to delete model.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Network error deleting model.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -792,7 +830,7 @@ export default function PlatformAiAccountingPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDeleteProvider(p.id)}
+                            onClick={() => handleDeleteProvider(p.id, p.name)}
                             className="h-8 border-red-500/30 bg-red-500/10 text-xs text-red-400 hover:bg-red-500/20"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -925,7 +963,7 @@ export default function PlatformAiAccountingPage() {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => handleDeleteModel(p.id, m.id)}
+                                        onClick={() => handleDeleteModel(p.id, m.id, m.name)}
                                         className="h-6 px-2 text-[10px] text-red-400 hover:text-red-300"
                                       >
                                         Delete
@@ -1358,6 +1396,38 @@ export default function PlatformAiAccountingPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Confirm Provider Delete Dialog */}
+      <ConfirmDialog
+        open={deleteProviderConfirm.open}
+        onOpenChange={(open) => setDeleteProviderConfirm((prev) => ({ ...prev, open }))}
+        title="Delete AI Provider"
+        description={
+          <span>
+            Are you sure you want to delete <strong>{deleteProviderConfirm.name || "this provider"}</strong>? Models and assigned routes may be affected. This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Provider"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteProvider}
+      />
+
+      {/* Confirm Model Delete Dialog */}
+      <ConfirmDialog
+        open={deleteModelConfirm.open}
+        onOpenChange={(open) => setDeleteModelConfirm((prev) => ({ ...prev, open }))}
+        title="Delete AI Model"
+        description={
+          <span>
+            Are you sure you want to delete <strong>{deleteModelConfirm.name || "this model"}</strong>? Any routes utilizing this model will need to be reconfigured.
+          </span>
+        }
+        confirmLabel="Delete Model"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteModel}
+      />
     </div>
   );
 }

@@ -4,8 +4,19 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.33.0** — 2026-10-27
+Current release: **v1.34.0** — 2026-10-28
  
+## What's New in v1.34.0 (Audit Plan Execution: UI/UX Dialog Governance & Multi-Tenancy Scope Expansion)
+
+- **UI/UX Dialog Governance & Accessibility Compliance (UX-001 & UX-002):**
+  - *Standardized `ConfirmDialog` Primitive* (`components/ui/confirm-dialog.tsx`) — Built an accessible, high-craftsmanship confirmation modal adhering to UI Governance standards, featuring backdrop blur, accessible focus trapping, keyboard handling (Escape to cancel), and customized tone variants (`danger`, `warning`, `default`).
+  - *Zero Runtime `confirm()` & `alert()` Policy Enforcement* — Refactored all remaining native `window.confirm()` and `alert()` calls across the frontend (`/admin/ai-accounting`, `/settings/company`, `/settings/api`, `/settings/workflows`, `/settings/integrations/lark-base`, `/settings/targets/revenue`, OrderToCash quotations/orders, and PSA task/document editors).
+  - *Non-Blocking Toast System Integration* — Standardized feedback notifications using `useToast` for seamless asynchronous error/success reporting without blocking the browser thread.
+
+- **Multi-Tenancy Global Scope Expansion (ARCH-002):**
+  - *Automatic Tenant Scoping on Secondary Entities* — Applied `BelongsToTenant` trait across `LeadActivity`, `LeadScore`, `LeadQualification`, and `LeadSource`.
+  - Guarantees child CRM records inherit active global tenant scopes automatically during creation and querying, eliminating potential IDOR vectors on secondary entities.
+
 ## What's New in v1.33.0 (Enterprise Roadmap Sprint 2, 3 & 4: RevOps Velocity, Omnichannel Cadence, Enterprise SSO & PSrE Legal Signature)
 
 - **Enterprise Governance & Scalability (Sprint 4):**

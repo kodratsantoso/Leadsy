@@ -11,6 +11,7 @@ import { Loader2, Plus, Building2, Upload, Trash2, Shield, Check, CreditCard, Pe
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function CompanySettingsPage() {
   const qc = useQueryClient();
@@ -20,6 +21,7 @@ export default function CompanySettingsPage() {
   // Bank modal state
   const [showBankModal, setShowBankModal] = useState(false);
   const [editingBank, setEditingBank] = useState<any>(null);
+  const [deleteBankConfirm, setDeleteBankConfirm] = useState<{ open: boolean; id: number | null; name?: string }>({ open: false, id: null });
   const [bankForm, setBankForm] = useState({
     bank_name: "",
     account_number: "",
@@ -401,9 +403,7 @@ export default function CompanySettingsPage() {
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button variant="ghost" size="xs" className="text-destructive hover:bg-destructive/10" onClick={() => {
-                          if (confirm("Are you sure you want to remove or deactivate this bank account?")) {
-                            deleteBankMutation.mutate(bank.id);
-                          }
+                          setDeleteBankConfirm({ open: true, id: bank.id, name: `${bank.bank_name} (${bank.account_number})` });
                         }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -524,6 +524,25 @@ export default function CompanySettingsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={deleteBankConfirm.open}
+        onOpenChange={(open) => setDeleteBankConfirm((prev) => ({ ...prev, open }))}
+        title="Remove Bank Account"
+        description={
+          <span>
+            Are you sure you want to remove or deactivate bank account <strong>{deleteBankConfirm.name || "this bank account"}</strong>? This bank account will no longer appear on new commercial quotations or invoices.
+          </span>
+        }
+        confirmLabel="Remove Bank Account"
+        variant="danger"
+        isLoading={deleteBankMutation.isPending}
+        onConfirm={async () => {
+          if (!deleteBankConfirm.id) return;
+          await deleteBankMutation.mutateAsync(deleteBankConfirm.id);
+          setDeleteBankConfirm({ open: false, id: null });
+        }}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Lock, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { apiFetch } from "@/lib/apiFetch";
 import { describeThrown } from "@/lib/apiError";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export function TwoFactorAuthSettings() {
   const { user, setAuth } = useAuthStore();
@@ -15,6 +16,7 @@ export function TwoFactorAuthSettings() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [confirmDisableOpen, setConfirmDisableOpen] = useState(false);
 
   const isEnabled = user?.two_factor_enabled;
 
@@ -62,10 +64,16 @@ export function TwoFactorAuthSettings() {
     }
   };
 
-  const handleDisable = async (e: React.FormEvent) => {
+  const handleDisableSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!confirm("Are you sure you want to disable Two-Factor Authentication?")) return;
-    
+    if (!code.trim()) {
+      setError("Please enter the 6-digit confirmation code.");
+      return;
+    }
+    setConfirmDisableOpen(true);
+  };
+
+  const executeDisable = async () => {
     setLoading(true);
     setError("");
     try {
@@ -81,6 +89,7 @@ export function TwoFactorAuthSettings() {
       setSecret("");
       setQrCodeSvg("");
       setCode("");
+      setConfirmDisableOpen(false);
       
       // Update local user state
       const currentToken = useAuthStore.getState().token;
@@ -123,7 +132,7 @@ export function TwoFactorAuthSettings() {
           <p className="text-xs text-muted-foreground">
             Your account is secured with Two-Factor Authentication.
           </p>
-          <form onSubmit={handleDisable} className="space-y-3 pt-2">
+          <form onSubmit={handleDisableSubmit} className="space-y-3 pt-2">
             <div>
               <label className="text-xs font-medium text-muted-foreground">Confirm with Code to Disable</label>
               <input 
@@ -216,6 +225,17 @@ export function TwoFactorAuthSettings() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDisableOpen}
+        onOpenChange={setConfirmDisableOpen}
+        title="Disable Two-Factor Authentication"
+        description="Are you sure you want to disable Two-Factor Authentication? Your account will only be protected by your password, which reduces security against unauthorized access."
+        confirmLabel="Disable 2FA"
+        variant="danger"
+        isLoading={loading}
+        onConfirm={executeDisable}
+      />
     </div>
   );
 }

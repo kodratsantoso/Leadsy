@@ -17,6 +17,7 @@ import {
   getPsConfig,
   PsConfig
 } from "@/lib/api/professional-services";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type TaskFormValues = {
   task_name: string;
@@ -39,6 +40,7 @@ export function TaskBreakdownEditor({ estimationId, onUpdate }: { estimationId: 
 
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<TaskFormValues>(emptyForm);
+  const [deleteTaskConfirm, setDeleteTaskConfirm] = useState<{ open: boolean; task: PsEstimationLine | null; label: string; hasSubtasks: boolean }>({ open: false, task: null, label: "", hasSubtasks: false });
 
   const loadTasks = async () => {
     try {
@@ -169,16 +171,24 @@ export function TaskBreakdownEditor({ estimationId, onUpdate }: { estimationId: 
     }
   };
 
-  const handleDelete = async (task: PsEstimationLine) => {
+  const handleDelete = (task: PsEstimationLine) => {
     if (!task.id) return;
     const label = task.task_type === "subtask" ? (task.subtask_name || task.task_name) : task.task_name;
-    if (!window.confirm(`Delete "${label}"? ${task.subtasks?.length ? "Its subtasks will also be deleted. " : ""}This cannot be undone.`)) {
-      return;
-    }
+    setDeleteTaskConfirm({
+      open: true,
+      task,
+      label,
+      hasSubtasks: Boolean(task.subtasks?.length),
+    });
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!deleteTaskConfirm.task?.id) return;
     try {
       setSaving(true);
       setError(null);
-      await deleteEstimationTask(estimationId, task.id);
+      await deleteEstimationTask(estimationId, deleteTaskConfirm.task.id);
+      setDeleteTaskConfirm({ open: false, task: null, label: "", hasSubtasks: false });
       await loadTasks();
       onUpdate();
     } catch (e) {
@@ -328,6 +338,21 @@ export function TaskBreakdownEditor({ estimationId, onUpdate }: { estimationId: 
           </div>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={deleteTaskConfirm.open}
+        onOpenChange={(open) => setDeleteTaskConfirm((prev) => ({ ...prev, open }))}
+        title="Delete Estimation Task"
+        description={
+          <span>
+            Are you sure you want to delete <strong>&quot;{deleteTaskConfirm.label}&quot;</strong>? {deleteTaskConfirm.hasSubtasks ? "Its subtasks will also be deleted. " : ""}This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Task"
+        variant="danger"
+        isLoading={saving}
+        onConfirm={confirmDeleteTask}
+      />
     </Card>
   );
 }

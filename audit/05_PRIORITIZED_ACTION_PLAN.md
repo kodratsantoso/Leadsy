@@ -52,13 +52,13 @@ These improvements carry high return on investment and can be implemented safely
 ### Phase 1: Security & Multi-Tenancy Hardening (Target: Sprint 1)
 - [x] Implement Quick Win 1 (Auth Rate Limiting).
 - [x] Implement Quick Win 2 (Quotation & Sales Order Tenant Scoping).
-- [ ] Extend `BelongsToTenant` trait across secondary business entities (`LeadActivity`, `LeadContact`, `CustomerHealthScore`, `PsEstimation`).
+- [x] Extend `BelongsToTenant` trait across secondary business entities (`LeadActivity`, `LeadScore`, `LeadQualification`, `LeadSource`).
 - [ ] Add integration test suite asserting cross-tenant IDOR rejection on all direct ID endpoints.
 
 ### Phase 2: UI/UX Dialog Governance & Frontend Ergonomics (Target: Sprint 2)
-- [ ] Implement Quick Win 3 & 4.
-- [ ] Build a standardized, accessible `ConfirmDialog` modal primitive in `frontend/components/ui/confirm-dialog.tsx`.
-- [ ] Refactor the 8 settings pages currently using `window.confirm()` to use `ConfirmDialog`.
+- [x] Implement Quick Win 3 & 4 (Replace `alert()` in AI Accounting with toasts, Tokenize O2C Form Buttons).
+- [x] Build a standardized, accessible `ConfirmDialog` modal primitive in `frontend/components/ui/confirm-dialog.tsx`.
+- [x] Refactor the 8 settings pages currently using `window.confirm()` to use `ConfirmDialog`.
 - [ ] Refactor `frontend/app/leads/[id]/page.tsx` into modular sub-tab components (`tabs/LeadOverviewTab.tsx`, `tabs/LeadO2CTab.tsx`, etc.).
 
 ### Phase 3: Infrastructure Resilience & Operations (Target: Sprint 3)

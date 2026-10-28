@@ -16,6 +16,7 @@ import {
 import { GenerateDocumentModal } from "./modals/generate-document-modal";
 import { SendSignatureModal } from "./modals/send-signature-modal";
 import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface PsDocumentListProps {
   estimationId: number;
@@ -29,6 +30,8 @@ export function PsDocumentList({ estimationId }: PsDocumentListProps) {
   
   const [signatureDoc, setSignatureDoc] = useState<PsDocument | null>(null);
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: number | null; title?: string }>({ open: false, id: null });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadDocuments();
@@ -46,13 +49,22 @@ export function PsDocumentList({ estimationId }: PsDocumentListProps) {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this document?")) return;
+  const handleDelete = (id: number, title?: string) => {
+    setDeleteConfirm({ open: true, id, title });
+  };
+
+  const confirmDeleteDocument = async () => {
+    if (!deleteConfirm.id) return;
+    setIsDeleting(true);
     try {
-      await deleteEstimationDocument(id);
+      await deleteEstimationDocument(deleteConfirm.id);
+      toast.success("Document deleted successfully");
+      setDeleteConfirm({ open: false, id: null });
       loadDocuments();
     } catch (e) {
       toast.fromError(e, "Failed to delete");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -134,7 +146,7 @@ export function PsDocumentList({ estimationId }: PsDocumentListProps) {
                   )}
 
                   {(doc.status === 'draft_generated' || doc.status === 'declined') && (
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(doc.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(doc.id, doc.document_title)}>
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   )}
@@ -160,6 +172,21 @@ export function PsDocumentList({ estimationId }: PsDocumentListProps) {
           onSuccess={loadDocuments}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm((prev) => ({ ...prev, open }))}
+        title="Delete Document"
+        description={
+          <span>
+            Are you sure you want to delete document <strong>{deleteConfirm.title || "this document"}</strong>? This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Document"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteDocument}
+      />
     </Card>
   );
 }

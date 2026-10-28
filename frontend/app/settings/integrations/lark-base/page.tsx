@@ -13,6 +13,7 @@ import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // --- Types ---
 type LarkBaseTable = { table_id: string; name?: string; revision?: number; };
@@ -195,6 +196,7 @@ export default function LarkBaseSettingsPage() {
   const [baseDefaultSourceType, setBaseDefaultSourceType] = useState("");
   const [baseDefaultChannelTypeId, setBaseDefaultChannelTypeId] = useState("");
   const [baseSyncDialog, setBaseSyncDialog] = useState<LarkBaseSyncDialogState>({ open: false, status: "running", direction: "pull", mappingName: "" });
+  const [deleteMappingConfirm, setDeleteMappingConfirm] = useState<{ open: boolean; id: number | null; name?: string }>({ open: false, id: null });
   // Tracks which specific mapping+direction is syncing, independent of the progress modal,
   // so the "Syncing…" state on its card survives the modal being closed/dismissed and
   // doesn't lock up the Pull/Push buttons on unrelated mappings.
@@ -768,9 +770,7 @@ export default function LarkBaseSettingsPage() {
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground hover:text-red-500"
                         onClick={() => {
-                          if (confirm('Are you sure you want to remove this mapping?')) {
-                            deleteBaseMappingMutation.mutate(mapping.id);
-                          }
+                          setDeleteMappingConfirm({ open: true, id: mapping.id, name: mapping.table_name || mapping.table_id });
                         }}
                         disabled={deleteBaseMappingMutation.isPending}
                         title="Remove Mapping"
@@ -1109,6 +1109,25 @@ export default function LarkBaseSettingsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={deleteMappingConfirm.open}
+        onOpenChange={(open) => setDeleteMappingConfirm((prev) => ({ ...prev, open }))}
+        title="Remove Base Mapping"
+        description={
+          <span>
+            Are you sure you want to remove the Lark Base table mapping <strong>{deleteMappingConfirm.name || "this mapping"}</strong>? Real-time and scheduled synchronization for this table will be stopped.
+          </span>
+        }
+        confirmLabel="Remove Mapping"
+        variant="danger"
+        isLoading={deleteBaseMappingMutation.isPending}
+        onConfirm={async () => {
+          if (!deleteMappingConfirm.id) return;
+          await deleteBaseMappingMutation.mutateAsync(deleteMappingConfirm.id);
+          setDeleteMappingConfirm({ open: false, id: null });
+        }}
+      />
     </div>
   );
 }

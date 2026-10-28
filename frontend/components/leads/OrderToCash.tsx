@@ -12,6 +12,7 @@ import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { Modal } from '@/components/ui/modal';
 import { describeThrown } from "@/lib/apiError";
 import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
  
 export function OrderToCash({ leadId }: { leadId: string | number }) {
   const toast = useToast();
@@ -27,6 +28,11 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const [generatingPdfId, setGeneratingPdfId] = useState<number | null>(null);
   const [viewPdfUrl, setViewPdfUrl] = useState<string | null>(null);
   const [viewPdfTitle, setViewPdfTitle] = useState<string>("");
+  
+  // Confirm dialogs
+  const [deleteQConfirm, setDeleteQConfirm] = useState<{ open: boolean; id: number | null; number?: string }>({ open: false, id: null });
+  const [deleteSOConfirm, setDeleteSOConfirm] = useState<{ open: boolean; id: number | null; number?: string }>({ open: false, id: null });
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
   
   // Tab state inside modal
   const [activeTab, setActiveTab] = useState<'primary' | 'commercial' | 'items' | 'terms' | 'summary'>('primary');
@@ -573,19 +579,28 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     }
   };
   
-  const deleteQuotation = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this quotation?')) return;
+  const deleteQuotation = (id: number, quotationNumber?: string) => {
+    setDeleteQConfirm({ open: true, id, number: quotationNumber });
+  };
+
+  const confirmDeleteQuotation = async () => {
+    if (!deleteQConfirm.id) return;
+    setIsDeletingItem(true);
     try {
-      const res = await apiFetch(`/quotations/${id}`, {
+      const res = await apiFetch(`/quotations/${deleteQConfirm.id}`, {
         method: 'DELETE'
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to delete quotation');
       }
+      toast.success("Quotation deleted successfully.");
+      setDeleteQConfirm({ open: false, id: null });
       qc.invalidateQueries({ queryKey: ['lead-quotations', leadId] });
     } catch (err) {
-      toast.fromError(err, "That action could not be completed.");
+      toast.fromError(err, "Failed to delete quotation.");
+    } finally {
+      setIsDeletingItem(false);
     }
   };
 
@@ -871,19 +886,28 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     }
   };
  
-  const deleteSalesOrder = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this sales order?')) return;
+  const deleteSalesOrder = (id: number, soNumber?: string) => {
+    setDeleteSOConfirm({ open: true, id, number: soNumber });
+  };
+
+  const confirmDeleteSalesOrder = async () => {
+    if (!deleteSOConfirm.id) return;
+    setIsDeletingItem(true);
     try {
-      const res = await apiFetch(`/sales-orders/${id}`, {
+      const res = await apiFetch(`/sales-orders/${deleteSOConfirm.id}`, {
         method: 'DELETE'
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to delete sales order');
       }
+      toast.success("Sales order deleted successfully.");
+      setDeleteSOConfirm({ open: false, id: null });
       qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
     } catch (err) {
-      toast.fromError(err, "That action could not be completed.");
+      toast.fromError(err, "Failed to delete sales order.");
+    } finally {
+      setIsDeletingItem(false);
     }
   };
 
@@ -3107,6 +3131,38 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           <p className="text-sm font-semibold text-muted-foreground animate-pulse">Compiling PDF document layout...</p>
         </div>
       )}
+
+      {/* Confirm Quotation Delete Dialog */}
+      <ConfirmDialog
+        open={deleteQConfirm.open}
+        onOpenChange={(open) => setDeleteQConfirm((prev) => ({ ...prev, open }))}
+        title="Delete Quotation"
+        description={
+          <span>
+            Are you sure you want to delete {deleteQConfirm.number ? <strong>Quotation {deleteQConfirm.number}</strong> : "this quotation"}? This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Quotation"
+        variant="danger"
+        isLoading={isDeletingItem}
+        onConfirm={confirmDeleteQuotation}
+      />
+
+      {/* Confirm Sales Order Delete Dialog */}
+      <ConfirmDialog
+        open={deleteSOConfirm.open}
+        onOpenChange={(open) => setDeleteSOConfirm((prev) => ({ ...prev, open }))}
+        title="Delete Sales Order"
+        description={
+          <span>
+            Are you sure you want to delete {deleteSOConfirm.number ? <strong>Sales Order {deleteSOConfirm.number}</strong> : "this sales order"}? This action cannot be undone.
+          </span>
+        }
+        confirmLabel="Delete Sales Order"
+        variant="danger"
+        isLoading={isDeletingItem}
+        onConfirm={confirmDeleteSalesOrder}
+      />
     </div>
   );
 }

@@ -34,7 +34,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class LeadScore extends Model
 {
+    use \App\Models\Traits\BelongsToTenant;
+
     protected $fillable = [
+        'tenant_id',
         'lead_id', 'score', 'grade', 'score_breakdown', 'calculated_at', 'last_scored_at',
     ];
 
