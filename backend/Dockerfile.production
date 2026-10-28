@@ -1,6 +1,7 @@
 FROM php:8.2.35-cli
 
-RUN apt-get update && apt-get install -y \
+RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries \
+    && apt-get update && apt-get install -y --fix-missing \
     libpq-dev \
     libzip-dev \
     zip \

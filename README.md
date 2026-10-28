@@ -4,9 +4,24 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.34.0** — 2026-10-28
+Current release: **v1.35.0** — 2026-10-28
  
-## What's New in v1.34.0 (Audit Plan Execution: UI/UX Dialog Governance & Multi-Tenancy Scope Expansion)
+## What's New in v1.35.0 (Audit Plan Execution: Multi-Tenant IDOR Protection, Tab Modularization & In-Cluster Resilience)
+
+- **Multi-Tenant IDOR Protection & Automated Integration Tests (SEC-001):**
+  - *Order-to-Cash Controller Guards* (`LeadOrderToCashController`, `QuotationWorkflowController`) — Enforced strict tenant boundary checks (`authorizeQuotationAccess`, `authorizeSalesOrderAccess`) across all direct ID lookups (`show`, `update`, `destroy`, `accept`, `reject`, status transitions, conversions, and PDF generation/downloads).
+  - *Automated IDOR Integration Test Suite* (`backend/tests/Feature/OrderToCashMultiTenantTest.php`) — Implemented end-to-end automated tests verifying that cross-tenant access attempts to quotations or sales orders are rejected with HTTP 403 Forbidden, while allowing lawful access for own-tenant and superadmin users.
+
+- **Lead Detail View Modularization (UX-004):**
+  - *Modular Tab Architecture* — Extracted large inline tab sections from the monolithic `frontend/app/leads/[id]/page.tsx` into decoupled, reusable components:
+    - `ContactsTab.tsx` (`components/leads/tabs/ContactsTab.tsx`) with integrated Lusha enrichment and primary contact assignment.
+    - `ActivitiesTab.tsx` (`components/leads/tabs/ActivitiesTab.tsx`) handling interaction timeline logging.
+    - `MeetingsTab.tsx` (`components/leads/tabs/MeetingsTab.tsx`) managing legacy meeting archives and activity migration notices.
+  - Zero-error TypeScript compilation verified via `npx tsc --noEmit`.
+
+- **Cluster Operations & Build Resilience (OPS-001):**
+  - *Kubernetes Liveness Probes* — Configured native `livenessProbe` health checks for `leadsy-worker` (`php artisan horizon:status`) and `leadsy-scheduler` (`pgrep -f 'schedule:work'`) in `k8s/leadsy-prod-workers.yaml`.
+  - *Apt Download Retry Hardening* — Hardened `backend/Dockerfile.production` with `Acquire::Retries "3"` and `--fix-missing` to guarantee resilience against transient network timeouts during in-cluster Debian mirror downloads.
 
 - **UI/UX Dialog Governance & Accessibility Compliance (UX-001 & UX-002):**
   - *Standardized `ConfirmDialog` Primitive* (`components/ui/confirm-dialog.tsx`) — Built an accessible, high-craftsmanship confirmation modal adhering to UI Governance standards, featuring backdrop blur, accessible focus trapping, keyboard handling (Escape to cancel), and customized tone variants (`danger`, `warning`, `default`).

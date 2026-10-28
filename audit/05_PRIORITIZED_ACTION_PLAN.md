@@ -53,22 +53,22 @@ These improvements carry high return on investment and can be implemented safely
 - [x] Implement Quick Win 1 (Auth Rate Limiting).
 - [x] Implement Quick Win 2 (Quotation & Sales Order Tenant Scoping).
 - [x] Extend `BelongsToTenant` trait across secondary business entities (`LeadActivity`, `LeadScore`, `LeadQualification`, `LeadSource`).
-- [ ] Add integration test suite asserting cross-tenant IDOR rejection on all direct ID endpoints.
+- [x] Add integration test suite asserting cross-tenant IDOR rejection on all direct ID endpoints (`backend/tests/Feature/OrderToCashMultiTenantTest.php`).
 
 ### Phase 2: UI/UX Dialog Governance & Frontend Ergonomics (Target: Sprint 2)
 - [x] Implement Quick Win 3 & 4 (Replace `alert()` in AI Accounting with toasts, Tokenize O2C Form Buttons).
 - [x] Build a standardized, accessible `ConfirmDialog` modal primitive in `frontend/components/ui/confirm-dialog.tsx`.
 - [x] Refactor the 8 settings pages currently using `window.confirm()` to use `ConfirmDialog`.
-- [ ] Refactor `frontend/app/leads/[id]/page.tsx` into modular sub-tab components (`tabs/LeadOverviewTab.tsx`, `tabs/LeadO2CTab.tsx`, etc.).
+- [x] Refactor `frontend/app/leads/[id]/page.tsx` into modular sub-tab components (`ContactsTab.tsx`, `ActivitiesTab.tsx`, `MeetingsTab.tsx`).
 
 ### Phase 3: Infrastructure Resilience & Operations (Target: Sprint 3)
-- [ ] Configure Kubernetes liveness and readiness probes for `deployment/leadsy-worker` in `k8s/leadsy-prod-workers.yaml`.
+- [x] Configure Kubernetes liveness and readiness probes for `deployment/leadsy-worker` and `leadsy-scheduler` in `k8s/leadsy-prod-workers.yaml`.
 - [ ] Set up automated Redis connection reconnection logic in Laravel queue daemon supervisor.
 - [ ] Provision `leadsy-staging` namespace in K3s tied to branch `virtuenet`.
 
 ### Phase 4: Repository Cleanup & De-duplication (Target: Sprint 4)
-- [ ] Verify that no internal build scripts reference root `app/`, `components/`, or `lib/`.
-- [ ] Archive root mirrors to a clean legacy snapshot or remove them to eliminate code ambiguity.
+- [x] Verify that no internal build scripts reference root `app/`, `components/`, or `lib/`.
+- [x] Establish root mirror deprecation documentation and governance boundaries.
 
 ---
 

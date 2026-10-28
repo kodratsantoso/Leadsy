@@ -37,6 +37,9 @@ import { OrderToCash } from '@/components/leads/OrderToCash';
 import { ProfessionalServicesTab } from '@/components/leads/tabs/professional-services-tab';
 import { ProjectPlansTab } from '@/components/leads/tabs/project-plans-tab';
 import { DiscoveryWorkspaceTab } from '@/components/leads/tabs/DiscoveryWorkspaceTab';
+import { ContactsTab } from '@/components/leads/tabs/ContactsTab';
+import { ActivitiesTab } from '@/components/leads/tabs/ActivitiesTab';
+import { MeetingsTab } from '@/components/leads/tabs/MeetingsTab';
 import { CreateNewModal } from '@/components/ui/CreateNewModal';
 import { AnalysisReportDialog } from '@/components/leads/reports/AnalysisReportDialog';
 import { useToast } from "@/components/ui/toast";
@@ -2551,149 +2554,27 @@ export default function LeadDetailPage() {
 
       {/* ── CONTACTS TAB ── */}
       {activeTab === 'contacts' && (
-        <div className="space-y-4">
-          {/* Action bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={() => {
-                setAddContactMode('manual');
-                setEnrichmentFeedback(null);
-                setShowAddContact(true);
-              }}
-              size="sm"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add Contact
-            </Button>
-            <Button
-              onClick={() => {
-                setLushaContact(lushaContactOptions[0] ?? null);
-                setEnrichmentFeedback(null);
-                qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
-                searchLushaMutation.reset();
-                setShowEnrichModal(true);
-              }}
-              disabled={!lushaEligible || lushaContactOptions.length === 0}
-              variant="outline"
-              size="sm"
-              tooltip={
-                !lushaEligible
-                  ? 'Requires initial lead score of 60+'
-                  : lushaContactOptions.length === 0
-                    ? 'Add a contact with LinkedIn, email, or full name first'
-                    : 'Search Lusha for hidden email and phone data'
-              }
-            >
-              <Zap className="h-3.5 w-3.5" /> Lusha
-            </Button>
-          </div>
-
-          {/* Contacts list */}
-          {contacts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
-              <User className="mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-muted-foreground">No contacts yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Add manually or use Search by Google from Add Contact to discover LinkedIn PIC candidates.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {contacts.map((contact: any) => (
-                <div
-                  key={contact.id}
-                  className={`rounded-xl border bg-card p-4 shadow-sm transition-colors ${
-                    contact.is_primary ? 'border-[var(--status-warning)]/40' : 'border-border'
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Avatar */}
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_oklch,var(--brand)_15%,transparent)] text-[var(--brand)]">
-                      <User className="h-5 w-5" />
-                    </div>
-
-                    {/* Info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold">{contact.name}</p>
-                        {contact.is_primary && (
-                          <span className="flex items-center gap-0.5 rounded-full bg-[color-mix(in_oklch,var(--status-warning)_15%,transparent)] px-2 py-0.5 text-[10px] font-bold text-[var(--status-warning)]">
-                            <Star className="h-2.5 w-2.5 fill-[var(--status-warning)]" /> Primary
-                          </span>
-                        )}
-                        <SourceBadge source={contact.source} />
-                      </div>
-                      {contact.title && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">{contact.title}</p>
-                      )}
-
-                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                        {contact.linkedin_url && (
-                          <a
-                            href={contact.linkedin_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            <ExternalLink className="h-3 w-3" /> LinkedIn
-                          </a>
-                        )}
-                        {contact.email && (
-                          <a
-                            href={`mailto:${contact.email}`}
-                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            <Mail className="h-3 w-3" /> PIC Email: {contact.email}
-                          </a>
-                        )}
-                        {contact.phone && (
-                          <a
-                            href={`tel:${contact.phone}`}
-                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            <Phone className="h-3 w-3" /> PIC Phone: {contact.phone}
-                          </a>
-                        )}
-                      </div>
-
-                      <div className="mt-2">
-                        <ConfidenceDot score={contact.confidence_score} />
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex shrink-0 items-center gap-1">
-                      {!contact.is_primary && (
-                        <button
-                          onClick={() => setPrimaryMutation.mutate(contact.id)}
-                          disabled={setPrimaryMutation.isPending}
-                          title="Set as primary"
-                          className="rounded-md p-1.5 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--status-warning)_10%,transparent)] hover:text-[var(--status-warning)] disabled:opacity-50"
-                        >
-                          <Star className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setEditingContact(contact)}
-                        title="Edit contact"
-                        className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeletingContactId(contact.id)}
-                        title="Delete contact"
-                        className="rounded-md p-1.5 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] hover:text-[var(--status-danger)]"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-          </div>
-        </div>
-      </div>
-
-              ))}
-            </div>
-          )}
-        </div>
+        <ContactsTab
+          contacts={contacts}
+          lushaEligible={lushaEligible}
+          lushaContactOptions={lushaContactOptions}
+          onAddContact={() => {
+            setAddContactMode('manual');
+            setEnrichmentFeedback(null);
+            setShowAddContact(true);
+          }}
+          onOpenLusha={() => {
+            setLushaContact(lushaContactOptions[0] ?? null);
+            setEnrichmentFeedback(null);
+            qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
+            searchLushaMutation.reset();
+            setShowEnrichModal(true);
+          }}
+          onSetPrimary={(id) => setPrimaryMutation.mutate(id)}
+          isSetPrimaryPending={setPrimaryMutation.isPending}
+          onEditContact={(contact) => setEditingContact(contact)}
+          onDeleteContact={(id) => setDeletingContactId(id)}
+        />
       )}
 
       {/* ── INTELLIGENCE TAB ── */}
@@ -3016,144 +2897,19 @@ export default function LeadDetailPage() {
 
       {/* ── ACTIVITIES TAB ── */}
       {activeTab === 'activities' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {activitiesList.length > 0 ? `${activitiesList.length} interaction${activitiesList.length !== 1 ? 's' : ''} recorded` : 'No interactions yet'}
-            </p>
-            <Button onClick={() => openActivityModal()} size="sm">
-              <Plus className="h-3.5 w-3.5" /> Log Activity
-            </Button>
-          </div>
-
-          {/* Timeline */}
-          {activitiesList.length > 0 ? (
-            <div className="relative space-y-0">
-              <div className="absolute left-[19px] top-0 bottom-0 w-px bg-border" />
-              {activitiesList.map((activity: any) => (
-                <div key={activity.id} className="relative flex gap-4 pb-6 last:pb-0">
-                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-card">
-                    <Activity className="h-4 w-4 text-[var(--brand)]" />
-                  </div>
-                  <div className="flex-1 rounded-xl border border-border bg-card p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold">{activity.activity_type}</span>
-                          {activity.user?.name && (
-                            <span className="text-xs text-muted-foreground">by {activity.user.name}</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(activity.activity_date).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          onClick={() => openActivityModal(activity)}
-                          className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingActivityId(activity.id)}
-                          className="rounded p-1 text-muted-foreground hover:bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] hover:text-[var(--status-danger)]"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                    {activity.description && (
-                      <p className="mt-2 text-sm text-muted-foreground">{activity.description}</p>
-                    )}
-                    {activity.outcome && (
-                      <div className="mt-2 rounded-lg bg-[color-mix(in_oklch,var(--status-success)_8%,transparent)] border border-[var(--status-success)]/20 px-3 py-2">
-                        <p className="text-xs font-medium text-[var(--status-success)]">Outcome</p>
-                        <p className="text-sm">{activity.outcome}</p>
-                      </div>
-                    )}
-                    {activity.activity_type === 'Meeting' && (activity.budget || activity.authority || activity.needs || activity.timeline || activity.competitor) && (
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                        {[
-                          ['Budget', activity.budget],
-                          ['Authority', activity.authority],
-                          ['Needs', activity.needs],
-                          ['Timeline', activity.timeline],
-                          ['Competitor', activity.competitor],
-                        ].filter(([, value]) => Boolean(value)).map(([label, value]) => (
-                          <div key={label} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
-                            <p className="mt-1 line-clamp-3 text-xs text-foreground">{value}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {activity.next_follow_up_date && (
-                      <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5" />
-                        Next follow-up: {new Date(activity.next_follow_up_date).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
-              <Activity className="mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-muted-foreground">No activities yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">Log the first interaction to start the timeline.</p>
-            </div>
-          )}
-        </div>
+        <ActivitiesTab
+          activitiesList={activitiesList}
+          onOpenActivityModal={(activity) => openActivityModal(activity)}
+          onDeleteActivity={(id) => setDeletingActivityId(id)}
+        />
       )}
 
       {/* ── MEETINGS TAB (deprecated — use Activities) ── */}
       {activeTab === 'meetings' && (
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 rounded-xl border border-[var(--status-warning)]/40 bg-[color-mix(in_oklch,var(--status-warning)_8%,transparent)] p-4">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--status-warning)]" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-[var(--status-warning)]">Meetings are now logged in Activities</p>
-              <p className="text-xs text-muted-foreground">
-                Log new meetings as a <strong>Meeting</strong> activity in the Activities tab. The meeting type, summary, outcome, and next follow-up can all be captured there. Existing meeting records remain visible below.
-              </p>
-              <button
-                onClick={() => setActiveTab('activities')}
-                className="mt-1 flex items-center gap-1 text-xs font-medium text-[var(--brand)] hover:underline"
-              >
-                Go to Activities <CornerDownRight className="h-3 w-3" />
-              </button>
-            </div>
-          </div>
-
-          {meetingsList.length > 0 ? (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Existing meeting records</p>
-              {meetingsList.map((meeting: any) => (
-                <div key={meeting.id} className="rounded-xl border border-border bg-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold">{meeting.meeting_type}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(meeting.meeting_date).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                  {meeting.summary && <p className="mt-2 text-sm text-muted-foreground">{meeting.summary}</p>}
-                  {meeting.key_points?.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs font-medium text-muted-foreground mb-1">Key Points</p>
-                      <ul className="space-y-0.5">{meeting.key_points.map((k: string, i: number) => (
-                        <li key={i} className="text-xs flex items-start gap-1"><CheckCircle className="h-3 w-3 mt-0.5 shrink-0 text-[var(--status-success)]" />{k}</li>
-                      ))}</ul>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No legacy meeting records.</p>
-          )}
-        </div>
+        <MeetingsTab
+          meetingsList={meetingsList}
+          onNavigateToActivities={() => setActiveTab('activities')}
+        />
       )}
 
       {/* ── TRANSCRIPTS TAB ── */}

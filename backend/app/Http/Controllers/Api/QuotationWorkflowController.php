@@ -18,9 +18,23 @@ class QuotationWorkflowController extends Controller
         $this->engine = $engine;
     }
 
+    protected function authorizeQuotationAccess(LeadQuotation $quotation): void
+    {
+        $user = auth()->user() ?? auth('sanctum')->user();
+        if (! $user || ($user instanceof \App\Models\User && $user->isSuperAdmin())) {
+            return;
+        }
+
+        $lead = \App\Models\Lead::withoutGlobalScopes()->find($quotation->lead_id);
+        if (! $lead || ($user->tenant_id && $lead->tenant_id !== $user->tenant_id)) {
+            abort(403, 'Unauthorized access to quotation belonging to another tenant.');
+        }
+    }
+
     public function getTransitions($id)
     {
         $quotation = LeadQuotation::findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
 
         if (!$quotation->workflow_state_id) {
             return response()->json([
@@ -46,6 +60,7 @@ class QuotationWorkflowController extends Controller
         ]);
 
         $quotation = LeadQuotation::findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
         $transition = WorkflowTransition::findOrFail($request->transition_id);
 
         if ($quotation->workflow_state_id !== $transition->source_state_id) {

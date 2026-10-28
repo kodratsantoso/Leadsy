@@ -287,15 +287,43 @@ class LeadOrderToCashController extends Controller
         });
     }
  
+    protected function authorizeQuotationAccess(LeadQuotation $quotation): void
+    {
+        $user = Auth::user();
+        if (! $user || ($user instanceof User && $user->isSuperAdmin())) {
+            return;
+        }
+
+        $lead = Lead::withoutGlobalScopes()->find($quotation->lead_id);
+        if (! $lead || ($user->tenant_id && $lead->tenant_id !== $user->tenant_id)) {
+            abort(403, 'Unauthorized access to quotation belonging to another tenant.');
+        }
+    }
+
+    protected function authorizeSalesOrderAccess(LeadSalesOrder $order): void
+    {
+        $user = Auth::user();
+        if (! $user || ($user instanceof User && $user->isSuperAdmin())) {
+            return;
+        }
+
+        $lead = Lead::withoutGlobalScopes()->find($order->lead_id);
+        if (! $lead || ($user->tenant_id && $lead->tenant_id !== $user->tenant_id)) {
+            abort(403, 'Unauthorized access to sales order belonging to another tenant.');
+        }
+    }
+
     public function showQuotation($id)
     {
         $quotation = LeadQuotation::with(['items', 'createdBy:id,name', 'approvedBy:id,name', 'contact', 'salesOwner', 'presalesOwner'])->findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
         return response()->json(['data' => $quotation]);
     }
  
     public function updateQuotation(Request $request, $id)
     {
         $quotation = LeadQuotation::findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
  
         $validated = $request->validate([
             'quotation_type' => 'required|string|in:new,renewal,expansion,upsell,cross-sell,add-on',
@@ -485,6 +513,7 @@ class LeadOrderToCashController extends Controller
     public function destroyQuotation($id)
     {
         $quotation = LeadQuotation::findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
  
         DB::transaction(function () use ($quotation) {
             $quotation->items()->delete();
@@ -523,6 +552,7 @@ class LeadOrderToCashController extends Controller
     private function updateQuotationStatusDirect($id, string $targetStatus)
     {
         $quotation = LeadQuotation::findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
         $currentStatus = $quotation->quotation_status;
  
         if (!$this->isValidQuotationTransition($currentStatus, $targetStatus)) {
@@ -560,6 +590,7 @@ class LeadOrderToCashController extends Controller
     public function convertToSalesOrder($id)
     {
         $quotation = LeadQuotation::with('items')->findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
  
         if (!in_array($quotation->quotation_status, ['approved', 'accepted'])) {
             return response()->json(['message' => 'Quotation must be Approved or Accepted first.'], 400);
@@ -895,12 +926,14 @@ class LeadOrderToCashController extends Controller
     public function showSalesOrder($id)
     {
         $order = LeadSalesOrder::with(['items', 'createdBy:id,name', 'confirmedBy:id,name'])->findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
         return response()->json(['data' => $order]);
     }
  
     public function updateSalesOrder(Request $request, $id)
     {
         $order = LeadSalesOrder::findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
  
         $validated = $request->validate([
             'order_type' => 'required|string|in:new,renewal,expansion,upsell,cross_sell,add_on',
@@ -1097,6 +1130,7 @@ class LeadOrderToCashController extends Controller
     public function destroySalesOrder($id)
     {
         $order = LeadSalesOrder::findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
         
         DB::transaction(function () use ($order) {
             $order->items()->delete();
@@ -1121,6 +1155,7 @@ class LeadOrderToCashController extends Controller
     public function confirmSalesOrder($id)
     {
         $order = LeadSalesOrder::findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
         $currentStatus = $order->order_status;
  
         if (!$this->isValidSalesOrderTransition($currentStatus, 'confirmed')) {
@@ -1167,6 +1202,7 @@ class LeadOrderToCashController extends Controller
     public function cancelSalesOrder($id)
     {
         $order = LeadSalesOrder::findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
         $currentStatus = $order->order_status;
  
         if (!$this->isValidSalesOrderTransition($currentStatus, 'cancelled')) {
@@ -1201,6 +1237,7 @@ class LeadOrderToCashController extends Controller
     public function closeSalesOrder($id)
     {
         $order = LeadSalesOrder::findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
         $currentStatus = $order->order_status;
  
         if (!$this->isValidSalesOrderTransition($currentStatus, 'closed')) {
@@ -1235,6 +1272,7 @@ class LeadOrderToCashController extends Controller
     public function createRenewalQuotation(Request $request, $id)
     {
         $order = LeadSalesOrder::with('items')->findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
         $currency = $this->getCurrencyOrError();
         
         return DB::transaction(function () use ($order, $currency) {
@@ -1284,6 +1322,9 @@ class LeadOrderToCashController extends Controller
 
     public function generatePdf(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): \Illuminate\Http\JsonResponse
     {
+        $quotation = LeadQuotation::findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
+
         try {
             $result = $pdfService->generatePdf('quotation', $id);
             return response()->json([
@@ -1302,6 +1343,7 @@ class LeadOrderToCashController extends Controller
     public function downloadPdf($id)
     {
         $quotation = LeadQuotation::findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
         if (!$quotation->pdf_url) {
             return response()->json(['message' => 'PDF has not been generated for this quotation.'], 404);
         }
@@ -1319,6 +1361,9 @@ class LeadOrderToCashController extends Controller
 
     public function generatePdfSo(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): \Illuminate\Http\JsonResponse
     {
+        $order = LeadSalesOrder::findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
+
         try {
             $result = $pdfService->generatePdf('sales_order', $id);
             return response()->json([
@@ -1337,6 +1382,7 @@ class LeadOrderToCashController extends Controller
     public function downloadPdfSo($id)
     {
         $order = LeadSalesOrder::findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
         if (!$order->pdf_url) {
             return response()->json(['message' => 'PDF has not been generated for this sales order.'], 404);
         }
