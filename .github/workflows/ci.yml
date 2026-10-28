@@ -21,6 +21,12 @@ jobs:
     runs-on: [self-hosted, in-cluster, k3s]
     timeout-minutes: 15
     steps:
+      - name: Runner Disk Hygiene (Pre-flight)
+        run: |
+          docker system prune -af || true
+          docker builder prune -af || true
+          df -h /
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -37,12 +43,23 @@ jobs:
             -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: \
             php:8.2.35-cli sh -c "cp -n .env.example .env && php artisan key:generate && php artisan test --testsuite=Unit && php artisan test --filter ExampleTest"
 
+      - name: Clean Workspace Artifacts
+        if: always()
+        run: |
+          rm -rf backend/vendor || true
+
   test-frontend:
     name: Frontend Quality Gates
     needs: test-backend
     runs-on: [self-hosted, in-cluster, k3s]
     timeout-minutes: 15
     steps:
+      - name: Runner Disk Hygiene (Pre-flight)
+        run: |
+          docker system prune -af || true
+          docker builder prune -af || true
+          df -h /
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -54,6 +71,12 @@ jobs:
             node:22.23.4-bookworm \
             bash -lc 'node --version && npm --version && npm ci && npm ci --prefix frontend && npm run build'
 
+      - name: Clean Workspace Artifacts
+        if: always()
+        run: |
+          rm -rf node_modules frontend/node_modules frontend/.next || true
+          docker system prune -f || true
+
   deploy:
     name: Deploy to K3s Cluster
     needs: [test-backend, test-frontend]
@@ -61,6 +84,12 @@ jobs:
     runs-on: [self-hosted, in-cluster, k3s]
     timeout-minutes: 30
     steps:
+      - name: Runner Disk Hygiene (Pre-flight)
+        run: |
+          docker system prune -af || true
+          docker builder prune -af || true
+          df -h /
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
