@@ -123,6 +123,11 @@ export function LandingFooter() {
                 </a>
               </li>
               <li>
+                <Link href="/help" className="text-primary hover:underline font-medium">
+                  Pusat Bantuan &amp; LMS
+                </Link>
+              </li>
+              <li>
                 <Link href="/login" className="hover:text-foreground transition-colors">
                   Portal Masuk Tim
                 </Link>

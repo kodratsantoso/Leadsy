@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.41.0',
+    'version' => '1.42.0',
     'released_at' => '2026-10-28',
     'type' => 'minor',
-    'notes' => 'Automated Milestone Invoicing from Signed BAST (FIN-001), Cross-Department Real-Time Alert Dispatcher (NOTIF-001), SOW to Project Plan Auto-Converter (DELIV-002), and Role-Based Perspective Switcher on Deal Workspace (UI-ROLE-001).',
+    'notes' => 'Added Motion UI skill (.agents/skills/motion-ui), interactive Help Center & Learning Management System (/help), updated Landing Page with LMS CTAs, enterprise functional audit report, and complete 32-case User Acceptance Testing (UAT) matrix.',
 ];

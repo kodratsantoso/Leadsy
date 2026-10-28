@@ -19,7 +19,8 @@ import {
   CircleDollarSign,
   Activity,
   FileCheck,
-  Search
+  Search,
+  BookOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,7 @@ export function LandingHero() {
             <span className="flex h-2 w-2 rounded-full bg-primary animate-ping" />
             <span className="font-semibold tracking-wide">LEADSY V2.4 ENTERPRISE</span>
             <span className="text-muted-foreground">•</span>
-            <span className="text-foreground/80">Autonomous AI Revenue & Deal Discovery</span>
+            <span className="text-foreground/80">RevOps-to-Cash-to-Value Operating System</span>
             <ChevronRight className="w-3.5 h-3.5 text-primary" />
           </div>
 
@@ -55,23 +56,31 @@ export function LandingHero() {
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.12]">
             Dari Radar Wilayah, AI Screening 8-Tahap, Hingga{" "}
             <span className="bg-gradient-to-r from-primary via-indigo-500 to-violet-600 bg-clip-text text-transparent">
-              Deal Closing B2B
+              Invoicing &amp; Retensi B2B
             </span>
           </h1>
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto font-normal leading-relaxed">
-            Platform All-in-One Sales Intelligence & Order-to-Cash untuk tim B2B Enterprise. Mengotomasi kualifikasi lead dengan multi-LLM orchestration, kalkulator estimasi presales, dan sinkronisasi real-time ke WhatsApp & Lark Base.
+            Platform All-in-One Revenue &amp; Delivery Lifecycle untuk 5 departemen: <strong>Sales</strong>, <strong>Solution Architect</strong>, <strong>Project Manager</strong>, <strong>Finance</strong>, dan <strong>Customer Success</strong>. Dilengkapi kalkulator sizing, e-sign BAST, otomasi faktur komersial, dan integrasi WhatsApp &amp; Lark Base.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2">
             <Link href="/login" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-7 h-12 shadow-lg shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+              <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-7 h-12 shadow-lg shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold transition-transform hover:-translate-y-0.5 active:scale-98">
                 Eksplorasi Platform
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
+
+            <Link href="/help" className="w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 text-base px-6 h-12 border-primary/30 hover:bg-primary/5 font-semibold text-foreground transition-transform hover:-translate-y-0.5 active:scale-98">
+                <BookOpen className="w-4 h-4 text-primary" />
+                Pusat Bantuan &amp; LMS
+              </Button>
+            </Link>
+
             <a
               href="#pipeline"
               onClick={(e) => {
@@ -85,9 +94,9 @@ export function LandingHero() {
               }}
               className="w-full sm:w-auto"
             >
-              <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 text-base px-6 h-12 border-border/80 hover:bg-muted/60 font-medium">
+              <Button variant="ghost" size="lg" className="w-full sm:w-auto gap-2 text-base px-5 h-12 text-muted-foreground hover:text-foreground font-medium">
                 <Bot className="w-4 h-4 text-primary" />
-                Lihat Cara Kerja AI Pipeline
+                AI Pipeline
               </Button>
             </a>
           </div>

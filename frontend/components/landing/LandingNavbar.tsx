@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Menu, X, Sparkles, ShieldCheck, Layers, Cpu, MapPin } from "lucide-react";
+import { ArrowRight, Menu, X, Sparkles, ShieldCheck, Layers, Cpu, MapPin, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function LandingNavbar() {
@@ -21,9 +21,9 @@ export function LandingNavbar() {
   const navLinks = [
     { label: "Fitur Unggulan", href: "#features" },
     { label: "AI Pipeline", href: "#pipeline" },
-    { label: "Solusi B2B", href: "#capabilities" },
-    { label: "Perbandingan", href: "#comparison" },
+    { label: "Solusi Lintas Divisi", href: "#capabilities" },
     { label: "Keamanan Enterprise", href: "#security" },
+    { label: "Pusat Bantuan & LMS", href: "/help" },
   ];
 
   useEffect(() => {
@@ -34,12 +34,14 @@ export function LandingNavbar() {
       const scrollPos = window.scrollY + 120;
       for (let i = navLinks.length - 1; i >= 0; i--) {
         const link = navLinks[i];
-        const el = document.querySelector(link.href);
-        if (el) {
-          const top = (el as HTMLElement).offsetTop;
-          if (scrollPos >= top) {
-            setActiveSection(link.href);
-            break;
+        if (link.href.startsWith("#")) {
+          const el = document.querySelector(link.href);
+          if (el) {
+            const top = (el as HTMLElement).offsetTop;
+            if (scrollPos >= top) {
+              setActiveSection(link.href);
+              break;
+            }
           }
         }
       }
@@ -101,6 +103,20 @@ export function LandingNavbar() {
           <nav className="hidden md:flex items-center gap-1 bg-muted/40 backdrop-blur-md p-1.5 rounded-full border border-border/50 relative">
             {navLinks.map((link) => {
               const isActive = activeSection === link.href;
+              const isDirectLink = !link.href.startsWith("#");
+
+              if (isDirectLink) {
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="text-xs lg:text-sm font-medium px-3.5 py-1.5 rounded-full transition-all duration-300 text-muted-foreground hover:text-foreground hover:bg-background/50 flex items-center gap-1"
+                  >
+                    <span>{link.label}</span>
+                  </Link>
+                );
+              }
+
               return (
                 <a
                   key={link.href}
@@ -124,6 +140,13 @@ export function LandingNavbar() {
 
           {/* Actions */}
           <div className="hidden sm:flex items-center gap-2 sm:gap-3">
+            <Link href="/help">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs sm:text-sm font-medium hover:bg-muted/80">
+                <BookOpen className="w-3.5 h-3.5 text-primary" />
+                <span>Pusat Bantuan</span>
+              </Button>
+            </Link>
+
             <ThemeToggle />
 
             {token ? (
@@ -170,6 +193,22 @@ export function LandingNavbar() {
           <nav className="flex flex-col gap-2 mb-4">
             {navLinks.map((link) => {
               const isActive = activeSection === link.href;
+              const isDirectLink = !link.href.startsWith("#");
+
+              if (isDirectLink) {
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="text-sm font-medium py-2 px-3 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50 flex items-center justify-between"
+                  >
+                    <span>{link.label}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-primary" />
+                  </Link>
+                );
+              }
+
               return (
                 <a
                   key={link.href}

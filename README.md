@@ -4,8 +4,26 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.41.0** — 2026-10-28
+Current release: **v1.42.0** — 2026-10-28
  
+## What's New in v1.42.0 (Help Center & LMS, Motion UI Skill, Enterprise Audit & UAT Matrix)
+
+- **Interactive Help Center & Learning Management System (LMS-001):**
+  - *Full Help Center Portal* (`frontend/app/help/page.tsx`) — Portal panduan interaktif berstandar Lark Help Center dengan 7 Jalur Pembelajaran (*Learning Tracks*), 30+ modul panduan lintas departemen, pencarian instan, dan filter peran.
+  - *LMS Curriculum Progress Tracker* (`HelpLmsProgress`) — Pelacakan progres belajar mandiri pengguna dengan penyimpanan status lokal (Local Storage) dan badge kelulusan *Certified*.
+  - *Interactive Article & FAQ Reader* (`frontend/components/help/HelpArticleModal.tsx`) — Modal pembaca panduan step-by-step dengan tips praktis, FAQ, penanda selesai, dan fitur salin tautan artikel.
+
+- **Motion UI Skill & Interaction Design Engine (SKILL-MOTION):**
+  - *Motion UI Skill Guide* (`.agents/skills/motion-ui/SKILL.md`) — Standar rekayasa animasi mikro-interaksi, kurva deselerasi natural (*Raycast/Apple cubic-bezier*), transisi layout tanpa layout-shift (CLS = 0), dan kepatuhan aksesibilitas *reduced-motion*.
+
+- **Landing Page Evolution & Direct LMS CTAs (LANDING-002):**
+  - *Direct Help Center Navigation* (`LandingNavbar.tsx` & `LandingHero.tsx`) — Tombol "Pusat Bantuan & LMS" di navbar desktop, mobile drawer, dan tombol aksi utama di hero section.
+  - *Cross-Department Positioning Copy* — Menampilkan Leadsy sebagai platform Revenue & Delivery Lifecycle satu pintu untuk 5 divisi (Sales, Solution Architect, Project Manager, Finance, Customer Success).
+
+- **Comprehensive Functional Audit & Complete UAT Test Suite:**
+  - *Enterprise Audit Report* (`docs/audit/enterprise-system-comprehensive-audit-report.md`) — Dokumentasi komprehensif audit fungsional, arsitektural, skema basis data, dan kesiapan produksi seluruh subsistem.
+  - *Full-Coverage UAT Matrix* (`docs/testing/enterprise-user-acceptance-testing-uat-matrix.md`) — 32 skenario pengujian menyeluruh (TC-001 s/d TC-032) dengan langkah detail, kriteria penerimaan, dan formulir Berita Acara Penerimaan (Sign-off Acceptance Form).
+
 ## What's New in v1.41.0 (The Closed-Loop Cross-Department Unification)
 
 - **Automated Milestone Invoicing from Signed BAST (FIN-001):**
