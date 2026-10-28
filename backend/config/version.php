@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.39.0',
+    'version' => '1.40.0',
     'released_at' => '2026-10-28',
     'type' => 'minor',
-    'notes' => 'Lead Workspace Modularization Phase 3 (DeliveryWorkspaceTab, RecordOutcomeModal, ResolveConflictModal), Lead Deduplication Review & Merge Consolidation Engine, and AI Next Best Action Recommendations Engine.',
+    'notes' => 'Automated SOW & BAST Document Previewer (DOC-001), Global Duplicate Detection & Bulk Merge Console (LG-003), AI Smart Product Bundling & Margin Optimizer (AI-003), and Enterprise SLA Breach Automatic Escalation Daemon (OPS-004).',
 ];

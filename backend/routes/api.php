@@ -270,6 +270,8 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/{lead}/duplicates', [LeadController::class, 'getDuplicates'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/merge', [LeadController::class, 'mergeLead'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/next-best-actions', [LeadController::class, 'getNextBestActions'])->middleware('permission:leads.view');
+    Route::get('leads-duplicates/summary', [LeadController::class, 'getDuplicatesSummary'])->middleware('permission:leads.view');
+    Route::get('leads/{lead}/recommend-bundles', [LeadController::class, 'recommendBundles'])->middleware('permission:leads.view');
     
     // Sprint 2: Engagement Hardening Routes (G2.2, G2.4, G2.3)
     Route::get('deals/stalled', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'getStalledDeals'])->middleware('permission:leads.view');
@@ -439,6 +441,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
         Route::get('/professional-services/estimations/{id}/documents', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'index']);
         Route::post('/professional-services/estimations/{id}/documents/generate', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'generate']);
         Route::get('/professional-services/documents/{id}', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'show']);
+        Route::get('/professional-services/documents/{id}/download', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'download']);
         Route::delete('/professional-services/documents/{id}', [App\Http\Controllers\Api\ProfessionalServiceDocumentController::class, 'destroy']);
         
         // Phase 5: Digital Signature

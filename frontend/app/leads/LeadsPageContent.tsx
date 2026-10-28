@@ -24,9 +24,11 @@ import {
   X,
   BrainCircuit,
   Sparkles,
-  Zap
+  Zap,
+  GitMerge
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { GlobalDuplicateConsoleModal } from "@/components/leads/modals/GlobalDuplicateConsoleModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -721,6 +723,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [mapsApiKey, setMapsApiKey] = useState("");
   const [mapsEnabled, setMapsEnabled] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
+  const [isDedupConsoleOpen, setIsDedupConsoleOpen] = useState(false);
   const [importLeads, setImportLeads] = useState<ImportLead[]>([]);
   const [importRows, setImportRows] = useState<Record<string, unknown>[]>([]);
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
@@ -1448,6 +1451,15 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
             <CardDescription>Discovered and enriched leads with one standardized admin workflow.</CardDescription>
           </div>
           <div className="flex items-center gap-2" data-tour="leads-actions">
+            <Button
+              variant="outline"
+              onClick={() => setIsDedupConsoleOpen(true)}
+              className="border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+              title="Pindai dan konsolidasikan duplikasi lead perusahaan"
+            >
+              <GitMerge className="h-4 w-4 mr-1.5" />
+              Konsol Duplikat
+            </Button>
             {isSuperAdmin && (
               <Button variant="outline" onClick={handleExport}>
                 <Download className="h-4 w-4" />
@@ -3035,6 +3047,14 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
           onSuccess={createNewModalConfig.onSuccess}
         />
       )}
+
+      <GlobalDuplicateConsoleModal
+        open={isDedupConsoleOpen}
+        onOpenChange={setIsDedupConsoleOpen}
+        onMergedSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["leads"] });
+        }}
+      />
 
     </div>
   );

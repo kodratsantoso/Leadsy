@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, ArrowRight, ExternalLink } from "lucide-react";
+import { Plus, ArrowRight, ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PsEstimation, getEstimationsByLead } from "@/lib/api/professional-services";
+import { GenerateSowBastModal } from "@/components/professional-services/GenerateSowBastModal";
 
 interface ProfessionalServicesTabProps {
   leadId: number;
@@ -14,6 +15,7 @@ interface ProfessionalServicesTabProps {
 
 export function ProfessionalServicesTab({ leadId }: ProfessionalServicesTabProps) {
   const [estimations, setEstimations] = useState<PsEstimation[]>([]);
+  const [selectedEstForDoc, setSelectedEstForDoc] = useState<PsEstimation | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -92,7 +94,17 @@ export function ProfessionalServicesTab({ leadId }: ProfessionalServicesTabProps
                   </div>
                 </div>
               </CardContent>
-              <div className="border-t p-4 flex justify-end bg-muted/20">
+              <div className="border-t p-4 flex items-center justify-between bg-muted/20">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedEstForDoc(est)}
+                  className="gap-1.5 text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950"
+                  title="Generate SOW / BAST Document"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  SOW / BAST
+                </Button>
                 <Button variant="ghost" size="sm" onClick={() => window.location.href = `/professional-services/estimations/${est.id}`} className="hover:bg-primary/10 hover:text-primary">
                   View Details <ArrowRight className="ml-2 h-3.5 w-3.5" />
                 </Button>
@@ -100,6 +112,17 @@ export function ProfessionalServicesTab({ leadId }: ProfessionalServicesTabProps
             </Card>
           ))}
         </div>
+      )}
+
+      {selectedEstForDoc && (
+        <GenerateSowBastModal
+          open={!!selectedEstForDoc}
+          onOpenChange={(open) => {
+            if (!open) setSelectedEstForDoc(null);
+          }}
+          estimationId={selectedEstForDoc.id}
+          estimationTitle={selectedEstForDoc.title}
+        />
       )}
     </div>
   );

@@ -1634,4 +1634,41 @@ class LeadController extends Controller
             'data' => $recommendations,
         ]);
     }
+
+    /**
+     * GET /api/leads-duplicates/summary
+     * Retrieve global duplicate clusters for RevOps review and bulk merge.
+     */
+    public function getDuplicatesSummary(Request $request): JsonResponse
+    {
+        $limit = min((int) $request->input('limit', 25), 50);
+        $clusters = $this->dedup->getGlobalDuplicateClusters($request->user()?->id, $limit);
+
+        return response()->json([
+            'success' => true,
+            'total_clusters' => count($clusters),
+            'data' => $clusters,
+        ]);
+    }
+
+    /**
+     * GET /api/leads/{lead}/recommend-bundles
+     * Generate smart complementary product bundling packages with simulated margin analysis.
+     */
+    public function recommendBundles(
+        Request $request,
+        Lead $lead,
+        \App\Services\Revenue\ProductBundlingRecommendationService $bundlingService
+    ): JsonResponse {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403, 'Unauthorized access to lead.');
+        }
+
+        $recommendations = $bundlingService->generateBundlingRecommendations($lead);
+
+        return response()->json([
+            'success' => true,
+            'data' => $recommendations,
+        ]);
+    }
 }

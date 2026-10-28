@@ -1,5 +1,37 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-10-28 — v1.40.0 Delivery SOW/BAST Previewer, RevOps Duplication Console, AI Bundling & SLA Escalation Daemon
+- **Automated SOW & BAST Document Previewer & Sign Flow (DOC-001):**
+  - Built `GenerateSowBastModal.tsx` in `components/professional-services/` supporting SOW and BAST document creation, commercial summaries, subtask breakdowns, appendix toggles, and direct PSrE digital signature trigger.
+  - Added dedicated PDF streaming/download endpoint `GET /api/professional-services/documents/{id}/download` in `ProfessionalServiceDocumentController.php`.
+  - Integrated SOW/BAST action triggers into `ProfessionalServicesTab.tsx` and Delivery Workspace.
+- **Global Duplicate Detection & Bulk Merge Console (LG-003):**
+  - Added `getGlobalDuplicateClusters` in `DeduplicationService.php` scanning domain, company name, and phone similarity across the active database.
+  - Exposed `GET /api/leads-duplicates/summary` in `LeadController.php`.
+  - Built `GlobalDuplicateConsoleModal.tsx` and wired "Konsol Duplikat" action button in `LeadsPageContent.tsx` toolbar.
+- **AI Smart Product Bundling & Margin Optimizer (AI-003):**
+  - Created `ProductBundlingRecommendationService.php` generating complementary product bundles with projected gross margin calculations.
+  - Exposed `GET /api/leads/{lead}/recommend-bundles`.
+  - Built `SmartProductBundlingCard.tsx` and integrated into `DiscoveryWorkspaceTab.tsx`.
+- **Enterprise SLA Breach & Automatic Escalation Daemon (OPS-004):**
+  - Created Artisan command `leadsy:check-sla-breaches` scanning stale draft quotes (> 3 days) and overdue follow-ups (> 24 hours), recording `[SLA BREACH]` system activities.
+  - Scheduled hourly in `backend/routes/console.php` with overlap protection.
+- **Verification & Quality Gates:**
+  - Zero TypeScript errors (`npx tsc --noEmit` exited 0).
+  - All modified PHP files syntax checked cleanly.
+
+## 2026-10-28 — v1.39.0 Lead Workspace Modularization Phase 3, Deduplication Merge Engine & AI Next Best Actions
+- **Lead Workspace Modularization Phase 3 (UX-004 Phase 3):**
+  - Extracted Delivery workspace tabs into `DeliveryWorkspaceTab.tsx`.
+  - Extracted outcome recording into `RecordOutcomeModal.tsx` and conflict resolution into `ResolveConflictModal.tsx`.
+  - Shrunk `frontend/app/leads/[id]/page.tsx` down to ~2,590 lines.
+- **Lead Deduplication Review & Merge Engine (LG-002):**
+  - Implemented multi-criteria duplicate detection and field-level merge consolidation in `DeduplicationService.php` and `LeadController.php`.
+  - Created `MergeLeadModal.tsx` and integrated into lead details header.
+- **AI Next Best Action Recommendations Engine (LI-002):**
+  - Created `LeadNextBestActionService.php` synthesizing BANTC gaps, deal slippage, presales readiness, and cadence status.
+  - Built `NextBestActionPanel.tsx` and integrated into `OverviewTab.tsx`.
+
 ## 2026-10-28 — v1.38.0 Lead Workspace Modularization Phase 2 & Real-Time SSE AI Screening Telemetry
 - **Lead Workspace Modularization Phase 2 (UX-004 Phase 2):**
   - Fully extracted remaining inline tabs from monolithic `frontend/app/leads/[id]/page.tsx` into modular components:

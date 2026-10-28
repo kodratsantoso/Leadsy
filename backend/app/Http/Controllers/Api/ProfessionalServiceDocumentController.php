@@ -61,6 +61,25 @@ class ProfessionalServiceDocumentController extends Controller
         return response()->json($document);
     }
 
+    public function download(int $id)
+    {
+        $document = PsDocument::findOrFail($id);
+        $disk = $document->storage_disk ?: 'public';
+
+        if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($document->file_path)) {
+            abort(404, 'PDF document file not found.');
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk($disk)->response(
+            $document->file_path,
+            $document->file_name,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $document->file_name . '"',
+            ]
+        );
+    }
+
     public function destroy(int $id): JsonResponse
     {
         $document = PsDocument::findOrFail($id);

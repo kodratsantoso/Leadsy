@@ -33,3 +33,9 @@ Artisan::command('inspire', function () {
     ->withoutOverlapping(10)
     ->runInBackground();
 
+// Inspects active pipeline for SLA breaches and escalates stale deals.
+\Illuminate\Support\Facades\Schedule::command('leadsy:check-sla-breaches')
+    ->hourly()
+    ->withoutOverlapping(10)
+    ->runInBackground();
+

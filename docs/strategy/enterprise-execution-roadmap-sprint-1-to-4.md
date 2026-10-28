@@ -9,6 +9,8 @@
 - **Sprint 3 (Omnichannel & Autonomous AI):** ✅ **SELESAI (100%)** — Commit `d023697`
 - **Sprint 4 (Enterprise Scale & Governance):** ✅ **SELESAI (100%)** — Resource Capacity Gantt Matrix, Enterprise SSO, PSrE Digital Signature, & Offline-First Field Sales Sync
 - **Audit Hardening & Governance (v1.34.0 & v1.35.0):** ✅ **SELESAI (100%)** — UI Dialog Governance (Zero `alert`/`confirm`), BelongsToTenant Expansion, Multi-Tenant IDOR Guards & Test Suite, Modularisasi Tabs `leads/[id]`, Worker Liveness Probes
+- **Lead Workspace Modularization & Intelligence (v1.38.0 & v1.39.0):** ✅ **SELESAI (100%)** — Modularisasi Workspace Phase 2 & 3, SSE Stream Telemetry, Deduplication Merge Engine, dan AI Next Best Actions.
+- **Phase 6: Delivery Governance, RevOps Console & Escalation (v1.40.0):** 🔄 **IN PROGRESS** — SOW/BAST Document Previewer, Global Duplicate Console, AI Product Bundling, & Enterprise SLA Escalation Daemon.
 
 ---
 
@@ -42,12 +44,18 @@ gantt
     PSrE Legal Digital Signature (Privy/VIDA):done, p4_3, 2026-11-29, 2026-12-03
     Offline-First Field Sales PWA Sync       :done, p4_4, 2026-12-04, 2026-12-09
 
-    section Phase 5: Audit Plan Execution & Governance Hardening (COMPLETED)
-    UI Dialog Governance & ConfirmDialog (v1.34.0) :done, p5_1, 2026-10-27, 2026-10-28
-    BelongsToTenant Secondary Entity Scope        :done, p5_2, 2026-10-27, 2026-10-28
-    Multi-Tenant IDOR Guards & Feature Test Suite :done, p5_3, 2026-10-28, 2026-10-28
-    Modularisasi Tabs Lead Detail View (v1.35.0)  :done, p5_4, 2026-10-28, 2026-10-28
-    Kubernetes Worker & Scheduler Liveness Probes :done, p5_5, 2026-10-28, 2026-10-28
+    section Phase 5: Workspace Modularization & Intelligence (COMPLETED)
+    Overview & Revenue Tabs Decoupling (v1.38.0) :done, p5_1, 2026-10-28, 2026-10-28
+    SSE 8-Stage AI Screening Telemetry (v1.38.0)  :done, p5_2, 2026-10-28, 2026-10-28
+    Delivery Workspace Modularization (v1.39.0)  :done, p5_3, 2026-10-28, 2026-10-28
+    Lead Deduplication & Merge Engine (v1.39.0)   :done, p5_4, 2026-10-28, 2026-10-28
+    AI Next Best Action Engine (v1.39.0)          :done, p5_5, 2026-10-28, 2026-10-28
+
+    section Phase 6: Delivery Governance, RevOps Console & Escalation (ACTIVE)
+    SOW & BAST Document Previewer (DOC-001)       :active, p6_1, 2026-10-28, 2026-10-28
+    Global Duplicate & Bulk Merge Console (LG-003):active, p6_2, 2026-10-28, 2026-10-28
+    AI Product Bundling & Margin Optimizer (AI-003):active, p6_3, 2026-10-28, 2026-10-28
+    Enterprise SLA Breach Escalation Daemon (OPS-004):active, p6_4, 2026-10-28, 2026-10-28
 ```
 
 ---
@@ -215,6 +223,41 @@ gantt
   - Backend: Endpoint `POST /api/leads/{lead}/check-in` di `LeadController.php` untuk menerima payload kunjungan dan menyimpannya sebagai aktivitas timeline terverifikasi.
 - **Kriteria Selesai (DoD):**
   - Sales lapangan tetap produktif saat berada di kawasan industri, pabrik, atau area terpencil tanpa hambatan jaringan. Data otomatis tersinkronisasi saat terhubung internet.
+
+---
+
+### 🏛️ FASE 6 (v1.40.0) — Delivery Governance, RevOps Console & Escalation [IN PROGRESS 🔄]
+**Fokus:** Penutupan siklus BAST/SOW siap tanda tangan, konsol deduplikasi global, bundling produk presales berbasis AI, dan automasi eskalasi SLA deal.
+
+#### Task 6.1: Automated SOW & BAST Document Previewer & Digital Sign Flow (DOC-001)
+- **Deliverables:**
+  - Frontend: `GenerateSowBastModal.tsx` di dalam `DeliveryWorkspaceTab` / `ProfessionalServicesTab` dengan pemilihan tipe dokumen (`sow` / `bast`), toggle klausul komersial, in-browser PDF preview, dan tombol integrasi PSrE.
+  - Backend: Route & endpoint PDF download / preview stream pada `ProfessionalServiceDocumentController`.
+- **Kriteria Selesai (DoD):**
+  - Dokumen Berita Acara Serah Terima (BAST) dan Statement of Work (SOW) dapat dihasilkan dan dipratinjau dalam 1-klik sebelum diserahkan ke klien.
+
+#### Task 6.2: Global Duplicate Detection & Bulk Merge Console (LG-003)
+- **Deliverables:**
+  - Frontend: Tab/Console baru di `/settings/duplicates` dan filter *"Potensi Duplikat"* di tabel utama `/leads`.
+  - Backend: Endpoint `GET /api/leads-duplicates/matrix` yang merangkum kelompok lead duplikat di seluruh database dengan agregat skor kecocokan.
+- **Kriteria Selesai (DoD):**
+  - Admin RevOps dapat memindai dan membersihkan duplikasi data riil di seluruh tenant tanpa perlu membuka lead satu per satu.
+
+#### Task 6.3: AI Smart Product Bundling & Margin Optimizer (AI-003)
+- **Deliverables:**
+  - Backend: `ProductBundlingRecommendationService.php` yang menganalisis kebutuhan solusi dari BANTC dan menghasilkan rekomendasi paket bundling produk (Hardware + SaaS License + PS) beserta perhitungan simulasi margin.
+  - Endpoint: `POST /api/leads/{lead}/recommend-bundles`.
+  - Frontend: Komponen `SmartProductBundlingCard.tsx` terintegrasi pada Discovery Workspace.
+- **Kriteria Selesai (DoD):**
+  - Sales rep mendapatkan rekomendasi kombinasi produk bernilai tinggi beserta perhitungan margin sebelum menyusun penawaran resmi.
+
+#### Task 6.4: Enterprise SLA Breach & Automatic Escalation Daemon (OPS-004)
+- **Deliverables:**
+  - Backend: Artisan scheduler command `leadsy:check-sla-breaches` terdaftar di `backend/routes/console.php` (setiap jam) yang memeriksa deal yang mengendap melebihi SLA (> 3 hari di draft quotation, > 7 hari tanpa follow-up pada proposal aktif).
+  - Notifikasi eskalasi otomatis ke Lark Webhook / WhatsApp internal manajer penjualan.
+  - Frontend: Visual warning badge `SLA Breached` pada papan Kanban Lead.
+- **Kriteria Selesai (DoD):**
+  - Tidak ada deal aktif yang mengendap tanpa tindak lanjut; sistem otomatis memperingatkan pimpinan sales saat SLA terlanggar.
 
 ---
 

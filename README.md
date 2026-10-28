@@ -4,8 +4,29 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.39.0** — 2026-10-28
+Current release: **v1.40.0** — 2026-10-28
  
+## What's New in v1.40.0 (Delivery SOW/BAST Previewer, RevOps Duplication Console, AI Bundling & SLA Escalation Daemon)
+
+- **Automated SOW & BAST Document Previewer & Sign Flow (DOC-001):**
+  - *Interactive Document Generator* (`frontend/components/professional-services/GenerateSowBastModal.tsx`) — Modal 1-klik untuk menyusun dokumen Statement of Work (SOW) dan Berita Acara Serah Terima (BAST) dengan opsi rincian komersial, subtask breakdown, dan klausul garansi/appendix.
+  - *PDF Stream & Download API* (`GET /api/professional-services/documents/{id}/download`) — Endpoint streaming file PDF resmi dengan header inline preview dan nama file yang disanitasi.
+  - *Seamless PSrE Digital Sign Trigger* — Tombol integrasi langsung menuju flow tanda tangan digital bersertifikasi hukum (PrivyID/VIDA).
+
+- **Global Duplicate Detection & Bulk Merge Console (LG-003):**
+  - *Enterprise RevOps Console* (`frontend/components/leads/modals/GlobalDuplicateConsoleModal.tsx`) — Antarmuka agregat untuk memindai seluruh cluster duplikat (domain, telepon, dan kesamaan nama perusahaan) di seluruh database tenant.
+  - *Summary Telemetry & Cluster Matrix* (`GET /api/leads-duplicates/summary`) — Mengembalikan ringkasan kelompok entitas duplikat dengan skor keyakinan dan jumlah kontak terkait.
+  - *Direct Access Toolbar* — Tombol akses cepat *"Konsol Duplikat"* terpasang di toolbar utama halaman Leads (`/leads`).
+
+- **AI Smart Product Bundling & Margin Optimizer (AI-003):**
+  - *Bundling Recommendation Service* (`backend/app/Services/Revenue/ProductBundlingRecommendationService.php`) — Mensintesis kebutuhan solusi prospek dan menyusun paket bundling komplementer (Core Platform + Professional Services Implementation + Support).
+  - *Dynamic Margin Simulator* (`frontend/components/leads/SmartProductBundlingCard.tsx`) — Menghitung harga katalog, diskon bundling terpadu (12%), estimasi COGS, dan persentase gross margin sehat secara real-time.
+  - *Copyable Value Proposition Pitch* — Menghasilkan panduan argumentasi pitching terstruktur untuk sales rep sebelum negosiasi.
+
+- **Enterprise SLA Breach & Automatic Escalation Daemon (OPS-004):**
+  - *Artisan Inspection Daemon* (`leadsy:check-sla-breaches`) — Job background terjadwal yang memindai deal mengendap (draft quotation > 3 hari tanpa dikirim, follow-up overdue > 24 jam) setiap jam tanpa overlap.
+  - *Automated Escalation Logging* — Mencatat aktivitas peringatan eskalasi resmi `[SLA BREACH]` pada riwayat timeline lead untuk perhatian pimpinan sales.
+
 ## What's New in v1.39.0 (Lead Workspace Modularization Phase 3, Deduplication Merge Engine & AI Next Best Actions)
 
 - **Lead Workspace Modularization Phase 3 (UX-004 Phase 3):**

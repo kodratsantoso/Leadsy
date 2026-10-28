@@ -28,6 +28,7 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { ErrorNotice } from "@/components/ui/error-notice";
 import { cn } from "@/lib/utils";
+import { SmartProductBundlingCard } from "@/components/leads/SmartProductBundlingCard";
 
 type ProvenanceType = "confirmed" | "assumption" | "ai_suggested" | "unspecified";
 
@@ -377,6 +378,9 @@ export function DiscoveryWorkspaceTab({ leadId, lead }: DiscoveryWorkspaceTabPro
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Smart Product Bundling & Margin Optimizer */}
+      <SmartProductBundlingCard leadId={leadId} />
 
       {/* BANTC Live Synchronized & Editable Qualification Card */}
       <Card>

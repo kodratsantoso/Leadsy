@@ -365,6 +365,73 @@ class DeduplicationService
             ];
         });
     }
+
+    /**
+     * Scan the database for potential duplicate clusters across domains, phones, and company names.
+     */
+    public function getGlobalDuplicateClusters(?int $userId = null, int $limit = 25): array
+    {
+        $clusters = [];
+
+        // 1. Clusters by website_domain
+        $domainDupes = Lead::query()
+            ->select('website_domain', DB::raw('count(*) as count'))
+            ->whereNotNull('website_domain')
+            ->where('website_domain', '!=', '')
+            ->groupBy('website_domain')
+            ->having(DB::raw('count(*)'), '>', 1)
+            ->limit($limit)
+            ->get();
+
+        foreach ($domainDupes as $dupe) {
+            $leads = Lead::where('website_domain', $dupe->website_domain)
+                ->withCount('contacts', 'activities')
+                ->limit(10)
+                ->get(['id', 'company_name', 'website', 'phone', 'lead_score', 'qualification_status', 'created_at']);
+
+            $clusters[] = [
+                'cluster_key' => 'domain:' . $dupe->website_domain,
+                'match_type' => 'website_domain',
+                'matched_value' => $dupe->website_domain,
+                'confidence' => 95,
+                'lead_count' => $dupe->count,
+                'leads' => $leads,
+            ];
+        }
+
+        // 2. Clusters by company_name (exact lowercase)
+        $companyDupes = Lead::query()
+            ->select(DB::raw('LOWER(company_name) as lower_company'), DB::raw('count(*) as count'))
+            ->whereNotNull('company_name')
+            ->where('company_name', '!=', '')
+            ->groupBy(DB::raw('LOWER(company_name)'))
+            ->having(DB::raw('count(*)'), '>', 1)
+            ->limit($limit)
+            ->get();
+
+        foreach ($companyDupes as $dupe) {
+            $existing = array_filter($clusters, fn($c) => $c['match_type'] === 'company_name' && strtolower($c['matched_value']) === $dupe->lower_company);
+            if (!empty($existing)) continue;
+
+            $leads = Lead::whereRaw('LOWER(company_name) = ?', [$dupe->lower_company])
+                ->withCount('contacts', 'activities')
+                ->limit(10)
+                ->get(['id', 'company_name', 'website', 'phone', 'lead_score', 'qualification_status', 'created_at']);
+
+            if ($leads->count() > 1) {
+                $clusters[] = [
+                    'cluster_key' => 'company:' . $dupe->lower_company,
+                    'match_type' => 'company_name',
+                    'matched_value' => $leads->first()->company_name ?? $dupe->lower_company,
+                    'confidence' => 90,
+                    'lead_count' => $dupe->count,
+                    'leads' => $leads,
+                ];
+            }
+        }
+
+        return $clusters;
+    }
 }
 
 /**
