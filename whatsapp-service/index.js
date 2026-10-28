@@ -81,6 +81,7 @@ async function connectToWhatsApp(sessionName) {
             currentQr: null,
             status: 'disconnected',
             connectionAttemptInProgress: false,
+            reconnectAttempts: 0,
             store: makeInMemoryStore({ logger: pino({ level: 'silent' }) })
         };
     }
@@ -152,14 +153,19 @@ async function connectToWhatsApp(sessionName) {
                 }
 
                 if (shouldReconnect) {
-                    console.log(`[${sessionName}] RECONNECTING...`);
-                    setTimeout(() => connectToWhatsApp(sessionName), 3000);
+                    session.reconnectAttempts = (session.reconnectAttempts || 0) + 1;
+                    const backoffFactor = Math.pow(1.5, Math.min(session.reconnectAttempts, 8));
+                    const jitter = Math.floor(Math.random() * 1000);
+                    const delayMs = Math.min(60000, Math.round(3000 * backoffFactor)) + jitter;
+                    console.log(`[${sessionName}] RECONNECTING in ${delayMs}ms (attempt #${session.reconnectAttempts})...`);
+                    setTimeout(() => connectToWhatsApp(sessionName), delayMs);
                 }
             } else if (connection === 'open') {
                 console.log(`[${sessionName}] Connected to WhatsApp successfully!`);
                 session.status = 'connected';
                 session.currentQr = null;
                 session.connectionAttemptInProgress = false;
+                session.reconnectAttempts = 0;
 
                 const myId = sock.user?.id || 'unknown';
                 const myName = sock.user?.name || '';
@@ -275,7 +281,11 @@ async function connectToWhatsApp(sessionName) {
     } catch (err) {
         console.error(`[${sessionName}] Connection error:`, err.message);
         session.connectionAttemptInProgress = false;
-        setTimeout(() => connectToWhatsApp(sessionName), 5000);
+        session.reconnectAttempts = (session.reconnectAttempts || 0) + 1;
+        const backoffFactor = Math.pow(1.5, Math.min(session.reconnectAttempts, 8));
+        const jitter = Math.floor(Math.random() * 1000);
+        const delayMs = Math.min(60000, Math.round(3000 * backoffFactor)) + jitter;
+        setTimeout(() => connectToWhatsApp(sessionName), delayMs);
     }
 }
 
@@ -311,6 +321,16 @@ function initExistingSessions() {
 
 // ---------------- REST API ----------------
 
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        service: 'whatsapp-baileys',
+        uptime: process.uptime(),
+        active_sessions_count: Object.keys(sessions).length,
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.get('/api/health', (req, res) => {
     const sessionName = getSessionName(req);
     const session = sessions[sessionName];
@@ -329,6 +349,7 @@ app.post('/api/session/start', async (req, res) => {
             currentQr: null,
             status: 'disconnected',
             connectionAttemptInProgress: false,
+            reconnectAttempts: 0,
             store: makeInMemoryStore({ logger: pino({ level: 'silent' }) })
         };
     }

@@ -26,3 +26,10 @@ Artisan::command('inspire', function () {
     ->everyTenMinutes()
     ->withoutOverlapping(12)
     ->runInBackground();
+
+// Executes due steps for active multi-touch omnichannel sales cadences.
+\Illuminate\Support\Facades\Schedule::command('leadsy:process-cadences')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(10)
+    ->runInBackground();
+

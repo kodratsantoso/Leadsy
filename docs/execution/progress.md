@@ -1,5 +1,19 @@
 # Progress Log — Leads Generator Platform
 
+## 2026-10-28 — v1.37.0 Purge Deprecated Root Mirrors, K3s Staging Pipeline & Cadence Scheduler Engine
+- **Root Compatibility Mirror Purge (ARCH-001):**
+  - Completely purged 57 legacy tracked files across `app/`, `components/`, `lib/`, `store/`, `types/` as well as root build configs (`next.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `components.json`, `tsconfig.json`, `Dockerfile`, `docker-entrypoint.sh`).
+  - Consolidated `frontend/` as the single authoritative Source of Truth (SSOT).
+  - Verified clean Next.js 15 production build compiling 76/76 static routes in ~9 seconds with zero errors.
+- **K3s Staging Pipeline & Ordered CI Quality Gates (GOV-001):**
+  - Created `k8s/leadsy-staging.yaml` with dedicated staging namespace, frontend and backend Deployments and Services for `staging.leadsy.tech`.
+  - Serialized CI runner gates (`needs: test-backend` for `test-frontend`) in `.github/workflows/ci.yml` to prevent runner concurrency lockouts.
+  - Added continuous deployment to `leadsy-staging` on pushes to branch `virtuenet`.
+- **WhatsApp Baileys Sidecar Hardening & Cadence Scheduler Cron (OPS-003):**
+  - Added `/health` readiness check endpoint to `whatsapp-service/index.js`.
+  - Implemented exponential backoff with random jitter on Baileys reconnections (`delay = min(60s, 3000 * 1.5^attempt) + jitter`).
+  - Added Artisan scheduler command `leadsy:process-cadences` to `backend/routes/console.php` running every 15 minutes with overlap protection and background execution.
+
 ## 2026-10-28 — v1.36.0 Lead Workspace Modularization, Tokenized OKLch Palette & Horizon Queue Governance
 - **Lead Detail View Modularization (UX-004):**
   - Fully decoupled and extracted all remaining inline tab logic from `frontend/app/leads/[id]/page.tsx` into modular components:

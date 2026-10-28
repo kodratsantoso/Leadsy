@@ -1,7 +1,7 @@
 {
-  "version": "1.36.0",
-  "codename": "modular-lead-workspace-and-horizon-resilience",
+  "version": "1.37.0",
+  "codename": "ssot-purge-k3s-staging-and-cadence-scheduler",
   "last_updated": "2026-10-28",
   "type": "minor",
-  "notes": "Lead Workspace Tab Modularization (Contacts, Activities, Meetings, Transcripts, Customer Journey), Full Tailwind OKLch Color Tokenization, and Enterprise Horizon Worker Queue Supervision."
+  "notes": "Purge deprecated root mirrors (ARCH-001), K3s staging pipeline with ordered CI runner gates (GOV-001), WhatsApp sidecar exponential backoff with jitter and healthcheck, and automated sales cadence scheduler cron (OPS-003)."
 }

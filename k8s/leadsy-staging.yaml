@@ -1,0 +1,222 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: leadsy-staging
+  labels:
+    app.kubernetes.io/part-of: leadsy
+    environment: staging
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: leadsy-staging
+  namespace: leadsy-staging
+  labels:
+    app: leadsy-staging-frontend
+    app.kubernetes.io/part-of: leadsy
+spec:
+  selector:
+    app: leadsy-staging-frontend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-staging
+  namespace: leadsy-staging
+  labels:
+    app: leadsy-staging-backend
+    app.kubernetes.io/part-of: leadsy
+spec:
+  selector:
+    app: leadsy-staging-backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leadsy-staging-frontend
+  namespace: leadsy-staging
+  labels:
+    app: leadsy-staging-frontend
+    app.kubernetes.io/name: leadsy-staging-frontend
+    app.kubernetes.io/part-of: leadsy
+    environment: staging
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: leadsy-staging-frontend
+  template:
+    metadata:
+      labels:
+        app: leadsy-staging-frontend
+        app.kubernetes.io/name: leadsy-staging-frontend
+        environment: staging
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: web
+          image: 10.43.110.114:5000/leadsy-frontend:__IMAGE_TAG__
+          imagePullPolicy: Always
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: NEXT_PUBLIC_API_BASE_URL
+              value: https://staging.leadsy.tech
+            - name: NEXT_PUBLIC_SITE_URL
+              value: https://staging.leadsy.tech
+            - name: API_INTERNAL_URL
+              value: http://backend-staging:8000
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leadsy-staging-backend
+  namespace: leadsy-staging
+  labels:
+    app: leadsy-staging-backend
+    app.kubernetes.io/name: leadsy-staging-backend
+    app.kubernetes.io/part-of: leadsy
+    environment: staging
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: leadsy-staging-backend
+  template:
+    metadata:
+      labels:
+        app: leadsy-staging-backend
+        app.kubernetes.io/name: leadsy-staging-backend
+        environment: staging
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: backend
+          image: 10.43.110.114:5000/leadsy-backend:__IMAGE_TAG__
+          imagePullPolicy: Always
+          env:
+            - name: APP_ENV
+              value: staging
+            - name: APP_DEBUG
+              value: "false"
+            - name: APP_URL
+              value: https://staging.leadsy.tech
+            - name: FRONTEND_URL
+              value: https://staging.leadsy.tech
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: app-key
+                  optional: true
+            - name: DB_CONNECTION
+              value: pgsql
+            - name: DB_HOST
+              value: leadsy-production-postgres.leadsy-prod.svc.cluster.local
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_DATABASE
+              value: leads_staging
+            - name: DB_USERNAME
+              value: leads
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: db-password
+                  optional: true
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: leadsy-staging-ingress
+  namespace: leadsy-staging
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  rules:
+    - host: staging.leadsy.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: leadsy-staging
+                port:
+                  number: 3000

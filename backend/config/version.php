@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.36.0',
+    'version' => '1.37.0',
     'released_at' => '2026-10-28',
     'type' => 'minor',
-    'notes' => 'Lead Workspace Tab Modularization, Full Tailwind OKLch Color Tokenization, and Enterprise Horizon Worker Queue Supervision.',
+    'notes' => 'Purge deprecated root mirrors, K3s staging pipeline with serialized CI runners, WhatsApp sidecar exponential backoff, and cadence scheduler cron.',
 ];

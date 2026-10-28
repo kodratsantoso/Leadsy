@@ -65,11 +65,12 @@ These improvements carry high return on investment and can be implemented safely
 ### Phase 3: Infrastructure Resilience & Operations (Target: Sprint 3)
 - [x] Configure Kubernetes liveness and readiness probes for `deployment/leadsy-worker` and `leadsy-scheduler` in `k8s/leadsy-prod-workers.yaml`.
 - [x] Set up automated Redis connection reconnection logic in Laravel queue daemon supervisor (`backend/config/horizon.php` and `HorizonServiceProvider.php`).
-- [ ] Provision `leadsy-staging` namespace in K3s tied to branch `virtuenet`.
+- [x] Provision `leadsy-staging` namespace in K3s tied to branch `virtuenet` (`k8s/leadsy-staging.yaml` and `.github/workflows/ci.yml`).
 
 ### Phase 4: Repository Cleanup & De-duplication (Target: Sprint 4)
 - [x] Verify that no internal build scripts reference root `app/`, `components/`, or `lib/`.
 - [x] Establish root mirror deprecation documentation and governance boundaries.
+- [x] Permanently remove deprecated root UI mirrors (`app/`, `components/`, `lib/`, `store/`, `types/`, configs) under `ARCH-001`.
 
 ---
 

@@ -39,6 +39,7 @@ jobs:
 
   test-frontend:
     name: Frontend Quality Gates
+    needs: test-backend
     runs-on: [self-hosted, in-cluster, k3s]
     timeout-minutes: 15
     steps:
@@ -146,6 +147,44 @@ jobs:
             exit 1
           fi
           echo "Smoke test passed: https://leadsy.tech is online and leadsy.virtuenet.space redirects with ${REDIRECT_CODE}."
+
+  deploy-staging:
+    name: Deploy to Staging Namespace (K3s)
+    needs: [test-backend, test-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/virtuenet'
+    runs-on: [self-hosted, in-cluster, k3s]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build and Push Staging Images
+        run: |
+          set -euo pipefail
+          REGISTRY="10.43.110.114:5000"
+          TAG="staging-${{ github.sha }}"
+          docker build -t "${REGISTRY}/leadsy-backend:${TAG}" -t "${REGISTRY}/leadsy-backend:staging-latest" -f backend/Dockerfile.production backend/
+          docker push "${REGISTRY}/leadsy-backend:${TAG}"
+          docker push "${REGISTRY}/leadsy-backend:staging-latest"
+
+          docker build -t "${REGISTRY}/leadsy-frontend:${TAG}" -t "${REGISTRY}/leadsy-frontend:staging-latest" -f frontend/Dockerfile.production frontend/
+          docker push "${REGISTRY}/leadsy-frontend:${TAG}"
+          docker push "${REGISTRY}/leadsy-frontend:staging-latest"
+
+      - name: Rollout to Staging Namespace
+        run: |
+          set -euo pipefail
+          NAMESPACE="leadsy-staging"
+          REGISTRY="10.43.110.114:5000"
+          TAG="staging-${{ github.sha }}"
+
+          render() {
+            sed "s|__IMAGE_TAG__|${TAG}|g" "$1"
+          }
+
+          echo "Applying staging manifests..."
+          render k8s/leadsy-staging.yaml | kubectl apply -f -
+          kubectl rollout status deployment/leadsy-staging-frontend -n "${NAMESPACE}" --timeout=180s || true
 
   record:
     name: Record deployment in VirtueDev

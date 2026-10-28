@@ -4,8 +4,25 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.36.0** — 2026-10-28
+Current release: **v1.37.0** — 2026-10-28
  
+## What's New in v1.37.0 (Purge Deprecated Root Mirrors, K3s Staging Pipeline & Cadence Scheduler Engine)
+
+- **Root Compatibility Mirror Purge (ARCH-001):**
+  - *Permanent Deprecation Cleanup* — Completely removed 57 legacy mirror files across `app/`, `components/`, `lib/`, `store/`, and `types/` as well as obsolete root build configurations (`next.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `components.json`, `tsconfig.json`, `Dockerfile`, `docker-entrypoint.sh`).
+  - *Consolidated SSOT* — Established `frontend/` as the single authoritative Source of Truth for all frontend development, eliminating dual-maintenance hazards and file sync ambiguity.
+  - *Next.js Build Speed* — Clean Next.js 15 production build generating 76/76 static routes in ~9 seconds with zero errors or warnings.
+
+- **K3s Staging Pipeline & Ordered CI Quality Gates (GOV-001):**
+  - *K3s Staging Deployment Manifests* (`k8s/leadsy-staging.yaml`) — Defined isolated `leadsy-staging` namespace with ingress routing for `staging.leadsy.tech`, separate NodePorts, and independent deployment lifecycles for frontend and backend.
+  - *Automated Staging Rollout* (`.github/workflows/ci.yml`) — Configured automatic builds and rollouts to `leadsy-staging` on git push to the integration branch `virtuenet`.
+  - *Ordered Runner Gates* — Added `needs: test-backend` to `test-frontend` to eliminate concurrency contention on the single in-cluster GitHub self-hosted runner, preventing job acquisition timeouts.
+
+- **WhatsApp Baileys Sidecar Hardening & Cadence Scheduler Cron (OPS-003):**
+  - *Direct Readiness & Health Check Endpoint* — Added native `/health` probing route in `whatsapp-service/index.js` returning active session count, process uptime, and Baileys status.
+  - *Exponential Backoff Reconnection with Jitter* — Replaced static 3-second reconnect loops with an exponential backoff formula (`delay = min(60s, 3000 * 1.5^attempt) + jitter`), safeguarding against connection spamming and rate limits during network interruptions.
+  - *Automated Cadence Execution Daemon* — Hooked `leadsy:process-cadences` into Laravel console scheduler (`backend/routes/console.php`) running every 15 minutes with overlap protection and background execution.
+
 ## What's New in v1.36.0 (Lead Workspace Modularization, Tokenized OKLch Palette & Horizon Queue Governance)
 
 - **Complete Lead Workspace Modularization (UX-004):**

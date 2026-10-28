@@ -6,13 +6,13 @@ it does not override native agent instructions. GitHub is canonical; long-lived 
 to the K3s cluster through a GitHub Actions in-cluster runner (see "Deployment contract" below).
 Review the actual diff and user workflow before reporting completion.
 
-This repository contains deprecated root-level UI mirrors and one active runtime frontend.
+This repository has finalized the ARCH-001 mirror cleanup. All frontend code resides exclusively in `frontend/`.
 
 ## Active UI Source of Truth
 
 - All live UI work must land in `frontend/`.
-- Treat root `app/`, `components/`, `lib/`, and `store/` as compatibility mirrors only.
-- If a UI change is needed, update `frontend/` first and only mirror elsewhere when explicitly required.
+- Legacy root `app/`, `components/`, `lib/`, and `store/` mirrors have been permanently removed.
+- There is only one active frontend in this repository: `frontend/`.
 
 ## Governance Entry Points
 
