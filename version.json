@@ -1,7 +1,7 @@
 {
-  "version": "1.38.0",
-  "codename": "modular-workspace-and-realtime-ai-sse-stream",
+  "version": "1.39.0",
+  "codename": "modular-delivery-workspace-dedup-merge-and-next-best-actions",
   "last_updated": "2026-10-28",
   "type": "minor",
-  "notes": "Lead Workspace Modularization Phase 2 (OverviewTab & RevenueTab components) and Real-Time SSE Streaming with 8-Stage Telemetry for AI Pre-Meeting Screening pipeline."
+  "notes": "Lead Workspace Modularization Phase 3 (DeliveryWorkspaceTab, RecordOutcomeModal, ResolveConflictModal), Lead Deduplication Review & Merge Consolidation Engine, and AI Next Best Action Recommendations Engine."
 }

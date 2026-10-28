@@ -183,7 +183,7 @@ export interface RevenueTabProps {
   prescribeMutation: any;
   formatCurrency: (amount?: number | null) => string;
   formatNumber: (value?: number | null, options?: any) => string;
-  setOutcomeForm: React.Dispatch<React.SetStateAction<any>>;
+  setOutcomeForm?: React.Dispatch<React.SetStateAction<any>>;
   setShowOutcomeModal: (show: boolean) => void;
   icpReasoning?: string | null;
   icpBreakdown?: any[];
@@ -232,10 +232,10 @@ export function RevenueTab({
             </button>
             <button
               onClick={() => {
-                setOutcomeForm((current: any) => ({
+                setOutcomeForm?.((current: any) => ({
                   ...current,
-                  product_id: current.product_id || (leadData.product_id ? String(leadData.product_id) : ''),
-                  sale_type: current.sale_type || defaultOutcomeSaleType,
+                  product_id: current?.product_id || (leadData.product_id ? String(leadData.product_id) : ''),
+                  sale_type: current?.sale_type || defaultOutcomeSaleType,
                 }));
                 setShowOutcomeModal(true);
               }}

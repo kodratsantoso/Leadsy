@@ -1557,4 +1557,81 @@ class LeadController extends Controller
             'message' => 'Bulk AI Intelligence analysis running in background for ' . count($data['lead_ids']) . ' leads.',
         ]);
     }
+
+    /** GET /api/leads/{lead}/duplicates */
+    public function getDuplicates(Request $request, Lead $lead): JsonResponse
+    {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403, 'Unauthorized access to lead.');
+        }
+
+        $duplicates = $this->dedup->findDuplicatesForLead($lead);
+
+        return response()->json([
+            'success' => true,
+            'lead_id' => $lead->id,
+            'duplicates' => $duplicates,
+        ]);
+    }
+
+    /** POST /api/leads/{lead}/merge */
+    public function mergeLead(Request $request, Lead $lead): JsonResponse
+    {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403, 'Unauthorized access to primary lead.');
+        }
+
+        $validated = $request->validate([
+            'secondary_lead_id' => 'required|integer|exists:leads,id',
+            'field_overrides' => 'nullable|array',
+            'field_overrides.*' => 'string',
+        ]);
+
+        $secondaryLead = Lead::findOrFail($validated['secondary_lead_id']);
+
+        if (! Lead::visibleTo($request->user())->whereKey($secondaryLead->id)->exists()) {
+            abort(403, 'Unauthorized access to secondary lead.');
+        }
+
+        if ($lead->id === $secondaryLead->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot merge a lead into itself.',
+            ], 422);
+        }
+
+        $result = $this->dedup->mergeLeads(
+            $lead,
+            $secondaryLead,
+            $validated['field_overrides'] ?? [],
+            $request->user()?->id
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Duplicate lead successfully merged into primary record.',
+            'data' => $result,
+        ]);
+    }
+
+    /**
+     * GET /api/leads/{lead}/next-best-actions
+     * Retrieve AI-prioritized Next Best Action recommendations for this lead.
+     */
+    public function getNextBestActions(
+        Request $request,
+        Lead $lead,
+        \App\Services\Revenue\LeadNextBestActionService $nbaService
+    ): JsonResponse {
+        if (! Lead::visibleTo($request->user())->whereKey($lead->id)->exists()) {
+            abort(403, 'Unauthorized access to lead.');
+        }
+
+        $recommendations = $nbaService->generateRecommendations($lead);
+
+        return response()->json([
+            'success' => true,
+            'data' => $recommendations,
+        ]);
+    }
 }

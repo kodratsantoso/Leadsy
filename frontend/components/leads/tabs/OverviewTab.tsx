@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SalesCadenceStatusCard } from '@/components/leads/SalesCadenceStatusCard';
+import { NextBestActionPanel } from '@/components/leads/NextBestActionPanel';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 
 export interface OverviewTabProps {
@@ -65,6 +66,15 @@ export function OverviewTab({
         leadId={Number(leadId)}
         leadName={leadData?.company_name || 'Lead'}
         onOpenEnrollModal={() => setIsCadenceModalOpen(true)}
+      />
+
+      {/* AI Next Best Action Recommendations Engine */}
+      <NextBestActionPanel
+        leadId={leadId}
+        onNavigateTab={(tab) => setActiveTab(tab)}
+        onOpenModal={(modal) => {
+          if (modal === 'cadence') setIsCadenceModalOpen(true);
+        }}
       />
 
       {/* Row 1: Company Profile + Key Contacts */}

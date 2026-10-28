@@ -267,6 +267,9 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('leads/{lead}/claim', [LeadController::class, 'claim'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/assign', [LeadController::class, 'assign'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/rescore', [LeadController::class, 'rescore'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/duplicates', [LeadController::class, 'getDuplicates'])->middleware('permission:leads.view');
+    Route::post('leads/{lead}/merge', [LeadController::class, 'mergeLead'])->middleware('permission:leads.edit');
+    Route::get('leads/{lead}/next-best-actions', [LeadController::class, 'getNextBestActions'])->middleware('permission:leads.view');
     
     // Sprint 2: Engagement Hardening Routes (G2.2, G2.4, G2.3)
     Route::get('deals/stalled', [\App\Http\Controllers\Api\Sprint2EngagementController::class, 'getStalledDeals'])->middleware('permission:leads.view');

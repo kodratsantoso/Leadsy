@@ -4,8 +4,27 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.38.0** — 2026-10-28
+Current release: **v1.39.0** — 2026-10-28
  
+## What's New in v1.39.0 (Lead Workspace Modularization Phase 3, Deduplication Merge Engine & AI Next Best Actions)
+
+- **Lead Workspace Modularization Phase 3 (UX-004 Phase 3):**
+  - *DeliveryWorkspaceTab Component* (`frontend/components/leads/tabs/DeliveryWorkspaceTab.tsx`) — Decoupled the 4 remaining inline delivery workspace tabs (`team`, `orders`, `professional services`, `projects`) into a unified, lazy-safe component container.
+  - *RecordOutcomeModal Component* (`frontend/components/leads/modals/RecordOutcomeModal.tsx`) — Encapsulated outcome recording logic, product assignment, sales type, deal sizing with `useNumberFormat`, and win/loss feedback notes.
+  - *ResolveConflictModal Component* (`frontend/components/leads/modals/ResolveConflictModal.tsx`) — Encapsulated field conflict auditor resolution with override types, values, and mandatory justification logging.
+  - *Code Slimming* — Shrunk `frontend/app/leads/[id]/page.tsx` further down to ~2,590 lines (eliminating more than 1,000 lines across modularization phases).
+
+- **Lead Deduplication Review & Merge Engine (LG-002):**
+  - *Multi-Criteria Candidate Detection* (`backend/app/Services/DeduplicationService.php`) — Intelligent detection of duplicate lead candidates across website domains, exact/fuzzy company names, normalized phone suffixes, and corporate emails with confidence match scoring.
+  - *Field-Level Consolidation & Reparenting* — Atomically consolidates contacts, activity histories, transcripts, quotations, sales orders, and outcome records to the primary lead inside a database transaction, while gracefully handling primary contact flags and soft-deleting the secondary lead with `merged` status.
+  - *Interactive Merge Modal* (`frontend/components/leads/modals/MergeLeadModal.tsx`) — Side-by-side comparison UI with match reasoning badges, field-level override selection (Website, Phone, Email, Address), relation count telemetry, and safety confirmation safeguards.
+  - *Accessible Entrypoints* — Direct "Deduplikasi & Merge" action button integrated into the Lead Detail header and Overview workspace.
+
+- **AI Next Best Action Recommendations Engine (LI-002):**
+  - *Multi-Dimensional Revenue Intelligence Service* (`backend/app/Services/Revenue/LeadNextBestActionService.php`) — Synthesizes BANTC qualification gaps (missing Authority/Budget/Timeline), deal slippage risks (inactivity > 7 days, overdue follow-ups), presales readiness (uncreated strategic briefs for high-score leads), and cadence coverage.
+  - *Prioritized Action Telemetry* (`GET /api/leads/{lead}/next-best-actions`) — Outputs categorized actions (`urgent`, `high`, `medium`, `low`) with potential impact percentages, clear AI reasoning, and direct action triggers.
+  - *High-Craft NextBestActionPanel* (`frontend/components/leads/NextBestActionPanel.tsx`) — Modern actionable recommendation cards embedded directly on the Lead Overview dashboard with one-click navigation to BANTC guides, cadence enrollments, and activity recorders.
+
 ## What's New in v1.38.0 (Lead Workspace Modularization Phase 2 & Real-Time SSE AI Screening Telemetry)
 
 - **Lead Workspace Modularization Phase 2 (UX-004 Phase 2):**

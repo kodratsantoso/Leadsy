@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.38.0',
+    'version' => '1.39.0',
     'released_at' => '2026-10-28',
     'type' => 'minor',
-    'notes' => 'Lead Workspace Modularization Phase 2 (OverviewTab & RevenueTab) and Real-Time SSE Streaming with 8-Stage Telemetry for AI Pre-Meeting Screening pipeline.',
+    'notes' => 'Lead Workspace Modularization Phase 3 (DeliveryWorkspaceTab, RecordOutcomeModal, ResolveConflictModal), Lead Deduplication Review & Merge Consolidation Engine, and AI Next Best Action Recommendations Engine.',
 ];

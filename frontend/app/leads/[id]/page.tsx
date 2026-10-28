@@ -18,7 +18,7 @@ import {
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown, ChevronUp,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, GitBranch, Link as LinkIcon
+  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, GitBranch, GitMerge, Link as LinkIcon
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -30,10 +30,10 @@ import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { LeadBantcQuestionGuide } from '@/components/leads/LeadBantcQuestionGuide';
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import { PreMeetingBriefTab } from '@/components/leads/PreMeetingBriefTab';
-import { CommercialTeam } from '@/components/leads/CommercialTeam';
-import { OrderToCash } from '@/components/leads/OrderToCash';
-import { ProfessionalServicesTab } from '@/components/leads/tabs/professional-services-tab';
-import { ProjectPlansTab } from '@/components/leads/tabs/project-plans-tab';
+import { DeliveryWorkspaceTab } from '@/components/leads/tabs/DeliveryWorkspaceTab';
+import { RecordOutcomeModal } from '@/components/leads/modals/RecordOutcomeModal';
+import { ResolveConflictModal } from '@/components/leads/modals/ResolveConflictModal';
+import { MergeLeadModal } from '@/components/leads/modals/MergeLeadModal';
 import { DiscoveryWorkspaceTab } from '@/components/leads/tabs/DiscoveryWorkspaceTab';
 import { ContactsTab } from '@/components/leads/tabs/ContactsTab';
 import { ActivitiesTab } from '@/components/leads/tabs/ActivitiesTab';
@@ -458,6 +458,7 @@ export default function LeadDetailPage() {
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isCadenceModalOpen, setIsCadenceModalOpen] = useState(false);
   const [isCheckinModalOpen, setIsCheckinModalOpen] = useState(false);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [createNewModalConfig, setCreateNewModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -657,9 +658,7 @@ export default function LeadDetailPage() {
   });
 
   const [showConflictModal, setShowConflictModal] = useState(false);
-  const [overrideValue, setOverrideValue] = useState('');
-  const [overrideType, setOverrideType] = useState('legal_name');
-  const [overrideJustification, setOverrideJustification] = useState('');
+  const [overrideInitialValue, setOverrideInitialValue] = useState('');
 
   const { data: confidentiality, refetch: refetchConfidentiality } = useQuery({
     queryKey: ['lead-confidentiality', leadId],
@@ -1396,7 +1395,6 @@ export default function LeadDetailPage() {
   });
 
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
-  const [outcomeForm, setOutcomeForm] = useState({ outcome: 'won', product_id: '', sale_type: 'new_sales', deal_size: '', feedback_notes: '' });
 
   /* ── Render ── */
   if (leadLoading) {
@@ -1598,6 +1596,16 @@ export default function LeadDetailPage() {
           >
             <GitBranch className="mr-2 h-4 w-4 text-brand" />
             Cadence
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white"
+            onClick={() => setIsMergeModalOpen(true)}
+            title="Periksa kecocokan duplikat dan gabungkan lead ini"
+          >
+            <GitMerge className="mr-2 h-4 w-4" />
+            Deduplikasi & Merge
           </Button>
           <Button
             variant="outline"
@@ -1892,32 +1900,12 @@ export default function LeadDetailPage() {
         />
       )}
 
-      {/* ── TEAM TAB ── */}
-      {activeTab === 'team' && (
-        <div className="space-y-6">
-          <CommercialTeam leadId={leadId} />
-        </div>
-      )}
-
-      {/* ── ORDERS TAB ── */}
-      {activeTab === 'orders' && (
-        <div className="space-y-6">
-          <OrderToCash leadId={leadId} />
-        </div>
-      )}
-
-      {/* ── PROFESSIONAL SERVICES TAB ── */}
-      {activeTab === 'professional services' && (
-        <div className="space-y-6">
-          <ProfessionalServicesTab leadId={Number(params.id)} />
-        </div>
-      )}
-
-      {/* ── PROJECTS TAB ── */}
-      {activeTab === 'projects' && (
-        <div className="space-y-6">
-          <ProjectPlansTab leadId={Number(params.id)} />
-        </div>
+      {/* ── DELIVERY WORKSPACE TABS (Team, Orders, Professional Services, Projects) ── */}
+      {['team', 'orders', 'professional services', 'projects'].includes(activeTab) && (
+        <DeliveryWorkspaceTab
+          activeTab={activeTab as any}
+          leadId={leadId}
+        />
       )}
 
       {/* ── CONTACTS TAB ── */}
@@ -1958,7 +1946,7 @@ export default function LeadDetailPage() {
           confidentiality={confidentiality}
           products={products}
           onLeadChanged={invalidateLead}
-          onResolveConflict={(suggestedName) => { setOverrideValue(suggestedName); setShowConflictModal(true); }}
+          onResolveConflict={(suggestedName) => { setOverrideInitialValue(suggestedName); setShowConflictModal(true); }}
         />
       )}
 
@@ -1974,7 +1962,6 @@ export default function LeadDetailPage() {
           prescribeMutation={prescribeMutation}
           formatCurrency={formatCurrency}
           formatNumber={formatNumber}
-          setOutcomeForm={setOutcomeForm}
           setShowOutcomeModal={setShowOutcomeModal}
           icpReasoning={icpReasoning}
           icpBreakdown={icpBreakdown}
@@ -2118,153 +2105,26 @@ export default function LeadDetailPage() {
       )}
 
       {/* ── Record Outcome Modal ── */}
-      {showOutcomeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Record Deal Outcome</h2>
-              <button onClick={() => setShowOutcomeModal(false)} className="rounded-lg p-1.5 hover:bg-muted"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Outcome</label>
-                <select
-                  value={outcomeForm.outcome}
-                  onChange={(e) => setOutcomeForm({ ...outcomeForm, outcome: e.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  <option value="won">Won</option>
-                  <option value="lost">Lost</option>
-                  <option value="churned">Churned</option>
-                  <option value="disqualified">Disqualified</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Product</label>
-                <select
-                  value={outcomeForm.product_id}
-                  onChange={(e) => setOutcomeForm({ ...outcomeForm, product_id: e.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">Unassigned product</option>
-                  {products.map((product: any) => (
-                    <option key={product.id} value={String(product.id)}>{product.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Sales Type</label>
-                <select
-                  value={outcomeForm.sale_type}
-                  onChange={(e) => setOutcomeForm({ ...outcomeForm, sale_type: e.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                >
-                  <option value="new_sales">New Sales</option>
-                  <option value="upsales">Upsales</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Size (optional)</label>
-                <input
-                  inputMode="decimal"
-                  value={formatAmountInput(outcomeForm.deal_size)}
-                  onChange={(e) => setOutcomeForm({ ...outcomeForm, deal_size: normalizeAmountInput(e.target.value) })}
-                  placeholder="e.g. 50,000,000"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Notes</label>
-                <textarea
-                  value={outcomeForm.feedback_notes}
-                  onChange={(e) => setOutcomeForm({ ...outcomeForm, feedback_notes: e.target.value })}
-                  rows={3}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  placeholder="What happened? What did you learn?"
-                />
-              </div>
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setShowOutcomeModal(false)} className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-muted-foreground">Cancel</button>
-              <button
-                disabled={outcomeMutation.isPending}
-                onClick={() => {
-                  outcomeMutation.mutate({
-                    outcome: outcomeForm.outcome as any,
-                    product_id: outcomeForm.product_id ? Number(outcomeForm.product_id) : undefined,
-                    sale_type: outcomeForm.sale_type,
-                    deal_size: outcomeForm.deal_size ? parseFloat(outcomeForm.deal_size) : undefined,
-                    feedback_notes: outcomeForm.feedback_notes || undefined,
-                  });
-                  setShowOutcomeModal(false);
-                }}
-                className="flex items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
-              >
-                {outcomeMutation.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
-                Save Outcome
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RecordOutcomeModal
+        open={showOutcomeModal}
+        onClose={() => setShowOutcomeModal(false)}
+        products={products}
+        defaultSaleType={defaultOutcomeSaleType}
+        isPending={outcomeMutation.isPending}
+        onSave={(data) => {
+          outcomeMutation.mutate(data as any);
+          setShowOutcomeModal(false);
+        }}
+      />
 
       {/* ── Resolve Match Conflict Override Modal ── */}
-      <Modal
+      <ResolveConflictModal
         open={showConflictModal}
         onOpenChange={setShowConflictModal}
-        title="Resolve Legal Entity Name Match Conflict"
-        description="Override automatically resolved brand/legal company mapping names."
-        size="md"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setShowConflictModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => resolveConflictMutation.mutate({
-                override_value: overrideValue,
-                override_type: overrideType,
-                justification: overrideJustification
-              })}
-              disabled={resolveConflictMutation.isPending || !overrideValue}
-            >
-              {resolveConflictMutation.isPending ? 'Resolving…' : 'Apply Override'}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase">Override Type</label>
-            <select
-              value={overrideType}
-              onChange={(e) => setOverrideType(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
-            >
-              <option value="legal_name">Legal Entity Name (PT/CV)</option>
-              <option value="brand">Brand / Trading Name</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase">Override Value</label>
-            <Input
-              type="text"
-              value={overrideValue}
-              onChange={(e) => setOverrideValue(e.target.value)}
-              placeholder="e.g. PT Example Indonesia Tbk"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase">Auditor Justification Notes</label>
-            <Input
-              type="text"
-              value={overrideJustification}
-              onChange={(e) => setOverrideJustification(e.target.value)}
-              placeholder="Provide evidence sources or validation notes"
-            />
-          </div>
-        </div>
-      </Modal>
+        initialValue={overrideInitialValue}
+        isPending={resolveConflictMutation.isPending}
+        onApplyOverride={(data) => resolveConflictMutation.mutate(data)}
+      />
 
       {/* ── Edit Lead Information Modal (Unified) ── */}
       <EditLeadModal
@@ -2722,6 +2582,16 @@ export default function LeadDetailPage() {
         leadName={leadData?.company_name || 'Lead'}
         isOpen={isCheckinModalOpen}
         onClose={() => setIsCheckinModalOpen(false)}
+      />
+
+      {/* ── LEAD DEDUPLICATION & MERGE MODAL ── */}
+      <MergeLeadModal
+        open={isMergeModalOpen}
+        onOpenChange={setIsMergeModalOpen}
+        primaryLead={leadData}
+        onMerged={() => {
+          qc.invalidateQueries({ queryKey: ['lead', leadId] });
+        }}
       />
     </div>
   );
