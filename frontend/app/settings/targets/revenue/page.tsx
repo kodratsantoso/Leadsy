@@ -14,6 +14,8 @@ import { useNumberFormat } from "@/lib/hooks/use-number-format";
 import { useToast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
+import { BackToSettings } from "@/app/settings/_components/back-to-settings";
+
 const NumberInput = ({ value, onChange, className, placeholder }: any) => {
   const displayValue = value ? new Intl.NumberFormat('en-US').format(Number(value)) : "";
   const handleChange = (e: any) => {
@@ -214,12 +216,15 @@ export default function RevenueTargetsPage() {
 
   return (
     <div className="space-y-6 p-6 w-full">
-      <div className="flex justify-between items-center">
+      <BackToSettings />
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Revenue Targets</h1>
           <p className="text-muted-foreground mt-1">Configure company revenue targets and cascade to Sales and AMs.</p>
         </div>
         <Button onClick={handleOpenCreate}><Plus className="w-4 h-4 mr-2" /> New Target</Button>
+      </div>
         
         <Modal open={open} onOpenChange={setOpen} title={editId ? "Edit Revenue Target" : "Create Revenue Target"} size="md">
           <div className="space-y-6 mt-6">
@@ -343,7 +348,6 @@ export default function RevenueTargetsPage() {
             </div>
           </div>
         </Modal>
-      </div>
 
       <Card className="overflow-hidden border-border/50 shadow-sm">
         <Table>

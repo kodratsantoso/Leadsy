@@ -435,15 +435,37 @@ export default function MapPage() {
                     />
                     <AdvancedMarker
                       position={{ lat: activeArea.lat, lng: activeArea.lng }}
-                      title={`Territory Center: ${activeArea.formatted_address}`}
+                      title={`Territory Center: ${activeArea.formatted_address} (Drag to move)`}
+                      draggable={true}
+                      onDragEnd={(ev) => {
+                        if (ev.latLng) {
+                          const lat = typeof ev.latLng.lat === "function" ? ev.latLng.lat() : (ev.latLng as any).lat;
+                          const lng = typeof ev.latLng.lng === "function" ? ev.latLng.lng() : (ev.latLng as any).lng;
+                          if (typeof lat === "number" && typeof lng === "number") {
+                            setActiveArea(prev => prev ? {
+                              ...prev,
+                              lat,
+                              lng,
+                              formatted_address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+                            } : {
+                              place_id: "dragged_center",
+                              formatted_address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+                              lat,
+                              lng
+                            });
+                            setCenter({ lat, lng });
+                            setFeedback(`Territory center moved to: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                          }
+                        }
+                      }}
                       style={{ zIndex: 999 }}
                     >
-                      <div className="flex flex-col items-center pointer-events-none origin-bottom select-none">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-[color:var(--brand)] text-[color:var(--brand-foreground)] shadow-md ring-2 ring-[color:var(--brand)]/30">
-                          <Crosshair className="h-3.5 w-3.5" />
+                      <div className="flex flex-col items-center origin-bottom select-none cursor-grab active:cursor-grabbing group">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-[color:var(--brand)] text-[color:var(--brand-foreground)] shadow-lg ring-2 ring-[color:var(--brand)]/30 group-hover:scale-110 transition-transform">
+                          <Crosshair className="h-4 w-4" />
                         </div>
-                        <div className="mt-1 whitespace-nowrap rounded-md bg-card/95 backdrop-blur px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-sm border border-border">
-                          Territory Center · {(radius / 1000).toFixed(1)} km
+                        <div className="mt-1 whitespace-nowrap rounded-md bg-card/95 backdrop-blur px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-sm border border-border group-hover:border-[color:var(--brand)] transition-colors">
+                          Territory Center · {(radius / 1000).toFixed(1)} km (Drag)
                         </div>
                       </div>
                     </AdvancedMarker>

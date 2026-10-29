@@ -114,6 +114,15 @@ jobs:
           docker push "${REGISTRY}/leadsy-frontend:${TAG}"
           docker push "${REGISTRY}/leadsy-frontend:latest"
 
+      - name: Build and Push WhatsApp Sidecar Image
+        run: |
+          set -euo pipefail
+          REGISTRY="10.43.110.114:5000"
+          TAG="${{ github.sha }}"
+          docker build -t "${REGISTRY}/leadsy-whatsapp:${TAG}" -t "${REGISTRY}/leadsy-whatsapp:latest" -f whatsapp-service/Dockerfile whatsapp-service/
+          docker push "${REGISTRY}/leadsy-whatsapp:${TAG}"
+          docker push "${REGISTRY}/leadsy-whatsapp:latest"
+
       - name: Rollout to K3s Cluster
         run: |
           set -euo pipefail
@@ -133,6 +142,11 @@ jobs:
           echo "Applying Redis runtime (persistent cache/queue volume only)..."
           render_runtime k8s/leadsy-prod-redis.yaml | kubectl apply -n "${NAMESPACE}" -f -
           kubectl rollout status deployment/leadsy-redis -n "${NAMESPACE}" --timeout=180s
+
+          echo "Applying WhatsApp sidecar runtime..."
+          render k8s/leadsy-prod-whatsapp.yaml | kubectl apply -n "${NAMESPACE}" -f -
+          kubectl set image deployment/leadsy-whatsapp whatsapp="${REGISTRY}/leadsy-whatsapp:${TAG}" -n "${NAMESPACE}" || true
+          kubectl rollout status deployment/leadsy-whatsapp -n "${NAMESPACE}" --timeout=180s || true
 
           echo "Applying backend runtime without changing the public backend Service yet..."
           render_runtime k8s/leadsy-prod-backend.yaml | kubectl apply -n "${NAMESPACE}" -f -

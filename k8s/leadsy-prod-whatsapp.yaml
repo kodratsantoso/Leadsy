@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: leadsy-whatsapp-auth
+  namespace: leadsy-prod
+  labels:
+    app.kubernetes.io/name: leadsy-whatsapp
+    app.kubernetes.io/part-of: leadsy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whatsapp-service
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-whatsapp
+    app.kubernetes.io/part-of: leadsy
+spec:
+  selector:
+    app: leadsy-whatsapp
+  ports:
+    - name: http
+      port: 3002
+      targetPort: 3002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: leadsy-whatsapp
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-whatsapp
+    app.kubernetes.io/part-of: leadsy
+spec:
+  selector:
+    app: leadsy-whatsapp
+  ports:
+    - name: http
+      port: 3002
+      targetPort: 3002
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leadsy-whatsapp
+  namespace: leadsy-prod
+  labels:
+    app: leadsy-whatsapp
+    app.kubernetes.io/name: leadsy-whatsapp
+    app.kubernetes.io/part-of: leadsy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: leadsy-whatsapp
+  template:
+    metadata:
+      labels:
+        app: leadsy-whatsapp
+        app.kubernetes.io/name: leadsy-whatsapp
+        app.kubernetes.io/part-of: leadsy
+    spec:
+      containers:
+        - name: whatsapp
+          image: 10.43.110.114:5000/leadsy-whatsapp:__IMAGE_TAG__
+          imagePullPolicy: Always
+          env:
+            - name: PORT
+              value: "3002"
+            - name: LARAVEL_WEBHOOK_URL
+              value: "http://backend-k8s:8000/api/whatsapp/webhook"
+            - name: WHATSAPP_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: leadsy-runtime
+                  key: whatsapp-webhook-secret
+                  optional: true
+          ports:
+            - name: http
+              containerPort: 3002
+          volumeMounts:
+            - name: auth-data
+              mountPath: /usr/src/app/baileys_auth_info
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: auth-data
+          persistentVolumeClaim:
+            claimName: leadsy-whatsapp-auth

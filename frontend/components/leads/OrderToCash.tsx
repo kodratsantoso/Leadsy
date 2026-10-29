@@ -1688,42 +1688,42 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     <div className="flex gap-2 pt-2 border-t border-[color:var(--status-success)]/10">
                       {so.order_status === 'draft' && (
                         <>
-                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => startEditSO(so)}>
+                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={(e) => { e.stopPropagation(); startEditSO(so); }}>
                             Edit
                           </Button>
-                          <Button size="xs" variant="outline" className="text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10" onClick={() => updateSalesOrderStatus(so.id, 'confirm')}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10" onClick={(e) => { e.stopPropagation(); updateSalesOrderStatus(so.id, 'confirm'); }}>
                             Confirm Order
                           </Button>
-                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteSalesOrder(so.id)}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={(e) => { e.stopPropagation(); deleteSalesOrder(so.id, so.sales_order_number); }}>
                             Delete
                           </Button>
-                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => updateSalesOrderStatus(so.id, 'cancel')}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={(e) => { e.stopPropagation(); updateSalesOrderStatus(so.id, 'cancel'); }}>
                             Cancel
                           </Button>
                         </>
                       )}
                       {so.order_status === 'confirmed' && (
                         <>
-                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => startEditSO(so)}>
+                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={(e) => { e.stopPropagation(); startEditSO(so); }}>
                             Edit
                           </Button>
-                          <Button size="xs" variant="outline" className="text-neutral-600" onClick={() => updateSalesOrderStatus(so.id, 'close')}>
+                          <Button size="xs" variant="outline" className="text-neutral-600" onClick={(e) => { e.stopPropagation(); updateSalesOrderStatus(so.id, 'close'); }}>
                             Close Order
                           </Button>
-                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => updateSalesOrderStatus(so.id, 'cancel')}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={(e) => { e.stopPropagation(); updateSalesOrderStatus(so.id, 'cancel'); }}>
                             Cancel
                           </Button>
-                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteSalesOrder(so.id)}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={(e) => { e.stopPropagation(); deleteSalesOrder(so.id, so.sales_order_number); }}>
                             Delete
                           </Button>
                         </>
                       )}
                       {!['draft', 'confirmed'].includes(so.order_status) && (
                         <>
-                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={() => startEditSO(so)}>
+                          <Button size="xs" variant="outline" className="text-[var(--brand)] hover:bg-[color:var(--brand)]/10" onClick={(e) => { e.stopPropagation(); startEditSO(so); }}>
                             Edit
                           </Button>
-                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={() => deleteSalesOrder(so.id)}>
+                          <Button size="xs" variant="outline" className="text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" onClick={(e) => { e.stopPropagation(); deleteSalesOrder(so.id, so.sales_order_number); }}>
                             Delete
                           </Button>
                         </>

@@ -120,6 +120,8 @@ spec:
                 secretKeyRef:
                   name: leadsy-runtime
                   key: whatsapp-webhook-secret
+            - name: WHATSAPP_SIDECAR_URL
+              value: "http://whatsapp-service:3002"
             - name: AUTO_MIGRATE
               value: "true"
             - name: AUTO_SEED_BASELINE

@@ -631,6 +631,7 @@ class WhatsAppController extends Controller
         $configured = (string) env('WHATSAPP_SIDECAR_URL', '');
         $candidates = [
             $configured,
+            'http://leadsy-whatsapp:3002',
             'http://whatsapp-service:3002',
             'http://127.0.0.1:3002',
             'http://localhost:3002',

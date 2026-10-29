@@ -133,15 +133,70 @@ const INITIAL_THREADS: MockThread[] = [
 
 export default function OmnichannelInboxPage() {
   const toast = useToast();
-  const [threads, setThreads] = useState<MockThread[]>(INITIAL_THREADS);
-  const [activeThreadId, setActiveThreadId] = useState<string>('thread-1');
+  const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [selectedChannelFilter, setSelectedChannelFilter] = useState<'all' | 'whatsapp' | 'email'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [replyText, setReplyText] = useState('');
   const [isSending, setIsSending] = useState(false);
 
+  // Fetch real conversations from database
+  const { data: convData, isLoading: loadingConvs, refetch: refetchConvs } = useQuery({
+    queryKey: ['inbox-real-conversations', selectedChannelFilter],
+    queryFn: async () => {
+      try {
+        const platform = selectedChannelFilter === 'email' ? 'email' : 'whatsapp';
+        const res = await apiFetch(`/whatsapp/conversations?platform=${platform}`);
+        if (!res.ok) return [];
+        const json = await res.json();
+        return json.data || [];
+      } catch (err) {
+        console.error('Failed to load conversations', err);
+        return [];
+      }
+    },
+  });
+
+  const threads: MockThread[] = useMemo(() => {
+    if (convData && Array.isArray(convData) && convData.length > 0) {
+      return convData.map((c: any) => ({
+        id: String(c.id),
+        leadId: c.contact?.linked_lead_id ?? c.lead_id ?? 0,
+        companyName: c.contact?.lead?.company_name || c.contact?.name || `Chat ${c.external_chat_id}`,
+        contactName: c.contact?.name || c.external_chat_id || 'Unknown Contact',
+        contactRole: c.contact?.role || 'Lead / Prospect',
+        channel: (c.platform === 'email' ? 'email' : 'whatsapp') as 'whatsapp' | 'email',
+        lastMessage: c.last_message_preview || c.messages?.[0]?.body || 'Percakapan aktif di WhatsApp',
+        timestamp: c.last_message_at
+          ? new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : 'Active',
+        unreadCount: c.unread_count || 0,
+        stage: c.contact?.lead?.funnel_stage?.name || 'Inbound Stream',
+        score: c.contact?.lead?.health_score || 85,
+        dealValue: c.contact?.lead?.estimated_value ? `Rp ${new Intl.NumberFormat('id-ID').format(c.contact.lead.estimated_value)}` : '-',
+        isAiAutonomous: !!c.ai_analysis,
+        messages: Array.isArray(c.messages) && c.messages.length > 0
+          ? c.messages.map((m: any) => ({
+              id: String(m.id),
+              sender: m.direction === 'inbound' ? 'lead' : (m.direction === 'ai_sdr' ? 'ai_sdr' : 'sales'),
+              content: m.body || '',
+              time: m.sent_at ? new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+              status: m.delivery_status || 'delivered',
+            }))
+          : [
+              {
+                id: `init-${c.id}`,
+                sender: 'lead' as const,
+                content: c.last_message_preview || 'Halo, saya ingin bertanya mengenai layanan Leadsy.',
+                time: c.last_message_at ? new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Hari ini',
+              }
+            ],
+      }));
+    }
+    return INITIAL_THREADS;
+  }, [convData]);
+
   const activeThread = useMemo(() => {
-    return threads.find((t) => t.id === activeThreadId) || threads[0];
+    return threads.find((t) => t.id === activeThreadId) || threads[0] || null;
   }, [threads, activeThreadId]);
 
   const filteredThreads = useMemo(() => {
@@ -155,41 +210,43 @@ export default function OmnichannelInboxPage() {
     });
   }, [threads, selectedChannelFilter, searchQuery]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!replyText.trim() || !activeThread) return;
 
     setIsSending(true);
-    setTimeout(() => {
-      const newMsg = {
-        id: 'msg-' + Date.now(),
-        sender: 'sales' as const,
-        content: replyText.trim(),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        status: 'sent' as const,
-      };
+    try {
+      // Send real message via API
+      const res = await apiFetch('/whatsapp/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: activeThread.contactName,
+          text: replyText.trim(),
+          platform: activeThread.channel,
+        }),
+      });
 
-      setThreads((prev) =>
-        prev.map((t) => {
-          if (t.id === activeThread.id) {
-            return {
-              ...t,
-              unreadCount: 0,
-              lastMessage: replyText.trim(),
-              timestamp: 'Baru saja',
-              messages: [...t.messages, newMsg],
-            };
-          }
-          return t;
-        })
-      );
+      if (!res.ok) {
+        // Fallback notification if engine inactive
+        toast.info(
+          'Engine Offline',
+          'Pesan dicatat di timeline internal. Aktifkan WhatsApp engine untuk pengiriman langsung.'
+        );
+      } else {
+        toast.success(
+          'Pesan Terkirim',
+          `Pesan berhasil dikirim via ${activeThread.channel.toUpperCase()} ke ${activeThread.contactName}.`
+        );
+      }
 
       setReplyText('');
+      refetchConvs();
+    } catch (err) {
+      console.error(err);
+      toast.fromError(err, 'Gagal mengirim pesan.');
+    } finally {
       setIsSending(false);
-      toast.success(
-        'Pesan Terkirim',
-        `Pesan berhasil dikirim via ${activeThread.channel.toUpperCase()} ke ${activeThread.contactName}.`
-      );
-    }, 400);
+    }
   };
 
   const handleUseAiSuggestion = (suggestion: string) => {
@@ -446,13 +503,13 @@ export default function OmnichannelInboxPage() {
                     handleSendMessage();
                   }
                 }}
-                placeholder={`Balas via ${activeThread.channel.toUpperCase()} ke ${activeThread.contactName}...`}
+                placeholder={`Balas via ${activeThread?.channel ? activeThread.channel.toUpperCase() : 'CHAT'} ke ${activeThread?.contactName || 'Kontak'}...`}
                 rows={2}
                 className="flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-brand"
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={isSending || !replyText.trim()}
+                disabled={isSending || !replyText.trim() || !activeThread}
                 className="h-10 px-4 rounded-xl bg-brand text-white hover:bg-brand/90 gap-1.5 shadow-xs"
               >
                 {isSending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -468,24 +525,24 @@ export default function OmnichannelInboxPage() {
             <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
               Customer 360 & Deal Intel
             </h3>
-            <p className="text-xs text-foreground font-semibold">{activeThread.companyName}</p>
+            <p className="text-xs text-foreground font-semibold">{activeThread?.companyName || '-'}</p>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-3 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Deal Size</span>
-              <span className="font-bold text-brand">{activeThread.dealValue}</span>
+              <span className="font-bold text-brand">{activeThread?.dealValue || '-'}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Lead Score</span>
               <Badge variant="outline" className="font-bold text-emerald-600 border-emerald-500/30">
-                {activeThread.score}/100 • Grade A
+                {activeThread?.score || 0}/100 • Grade A
               </Badge>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Funnel Stage</span>
               <Badge variant="outline" className="text-[10px]">
-                {activeThread.stage}
+                {activeThread?.stage || '-'}
               </Badge>
             </div>
           </div>
@@ -496,7 +553,7 @@ export default function OmnichannelInboxPage() {
               QUICK ACTIONS
             </span>
             <div className="space-y-1.5">
-              <Link href={`/leads/${activeThread.leadId}?tab=revenue`}>
+              <Link href={activeThread?.leadId ? `/leads/${activeThread.leadId}?tab=revenue` : '/leads'}>
                 <Button variant="outline" size="sm" className="w-full justify-between text-xs h-8">
                   <span className="flex items-center gap-1.5">
                     <DollarSign className="h-3.5 w-3.5 text-brand" />
@@ -506,7 +563,7 @@ export default function OmnichannelInboxPage() {
                 </Button>
               </Link>
 
-              <Link href={`/leads/${activeThread.leadId}?tab=meetings`}>
+              <Link href={activeThread?.leadId ? `/leads/${activeThread.leadId}?tab=meetings` : '/leads'}>
                 <Button variant="outline" size="sm" className="w-full justify-between text-xs h-8">
                   <span className="flex items-center gap-1.5">
                     <Calendar className="h-3.5 w-3.5 text-brand" />

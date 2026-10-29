@@ -649,7 +649,7 @@ export function MapSearchPanel({
               {/* AI Analysis Mode */}
               <div className="space-y-1">
                 <span className="text-[11px] font-medium text-muted-foreground">AI Intelligence Mode</span>
-                <AiModeSelector value={aiMode} onChange={setAiMode} />
+                <AiModeSelector value={aiMode} onChange={setAiMode} hideLabel />
               </div>
 
               {/* Data Filters */}

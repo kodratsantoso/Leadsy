@@ -20,16 +20,25 @@ class CustomerRenewalIntelligenceService
     {
         $orders = LeadSalesOrder::with(['lead', 'items.product'])
             ->whereIn('order_status', ['confirmed', 'delivered', 'active'])
-            ->whereNotNull('contract_end_date')
             ->get();
 
         $opportunities = collect();
 
         foreach ($orders as $order) {
-            $endDate = Carbon::parse($order->contract_end_date);
+            $endDate = $order->contract_end_date
+                ? Carbon::parse($order->contract_end_date)
+                : ($order->renewal_date
+                    ? Carbon::parse($order->renewal_date)
+                    : ($order->billing_frequency === 'monthly'
+                        ? now()->addDays(14)
+                        : ($order->order_date ? Carbon::parse($order->order_date)->addYear() : now()->addMonths(3))
+                    )
+                );
+
             $daysLeft = (int) now()->diffInDays($endDate, false);
 
-            // Only track if expiring within the next 90 days or recently expired (< 14 days ago)
+            // Track if expiring within the next 90 days or recently expired (< 14 days ago)
+            // Or if derived monthly cycle
             if ($daysLeft <= 90 && $daysLeft >= -14) {
                 $urgency = match (true) {
                     $daysLeft <= 30 => 'critical',
@@ -64,11 +73,17 @@ class CustomerRenewalIntelligenceService
                     ]
                 );
 
+                $opp->load(['lead', 'salesOrder', 'recommendedProduct']);
                 $opportunities->push($opp);
             }
         }
 
-        return $opportunities;
+        $existing = CustomerRenewalOpportunity::with(['lead', 'salesOrder', 'recommendedProduct'])
+            ->whereIn('status', ['identified', 'in_discussion', 'quoted'])
+            ->whereNotIn('id', $opportunities->pluck('id'))
+            ->get();
+
+        return $opportunities->concat($existing);
     }
 
     /**

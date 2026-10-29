@@ -32,6 +32,7 @@ function MapPane({
   zoom,
   radiusMeters,
   onMapClick,
+  onCenterChange,
 }: {
   center: google.maps.LatLngLiteral;
   zoom: number;
@@ -39,6 +40,7 @@ function MapPane({
   onMapClick: (e: {
     detail: { latLng: google.maps.LatLngLiteral | null };
   }) => void;
+  onCenterChange?: (loc: google.maps.LatLngLiteral) => void;
 }) {
   return (
     <Map
@@ -61,7 +63,20 @@ function MapPane({
         fillColor="oklch(0.205 0 0)"
         fillOpacity={0.08}
       />
-      <Marker position={center} title="Territory center" />
+      <Marker
+        position={center}
+        title="Territory center (Drag to move)"
+        draggable={true}
+        onDragEnd={(e) => {
+          if (e.latLng) {
+            const lat = typeof e.latLng.lat === "function" ? e.latLng.lat() : (e.latLng as any).lat;
+            const lng = typeof e.latLng.lng === "function" ? e.latLng.lng() : (e.latLng as any).lng;
+            if (typeof lat === "number" && typeof lng === "number") {
+              onCenterChange?.({ lat, lng });
+            }
+          }
+        }}
+      />
     </Map>
   );
 }
@@ -324,6 +339,7 @@ export function TerritoryMapView({ apiKey, className }: TerritoryMapViewProps) {
               zoom={zoom}
               radiusMeters={radiusMeters}
               onMapClick={onMapClick}
+              onCenterChange={setCenter}
             />
           </div>
         </div>
