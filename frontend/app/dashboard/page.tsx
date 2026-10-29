@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, ArrowRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent, HelpCircle } from "lucide-react";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, ArrowRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent, HelpCircle, Maximize2, Minimize2, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
@@ -296,6 +296,7 @@ export default function DashboardPage() {
   const [drilldownSearch, setDrilldownSearch] = useState("");
   const [drilldownPage, setDrilldownPage] = useState(1);
   const [hintModal, setHintModal] = useState<{ title: string; description: string; attention: string; action: string } | null>(null);
+  const [isMapFullWidth, setIsMapFullWidth] = useState(false);
 
   const [colors, setColors] = useState({
     brand: "#8b5cf6",
@@ -1362,25 +1363,52 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            <div className="md:col-span-8" data-tour="dashboard-map">
+            <div className={isMapFullWidth ? "md:col-span-12" : "md:col-span-8"} data-tour="dashboard-map">
               <Card className="flex h-full flex-col">
                 <CardHeader>
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <CardTitle>Lead Geography</CardTitle>
                       <CardDescription>Database-backed leads with stage-colored POI markers.</CardDescription>
                     </div>
-                    <Badge variant="info">{formatNumber(mapPoints.length, { decimals: 0 })} mapped</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="info">{formatNumber(mapPoints.length, { decimals: 0 })} mapped</Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsMapFullWidth(!isMapFullWidth)}
+                        className="h-8 text-xs gap-1.5 cursor-pointer"
+                        title={isMapFullWidth ? "Kembali ke Tampilan Standar" : "Perbesar ke Layar Penuh (12 Kolom)"}
+                      >
+                        {isMapFullWidth ? (
+                          <>
+                            <Minimize2 className="h-3.5 w-3.5" />
+                            <span>Standar</span>
+                          </>
+                        ) : (
+                          <>
+                            <Maximize2 className="h-3.5 w-3.5" />
+                            <span>Perbesar Penuh</span>
+                          </>
+                        )}
+                      </Button>
+                      <Link href="/map">
+                        <Button variant="ghost" size="sm" className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground cursor-pointer">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Peta Teritori</span>
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="min-h-0 flex-1">
-                  <div className="h-full min-h-[260px] overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)]">
+                  <div className="h-[480px] lg:h-[540px] w-full overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)] shadow-xs">
                     {mapsEnabled && mapsApiKey ? (
                       <APIProvider apiKey={mapsApiKey}>
                         <Map
                           mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
                           defaultCenter={mapCenter}
-                          defaultZoom={mapPoints.length > 0 ? 11 : 6}
+                          defaultZoom={mapPoints.length > 0 ? 9 : 5}
                           gestureHandling="greedy"
                           disableDefaultUI={false}
                         >
@@ -1401,7 +1429,7 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            <div className="md:col-span-4">
+            <div className={isMapFullWidth ? "md:col-span-12" : "md:col-span-4"}>
               {salesAchievement.tier_level === "PRESALES" ? (
                 <Card className="h-full">
                   <CardHeader>
