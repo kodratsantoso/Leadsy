@@ -9,7 +9,7 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff
+  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff, LayoutGrid
 } from "lucide-react";
 import { useOfflineSync } from "@/lib/offline/offlineSyncManager";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
@@ -120,6 +120,7 @@ export const navItems: NavItem[] = [
     icon: Settings,
     label: "Settings",
     children: [
+      { href: "/settings",                icon: LayoutGrid,   label: "Settings Overview", group: "General" },
       { href: "/settings/users",          icon: Users,        label: "Users & Roles", group: "User & Targets" },
       { href: "/settings/targets/revenue", icon: Target,       label: "Target Revenue", group: "User & Targets" },
       { href: "/settings/targets/kpi",     icon: Activity,     label: "Target KPI", group: "User & Targets" },
@@ -530,6 +531,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* Offline PWA Status indicator */}
             <OfflineStatusPill />
 
+            {/* Settings Quick Access Button */}
+            <Link href="/settings" title="Settings Hub & Overview">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </Link>
+
             {/* Theme toggle */}
             <ThemeToggle />
 
@@ -558,11 +570,19 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <p className="text-[10px] text-muted-foreground">{user?.email}</p>
                   </div>
                   <div className="p-1">
+                    <Link
+                      href="/settings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent mb-0.5"
+                    >
+                      <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+                      Settings & Governance
+                    </Link>
                     {isSuperAdminUser(user) && (
                       <Link
                         href="/admin/tenants"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 border-b border-border/50 mb-1"
+                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 border-t border-border/50 my-1"
                       >
                         <Shield className="h-3.5 w-3.5" />
                         SaaS Platform Admin
