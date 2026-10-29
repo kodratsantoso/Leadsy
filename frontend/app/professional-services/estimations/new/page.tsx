@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function NewEstimationPage() {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-6 space-y-6 w-full">
         <Suspense fallback={null}>
           <EstimatorWizard />
         </Suspense>
