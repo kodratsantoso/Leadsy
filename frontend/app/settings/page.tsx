@@ -87,7 +87,7 @@ export default function SettingsPage() {
   })).filter(cat => cat.items.length > 0);
 
   return (
-    <div className="space-y-8 p-6 max-w-7xl mx-auto">
+    <div className="space-y-6 p-6 w-full">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">

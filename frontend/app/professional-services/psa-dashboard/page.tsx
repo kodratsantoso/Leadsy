@@ -34,7 +34,7 @@ export default function PsaDashboardPage() {
   const recent_projects = data?.recent_projects || [];
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 p-6 w-full">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div>

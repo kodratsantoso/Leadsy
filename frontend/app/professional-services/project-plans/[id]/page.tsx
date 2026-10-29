@@ -110,7 +110,7 @@ export default function ProjectPlanDetailPage() {
   const isReadyForKickoffAllowed = readinessCompleted === readinessRequired.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 w-full">
       {/* HEADER */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push("/professional-services/project-plans")}>

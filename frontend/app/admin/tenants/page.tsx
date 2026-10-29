@@ -156,7 +156,7 @@ export default function PlatformAdminTenantsPage() {
   const totalUsersCount = tenants.reduce((acc, t) => acc + (t.users_count || 0), 0);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="space-y-6 w-full">
       {/* SaaS Admin Header */}
       <PlatformAdminHeader
         onRefresh={() => {

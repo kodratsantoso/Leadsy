@@ -15,7 +15,7 @@ export default function SecurityPage() {
   const canManageSecurityPolicy = isSuperAdmin || getUserPermissionNames(user).includes("integrations.manage");
 
   return (
-    <div className="space-y-6 p-6 max-w-6xl mx-auto">
+    <div className="space-y-6 p-6 w-full">
       <div className="flex items-center gap-3">
         <BackToSettings />
         <div><h1 className="text-2xl font-bold tracking-tight">Security &amp; Enterprise Access</h1><p className="text-sm text-muted-foreground">Authentication, session policies &amp; Corporate SSO Federation</p></div>
