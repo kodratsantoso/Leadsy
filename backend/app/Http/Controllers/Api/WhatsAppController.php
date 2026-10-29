@@ -203,19 +203,34 @@ class WhatsAppController extends Controller
     public function sendMessage(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'phone' => 'required|string',
+            'phone' => 'nullable|string',
+            'conversation_id' => 'nullable|integer',
             'text' => 'required|string',
             'platform' => 'nullable|string',
         ]);
 
+        if (empty($data['phone']) && empty($data['conversation_id'])) {
+            return response()->json(['error' => 'Phone or conversation_id is required'], 422);
+        }
+
         $userId = $request->user()?->id ?? auth('sanctum')->id();
 
         // Check platform of conversation
-        $conversation = WhatsappConversation::where('external_chat_id', $data['phone'])
-            ->orWhereHas('contact', function ($query) use ($data) {
-                $query->where('phone_number', $data['phone']);
-            })
-            ->first();
+        $conversation = null;
+        if (!empty($data['conversation_id'])) {
+            $conversation = WhatsappConversation::find($data['conversation_id']);
+        }
+        if (!$conversation && !empty($data['phone'])) {
+            $conversation = WhatsappConversation::where('external_chat_id', $data['phone'])
+                ->orWhereHas('contact', function ($query) use ($data) {
+                    $query->where('phone_number', $data['phone']);
+                })
+                ->first();
+        }
+
+        if (empty($data['phone']) && $conversation) {
+            $data['phone'] = $conversation->external_chat_id;
+        }
 
         $platform = $data['platform'] ?? ($conversation ? $conversation->platform : 'whatsapp');
 
@@ -496,10 +511,13 @@ class WhatsAppController extends Controller
 
     public function getConversations(Request $request): JsonResponse
     {
-        $platform = $request->query('platform', 'whatsapp');
+        $platform = $request->query('platform', 'all');
+        $user = $request->user() ?? auth('sanctum')->user() ?? auth()->user();
+        $userId = $user?->id ?? auth('sanctum')->id() ?? auth()->id();
+        $isSuperAdmin = $user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin();
 
         if ($platform === 'mekari_qontak') {
-            $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
+            $tenantId = $user?->tenant_id;
             $forceSync = $request->query('force_sync') === 'true';
 
             $cacheKey = 'qontak_sync_limit_'.($tenantId ?? 'global');
@@ -510,7 +528,6 @@ class WhatsAppController extends Controller
         }
 
         if ($platform === 'whatsapp') {
-            $userId = $request->user()?->id ?? auth('sanctum')->id() ?? auth()->id();
             $forceSync = $request->query('force_sync') === 'true';
 
             $hasConversations = WhatsappConversation::where('platform', 'whatsapp')
@@ -530,27 +547,39 @@ class WhatsAppController extends Controller
             }
         }
 
-        $userId = $request->user()?->id ?? auth('sanctum')->id() ?? auth()->id();
+        $query = WhatsappConversation::with(['contact.lead', 'aiAnalysis', 'messages' => function ($q) {
+            $q->latest('sent_at')->take(10);
+        }])
+            ->where('approved_for_sync', true);
 
-        $convs = WhatsappConversation::with(['contact', 'aiAnalysis'])
-            ->where('platform', $platform)
-            ->where('approved_for_sync', true)
-            ->when($platform === 'whatsapp', function ($query) use ($userId) {
-                return $query->where('user_id', $userId);
-            })
-            ->orderBy('last_message_at', 'desc')
-            ->get();
+        if ($platform && $platform !== 'all') {
+            $query->where('platform', $platform);
+        }
+
+        if (! $isSuperAdmin && $userId && $platform === 'whatsapp') {
+            $query->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)->orWhereNull('user_id');
+            });
+        }
+
+        $convs = $query->orderBy('last_message_at', 'desc')->get();
 
         return response()->json(['data' => $convs]);
     }
 
     public function getConversationMessages(Request $request, $id): JsonResponse
     {
-        $userId = $request->user()?->id ?? auth('sanctum')->id() ?? auth()->id();
+        $user = $request->user() ?? auth('sanctum')->user() ?? auth()->user();
+        $userId = $user?->id ?? auth('sanctum')->id() ?? auth()->id();
+        $isSuperAdmin = $user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin();
+
         $conversation = WhatsappConversation::where('id', $id)
-            ->where(function ($query) use ($userId) {
-                $query->where('platform', '!=', 'whatsapp')
-                    ->orWhere('user_id', $userId);
+            ->when(! $isSuperAdmin, function ($query) use ($userId) {
+                $query->where(function ($q) use ($userId) {
+                    $q->where('platform', '!=', 'whatsapp')
+                        ->orWhere('user_id', $userId)
+                        ->orWhereNull('user_id');
+                });
             })
             ->first();
 
