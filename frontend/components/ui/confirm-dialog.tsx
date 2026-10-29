@@ -49,6 +49,8 @@ export function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, isLoading, handleClose]);
 
+  if (!open) return null;
+
   const handleConfirm = async () => {
     try {
       await onConfirm();
