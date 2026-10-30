@@ -1,4 +1,13 @@
 require('dotenv').config();
+
+process.on('uncaughtException', (err) => {
+    console.error('[WhatsApp Engine UncaughtException]:', err?.message || err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[WhatsApp Engine UnhandledRejection]:', reason?.message || reason);
+});
+
 const express = require('express');
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
