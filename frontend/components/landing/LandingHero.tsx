@@ -18,13 +18,17 @@ import {
   FileCheck2,
   DollarSign,
   ShieldCheck,
-  MessageSquare
+  MessageSquare,
+  TrendingUp,
+  Building2,
+  Globe2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function LandingHero() {
   const [activeStep, setActiveStep] = useState(7); // BANTC Final active by default
   const [activeMockupTab, setActiveMockupTab] = useState<"ai" | "presales" | "o2c">("ai");
+  const [selectedSource, setSelectedSource] = useState<"maps" | "idx" | "web">("maps");
 
   const pipelineStages = [
     { num: 1, name: "Eligibility", score: "100%" },
@@ -51,17 +55,17 @@ export function LandingHero() {
             <ChevronRight className="w-3.5 h-3.5 text-primary" />
           </div>
 
-          {/* Main Title - Clean, Sharp, Bold */}
+          {/* Main Title */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.12]">
             Autonomous AI Revenue Intelligence &amp;{" "}
             <span className="bg-gradient-to-r from-primary via-indigo-500 to-violet-600 bg-clip-text text-transparent">
-              Deal Execution B2B
+              B2B Deal Discovery
             </span>
           </h1>
 
-          {/* Subtitle - Value-Driven, Clear Hierarchy */}
+          {/* Subtitle with Clear Territory & IDX Value Proposition */}
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto font-normal leading-relaxed">
-            Platform All-in-One Revenue Lifecycle. Akselerasi siklus penjualan dari radar wilayah geospasial Google Maps, evaluasi kelayakan BANTC otonom 8-tahap, hingga perumusan solusi presales dan sinkronisasi WhatsApp resmi.
+            Temukan prospek enterprise melalui <strong>Google Maps Geo-Radar Teritorial</strong> dan database <strong>900+ Emiten Publik IDX (Bursa Efek Indonesia)</strong>. Jalankan evaluasi kelayakan BANTC 8-tahap otonom, kolaborasi solusi presales, hingga closing via WhatsApp &amp; Lark Base.
           </p>
 
           {/* CTAs - Strict 2-Tier Hierarchy */}
@@ -91,16 +95,16 @@ export function LandingHero() {
           {/* Stat Pillars with Tabular Numerics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-6 max-w-3xl mx-auto border-t border-border/50">
             <div className="text-center p-2 rounded-xl bg-card/40 border border-border/40">
-              <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight">1.000+</div>
-              <div className="text-xs text-muted-foreground mt-0.5 font-medium">Lead Terverifikasi</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight">900+</div>
+              <div className="text-xs text-muted-foreground mt-0.5 font-medium">Emiten IDX Terindeks</div>
             </div>
             <div className="text-center p-2 rounded-xl bg-card/40 border border-border/40">
-              <div className="text-2xl sm:text-3xl font-extrabold text-primary font-mono tracking-tight">8-Tahap</div>
+              <div className="text-2xl sm:text-3xl font-extrabold text-primary font-mono tracking-tight">25 km</div>
+              <div className="text-xs text-muted-foreground mt-0.5 font-medium">Geo-Radar Radius</div>
+            </div>
+            <div className="text-center p-2 rounded-xl bg-card/40 border border-border/40">
+              <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight">8-Tahap</div>
               <div className="text-xs text-muted-foreground mt-0.5 font-medium">Deep AI Screening</div>
-            </div>
-            <div className="text-center p-2 rounded-xl bg-card/40 border border-border/40">
-              <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight">92%</div>
-              <div className="text-xs text-muted-foreground mt-0.5 font-medium">BANTC Accuracy</div>
             </div>
             <div className="text-center p-2 rounded-xl bg-card/40 border border-border/40">
               <div className="text-2xl sm:text-3xl font-extrabold text-indigo-500 font-mono tracking-tight">&lt; 90 dtk</div>
@@ -121,7 +125,7 @@ export function LandingHero() {
             </div>
             <div className="text-xs">
               <div className="font-semibold text-foreground">AI Screening Selesai (84 dtk)</div>
-              <div className="text-[10px] text-muted-foreground font-mono">0 Menit Riset Manual</div>
+              <div className="text-[10px] text-muted-foreground font-mono">Kualifikasi BANTC Otonom</div>
             </div>
           </div>
 
@@ -131,7 +135,7 @@ export function LandingHero() {
               <MapPin className="w-4 h-4" />
             </div>
             <div className="text-xs">
-              <div className="font-semibold text-foreground">Geo-Radar Mega Kuningan</div>
+              <div className="font-semibold text-foreground">Geo-Radar Teritorial Aktif</div>
               <div className="text-[10px] text-muted-foreground font-mono">34 Enterprise Ditemukan</div>
             </div>
           </div>
@@ -145,7 +149,7 @@ export function LandingHero() {
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
                 <span className="ml-3 text-xs font-mono text-muted-foreground/80 hidden sm:inline-block">
-                  https://app.leadsy.tech/leads/558-pt-holycow-dan-kawan
+                  https://app.leadsy.tech/leads/842-pt-nusantara-mega-solusindo
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs">
@@ -158,73 +162,127 @@ export function LandingHero() {
 
             {/* Window Content */}
             <div className="p-4 sm:p-6 space-y-5">
-              {/* Lead Header Overview */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/60">
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-base sm:text-lg shrink-0">
-                    HC
+              {/* Discovery Source Tabs & Lead Header */}
+              <div className="flex flex-col gap-4 pb-4 border-b border-border/60">
+                {/* Source Selection Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-muted/30 p-2 rounded-xl border border-border/50 text-xs">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className="font-medium text-[11px]">Sumber Prospek:</span>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base sm:text-lg font-bold text-foreground">PT Holycow Dan Kawan</h3>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-primary/15 text-primary border border-primary/25">
-                        Grade A • Score 88/100
-                      </span>
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-muted text-muted-foreground">
-                        F&amp;B Enterprise
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
-                      <span>Radius: 2.4 km (Mega Kuningan)</span>
-                      <span>•</span>
-                      <span>45 Outlets</span>
-                      <span>•</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold font-mono">Deal Won • Rp 450.000.000/thn</span>
-                    </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSource("maps")}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all active:scale-[0.98]",
+                        selectedSource === "maps"
+                          ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                      )}
+                    >
+                      <MapPin className="w-3 h-3" />
+                      <span>Google Maps Geo-Radar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSource("idx")}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all active:scale-[0.98]",
+                        selectedSource === "idx"
+                          ? "bg-indigo-600 text-white font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                      )}
+                    >
+                      <Building2 className="w-3 h-3" />
+                      <span>900+ Emiten IDX BEI</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSource("web")}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all active:scale-[0.98]",
+                        selectedSource === "web"
+                          ? "bg-violet-600 text-white font-semibold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+                      )}
+                    >
+                      <Globe2 className="w-3 h-3" />
+                      <span>Deep Web Crawler</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Interactive Segmented Tabs */}
-                <div className="flex items-center p-1 rounded-xl bg-muted/60 border border-border/60 self-start md:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => setActiveMockupTab("ai")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98]",
-                      activeMockupTab === "ai"
-                        ? "bg-background text-primary shadow-xs border border-border/50"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Bot className="w-3.5 h-3.5" />
-                    <span>AI Screening</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveMockupTab("presales")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98]",
-                      activeMockupTab === "presales"
-                        ? "bg-background text-primary shadow-xs border border-border/50"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Briefcase className="w-3.5 h-3.5" />
-                    <span>Presales Scope</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveMockupTab("o2c")}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98]",
-                      activeMockupTab === "o2c"
-                        ? "bg-background text-primary shadow-xs border border-border/50"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Users className="w-3.5 h-3.5" />
-                    <span>O2C Closing</span>
-                  </button>
+                {/* Lead Profile Overview (Pure Dummy Data) */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-base sm:text-lg shrink-0">
+                      NM
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base sm:text-lg font-bold text-foreground">PT Nusantara Mega Solusindo</h3>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-primary/15 text-primary border border-primary/25">
+                          Grade A • Score 88/100
+                        </span>
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-medium">
+                          {selectedSource === "idx" ? "IDX: NMSG • Market Cap Rp 4.2T" : "Geo-Radar: Radius 2.8 km"}
+                        </span>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-lg bg-muted text-muted-foreground">
+                          Logistics &amp; Enterprise Retail
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+                        <span>Jakarta Selatan Teritori Operasional</span>
+                        <span>•</span>
+                        <span>50+ Gudang &amp; Cabang</span>
+                        <span>•</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold font-mono">Deal Won • Rp 480.000.000/thn</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Interactive Segmented Tabs */}
+                  <div className="flex items-center p-1 rounded-xl bg-muted/60 border border-border/60 self-start md:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setActiveMockupTab("ai")}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98]",
+                        activeMockupTab === "ai"
+                          ? "bg-background text-primary shadow-xs border border-border/50"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Bot className="w-3.5 h-3.5" />
+                      <span>AI Screening</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveMockupTab("presales")}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98]",
+                        activeMockupTab === "presales"
+                          ? "bg-background text-primary shadow-xs border border-border/50"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Briefcase className="w-3.5 h-3.5" />
+                      <span>Presales Scope</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveMockupTab("o2c")}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-[0.98]",
+                        activeMockupTab === "o2c"
+                          ? "bg-background text-primary shadow-xs border border-border/50"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>O2C Closing</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -271,7 +329,7 @@ export function LandingHero() {
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                           <Sparkles className="w-3.5 h-3.5 text-primary" />
-                          BANTC Deep AI Qualification
+                          BANTC Deep AI Qualification (Evaluasi Faktual)
                         </span>
                         <span className="text-[11px] font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md font-semibold">
                           Readiness: 92%
@@ -281,19 +339,19 @@ export function LandingHero() {
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div className="p-2 rounded-lg bg-card/60 border border-border/40">
                           <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider font-mono">Budget</div>
-                          <div className="font-medium text-foreground mt-0.5">Rp 400M - Rp 550M (Approved Capex)</div>
+                          <div className="font-medium text-foreground mt-0.5">Rp 450M - Rp 600M (Approved Capex)</div>
                         </div>
                         <div className="p-2 rounded-lg bg-card/60 border border-border/40">
                           <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider font-mono">Authority</div>
-                          <div className="font-medium text-foreground mt-0.5">VP Operations &amp; Head of IT</div>
+                          <div className="font-medium text-foreground mt-0.5">VP Technology &amp; Operations Director</div>
                         </div>
                         <div className="p-2 rounded-lg bg-card/60 border border-border/40">
                           <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider font-mono">Need</div>
-                          <div className="font-medium text-foreground mt-0.5">Sub-second POS &amp; Real-time Stock Sync</div>
+                          <div className="font-medium text-foreground mt-0.5">Multi-Branch Realtime Cloud Sync</div>
                         </div>
                         <div className="p-2 rounded-lg bg-card/60 border border-border/40">
                           <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider font-mono">Timeline</div>
-                          <div className="font-medium text-foreground mt-0.5">Go-live Target Nov 2026 (Priority)</div>
+                          <div className="font-medium text-foreground mt-0.5">Q4 2026 Target Deployment (Priority)</div>
                         </div>
                       </div>
                     </div>
@@ -305,12 +363,12 @@ export function LandingHero() {
                           AI Closing Recommendation
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          Sistem legacy lambat saat jam makan siang. Tawarkan arsitektur offline-first POS dengan auto-sync cloud untuk memangkas resiko downtime gerai.
+                          Sistem ERP logistik lama memiliki latensi sinkronisasi tinggi. Solusi offline-first microservices dengan integrasi WhatsApp CRM memiliki tingkat kecocokan 94%.
                         </p>
                       </div>
                       <div className="pt-2 border-t border-primary/15 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Closing Probability:</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">88%</span>
+                        <span className="text-muted-foreground">Win Probability:</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">92%</span>
                       </div>
                     </div>
                   </div>
@@ -326,32 +384,32 @@ export function LandingHero() {
                         <Briefcase className="w-3.5 h-3.5 text-primary" />
                         Scope of Work &amp; Solution Architecture
                       </span>
-                      <span className="text-[11px] font-mono text-muted-foreground">45 Outlets Centralized</span>
+                      <span className="text-[11px] font-mono text-muted-foreground">50+ Hubs Centralized</span>
                     </div>
 
                     <div className="space-y-2 text-xs">
                       <div className="p-2.5 rounded-lg bg-card/60 border border-border/40 flex items-center justify-between">
                         <div>
-                          <div className="font-semibold text-foreground">Core Cloud POS Engine &amp; Offline Cache</div>
-                          <div className="text-[11px] text-muted-foreground">High-availability cluster &amp; sub-second transaction</div>
+                          <div className="font-semibold text-foreground">Enterprise Cloud Synchronization Cluster</div>
+                          <div className="text-[11px] text-muted-foreground">Sub-second data replication across 50 regional nodes</div>
                         </div>
-                        <span className="font-mono font-semibold text-foreground">Rp 210.000.000</span>
+                        <span className="font-mono font-semibold text-foreground">Rp 220.000.000</span>
                       </div>
 
                       <div className="p-2.5 rounded-lg bg-card/60 border border-border/40 flex items-center justify-between">
                         <div>
-                          <div className="font-semibold text-foreground">Central Warehouse Multi-Branch Sync</div>
+                          <div className="font-semibold text-foreground">Automated Supply Chain Ledger &amp; Connector</div>
                           <div className="text-[11px] text-muted-foreground">Real-time inventory ledger &amp; ERP connector</div>
                         </div>
-                        <span className="font-mono font-semibold text-foreground">Rp 140.000.000</span>
+                        <span className="font-mono font-semibold text-foreground">Rp 150.000.000</span>
                       </div>
 
                       <div className="p-2.5 rounded-lg bg-card/60 border border-border/40 flex items-center justify-between">
                         <div>
-                          <div className="font-semibold text-foreground">Implementation, Training &amp; 24/7 SLA</div>
-                          <div className="text-[11px] text-muted-foreground">Onsite rollout across 45 stores in Jabodetabek</div>
+                          <div className="font-semibold text-foreground">Implementation, SLA &amp; Field Readiness</div>
+                          <div className="text-[11px] text-muted-foreground">Onsite training &amp; 24/7 dedicated support team</div>
                         </div>
-                        <span className="font-mono font-semibold text-foreground">Rp 100.000.000</span>
+                        <span className="font-mono font-semibold text-foreground">Rp 110.000.000</span>
                       </div>
                     </div>
                   </div>
@@ -365,28 +423,28 @@ export function LandingHero() {
                       <div className="space-y-1.5 text-xs">
                         <div className="flex justify-between py-1 border-b border-border/40">
                           <span className="text-muted-foreground">Solution Architect (20 MD)</span>
-                          <span className="font-mono font-medium">Rp 70.000.000</span>
+                          <span className="font-mono font-medium">Rp 75.000.000</span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-border/40">
                           <span className="text-muted-foreground">Lead Backend Engineer (30 MD)</span>
-                          <span className="font-mono font-medium">Rp 90.000.000</span>
+                          <span className="font-mono font-medium">Rp 95.000.000</span>
                         </div>
                         <div className="flex justify-between py-1 border-b border-border/40">
-                          <span className="text-muted-foreground">QA &amp; Deployment Field Ops</span>
+                          <span className="text-muted-foreground">QA &amp; Field Deployment Ops</span>
                           <span className="font-mono font-medium">Rp 50.000.000</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-border/60 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Total Project Valuation:</span>
-                      <span className="text-sm font-extrabold text-foreground font-mono">Rp 450.000.000</span>
+                      <span className="text-xs text-muted-foreground">Total Valuation:</span>
+                      <span className="text-sm font-extrabold text-foreground font-mono">Rp 480.000.000</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Dynamic Tab View 3: O2C Closing & Team Split */}
+              {/* Dynamic Tab View 3: O2C Closing & Team Split (Dummy Staff) */}
               {activeMockupTab === "o2c" && (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-3 animate-in fade-in duration-200">
                   <div className="md:col-span-7 bg-muted/20 border border-border/60 rounded-xl p-4 space-y-2.5">
@@ -402,10 +460,10 @@ export function LandingHero() {
                       <div className="flex items-center justify-between p-2 rounded-lg bg-card/60 border border-border/40">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px]">
-                            FP
+                            AP
                           </div>
                           <div>
-                            <div className="font-medium text-foreground">Fani Purnomo</div>
+                            <div className="font-medium text-foreground">Andi Pratama</div>
                             <div className="text-[10px] text-muted-foreground">Commercial Account Lead</div>
                           </div>
                         </div>
@@ -415,10 +473,10 @@ export function LandingHero() {
                       <div className="flex items-center justify-between p-2 rounded-lg bg-card/60 border border-border/40">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center font-bold text-[10px]">
-                            KS
+                            DS
                           </div>
                           <div>
-                            <div className="font-medium text-foreground">Kodrat Santoso</div>
+                            <div className="font-medium text-foreground">Dimas Setiawan</div>
                             <div className="text-[10px] text-muted-foreground">Presales Solution Architect</div>
                           </div>
                         </div>
@@ -428,11 +486,11 @@ export function LandingHero() {
                       <div className="flex items-center justify-between p-2 rounded-lg bg-card/60 border border-border/40">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-[10px]">
-                            CS
+                            RH
                           </div>
                           <div>
-                            <div className="font-medium text-foreground">Customer Success &amp; Delivery</div>
-                            <div className="text-[10px] text-muted-foreground">Onboarding &amp; Retensi</div>
+                            <div className="font-medium text-foreground">Rian Hidayat</div>
+                            <div className="text-[10px] text-muted-foreground">Customer Success &amp; Delivery</div>
                           </div>
                         </div>
                         <span className="font-bold text-foreground font-mono">30% Split</span>
@@ -452,18 +510,18 @@ export function LandingHero() {
                           <span className="text-emerald-500 font-mono">Terkirim</span>
                         </div>
                         <p className="text-foreground text-[10px] italic">
-                          "Draft proposal &amp; estimasi BAST telah dikirimkan ke Head of IT Holycow."
+                          "Draft proposal arsitektur cloud &amp; estimasi BAST telah dikirimkan ke VP Technology Nusantara Mega."
                         </p>
                       </div>
                       <div className="p-2 rounded-lg bg-card/60 border border-border/40 text-[11px] flex items-center justify-between">
                         <span>Lark Base Real-Time Sync</span>
-                        <span className="text-primary font-mono font-semibold">Synced (Record #941)</span>
+                        <span className="text-primary font-mono font-semibold">Synced (Record #942)</span>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-border/60 flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">Total Invoiced Value:</span>
-                      <span className="text-sm font-extrabold text-foreground font-mono">Rp 450.000.000</span>
+                      <span className="text-sm font-extrabold text-foreground font-mono">Rp 480.000.000</span>
                     </div>
                   </div>
                 </div>

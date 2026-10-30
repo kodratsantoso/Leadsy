@@ -10,6 +10,7 @@ import {
   Layers,
   CheckCircle2,
   TrendingUp,
+  Building2,
   FileText
 } from "lucide-react";
 
@@ -18,30 +19,30 @@ export function LandingHowItWorks() {
     {
       step: "01",
       icon: MapPin,
-      title: "Geo-Radar & Market Discovery",
-      desc: "Petakan calon prospek bisnis dalam radius terdekat di Google Maps, telusuri 900+ emiten publik Bursa Efek Indonesia (IDX), atau impor kontak dari multi-platform secara instan.",
-      highlight: "Radius geofencing & industri targeting",
+      title: "Territory Geo-Radar & 900+ IDX Equities",
+      desc: "Petakan calon prospek enterprise dalam radius hingga 25 km via Google Maps, telusuri 900+ emiten publik Bursa Efek Indonesia (IDX) lengkap dengan data fundamental, atau impor kontak massal secara instan.",
+      highlight: "Radius geofencing & 900+ Emiten IDX",
     },
     {
       step: "02",
       icon: Bot,
       title: "8-Stage Autonomous AI Screening",
-      desc: "Multi-LLM pipeline (GPT-4o, Claude, DeepSeek) menganalisis kesesuaian solusi, kesiapan teknologi, kemampuan finansial, hingga tingkat kewenangan decision maker dalam hitungan detik.",
+      desc: "Multi-LLM pipeline (GPT-4o, Claude 3.5, DeepSeek R1) menganalisis kesesuaian solusi, kesiapan teknologi, kemampuan finansial, hingga tingkat kewenangan decision maker (C-Level/VP) secara faktual.",
       highlight: "Skor BANTC objektif & bukti faktual",
     },
     {
       step: "03",
       icon: Briefcase,
-      title: "Presales Scoping & Deal Sizing",
-      desc: "Presales Solution Architect dan Account Owner berkolaborasi merumuskan ruang lingkup proyek, menghitung estimasi biaya berdasarkan rate card terstandar, dan menetapkan komisi O2C.",
-      highlight: "Kalkulator estimasi & rate-card roles",
+      title: "Presales Scoping & Solution Sizing",
+      desc: "Presales Solution Architect dan Account Owner merumuskan ruang lingkup proyek secara terstandar, menghitung manday dengan rate-card baku, dan menetapkan kalkulasi komisi O2C terpadu.",
+      highlight: "Kalkulator manday & standard rate-card",
     },
     {
       step: "04",
       icon: MessageSquare,
-      title: "Omnichannel Engagement & Closing",
-      desc: "Kirim pesan penawaran terpersonalisasi via WhatsApp Business (Mekari Qontak & Local Engine), sinkronisasi otomatis ke Lark Base, dan kawal retensi pelanggan via Customer Success Health Score.",
-      highlight: "Two-way WhatsApp & Lark Base Sync",
+      title: "WhatsApp Omnichannel & Lark Sync",
+      desc: "Kirim proposal dan penawaran via WhatsApp Business (Mekari Qontak Official BSP + Local Baileys Sidecar), sinkronisasi 2 arah ke Lark Base, dan kawal retensi pelanggan via Customer Success Health Score.",
+      highlight: "Dual-Engine WhatsApp & Lark Base 2-Way Sync",
     },
   ];
 
@@ -58,7 +59,7 @@ export function LandingHowItWorks() {
             4 Langkah Mengubah Wilayah Pasar Menjadi Closing Deal
           </h2>
           <p className="text-base text-muted-foreground">
-            Dari pemetaan awal prospek di lapangan hingga pengawalan customer success jangka panjang, semuanya terintegrasi dalam satu platform mulus.
+            Dari penemuan prospek geospasial Google Maps dan emiten IDX hingga pengawalan customer success jangka panjang, semuanya terintegrasi dalam satu platform mulus.
           </p>
         </div>
 
