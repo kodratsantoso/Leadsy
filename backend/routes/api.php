@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BackupController;
+use App\Http\Controllers\Api\EmailIntegrationController;
 use App\Http\Controllers\Api\ContactEnrichmentController;
 use App\Http\Controllers\Api\CurrencySettingController;
 use App\Http\Controllers\Api\DashboardController;
@@ -704,6 +705,11 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('settings/integration-platforms/{platform}/oauth-url', [IntegrationPlatformController::class, 'oauthUrl'])->middleware('permission:integrations.manage');
     Route::post('settings/integration-platforms/{platform}/test', [IntegrationPlatformController::class, 'test'])->middleware('permission:integrations.manage');
     Route::get('settings/integration-platforms/{platform}/preview', [IntegrationPlatformController::class, 'preview'])->middleware('permission:integrations.manage');
+
+    // Email Integration (SMTP & IMAP)
+    Route::get('settings/email', [EmailIntegrationController::class, 'getConfig'])->middleware('permission:integrations.manage');
+    Route::post('settings/email', [EmailIntegrationController::class, 'saveConfig'])->middleware('permission:integrations.manage');
+    Route::post('settings/email/test', [EmailIntegrationController::class, 'testConnection'])->middleware('permission:integrations.manage');
 
     // Database Backups
     Route::get('settings/backups', [BackupController::class, 'index'])->middleware('permission:integrations.manage');

@@ -9,7 +9,7 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff, LayoutGrid
+  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff, LayoutGrid, Mail
 } from "lucide-react";
 import { useOfflineSync } from "@/lib/offline/offlineSyncManager";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
@@ -137,6 +137,7 @@ export const navItems: NavItem[] = [
       { href: "/settings/o2c/tax-codes",   icon: Coins,        label: "Tax Codes", group: "Order to Cash" },
       { href: "/settings/o2c/withholding-tax-codes", icon: Coins, label: "Withholding Tax", group: "Order to Cash" },
       { href: "/settings/o2c/item-settings", icon: Settings,     label: "Item Settings", group: "Order to Cash" },
+      { href: "/settings/email",           icon: Mail,         label: "Email & SMTP", group: "Integrations" },
       { href: "/settings/integrations",    icon: Key,          label: "Integration Settings", group: "Integrations" },
       { href: "/settings/webhooks",        icon: Webhook,      label: "Webhooks", group: "Integrations" },
       { href: "/settings/api",             icon: FileText,     label: "API Documentation", group: "Integrations" },

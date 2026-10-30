@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity, BookOpen } from "lucide-react";
+import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity, BookOpen, Mail } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { canAccessPath } from "@/lib/permissions";
@@ -40,6 +40,7 @@ const categories = [
     name: "Integrations",
     desc: "Connect messaging channels, CRM platforms, and configure webhook delivery.",
     items: [
+      { icon: Mail,      title: "Email Integration",      desc: "Konfigurasi server SMTP pengiriman dan sinkronisasi IMAP Lark / Custom Email", href: "/settings/email",        color: "bg-[color:var(--status-info)]" },
       { icon: Key,       title: "Integration Settings",   desc: "Social media, ad platform, CRM, SSO, Maps, WhatsApp, and credentials", href: "/settings/integrations",  color: "bg-[color:var(--status-warning)]" },
       { icon: Webhook,   title: "Webhooks",              desc: "Webhook URL configuration and event management",                     href: "/settings/webhooks",      color: "bg-[color:var(--status-info)]" },
       { icon: FileText,  title: "API Documentation",     desc: "API reference and Integration Token generation",                     href: "/settings/api",           color: "bg-[color:var(--brand)]" },
