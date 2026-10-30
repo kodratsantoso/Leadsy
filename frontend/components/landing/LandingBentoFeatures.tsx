@@ -57,14 +57,16 @@ export function LandingBentoFeatures() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Radius:</span>
-                  <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg text-xs font-mono">
+                  <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/50 text-xs font-mono">
                     {["2.5 km", "5.0 km", "10.0 km"].map((r) => (
                       <button
                         key={r}
                         onClick={() => setActiveRadius(r)}
                         className={cn(
-                          "px-2 py-0.5 rounded transition-all",
-                          activeRadius === r ? "bg-primary text-primary-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                          "px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-all active:scale-[0.98]",
+                          activeRadius === r
+                            ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                            : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                         )}
                       >
                         {r}

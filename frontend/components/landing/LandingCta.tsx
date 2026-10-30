@@ -8,7 +8,7 @@ export function LandingCta() {
   return (
     <section className="py-20 md:py-28 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/10 via-card to-card p-8 sm:p-12 md:p-16 text-center shadow-2xl overflow-hidden">
+        <div className="relative rounded-3xl border border-primary/30 bg-gradient-to-b from-primary/10 via-card to-card/95 p-8 sm:p-12 md:p-16 text-center shadow-2xl overflow-hidden">
           {/* Ambient Glows */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-primary/20 rounded-full blur-[100px] pointer-events-none -z-10" />
 
@@ -22,13 +22,16 @@ export function LandingCta() {
               Tinggalkan Spreadsheet Manual. Kualifikasi Prospek B2B dengan Autonomous AI Hari Ini.
             </h2>
 
-            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Tingkatkan kecepatan closing tim sales dan presales Anda dengan pipeline kualifikasi terstandar, integrasi WhatsApp resmi, dan otomasi sinkronisasi data.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-4">
               <Link href="/login" className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-8 h-12 shadow-lg shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto h-12 px-8 rounded-xl font-semibold text-base gap-2 shadow-lg shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 active:scale-[0.98]"
+                >
                   Mulai Akses Platform
                   <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -39,9 +42,13 @@ export function LandingCta() {
                 rel="noreferrer"
                 className="w-full sm:w-auto"
               >
-                <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 text-base px-6 h-12 border-border hover:bg-muted font-medium">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto h-12 px-6 rounded-xl font-medium text-base gap-2 border-border/80 bg-background/60 hover:bg-muted/80 backdrop-blur-sm text-foreground transition-all duration-150 active:scale-[0.98]"
+                >
                   <MessageSquare className="w-4 h-4 text-emerald-500" />
-                  Konsultasi Enterprise via WhatsApp
+                  Konsultasi via WhatsApp
                 </Button>
               </a>
             </div>

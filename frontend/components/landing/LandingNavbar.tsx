@@ -100,7 +100,7 @@ export function LandingNavbar() {
           </Link>
 
           {/* Desktop Navigation with Smooth Scroll Tabs */}
-          <nav className="hidden md:flex items-center gap-1 bg-muted/40 backdrop-blur-md p-1.5 rounded-full border border-border/50 relative">
+          <nav className="hidden md:flex items-center gap-1 bg-muted/40 backdrop-blur-md p-1.5 rounded-full border border-border/60 shadow-xs relative">
             {navLinks.map((link) => {
               const isActive = activeSection === link.href;
               const isDirectLink = !link.href.startsWith("#");
@@ -110,7 +110,7 @@ export function LandingNavbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="text-xs lg:text-sm font-medium px-3.5 py-1.5 rounded-full transition-all duration-300 text-muted-foreground hover:text-foreground hover:bg-background/50 flex items-center gap-1"
+                    className="text-xs lg:text-sm font-medium px-3.5 py-1.5 rounded-full transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-background/60 flex items-center gap-1 active:scale-[0.98]"
                   >
                     <span>{link.label}</span>
                   </Link>
@@ -123,10 +123,10 @@ export function LandingNavbar() {
                   href={link.href}
                   onClick={(e) => handleSmoothScroll(e, link.href)}
                   className={cn(
-                    "text-xs lg:text-sm font-medium px-3.5 py-1.5 rounded-full transition-all duration-300 relative",
+                    "text-xs lg:text-sm font-medium px-3.5 py-1.5 rounded-full transition-all duration-200 relative active:scale-[0.98]",
                     isActive
                       ? "bg-background text-primary font-semibold shadow-xs shadow-primary/10"
-                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/60"
                   )}
                 >
                   {link.label}
@@ -141,7 +141,11 @@ export function LandingNavbar() {
           {/* Actions */}
           <div className="hidden sm:flex items-center gap-2 sm:gap-3">
             <Link href="/help">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs sm:text-sm font-medium hover:bg-muted/80">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full px-3.5 h-8 gap-1.5 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all active:scale-[0.98]"
+              >
                 <BookOpen className="w-3.5 h-3.5 text-primary" />
                 <span>Pusat Bantuan</span>
               </Button>
@@ -151,7 +155,10 @@ export function LandingNavbar() {
 
             {token ? (
               <Link href="/dashboard">
-                <Button size="sm" className="gap-2 shadow-sm shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 font-medium">
+                <Button
+                  size="sm"
+                  className="rounded-full px-4 h-8 gap-1.5 shadow-sm shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs sm:text-sm transition-all active:scale-[0.98]"
+                >
                   Buka Dashboard
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
@@ -159,12 +166,19 @@ export function LandingNavbar() {
             ) : (
               <>
                 <Link href="/login">
-                  <Button variant="ghost" size="sm" className="text-xs sm:text-sm font-medium hover:bg-muted/80">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full px-3.5 h-8 text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all active:scale-[0.98]"
+                  >
                     Masuk
                   </Button>
                 </Link>
                 <Link href="/login">
-                  <Button size="sm" className="gap-1.5 shadow-sm shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm">
+                  <Button
+                    size="sm"
+                    className="rounded-full px-4 h-8 gap-1.5 shadow-sm shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs sm:text-sm transition-all active:scale-[0.98]"
+                  >
                     Mulai Sekarang
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
@@ -226,10 +240,10 @@ export function LandingNavbar() {
               );
             })}
           </nav>
-          <div className="pt-2 border-t border-border flex flex-col gap-2">
+          <div className="pt-3 border-t border-border/80 flex flex-col gap-2.5">
             {token ? (
               <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-                <Button className="w-full gap-2 justify-center">
+                <Button className="w-full h-10 rounded-xl gap-2 justify-center shadow-sm shadow-primary/25 bg-primary text-primary-foreground font-semibold active:scale-[0.98]">
                   Buka Dashboard
                   <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -237,12 +251,12 @@ export function LandingNavbar() {
             ) : (
               <>
                 <Link href="/login" onClick={() => setMobileOpen(false)}>
-                  <Button variant="outline" className="w-full justify-center">
+                  <Button variant="outline" className="w-full h-10 rounded-xl justify-center font-medium border-border/80 hover:bg-muted/80 active:scale-[0.98]">
                     Masuk
                   </Button>
                 </Link>
                 <Link href="/login" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full justify-center gap-2">
+                  <Button className="w-full h-10 rounded-xl justify-center gap-2 shadow-sm shadow-primary/25 bg-primary text-primary-foreground font-semibold active:scale-[0.98]">
                     Mulai Sekarang
                     <ArrowRight className="w-4 h-4" />
                   </Button>

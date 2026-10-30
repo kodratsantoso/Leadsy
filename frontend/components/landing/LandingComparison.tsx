@@ -120,8 +120,8 @@ export function LandingComparison() {
             </div>
 
             <div className="pt-4 border-t border-border/60">
-              <Link href="/login" className="w-full">
-                <Button className="w-full gap-2 shadow-md shadow-primary/20">
+              <Link href="/login" className="w-full block">
+                <Button className="w-full h-11 rounded-xl font-semibold gap-2 shadow-md shadow-primary/25 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-150 active:scale-[0.98]">
                   Coba Leadsy Sekarang
                   <ArrowRight className="w-4 h-4" />
                 </Button>
