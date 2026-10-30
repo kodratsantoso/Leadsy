@@ -46,36 +46,90 @@ class EmailSyncService
             ];
         }
 
-        // Connect via OpenSSL subprocess for resilient SSL/TLS handshake across environments
         $timeout = 15;
-        $cmd = "openssl s_client -connect " . escapeshellarg("{$host}:{$port}") . " -crlf -quiet 2>/dev/null";
+        $stream = null;
+        $process = null;
+        $pipes = [];
 
-        $descriptors = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
+        // 1. Try PHP native SSL socket stream first (RFC 3501 compliant, clean line-endings)
+        $sslContext = stream_context_create([
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true,
+            ],
+        ]);
 
-        $process = proc_open($cmd, $descriptors, $pipes);
+        $stream = @stream_socket_client(
+            "ssl://{$host}:{$port}",
+            $errno,
+            $errstr,
+            $timeout,
+            STREAM_CLIENT_CONNECT,
+            $sslContext
+        );
 
-        if (!is_resource($process)) {
-            return [
-                'success' => false,
-                'message' => "Gagal membuka koneksi socket SSL ke {$host}:{$port}.",
-                'synced_count' => 0,
+        // 2. Fallback to OpenSSL subprocess if native stream connection fails (DO NOT use -crlf flag)
+        if (!$stream) {
+            $cmd = "openssl s_client -connect " . escapeshellarg("{$host}:{$port}") . " -quiet 2>/dev/null";
+            $descriptors = [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
             ];
+            $process = @proc_open($cmd, $descriptors, $pipes);
+
+            if (!is_resource($process)) {
+                return [
+                    'success' => false,
+                    'message' => "Gagal membuka koneksi socket SSL ke {$host}:{$port}: {$errstr} ({$errno}).",
+                    'synced_count' => 0,
+                ];
+            }
+
+            stream_set_timeout($pipes[1], $timeout);
+            stream_set_blocking($pipes[1], true);
+        } else {
+            stream_set_timeout($stream, $timeout);
+            stream_set_blocking($stream, true);
         }
 
-        stream_set_timeout($pipes[1], $timeout);
-        stream_set_blocking($pipes[1], true);
+        $closeConnection = function () use (&$stream, &$process, &$pipes) {
+            if ($stream) {
+                @fclose($stream);
+                $stream = null;
+            }
+            if (is_resource($process)) {
+                if (isset($pipes[0])) @fclose($pipes[0]);
+                if (isset($pipes[1])) @fclose($pipes[1]);
+                if (isset($pipes[2])) @fclose($pipes[2]);
+                @proc_close($process);
+                $process = null;
+            }
+        };
 
-        // Read server greeting
-        $greeting = fgets($pipes[1], 1024);
+        $readLine = function () use (&$stream, &$pipes): string|false {
+            if ($stream) {
+                return fgets($stream, 4096);
+            }
+            if (isset($pipes[1])) {
+                return fgets($pipes[1], 4096);
+            }
+            return false;
+        };
+
+        $writeCommand = function (string $data) use (&$stream, &$pipes): void {
+            if ($stream) {
+                fwrite($stream, $data);
+            } elseif (isset($pipes[0])) {
+                fwrite($pipes[0], $data);
+            }
+        };
+
+        // Read server greeting (* OK ...)
+        $greeting = $readLine();
         if (!$greeting || !str_contains($greeting, '* OK')) {
-            fclose($pipes[0]);
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            proc_close($process);
+            $closeConnection();
 
             return [
                 'success' => false,
@@ -84,10 +138,10 @@ class EmailSyncService
             ];
         }
 
-        $sendCommand = function (string $tag, string $command) use ($pipes): string {
-            fwrite($pipes[0], "{$tag} {$command}\r\n");
+        $sendCommand = function (string $tag, string $command) use ($writeCommand, $readLine): string {
+            $writeCommand("{$tag} {$command}\r\n");
             $response = '';
-            while ($line = fgets($pipes[1], 4096)) {
+            while ($line = $readLine()) {
                 $response .= $line;
                 if (str_starts_with($line, "{$tag} OK") || str_starts_with($line, "{$tag} NO") || str_starts_with($line, "{$tag} BAD")) {
                     break;
@@ -96,19 +150,19 @@ class EmailSyncService
             return $response;
         };
 
-        // 1. Authenticate (LOGIN)
-        $loginRes = $sendCommand('A001', 'LOGIN ' . escapeshellarg($username) . ' ' . escapeshellarg($password));
+        // 1. Authenticate with RFC 3501 double-quoted strings (LOGIN "user" "pass")
+        $escapedUser = '"' . addcslashes($username, "\\\"") . '"';
+        $escapedPass = '"' . addcslashes($password, "\\\"") . '"';
+        $loginRes = $sendCommand('A001', "LOGIN {$escapedUser} {$escapedPass}");
+
         if (!str_contains($loginRes, 'A001 OK')) {
             $sendCommand('A999', 'LOGOUT');
-            fclose($pipes[0]);
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            proc_close($process);
+            $closeConnection();
 
             $cleanRes = trim(preg_replace('/\s+/', ' ', $loginRes));
             $isLark = str_contains(strtolower($host), 'lark');
             $hint = $isLark
-                ? ' Untuk akun Lark Suite, pastikan mengaktifkan opsi "Third-party email client" di pengaturan Lark dan gunakan App Password/Client Authorization Code khusus (bukan password login SSO utama).'
+                ? ' Untuk akun Lark Suite, pastikan mengaktifkan opsi "Third-party email client" di pengaturan akun Lark Anda dan gunakan App Password/Client Authorization Code khusus (bukan password SSO utama).'
                 : ' Pastikan username dan App Password email Anda sudah sesuai.';
 
             return [
@@ -122,10 +176,7 @@ class EmailSyncService
         $selectRes = $sendCommand('A002', 'SELECT "INBOX"');
         if (!str_contains($selectRes, 'A002 OK')) {
             $sendCommand('A999', 'LOGOUT');
-            fclose($pipes[0]);
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            proc_close($process);
+            $closeConnection();
 
             return [
                 'success' => false,
@@ -250,13 +301,21 @@ class EmailSyncService
                     ]
                 );
 
-                // Prevent duplicates using external_message_id
-                $exists = WhatsappMessage::where('external_message_id', $msgUid)->exists();
+                // Prevent duplicate message by uid / sent_at
+                $exists = WhatsappMessage::where('conversation_id', $conversation->id)
+                    ->where(function ($q) use ($msgUid, $sentAt) {
+                        $q->where('external_message_id', $msgUid)
+                          ->orWhere('sent_at', $sentAt);
+                    })
+                    ->exists();
+
                 if (!$exists) {
                     WhatsappMessage::create([
                         'conversation_id' => $conversation->id,
+                        'sender_type' => 'customer',
+                        'sender_name' => $fromName ?: $fromEmail,
                         'external_message_id' => $msgUid,
-                        'direction' => 'inbound',
+                        'delivery_status' => 'delivered',
                         'message_type' => 'text',
                         'body' => $body,
                         'sent_at' => $sentAt,
@@ -275,10 +334,7 @@ class EmailSyncService
 
         // 5. Logout & Close
         $sendCommand('A999', 'LOGOUT');
-        fclose($pipes[0]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        proc_close($process);
+        $closeConnection();
 
         // Update last sync timestamp
         IntegrationConfig::updateOrCreate(
