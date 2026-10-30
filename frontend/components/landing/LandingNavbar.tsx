@@ -21,7 +21,7 @@ export function LandingNavbar() {
   const navLinks = [
     { label: "Fitur Unggulan", href: "#features" },
     { label: "AI Pipeline", href: "#pipeline" },
-    { label: "Solusi Lintas Divisi", href: "#capabilities" },
+    { label: "Tampilan Layar", href: "#screens" },
     { label: "Keamanan Enterprise", href: "#security" },
     { label: "Pusat Bantuan & LMS", href: "/help" },
   ];

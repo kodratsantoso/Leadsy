@@ -5,6 +5,7 @@ import { LandingHero } from "@/components/landing/LandingHero";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
 import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
 import { LandingBentoFeatures } from "@/components/landing/LandingBentoFeatures";
+import { LandingProductScreenshots } from "@/components/landing/LandingProductScreenshots";
 import { LandingComparison } from "@/components/landing/LandingComparison";
 import { LandingSecurity } from "@/components/landing/LandingSecurity";
 import { LandingCta } from "@/components/landing/LandingCta";
@@ -13,11 +14,11 @@ import { LandingFooter } from "@/components/landing/LandingFooter";
 export const metadata: Metadata = {
   title: "Leadsy — Autonomous AI Revenue Intelligence & Deal Discovery",
   description:
-    "Platform All-in-One B2B Sales Intelligence & Order-to-Cash. Mengintegrasikan Google Maps Geo-radar, 8-tahap Autonomous AI Screening, Presales Solutions Workspace, dan sinkronisasi resmi WhatsApp & Lark Base.",
+    "Platform All-in-One B2B Sales Intelligence & Order-to-Cash. Mengintegrasikan Google Maps Geo-radar teritorial, 900+ emiten IDX BEI, 8-tahap Autonomous AI Screening, Presales Sizing Workspace, dan sinkronisasi resmi WhatsApp & Lark Base.",
   openGraph: {
     title: "Leadsy — Autonomous AI Revenue Intelligence for B2B",
     description:
-      "Akselerasi siklus penjualan enterprise dengan pemetaan wilayah geospasial, evaluasi kelayakan BANTC otonom, dan kolaborasi terpadu sales & presales.",
+      "Akselerasi siklus penjualan enterprise dengan pemetaan wilayah geospasial, emiten saham publik IDX, evaluasi kelayakan BANTC otonom, dan kolaborasi terpadu sales & presales.",
     type: "website",
   },
 };
@@ -34,6 +35,7 @@ export default function LandingPage() {
         <LandingMarquee />
         <LandingHowItWorks />
         <LandingBentoFeatures />
+        <LandingProductScreenshots />
         <LandingComparison />
         <LandingSecurity />
         <LandingCta />
