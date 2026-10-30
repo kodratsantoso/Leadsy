@@ -169,21 +169,27 @@ export default function OmnichannelInboxPage() {
         }),
       });
 
+      const json = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        // Fallback notification if engine inactive
-        toast.info(
-          'Engine Offline',
-          'Pesan dicatat di timeline internal. Aktifkan WhatsApp engine untuk pengiriman langsung.'
+        toast.error(
+          'Gagal Mengirim',
+          json.error || json.message || `Gagal mengirim pesan via ${activeThread.channel.toUpperCase()}.`
         );
       } else {
-        toast.success(
-          'Pesan Terkirim',
-          `Pesan berhasil dikirim via ${activeThread.channel.toUpperCase()} ke ${activeThread.contactName}.`
-        );
+        if (json.warning) {
+          toast.info('Pesan Dicatat', json.warning);
+        } else {
+          toast.success(
+            'Pesan Terkirim',
+            json.message || `Pesan berhasil dikirim via ${activeThread.channel.toUpperCase()} ke ${activeThread.contactName}.`
+          );
+        }
       }
 
       setReplyText('');
       refetchConvs();
+      refetchMessages();
     } catch (err) {
       console.error(err);
       toast.fromError(err, 'Gagal mengirim pesan.');

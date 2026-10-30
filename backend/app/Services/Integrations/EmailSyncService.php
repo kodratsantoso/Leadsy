@@ -302,9 +302,12 @@ class EmailSyncService
                 );
 
                 // Prevent duplicate message by uid / sent_at
+                $externalMsgId = "email_{$conversation->id}_{$msgUid}";
+
                 $exists = WhatsappMessage::where('conversation_id', $conversation->id)
-                    ->where(function ($q) use ($msgUid, $sentAt) {
-                        $q->where('external_message_id', $msgUid)
+                    ->where(function ($q) use ($msgUid, $externalMsgId, $sentAt) {
+                        $q->where('external_message_id', $externalMsgId)
+                          ->orWhere('external_message_id', (string) $msgUid)
                           ->orWhere('sent_at', $sentAt);
                     })
                     ->exists();
@@ -312,13 +315,20 @@ class EmailSyncService
                 if (!$exists) {
                     WhatsappMessage::create([
                         'conversation_id' => $conversation->id,
-                        'sender_type' => 'customer',
-                        'sender_name' => $fromName ?: $fromEmail,
-                        'external_message_id' => $msgUid,
-                        'delivery_status' => 'delivered',
+                        'external_message_id' => $externalMsgId,
+                        'direction' => 'inbound',
                         'message_type' => 'text',
                         'body' => $body,
                         'sent_at' => $sentAt,
+                        'received_at' => $sentAt ?: now(),
+                        'relevance_flag' => true,
+                        'provider_payload_json' => [
+                            'from_email' => $fromEmail,
+                            'from_name' => $fromName ?: $fromEmail,
+                            'subject' => $subject,
+                            'uid' => $msgUid,
+                            'channel' => 'email',
+                        ],
                     ]);
 
                     $conversation->update(['last_message_at' => $sentAt]);
