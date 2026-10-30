@@ -166,6 +166,31 @@ export default function EmailSettingsPage() {
     }
   });
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      setIsSyncing(true);
+      const res = await apiFetch("/settings/email/sync", {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.message || "Gagal mensinkronkan email dari server IMAP.");
+      }
+      return json;
+    },
+    onSuccess: (data: any) => {
+      toast.success("Sinkronisasi Selesai", data.message || "Email berhasil disinkronkan.");
+      qc.invalidateQueries({ queryKey: ["email-integration-config"] });
+    },
+    onError: (err: any) => {
+      toast.error("Sinkronisasi Gagal", err.message || "Pastikan kredensial IMAP benar dan App Password aktif.");
+    },
+    onSettled: () => {
+      setIsSyncing(false);
+    }
+  });
+
   const runTestConnection = async (type: "smtp" | "imap") => {
     setTestingType(type);
     setTestResult(null);
@@ -211,14 +236,45 @@ export default function EmailSettingsPage() {
           </div>
         </div>
 
-        <Button
-          onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending || isLoading}
-          className="bg-brand text-white hover:bg-brand/90 gap-1.5 h-9 text-xs shadow-xs"
-        >
-          {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5" />}
-          Simpan Konfigurasi
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => syncMutation.mutate()}
+            disabled={isSyncing || isLoading}
+            className="gap-1.5 h-9 text-xs border-brand/30 hover:bg-brand/10 text-brand"
+            title="Tarik email baru dari kotak masuk IMAP ke Omnichannel Inbox"
+          >
+            {isSyncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Sinkronkan Email Sekarang
+          </Button>
+          <Button
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending || isLoading}
+            className="bg-brand text-white hover:bg-brand/90 gap-1.5 h-9 text-xs shadow-xs"
+          >
+            {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5" />}
+            Simpan Konfigurasi
+          </Button>
+        </div>
+      </div>
+
+      {/* Guide Callout for Lark & Google Workspace */}
+      <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 text-xs text-foreground space-y-1.5">
+        <div className="flex items-center gap-2 font-semibold text-blue-600 dark:text-blue-400">
+          <Info className="h-4 w-4" />
+          <span>Panduan Penting: Otentikasi Password Email Pihak Ketiga (Lark & Gmail)</span>
+        </div>
+        <p className="text-muted-foreground leading-relaxed">
+          Penyedia email modern melarang penggunaan password login akun utama untuk koneksi IMAP/SMTP pihak ketiga.
+        </p>
+        <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-1">
+          <li>
+            <strong>Lark Mail / Feishu:</strong> Buka <em>Lark Desktop → Settings → Mail → Third-party client</em>, aktifkan <strong>IMAP/SMTP service</strong>, lalu buat <strong>Client Authorization Code (16 digit)</strong> dan masukkan sebagai password di form ini.
+          </li>
+          <li>
+            <strong>Google Workspace / Gmail:</strong> Aktifkan 2-Step Verification pada akun Google, lalu buat <strong>Google App Password</strong> (bukan password akun biasa).
+          </li>
+        </ul>
       </div>
 
       {/* Preset Selector */}

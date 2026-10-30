@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
+import { cn } from '@/lib/utils';
 
 interface MockThread {
   id: string;
@@ -191,6 +192,26 @@ export default function OmnichannelInboxPage() {
     }
   };
 
+  const [isSyncingEmail, setIsSyncingEmail] = useState(false);
+
+  const handleSyncEmails = async () => {
+    setIsSyncingEmail(true);
+    try {
+      const res = await apiFetch('/settings/email/sync', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error('Sinkronisasi Gagal', json.message || 'Gagal terhubung ke mailbox IMAP.');
+      } else {
+        toast.success('Sinkronisasi Selesai', json.message || 'Kotak masuk email telah diperbarui.');
+        refetchConvs();
+      }
+    } catch (err: any) {
+      toast.error('Sinkronisasi Gagal', err.message || 'Terjadi kesalahan saat sinkronisasi email.');
+    } finally {
+      setIsSyncingEmail(false);
+    }
+  };
+
   const handleUseAiSuggestion = (suggestion: string) => {
     setReplyText(suggestion);
   };
@@ -212,6 +233,19 @@ export default function OmnichannelInboxPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {selectedChannelFilter === 'email' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncEmails}
+              disabled={isSyncingEmail}
+              className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 cursor-pointer"
+              title="Tarik email terbaru dari server IMAP"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", isSyncingEmail && "animate-spin")} />
+              <span>{isSyncingEmail ? "Menyinkronkan..." : "Sinkronkan Email"}</span>
+            </Button>
+          )}
           <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1.5 py-1">
             <Bot className="h-3.5 w-3.5" /> AI SDR Active • Auto Inbound Routing
           </Badge>

@@ -160,4 +160,13 @@ class EmailIntegrationController extends Controller
             'message' => "Koneksi ke {$host}:{$port} berhasil! Respons server: " . trim($greeting ?: 'OK 220 Service Ready')
         ]);
     }
+
+    public function syncEmails(Request $request): JsonResponse
+    {
+        $tenantId = $this->currentTenantId($request);
+        $service = new \App\Services\Integrations\EmailSyncService($tenantId);
+        $result = $service->sync(25);
+
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
 }

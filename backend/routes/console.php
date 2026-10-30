@@ -39,3 +39,10 @@ Artisan::command('inspire', function () {
     ->withoutOverlapping(10)
     ->runInBackground();
 
+// Syncs inbound emails from IMAP mailboxes into Omnichannel Inbox.
+\Illuminate\Support\Facades\Schedule::command('email:sync')
+    ->everyTenMinutes()
+    ->withoutOverlapping(8)
+    ->runInBackground();
+
+

@@ -710,6 +710,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('settings/email', [EmailIntegrationController::class, 'getConfig'])->middleware('permission:integrations.manage');
     Route::post('settings/email', [EmailIntegrationController::class, 'saveConfig'])->middleware('permission:integrations.manage');
     Route::post('settings/email/test', [EmailIntegrationController::class, 'testConnection'])->middleware('permission:integrations.manage');
+    Route::post('settings/email/sync', [EmailIntegrationController::class, 'syncEmails'])->middleware('permission:integrations.manage');
 
     // Database Backups
     Route::get('settings/backups', [BackupController::class, 'index'])->middleware('permission:integrations.manage');
