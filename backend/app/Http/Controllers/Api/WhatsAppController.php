@@ -208,6 +208,7 @@ class WhatsAppController extends Controller
             'conversation_id' => 'nullable|integer',
             'text' => 'required|string',
             'platform' => 'nullable|string',
+            'subject' => 'nullable|string',
         ]);
 
         if (empty($data['phone']) && empty($data['conversation_id'])) {
@@ -558,7 +559,11 @@ class WhatsAppController extends Controller
             ->where('approved_for_sync', true);
 
         if ($platform && $platform !== 'all') {
-            $query->where('platform', $platform);
+            if ($platform === 'whatsapp_all') {
+                $query->whereIn('platform', ['whatsapp', 'mekari_qontak']);
+            } else {
+                $query->where('platform', $platform);
+            }
         }
 
         if (! $isSuperAdmin && $userId && $platform === 'whatsapp') {
@@ -935,10 +940,11 @@ class WhatsAppController extends Controller
         $fromName = $configs->has('mail_from_name') ? $configs['mail_from_name']->value : config('mail.from.name', 'Leadsy Omnichannel');
         $fromAddress = $configs->has('mail_from_address') ? $configs['mail_from_address']->value : config('mail.from.address', 'noreply@leadsy.tech');
 
-        $subject = 'Tanggapan Mengenai Kebutuhan Solusi - Leadsy';
-        if ($conversation?->contact?->name) {
-            $subject = 'Tanggapan untuk ' . $conversation->contact->name . ' - Leadsy Omnichannel';
-        }
+        $subject = ! empty($data['subject'])
+            ? trim($data['subject'])
+            : ($conversation?->contact?->name
+                ? 'Tanggapan untuk ' . $conversation->contact->name . ' - Leadsy Omnichannel'
+                : 'Tanggapan Mengenai Kebutuhan Solusi - Leadsy');
 
         $emailSent = false;
         $sendError = null;
@@ -1006,6 +1012,15 @@ class WhatsAppController extends Controller
             'message_type' => 'text',
             'body' => $data['text'],
             'sent_at' => now(),
+            'received_at' => now(),
+            'relevance_flag' => true,
+            'provider_payload_json' => [
+                'to_email' => $toEmail,
+                'from_email' => $fromAddress,
+                'subject' => $subject,
+                'channel' => 'email',
+                'smtp_sent' => $emailSent,
+            ],
         ]);
 
         $conversation->update(['last_message_at' => now()]);
