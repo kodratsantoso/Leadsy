@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded } from "@vis.gl/react-google-maps";
-import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, ArrowRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent, HelpCircle, Maximize2, Minimize2, ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { APIProvider, AdvancedMarker, InfoWindow, Map, useApiIsLoaded, useMap } from "@vis.gl/react-google-maps";
+import { Building2, TrendingUp, AlertTriangle, Target, ArrowUpRight, ArrowRight, BarChart3, Loader2, ShieldCheck, Zap, Activity, Sparkles, MapPin, Search, BrainCircuit, RefreshCw, CheckCircle2, Clock, Users, Trophy, Award, DollarSign, Percent, HelpCircle, Maximize2, Minimize2, ExternalLink, ZoomIn, RotateCcw, Compass } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,39 @@ import Highcharts from "highcharts";
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 const HighchartsReact = dynamic(() => import("highcharts-react-official"), { ssr: false });
 
-const DEFAULT_CENTER = { lat: -6.2088, lng: 106.8456 };
+const DEFAULT_CENTER = { lat: -0.7893, lng: 113.9213 }; // Titik Tengah Geografis Negara Indonesia (Seluruh Teritori)
+const DEFAULT_ZOOM = 5;
+
+interface ProvinceConfig {
+  id: string;
+  name: string;
+  aliases: string[];
+  center: { lat: number; lng: number };
+  zoom: number;
+}
+
+const INDONESIA_PROVINCES: ProvinceConfig[] = [
+  { id: "dki-jakarta", name: "DKI Jakarta", aliases: ["jakarta", "dki jakarta", "daerah khusus ibukota jakarta", "jaksel", "jakbar", "jakpus", "jaktim", "jakut", "kuningan", "setiabudi"], center: { lat: -6.2088, lng: 106.8456 }, zoom: 11 },
+  { id: "jawa-timur", name: "Jawa Timur", aliases: ["jawa timur", "east java", "surabaya", "malang", "sidoarjo", "gresik", "pasuruan", "kediri", "banyuwangi", "jember", "mojokerto"], center: { lat: -7.5361, lng: 112.2384 }, zoom: 9 },
+  { id: "jawa-barat", name: "Jawa Barat", aliases: ["jawa barat", "west java", "bekasi", "cikarang", "bogor", "bandung", "depok", "karawang", "cirebon", "sukabumi", "tasikmalaya", "cimahi"], center: { lat: -6.9175, lng: 107.6191 }, zoom: 10 },
+  { id: "banten", name: "Banten", aliases: ["banten", "tangerang", "tangsel", "serang", "cilegon", "pandeglang", "lebak"], center: { lat: -6.4058, lng: 106.0640 }, zoom: 10 },
+  { id: "bali", name: "Bali", aliases: ["bali", "denpasar", "badung", "kuta", "seminyak", "ubud", "gianyar", "buleleng"], center: { lat: -8.4095, lng: 115.1889 }, zoom: 10 },
+  { id: "jawa-tengah", name: "Jawa Tengah", aliases: ["jawa tengah", "central java", "semarang", "solo", "surakarta", "magelang", "pekalongan", "kudus", "cilacap", "banyumas", "purwokerto"], center: { lat: -7.1510, lng: 110.1403 }, zoom: 10 },
+  { id: "di-yogyakarta", name: "DI Yogyakarta", aliases: ["yogyakarta", "jogja", "sleman", "bantul", "gunungkidul", "kulon progo"], center: { lat: -7.7956, lng: 110.3695 }, zoom: 11 },
+  { id: "sulawesi-selatan", name: "Sulawesi Selatan", aliases: ["sulawesi selatan", "sulsel", "south sulawesi", "makassar", "gowa", "maros", "parepare", "palopo"], center: { lat: -5.1477, lng: 119.4327 }, zoom: 9 },
+  { id: "sumatera-utara", name: "Sumatera Utara", aliases: ["sumatera utara", "sumut", "north sumatra", "medan", "deli serdang", "siantar", "binjai"], center: { lat: 3.5952, lng: 98.6722 }, zoom: 9 },
+  { id: "kalimantan-timur", name: "Kalimantan Timur", aliases: ["kalimantan timur", "kaltim", "east kalimantan", "samarinda", "balikpapan", "nusantara", "ikn", "kutai"], center: { lat: -1.2379, lng: 116.8529 }, zoom: 9 },
+];
+
+function identifyProvince(point: DashboardMapPoint): string {
+  const addr = (point.address || "").toLowerCase();
+  for (const prov of INDONESIA_PROVINCES) {
+    if (prov.aliases.some((alias) => addr.includes(alias))) {
+      return prov.id;
+    }
+  }
+  return "lainnya";
+}
 
 type DashboardMapPoint = {
   id: number;
@@ -233,52 +265,143 @@ function CountdownWidget() {
   );
 }
 
+function MapCameraHandler({
+  targetCenter,
+  targetZoom,
+  onZoomChange,
+}: {
+  targetCenter: { lat: number; lng: number } | null;
+  targetZoom: number | null;
+  onZoomChange: (zoom: number) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+    if (targetCenter && typeof targetZoom === "number") {
+      map.panTo(targetCenter);
+      map.setZoom(targetZoom);
+    }
+  }, [map, targetCenter, targetZoom]);
+
+  useEffect(() => {
+    if (!map) return;
+    const listener = map.addListener("zoom_changed", () => {
+      const z = map.getZoom();
+      if (typeof z === "number") {
+        onZoomChange(z);
+      }
+    });
+    return () => {
+      listener.remove();
+    };
+  }, [map, onZoomChange]);
+
+  return null;
+}
+
 function MapMarkersAndInfo({
   mapPoints,
   selectedMapPoint,
-  setSelectedMapPoint
+  setSelectedMapPoint,
+  currentZoom,
+  provinceSummaries,
+  onSelectProvince,
 }: {
   mapPoints: DashboardMapPoint[];
   selectedMapPoint: DashboardMapPoint | null;
   setSelectedMapPoint: (point: DashboardMapPoint | null) => void;
+  currentZoom: number;
+  provinceSummaries: {
+    id: string;
+    name: string;
+    center: { lat: number; lng: number };
+    zoom: number;
+    count: number;
+  }[];
+  onSelectProvince: (prov: { id: string; name: string; center: { lat: number; lng: number }; zoom: number }) => void;
 }) {
   const apiIsLoaded = useApiIsLoaded();
   if (!apiIsLoaded) return null;
 
+  const isZoomedIn = currentZoom >= 8;
+
   return (
     <>
-      {mapPoints.map((point) => (
-        <AdvancedMarker
-          key={point.id}
-          position={{ lat: Number(point.lat), lng: Number(point.lng) }}
-          onClick={() => setSelectedMapPoint(point)}
-        >
-          <div className="flex flex-col items-center">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background text-white shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer animate-fade-in"
-              style={{ backgroundColor: resolveStageColor(point.funnel_stage?.color) }}
-            >
-              <MapPin className="h-4 w-4" />
+      {/* 1. Mode Nasional / Zoom Out (currentZoom < 8): POI individual disembunyikan, tampilkan Cluster Provinsi */}
+      {!isZoomedIn &&
+        provinceSummaries.map((prov) => (
+          <AdvancedMarker
+            key={`cluster-${prov.id}`}
+            position={prov.center}
+            onClick={() => onSelectProvince(prov)}
+          >
+            <div className="group relative flex flex-col items-center cursor-pointer select-none transition-all duration-300 hover:scale-110 active:scale-95">
+              <div className="relative flex items-center gap-2 rounded-full border-2 border-white bg-slate-900/90 dark:bg-card/95 px-3 py-1.5 text-white shadow-xl backdrop-blur-md transition-shadow group-hover:shadow-2xl">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-white shadow-xs">
+                  {prov.count}
+                </span>
+                <span className="text-xs font-semibold tracking-tight text-white pr-1">
+                  {prov.name}
+                </span>
+              </div>
+              <div className="mt-1 flex items-center gap-1 rounded-md bg-white/95 dark:bg-slate-900/95 px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-xs border border-border">
+                <ZoomIn className="h-3 w-3 text-brand" />
+                <span>Klik untuk Zoom</span>
+              </div>
             </div>
-          </div>
-        </AdvancedMarker>
-      ))}
-      {selectedMapPoint ? (
+          </AdvancedMarker>
+        ))}
+
+      {/* 2. Mode Wilayah / Zoom In (currentZoom >= 8): Tampilkan Titik POI Individual Leads */}
+      {isZoomedIn &&
+        mapPoints.map((point) => (
+          <AdvancedMarker
+            key={point.id}
+            position={{ lat: Number(point.lat), lng: Number(point.lng) }}
+            onClick={() => setSelectedMapPoint(point)}
+          >
+            <div className="flex flex-col items-center">
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-background text-white shadow-lg transition-all duration-300 hover:scale-125 active:scale-95 cursor-pointer animate-fade-in"
+                style={{ backgroundColor: resolveStageColor(point.funnel_stage?.color) }}
+                title={`${point.company_name} (${point.funnel_stage?.name ?? "Lead"})`}
+              >
+                <MapPin className="h-4 w-4" />
+              </div>
+            </div>
+          </AdvancedMarker>
+        ))}
+
+      {/* InfoWindow saat POI diklik */}
+      {selectedMapPoint && isZoomedIn ? (
         <InfoWindow
           position={{ lat: Number(selectedMapPoint.lat), lng: Number(selectedMapPoint.lng) }}
           onCloseClick={() => setSelectedMapPoint(null)}
         >
-          <div className="min-w-48 space-y-2 text-sm text-foreground p-1">
-            <p className="font-semibold">{selectedMapPoint.company_name}</p>
-            <p className="text-xs text-muted-foreground">{selectedMapPoint.address || "No address"}</p>
-            <div className="flex items-center justify-between gap-2 border-t border-border pt-1.5 mt-1 text-xs">
-              <span className="font-medium flex items-center gap-1.5" style={{ color: resolveStageColor(selectedMapPoint.funnel_stage?.color) }}>
-                <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: resolveStageColor(selectedMapPoint.funnel_stage?.color) }} />
-                {selectedMapPoint.funnel_stage?.name ?? "Unassigned"}
+          <div className="min-w-56 space-y-2 text-sm text-foreground p-1">
+            <p className="font-bold text-base leading-snug">{selectedMapPoint.company_name}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+              {selectedMapPoint.address || "Lokasi terdaftar di Indonesia"}
+            </p>
+            <div className="flex items-center justify-between gap-2 border-t border-border pt-2 mt-1 text-xs">
+              <span
+                className="font-medium flex items-center gap-1.5 px-2 py-0.5 rounded-full text-white text-[11px]"
+                style={{ backgroundColor: resolveStageColor(selectedMapPoint.funnel_stage?.color) }}
+              >
+                {selectedMapPoint.funnel_stage?.name ?? "Lead Terdaftar"}
               </span>
-              <span className="text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              <span className="text-muted-foreground bg-muted font-medium px-2 py-0.5 rounded text-[11px]">
                 Score {selectedMapPoint.lead_score ?? "—"}
               </span>
+            </div>
+            <div className="pt-1.5 border-t border-border/50">
+              <Link
+                href={`/leads?search=${encodeURIComponent(selectedMapPoint.company_name)}`}
+                className="block text-center text-xs font-semibold text-brand hover:underline"
+              >
+                Buka Detail Lead →
+              </Link>
             </div>
           </div>
         </InfoWindow>
@@ -296,7 +419,10 @@ export default function DashboardPage() {
   const [drilldownSearch, setDrilldownSearch] = useState("");
   const [drilldownPage, setDrilldownPage] = useState(1);
   const [hintModal, setHintModal] = useState<{ title: string; description: string; attention: string; action: string } | null>(null);
-  const [isMapFullWidth, setIsMapFullWidth] = useState(false);
+  const [isMapFullWidth, setIsMapFullWidth] = useState(true);
+  const [currentZoom, setCurrentZoom] = useState(DEFAULT_ZOOM);
+  const [cameraTarget, setCameraTarget] = useState<{ center: { lat: number; lng: number }; zoom: number } | null>(null);
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string | null>(null);
 
   const [colors, setColors] = useState({
     brand: "#8b5cf6",
@@ -403,7 +529,54 @@ export default function DashboardPage() {
   const pq = pqData?.data;
   const dashboard = data?.data || data || {};
   const mapPoints: DashboardMapPoint[] = dashboard.map_points ?? [];
-  const mapCenter = mapPoints[0] ? { lat: Number(mapPoints[0].lat), lng: Number(mapPoints[0].lng) } : DEFAULT_CENTER;
+
+  const provinceSummaries = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const pointsMap: Record<string, DashboardMapPoint[]> = {};
+
+    mapPoints.forEach((point) => {
+      const provId = identifyProvince(point);
+      counts[provId] = (counts[provId] || 0) + 1;
+      if (!pointsMap[provId]) pointsMap[provId] = [];
+      pointsMap[provId].push(point);
+    });
+
+    const list = INDONESIA_PROVINCES.map((prov) => ({
+      id: prov.id,
+      name: prov.name,
+      center: prov.center,
+      zoom: prov.zoom,
+      count: counts[prov.id] || 0,
+      points: pointsMap[prov.id] || [],
+    })).filter((prov) => prov.count > 0);
+
+    list.sort((a, b) => b.count - a.count);
+
+    if (counts["lainnya"]) {
+      list.push({
+        id: "lainnya",
+        name: "Lainnya",
+        center: { lat: -2.5, lng: 118.0 },
+        zoom: 6,
+        count: counts["lainnya"],
+        points: pointsMap["lainnya"] || [],
+      });
+    }
+
+    return list;
+  }, [mapPoints]);
+
+  const handleSelectProvince = (prov: { id: string; name: string; center: { lat: number; lng: number }; zoom: number }) => {
+    setSelectedProvinceId(prov.id);
+    setCurrentZoom(prov.zoom);
+    setCameraTarget({ center: prov.center, zoom: prov.zoom });
+  };
+
+  const handleResetToNational = () => {
+    setSelectedProvinceId(null);
+    setCurrentZoom(DEFAULT_ZOOM);
+    setCameraTarget({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
+  };
   const salesAchievement = dashboard.sales_achievement ?? {};
   const salesFunnelTracking = dashboard.sales_funnel_tracking ?? {};
   const sourceChannelBreakdown = dashboard.source_channel_breakdown ?? {};
@@ -1364,31 +1537,48 @@ export default function DashboardPage() {
             </div>
 
             <div className={isMapFullWidth ? "md:col-span-12" : "md:col-span-8"} data-tour="dashboard-map">
-              <Card className="flex h-full flex-col">
-                <CardHeader>
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <Card className="flex h-full flex-col shadow-sm">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <CardTitle>Lead Geography</CardTitle>
-                      <CardDescription>Database-backed leads with stage-colored POI markers.</CardDescription>
+                      <div className="flex items-center gap-2">
+                        <Compass className="h-5 w-5 text-brand" />
+                        <CardTitle className="text-lg font-bold">Lead Geography (Peta Teritori Nasional)</CardTitle>
+                      </div>
+                      <CardDescription className="mt-1">
+                        Menampilkan seluruh wilayah Indonesia. Titik POI lead tampil saat di-zoom; ringkasan per provinsi dapat diklik untuk eksplorasi langsung.
+                      </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="info">{formatNumber(mapPoints.length, { decimals: 0 })} mapped</Badge>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResetToNational}
+                        className="h-8 text-xs gap-1.5 cursor-pointer bg-background hover:bg-muted font-medium"
+                        title="Tampilkan peta seluruh negara Indonesia (Zoom Out 5)"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>Reset Nasional</span>
+                      </Button>
+                      <Badge variant="info" className="h-7 text-xs px-2.5 font-semibold">
+                        {formatNumber(mapPoints.length, { decimals: 0 })} Mapped Leads
+                      </Badge>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setIsMapFullWidth(!isMapFullWidth)}
                         className="h-8 text-xs gap-1.5 cursor-pointer"
-                        title={isMapFullWidth ? "Kembali ke Tampilan Standar" : "Perbesar ke Layar Penuh (12 Kolom)"}
+                        title={isMapFullWidth ? "Tampilan Sebelahan (8 Kolom)" : "Perbesar ke Layar Penuh (12 Kolom)"}
                       >
                         {isMapFullWidth ? (
                           <>
                             <Minimize2 className="h-3.5 w-3.5" />
-                            <span>Standar</span>
+                            <span>8 Kolom</span>
                           </>
                         ) : (
                           <>
                             <Maximize2 className="h-3.5 w-3.5" />
-                            <span>Perbesar Penuh</span>
+                            <span>12 Kolom</span>
                           </>
                         )}
                       </Button>
@@ -1400,22 +1590,120 @@ export default function DashboardPage() {
                       </Link>
                     </div>
                   </div>
+
+                  {/* Province Interactive Summary Bar */}
+                  <div className="mt-4 pt-3 border-t border-border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5 text-brand" />
+                        Ringkasan Lead per Provinsi (Klik untuk Zoom Wilayah):
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {provinceSummaries.length} Provinsi Terdeteksi
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin">
+                      <button
+                        type="button"
+                        onClick={handleResetToNational}
+                        className={cn(
+                          "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer",
+                          !selectedProvinceId && currentZoom < 8
+                            ? "bg-brand text-white border-brand shadow-xs"
+                            : "bg-muted/60 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                        )}
+                      >
+                        <span>🇮🇩 Seluruh Indonesia</span>
+                        <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 text-white font-bold">
+                          {mapPoints.length}
+                        </span>
+                      </button>
+
+                      {provinceSummaries.map((prov) => {
+                        const isActive = selectedProvinceId === prov.id;
+                        return (
+                          <button
+                            key={prov.id}
+                            type="button"
+                            onClick={() => handleSelectProvince(prov)}
+                            className={cn(
+                              "shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer",
+                              isActive
+                                ? "bg-brand text-white border-brand shadow-xs font-semibold"
+                                : "bg-card text-foreground border-border hover:border-brand/40 hover:bg-muted/40"
+                            )}
+                          >
+                            <MapPin className={cn("h-3 w-3", isActive ? "text-white" : "text-brand")} />
+                            <span>{prov.name}</span>
+                            <span
+                              className={cn(
+                                "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
+                                isActive ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {prov.count}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Zoom Status Hint Banner */}
+                    <div className="mt-2.5 flex items-center justify-between text-xs px-3 py-1.5 rounded-lg bg-muted/40 border border-border">
+                      <div className="flex items-center gap-2">
+                        {currentZoom < 8 ? (
+                          <>
+                            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                            <span className="text-muted-foreground">
+                              <strong>Mode Teritori Nasional (Zoom level: {currentZoom})</strong> — POI individual disembunyikan. Klik nama provinsi di atas atau pin cluster untuk zoom in.
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-foreground font-medium">
+                              <strong>Mode Detail Wilayah (Zoom level: {currentZoom})</strong> — Titik POI lead individual aktif dengan warna funnel stage. Klik marker untuk info lead.
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      {currentZoom >= 8 && (
+                        <button
+                          type="button"
+                          onClick={handleResetToNational}
+                          className="text-[11px] text-brand hover:underline font-semibold cursor-pointer shrink-0 ml-2"
+                        >
+                          ← Kembali ke Nasional
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="min-h-0 flex-1">
-                  <div className="h-[480px] lg:h-[540px] w-full overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)] shadow-xs">
+
+                <CardContent className="min-h-0 flex-1 pt-0">
+                  <div className="h-[580px] lg:h-[640px] w-full overflow-hidden rounded-xl border border-border bg-[color:var(--surface-subtle)] shadow-xs">
                     {mapsEnabled && mapsApiKey ? (
                       <APIProvider apiKey={mapsApiKey}>
                         <Map
                           mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID"}
-                          defaultCenter={mapCenter}
-                          defaultZoom={mapPoints.length > 0 ? 9 : 5}
+                          defaultCenter={DEFAULT_CENTER}
+                          defaultZoom={DEFAULT_ZOOM}
                           gestureHandling="greedy"
                           disableDefaultUI={false}
                         >
+                          <MapCameraHandler
+                            targetCenter={cameraTarget?.center ?? null}
+                            targetZoom={cameraTarget?.zoom ?? null}
+                            onZoomChange={(z) => setCurrentZoom(z)}
+                          />
                           <MapMarkersAndInfo
                             mapPoints={mapPoints}
                             selectedMapPoint={selectedMapPoint}
                             setSelectedMapPoint={setSelectedMapPoint}
+                            currentZoom={currentZoom}
+                            provinceSummaries={provinceSummaries}
+                            onSelectProvince={handleSelectProvince}
                           />
                         </Map>
                       </APIProvider>

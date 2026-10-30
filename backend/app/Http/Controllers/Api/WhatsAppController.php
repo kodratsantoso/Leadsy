@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\AnalyzeWhatsAppConversationJob;
 use App\Models\FunnelStage;
+use App\Models\IntegrationConfig;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\WhatsappCampaign;
@@ -233,6 +234,10 @@ class WhatsAppController extends Controller
         }
 
         $platform = $data['platform'] ?? ($conversation ? $conversation->platform : 'whatsapp');
+
+        if ($platform === 'email') {
+            return $this->sendEmailMessage($request, $conversation, $data);
+        }
 
         if ($platform === 'mekari_qontak') {
             $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id ?? auth()->user()?->tenant_id;
@@ -895,4 +900,123 @@ class WhatsAppController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    protected function sendEmailMessage(Request $request, ?WhatsappConversation $conversation, array $data): JsonResponse
+    {
+        $userId = $request->user()?->id ?? auth('sanctum')->id();
+        $tenantId = $request->user()?->tenant_id ?? auth('sanctum')->user()?->tenant_id;
+
+        $toEmail = $conversation?->external_chat_id ?? $data['phone'] ?? null;
+        if (! $toEmail && $conversation?->contact?->lead?->email) {
+            $toEmail = $conversation->contact->lead->email;
+        }
+
+        if (empty($toEmail) || ! filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+            return response()->json(['error' => 'Target alamat email tidak valid atau belum ditentukan.'], 422);
+        }
+
+        // Retrieve dynamic SMTP configuration from IntegrationConfig
+        $configs = IntegrationConfig::query()
+            ->where('category', 'email')
+            ->where(function ($q) use ($tenantId) {
+                $q->whereNull('tenant_id');
+                if ($tenantId !== null) {
+                    $q->orWhere('tenant_id', $tenantId);
+                }
+            })
+            ->get()
+            ->keyBy('key');
+
+        $smtpHost = $configs->has('smtp_host') ? $configs['smtp_host']->value : config('mail.mailers.smtp.host');
+        $smtpPort = $configs->has('smtp_port') ? (int) $configs['smtp_port']->value : (int) config('mail.mailers.smtp.port', 587);
+        $smtpEncryption = $configs->has('smtp_encryption') ? $configs['smtp_encryption']->value : config('mail.mailers.smtp.encryption', 'tls');
+        $smtpUsername = $configs->has('smtp_username') ? $configs['smtp_username']->value : config('mail.mailers.smtp.username');
+        $smtpPassword = $configs->has('smtp_password') ? $configs['smtp_password']->value : config('mail.mailers.smtp.password');
+        $fromName = $configs->has('mail_from_name') ? $configs['mail_from_name']->value : config('mail.from.name', 'Leadsy Omnichannel');
+        $fromAddress = $configs->has('mail_from_address') ? $configs['mail_from_address']->value : config('mail.from.address', 'noreply@leadsy.tech');
+
+        $subject = 'Tanggapan Mengenai Kebutuhan Solusi - Leadsy';
+        if ($conversation?->contact?->name) {
+            $subject = 'Tanggapan untuk ' . $conversation->contact->name . ' - Leadsy Omnichannel';
+        }
+
+        $emailSent = false;
+        $sendError = null;
+
+        if (! empty($smtpHost) && ! empty($smtpUsername)) {
+            try {
+                $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(
+                    $smtpHost,
+                    $smtpPort,
+                    $smtpEncryption === 'ssl'
+                );
+                if (! empty($smtpUsername) && ! empty($smtpPassword)) {
+                    $transport->setUsername($smtpUsername);
+                    $transport->setPassword($smtpPassword);
+                }
+                $mailer = new \Symfony\Component\Mailer\Mailer($transport);
+                $email = (new \Symfony\Component\Mime\Email())
+                    ->from(new \Symfony\Component\Mime\Address($fromAddress, $fromName))
+                    ->to($toEmail)
+                    ->subject($subject)
+                    ->text($data['text']);
+
+                $mailer->send($email);
+                $emailSent = true;
+            } catch (\Throwable $e) {
+                Log::warning('[Omnichannel Email] Live dispatch failed, logging to internal CRM: ' . $e->getMessage());
+                $sendError = $e->getMessage();
+            }
+        }
+
+        if (! $conversation) {
+            $contact = WhatsappContact::firstOrCreate(
+                [
+                    'phone_number' => $toEmail,
+                    'user_id' => $userId,
+                ],
+                [
+                    'name' => $toEmail,
+                    'normalized_phone_number' => $toEmail,
+                    'is_relevant' => true,
+                    'relevance_reason' => 'email_inquiry',
+                ]
+            );
+
+            $conversation = WhatsappConversation::firstOrCreate(
+                [
+                    'external_chat_id' => $toEmail,
+                    'user_id' => $userId,
+                ],
+                [
+                    'contact_id' => $contact->id,
+                    'sync_status' => 'active',
+                    'relevance_status' => 'high',
+                    'approved_for_sync' => true,
+                    'platform' => 'email',
+                ]
+            );
+        }
+
+        $extId = uniqid('email_out_');
+        WhatsappMessage::create([
+            'conversation_id' => $conversation->id,
+            'external_message_id' => $extId,
+            'direction' => 'outbound',
+            'message_type' => 'text',
+            'body' => $data['text'],
+            'sent_at' => now(),
+        ]);
+
+        $conversation->update(['last_message_at' => now()]);
+
+        return response()->json([
+            'success' => true,
+            'external_id' => $extId,
+            'email_sent' => $emailSent,
+            'message' => $emailSent ? 'Email berhasil dikirim ke ' . $toEmail : 'Pesan email berhasil dicatat dan diproses di Omnichannel CRM.',
+            'warning' => $sendError ? 'Email tersimpan di timeline; SMTP notice: ' . $sendError : null,
+        ]);
+    }
 }
+
