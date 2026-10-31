@@ -52,6 +52,8 @@ function TableEmpty({
   );
 }
 
+export { TableLoading } from "@/components/ui/loading";
+
 export {
   TableShell,
   Table,

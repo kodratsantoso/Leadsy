@@ -3,6 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
+import { LoadingState } from '@/components/ui/loading';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -74,7 +75,7 @@ export function SalesCadenceStatusCard({
       </div>
 
       {isLoading ? (
-        <div className="py-4 text-center text-xs text-muted-foreground">Memuat data cadence...</div>
+        <LoadingState variant="inline" size="sm" label="Memuat status cadence..." className="py-3" />
       ) : !activeEnrollment ? (
         <div className="rounded-lg border border-dashed border-border p-4 text-center bg-muted/20">
           <p className="text-xs text-muted-foreground">Lead ini belum terdaftar di automated sequence mana pun.</p>

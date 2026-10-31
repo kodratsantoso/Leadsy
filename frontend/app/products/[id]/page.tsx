@@ -29,6 +29,7 @@ import {
   Pencil,
   ExternalLink,
 } from "lucide-react";
+import { PageLoader } from "@/components/ui/loading";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -650,10 +651,10 @@ export default function ProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="py-24 text-center">
-        <Loader2 className="mx-auto h-7 w-7 animate-spin text-muted-foreground mb-2" />
-        <span className="text-sm text-muted-foreground">Loading product details...</span>
-      </div>
+      <PageLoader
+        label="Memuat Detail Produk..."
+        description="Mengambil spesifikasi, tier harga, dan materi sales enablement"
+      />
     );
   }
 

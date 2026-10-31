@@ -1,3 +1,7 @@
+"use client";
+
+import React from "react";
+import { LoadingState } from "@/components/ui/loading";
 import { cn } from "@/lib/utils";
 
 interface AILoaderProps {
@@ -6,29 +10,30 @@ interface AILoaderProps {
   fullScreen?: boolean;
 }
 
-export const AILoader = ({ className, text = "Generating", fullScreen = false }: AILoaderProps) => {
-  const content = (
-    <div className={cn("loader-wrapper", className)}>
-      {text.split('').map((char, index) => (
-        <span 
-          key={index} 
-          className="loader-letter" 
-          style={{ animationDelay: `${index * 0.1}s` }}
-        >
-          {char === ' ' ? '\u00A0' : char}
-        </span>
-      ))}
-      <div className="loader"></div>
-    </div>
-  );
-
+export const AILoader: React.FC<AILoaderProps> = ({
+  className,
+  text = "Memproses kecerdasan AI...",
+  fullScreen = false,
+}) => {
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        {content}
-      </div>
+      <LoadingState
+        variant="fullscreen"
+        size="xl"
+        label={text}
+        description="Menghubungkan ke intelligence engine dan memproses data..."
+        className={className}
+      />
     );
   }
 
-  return content;
+  return (
+    <LoadingState
+      variant="ai"
+      size="md"
+      label={text}
+      description="Sistem sedang menganalisis dan memproses informasi secara otomatis"
+      className={cn("my-2", className)}
+    />
+  );
 };

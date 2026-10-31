@@ -16,6 +16,7 @@ import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
+import { LoadingState } from "@/components/ui/loading";
 import { apiFetch } from "@/lib/apiFetch";
 
 interface CadenceStep {
@@ -415,10 +416,12 @@ export default function SalesCadencesPage() {
 
       {/* Cadence List */}
       {isLoading ? (
-        <div className="flex items-center justify-center p-12 text-muted-foreground gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-brand" />
-          <span>Memuat data Sales Cadence...</span>
-        </div>
+        <LoadingState
+          size="lg"
+          label="Memuat daftar Sales Cadence..."
+          description="Mengambil sekuens outreach aktif dan status otomasi..."
+          className="py-16"
+        />
       ) : filteredCadences.length === 0 ? (
         <div className="text-center rounded-xl border border-dashed border-border p-12 bg-card/40">
           <GitBranch className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />

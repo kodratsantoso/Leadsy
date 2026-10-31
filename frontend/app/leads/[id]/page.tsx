@@ -9,7 +9,7 @@ import { IntelligenceTab } from '@/components/leads/IntelligenceTab';
 import { clampPercent, formatQualificationStatus, gradeVariant, icpLabel, icpVariant, qualificationVariant } from "@/lib/leadDisplay";
 import { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
-import { AILoader } from "@/components/ui/ai-loader";
+import { PageLoader } from "@/components/ui/loading";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -1409,7 +1409,12 @@ export default function LeadDetailPage() {
 
   /* ── Render ── */
   if (leadLoading) {
-    return <AILoader text="Loading" fullScreen />;
+    return (
+      <PageLoader
+        label="Memuat Detail Prospek..."
+        description="Mengambil profil data CRM, intelligence AI, dan histori interaksi"
+      />
+    );
   }
 
   const leadData      = lead?.data || {};

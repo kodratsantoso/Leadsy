@@ -45,6 +45,7 @@ import {
   TableBody,
   TableCell,
   TableEmpty,
+  TableLoading,
   TableHead,
   TableHeaderCell,
   TableRow,
@@ -1996,10 +1997,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
             </TableHead>
             <TableBody>
               {isLoading ? (
-                <TableEmpty colSpan={8}>
-                  <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-                  Loading leads...
-                </TableEmpty>
+                <TableLoading colSpan={user?.role?.name === "super_admin" ? 9 : 8} label="Memuat data prospek..." />
               ) : leads.length === 0 ? (
                 <TableEmpty colSpan={user?.role?.name === "super_admin" ? 9 : 8}>No leads found.</TableEmpty>
               ) : (

@@ -17,6 +17,7 @@ import {
   TableBody,
   TableCell,
   TableEmpty,
+  TableLoading,
   TableHead,
   TableHeaderCell,
   TableRow,
@@ -211,10 +212,7 @@ export default function LeadStagesSettingsPage() {
           </TableHead>
           <TableBody>
             {isLoading ? (
-              <TableEmpty colSpan={6}>
-                <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-                Loading lead stages...
-              </TableEmpty>
+              <TableLoading colSpan={6} label="Memuat lead stages..." />
             ) : filteredStages.length === 0 ? (
               <TableEmpty colSpan={6}>
                 <GitBranch className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />

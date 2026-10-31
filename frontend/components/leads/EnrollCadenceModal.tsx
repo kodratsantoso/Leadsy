@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
+import { LoadingState } from '@/components/ui/loading';
 import { 
   GitBranch, Play, Clock, MessageSquare, Phone, Mail, 
   CheckCircle2, AlertCircle, Loader2, Sparkles, ChevronRight, Settings, ExternalLink 
@@ -111,10 +112,11 @@ export function EnrollCadenceModal({
     >
       <div className="space-y-4 py-2">
         {isLoadingCadences ? (
-          <div className="flex items-center justify-center p-8 text-muted-foreground gap-2">
-            <Loader2 className="h-5 w-5 animate-spin text-brand" />
-            <span className="text-sm">Memuat daftar cadence aktif...</span>
-          </div>
+          <LoadingState
+            size="md"
+            label="Memuat daftar cadence aktif..."
+            className="py-10"
+          />
         ) : cadences.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground bg-muted/20">
             <GitBranch className="h-8 w-8 mx-auto mb-2 text-brand/70" />

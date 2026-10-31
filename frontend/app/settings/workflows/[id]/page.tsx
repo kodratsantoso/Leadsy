@@ -22,6 +22,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ArrowLeft, Save, Play, CheckCircle2, AlertCircle, GripHorizontal, Loader2, Plus, Trash2 } from "lucide-react";
+import { PageLoader } from "@/components/ui/loading";
 
 import { apiFetch } from "@/lib/apiFetch";
 import { throwIfApiError } from "@/lib/apiError";
@@ -332,7 +333,12 @@ function WorkflowBuilder({ id }: { id: string }) {
   });
 
   if (isLoading) {
-    return <div className="p-8 flex items-center justify-center h-screen"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+    return (
+      <PageLoader
+        label="Memuat Workflow Designer"
+        description="Menyiapkan canvas diagram visual dan konfigurasi rules..."
+      />
+    );
   }
 
   return (
