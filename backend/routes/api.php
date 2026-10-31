@@ -370,6 +370,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('sales-orders/{order}/cancel', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'cancelSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/renew', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'createRenewalQuotation'])->middleware('permission:leads.edit');
+    Route::post('sales-orders/{order}/generate-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'generatePdfSo'])->middleware('permission:leads.edit');
     Route::get('sales-orders/{order}/preview-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'previewPdfSo'])->middleware('permission:leads.view');
     Route::get('sales-orders/{order}/download-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'downloadPdfSo'])->middleware('permission:leads.view');
 

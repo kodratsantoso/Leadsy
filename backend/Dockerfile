@@ -4,11 +4,16 @@ RUN apt-get update && apt-get install -y \
     postgresql-server-dev-all \
     libpq-dev \
     libzip-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libwebp-dev \
     zip \
     unzip \
     git \
     curl \
-    && docker-php-ext-install pdo pdo_pgsql zip pcntl
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install pdo pdo_pgsql zip pcntl gd
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

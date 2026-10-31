@@ -185,13 +185,16 @@ class CommercialDocumentPdfService
         }
 
         // 5. Resolve Logos & Signatures as base64 to avoid path/chroot issues in DomPDF
-        $issuerLogoData = $this->imageToBase64($tenant->logo_path);
-        $productLogoData = $this->imageToBase64($productLogoPath);
+        // Check if GD extension is available for image processing in DomPDF
+        $hasGd = extension_loaded('gd') && function_exists('imagecreatetruecolor');
+
+        $issuerLogoData = $hasGd ? $this->imageToBase64($tenant->logo_path) : null;
+        $productLogoData = $hasGd ? $this->imageToBase64($productLogoPath) : null;
 
         $signatoryImagePath = ($doc->salesOwner && $doc->salesOwner->signature_path)
             ? $doc->salesOwner->signature_path
             : ($tenant->signatory_image_path ?: null);
-        $issuerSignatoryImageData = $this->imageToBase64($signatoryImagePath);
+        $issuerSignatoryImageData = $hasGd ? $this->imageToBase64($signatoryImagePath) : null;
 
         $issuerSignatoryName = ($doc->salesOwner && $doc->salesOwner->name)
             ? $doc->salesOwner->name

@@ -232,16 +232,18 @@ class CommercialInvoiceService
         $tenantEmail = 'finance@virtuenet.id';
         $tenantPhone = '+62 21 8060 1234';
 
-        // Logo Base64
+        // Logo Base64 (Only load if GD extension is available for DomPDF)
         $logoBase64 = null;
-        $logoPath = public_path('images/logo.png');
-        if (!file_exists($logoPath)) {
-            $logoPath = public_path('brand/leadsy-logo.png');
-        }
-        if (file_exists($logoPath)) {
-            $logoData = file_get_contents($logoPath);
-            $mime = mime_content_type($logoPath) ?: 'image/png';
-            $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode($logoData);
+        if (extension_loaded('gd') && function_exists('imagecreatetruecolor')) {
+            $logoPath = public_path('images/logo.png');
+            if (!file_exists($logoPath)) {
+                $logoPath = public_path('brand/leadsy-logo.png');
+            }
+            if (file_exists($logoPath)) {
+                $logoData = file_get_contents($logoPath);
+                $mime = mime_content_type($logoPath) ?: 'image/png';
+                $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode($logoData);
+            }
         }
 
         // Bank details parsing
