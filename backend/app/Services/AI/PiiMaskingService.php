@@ -95,6 +95,21 @@ class PiiMaskingService
             return str_replace($accountNumber, $token, $full);
         }, $maskedText);
 
+        // 5. Prompt Injection Guardrails (OWASP LLM01)
+        // Neutralize common adversarial overrides in English & Indonesian
+        $injectionPatterns = [
+            '/\b(?:ignore|forget|disregard)\s+(?:all\s+)?(?:previous|prior|above)\s+(?:instructions|prompts|rules)\b/i',
+            '/\b(?:system\s+override|developer\s+mode|jailbreak|unrestricted\s+mode)\b/i',
+            '/\b(?:you\s+are\s+now|act\s+as)\s+(?:an?\s+)?(?:unrestricted|DAN|root|hacker)\b/i',
+            '/\b(?:print|reveal|expose|dump)\s+(?:your\s+)?(?:system\s+prompt|initial\s+instructions|hidden\s+rules)\b/i',
+            '/\b(?:abaikan|lupakan)\s+(?:semua\s+)?(?:instruksi|perintah|aturan)\s+(?:sebelumnya|di\s+atas)\b/i',
+            '/\b(?:mode\s+pengembang|override\s+sistem|bypass\s+keamanan)\b/i',
+        ];
+
+        foreach ($injectionPatterns as $pattern) {
+            $maskedText = preg_replace($pattern, '[SANITIZED_DIRECTIVE]', $maskedText);
+        }
+
         return [
             'masked' => $maskedText,
             'tokenMap' => $tokenMap,

@@ -83,11 +83,11 @@ Route::get('version', function () {
     ]);
 });
 
-// ── Auth (public) ──
+// ── Auth (public with strict rate limiting) ──
 Route::prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('send-otp', [AuthController::class, 'sendOtp']);
-    Route::post('register', [AuthController::class, 'register']);
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('send-otp', [AuthController::class, 'sendOtp'])->middleware('throttle:3,1');
+    Route::post('register', [AuthController::class, 'register'])->middleware('throttle:3,1');
     Route::get('lark/tenants', [AuthController::class, 'getLarkTenants']);
     Route::get('lark/auth-url', [AuthController::class, 'getLarkAuthUrl']);
     Route::post('lark/callback', [AuthController::class, 'handleLarkCallback']);
@@ -95,7 +95,6 @@ Route::prefix('auth')->group(function () {
 
 // ── Public Integrations (e.g. Browser Maps Key, APP_NAME, APP_ENV) ──
 Route::get('settings/public', [IntegrationConfigController::class, 'publicSettings']);
-Route::get('opensearch/contacts', [OpenSearchController::class, 'searchContacts']);
 
 // ── Webhooks (Must be outside Sanctum) ──
 Route::prefix('webhooks')->group(function () {
@@ -114,14 +113,15 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('auth/token/generate', [AuthController::class, 'generateApiToken']);
     Route::get('auth/token/status', [AuthController::class, 'getApiTokenStatus']);
 
-    // 2FA
-    Route::post('auth/login/2fa', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'verifyLogin']);
+    // 2FA (with brute-force defense)
+    Route::post('auth/login/2fa', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'verifyLogin'])->middleware('throttle:5,1');
     Route::post('auth/2fa/generate', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'generate']);
     Route::post('auth/2fa/enable', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'enable']);
     Route::post('auth/2fa/disable', [\App\Http\Controllers\Api\TwoFactorAuthController::class, 'disable']);
 
-    // Global Search
+    // Global Search & Protected OpenSearch (Rate Limited)
     Route::get('search', [\App\Http\Controllers\Api\GlobalSearchController::class, 'search']);
+    Route::get('opensearch/contacts', [OpenSearchController::class, 'searchContacts'])->middleware('throttle:20,1');
 
     // AI Usage is now served from the AI Defaults "Usage & Health" tab
     // (AiSettingsController::index -> AIUsageLogService, backed by ai_requests).
