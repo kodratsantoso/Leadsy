@@ -70,12 +70,21 @@ export function EnrollCadenceModal({
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(
         'Berhasil Didaftarkan',
         `${leadName} berhasil didaftarkan ke cadence sequence.`
       );
-      queryClient.invalidateQueries({ queryKey: ['lead-cadence-enrollments', leadId] });
+      await queryClient.invalidateQueries({ queryKey: ['lead-cadence-enrollments', leadId] });
+      await queryClient.invalidateQueries({ queryKey: ['lead-cadence-enrollments', String(leadId)] });
+      await queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      await queryClient.invalidateQueries({ queryKey: ['lead', String(leadId)] });
+      await queryClient.invalidateQueries({ queryKey: ['leads'] });
+      await queryClient.refetchQueries({ queryKey: ['lead-cadence-enrollments', leadId] });
+      await queryClient.refetchQueries({ queryKey: ['lead-cadence-enrollments', String(leadId)] });
+      await queryClient.refetchQueries({ queryKey: ['lead', leadId] });
+      await queryClient.refetchQueries({ queryKey: ['lead', String(leadId)] });
+      await queryClient.refetchQueries({ queryKey: ['leads'] });
       onSuccess?.();
       onClose();
     },

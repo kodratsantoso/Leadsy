@@ -561,7 +561,7 @@ export default function LeadDetailPage() {
   const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
 
   // Fetch lead details (includes contacts)
-  const { data: lead, isLoading: leadLoading } = useQuery({
+  const { data: lead, isLoading: leadLoading, refetch: refetchLead } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}`).then((r) => r.json()),
     enabled: !!leadId && leadId !== 'undefined',
@@ -798,7 +798,16 @@ export default function LeadDetailPage() {
     ["csm", "admin", "super_admin"].includes(u.role?.name)
   );
 
-  const invalidateLead = () => qc.invalidateQueries({ queryKey: ['lead', leadId] });
+  const invalidateLead = async () => {
+    await qc.invalidateQueries({ queryKey: ['lead', leadId] });
+    await qc.invalidateQueries({ queryKey: ['lead', String(leadId)] });
+    await qc.invalidateQueries({ queryKey: ['lead', Number(leadId)] });
+    await qc.invalidateQueries({ queryKey: ['leads'] });
+    await qc.invalidateQueries({ queryKey: ['lead-cadence-enrollments', leadId] });
+    await qc.invalidateQueries({ queryKey: ['lead-cadence-enrollments', Number(leadId)] });
+    await refetchLead();
+    await qc.refetchQueries({ queryKey: ['lead-cadence-enrollments', leadId] });
+  };
 
   /* ── AI Actions bar (superadmin-only) — mirrors the AI Testing Console's
      re-run buttons so re-running a stuck/failed function doesn't require
@@ -2143,7 +2152,7 @@ export default function LeadDetailPage() {
         open={showEditCompanyInfo}
         onOpenChange={setShowEditCompanyInfo}
         onSuccess={() => {
-          qc.invalidateQueries({ queryKey: ["leads", leadId] });
+          invalidateLead();
         }}
       />
 
@@ -2585,6 +2594,9 @@ export default function LeadDetailPage() {
         leadName={leadData?.company_name || 'Lead'}
         isOpen={isCadenceModalOpen}
         onClose={() => setIsCadenceModalOpen(false)}
+        onSuccess={() => {
+          invalidateLead();
+        }}
       />
 
       {/* ── FIELD SALES CHECK-IN MODAL ── */}

@@ -147,7 +147,7 @@ export default function SalesCadencesPage() {
   const [steps, setSteps] = useState<CadenceStep[]>(PRESET_B2B_INBOUND);
 
   // Query all cadences
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["sales-cadences-settings"],
     queryFn: async () => {
       const res = await apiFetch("/api/sales-cadences?active_only=0");
@@ -260,13 +260,16 @@ export default function SalesCadencesPage() {
 
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success(
         editingCadence ? "Cadence Diperbarui" : "Cadence Dibuat",
         data.message || "Sales Cadence berhasil disimpan."
       );
-      queryClient.invalidateQueries({ queryKey: ["sales-cadences-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["sales-cadences"] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-cadences-settings"] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-cadences"] });
+      await queryClient.refetchQueries({ queryKey: ["sales-cadences-settings"] });
+      await queryClient.refetchQueries({ queryKey: ["sales-cadences"] });
+      await refetch();
       setIsFormOpen(false);
     },
     onError: (err: any) => {
@@ -284,9 +287,12 @@ export default function SalesCadencesPage() {
       });
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sales-cadences-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["sales-cadences"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["sales-cadences-settings"] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-cadences"] });
+      await queryClient.refetchQueries({ queryKey: ["sales-cadences-settings"] });
+      await queryClient.refetchQueries({ queryKey: ["sales-cadences"] });
+      await refetch();
       toast.success("Status Berubah", "Status aktifasi cadence berhasil diperbarui.");
     },
     onError: (err: any) => {
@@ -302,10 +308,13 @@ export default function SalesCadencesPage() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Dihapus", "Sales Cadence berhasil dihapus.");
-      queryClient.invalidateQueries({ queryKey: ["sales-cadences-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["sales-cadences"] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-cadences-settings"] });
+      await queryClient.invalidateQueries({ queryKey: ["sales-cadences"] });
+      await queryClient.refetchQueries({ queryKey: ["sales-cadences-settings"] });
+      await queryClient.refetchQueries({ queryKey: ["sales-cadences"] });
+      await refetch();
       setDeleteCadence(null);
     },
     onError: (err: any) => {

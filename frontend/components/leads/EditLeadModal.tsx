@@ -259,7 +259,18 @@ export function EditLeadModal({
       await throwIfApiError(res, "This lead could not be saved.");
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['leads'] });
+      await qc.invalidateQueries({ queryKey: ['lead'] });
+      if (lead?.id) {
+        await qc.invalidateQueries({ queryKey: ['lead', lead.id] });
+        await qc.invalidateQueries({ queryKey: ['lead', String(lead.id)] });
+        await qc.invalidateQueries({ queryKey: ['leads', lead.id] });
+        await qc.invalidateQueries({ queryKey: ['leads', String(lead.id)] });
+        await qc.refetchQueries({ queryKey: ['lead', lead.id] });
+        await qc.refetchQueries({ queryKey: ['lead', String(lead.id)] });
+      }
+      await qc.refetchQueries({ queryKey: ['leads'] });
       onSuccess?.();
       onOpenChange(false);
     }

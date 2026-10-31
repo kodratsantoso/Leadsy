@@ -2973,6 +2973,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
         }}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["leads"] });
+          queryClient.refetchQueries({ queryKey: ["leads"] });
           setEditLead(null);
           setFormError("");
           setFeedback("Lead updated successfully.");
