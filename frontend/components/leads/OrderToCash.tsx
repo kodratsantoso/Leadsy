@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/apiFetch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FileText, Plus, Receipt, CheckCircle, XCircle, ArrowRight, Loader2, DollarSign, AlertCircle, Trash2, Copy, Layers, Download, ExternalLink, Printer } from 'lucide-react';
+import { FileText, Plus, Receipt, CheckCircle, XCircle, ArrowRight, Loader2, DollarSign, AlertCircle, Trash2, Copy, Layers, Download, ExternalLink, Printer, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { Modal } from '@/components/ui/modal';
@@ -30,6 +30,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const [viewPdfUrl, setViewPdfUrl] = useState<string | null>(null);
   const [viewPdfTitle, setViewPdfTitle] = useState<string>("");
   const [viewPdfMeta, setViewPdfMeta] = useState<{ type: 'quotation' | 'sales_order'; id: number; number: string } | null>(null);
+  const [sendingMekariId, setSendingMekariId] = useState<number | null>(null);
   
   // Confirm dialogs
   const [deleteQConfirm, setDeleteQConfirm] = useState<{ open: boolean; id: number | null; number?: string }>({ open: false, id: null });
@@ -82,6 +83,13 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     queryFn: () => apiFetch('/settings/company/bank-accounts').then(r => r.json()),
   });
   const bankAccounts = bankAccountsData?.data || [];
+
+  // Fetch Payment Terms Presets
+  const { data: paymentTermsData } = useQuery({
+    queryKey: ['finance-payment-terms'],
+    queryFn: () => apiFetch('/api/finance/payment-terms').then(r => r.json()),
+  });
+  const paymentTermsList = paymentTermsData?.data || [];
  
   // Fetch Item Settings
   const { data: itemSettingsData } = useQuery({
@@ -110,6 +118,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     sales_owner_id: '',
     presales_owner_id: '',
     payment_terms: 'Net 30',
+    payment_term_id: '',
+    payment_term_type: 'calendar',
+    first_invoice_date: new Date().toISOString().split('T')[0],
     billing_frequency: 'monthly',
     contract_start_date: '',
     contract_end_date: '',
@@ -168,6 +179,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       sales_owner_id: q.sales_owner_id ? String(q.sales_owner_id) : '',
       presales_owner_id: q.presales_owner_id ? String(q.presales_owner_id) : '',
       payment_terms: q.payment_terms || 'Net 30',
+      payment_term_id: q.payment_term_id ? String(q.payment_term_id) : '',
+      payment_term_type: q.payment_term_type || 'calendar',
+      first_invoice_date: q.first_invoice_date ? q.first_invoice_date.split('T')[0] : (q.quotation_date ? q.quotation_date.split('T')[0] : ''),
       billing_frequency: q.billing_frequency || 'monthly',
       contract_start_date: q.contract_start_date ? q.contract_start_date.split('T')[0] : '',
       contract_end_date: q.contract_end_date ? q.contract_end_date.split('T')[0] : '',
@@ -281,6 +295,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     business_category: '',
 
     payment_terms: 'Net 30',
+    payment_term_id: '',
+    payment_term_type: 'calendar',
+    first_invoice_date: new Date().toISOString().split('T')[0],
     billing_frequency: 'monthly',
     delivery_timeline: '',
     fulfillment_notes: '',
@@ -443,7 +460,62 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     }
     setQForm({ ...qForm, items: newItems });
   };
- 
+
+  const getSelectedPaymentTerm = (termId?: string | number, fallbackName?: string) => {
+    if (termId) {
+      const found = paymentTermsList.find((p: any) => String(p.id) === String(termId));
+      if (found) return found;
+    }
+    if (fallbackName) {
+      const found = paymentTermsList.find((p: any) => p.name === fallbackName || p.code === fallbackName);
+      if (found) return found;
+    }
+    return paymentTermsList[0] || null;
+  };
+
+  const calculateSchedulePreview = (totalSubtotal: number, paymentTerm: any, startDateStr?: string) => {
+    if (!paymentTerm || !paymentTerm.installments_config || paymentTerm.installments_config.length === 0) {
+      const start = startDateStr ? new Date(startDateStr) : new Date();
+      const due = new Date(start);
+      due.setDate(due.getDate() + (paymentTerm?.days_due || 30));
+      return [{
+        label: 'Pelunasan Penuh (100%)',
+        percentage: 100,
+        amount: totalSubtotal,
+        tax: Math.round(totalSubtotal * 0.11),
+        total: Math.round(totalSubtotal * 1.11),
+        trigger: 'calendar_date',
+        scheduled_date: start.toISOString().split('T')[0],
+        due_date: due.toISOString().split('T')[0],
+      }];
+    }
+    const start = startDateStr ? new Date(startDateStr) : new Date();
+    return paymentTerm.installments_config.map((cfg: any, idx: number) => {
+      const pct = cfg.percentage || 100;
+      const amount = Math.round(totalSubtotal * (pct / 100));
+      const tax = Math.round(amount * 0.11);
+      const sched = new Date(start);
+      if (paymentTerm.frequency === 'monthly') {
+        sched.setMonth(sched.getMonth() + idx);
+      } else {
+        sched.setDate(sched.getDate() + (cfg.days_after || 0));
+      }
+      const due = new Date(sched);
+      due.setDate(due.getDate() + (paymentTerm.days_due || 30));
+
+      return {
+        label: cfg.label || `Termin ${idx + 1}`,
+        percentage: pct,
+        amount,
+        tax,
+        total: amount + tax,
+        trigger: cfg.trigger || 'calendar_date',
+        scheduled_date: sched.toISOString().split('T')[0],
+        due_date: due.toISOString().split('T')[0],
+      };
+    });
+  };
+
   const calculateFrontendSummary = () => {
     let subtotal = 0;
     let totalLineDiscount = 0;
@@ -540,6 +612,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         contract_end_date: qForm.contract_end_date || null,
         expected_close_date: qForm.expected_close_date || null,
         bank_account_id: qForm.bank_account_id ? Number(qForm.bank_account_id) : null,
+        payment_term_id: qForm.payment_term_id ? Number(qForm.payment_term_id) : null,
+        payment_term_type: qForm.payment_term_type || 'calendar',
+        first_invoice_date: qForm.first_invoice_date || null,
         items: qForm.items.map(item => ({
           ...item,
           product_id: item.product_id ? Number(item.product_id) : null,
@@ -701,6 +776,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         expected_fulfillment_date: soForm.expected_fulfillment_date || null,
         sales_effective_date: soForm.sales_effective_date || null,
         payment_terms: soForm.payment_terms || null,
+        payment_term_id: soForm.payment_term_id ? Number(soForm.payment_term_id) : null,
+        payment_term_type: soForm.payment_term_type || 'calendar',
+        first_invoice_date: soForm.first_invoice_date || null,
         billing_frequency: soForm.billing_frequency || null,
         tax_included: soForm.tax_included,
         header_discount_type: soForm.header_discount_type === 'none' ? null : soForm.header_discount_type,
@@ -747,6 +825,14 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         }
         throw new Error(err.message || 'Failed to save sales order');
       }
+      const resJson = await res.json().catch(() => ({}));
+      const targetOrderId = resJson?.data?.id || editingSOId;
+      if (targetOrderId && soForm.payment_term_id) {
+        await apiFetch(`/api/sales-orders/${targetOrderId}/billing-schedules/sync`, {
+          method: 'POST',
+          body: JSON.stringify({ payment_term_id: Number(soForm.payment_term_id) })
+        }).catch(() => {});
+      }
       qc.invalidateQueries({ queryKey: ['lead-sales-orders', leadId] });
       setShowSOModal(false);
     } catch (err) {
@@ -785,6 +871,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       industry: so.industry || '',
       business_category: so.business_category || '',
       payment_terms: so.payment_terms || 'Net 30',
+      payment_term_id: so.payment_term_id ? String(so.payment_term_id) : '',
+      payment_term_type: so.payment_term_type || 'calendar',
+      first_invoice_date: so.first_invoice_date ? so.first_invoice_date.split('T')[0] : (so.order_date ? so.order_date.split('T')[0] : ''),
       billing_frequency: so.billing_frequency || 'monthly',
       delivery_timeline: so.delivery_timeline || '',
       fulfillment_notes: '',
@@ -965,6 +1054,40 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       toast.fromError(err, "Failed to download PDF.");
     } finally {
       setDownloadingPdfId(null);
+    }
+  };
+
+  const handleSendMekariSign = async (type: 'quotation' | 'sales_order', id: number, number: string) => {
+    setSendingMekariId(id);
+    try {
+      const res = await apiFetch('/finance/mekari-sign/send', {
+        method: 'POST',
+        body: JSON.stringify({
+          document_type: type,
+          document_id: id,
+          signers: [
+            {
+              name: leadObj?.company_name || 'Customer PIC',
+              email: leadObj?.email || 'customer@example.com',
+              role: 'signer',
+              page: 1,
+              x: 400,
+              y: 650
+            }
+          ],
+          use_meterai: false
+        })
+      });
+      const data = await res.json();
+      if (res.ok && (data.status === 'success' || data.document_id)) {
+        toast.success(`Dokumen ${number} berhasil dikirim ke Mekari Sign untuk tanda tangan digital.`);
+      } else {
+        toast.error(data.message || 'Gagal mengirim dokumen ke Mekari Sign.');
+      }
+    } catch (err) {
+      toast.fromError(err, 'Gagal mengirim dokumen ke Mekari Sign.');
+    } finally {
+      setSendingMekariId(null);
     }
   };
 
@@ -1309,6 +1432,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                 sales_owner_id: String(leadObj?.owner_id || ''),
                 presales_owner_id: '',
                 payment_terms: 'Net 30',
+                payment_term_id: '',
+                payment_term_type: 'calendar',
+                first_invoice_date: new Date().toISOString().split('T')[0],
                 billing_frequency: 'monthly',
                 contract_start_date: '',
                 contract_end_date: '',
@@ -1597,6 +1723,21 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                               )}
                               Download
                             </Button>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              className="border-[var(--brand)] text-[var(--brand)] hover:bg-[color:var(--brand)]/10"
+                              onClick={() => handleSendMekariSign('quotation', q.id, q.quotation_number)}
+                              disabled={sendingMekariId === q.id}
+                              title="Kirim dokumen ke Mekari Sign untuk tanda tangan digital"
+                            >
+                              {sendingMekariId === q.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              ) : (
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                              )}
+                              Mekari Sign
+                            </Button>
                           </>
                         )}
                       </div>
@@ -1647,6 +1788,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                 industry: leadObj ? String(leadObj.industry || '') : '',
                 business_category: leadObj ? String(leadObj.business_category_name || '') : '',
                 payment_terms: 'Net 30',
+                payment_term_id: '',
+                payment_term_type: 'calendar',
+                first_invoice_date: new Date().toISOString().split('T')[0],
                 billing_frequency: 'monthly',
                 delivery_timeline: '',
                 fulfillment_notes: '',
@@ -1822,6 +1966,21 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                               )}
                               Download
                             </Button>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              className="border-[var(--status-success)] text-[var(--status-success)] hover:bg-[color:var(--status-success)]/10"
+                              onClick={() => handleSendMekariSign('sales_order', so.id, so.sales_order_number)}
+                              disabled={sendingMekariId === so.id}
+                              title="Kirim Sales Order ke Mekari Sign untuk tanda tangan digital"
+                            >
+                              {sendingMekariId === so.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              ) : (
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                              )}
+                              Mekari Sign
+                            </Button>
                           </>
                         )}
                       </div>
@@ -1842,7 +2001,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           onOpenChange={(v) => !v && setShowQModal(false)}
           title="Create Estimate / Quotation"
           description="Draft a NetSuite-style detailed commercial proposal."
-          size="7xl"
+          size="full"
           footer={
             <div className="flex justify-between w-full items-center">
               <div className="text-sm font-bold text-[var(--brand)]">
@@ -2012,20 +2171,62 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
               {activeTab === 'commercial' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Payment Terms</label>
+                    <label className="text-xs font-semibold text-foreground mb-1 block">Setup Model Payment Terms</label>
                     <select 
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={qForm.payment_terms} 
-                      onChange={e => setQForm({...qForm, payment_terms: e.target.value})}
+                      value={qForm.payment_term_id || ''} 
+                      onChange={e => {
+                        const termId = e.target.value;
+                        const found = paymentTermsList.find((p: any) => String(p.id) === termId);
+                        setQForm({
+                          ...qForm,
+                          payment_term_id: termId,
+                          payment_terms: found ? found.name : qForm.payment_terms,
+                          payment_term_type: found ? found.term_type : 'calendar',
+                        });
+                      }}
                     >
-                      <option value="Due on Receipt">Due on Receipt</option>
-                      <option value="Net 7">Net 7</option>
-                      <option value="Net 14">Net 14</option>
-                      <option value="Net 30">Net 30</option>
-                      <option value="50% DP / 50% After Delivery">50% DP / 50% After Delivery</option>
-                      <option value="Annual Upfront">Annual Upfront</option>
-                      <option value="Monthly Billing">Monthly Billing</option>
+                      <option value="">-- Pilih Setup Payment Terms --</option>
+                      {paymentTermsList.length === 0 ? (
+                        <>
+                          <option value="Net 30">Net 30 Days (Standard)</option>
+                          <option value="Net 14">Net 14 Days</option>
+                          <option value="CBD">CBD (Cash Before Delivery)</option>
+                          <option value="Monthly Billing">Monthly Recurring (SaaS)</option>
+                          <option value="50% DP / 50% After Delivery">50% DP / 50% Pelunasan BAST</option>
+                        </>
+                      ) : (
+                        <>
+                          <optgroup label="SaaS / Time-Based Recurring (Kalender)">
+                            {paymentTermsList.filter((p: any) => p.term_type === 'calendar').map((p: any) => (
+                              <option key={p.id} value={p.id}>{p.name} (Net {p.days_due} Hari)</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Project / SOW Milestones (BAST Fisik)">
+                            {paymentTermsList.filter((p: any) => p.term_type === 'milestone').map((p: any) => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </optgroup>
+                        </>
+                      )}
                     </select>
+                    <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                      Tipe: {qForm.payment_term_type === 'milestone' ? 'Termin Berdasarkan BAST / Progress Fisik' : 'Termin Berdasarkan Waktu / Kalender (SaaS)'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-foreground mb-1 block">
+                      Tanggal Invoice Pertama (Scheduler Automation Trigger)
+                    </label>
+                    <Input 
+                      type="date" 
+                      value={qForm.first_invoice_date} 
+                      onChange={e => setQForm({...qForm, first_invoice_date: e.target.value})} 
+                    />
+                    <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                      Tanggal kapan faktur termin pertama otomatis digenerate oleh scheduler.
+                    </span>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground mb-1 block">Billing Frequency</label>
@@ -2092,10 +2293,56 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                       type="checkbox" 
                       id="tax_included" 
                       checked={qForm.tax_included} 
-                      onChange={e => setQForm({...qForm, tax_included: e.target.checked})}
+                      onChange={e => setQForm({...qForm, tax_included: e.target.checked})} 
                       className="rounded border-input text-[var(--brand)] focus:ring-[color:var(--brand)]" 
                     />
                     <label htmlFor="tax_included" className="text-xs font-semibold text-muted-foreground">Tax Included in Prices</label>
+                  </div>
+
+                  {/* Live Billing Schedule Preview */}
+                  <div className="col-span-2 pt-2">
+                    <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-2">
+                      <div className="flex justify-between items-center border-b border-border pb-2">
+                        <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <Clock className="h-4 w-4 text-[var(--brand)]" />
+                          <span>Simulasi Jadwal Penagihan Otomatis (Termin Invoicing)</span>
+                        </div>
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--brand)]/10 text-[var(--brand)] font-bold">
+                          {qForm.payment_term_type === 'milestone' ? 'Trigger BAST / Milestone' : 'Time-based Automation'}
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-border/60 text-muted-foreground font-semibold">
+                              <th className="p-2">Tahap Termin</th>
+                              <th className="p-2">Porsi (%)</th>
+                              <th className="p-2">Tanggal Terbit Faktur</th>
+                              <th className="p-2">Jatuh Tempo</th>
+                              <th className="p-2 text-right">Nilai Tagihan</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const selTerm = getSelectedPaymentTerm(qForm.payment_term_id, qForm.payment_terms);
+                              const schedules = calculateSchedulePreview(summary.grandTotal, selTerm, qForm.first_invoice_date);
+                              return schedules.map((sch: any, idx: number) => (
+                                <tr key={idx} className="border-b border-border/40 hover:bg-muted/30">
+                                  <td className="p-2 font-medium text-foreground">{sch.label}</td>
+                                  <td className="p-2 font-bold text-[var(--brand)]">{sch.percentage}%</td>
+                                  <td className="p-2 font-mono">{sch.scheduled_date} <span className="text-[10px] text-muted-foreground">({sch.trigger === 'bast_milestone' ? 'BAST SOW' : 'By Date'})</span></td>
+                                  <td className="p-2 font-mono text-muted-foreground">{sch.due_date}</td>
+                                  <td className="p-2 text-right font-mono font-bold text-foreground">{formatCurrency(sch.amount)}</td>
+                                </tr>
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground italic pt-1">
+                        * Catatan: Sistem backend automation scheduler akan otomatis menerbitkan invoice draft dan PDF pada tanggal terbit termin di atas.
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2115,32 +2362,32 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     </div>
                   </div>
  
-                  <div className="border border-border rounded-lg overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
+                  <div className="border border-border rounded-xl overflow-x-auto">
+                    <table className="min-w-[1350px] w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-muted/50 border-b border-border">
-                          <th className="p-2 font-semibold w-[15%]">Product & Tier</th>
-                          <th className="p-2 font-semibold w-[10%]">Item Name</th>
-                          <th className="p-2 font-semibold w-[10%]">Start Date</th>
-                          <th className="p-2 font-semibold w-[12%]">Duration</th>
-                          <th className="p-2 font-semibold w-[10%]">End Date</th>
-                          <th className="p-2 font-semibold w-[5%]">Qty</th>
-                          <th className="p-2 font-semibold w-[8%]">Unit Price</th>
-                          <th className="p-2 font-semibold w-[8%]">Line Discount</th>
-                          <th className="p-2 font-semibold w-[8%]">Tax Code</th>
-                          <th className="p-2 font-semibold w-[8%]">WHT Code</th>
-                          <th className="p-2 font-semibold w-[8%] text-right">Total</th>
-                          <th className="p-2 font-semibold w-[6%] text-center">Actions</th>
+                        <tr className="bg-muted/60 border-b border-border text-muted-foreground font-semibold">
+                          <th className="p-2.5 min-w-[220px]">Product & Tier</th>
+                          <th className="p-2.5 min-w-[160px]">Item Name</th>
+                          <th className="p-2.5 min-w-[130px]">Start Date</th>
+                          <th className="p-2.5 min-w-[150px]">Duration</th>
+                          <th className="p-2.5 min-w-[130px]">End Date</th>
+                          <th className="p-2.5 min-w-[75px]">Qty</th>
+                          <th className="p-2.5 min-w-[130px]">Unit Price</th>
+                          <th className="p-2.5 min-w-[130px]">Line Discount</th>
+                          <th className="p-2.5 min-w-[120px]">Tax Code</th>
+                          <th className="p-2.5 min-w-[120px]">WHT Code</th>
+                          <th className="p-2.5 min-w-[120px] text-right">Total</th>
+                          <th className="p-2.5 min-w-[80px] text-center">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {qForm.items.map((item, index) => {
                           const lineTotal = summary.items[index]?.line_total || 0;
                           return (
-                            <tr key={index} className="border-b border-border hover:bg-muted/10">
-                              <td className="p-1">
+                            <tr key={index} className="border-b border-border/60 hover:bg-muted/20 transition-colors">
+                              <td className="p-2">
                                 <select 
-                                  className="w-full rounded border border-input bg-background p-1 text-xs"
+                                  className="w-full rounded-md border border-input bg-background px-2 h-9 text-xs"
                                   value={item.product_id}
                                   onChange={e => handleProductSelect(index, e.target.value)}
                                 >
@@ -2154,7 +2401,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   if (prod && prod.tiers && prod.tiers.length > 0) {
                                     return (
                                       <select
-                                        className="w-full rounded border border-input bg-background p-1 text-[10px] mt-1"
+                                        className="w-full rounded-md border border-input bg-background px-2 h-8 text-[11px] mt-1.5"
                                         value={item.product_tier_id}
                                         onChange={e => handleTierSelect(index, e.target.value)}
                                       >
@@ -2168,9 +2415,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   return null;
                                 })()}
                               </td>
-                              <td className="p-1">
+                              <td className="p-2">
                                 <Input 
-                                  className="h-8 p-1 text-xs" 
+                                  className="h-9 px-2 text-xs" 
                                   value={item.item_name} 
                                   onChange={e => {
                                     const newItems = [...qForm.items];
@@ -2179,24 +2426,24 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   }} 
                                 />
                               </td>
-                              <td className="p-1">
+                              <td className="p-2">
                                 <Input 
                                   type="date"
-                                  className="h-8 p-1 text-xs" 
+                                  className="h-9 px-2 text-xs" 
                                   value={item.start_date || ''} 
                                   onChange={e => handleStartDateChange(index, e.target.value)}
                                 />
                               </td>
-                              <td className="p-1">
-                                <div className="flex gap-1 items-center">
+                              <td className="p-2">
+                                <div className="flex gap-1.5 items-center">
                                   <Input 
-                                    className="h-8 p-1 text-xs w-[50px]" 
+                                    className="h-9 px-2 text-xs w-[60px]" 
                                     value={item.duration_value || ''} 
                                     onChange={e => handleDurationValueChange(index, formatAmountInput(normalizeAmountInput(e.target.value)))}
                                     placeholder="1"
                                   />
                                   <select
-                                    className="rounded border border-input bg-background p-1 text-[10px] h-8"
+                                    className="rounded-md border border-input bg-background px-2 text-xs h-9"
                                     value={item.duration_unit || 'month'}
                                     onChange={e => handleDurationUnitChange(index, e.target.value)}
                                   >
@@ -2206,17 +2453,17 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   </select>
                                 </div>
                               </td>
-                              <td className="p-1">
+                              <td className="p-2">
                                 <Input 
                                   type="date"
-                                  className="h-8 p-1 text-xs" 
+                                  className="h-9 px-2 text-xs" 
                                   value={item.end_date || ''} 
                                   onChange={e => handleEndDateChange(index, e.target.value)}
                                 />
                               </td>
-                              <td className="p-1">
+                              <td className="p-2">
                                 <Input 
-                                  className="h-8 p-1 text-xs" 
+                                  className="h-9 px-2 text-xs" 
                                   value={item.quantity} 
                                   onChange={e => {
                                     const newItems = [...qForm.items];
@@ -2225,9 +2472,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   }} 
                                 />
                               </td>
-                              <td className="p-1">
+                              <td className="p-2">
                                 <Input 
-                                  className="h-8 p-1 text-xs" 
+                                  className="h-9 px-2 text-xs font-mono" 
                                   disabled={!settingAllowOverride && item.price_source === 'product_tier'}
                                   value={item.unit_price} 
                                   onChange={e => {
@@ -2238,10 +2485,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   }} 
                                 />
                               </td>
-                              <td className="p-1">
-                                <div className="flex gap-1">
+                              <td className="p-2">
+                                <div className="flex gap-1.5">
                                   <select 
-                                    className="rounded border border-input bg-background p-0.5 text-[10px]"
+                                    className="rounded-md border border-input bg-background px-1.5 text-xs h-9"
                                     disabled={!settingAllowDiscount}
                                     value={item.line_discount_type}
                                     onChange={e => {
@@ -2251,12 +2498,12 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                     }}
                                   >
                                     <option value="none">None</option>
-                                    <option value="amount">Value</option>
+                                    <option value="amount">Val</option>
                                     <option value="percentage">%</option>
                                   </select>
                                   {item.line_discount_type !== 'none' && settingAllowDiscount && (
                                     <Input 
-                                      className="h-8 p-1 text-xs w-[60px]" 
+                                      className="h-9 px-2 text-xs w-[70px] font-mono" 
                                       value={item.line_discount_value} 
                                       onChange={e => {
                                         const newItems = [...qForm.items];
@@ -2267,9 +2514,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   )}
                                 </div>
                               </td>
-                              <td className="p-1">
+                              <td className="p-2">
                                 <select
-                                  className="w-full rounded border border-input bg-background p-1 text-xs"
+                                  className="w-full rounded-md border border-input bg-background px-2 text-xs h-9"
                                   value={item.tax_code_id || ''}
                                   onChange={e => handleTaxCodeSelect(index, e.target.value)}
                                 >
@@ -2279,9 +2526,9 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   ))}
                                 </select>
                               </td>
-                              <td className="p-1">
+                              <td className="p-2">
                                 <select
-                                  className="w-full rounded border border-input bg-background p-1 text-xs"
+                                  className="w-full rounded-md border border-input bg-background px-2 text-xs h-9"
                                   value={item.withholding_tax_code_id || ''}
                                   onChange={e => handleWhtCodeSelect(index, e.target.value)}
                                 >
@@ -2291,16 +2538,16 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                                   ))}
                                 </select>
                               </td>
-                              <td className="p-1 text-right font-medium tabular-nums">
+                              <td className="p-2 text-right font-semibold tabular-nums font-mono text-xs">
                                 {formatCurrency(lineTotal)}
                               </td>
-                              <td className="p-1">
-                                <div className="flex justify-center gap-1">
-                                  <Button size="xs" variant="outline" className="h-7 w-7 p-0" onClick={() => duplicateLineItem(index)}>
-                                    <Copy className="h-3 w-3" />
+                              <td className="p-2">
+                                <div className="flex justify-center gap-1.5">
+                                  <Button size="xs" variant="outline" className="h-8 w-8 p-0" onClick={() => duplicateLineItem(index)} title="Duplicate Row">
+                                    <Copy className="h-3.5 w-3.5" />
                                   </Button>
-                                  <Button size="xs" variant="outline" className="h-7 w-7 p-0 text-[var(--status-danger)]" disabled={qForm.items.length <= 1} onClick={() => removeLineItem(index)}>
-                                    <Trash2 className="h-3 w-3" />
+                                  <Button size="xs" variant="outline" className="h-8 w-8 p-0 text-[var(--status-danger)] hover:bg-[color:var(--status-danger)]/10" disabled={qForm.items.length <= 1} onClick={() => removeLineItem(index)} title="Delete Row">
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
                                 </div>
                               </td>
@@ -2447,7 +2694,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
             onOpenChange={(v) => !v && setShowSOModal(false)}
             title={editingSOId ? "Edit Sales Order" : "Create Sales Order"}
             description={editingSOId ? "Update details of this commercial booking." : "Draft a NetSuite-style detailed commercial order."}
-            size="7xl"
+            size="full"
             footer={
               <div className="flex justify-between w-full items-center">
                 <div className="text-sm font-bold text-[var(--status-success)]">
@@ -2673,20 +2920,20 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                         Converted Sales Order line items are preserved from Quotation snapshot, but can be updated or overridden if draft.
                       </div>
                     )}
-                    <div className="overflow-x-auto border rounded-lg max-h-[350px]">
-                      <table className="w-full text-xs text-left">
-                        <thead className="bg-muted sticky top-0 text-[10px] uppercase text-muted-foreground border-b">
+                    <div className="overflow-x-auto border border-border rounded-xl max-h-[500px]">
+                      <table className="min-w-[1400px] w-full text-xs text-left border-collapse">
+                        <thead className="bg-muted/70 sticky top-0 text-[11px] font-semibold text-muted-foreground border-b border-border">
                           <tr>
-                            <th className="p-2 w-[180px]">Product / Service</th>
-                            <th className="p-2 w-[150px]">Billing Info</th>
-                            <th className="p-2 w-[80px]">Qty</th>
-                            <th className="p-2 w-[110px]">Unit Price</th>
-                            <th className="p-2 w-[110px]">Line Discount</th>
-                            <th className="p-2 w-[110px]">Tax Setting</th>
-                            <th className="p-2 w-[110px]">WHT Setting</th>
-                            <th className="p-2 w-[150px]">Duration & Period</th>
-                            <th className="p-2 w-[90px]">Total Amount</th>
-                            <th className="p-2 w-[40px]"></th>
+                            <th className="p-2.5 min-w-[220px]">Product / Service</th>
+                            <th className="p-2.5 min-w-[160px]">Billing Info</th>
+                            <th className="p-2.5 min-w-[80px]">Qty</th>
+                            <th className="p-2.5 min-w-[130px]">Unit Price</th>
+                            <th className="p-2.5 min-w-[130px]">Line Discount</th>
+                            <th className="p-2.5 min-w-[130px]">Tax Setting</th>
+                            <th className="p-2.5 min-w-[130px]">WHT Setting</th>
+                            <th className="p-2.5 min-w-[160px]">Duration & Period</th>
+                            <th className="p-2.5 min-w-[120px] text-right">Total Amount</th>
+                            <th className="p-2.5 min-w-[60px] text-center"></th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
@@ -2980,21 +3227,64 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                 {soActiveTab === 'billing' && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1 block">Payment Terms</label>
+                      <label className="text-xs font-semibold text-foreground mb-1 block">Setup Model Payment Terms</label>
                       <select 
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        value={soForm.payment_terms}
-                        onChange={e => setSoForm({...soForm, payment_terms: e.target.value})}
+                        value={soForm.payment_term_id || ''}
+                        onChange={e => {
+                          const termId = e.target.value;
+                          const found = paymentTermsList.find((p: any) => String(p.id) === termId);
+                          setSoForm({
+                            ...soForm,
+                            payment_term_id: termId,
+                            payment_terms: found ? found.name : soForm.payment_terms,
+                            payment_term_type: found ? found.term_type : 'calendar',
+                          });
+                        }}
                       >
-                        <option value="Net 7">Net 7</option>
-                        <option value="Net 14">Net 14</option>
-                        <option value="Net 30">Net 30</option>
-                        <option value="Due on Receipt">Due on Receipt</option>
-                        <option value="Annual Upfront">Annual Upfront</option>
-                        <option value="Monthly Billing">Monthly Billing</option>
-                        <option value="Custom">Custom / Other</option>
+                        <option value="">-- Pilih Setup Payment Terms --</option>
+                        {paymentTermsList.length === 0 ? (
+                          <>
+                            <option value="Net 30">Net 30 Days (Standard)</option>
+                            <option value="Net 14">Net 14 Days</option>
+                            <option value="CBD">CBD (Cash Before Delivery)</option>
+                            <option value="Monthly Billing">Monthly Recurring (SaaS)</option>
+                            <option value="50% DP / 50% After Delivery">50% DP / 50% Pelunasan BAST</option>
+                          </>
+                        ) : (
+                          <>
+                            <optgroup label="SaaS / Time-Based Recurring (Kalender)">
+                              {paymentTermsList.filter((p: any) => p.term_type === 'calendar').map((p: any) => (
+                                <option key={p.id} value={p.id}>{p.name} (Net {p.days_due} Hari)</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="Project / SOW Milestones (BAST Fisik)">
+                              {paymentTermsList.filter((p: any) => p.term_type === 'milestone').map((p: any) => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                              ))}
+                            </optgroup>
+                          </>
+                        )}
                       </select>
+                      <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                        Tipe: {soForm.payment_term_type === 'milestone' ? 'Termin Berdasarkan BAST / Progress Fisik' : 'Termin Berdasarkan Waktu / Kalender (SaaS)'}
+                      </span>
                     </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-foreground mb-1 block">
+                        Tanggal Invoice Pertama (Scheduler Automation Trigger)
+                      </label>
+                      <Input 
+                        type="date" 
+                        value={soForm.first_invoice_date} 
+                        onChange={e => setSoForm({...soForm, first_invoice_date: e.target.value})} 
+                      />
+                      <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                        Tanggal kapan faktur termin pertama otomatis digenerate oleh scheduler.
+                      </span>
+                    </div>
+
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Billing Frequency</label>
                       <select 
@@ -3002,7 +3292,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                         value={soForm.billing_frequency}
                         onChange={e => setSoForm({...soForm, billing_frequency: e.target.value})}
                       >
-                        <option value="One-time">One-time</option>
+                        <option value="one_time">One-Time</option>
                         <option value="monthly">Monthly</option>
                         <option value="quarterly">Quarterly</option>
                         <option value="yearly">Yearly</option>
@@ -3079,6 +3369,52 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           <option key={b.id} value={b.id}>{b.bank_name} - {b.account_number} ({b.account_name})</option>
                         ))}
                       </select>
+                    </div>
+
+                    {/* Live Billing Schedule Preview for Sales Order */}
+                    <div className="col-span-2 pt-2">
+                      <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-2">
+                        <div className="flex justify-between items-center border-b border-border pb-2">
+                          <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                            <Clock className="h-4 w-4 text-[var(--status-success)]" />
+                            <span>Simulasi Jadwal Penagihan Otomatis (Termin Invoicing Sales Order)</span>
+                          </div>
+                          <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--status-success)]/10 text-[var(--status-success)] font-bold">
+                            {soForm.payment_term_type === 'milestone' ? 'Trigger BAST / Milestone' : 'Time-based Automation'}
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="border-b border-border/60 text-muted-foreground font-semibold">
+                                <th className="p-2">Tahap Termin</th>
+                                <th className="p-2">Porsi (%)</th>
+                                <th className="p-2">Tanggal Terbit Faktur</th>
+                                <th className="p-2">Jatuh Tempo</th>
+                                <th className="p-2 text-right">Nilai Tagihan</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(() => {
+                                const selTerm = getSelectedPaymentTerm(soForm.payment_term_id, soForm.payment_terms);
+                                const schedules = calculateSchedulePreview(soSummary.grandTotal, selTerm, soForm.first_invoice_date);
+                                return schedules.map((sch: any, idx: number) => (
+                                  <tr key={idx} className="border-b border-border/40 hover:bg-muted/30">
+                                    <td className="p-2 font-medium text-foreground">{sch.label}</td>
+                                    <td className="p-2 font-bold text-[var(--status-success)]">{sch.percentage}%</td>
+                                    <td className="p-2 font-mono">{sch.scheduled_date} <span className="text-[10px] text-muted-foreground">({sch.trigger === 'bast_milestone' ? 'BAST SOW' : 'By Date'})</span></td>
+                                    <td className="p-2 font-mono text-muted-foreground">{sch.due_date}</td>
+                                    <td className="p-2 text-right font-mono font-bold text-foreground">{formatCurrency(sch.amount)}</td>
+                                  </tr>
+                                ));
+                              })()}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground italic pt-1">
+                          * Sales Order billing schedule ini akan otomatis dieksekusi oleh scheduler backend setiap hari untuk menerbitkan Invoice dan Faktur Pajak.
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -9,7 +9,8 @@ import {
   MessageSquare, Settings, ClipboardCheck,
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
-  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff, LayoutGrid, Mail
+  HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff, LayoutGrid, Mail,
+  Receipt, FileSpreadsheet, Hash, CalendarClock
 } from "lucide-react";
 import { useOfflineSync } from "@/lib/offline/offlineSyncManager";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
@@ -95,6 +96,17 @@ export const navItems: NavItem[] = [
       { href: "/settings/professional-services/roles", icon: Coins, label: "Rate Cards & Roles", group: "Configuration" },
       { href: "/settings/professional-services/complexity", icon: Layers, label: "Complexity Matrix", group: "Configuration" },
       { href: "/settings/professional-services/service-categories", icon: Package, label: "Categories", group: "Configuration" },
+    ],
+  },
+  {
+    href: "/finance",
+    icon: Receipt,
+    label: "Finance Hub",
+    children: [
+      { href: "/finance", icon: Receipt, label: "Invoices & Billing" },
+      { href: "/finance/faktur-pajak", icon: FileSpreadsheet, label: "Faktur Pajak (DJP)" },
+      { href: "/finance/nsfp-pool", icon: Hash, label: "NSFP Pool" },
+      { href: "/finance/payment-terms", icon: CalendarClock, label: "Payment Terms" },
     ],
   },
   {

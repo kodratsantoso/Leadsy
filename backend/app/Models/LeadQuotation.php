@@ -157,12 +157,17 @@ class LeadQuotation extends Model
         'workflow_state_id',
 
         // Bank Account selected
-        'bank_account_id'
+        'bank_account_id',
+
+        // Payment Terms & Billing Schedules
+        'payment_term_id', 'payment_term_type', 'first_invoice_date', 'billing_schedules_json'
     ];
 
     protected $casts = [
         'quotation_date' => 'date',
         'valid_until' => 'date',
+        'first_invoice_date' => 'date',
+        'billing_schedules_json' => 'array',
         'subtotal_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
@@ -233,5 +238,10 @@ class LeadQuotation extends Model
     public function workflowState()
     {
         return $this->belongsTo(WorkflowState::class, 'workflow_state_id');
+    }
+
+    public function paymentTerm()
+    {
+        return $this->belongsTo(PaymentTerm::class, 'payment_term_id');
     }
 }

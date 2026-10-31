@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class CommercialInvoice extends Model
 {
@@ -36,6 +37,8 @@ class CommercialInvoice extends Model
         'bank_details',
         'notes',
         'pdf_path',
+        'faktur_pajak_id',
+        'nsfp_number',
         'paid_amount',
         'paid_at',
         'created_by',
@@ -84,5 +87,10 @@ class CommercialInvoice extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function fakturPajak(): HasOne
+    {
+        return $this->hasOne(FakturPajak::class, 'commercial_invoice_id');
     }
 }

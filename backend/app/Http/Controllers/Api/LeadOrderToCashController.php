@@ -630,6 +630,10 @@ class LeadOrderToCashController extends Controller
                 'sales_owner_id' => $quotation->sales_owner_id,
                 'presales_owner_id' => $quotation->presales_owner_id,
                 'payment_terms' => $quotation->payment_terms,
+                'payment_term_id' => $quotation->payment_term_id,
+                'payment_term_type' => $quotation->payment_term_type ?? 'calendar',
+                'first_invoice_date' => $quotation->first_invoice_date ?? now()->toDateString(),
+                'billing_schedules_json' => $quotation->billing_schedules_json,
                 'billing_frequency' => $quotation->billing_frequency,
                 'contract_start_date' => $quotation->contract_start_date,
                 'contract_end_date' => $quotation->contract_end_date,
@@ -692,6 +696,13 @@ class LeadOrderToCashController extends Controller
                 ]);
             }
  
+            // Generate billing schedules for the new Sales Order
+            try {
+                app(\App\Services\Finance\BillingScheduleService::class)->generateSchedulesForSalesOrder($order);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not auto-generate billing schedules for SO {$order->id}: " . $e->getMessage());
+            }
+
             // Update Quotation Status to converted
             $originalQuotation = $quotation->toArray();
             $quotation->update([
@@ -743,6 +754,9 @@ class LeadOrderToCashController extends Controller
             'expected_fulfillment_date' => 'nullable|date',
             'sales_effective_date' => 'nullable|date',
             'payment_terms' => 'nullable|string',
+            'payment_term_id' => 'nullable|exists:payment_terms,id',
+            'payment_term_type' => 'nullable|string|in:calendar,milestone',
+            'first_invoice_date' => 'nullable|date',
             'billing_frequency' => 'nullable|string',
             'tax_included' => 'nullable|boolean',
             'header_discount_type' => 'nullable|string|in:amount,percentage',
@@ -850,6 +864,9 @@ class LeadOrderToCashController extends Controller
                 'expected_fulfillment_date' => $validated['expected_fulfillment_date'] ?? null,
                 'sales_effective_date' => $validated['sales_effective_date'] ?? null,
                 'payment_terms' => $validated['payment_terms'] ?? null,
+                'payment_term_id' => $validated['payment_term_id'] ?? null,
+                'payment_term_type' => $validated['payment_term_type'] ?? 'calendar',
+                'first_invoice_date' => $validated['first_invoice_date'] ?? null,
                 'billing_frequency' => $validated['billing_frequency'] ?? null,
                 'tax_included' => $validated['tax_included'] ?? false,
                 'header_discount_type' => $validated['header_discount_type'] ?? null,
@@ -910,6 +927,13 @@ class LeadOrderToCashController extends Controller
                 ]);
             }
  
+            // Generate billing schedules for the new Sales Order
+            try {
+                app(\App\Services\Finance\BillingScheduleService::class)->generateSchedulesForSalesOrder($order);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not auto-generate billing schedules for SO {$order->id}: " . $e->getMessage());
+            }
+
             LeadActivity::create([
                 'lead_id' => $lead->id,
                 'activity_type' => 'Sales Order Created Directly',
@@ -950,6 +974,9 @@ class LeadOrderToCashController extends Controller
             'expected_fulfillment_date' => 'nullable|date',
             'sales_effective_date' => 'nullable|date',
             'payment_terms' => 'nullable|string',
+            'payment_term_id' => 'nullable|exists:payment_terms,id',
+            'payment_term_type' => 'nullable|string|in:calendar,milestone',
+            'first_invoice_date' => 'nullable|date',
             'billing_frequency' => 'nullable|string',
             'tax_included' => 'nullable|boolean',
             'header_discount_type' => 'nullable|string|in:amount,percentage',
@@ -1051,6 +1078,9 @@ class LeadOrderToCashController extends Controller
                 'expected_fulfillment_date' => $validated['expected_fulfillment_date'] ?? null,
                 'sales_effective_date' => $validated['sales_effective_date'] ?? null,
                 'payment_terms' => $validated['payment_terms'] ?? null,
+                'payment_term_id' => $validated['payment_term_id'] ?? $order->payment_term_id,
+                'payment_term_type' => $validated['payment_term_type'] ?? ($order->payment_term_type ?? 'calendar'),
+                'first_invoice_date' => $validated['first_invoice_date'] ?? $order->first_invoice_date,
                 'billing_frequency' => $validated['billing_frequency'] ?? null,
                 'tax_included' => $validated['tax_included'] ?? false,
                 'header_discount_type' => $validated['header_discount_type'] ?? null,
@@ -1112,6 +1142,13 @@ class LeadOrderToCashController extends Controller
                 ]);
             }
  
+            // Regenerate billing schedules for the updated Sales Order
+            try {
+                app(\App\Services\Finance\BillingScheduleService::class)->generateSchedulesForSalesOrder($order);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Could not auto-generate billing schedules for SO {$order->id}: " . $e->getMessage());
+            }
+
             LeadActivity::create([
                 'lead_id' => $order->lead_id,
                 'activity_type' => 'Sales Order Updated',

@@ -370,9 +370,31 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('sales-orders/{order}/cancel', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'cancelSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/renew', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'createRenewalQuotation'])->middleware('permission:leads.edit');
-    Route::post('sales-orders/{order}/generate-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'generatePdfSo'])->middleware('permission:leads.edit');
     Route::get('sales-orders/{order}/preview-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'previewPdfSo'])->middleware('permission:leads.view');
     Route::get('sales-orders/{order}/download-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'downloadPdfSo'])->middleware('permission:leads.view');
+
+    // Sales Order Billing Schedules & Termin
+    Route::get('sales-orders/{salesOrder}/billing-schedules', [\App\Http\Controllers\Api\FinanceHubController::class, 'getSalesOrderSchedules'])->middleware('permission:leads.view');
+    Route::post('sales-orders/{salesOrder}/billing-schedules/sync', [\App\Http\Controllers\Api\FinanceHubController::class, 'syncSalesOrderSchedules'])->middleware('permission:leads.edit');
+
+    // Payment Terms Master Setup
+    Route::get('finance/payment-terms', [\App\Http\Controllers\Api\PaymentTermController::class, 'index']);
+    Route::post('finance/payment-terms', [\App\Http\Controllers\Api\PaymentTermController::class, 'store'])->middleware('permission:leads.edit');
+    Route::put('finance/payment-terms/{paymentTerm}', [\App\Http\Controllers\Api\PaymentTermController::class, 'update'])->middleware('permission:leads.edit');
+
+    // Finance Hub Management Console Endpoints
+    Route::get('finance/overview', [\App\Http\Controllers\Api\FinanceHubController::class, 'getOverview']);
+    Route::get('finance/invoices', [\App\Http\Controllers\Api\FinanceHubController::class, 'getInvoices']);
+    Route::get('finance/invoices/{invoice}', [\App\Http\Controllers\Api\FinanceHubController::class, 'getInvoiceDetails']);
+    Route::get('finance/invoices/{invoice}/preview-pdf', [\App\Http\Controllers\Api\FinanceHubController::class, 'previewInvoicePdf']);
+    Route::post('finance/invoices/{invoice}/generate-faktur', [\App\Http\Controllers\Api\FinanceHubController::class, 'generateFakturPajak'])->middleware('permission:leads.edit');
+    Route::get('finance/faktur-pajak', [\App\Http\Controllers\Api\FinanceHubController::class, 'getFakturPajaks']);
+    Route::get('finance/faktur-pajak/{faktur}/preview-pdf', [\App\Http\Controllers\Api\FinanceHubController::class, 'previewFakturPajakPdf']);
+    Route::get('finance/faktur-pajak-export/djp-csv', [\App\Http\Controllers\Api\FinanceHubController::class, 'exportDjpCsv']);
+    Route::get('finance/nsfp-pool', [\App\Http\Controllers\Api\FinanceHubController::class, 'getNsfpPools']);
+    Route::post('finance/nsfp-pool', [\App\Http\Controllers\Api\FinanceHubController::class, 'storeNsfpPool'])->middleware('permission:leads.edit');
+    Route::post('finance/run-scheduler', [\App\Http\Controllers\Api\FinanceHubController::class, 'runSchedulerManual'])->middleware('permission:leads.edit');
+    Route::post('finance/mekari-sign/send', [\App\Http\Controllers\Api\FinanceHubController::class, 'sendMekariSign'])->middleware('permission:leads.edit');
 
     // Product document branding
     Route::get('products/{product}/logo', [\App\Http\Controllers\Api\ProductController::class, 'getLogo']);
@@ -873,6 +895,7 @@ Route::get('auth/sso/{tenantSlug}/{provider}/login', [\App\Http\Controllers\Api\
 Route::prefix('webhooks')->group(function () {
     Route::post('lark', [LarkController::class, 'handleWebhook']);
     Route::post('digital-signature/{provider}', [\App\Http\Controllers\Api\DigitalSignatureController::class, 'handleWebhook']);
+    Route::post('mekari-sign', [\App\Http\Controllers\Api\FinanceHubController::class, 'handleMekariWebhook']);
 });
 
 

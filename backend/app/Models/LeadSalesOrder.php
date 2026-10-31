@@ -170,7 +170,10 @@ class LeadSalesOrder extends Model
         'closed_at', 'cancelled_at',
         
         // Bank Account selected
-        'bank_account_id'
+        'bank_account_id',
+
+        // Payment Terms & Billing Schedules
+        'payment_term_id', 'payment_term_type', 'first_invoice_date', 'billing_schedules_json'
     ];
 
     protected $casts = [
@@ -178,6 +181,8 @@ class LeadSalesOrder extends Model
         'contract_start_date' => 'date',
         'contract_end_date' => 'date',
         'renewal_date' => 'date',
+        'first_invoice_date' => 'date',
+        'billing_schedules_json' => 'array',
         'subtotal_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
@@ -304,5 +309,15 @@ class LeadSalesOrder extends Model
     public function confirmedBy()
     {
         return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    public function billingSchedules()
+    {
+        return $this->hasMany(SalesOrderBillingSchedule::class, 'sales_order_id')->orderBy('term_number');
+    }
+
+    public function paymentTerm()
+    {
+        return $this->belongsTo(PaymentTerm::class, 'payment_term_id');
     }
 }

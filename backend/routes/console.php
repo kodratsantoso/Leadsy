@@ -45,4 +45,12 @@ Artisan::command('inspire', function () {
     ->withoutOverlapping(8)
     ->runInBackground();
 
+// Runs automated Order-to-Cash billing scheduler to issue invoices when trigger dates arrive.
+\Illuminate\Support\Facades\Schedule::command('finance:run-billing-scheduler')
+    ->dailyAt('00:15')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping(15)
+    ->runInBackground();
+
+
 
