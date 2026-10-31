@@ -165,7 +165,7 @@ class LeadSalesOrder extends Model
         'header_discount_value', 'header_discount_amount', 'total_line_discount',
         'other_cost', 'scope_of_work', 'exclusions', 'delivery_timeline',
         'warranty_support_terms', 'customer_notes', 'internal_notes',
-        'terms_conditions', 'department', 'cost_center', 'location',
+        'terms_conditions', 'pdf_url', 'department', 'cost_center', 'location',
         'industry', 'business_category', 'updated_by', 'fulfilled_at',
         'closed_at', 'cancelled_at',
         

@@ -29,6 +29,11 @@ class CommercialDocumentPdfService
             throw new Exception("Tenant workspace settings not found.");
         }
 
+        $quotationRef = null;
+        $contractPeriod = null;
+        $customerPoNumber = null;
+        $spkNumber = null;
+
         if ($documentType === 'quotation') {
             $doc = LeadQuotation::with(['lead.contacts', 'items.product'])->findOrFail($documentId);
             if ($doc->bank_account_id) {
@@ -51,12 +56,38 @@ class CommercialDocumentPdfService
             if ($doc->sales_owner_id) {
                 $doc->load('salesOwner');
             }
+            if ($doc->quotation_id) {
+                $doc->load('quotation');
+                $quotationRef = $doc->quotation ? $doc->quotation->quotation_number : null;
+            }
             $docNumber = $doc->sales_order_number;
             $docDate = $doc->order_date ? $doc->order_date->format('d F Y') : '-';
             $validUntil = $doc->contract_end_date ? $doc->contract_end_date->format('d F Y') : '-';
             $soDate = $doc->order_date ? $doc->order_date->format('d F Y') : '-';
             $items = $doc->items;
             $termsConditions = $doc->terms_conditions;
+            $customerPoNumber = $doc->customer_po_number ?: null;
+            $spkNumber = $doc->spk_number ?: null;
+
+            // Resolve contract period
+            $contractStart = $doc->contract_start_date ? $doc->contract_start_date->format('d F Y') : null;
+            $contractEnd = $doc->contract_end_date ? $doc->contract_end_date->format('d F Y') : null;
+            if (!$contractStart || !$contractEnd) {
+                $firstWithDates = $items->first(function ($it) {
+                    return ($it->service_start_date && $it->service_end_date) || ($it->start_date && $it->end_date);
+                });
+                if ($firstWithDates) {
+                    $sDate = $firstWithDates->service_start_date ?: $firstWithDates->start_date;
+                    $eDate = $firstWithDates->service_end_date ?: $firstWithDates->end_date;
+                    if ($sDate && $eDate) {
+                        $contractStart = $sDate->format('d F Y');
+                        $contractEnd = $eDate->format('d F Y');
+                    }
+                }
+            }
+            if ($contractStart && $contractEnd) {
+                $contractPeriod = "{$contractStart} – {$contractEnd}";
+            }
         } else {
             throw new Exception("Invalid document type: {$documentType}");
         }
@@ -122,9 +153,11 @@ class CommercialDocumentPdfService
             if ($firstItem) {
                 $unit = $firstItem->duration_value > 1 ? Str::plural($firstItem->duration_unit) : $firstItem->duration_unit;
                 $durationStr = $firstItem->duration_value . ' ' . ucfirst($unit);
-                if ($firstItem->start_date && $firstItem->end_date) {
-                    $startDateFormatted = $firstItem->start_date->format('d F Y');
-                    $endDateFormatted = $firstItem->end_date->format('d F Y');
+                $sDate = $firstItem->service_start_date ?: $firstItem->start_date;
+                $eDate = $firstItem->service_end_date ?: $firstItem->end_date;
+                if ($sDate && $eDate) {
+                    $startDateFormatted = $sDate->format('d F Y');
+                    $endDateFormatted = $eDate->format('d F Y');
                     $durationStr .= " ({$startDateFormatted} – {$endDateFormatted})";
                 }
             }
@@ -176,6 +209,10 @@ class CommercialDocumentPdfService
             'docDate' => $docDate,
             'soDate' => $soDate,
             'validUntil' => $validUntil,
+            'quotationRef' => $quotationRef,
+            'contractPeriod' => $contractPeriod,
+            'customerPoNumber' => $customerPoNumber,
+            'spkNumber' => $spkNumber,
             'tenant' => $tenant,
             'customerName' => $doc->customer_name ?: ($doc->lead ? $doc->lead->company_name : '-'),
             'customerAddress' => $doc->lead ? $doc->lead->address : '-',

@@ -321,20 +321,45 @@
             <td>
                 <div class="card-inner card-right">
                     <span class="card-title-bar">Document Information</span>
-                    <div class="info-row">
-                        <span class="info-label">Date</span>
-                        <span class="info-value">: {{ $docDate }}</span>
-                    </div>
-                    @if($soDate)
-                    <div class="info-row">
-                        <span class="info-label">Sales Order</span>
-                        <span class="info-value">: {{ $soDate }}</span>
-                    </div>
+                    @if($documentType === 'quotation')
+                        <div class="info-row">
+                            <span class="info-label">Date</span>
+                            <span class="info-value">: {{ $docDate }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Valid Until</span>
+                            <span class="info-value">: {{ $validUntil }}</span>
+                        </div>
+                    @else
+                        <div class="info-row">
+                            <span class="info-label">Order Date</span>
+                            <span class="info-value">: {{ $docDate }}</span>
+                        </div>
+                        @if(!empty($quotationRef))
+                        <div class="info-row">
+                            <span class="info-label">Quotation Ref</span>
+                            <span class="info-value">: {{ $quotationRef }}</span>
+                        </div>
+                        @endif
+                        @if(!empty($contractPeriod))
+                        <div class="info-row">
+                            <span class="info-label">Contract Period</span>
+                            <span class="info-value">: {{ $contractPeriod }}</span>
+                        </div>
+                        @endif
+                        @if(!empty($customerPoNumber))
+                        <div class="info-row">
+                            <span class="info-label">Customer PO</span>
+                            <span class="info-value">: {{ $customerPoNumber }}</span>
+                        </div>
+                        @endif
+                        @if(!empty($spkNumber))
+                        <div class="info-row">
+                            <span class="info-label">SPK No.</span>
+                            <span class="info-value">: {{ $spkNumber }}</span>
+                        </div>
+                        @endif
                     @endif
-                    <div class="info-row">
-                        <span class="info-label">Valid Until</span>
-                        <span class="info-value">: {{ $validUntil }}</span>
-                    </div>
                 </div>
             </td>
         </tr>
