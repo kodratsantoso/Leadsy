@@ -12,6 +12,7 @@ use App\Models\LeadSalesOrder;
 use App\Models\LeadBantcQuestionGuide;
 use App\Models\LeadProductMatch;
 use App\Models\User;
+use App\Models\RevenueTarget;
 use App\Models\KpiDefinition;
 use App\Models\UserKpiTarget;
 use Carbon\Carbon;
@@ -49,9 +50,28 @@ class RoleKpiCalculationService
             $actual = $this->calculateActual($user, $roleSlug, $def->kpi_key, $dateRange);
             $target = $targets->get($def->kpi_key);
 
-            // Fallback: use user.target_revenue for revenue KPIs if no specific target
+            // SSOT: Query RevenueTarget table (Settings -> Target Revenue) for revenue KPIs
             if ($target === null && in_array($def->kpi_key, ['sales_closed_won', 'am_portfolio_value'])) {
-                $target = $user->target_revenue ? (float) $user->target_revenue : null;
+                $targetPeriodMap = ['week' => 'monthly', 'month' => 'monthly', 'quarter' => 'quarterly', 'year' => 'yearly'];
+                $targetPeriodType = $targetPeriodMap[$period] ?? 'monthly';
+                
+                $revQuery = RevenueTarget::where('assigned_user_id', $user->id)
+                    ->where('period_type', $targetPeriodType)
+                    ->where('year', now()->year);
+                    
+                if ($targetPeriodType === 'monthly') {
+                    $revQuery->where('month', now()->month);
+                } elseif ($targetPeriodType === 'quarterly') {
+                    $revQuery->where('quarter', now()->quarter);
+                }
+                
+                $activeRevTarget = $revQuery->first();
+                if ($activeRevTarget && $activeRevTarget->target_amount > 0) {
+                    $target = (float) $activeRevTarget->target_amount;
+                } else {
+                    // Fallback to legacy user.target_revenue
+                    $target = $user->target_revenue ? (float) $user->target_revenue : null;
+                }
             }
 
             $achievement = null;

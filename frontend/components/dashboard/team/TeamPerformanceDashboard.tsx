@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow } fro
 import { Badge } from "@/components/ui/badge";
 import { Users, TrendingUp, AlertTriangle, Target, Activity, DollarSign, ChevronRight, Clock, Target as TargetIcon, BarChart3, UserMinus, ShieldAlert, FileQuestion } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -141,9 +142,9 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
 
   // Block 2: Role Performance Matrix
   const renderRoleMatrix = () => (
-    <div className="col-span-12 lg:col-span-8 flex flex-col gap-4">
+    <div className="col-span-12 lg:col-span-8 flex flex-col gap-4 h-full">
       {role_matrix.length === 0 ? (
-        <Card className="h-full flex items-center justify-center">
+        <Card className="h-full flex items-center justify-center min-h-[360px]">
           <CardContent className="p-8 text-center text-muted-foreground text-sm">
             No role KPI definitions configured or no users active.
           </CardContent>
@@ -154,8 +155,8 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
           const avg = achievements.length > 0 ? achievements.reduce((a: any, b: any) => a + b, 0) / achievements.length : 0;
           
           return (
-            <Card key={team.role_category} className="overflow-hidden hover:shadow-md transition-shadow">
-              <CardHeader className="p-4 bg-muted/10 border-b flex flex-row items-center justify-between pb-3">
+            <Card key={team.role_category} className="overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col flex-1">
+              <CardHeader className="p-4 bg-muted/10 border-b flex flex-row items-center justify-between pb-3 shrink-0">
                 <div className="flex items-center gap-2">
                   <TargetIcon className="h-4 w-4 text-[color:var(--brand)]" />
                   <CardTitle className="text-base font-bold capitalize">{team.role_category}</CardTitle>
@@ -163,7 +164,7 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
                 </div>
                 {renderStatus(achievements.length > 0 ? (avg >= 100 ? 'exceeded' : avg >= 75 ? 'on_track' : avg >= 50 ? 'at_risk' : 'behind') : 'data_not_available')}
               </CardHeader>
-              <CardContent className="p-4">
+              <CardContent className="p-4 flex-1 flex flex-col justify-between">
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs text-muted-foreground font-medium">Average Achievement</span>
@@ -174,27 +175,29 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Key Metrics</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {team.metrics.map((m: any) => (
-                      <div key={m.kpi_key} className="bg-muted/30 p-2.5 rounded-md border border-border/50 flex flex-col justify-between gap-2">
-                        <div className="text-[10px] text-muted-foreground line-clamp-1 leading-tight" title={m.calculation_basis}>
-                          {m.kpi_name}
-                        </div>
-                        <div className="flex items-end justify-between gap-2">
-                          <span className="text-xs font-bold font-mono truncate">
-                            {m.format === 'currency' ? formatCurrency(m.actual) : m.format === 'percentage' ? `${m.actual}%` : formatNumber(m.actual, { decimals: 0 })}
-                            {m.target > 0 && <span className="text-[10px] text-muted-foreground ml-1">/ {m.format === 'currency' ? formatCurrency(m.target) : m.target}</span>}
-                          </span>
-                          {m.achievement_percentage !== null && (
-                            <span className={`text-[10px] font-mono font-semibold ${m.achievement_percentage >= 100 ? 'text-[color:var(--status-success)]' : m.achievement_percentage >= 75 ? 'text-[color:var(--brand)]' : 'text-[color:var(--status-warning)]'}`}>
-                              {m.achievement_percentage}%
+                <div className="space-y-2 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Key Metrics</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {team.metrics.map((m: any) => (
+                        <div key={m.kpi_key} className="bg-muted/30 p-2.5 rounded-md border border-border/50 flex flex-col justify-between gap-2">
+                          <div className="text-[10px] text-muted-foreground line-clamp-1 leading-tight" title={m.calculation_basis}>
+                            {m.kpi_name}
+                          </div>
+                          <div className="flex items-end justify-between gap-2">
+                            <span className="text-xs font-bold font-mono truncate">
+                              {m.format === 'currency' ? formatCurrency(m.actual) : m.format === 'percentage' ? `${m.actual}%` : formatNumber(m.actual, { decimals: 0 })}
+                              {m.target > 0 && <span className="text-[10px] text-muted-foreground ml-1">/ {m.format === 'currency' ? formatCurrency(m.target) : m.target}</span>}
                             </span>
-                          )}
+                            {m.achievement_percentage !== null && (
+                              <span className={`text-[10px] font-mono font-semibold ${m.achievement_percentage >= 100 ? 'text-[color:var(--status-success)]' : m.achievement_percentage >= 75 ? 'text-[color:var(--brand)]' : 'text-[color:var(--status-warning)]'}`}>
+                                {m.achievement_percentage}%
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -207,16 +210,16 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
 
   // Block 7: Attention Risks
   const renderAttentionRisks = () => (
-    <Card className="col-span-12 lg:col-span-4 overflow-hidden border-[color:var(--status-danger)]/30">
-      <CardHeader className="p-4 bg-[color-mix(in_oklch,var(--status-danger)_5%,transparent)] border-b border-[color:var(--status-danger)]/20">
+    <Card className="col-span-12 lg:col-span-4 overflow-hidden border-[color:var(--status-danger)]/30 flex flex-col h-full">
+      <CardHeader className="p-4 bg-[color-mix(in_oklch,var(--status-danger)_5%,transparent)] border-b border-[color:var(--status-danger)]/20 shrink-0">
         <CardTitle className="flex items-center gap-2 text-[color:var(--status-danger)] text-base">
           <AlertTriangle className="h-4 w-4" /> Attention & Risk Center
         </CardTitle>
         <CardDescription className="text-xs">Immediate action required</CardDescription>
       </CardHeader>
-      <div className="p-0 h-[320px] overflow-y-auto">
+      <div className="p-0 flex-1 min-h-[280px] overflow-y-auto">
         {attention_risks.length === 0 ? (
-          <div className="flex flex-col h-full items-center justify-center text-muted-foreground p-6 text-center space-y-2">
+          <div className="flex flex-col h-full min-h-[240px] items-center justify-center text-muted-foreground p-6 text-center space-y-2">
             <ShieldAlert className="h-8 w-8 opacity-20" />
             <p className="text-sm">No active risks detected.</p>
             <p className="text-xs opacity-60">Pipeline is healthy.</p>
@@ -294,10 +297,15 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
         </CardHeader>
         <CardContent className="p-0">
           {!hasData ? (
-             <div className="flex flex-col h-[280px] items-center justify-center text-muted-foreground p-6 text-center space-y-2">
+             <div className="flex flex-col h-[280px] items-center justify-center text-muted-foreground p-6 text-center space-y-3">
                <TargetIcon className="h-8 w-8 opacity-20" />
-               <p className="text-sm">No targets configured for this period.</p>
-               <p className="text-xs opacity-60">Configure target revenue in Settings → Users.</p>
+               <p className="text-sm font-medium">No targets configured for this period.</p>
+               <p className="text-xs opacity-60">Configure revenue targets in Settings → Target Revenue</p>
+               <Link href="/settings/targets/revenue">
+                 <Button variant="outline" size="sm" className="text-xs h-7 gap-1">
+                   Configure Target Revenue <ChevronRight className="h-3 w-3" />
+                 </Button>
+               </Link>
              </div>
           ) : (
             <div className="h-[280px] overflow-y-auto p-4 space-y-6">
@@ -557,7 +565,7 @@ export function TeamPerformanceDashboard({ period, onDrilldown }: DashboardProps
     <div className="space-y-6 animate-fade-in pb-12">
       {renderOverviewKpis()}
       
-      <div className="grid grid-cols-12 gap-6 mb-6">
+      <div className="grid grid-cols-12 gap-6 mb-6 items-stretch">
         {renderRoleMatrix()}
         {renderAttentionRisks()}
       </div>
