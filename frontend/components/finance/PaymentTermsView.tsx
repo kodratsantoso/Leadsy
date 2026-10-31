@@ -3,11 +3,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { 
   CalendarClock, Plus, RefreshCw, CheckCircle2, AlertCircle, 
-  Clock, Layers, ShieldCheck, Loader2, Trash2, Calendar
+  Clock, Layers, ShieldCheck, Trash2, Calendar, Sparkles
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { Select } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/loading";
 import { apiFetch } from "@/lib/apiFetch";
 
 interface InstallmentConfig {
@@ -108,21 +112,22 @@ export function PaymentTermsView() {
         method: "POST",
         body: JSON.stringify({
           name: form.name,
-          code: form.code.toUpperCase().replace(/\s+/g, "_"),
+          code: form.code,
           term_type: form.term_type,
-          days_due: Number(form.days_due),
+          days_due: form.days_due,
           frequency: form.frequency,
           description: form.description,
-          installments_config: form.installments,
+          installments_config: form.term_type === "milestone" ? form.installments : null,
           is_active: true,
         }),
       });
+
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.message || "Gagal menyimpan Payment Term.");
       }
 
-      setSuccessMsg(json.message || "Setup Payment Term berhasil disimpan.");
+      setSuccessMsg(json.message || "Preset Payment Term berhasil disimpan!");
       setShowModal(false);
       loadData();
     } catch (err: any) {
@@ -132,25 +137,38 @@ export function PaymentTermsView() {
     }
   };
 
-  const filteredTerms = terms.filter((t) => termTypeFilter === "all" || t.term_type === termTypeFilter);
+  const filteredTerms = terms.filter((term) => {
+    if (termTypeFilter === "all") return true;
+    return term.term_type === termTypeFilter;
+  });
 
   return (
     <div className="space-y-6">
-      {/* Success banner */}
+      {/* Alert Messages */}
       {successMsg && (
-        <div className="p-4 rounded-xl bg-[var(--status-success-soft)] text-[var(--status-success)] border border-[color:var(--status-success)]/30 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <CheckCircle2 className="h-4 w-4" />
+        <div className="p-4 rounded-xl flex items-center justify-between border bg-[var(--status-success-soft)] text-[var(--status-success)] border-[color:var(--status-success)]/30 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg(null)} className="text-xs underline">Tutup</button>
+          <button onClick={() => setSuccessMsg(null)} className="underline hover:opacity-80">Tutup</button>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-4 rounded-xl flex items-center justify-between border bg-[var(--status-danger-soft)] text-[var(--status-danger)] border-[color:var(--status-danger)]/30 text-xs font-semibold">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+          <button onClick={() => setErrorMsg(null)} className="underline hover:opacity-80">Tutup</button>
         </div>
       )}
 
       {/* Header & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Master Setup Payment Terms (Termin Penagihan)</h2>
+          <h2 className="text-base font-bold tracking-tight text-foreground">Master Setup Payment Terms (Termin Penagihan)</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Konfigurasi model termin berbasis kalender (waktu/SaaS recurring) dan termin berbasis progress fisik / BAST (Project/SOW).
           </p>
@@ -174,7 +192,7 @@ export function PaymentTermsView() {
               });
               setShowModal(true);
             }}
-            className="bg-[var(--brand)] hover:opacity-90 text-white text-xs shadow-sm font-semibold"
+            className="bg-[color:var(--brand)] hover:opacity-90 text-white text-xs shadow-sm font-semibold"
           >
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             Tambah Payment Term Baru
@@ -185,27 +203,26 @@ export function PaymentTermsView() {
             size="sm"
             onClick={loadData}
             disabled={loading}
-            className="h-9 px-2.5 text-muted-foreground"
+            className="h-8 px-2.5 text-muted-foreground"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
 
-      {/* Tab Filter */}
-      <div className="flex items-center gap-2 border-b border-border pb-3">
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-1.5 border-b border-border pb-3">
         {(["all", "calendar", "milestone"] as const).map((tab) => (
-          <button
+          <Button
             key={tab}
+            type="button"
+            size="sm"
+            variant={termTypeFilter === tab ? "default" : "outline"}
             onClick={() => setTermTypeFilter(tab)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors capitalize ${
-              termTypeFilter === tab 
-                ? "bg-[var(--brand)] text-white shadow-sm" 
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
+            className="text-xs capitalize font-medium"
           >
             {tab === "all" ? "Semua Preset" : tab === "calendar" ? "Time / Calendar-based (SaaS)" : "Milestone / BAST (Project)"}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -213,30 +230,30 @@ export function PaymentTermsView() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading && terms.length === 0 ? (
           <div className="col-span-3 p-12 text-center text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
-            Memuat preset payment terms...
+            <Spinner size="lg" className="mx-auto mb-2" />
+            <p className="text-xs">Memuat preset payment terms...</p>
           </div>
         ) : filteredTerms.map((term) => (
-          <div key={term.id} className="p-5 rounded-2xl border border-border bg-card shadow-sm space-y-3 flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-2">
+          <Card key={term.id} className="flex flex-col justify-between">
+            <CardHeader className="p-5 pb-3">
+              <div className="flex items-start justify-between gap-2 w-full">
                 <div>
-                  <h3 className="font-bold text-foreground text-sm">{term.name}</h3>
+                  <CardTitle className="text-sm font-bold text-foreground">{term.name}</CardTitle>
                   <span className="font-mono text-xs text-muted-foreground">{term.code}</span>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shrink-0 ${
-                  term.term_type === "calendar" 
-                    ? "bg-blue-500/10 text-blue-700" 
-                    : "bg-purple-500/10 text-purple-700"
-                }`}>
+                <Badge 
+                  variant={term.term_type === "calendar" ? "brand" : "info"}
+                  className="uppercase text-[10px] shrink-0"
+                >
                   {term.term_type === "calendar" ? "Calendar (SaaS)" : "Milestone (BAST)"}
-                </span>
+                </Badge>
               </div>
-
-              <p className="text-xs text-muted-foreground line-clamp-2">
+              <CardDescription className="text-xs text-muted-foreground line-clamp-2 mt-2">
                 {term.description || "Tidak ada deskripsi rincian."}
-              </p>
+              </CardDescription>
+            </CardHeader>
 
+            <CardContent className="p-5 pt-0 space-y-3">
               <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
                 <span>Jatuh Tempo Faktur:</span>
                 <strong className="text-foreground">Net {term.days_due} Hari</strong>
@@ -248,174 +265,180 @@ export function PaymentTermsView() {
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Rincian Termin:</div>
                   <div className="space-y-1">
                     {term.installments_config.map((inst, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs p-1.5 rounded-md bg-muted/40 font-mono">
-                        <span className="text-foreground truncate max-w-[160px]">{inst.label}</span>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="font-bold text-[var(--brand)]">{inst.percentage}%</span>
-                          <span className="text-[10px] text-muted-foreground">({inst.trigger === 'bast_milestone' ? 'BAST' : 'Kalender'})</span>
+                      <div key={idx} className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-[color:var(--surface-subtle)] border border-border/50">
+                        <span className="font-medium text-foreground">{inst.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-[color:var(--brand)]">{inst.percentage}%</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {inst.trigger === "calendar_date" ? "Tgl Tetap" : "BAST Fisik"}
+                          </span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-            </div>
-
-            <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
-              <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${term.is_active ? "text-emerald-600" : "text-muted-foreground"}`}>
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {term.is_active ? "Preset Aktif" : "Non-aktif"}
-              </span>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Add Modal */}
+      {/* Add/Edit Payment Term Modal */}
       {showModal && (
         <Modal
           open={showModal}
-          onOpenChange={(open: boolean) => !open && setShowModal(false)}
-          title="Tambah Setup Payment Term Baru"
-          description="Tentukan skema jatuh tempo dan pembagian termin porsi faktur."
+          onOpenChange={(open: boolean) => setShowModal(open)}
+          title="Konfigurasi Preset Payment Term Baru"
           size="xl"
           footer={
             <div className="flex justify-end gap-2 w-full">
-              <Button variant="outline" onClick={() => setShowModal(false)}>Batal</Button>
-              <Button onClick={handleSaveTerm} disabled={saving} className="bg-[var(--brand)] hover:opacity-90 text-white">
-                {saving && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
+              <Button variant="outline" size="sm" onClick={() => setShowModal(false)}>Batal</Button>
+              <Button size="sm" onClick={handleSaveTerm} disabled={saving}>
+                {saving ? <Spinner size="xs" className="mr-1.5" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
                 Simpan Payment Term
               </Button>
             </div>
           }
         >
-          <div className="space-y-4">
-            {errorMsg && (
-              <div className="p-3 bg-[var(--status-danger-soft)] text-[var(--status-danger)] text-xs rounded-lg flex items-center gap-2 border border-[color:var(--status-danger)]/30">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4 text-xs">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Nama Termin</label>
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Nama Term</label>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Contoh: Termin 3 Tahap (30-40-30)"
+                  placeholder="Contoh: Net 30 Days / Termin 50-50"
+                  className="h-8 text-xs"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Kode Identifikasi</label>
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Kode Term (Unique Key)</label>
                 <Input
                   value={form.code}
-                  onChange={(e) => setForm({ ...form, code: e.target.value })}
-                  placeholder="TERMIN_30_40_30"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Tipe Model Termin</label>
-                <select
-                  value={form.term_type}
-                  onChange={(e) => setForm({ ...form, term_type: e.target.value as any })}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-xs"
-                >
-                  <option value="calendar">Time / Calendar-based (SaaS Subscription)</option>
-                  <option value="milestone">Progress Fisik / BAST (Project SOW)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Hari Jatuh Tempo Pembayaran</label>
-                <Input
-                  type="number"
-                  value={form.days_due}
-                  onChange={(e) => setForm({ ...form, days_due: parseInt(e.target.value, 10) || 0 })}
-                  placeholder="30"
-                />
-                <span className="text-[10px] text-muted-foreground">Faktur jatuh tempo X hari setelah tanggal diterbitkan (Net X).</span>
-              </div>
-
-              <div className="col-span-2">
-                <label className="text-xs font-semibold text-muted-foreground mb-1 block">Deskripsi Termin</label>
-                <Input
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Penjelasan jadwal penagihan untuk proposal atau kontrak"
+                  onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s+/g, "_") })}
+                  placeholder="Contoh: NET_30 / TERMIN_50_50"
+                  className="h-8 text-xs font-mono"
                 />
               </div>
             </div>
 
-            {/* Installments Table if Milestone */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Model Termin</label>
+                <Select
+                  value={form.term_type}
+                  onChange={(e) => setForm({ ...form, term_type: e.target.value as any })}
+                  className="h-8 text-xs font-semibold"
+                >
+                  <option value="calendar">Time / Calendar-based (SaaS / Waktu)</option>
+                  <option value="milestone">Progress / BAST-based (Project SOW)</option>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Periode Jatuh Tempo (Hari)</label>
+                <Input
+                  type="number"
+                  value={form.days_due}
+                  onChange={(e) => setForm({ ...form, days_due: parseInt(e.target.value, 10) || 0 })}
+                  className="h-8 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Deskripsi Singkat</label>
+              <Input
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Penjelasan termin pembayaran untuk dicetak di Quotation/SO..."
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* Installments Breakdown Editor (Milestone Mode) */}
             {form.term_type === "milestone" && (
-              <div className="space-y-3 pt-2 border-t border-border">
+              <div className="pt-2 border-t border-border space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-foreground">Rincian Porsi & Trigger Termin (Harus 100%)</span>
-                  <Button size="xs" variant="outline" onClick={handleAddInstallmentRow}>
-                    <Plus className="h-3 w-3 mr-1" /> Tambah Termin
+                  <span className="font-bold text-foreground">Konfigurasi Rincian Termin & Persentase</span>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={handleAddInstallmentRow}
+                    className="text-xs h-7"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Tambah Termin
                   </Button>
                 </div>
 
-                <div className="space-y-2">
-                  {form.installments.map((row, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-muted/30 p-2 rounded-lg border border-border">
-                      <div className="col-span-5">
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {form.installments.map((inst, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-[color:var(--surface-subtle)] border border-border">
+                      <Input
+                        value={inst.label}
+                        onChange={(e) => {
+                          const next = [...form.installments];
+                          next[index].label = e.target.value;
+                          setForm({ ...form, installments: next });
+                        }}
+                        placeholder="Label Termin (misal: Uang Muka)"
+                        className="h-7 text-xs flex-1"
+                      />
+
+                      <div className="flex items-center gap-1 w-24">
                         <Input
-                          placeholder="Label Termin"
-                          value={row.label}
+                          type="number"
+                          value={inst.percentage}
                           onChange={(e) => {
                             const next = [...form.installments];
-                            next[idx].label = e.target.value;
+                            next[index].percentage = parseFloat(e.target.value) || 0;
                             setForm({ ...form, installments: next });
                           }}
-                          className="h-8 text-xs"
+                          placeholder="%"
+                          className="h-7 text-xs font-mono text-right"
                         />
+                        <span className="text-xs text-muted-foreground">%</span>
                       </div>
-                      <div className="col-span-3">
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            placeholder="Persen"
-                            value={row.percentage}
-                            onChange={(e) => {
-                              const next = [...form.installments];
-                              next[idx].percentage = parseFloat(e.target.value) || 0;
-                              setForm({ ...form, installments: next });
-                            }}
-                            className="h-8 text-xs font-mono"
-                          />
-                          <span className="text-xs font-bold">%</span>
-                        </div>
-                      </div>
-                      <div className="col-span-3">
-                        <select
-                          value={row.trigger}
+
+                      <div className="w-36">
+                        <Select
+                          value={inst.trigger}
                           onChange={(e) => {
                             const next = [...form.installments];
-                            next[idx].trigger = e.target.value as any;
+                            next[index].trigger = e.target.value as any;
                             setForm({ ...form, installments: next });
                           }}
-                          className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                          className="h-7 text-[11px]"
                         >
-                          <option value="calendar_date">Tanggal Order</option>
-                          <option value="bast_milestone">Persetujuan BAST</option>
-                        </select>
+                          <option value="calendar_date">Tanggal Tetap</option>
+                          <option value="bast_milestone">Penyelesaian BAST</option>
+                        </Select>
                       </div>
-                      <div className="col-span-1 text-right">
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          onClick={() => handleRemoveInstallmentRow(idx)}
-                          className="h-7 w-7 p-0 text-[var(--status-danger)]"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => handleRemoveInstallmentRow(index)}
+                        disabled={form.installments.length <= 1}
+                        className="h-7 w-7 p-0 text-[var(--status-danger)]"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   ))}
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-semibold pt-1 border-t border-border">
+                  <span>Total Persentase Termin:</span>
+                  <span className={`font-mono ${
+                    Math.round(form.installments.reduce((acc, c) => acc + (c.percentage || 0), 0)) === 100 
+                      ? "text-[var(--status-success)]" 
+                      : "text-[var(--status-danger)]"
+                  }`}>
+                    {form.installments.reduce((acc, c) => acc + (c.percentage || 0), 0)}% / 100%
+                  </span>
                 </div>
               </div>
             )}
