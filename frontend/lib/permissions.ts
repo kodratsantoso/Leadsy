@@ -29,6 +29,7 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/settings/lead-sources": { any: ["leads.edit"] },
   "/settings/lead-channels": { any: ["leads.edit"] },
   "/settings/lead-stages": { any: ["leads.edit"] },
+  "/settings/cadences": { any: ["leads.view", "leads.edit"] },
   "/settings/currency": { any: ["integrations.manage"] },
   "/settings/o2c/tax-codes": { any: ["integrations.manage"] },
   "/settings/o2c/withholding-tax-codes": { any: ["integrations.manage"] },

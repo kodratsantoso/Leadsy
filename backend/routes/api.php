@@ -548,6 +548,8 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('sales-cadences', [\App\Http\Controllers\Api\SalesCadenceController::class, 'index'])->middleware('permission:leads.view');
     Route::post('sales-cadences', [\App\Http\Controllers\Api\SalesCadenceController::class, 'store'])->middleware('permission:leads.edit');
     Route::get('sales-cadences/{id}', [\App\Http\Controllers\Api\SalesCadenceController::class, 'show'])->middleware('permission:leads.view');
+    Route::put('sales-cadences/{id}', [\App\Http\Controllers\Api\SalesCadenceController::class, 'update'])->middleware('permission:leads.edit');
+    Route::delete('sales-cadences/{id}', [\App\Http\Controllers\Api\SalesCadenceController::class, 'destroy'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/enroll-cadence', [\App\Http\Controllers\Api\SalesCadenceController::class, 'enrollLead'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/cadence-enrollments', [\App\Http\Controllers\Api\SalesCadenceController::class, 'leadEnrollments'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/copilot', [LeadController::class, 'copilot'])->middleware('permission:leads.view');

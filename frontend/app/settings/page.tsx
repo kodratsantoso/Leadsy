@@ -72,9 +72,10 @@ const categories = [
   },
   {
     name: "Automation",
-    desc: "Configure generic workflow pipelines and automated rule execution.",
+    desc: "Configure outreach cadences, workflow pipelines, and automated rule execution.",
     items: [
-      { icon: GitBranch, title: "Custom Workflows",      desc: "Visual workflow builder for custom process approvals",              href: "/settings/workflows",     color: "bg-[color:var(--status-info)]" },
+      { icon: GitBranch, title: "Sales Cadences",        desc: "Multi-touch outreach sequences and automated lead engagement workflows", href: "/settings/cadences",     color: "bg-[color:var(--brand)]" },
+      { icon: Layers,    title: "Custom Workflows",      desc: "Visual workflow builder for custom process approvals",              href: "/settings/workflows",     color: "bg-[color:var(--status-info)]" },
     ]
   }
 ];

@@ -104,15 +104,86 @@ class SalesCadenceController extends Controller
     }
 
     /**
+     * Update an existing cadence.
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $cadence = SalesCadence::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string',
+            'target_audience' => 'nullable|string|max:100',
+            'trigger_type' => 'nullable|string|in:manual,lead_created,stage_change',
+            'is_active' => 'sometimes|boolean',
+            'steps' => 'nullable|array|min:1',
+            'steps.*.channel' => 'required_with:steps|string|in:whatsapp,email,call_reminder,internal_task',
+            'steps.*.delay_days' => 'required_with:steps|integer|min:0',
+            'steps.*.template_body' => 'required_with:steps|string',
+            'steps.*.template_subject' => 'nullable|string',
+            'steps.*.is_automated' => 'nullable|boolean',
+        ]);
+
+        DB::transaction(function () use ($cadence, $validated) {
+            $cadence->update(array_filter([
+                'name' => $validated['name'] ?? $cadence->name,
+                'description' => array_key_exists('description', $validated) ? $validated['description'] : $cadence->description,
+                'target_audience' => $validated['target_audience'] ?? $cadence->target_audience,
+                'trigger_type' => $validated['trigger_type'] ?? $cadence->trigger_type,
+                'is_active' => array_key_exists('is_active', $validated) ? $validated['is_active'] : $cadence->is_active,
+            ], fn($v) => !is_null($v)));
+
+            if (isset($validated['steps'])) {
+                $cadence->steps()->delete();
+                foreach ($validated['steps'] as $idx => $stepData) {
+                    SalesCadenceStep::create([
+                        'sales_cadence_id' => $cadence->id,
+                        'step_number' => $idx + 1,
+                        'channel' => $stepData['channel'],
+                        'delay_days' => $stepData['delay_days'],
+                        'template_subject' => $stepData['template_subject'] ?? null,
+                        'template_body' => $stepData['template_body'],
+                        'ai_personalization' => true,
+                        'is_automated' => $stepData['is_automated'] ?? false,
+                    ]);
+                }
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "Sales Cadence '{$cadence->name}' berhasil diperbarui.",
+            'data' => $cadence->fresh(['steps', 'creator']),
+        ]);
+    }
+
+    /**
+     * Delete a cadence.
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $cadence = SalesCadence::findOrFail($id);
+        $cadence->steps()->delete();
+        $cadence->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sales Cadence berhasil dihapus.',
+        ]);
+    }
+
+    /**
      * Enroll lead into cadence.
      */
     public function enrollLead(Request $request, Lead $lead): JsonResponse
     {
         $validated = $request->validate([
-            'cadence_id' => 'required|exists:sales_cadences,id',
+            'cadence_id' => 'required_without:sales_cadence_id|nullable|exists:sales_cadences,id',
+            'sales_cadence_id' => 'required_without:cadence_id|nullable|exists:sales_cadences,id',
         ]);
 
-        $enrollment = $this->executionService->enrollLead($lead, $validated['cadence_id'], auth()->id());
+        $cadenceId = $validated['cadence_id'] ?? $validated['sales_cadence_id'];
+        $enrollment = $this->executionService->enrollLead($lead, (int) $cadenceId, auth()->id());
 
         return response()->json([
             'success' => true,
@@ -137,3 +208,4 @@ class SalesCadenceController extends Controller
         ]);
     }
 }
+
