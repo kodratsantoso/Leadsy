@@ -284,13 +284,13 @@
     <table class="header-table">
         <tr>
             <td class="logos-container">
-                @if($issuerLogo && file_exists($issuerLogo))
+                @if($issuerLogo)
                     <img src="{{ $issuerLogo }}" class="logo-img" alt="Issuer Brand">
                 @else
                     <span style="font-weight: bold; font-size: 14px; color: #0f3d7a;">{{ $tenant->brand_name ?: $tenant->name }}</span>
                 @endif
 
-                @if($productLogo && file_exists($productLogo))
+                @if($productLogo)
                     <span class="logo-divider"></span>
                     <img src="{{ $productLogo }}" class="logo-img" alt="Product Brand">
                 @endif
@@ -393,8 +393,24 @@
                             @endif
                         </td>
                     @endif
+                    @php
+                        $durationMultiplier = 1;
+                        $dVal = (float)($item->duration_value ?: 1);
+                        if ($dVal <= 0) $dVal = 1;
+                        if ($item->billing_period === 'monthly' && $item->duration_unit === 'year') {
+                            $durationMultiplier = $dVal * 12;
+                        } elseif ($item->billing_period === 'yearly' && $item->duration_unit === 'month') {
+                            $durationMultiplier = $dVal / 12;
+                        } else {
+                            $durationMultiplier = $dVal;
+                        }
+                        $lineSubtotal = ((float)$item->unit_price * (float)$item->quantity * $durationMultiplier) - (float)($item->line_discount_amount ?? 0);
+                        if ($lineSubtotal <= 0 && ((float)$item->line_total_before_wht - (float)$item->tax_amount) > 0) {
+                            $lineSubtotal = (float)$item->line_total_before_wht - (float)$item->tax_amount;
+                        }
+                    @endphp
                     <td style="text-align: right; font-weight: bold; color: #0f3d7a;">
-                        {{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($item->line_total_before_wht, 0, ',', '.') }}
+                        {{ $currency === 'IDR' ? 'Rp.' : $currency }} {{ number_format($lineSubtotal, 0, ',', '.') }}
                     </td>
                 </tr>
             @endforeach
@@ -500,7 +516,7 @@
                 <div class="sig-company">Approved by,</div>
                 <div style="font-weight: bold; color: #0f3d7a; margin-bottom: 4px;">{{ $tenant->legal_name ?: $tenant->name }}</div>
                 <div class="sig-space">
-                    @if($issuerSignatoryImage && file_exists($issuerSignatoryImage))
+                    @if($issuerSignatoryImage)
                         <img src="{{ $issuerSignatoryImage }}" class="sig-image" alt="Signature">
                     @endif
                 </div>

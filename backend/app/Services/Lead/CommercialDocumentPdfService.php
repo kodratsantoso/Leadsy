@@ -30,7 +30,13 @@ class CommercialDocumentPdfService
         }
 
         if ($documentType === 'quotation') {
-            $doc = LeadQuotation::with(['lead.contacts', 'items.product', 'bankAccount', 'createdBy', 'approvedBy', 'salesOwner'])->findOrFail($documentId);
+            $doc = LeadQuotation::with(['lead.contacts', 'items.product'])->findOrFail($documentId);
+            if ($doc->bank_account_id) {
+                $doc->load('bankAccount');
+            }
+            if ($doc->sales_owner_id) {
+                $doc->load('salesOwner');
+            }
             $docNumber = $doc->quotation_number;
             $docDate = $doc->quotation_date ? $doc->quotation_date->format('d F Y') : '-';
             $validUntil = $doc->valid_until ? $doc->valid_until->format('d F Y') : '-';
@@ -38,7 +44,13 @@ class CommercialDocumentPdfService
             $items = $doc->items;
             $termsConditions = $doc->terms_conditions;
         } elseif ($documentType === 'sales_order') {
-            $doc = LeadSalesOrder::with(['lead.contacts', 'items.product', 'bankAccount', 'createdBy', 'confirmedBy', 'salesOwner'])->findOrFail($documentId);
+            $doc = LeadSalesOrder::with(['lead.contacts', 'items.product'])->findOrFail($documentId);
+            if ($doc->bank_account_id) {
+                $doc->load('bankAccount');
+            }
+            if ($doc->sales_owner_id) {
+                $doc->load('salesOwner');
+            }
             $docNumber = $doc->sales_order_number;
             $docDate = $doc->order_date ? $doc->order_date->format('d F Y') : '-';
             $validUntil = $doc->contract_end_date ? $doc->contract_end_date->format('d F Y') : '-';
@@ -139,7 +151,24 @@ class CommercialDocumentPdfService
             );
         }
 
-        // 5. Structure data for PDF view
+        // 5. Resolve Logos & Signatures as base64 to avoid path/chroot issues in DomPDF
+        $issuerLogoData = $this->imageToBase64($tenant->logo_path);
+        $productLogoData = $this->imageToBase64($productLogoPath);
+
+        $signatoryImagePath = ($doc->salesOwner && $doc->salesOwner->signature_path)
+            ? $doc->salesOwner->signature_path
+            : ($tenant->signatory_image_path ?: null);
+        $issuerSignatoryImageData = $this->imageToBase64($signatoryImagePath);
+
+        $issuerSignatoryName = ($doc->salesOwner && $doc->salesOwner->name)
+            ? $doc->salesOwner->name
+            : ($tenant->signatory_name ?: 'Authorized Representative');
+
+        $issuerSignatoryPosition = ($doc->salesOwner && $doc->salesOwner->title)
+            ? $doc->salesOwner->title
+            : ($tenant->signatory_position ?: 'Authorized Signatory');
+
+        // 6. Structure data for PDF view
         $data = [
             'documentType' => $documentType,
             'documentTitle' => $documentType === 'quotation' ? 'QUOTATION' : 'SALES ORDER',
@@ -161,16 +190,16 @@ class CommercialDocumentPdfService
             'lineDiscount' => $doc->total_line_discount ?: 0,
             'total' => $doc->total_amount,
             'wht' => $doc->total_withholding_tax,
-            'productLogo' => $productLogoPath ? Storage::disk('public')->path($productLogoPath) : null,
-            'issuerLogo' => $tenant->logo_path ? Storage::disk('public')->path($tenant->logo_path) : null,
-            'issuerSignatoryImage' => ($doc->salesOwner && $doc->salesOwner->signature_path) ? Storage::disk('public')->path($doc->salesOwner->signature_path) : ($tenant->signatory_image_path ? Storage::disk('public')->path($tenant->signatory_image_path) : null),
-            'issuerSignatoryName' => $doc->salesOwner ? $doc->salesOwner->name : ($tenant->signatory_name ?: 'Authorized Signatory'),
-            'issuerSignatoryPosition' => $doc->salesOwner ? $doc->salesOwner->title : ($tenant->signatory_position ?: 'Management'),
+            'productLogo' => $productLogoData,
+            'issuerLogo' => $issuerLogoData,
+            'issuerSignatoryImage' => $issuerSignatoryImageData,
+            'issuerSignatoryName' => $issuerSignatoryName,
+            'issuerSignatoryPosition' => $issuerSignatoryPosition,
             'bankAccount' => $bankAccount,
             'terms' => $resolvedTerms,
         ];
 
-        // 6. Generate and save PDF
+        // 7. Generate and save PDF
         $pdf = Pdf::loadView('pdf.commercial-document', $data);
         
         $safeCustomerName = Str::slug($data['customerName']);
@@ -179,14 +208,34 @@ class CommercialDocumentPdfService
         
         Storage::disk('public')->put($path, $pdf->output());
 
-        // Update document's pdf_url in DB
+        // Update document's pdf_url in DB with relative URL for robust domain/proxy handling
+        $relativeUrl = '/storage/' . $path;
         $url = Storage::disk('public')->url($path);
-        $doc->update(['pdf_url' => $url]);
+        $doc->update(['pdf_url' => $relativeUrl]);
 
         return [
             'path' => $path,
             'url' => $url,
+            'relative_url' => $relativeUrl,
             'filename' => $safeFilename,
         ];
+    }
+
+    /**
+     * Convert relative storage file path to base64 Data URI for DomPDF
+     */
+    private function imageToBase64(?string $relativePath): ?string
+    {
+        if (!$relativePath || !Storage::disk('public')->exists($relativePath)) {
+            return null;
+        }
+
+        try {
+            $mime = Storage::disk('public')->mimeType($relativePath) ?: 'image/png';
+            $data = Storage::disk('public')->get($relativePath);
+            return 'data:' . $mime . ';base64,' . base64_encode($data);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 }

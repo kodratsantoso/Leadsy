@@ -6,7 +6,7 @@ import { apiFetch } from '@/lib/apiFetch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FileText, Plus, Receipt, CheckCircle, XCircle, ArrowRight, Loader2, DollarSign, AlertCircle, Trash2, Copy, Layers } from 'lucide-react';
+import { FileText, Plus, Receipt, CheckCircle, XCircle, ArrowRight, Loader2, DollarSign, AlertCircle, Trash2, Copy, Layers, Download, ExternalLink, Printer } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useNumberFormat } from '@/lib/hooks/use-number-format';
 import { Modal } from '@/components/ui/modal';
@@ -26,8 +26,10 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const [savingSO, setSavingSO] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [generatingPdfId, setGeneratingPdfId] = useState<number | null>(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<number | null>(null);
   const [viewPdfUrl, setViewPdfUrl] = useState<string | null>(null);
   const [viewPdfTitle, setViewPdfTitle] = useState<string>("");
+  const [viewPdfMeta, setViewPdfMeta] = useState<{ type: 'quotation' | 'sales_order'; id: number; number: string } | null>(null);
   
   // Confirm dialogs
   const [deleteQConfirm, setDeleteQConfirm] = useState<{ open: boolean; id: number | null; number?: string }>({ open: false, id: null });
@@ -911,7 +913,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
     }
   };
 
-  const generatePdf = async (type: 'quotation' | 'sales_order', id: number) => {
+  const generatePdf = async (type: 'quotation' | 'sales_order', id: number, docNumber?: string) => {
     setGeneratingPdfId(id);
     setErrorMessage(null);
     try {
@@ -922,18 +924,47 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
         throw new Error(err.message || 'Failed to generate PDF');
       }
       const data = await res.json();
-      const pdfUrl = data.data?.url;
+      const pdfUrl = data.data?.relative_url || data.data?.url;
       qc.invalidateQueries({ queryKey: type === 'quotation' ? ['lead-quotations', leadId] : ['lead-sales-orders', leadId] });
+      toast.success(type === 'quotation' ? 'Quotation PDF generated successfully.' : 'Sales Order PDF generated successfully.');
       
       // Auto-open PDF preview modal
       if (pdfUrl) {
         setViewPdfUrl(pdfUrl);
-        setViewPdfTitle(type === 'quotation' ? 'Quotation PDF Preview' : 'Sales Order PDF Preview');
+        setViewPdfTitle(type === 'quotation' ? `Quotation ${docNumber || id} PDF Preview` : `Sales Order ${docNumber || id} PDF Preview`);
+        setViewPdfMeta({ type, id, number: docNumber || `${type}_${id}` });
       }
     } catch (err) {
+      toast.fromError(err, 'Failed to generate PDF');
       setErrorMessage(describeThrown(err).title);
     } finally {
       setGeneratingPdfId(null);
+    }
+  };
+
+  const downloadPdfFile = async (type: 'quotation' | 'sales_order', id: number, customFilename?: string) => {
+    setDownloadingPdfId(id);
+    try {
+      const endpoint = type === 'quotation' ? `/quotations/${id}/download-pdf` : `/sales-orders/${id}/download-pdf`;
+      const res = await apiFetch(endpoint);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Failed to download PDF (${res.status})`);
+      }
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = customFilename || `${type === 'quotation' ? 'Quotation' : 'SalesOrder'}_${id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("PDF downloaded successfully.");
+    } catch (err) {
+      toast.fromError(err, "Failed to download PDF.");
+    } finally {
+      setDownloadingPdfId(null);
     }
   };
 
@@ -1529,27 +1560,44 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           <span>PDF Not Generated</span>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button 
                           size="xs" 
                           variant="outline" 
-                          onClick={() => generatePdf('quotation', q.id)}
+                          onClick={() => generatePdf('quotation', q.id, q.quotation_number)}
                           disabled={generatingPdfId === q.id}
                         >
                           {generatingPdfId === q.id && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
                           {q.pdf_url ? 'Regenerate PDF' : 'Generate PDF'}
                         </Button>
                         {q.pdf_url && (
-                          <Button 
-                            size="xs" 
-                            variant="secondary" 
-                            onClick={() => {
-                              setViewPdfUrl(q.pdf_url);
-                              setViewPdfTitle('Quotation PDF Preview');
-                            }}
-                          >
-                            View PDF
-                          </Button>
+                          <>
+                            <Button 
+                              size="xs" 
+                              variant="secondary" 
+                              onClick={() => {
+                                setViewPdfUrl(q.pdf_url);
+                                setViewPdfTitle(`Quotation ${q.quotation_number} PDF Preview`);
+                                setViewPdfMeta({ type: 'quotation', id: q.id, number: q.quotation_number });
+                              }}
+                            >
+                              <FileText className="h-3 w-3 mr-1" />
+                              View PDF
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => downloadPdfFile('quotation', q.id, `Quotation_${q.quotation_number}.pdf`)}
+                              disabled={downloadingPdfId === q.id}
+                            >
+                              {downloadingPdfId === q.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              ) : (
+                                <Download className="h-3 w-3 mr-1" />
+                              )}
+                              Download
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -1737,27 +1785,44 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                           <span>PDF Not Generated</span>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button 
                           size="xs" 
                           variant="outline" 
-                          onClick={() => generatePdf('sales_order', so.id)}
+                          onClick={() => generatePdf('sales_order', so.id, so.sales_order_number)}
                           disabled={generatingPdfId === so.id}
                         >
                           {generatingPdfId === so.id && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
                           {so.pdf_url ? 'Regenerate PDF' : 'Generate PDF'}
                         </Button>
                         {so.pdf_url && (
-                          <Button 
-                            size="xs" 
-                            variant="secondary" 
-                            onClick={() => {
-                              setViewPdfUrl(so.pdf_url);
-                              setViewPdfTitle('Sales Order PDF Preview');
-                            }}
-                          >
-                            View PDF
-                          </Button>
+                          <>
+                            <Button 
+                              size="xs" 
+                              variant="secondary" 
+                              onClick={() => {
+                                setViewPdfUrl(so.pdf_url);
+                                setViewPdfTitle(`Sales Order ${so.sales_order_number} PDF Preview`);
+                                setViewPdfMeta({ type: 'sales_order', id: so.id, number: so.sales_order_number });
+                              }}
+                            >
+                              <FileText className="h-3 w-3 mr-1" />
+                              View PDF
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => downloadPdfFile('sales_order', so.id, `SalesOrder_${so.sales_order_number}.pdf`)}
+                              disabled={downloadingPdfId === so.id}
+                            >
+                              {downloadingPdfId === so.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              ) : (
+                                <Download className="h-3 w-3 mr-1" />
+                              )}
+                              Download
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -3089,36 +3154,74 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       {viewPdfUrl && (
         <Modal
           open={!!viewPdfUrl}
-          onOpenChange={(v) => !v && setViewPdfUrl(null)}
+          onOpenChange={(v) => {
+            if (!v) {
+              setViewPdfUrl(null);
+              setViewPdfMeta(null);
+            }
+          }}
           title={viewPdfTitle}
-          description="View and download the dynamically generated commercial document."
-          size="lg"
+          description="View, print, and download the dynamically generated commercial document."
+          size="xl"
           footer={
-            <>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const relativeUrl = viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '');
-                  const link = document.createElement('a');
-                  link.href = `${relativeUrl}?t=${new Date().getTime()}`;
-                  link.download = viewPdfTitle.replace(/\s+/g, '_') + '.pdf';
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-              >
-                Download PDF
-              </Button>
-              <Button onClick={() => setViewPdfUrl(null)}>
-                Close
-              </Button>
-            </>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const relativeUrl = viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '');
+                    window.open(`${relativeUrl}?t=${new Date().getTime()}`, '_blank');
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4 mr-1.5" />
+                  Open in New Tab
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                {viewPdfMeta ? (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => downloadPdfFile(viewPdfMeta.type, viewPdfMeta.id, `${viewPdfMeta.number}.pdf`)}
+                    disabled={downloadingPdfId === viewPdfMeta.id}
+                  >
+                    {downloadingPdfId === viewPdfMeta.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-1.5" />
+                    )}
+                    Download PDF
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => {
+                      const relativeUrl = viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '');
+                      const link = document.createElement('a');
+                      link.href = `${relativeUrl}?t=${new Date().getTime()}`;
+                      link.download = viewPdfTitle.replace(/\s+/g, '_') + '.pdf';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-1.5" />
+                    Download PDF
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => { setViewPdfUrl(null); setViewPdfMeta(null); }}>
+                  Close
+                </Button>
+              </div>
+            </div>
           }
         >
           <div className="w-full">
             <iframe
               src={`${viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '')}?t=${new Date().getTime()}`}
-              className="w-full h-[650px] border border-border rounded-lg"
+              className="w-full h-[700px] border border-border rounded-lg bg-muted/20"
               title="PDF Viewer"
             />
           </div>

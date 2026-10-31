@@ -357,6 +357,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('quotations/{quotation}/convert', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
     Route::post('quotations/{quotation}/convert-to-sales-order', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'convertToSalesOrder'])->middleware('permission:leads.edit');
     Route::post('quotations/{quotation}/generate-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'generatePdf'])->middleware('permission:leads.edit');
+    Route::get('quotations/{quotation}/preview-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'previewPdf'])->middleware('permission:leads.view');
     Route::get('quotations/{quotation}/download-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'downloadPdf'])->middleware('permission:leads.view');
 
     // Lead Order-to-Cash (Sales Orders)
@@ -370,6 +371,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('sales-orders/{order}/close', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'closeSalesOrder'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/renew', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'createRenewalQuotation'])->middleware('permission:leads.edit');
     Route::post('sales-orders/{order}/generate-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'generatePdfSo'])->middleware('permission:leads.edit');
+    Route::get('sales-orders/{order}/preview-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'previewPdfSo'])->middleware('permission:leads.view');
     Route::get('sales-orders/{order}/download-pdf', [\App\Http\Controllers\Api\LeadOrderToCashController::class, 'downloadPdfSo'])->middleware('permission:leads.view');
 
     // Product document branding

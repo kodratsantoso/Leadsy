@@ -14,6 +14,7 @@ use App\Traits\CalculatesOrderTotals;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
  
 class LeadOrderToCashController extends Controller
 {
@@ -1340,23 +1341,53 @@ class LeadOrderToCashController extends Controller
         }
     }
 
-    public function downloadPdf($id)
+    public function downloadPdf($id, \App\Services\Lead\CommercialDocumentPdfService $pdfService)
     {
         $quotation = LeadQuotation::findOrFail($id);
         $this->authorizeQuotationAccess($quotation);
-        if (!$quotation->pdf_url) {
-            return response()->json(['message' => 'PDF has not been generated for this quotation.'], 404);
+
+        $path = null;
+        if ($quotation->pdf_url) {
+            $parsed = parse_url($quotation->pdf_url, PHP_URL_PATH);
+            $path = preg_replace('#^/?storage/#', '', $parsed);
         }
 
-        // Extract relative path from Storage url
-        $path = str_replace(Storage::disk('public')->url(''), '', $quotation->pdf_url);
-        $path = ltrim($path, '/');
-
-        if (!Storage::disk('public')->exists($path)) {
-            return response()->json(['message' => 'PDF file not found in storage.'], 404);
+        // Auto-generate if missing or not yet generated
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            $result = $pdfService->generatePdf('quotation', $quotation->id);
+            $path = $result['path'];
         }
 
-        return Storage::disk('public')->download($path);
+        $filename = basename($path);
+        return Storage::disk('public')->download($path, $filename, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function previewPdf($id, \App\Services\Lead\CommercialDocumentPdfService $pdfService)
+    {
+        $quotation = LeadQuotation::findOrFail($id);
+        $this->authorizeQuotationAccess($quotation);
+
+        $path = null;
+        if ($quotation->pdf_url) {
+            $parsed = parse_url($quotation->pdf_url, PHP_URL_PATH);
+            $path = preg_replace('#^/?storage/#', '', $parsed);
+        }
+
+        // Auto-generate if missing or not yet generated
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            $result = $pdfService->generatePdf('quotation', $quotation->id);
+            $path = $result['path'];
+        }
+
+        $fullPath = Storage::disk('public')->path($path);
+        $filename = basename($path);
+        return response()->file($fullPath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
 
     public function generatePdfSo(Request $request, $id, \App\Services\Lead\CommercialDocumentPdfService $pdfService): \Illuminate\Http\JsonResponse
@@ -1379,21 +1410,52 @@ class LeadOrderToCashController extends Controller
         }
     }
 
-    public function downloadPdfSo($id)
+    public function downloadPdfSo($id, \App\Services\Lead\CommercialDocumentPdfService $pdfService)
     {
         $order = LeadSalesOrder::findOrFail($id);
         $this->authorizeSalesOrderAccess($order);
-        if (!$order->pdf_url) {
-            return response()->json(['message' => 'PDF has not been generated for this sales order.'], 404);
+
+        $path = null;
+        if ($order->pdf_url) {
+            $parsed = parse_url($order->pdf_url, PHP_URL_PATH);
+            $path = preg_replace('#^/?storage/#', '', $parsed);
         }
 
-        $path = str_replace(Storage::disk('public')->url(''), '', $order->pdf_url);
-        $path = ltrim($path, '/');
-
-        if (!Storage::disk('public')->exists($path)) {
-            return response()->json(['message' => 'PDF file not found in storage.'], 404);
+        // Auto-generate if missing or not yet generated
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            $result = $pdfService->generatePdf('sales_order', $order->id);
+            $path = $result['path'];
         }
 
-        return Storage::disk('public')->download($path);
+        $filename = basename($path);
+        return Storage::disk('public')->download($path, $filename, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function previewPdfSo($id, \App\Services\Lead\CommercialDocumentPdfService $pdfService)
+    {
+        $order = LeadSalesOrder::findOrFail($id);
+        $this->authorizeSalesOrderAccess($order);
+
+        $path = null;
+        if ($order->pdf_url) {
+            $parsed = parse_url($order->pdf_url, PHP_URL_PATH);
+            $path = preg_replace('#^/?storage/#', '', $parsed);
+        }
+
+        // Auto-generate if missing or not yet generated
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            $result = $pdfService->generatePdf('sales_order', $order->id);
+            $path = $result['path'];
+        }
+
+        $fullPath = Storage::disk('public')->path($path);
+        $filename = basename($path);
+        return response()->file($fullPath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
 }

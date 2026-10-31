@@ -17,7 +17,7 @@ trait CalculatesOrderTotals
         return $currencySetting->currency;
     }
 
-    protected function calculateTotals(array $itemsData, string $headerDiscountType = null, float $headerDiscountValue = 0, float $otherCost = 0)
+    protected function calculateTotals(array $itemsData, ?string $headerDiscountType = null, float $headerDiscountValue = 0, float $otherCost = 0)
     {
         $subtotal = 0;
         $totalLineDiscount = 0;
