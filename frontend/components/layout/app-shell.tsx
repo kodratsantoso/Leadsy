@@ -119,15 +119,6 @@ export const navItems: NavItem[] = [
     ],
   },
   {
-    href: "/whatsapp",
-    icon: MessageSquare,
-    label: "WhatsApp",
-    children: [
-      { href: "/whatsapp/local", icon: WhatsAppLogoIcon, label: "Local WhatsApp" },
-      { href: "/whatsapp/qontak", icon: MekariLogoIcon, label: "Mekari Qontak" },
-    ],
-  },
-  {
     href: "/settings",
     icon: Settings,
     label: "Settings",

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/apiFetch';
 import { 
@@ -10,7 +11,9 @@ import {
   ChevronRight, Bot, Zap, ArrowRight, ShieldCheck, RefreshCw, 
   Plus, MoreVertical, Calendar, DollarSign, CheckCircle2,
   Tag, UserCheck, Check, RotateCcw, FileText, Layers, X,
-  PenSquare, CornerUpLeft, Paperclip, ChevronDown, CheckSquare
+  PenSquare, CornerUpLeft, Paperclip, ChevronDown, CheckSquare,
+  QrCode, Wifi, WifiOff, Radio, RadioTower, AlertCircle, Copy,
+  Smile, ShieldAlert, SlidersHorizontal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +21,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { fetchAssignableUsers, type AssignableUser } from '@/lib/api/leads';
+import { useWhatsApp, type WaSessionState } from '@/lib/hooks/use-whatsapp';
 import { cn } from '@/lib/utils';
 
 interface UnifiedThread {
@@ -54,17 +58,46 @@ interface UnifiedThread {
   }>;
 }
 
-export default function OmnichannelInboxPage() {
+const CANNED_REPLIES = [
+  {
+    title: 'Salam Perkenalan B2B',
+    text: 'Halo Bapak/Ibu, terima kasih telah menghubungi Leadsy. Ada yang bisa kami bantu terkait optimasi proses penjualan dan otomasi lead intelligence bisnis Anda hari ini?',
+  },
+  {
+    title: 'Kirim Profil & Solusi',
+    text: 'Baik Bapak/Ibu, berikut ringkasan informasi solusi enterprise Leadsy. Kami juga dapat mengatur sesi demo singkat 15 menit via Google Meet/Zoom jika berkenan.',
+  },
+  {
+    title: 'Follow-up Penawaran',
+    text: 'Selamat pagi Bapak/Ibu, kami ingin menanyakan kelanjutan proposal penawaran yang telah kami kirimkan sebelumnya. Apakah ada bagian atau penyesuaian yang perlu kami diskusikan lebih lanjut?',
+  },
+  {
+    title: 'Konfirmasi Jadwal Meeting',
+    text: 'Terima kasih atas konfirmasinya. Undangan kalender meeting telah kami jadwalkan bersama tim spesialis kami. Sampai jumpa di sesi pertemuan nanti.',
+  },
+];
+
+function OmnichannelInboxContent() {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
+  // ── URL Query Sync ──
+  const initialChannelParam = searchParams.get('channel') as 'whatsapp' | 'email' | null;
+  const initialEngineParam = searchParams.get('engine') as 'local' | 'qontak' | null;
+  const initialActionParam = searchParams.get('action');
 
   // ── Primary View States ──
-  const [selectedChannel, setSelectedChannel] = useState<'all' | 'whatsapp' | 'email'>('all');
+  const [selectedChannel, setSelectedChannel] = useState<'all' | 'whatsapp' | 'email'>(
+    initialChannelParam === 'whatsapp' ? 'whatsapp' : initialChannelParam === 'email' ? 'email' : 'all'
+  );
   const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
 
   // ── Channel Sub-Filters ──
-  const [waEngineFilter, setWaEngineFilter] = useState<'all' | 'whatsapp' | 'mekari_qontak'>('all');
+  const [waEngineFilter, setWaEngineFilter] = useState<'all' | 'whatsapp' | 'mekari_qontak'>(
+    initialEngineParam === 'local' ? 'whatsapp' : initialEngineParam === 'qontak' ? 'mekari_qontak' : 'all'
+  );
   const [waStatusFilter, setWaStatusFilter] = useState<'all' | 'unassigned' | 'resolved'>('all');
   const [emailFolderFilter, setEmailFolderFilter] = useState<'all' | 'inbox' | 'sent' | 'unread'>('all');
 
@@ -74,24 +107,78 @@ export default function OmnichannelInboxPage() {
   const [isSending, setIsSending] = useState(false);
   const [isSyncingEmail, setIsSyncingEmail] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [newTagInput, setNewTagInput] = useState('');
 
   // ── Reference Data ──
   const [stages, setStages] = useState<{ id: number; name: string }[]>([]);
   const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
 
-  // ── Modals ──
+  // ── WhatsApp Session & Engine Hook ──
+  const {
+    getStatus: getWaStatus,
+    initSession: initWaSession,
+    refreshQr: refreshWaQr,
+    disconnect: disconnectWaSession,
+    loading: waLoading,
+  } = useWhatsApp();
+
+  const [waSession, setWaSession] = useState<WaSessionState>({
+    status: 'disconnected',
+    number: null,
+    qr_payload: null,
+    connected_at: null,
+  });
+
+  const fetchWaStatus = useCallback(async () => {
+    try {
+      const st = await getWaStatus();
+      setWaSession(st);
+    } catch {
+      // ignore background polling error
+    }
+  }, [getWaStatus]);
+
+  useEffect(() => {
+    fetchWaStatus();
+    const interval = setInterval(fetchWaStatus, 7000);
+    return () => clearInterval(interval);
+  }, [fetchWaStatus]);
+
+  // ── Modals State ──
+  const [isWaDeviceModalOpen, setIsWaDeviceModalOpen] = useState(initialActionParam === 'connect');
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [isComposeEmailOpen, setIsComposeEmailOpen] = useState(false);
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+
+  // New Chat Form State
+  const [newChatChannel, setNewChatChannel] = useState<'whatsapp' | 'email'>('whatsapp');
+  const [newChatEngine, setNewChatEngine] = useState<'whatsapp' | 'mekari_qontak'>('whatsapp');
+  const [newChatRecipient, setNewChatRecipient] = useState('');
+  const [newChatSubject, setNewChatSubject] = useState('');
+  const [newChatMessage, setNewChatMessage] = useState('');
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
+  const [isSendingNewChat, setIsSendingNewChat] = useState(false);
+
+  // Email Compose Form State
   const [composeTo, setComposeTo] = useState('');
   const [composeSubject, setComposeSubject] = useState('');
   const [composeBody, setComposeBody] = useState('');
   const [isSendingCompose, setIsSendingCompose] = useState(false);
 
+  // Broadcast Form State
+  const [broadcastName, setBroadcastName] = useState('');
+  const [broadcastEngine, setBroadcastEngine] = useState<'whatsapp' | 'mekari_qontak'>('whatsapp');
+  const [broadcastRecipients, setBroadcastRecipients] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false);
+
+  // Convert to Lead Modal State
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [convertCompanyName, setConvertCompanyName] = useState('');
   const [convertStageId, setConvertStageId] = useState<string>('');
   const [isConverting, setIsConverting] = useState(false);
 
-  // Load stages & assignable users
+  // Load stages, assignable users, and leads for recipient picker
   useEffect(() => {
     apiFetch('/funnel/stages')
       .then((res) => res.json())
@@ -104,6 +191,22 @@ export default function OmnichannelInboxPage() {
       .then(setAssignableUsers)
       .catch((err) => console.warn('Failed to load assignable users', err));
   }, []);
+
+  // Fetch leads for autocomplete in New Chat
+  const { data: leadsList } = useQuery({
+    queryKey: ['inbox-leads-picker'],
+    queryFn: async () => {
+      try {
+        const res = await apiFetch('/leads?per_page=50');
+        if (!res.ok) return [];
+        const json = await res.json();
+        return json.data?.data || json.data || [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 60000,
+  });
 
   // ── Query Conversations ──
   const { data: convData, isLoading: loadingConvs, refetch: refetchConvs } = useQuery({
@@ -134,7 +237,6 @@ export default function OmnichannelInboxPage() {
         const rawPlatform: 'whatsapp' | 'mekari_qontak' | 'email' = 
           c.platform === 'email' ? 'email' : (c.platform === 'mekari_qontak' ? 'mekari_qontak' : 'whatsapp');
 
-        // Extract subject if email
         let inferredSubject = 'Inbound Communication';
         if (isEmail) {
           const firstMsg = c.messages?.[0];
@@ -247,7 +349,8 @@ export default function OmnichannelInboxPage() {
           t.companyName.toLowerCase().includes(query) ||
           t.contactName.toLowerCase().includes(query) ||
           (t.subject && t.subject.toLowerCase().includes(query)) ||
-          t.lastMessage.toLowerCase().includes(query);
+          t.lastMessage.toLowerCase().includes(query) ||
+          (t.phone && t.phone.toLowerCase().includes(query));
         if (!match) return false;
       }
 
@@ -267,7 +370,7 @@ export default function OmnichannelInboxPage() {
 
   // ── Actions ──
 
-  // 1. Send Message / Email
+  // 1. Send Message / Email in Active Thread
   const handleSendMessage = async () => {
     if (!replyText.trim() || !activeThread) return;
 
@@ -342,7 +445,7 @@ export default function OmnichannelInboxPage() {
   // 3. Compose New Email Outbound
   const handleSendComposeEmail = async () => {
     if (!composeTo.trim() || !composeSubject.trim() || !composeBody.trim()) {
-      toast.error('Form Tidak Lengkap', 'Penerima, subjek, dan isi email wajib diisi.');
+      toast.error('Form Belum Lengkap', 'Penerima, subjek, dan isi email wajib diisi.');
       return;
     }
 
@@ -378,7 +481,112 @@ export default function OmnichannelInboxPage() {
     }
   };
 
-  // 4. Trigger AI Conversation Analysis
+  // 4. Start New Chat / Message (WhatsApp or Email)
+  const handleSendNewChat = async () => {
+    if (!newChatRecipient.trim() || !newChatMessage.trim()) {
+      toast.error('Form Belum Lengkap', 'Nomor/Email tujuan dan isi pesan wajib diisi.');
+      return;
+    }
+
+    setIsSendingNewChat(true);
+    try {
+      const payload: any = {
+        phone: newChatRecipient.trim(),
+        text: newChatMessage.trim(),
+        platform: newChatChannel === 'email' ? 'email' : newChatEngine,
+      };
+
+      if (newChatChannel === 'email') {
+        payload.subject = newChatSubject.trim() || 'Pesan dari Tim Bisnis Leadsy';
+      }
+
+      const res = await apiFetch('/whatsapp/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        toast.error('Gagal Mengirim Pesan', json.error || json.message || 'Periksa koneksi perangkat WhatsApp / Email.');
+      } else {
+        toast.success('Pesan Terkirim', json.message || `Pesan berhasil dikirim ke ${newChatRecipient}.`);
+        setIsNewChatModalOpen(false);
+        setNewChatRecipient('');
+        setNewChatSubject('');
+        setNewChatMessage('');
+        setSelectedLeadId('');
+        refetchConvs();
+      }
+    } catch (err) {
+      toast.fromError(err, 'Gagal mengirim pesan baru.');
+    } finally {
+      setIsSendingNewChat(false);
+    }
+  };
+
+  // Handle lead selection for New Chat recipient
+  const handleSelectLeadRecipient = (leadIdStr: string) => {
+    setSelectedLeadId(leadIdStr);
+    if (!leadIdStr) return;
+
+    const foundLead = leadsList?.find((l: any) => String(l.id) === leadIdStr);
+    if (foundLead) {
+      if (newChatChannel === 'email') {
+        setNewChatRecipient(foundLead.email || foundLead.contact_email || '');
+      } else {
+        setNewChatRecipient(foundLead.phone || foundLead.phone_number || foundLead.mobile || '');
+      }
+      setNewChatSubject(`Penawaran Solusi Leadsy untuk ${foundLead.company_name || foundLead.name}`);
+    }
+  };
+
+  // 5. Send Broadcast Campaign
+  const handleSendBroadcast = async () => {
+    if (!broadcastName.trim() || !broadcastRecipients.trim() || !broadcastMessage.trim()) {
+      toast.error('Form Belum Lengkap', 'Nama kampanye, daftar penerima, dan pesan wajib diisi.');
+      return;
+    }
+
+    setIsSendingBroadcast(true);
+    try {
+      // Split recipients by newline, comma, or semicolon
+      const rawList = broadcastRecipients
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const res = await apiFetch('/whatsapp/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaign_name: broadcastName.trim(),
+          platform: broadcastEngine,
+          message_template: broadcastMessage.trim(),
+          phone_numbers: rawList,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error('Broadcast Gagal', json.error || json.message || 'Tidak dapat memproses kampanye broadcast.');
+      } else {
+        toast.success('Broadcast Dijadwalkan', `Kampanye "${broadcastName}" dengan ${rawList.length} penerima berhasil dikirim.`);
+        setIsBroadcastModalOpen(false);
+        setBroadcastName('');
+        setBroadcastRecipients('');
+        setBroadcastMessage('');
+        refetchConvs();
+      }
+    } catch (err) {
+      toast.fromError(err, 'Gagal memproses broadcast.');
+    } finally {
+      setIsSendingBroadcast(false);
+    }
+  };
+
+  // 6. Trigger AI Conversation Analysis
   const handleAnalyzeConversation = async () => {
     if (!activeThread) return;
     setIsAnalyzing(true);
@@ -398,7 +606,7 @@ export default function OmnichannelInboxPage() {
     }
   };
 
-  // 5. Convert Conversation to Lead
+  // 7. Convert Conversation to Lead
   const handleOpenConvertModal = () => {
     if (!activeThread) return;
     setConvertCompanyName(activeThread.companyName || activeThread.contactName);
@@ -433,7 +641,7 @@ export default function OmnichannelInboxPage() {
     }
   };
 
-  // 6. Update Assignee & Resolution
+  // 8. Update Assignee & Resolution
   const handleUpdateAssignee = async (userId: number | null) => {
     if (!activeThread) return;
     try {
@@ -468,36 +676,86 @@ export default function OmnichannelInboxPage() {
     }
   };
 
+  // 9. Add and Remove Tags
+  const handleAddTag = async () => {
+    if (!activeThread || !newTagInput.trim()) return;
+    const newTag = newTagInput.trim();
+    const currentTags = activeThread.tags || [];
+    if (currentTags.includes(newTag)) {
+      setNewTagInput('');
+      return;
+    }
+    const updatedTags = [...currentTags, newTag];
+    try {
+      await apiFetch(`/whatsapp/conversations/${activeThread.id}/meta`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: updatedTags }),
+      });
+      setNewTagInput('');
+      refetchConvs();
+    } catch {
+      toast.error('Gagal Menambah Tag', 'Tidak dapat menyimpan tag baru.');
+    }
+  };
+
+  const handleRemoveTag = async (tagToRemove: string) => {
+    if (!activeThread) return;
+    const updatedTags = (activeThread.tags || []).filter((t) => t !== tagToRemove);
+    try {
+      await apiFetch(`/whatsapp/conversations/${activeThread.id}/meta`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: updatedTags }),
+      });
+      refetchConvs();
+    } catch {
+      toast.error('Gagal Menghapus Tag', 'Tidak dapat memperbarui daftar tag.');
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-background">
       {/* ── Top Header Bar ── */}
       <div className="h-14 border-b border-border bg-card px-5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center font-bold">
-            <Inbox className="h-4 w-4" />
+          <div className="h-9 w-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center font-bold">
+            <Inbox className="h-4.5 w-4.5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-foreground">Omnichannel Inbox & Mail Suite</h1>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted font-medium text-muted-foreground border border-border">
-                Adaptive Communication
+              <h1 className="text-sm font-bold text-foreground">Omnichannel Inbox & Communications Suite</h1>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted font-medium text-muted-foreground border border-border">
+                Unified Channel Hub
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              WhatsApp (Mekari Qontak + Local Baileys) & Lark-Style Enterprise Mailbox
+              WhatsApp (Local Baileys & Mekari Qontak Official) & Lark-Style Enterprise Mailbox
             </p>
           </div>
         </div>
 
+        {/* Header Right Action Group */}
         <div className="flex items-center gap-2">
-          {/* Quick Action: Tulis Email Baru */}
+          {/* Quick Action: Chat Baru */}
           <Button
             size="sm"
+            onClick={() => setIsNewChatModalOpen(true)}
+            className="h-8 text-xs gap-1.5 bg-brand hover:bg-brand/90 text-white shadow-xs cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Pesan Baru</span>
+          </Button>
+
+          {/* Quick Action: Tulis Email Baru */}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsComposeEmailOpen(true)}
-            className="h-8 text-xs gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer"
+            className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 cursor-pointer"
           >
             <PenSquare className="h-3.5 w-3.5" />
-            <span>Tulis Email Baru</span>
+            <span className="hidden sm:inline">Tulis Email</span>
           </Button>
 
           {/* Quick Action: Sync Email IMAP */}
@@ -506,28 +764,59 @@ export default function OmnichannelInboxPage() {
             size="sm"
             onClick={handleSyncEmails}
             disabled={isSyncingEmail}
-            className="h-8 text-xs gap-1.5 border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 cursor-pointer"
+            className="h-8 text-xs gap-1.5 border-border hover:bg-muted/40 cursor-pointer hidden md:flex"
             title="Tarik email terbaru dari server IMAP Lark Suite"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", isSyncingEmail && "animate-spin")} />
-            <span>{isSyncingEmail ? "Menyinkronkan..." : "Tarik Email IMAP"}</span>
+            <span>{isSyncingEmail ? "Menyinkronkan..." : "Tarik Email"}</span>
           </Button>
 
-          {/* Link to WhatsApp Connection */}
-          <Link href="/whatsapp">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs gap-1.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              <span>Status WhatsApp</span>
-            </Button>
-          </Link>
+          {/* Quick Action: Broadcast WA */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsBroadcastModalOpen(true)}
+            className="h-8 text-xs gap-1.5 border-border hover:bg-muted/40 cursor-pointer hidden lg:flex"
+            title="Kirim pesan massal / broadcast WhatsApp"
+          >
+            <Radio className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+            <span>Broadcast WA</span>
+          </Button>
 
-          <Badge variant="outline" className="text-[11px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1.5 py-1 hidden sm:flex">
-            <Bot className="h-3.5 w-3.5" /> AI SDR Routing Active
-          </Badge>
+          {/* WhatsApp Device Connection Status Button & Live Dot */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsWaDeviceModalOpen(true)}
+            className={cn(
+              "h-8 text-xs gap-1.5 cursor-pointer transition-all",
+              waSession.status === 'connected'
+                ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                : waSession.status === 'qr_ready' || waSession.status === 'connecting'
+                ? "border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                : "border-border text-muted-foreground hover:bg-muted/40"
+            )}
+            title="Kelola pairing perangkat WhatsApp dan status engine"
+          >
+            <span
+              className={cn(
+                "h-2 w-2 rounded-full shrink-0",
+                waSession.status === 'connected'
+                  ? "bg-emerald-500 animate-pulse"
+                  : waSession.status === 'qr_ready' || waSession.status === 'connecting'
+                  ? "bg-amber-500 animate-pulse"
+                  : "bg-muted-foreground"
+              )}
+            />
+            <MessageSquare className="h-3.5 w-3.5" />
+            <span>
+              {waSession.status === 'connected'
+                ? `WA: ${waSession.number || 'Terhubung'}`
+                : waSession.status === 'qr_ready'
+                ? 'Scan QR WA'
+                : 'Status WhatsApp'}
+            </span>
+          </Button>
         </div>
       </div>
 
@@ -576,8 +865,8 @@ export default function OmnichannelInboxPage() {
                   className="flex-1 bg-background text-[11px] font-medium border border-border rounded-md px-2 py-1 text-foreground focus:outline-hidden"
                 >
                   <option value="all">Semua Engine WA</option>
-                  <option value="mekari_qontak">Mekari Qontak API</option>
                   <option value="whatsapp">Local WhatsApp (Baileys)</option>
+                  <option value="mekari_qontak">Mekari Qontak API</option>
                 </select>
 
                 <select
@@ -601,58 +890,63 @@ export default function OmnichannelInboxPage() {
                     type="button"
                     onClick={() => setEmailFolderFilter(folder)}
                     className={cn(
-                      "px-2.5 py-1 rounded-md transition-all capitalize",
+                      "flex-1 py-1 rounded-md text-center transition-all capitalize",
                       emailFolderFilter === folder
-                        ? "bg-blue-500/10 text-blue-600 font-semibold border border-blue-500/20"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "bg-blue-600 text-white font-semibold"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {folder === 'all' ? 'Semua Email' : folder === 'inbox' ? 'Kotak Masuk' : 'Belum Dibaca'}
+                    {folder === 'all' ? 'Semua Email' : folder}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Search Input */}
+            {/* Search Bar */}
             <div className="relative">
-              <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
                 type="text"
+                placeholder="Cari kontak, nomor, atau isi pesan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari prospek, email, atau subjek..."
-                className="w-full bg-background rounded-lg border border-border pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:border-brand"
+                className="pl-8 h-8 text-xs bg-background"
               />
             </div>
           </div>
 
-          {/* Threads List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-border/60">
-            {filteredThreads.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground space-y-3">
+          {/* Threads Scrollable List */}
+          <div className="flex-1 overflow-y-auto divide-y divide-border/50">
+            {loadingConvs ? (
+              <div className="p-8 text-center text-xs text-muted-foreground space-y-2">
+                <RefreshCw className="h-5 w-5 animate-spin mx-auto text-brand" />
+                <p>Memuat percakapan masuk...</p>
+              </div>
+            ) : filteredThreads.length === 0 ? (
+              <div className="p-8 text-center space-y-3">
                 {selectedChannel === 'email' ? (
                   <>
-                    <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                    <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 mx-auto">
                       <Mail className="h-6 w-6 stroke-1.5" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-foreground">Belum ada email masuk</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 max-w-[240px] mx-auto leading-relaxed">
-                        Tarik email terbaru dari server Lark Suite via IMAP atau tulis email baru via SMTP.
+                        Tarik email terbaru dari server IMAP Lark Suite atau kirim penawaran baru.
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="xs" onClick={handleSyncEmails} disabled={isSyncingEmail} className="text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5">
-                        <RefreshCw className={cn("h-3 w-3", isSyncingEmail && "animate-spin")} /> Tarik IMAP
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <Button size="sm" variant="outline" onClick={handleSyncEmails} className="text-xs h-7 gap-1">
+                        <RefreshCw className="h-3 w-3" /> Tarik Email
                       </Button>
-                      <Button size="xs" variant="outline" onClick={() => setIsComposeEmailOpen(true)} className="text-xs gap-1.5">
+                      <Button size="sm" onClick={() => setIsComposeEmailOpen(true)} className="text-xs h-7 gap-1 bg-blue-600 text-white hover:bg-blue-700">
                         <PenSquare className="h-3 w-3" /> Tulis Email
                       </Button>
                     </div>
                   </>
                 ) : selectedChannel === 'whatsapp' ? (
                   <>
-                    <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                    <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mx-auto">
                       <MessageSquare className="h-6 w-6 stroke-1.5" />
                     </div>
                     <div>
@@ -661,22 +955,42 @@ export default function OmnichannelInboxPage() {
                         Hubungkan perangkat WhatsApp (Baileys) atau Mekari Qontak untuk memulai percakapan masuk secara real-time.
                       </p>
                     </div>
-                    <Link href="/whatsapp">
-                      <Button size="xs" variant="outline" className="text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 gap-1.5">
-                        <MessageSquare className="h-3.5 w-3.5" /> Hubungkan WhatsApp
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setIsWaDeviceModalOpen(true)}
+                        className="text-xs h-7 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 gap-1.5"
+                      >
+                        <QrCode className="h-3.5 w-3.5" /> Hubungkan WhatsApp
                       </Button>
-                    </Link>
+                      <Button
+                        size="sm"
+                        onClick={() => setIsNewChatModalOpen(true)}
+                        className="text-xs h-7 bg-brand text-white hover:bg-brand/90 gap-1.5"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Chat Baru
+                      </Button>
+                    </div>
                   </>
                 ) : (
                   <>
-                    <div className="h-12 w-12 rounded-full bg-brand/10 flex items-center justify-center text-brand">
+                    <div className="h-12 w-12 rounded-full bg-brand/10 flex items-center justify-center text-brand mx-auto">
                       <Inbox className="h-6 w-6 stroke-1.5" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-foreground">Belum ada percakapan aktif</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 max-w-[240px] mx-auto leading-relaxed">
-                        Mulai komunikasi dengan menghubungkan WhatsApp atau menarik email via IMAP.
+                        Mulai komunikasi dengan menghubungkan WhatsApp atau membuat pesan baru.
                       </p>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 pt-1">
+                      <Button size="sm" onClick={() => setIsNewChatModalOpen(true)} className="text-xs h-7 bg-brand text-white hover:bg-brand/90 gap-1">
+                        <Plus className="h-3 w-3" /> Mulai Pesan
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsWaDeviceModalOpen(true)} className="text-xs h-7 gap-1">
+                        <QrCode className="h-3 w-3" /> Perangkat WA
+                      </Button>
                     </div>
                   </>
                 )}
@@ -687,7 +1001,6 @@ export default function OmnichannelInboxPage() {
                 const isEmail = thread.channel === 'email';
 
                 if (isEmail) {
-                  // ── Lark Mail Style List Row ──
                   return (
                     <div
                       key={thread.id}
@@ -703,17 +1016,15 @@ export default function OmnichannelInboxPage() {
                             <span className="font-bold text-xs text-foreground truncate">
                               {thread.contactName}
                             </span>
-                            <span className="text-[10px] text-blue-600 font-semibold px-1.5 py-0.2 rounded bg-blue-500/10 shrink-0">
+                            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold px-1.5 py-0.2 rounded bg-blue-500/10 shrink-0">
                               Lark Mail
                             </span>
                           </div>
 
-                          {/* Email Subject Line (Bold, like Lark/Outlook) */}
                           <p className="text-xs font-semibold text-foreground truncate mt-1">
                             {thread.subject || 'Tanpa Subjek'}
                           </p>
 
-                          {/* Email Snippet */}
                           <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5 leading-relaxed">
                             {thread.lastMessage.replace(/^Subjek:.*?\n/i, '')}
                           </p>
@@ -734,7 +1045,6 @@ export default function OmnichannelInboxPage() {
                   );
                 }
 
-                // ── WhatsApp Style List Row ──
                 return (
                   <div
                     key={thread.id}
@@ -770,11 +1080,11 @@ export default function OmnichannelInboxPage() {
                     <div className="flex items-center justify-between pt-2 text-[10px]">
                       <span className="flex items-center gap-1 font-medium">
                         {thread.rawPlatform === 'mekari_qontak' ? (
-                          <span className="text-purple-600 flex items-center gap-1 font-semibold">
+                          <span className="text-purple-600 dark:text-purple-400 flex items-center gap-1 font-semibold">
                             <span className="h-1.5 w-1.5 rounded-full bg-purple-600" /> Qontak API
                           </span>
                         ) : (
-                          <span className="text-emerald-600 flex items-center gap-1 font-semibold">
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" /> WA Baileys
                           </span>
                         )}
@@ -807,14 +1117,12 @@ export default function OmnichannelInboxPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={() => setIsComposeEmailOpen(true)} className="text-xs gap-1.5 bg-blue-600 text-white hover:bg-blue-700">
-                  <PenSquare className="h-3.5 w-3.5" /> Tulis Email
+                <Button size="sm" onClick={() => setIsNewChatModalOpen(true)} className="text-xs gap-1.5 bg-brand text-white hover:bg-brand/90">
+                  <Plus className="h-3.5 w-3.5" /> Pesan Baru
                 </Button>
-                <Link href="/whatsapp">
-                  <Button size="sm" variant="outline" className="text-xs gap-1.5">
-                    <MessageSquare className="h-3.5 w-3.5" /> Perangkat WhatsApp
-                  </Button>
-                </Link>
+                <Button size="sm" variant="outline" onClick={() => setIsWaDeviceModalOpen(true)} className="text-xs gap-1.5">
+                  <QrCode className="h-3.5 w-3.5" /> Perangkat WhatsApp
+                </Button>
               </div>
             </div>
           ) : activeThread.channel === 'email' ? (
@@ -826,180 +1134,137 @@ export default function OmnichannelInboxPage() {
               <div className="px-6 py-4 border-b border-border bg-card/60 flex items-start justify-between gap-4 shrink-0">
                 <div className="min-w-0 space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                       Lark Suite IMAP • SSL
                     </span>
-                    {activeThread.isResolved && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 flex items-center gap-1">
-                        <Check className="h-3 w-3" /> Resolved
-                      </span>
-                    )}
+                    <span className="text-xs text-muted-foreground font-mono">{activeThread.phone}</span>
                   </div>
                   <h2 className="text-base font-bold text-foreground leading-snug">
-                    {activeThread.subject || 'Percakapan Email Prospek'}
+                    {activeThread.subject || 'Percakapan Email Tanpa Subjek'}
                   </h2>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground pt-0.5">
+                    <span>Dari: <strong className="text-foreground">{activeThread.contactName}</strong></span>
+                    <span>•</span>
+                    <span>Perusahaan: <strong className="text-foreground">{activeThread.companyName}</strong></span>
+                  </div>
                 </div>
 
-                {/* Email Action Toolbar */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {!activeThread.leadId ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleOpenConvertModal}
-                      className="h-8 text-xs gap-1.5 border-brand/40 text-brand hover:bg-brand hover:text-white cursor-pointer"
-                    >
-                      <Building2 className="h-3.5 w-3.5" /> Convert to Lead
-                    </Button>
-                  ) : (
-                    <Link href={`/leads/${activeThread.leadId}`}>
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground">
-                        Buka Lead <ExternalLink className="h-3 w-3" />
-                      </Button>
-                    </Link>
-                  )}
-
+                <div className="flex items-center gap-2 shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleToggleResolved}
-                    className="h-8 text-xs gap-1"
-                    title={activeThread.isResolved ? 'Buka kembali thread' : 'Tandai selesai'}
+                    className={cn(
+                      "h-8 text-xs gap-1.5",
+                      activeThread.isResolved && "text-emerald-600 border-emerald-500/30"
+                    )}
                   >
                     <CheckSquare className="h-3.5 w-3.5" />
-                    <span>{activeThread.isResolved ? 'Buka Kembali' : 'Selesaikan'}</span>
+                    <span>{activeThread.isResolved ? 'Resolved' : 'Tandai Selesai'}</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleOpenConvertModal}
+                    className="h-8 text-xs gap-1.5 bg-brand text-white hover:bg-brand/90"
+                  >
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span>Konversi Lead</span>
                   </Button>
                 </div>
               </div>
 
-              {/* Scrollable Email Reader Container */}
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-                {/* Sender & Recipient Metadata Card */}
-                <div className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-2xs">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                        {activeThread.contactName.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-foreground">{activeThread.contactName}</span>
-                          <span className="text-xs text-muted-foreground font-mono">&lt;{activeThread.phone || 'email@client.com'}&gt;</span>
+              {/* Email Thread Messages */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {messagesToDisplay.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-muted-foreground">
+                    Tidak ada pesan email untuk ditampilkan.
+                  </div>
+                ) : (
+                  messagesToDisplay.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-3"
+                    >
+                      <div className="flex items-start justify-between border-b border-border/60 pb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs",
+                            msg.sender === 'sales'
+                              ? "bg-blue-600 text-white"
+                              : "bg-muted text-foreground"
+                          )}>
+                            {msg.sender === 'sales' ? 'ME' : msg.fromEmail?.[0]?.toUpperCase() || 'L'}
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-foreground">
+                              {msg.sender === 'sales' ? 'Anda (Sales Team)' : msg.fromEmail || activeThread.contactName}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Kepada: {msg.toEmail || activeThread.phone}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Kepada: <span className="font-medium text-foreground">Sales & Account Team &lt;noreply@leadsy.tech&gt;</span>
-                        </p>
+                        <span className="text-xs text-muted-foreground font-mono">{msg.time}</span>
+                      </div>
+
+                      <div className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                        {msg.content.replace(/^Subjek:.*?\n/i, '')}
                       </div>
                     </div>
-                    <span className="text-xs text-muted-foreground font-mono">{activeThread.timestamp}</span>
-                  </div>
+                  ))
+                )}
+              </div>
 
-                  {/* Clean Formatted Email Content */}
-                  <div className="pt-3 border-t border-border/60 text-xs text-foreground leading-relaxed whitespace-pre-wrap font-sans">
-                    {messagesToDisplay.length > 0 ? (
-                      messagesToDisplay[0].content.replace(/^Subjek:.*?\n/i, '')
-                    ) : (
-                      activeThread.lastMessage
-                    )}
+              {/* Email Quick Reply Composer */}
+              <div className="p-4 border-t border-border bg-card/60 space-y-3 shrink-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <span className="text-xs font-medium text-muted-foreground shrink-0">Subjek:</span>
+                    <Input
+                      type="text"
+                      value={replySubject}
+                      onChange={(e) => setReplySubject(e.target.value)}
+                      placeholder="Subjek balasan..."
+                      className="h-8 text-xs bg-background"
+                    />
+                  </div>
+                  {/* Canned Reply Dropdown */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <select
+                      onChange={(e) => {
+                        const idx = Number(e.target.value);
+                        if (!isNaN(idx) && CANNED_REPLIES[idx]) {
+                          setReplyText(CANNED_REPLIES[idx].text);
+                        }
+                      }}
+                      className="h-8 text-[11px] bg-background border border-border rounded-lg px-2 text-foreground focus:outline-hidden"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Template Balasan...</option>
+                      {CANNED_REPLIES.map((cr, idx) => (
+                        <option key={idx} value={idx}>{cr.title}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
-                {/* Email Thread Exchanges (if multiple replies exist) */}
-                {messagesToDisplay.length > 1 && (
-                  <div className="space-y-4 pt-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-px bg-border flex-1" />
-                      <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Riwayat Balasan ({messagesToDisplay.length - 1})
-                      </span>
-                      <div className="h-px bg-border flex-1" />
-                    </div>
-
-                    {messagesToDisplay.slice(1).map((msg) => {
-                      const isOutbound = msg.sender === 'sales' || msg.sender === 'ai_sdr';
-                      return (
-                        <div
-                          key={msg.id}
-                          className={cn(
-                            "rounded-xl border p-4 space-y-2 text-xs",
-                            isOutbound ? "bg-muted/30 border-border" : "bg-card border-border"
-                          )}
-                        >
-                          <div className="flex items-center justify-between text-[11px]">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-foreground">
-                                {isOutbound ? 'Tim Leadsy (Sales)' : activeThread.contactName}
-                              </span>
-                              <Badge variant="outline" className="text-[9px] py-0">
-                                {isOutbound ? 'Outbound SMTP' : 'Inbound IMAP'}
-                              </Badge>
-                            </div>
-                            <span className="text-muted-foreground font-mono">{msg.time}</span>
-                          </div>
-
-                          <div className="whitespace-pre-wrap leading-relaxed text-foreground">
-                            {msg.content}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Lark Mail Reply Composer (Inline at bottom of thread) */}
-                <div className="rounded-xl border border-blue-500/30 bg-card p-4 space-y-3 shadow-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-border">
-                    <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-                      <CornerUpLeft className="h-3.5 w-3.5 text-blue-600" />
-                      <span>Balas Email via SMTP ke {activeThread.phone || activeThread.contactName}</span>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="xs"
-                      onClick={() => setReplyText(`Halo Bapak/Ibu ${activeThread.contactName},\n\nTerima kasih telah menghubungi kami melalui email.\n\nMenindaklanjuti kebutuhan solusi yang Anda sampaikan, kami siap menjadwalkan sesi konsultasi singkat 15 menit bersama tim spesialis kami.\n\nKapan waktu yang paling fleksibel bagi Anda minggu ini?\n\nSalam hangat,\nTim Leadsy Enterprise`)}
-                      className="text-[11px] h-6 text-blue-600 border-blue-500/30 hover:bg-blue-500/10 gap-1"
-                    >
-                      <Sparkles className="h-3 w-3" /> Draft AI SDR
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="w-16 text-muted-foreground font-medium shrink-0">Subjek:</span>
-                      <Input
-                        value={replySubject}
-                        onChange={(e) => setReplySubject(e.target.value)}
-                        placeholder="Subjek email balasan..."
-                        className="h-8 text-xs bg-background"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Textarea
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Ketik isi surat/email balasan Anda di sini secara formal..."
-                        rows={4}
-                        className="text-xs bg-background resize-none leading-relaxed"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <ShieldCheck className="h-3 w-3 text-emerald-500" /> Terkirim via SMTP Lark Suite resmi
-                    </span>
-
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={isSending || !replyText.trim()}
-                      className="h-8 px-4 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      {isSending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                      <span>Kirim Balasan Email</span>
-                    </Button>
-                  </div>
+                <div className="relative">
+                  <Textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder={`Tulis balasan email ke ${activeThread.contactName}...`}
+                    rows={3}
+                    className="text-xs bg-background leading-relaxed pr-24 resize-none"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSendMessage}
+                    disabled={isSending || !replyText.trim()}
+                    className="absolute right-2.5 bottom-2.5 h-8 text-xs gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                  >
+                    {isSending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    <span>Kirim</span>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1009,170 +1274,156 @@ export default function OmnichannelInboxPage() {
              * ─────────────────────────────────────────────────────────── */
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               {/* WhatsApp Thread Header */}
-              <div className="p-4 border-b border-border bg-card/60 flex items-center justify-between shrink-0">
+              <div className="px-5 py-3 border-b border-border bg-card/60 flex items-center justify-between gap-4 shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-emerald-600/10 text-emerald-600 border border-emerald-500/20 flex items-center justify-center font-bold text-sm">
+                  <div className="h-10 w-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
                     {activeThread.contactName.slice(0, 2).toUpperCase()}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-bold text-sm text-foreground">{activeThread.contactName}</h2>
-                      <Badge variant="outline" className="text-[10px] py-0">
-                        {activeThread.stage}
-                      </Badge>
+                      <h2 className="text-sm font-bold text-foreground">{activeThread.companyName}</h2>
                       <span className={cn(
-                        "text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1",
+                        "text-[10px] font-semibold px-2 py-0.2 rounded-full",
                         activeThread.rawPlatform === 'mekari_qontak'
-                          ? "bg-purple-500/10 text-purple-600 border border-purple-500/20"
-                          : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                          ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       )}>
-                        {activeThread.rawPlatform === 'mekari_qontak' ? 'Mekari Qontak' : 'Local Baileys'}
+                        {activeThread.rawPlatform === 'mekari_qontak' ? 'Mekari Qontak Official' : 'Local Baileys Sidecar'}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {activeThread.phone} • <span className="font-medium text-foreground">{activeThread.companyName}</span>
+                      {activeThread.contactName} • <span className="font-mono">{activeThread.phone}</span>
                     </p>
                   </div>
                 </div>
 
-                {/* WhatsApp Action Controls */}
-                <div className="flex items-center gap-1.5">
-                  {!activeThread.leadId ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleOpenConvertModal}
-                      className="h-8 text-xs gap-1.5 border-brand/40 text-brand hover:bg-brand hover:text-white"
-                    >
-                      <Building2 className="h-3.5 w-3.5" /> Convert to Lead
-                    </Button>
-                  ) : (
-                    <Link href={`/leads/${activeThread.leadId}`}>
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                        Buka Lead <ExternalLink className="h-3 w-3" />
-                      </Button>
-                    </Link>
-                  )}
-
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleAnalyzeConversation}
                     disabled={isAnalyzing}
-                    className="h-8 text-xs gap-1 text-purple-600 border-purple-500/30 hover:bg-purple-500/10"
-                    title="Jalankan analisis AI SDR untuk mendeteksi intent & rekomendasi deal"
+                    className="h-8 text-xs gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                    title="Analisis AI untuk mendeteksi intent deal"
                   >
                     <Sparkles className={cn("h-3.5 w-3.5", isAnalyzing && "animate-spin")} />
-                    <span>{isAnalyzing ? "Menganalisis..." : "AI SDR Intel"}</span>
+                    <span>AI Insights</span>
                   </Button>
-
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleToggleResolved}
-                    className="h-8 text-xs gap-1"
+                    className={cn(
+                      "h-8 text-xs gap-1.5",
+                      activeThread.isResolved && "text-emerald-600 border-emerald-500/30"
+                    )}
                   >
                     <CheckSquare className="h-3.5 w-3.5" />
-                    <span>{activeThread.isResolved ? 'Buka Kembali' : 'Selesaikan'}</span>
+                    <span>{activeThread.isResolved ? 'Resolved' : 'Selesai'}</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleOpenConvertModal}
+                    className="h-8 text-xs gap-1.5 bg-brand text-white hover:bg-brand/90"
+                  >
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span>Konversi Lead</span>
                   </Button>
                 </div>
               </div>
 
-              {/* Messages Stream */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messagesToDisplay.map((m) => {
-                  const isLead = m.sender === 'lead';
-                  const isAi = m.sender === 'ai_sdr';
+              {/* Chat Stream Messages */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-muted/20">
+                {messagesToDisplay.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-muted-foreground">
+                    Belum ada riwayat pesan percakapan ini.
+                  </div>
+                ) : (
+                  messagesToDisplay.map((msg) => {
+                    const isOutbound = msg.sender === 'sales' || msg.sender === 'ai_sdr';
 
-                  return (
-                    <div
-                      key={m.id}
-                      className={`flex gap-3 ${isLead ? 'justify-start' : 'justify-end'}`}
-                    >
-                      {isLead && (
-                        <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center text-xs font-semibold shrink-0 mt-1">
-                          {activeThread.contactName.slice(0, 1)}
-                        </div>
-                      )}
-
+                    return (
                       <div
+                        key={msg.id}
                         className={cn(
-                          "max-w-[70%] rounded-2xl px-4 py-2.5 text-xs shadow-2xs space-y-1.5",
-                          isLead
-                            ? "bg-card border border-border text-foreground rounded-tl-xs"
-                            : isAi
-                            ? "bg-purple-950/20 border border-purple-500/30 text-foreground rounded-tr-xs"
-                            : "bg-emerald-600 text-white rounded-tr-xs"
+                          "flex flex-col max-w-[75%]",
+                          isOutbound ? "ml-auto items-end" : "mr-auto items-start"
                         )}
                       >
-                        {isAi && (
-                          <div className="flex items-center gap-1 text-[10px] font-semibold text-purple-400 pb-1 border-b border-purple-500/20">
-                            <Bot className="h-3 w-3" /> Autonomous AI SDR Agent
-                          </div>
-                        )}
-
-                        <div className="whitespace-pre-line leading-relaxed">
-                          {m.content}
-                        </div>
-
                         <div
                           className={cn(
-                            "flex items-center justify-end gap-1.5 text-[10px]",
-                            isLead ? "text-muted-foreground" : isAi ? "text-purple-300" : "text-white/80"
+                            "rounded-2xl px-4 py-2.5 text-xs shadow-xs leading-relaxed",
+                            isOutbound
+                              ? "bg-brand text-white rounded-br-xs"
+                              : "bg-card border border-border text-foreground rounded-bl-xs"
                           )}
                         >
-                          <span>{m.time}</span>
-                          {!isLead && m.status === 'read' && <CheckCheck className="h-3 w-3 text-cyan-300" />}
-                          {!isLead && m.status === 'delivered' && <CheckCheck className="h-3 w-3 opacity-60" />}
+                          {msg.sender === 'ai_sdr' && (
+                            <div className="flex items-center gap-1 text-[10px] text-amber-200 font-bold mb-1">
+                              <Sparkles className="h-3 w-3" /> Autonomous AI SDR
+                            </div>
+                          )}
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          <div
+                            className={cn(
+                              "flex items-center justify-end gap-1 text-[10px] mt-1",
+                              isOutbound ? "text-white/80" : "text-muted-foreground"
+                            )}
+                          >
+                            <span>{msg.time}</span>
+                            {isOutbound && (
+                              <CheckCheck className="h-3 w-3 text-white" />
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
 
-              {/* AI Copilot Suggestion Pill */}
-              <div className="p-3 bg-muted/30 border-t border-border flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
-                  <Sparkles className="h-4 w-4 text-brand shrink-0 animate-pulse" />
-                  <span className="font-semibold text-foreground shrink-0">Saran AI:</span>
-                  <span className="truncate italic">
-                    &ldquo;Siap {activeThread.contactName}, penawaran dan informasi layanan sudah kami siapkan. Kapan waktu terbaik untuk review singkat?&rdquo;
-                  </span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setReplyText(`Siap ${activeThread.contactName}, penawaran dan informasi layanan sudah kami siapkan. Kapan waktu terbaik untuk review singkat bersama tim Anda?`)}
-                  className="h-7 text-xs shrink-0 text-brand border-brand/30 hover:bg-brand hover:text-white"
-                >
-                  Gunakan Saran
-                </Button>
-              </div>
+              {/* Chat Composer */}
+              <div className="p-4 border-t border-border bg-card/60 space-y-2 shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span>Mengirim via: <strong>{activeThread.rawPlatform === 'mekari_qontak' ? 'Mekari Qontak API' : 'Local Baileys'}</strong></span>
+                  </div>
 
-              {/* Message Composer */}
-              <div className="p-3 border-t border-border bg-card">
-                <div className="flex items-end gap-2">
-                  <textarea
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
+                  {/* Template Picker */}
+                  <select
+                    onChange={(e) => {
+                      const idx = Number(e.target.value);
+                      if (!isNaN(idx) && CANNED_REPLIES[idx]) {
+                        setReplyText(CANNED_REPLIES[idx].text);
                       }
                     }}
-                    placeholder={`Ketik pesan balasan via ${activeThread.rawPlatform === 'mekari_qontak' ? 'Mekari Qontak' : 'Local WhatsApp'} ke ${activeThread.contactName}...`}
+                    className="h-7 text-[11px] bg-background border border-border rounded-lg px-2 text-foreground focus:outline-hidden"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Template Cepat...</option>
+                    {CANNED_REPLIES.map((cr, idx) => (
+                      <option key={idx} value={idx}>{cr.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <Textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder={`Ketik pesan balasan WhatsApp ke ${activeThread.contactName}...`}
                     rows={2}
-                    className="flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-emerald-500"
+                    className="text-xs bg-background leading-relaxed pr-24 resize-none"
                   />
                   <Button
+                    size="sm"
                     onClick={handleSendMessage}
-                    disabled={isSending || !replyText.trim() || !activeThread}
-                    className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs cursor-pointer"
+                    disabled={isSending || !replyText.trim()}
+                    className="absolute right-2.5 bottom-2.5 h-8 text-xs gap-1.5 bg-brand hover:bg-brand/90 text-white cursor-pointer"
                   >
-                    {isSending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    Kirim WA
+                    {isSending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    <span>Kirim</span>
                   </Button>
                 </div>
               </div>
@@ -1180,40 +1431,90 @@ export default function OmnichannelInboxPage() {
           )}
         </div>
 
-        {/* ── Column 3: Customer 360 & Deal Context ── */}
-        <div className="w-72 border-l border-border bg-card/30 p-4 space-y-4 overflow-y-auto hidden lg:block">
-          <div className="space-y-1">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
-              Customer 360 & Deal Intel
+        {/* ── Column 3: CRM Context & Intelligence Drawer ── */}
+        <div className="w-80 border-l border-border bg-card/20 p-4 overflow-y-auto space-y-4 shrink-0 hidden xl:block">
+          <div className="space-y-1 pb-3 border-b border-border">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+              CRM Intelligence & Context
             </h3>
-            <p className="text-xs text-foreground font-semibold">{activeThread?.companyName || '-'}</p>
+            <p className="text-[11px] text-muted-foreground">
+              Data terintegrasi ke Leadsy Pipeline & Scoring Model
+            </p>
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-3 space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Channel Asal</span>
-              <Badge variant="outline" className={cn(
-                "font-bold text-[10px]",
-                activeThread?.channel === 'email' ? "text-blue-600 border-blue-500/30" : "text-emerald-600 border-emerald-500/30"
-              )}>
-                {activeThread?.rawPlatform === 'email' ? 'Lark Suite Mail' : (activeThread?.rawPlatform === 'mekari_qontak' ? 'Mekari Qontak' : 'Local WhatsApp')}
+          {/* Contact Details Card */}
+          <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">
+                PROFILE KONTAK
+              </span>
+              <Badge variant="outline" className="text-[10px]">
+                {activeThread?.channel === 'email' ? 'Email Contact' : 'WhatsApp Client'}
+              </Badge>
+            </div>
+            <div className="space-y-1 text-xs">
+              <p className="font-bold text-foreground">{activeThread?.contactName || '-'}</p>
+              <p className="text-muted-foreground">{activeThread?.contactRole || '-'}</p>
+              <p className="text-muted-foreground font-mono">{activeThread?.phone || '-'}</p>
+            </div>
+          </div>
+
+          {/* Deal & Pipeline Card */}
+          <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">
+                DEAL PIPELINE
+              </span>
+              <Badge variant="outline" className="text-[10px]">
+                {activeThread?.stage || 'Pipeline'}
               </Badge>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Deal Size</span>
+              <span className="text-muted-foreground">Estimasi Nilai</span>
               <span className="font-bold text-brand">{activeThread?.dealValue || '-'}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Lead Score</span>
+              <span className="text-muted-foreground">Health Score</span>
               <Badge variant="outline" className="font-bold text-emerald-600 border-emerald-500/30">
-                {activeThread?.score || 0}/100 • Grade A
+                {activeThread?.score || 0}/100
               </Badge>
             </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Funnel Stage</span>
-              <Badge variant="outline" className="text-[10px]">
-                {activeThread?.stage || '-'}
-              </Badge>
+          </div>
+
+          {/* Tags Management Card */}
+          <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
+              <Tag className="h-3 w-3 text-brand" /> TAGS PERCAKAPAN
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {(activeThread?.tags || []).map((t, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-muted text-foreground border border-border"
+                >
+                  {t}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(t)}
+                    className="text-muted-foreground hover:text-destructive cursor-pointer font-bold"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 pt-1">
+              <Input
+                type="text"
+                placeholder="Tambah tag baru..."
+                value={newTagInput}
+                onChange={(e) => setNewTagInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                className="h-7 text-xs bg-background"
+              />
+              <Button size="xs" variant="outline" onClick={handleAddTag} className="h-7 px-2 text-xs shrink-0">
+                + Tambah
+              </Button>
             </div>
           </div>
 
@@ -1263,31 +1564,415 @@ export default function OmnichannelInboxPage() {
               </Link>
             </div>
           </div>
-
-          {/* BANTC Checklist */}
-          <div className="rounded-xl border border-border bg-card p-3 space-y-2">
-            <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider">
-              BANTC QUALIFICATION
-            </span>
-            <div className="space-y-1.5 text-xs">
-              <div className="flex items-center gap-2 text-emerald-600">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Budget: Terkonfirmasi
-              </div>
-              <div className="flex items-center gap-2 text-emerald-600">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Authority: VP Level
-              </div>
-              <div className="flex items-center gap-2 text-emerald-600">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Need: Lead Gen Automation
-              </div>
-              <div className="flex items-center gap-2 text-amber-500">
-                <Clock className="h-3.5 w-3.5" /> Timeline: Q4 2026 Target
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* ── Modal 1: Compose New Email (Lark Mail Style) ── */}
+      {/* ── Modal 1: WhatsApp Device & Engine Manager ── */}
+      <Modal
+        open={isWaDeviceModalOpen}
+        onOpenChange={setIsWaDeviceModalOpen}
+        title="Pengaturan Perangkat & Engine WhatsApp"
+        description="Kelola pairing QR code Local WhatsApp Baileys dan koneksi Mekari Qontak Official BSP."
+        size="lg"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <Link href="/settings/integrations?tab=whatsapp" className="text-xs text-brand hover:underline flex items-center gap-1">
+              Buka Integrasi WhatsApp Lengkap <ChevronRight className="h-3 w-3" />
+            </Link>
+            <Button variant="outline" size="sm" onClick={() => setIsWaDeviceModalOpen(false)}>
+              Tutup
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-6 py-2">
+          {/* Section: Local Baileys WhatsApp Engine */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                  <MessageSquare className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Local Baileys WhatsApp Engine</h4>
+                  <p className="text-[11px] text-muted-foreground">Koneksi sidecar peer-to-peer tanpa biaya API per pesan.</p>
+                </div>
+              </div>
+
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] capitalize font-medium",
+                  waSession.status === 'connected'
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : waSession.status === 'qr_ready' || waSession.status === 'connecting'
+                    ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    : "border-border text-muted-foreground"
+                )}
+              >
+                {waSession.status}
+              </Badge>
+            </div>
+
+            {/* Baileys State 1: Disconnected */}
+            {waSession.status === 'disconnected' && (
+              <div className="flex flex-col items-center gap-3 py-6 rounded-xl border border-dashed border-border bg-muted/20">
+                <WifiOff className="h-10 w-10 text-muted-foreground/60" />
+                <div className="text-center space-y-1">
+                  <p className="text-xs font-semibold text-foreground">Sesi WhatsApp Belum Aktif</p>
+                  <p className="text-[11px] text-muted-foreground max-w-sm">
+                    Inisialisasi koneksi untuk men-generate QR Code pairing dengan smartphone Anda.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    await initWaSession();
+                    fetchWaStatus();
+                  }}
+                  disabled={waLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs gap-1.5 cursor-pointer"
+                >
+                  {waLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Wifi className="h-3.5 w-3.5" />}
+                  <span>Inisialisasi Koneksi (Generate QR)</span>
+                </Button>
+              </div>
+            )}
+
+            {/* Baileys State 2: Connecting */}
+            {waSession.status === 'connecting' && (
+              <div className="flex flex-col items-center gap-3 py-6 rounded-xl border border-dashed border-border bg-muted/20">
+                <RefreshCw className="h-8 w-8 text-brand animate-spin" />
+                <p className="text-xs font-semibold text-foreground">Menghubungkan ke Baileys Server...</p>
+                <p className="text-[11px] text-muted-foreground">Menunggu payload QR Code dari engine WhatsApp.</p>
+              </div>
+            )}
+
+            {/* Baileys State 3: QR Code Ready */}
+            {waSession.status === 'qr_ready' && waSession.qr_payload && (
+              <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-xl border border-border bg-muted/20">
+                <div className="flex h-44 w-44 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-2">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(waSession.qr_payload)}`}
+                    alt="WhatsApp QR Code"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div className="space-y-3 flex-1">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <RefreshCw className="h-3.5 w-3.5 text-emerald-500 animate-spin" />
+                      Pindai QR Code di Smartphone Anda
+                    </p>
+                    <ol className="list-decimal list-inside text-[11px] text-muted-foreground space-y-1">
+                      <li>Buka aplikasi WhatsApp di smartphone Anda.</li>
+                      <li>Pilih menu <strong>Perangkat Tertaut (Linked Devices)</strong>.</li>
+                      <li>Ketuk <strong>Tautkan Perangkat (Link a Device)</strong>.</li>
+                      <li>Arahkan kamera ke QR Code di samping.</li>
+                    </ol>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await refreshWaQr();
+                      fetchWaStatus();
+                    }}
+                    disabled={waLoading}
+                    className="h-7 text-[11px] gap-1"
+                  >
+                    <RefreshCw className="h-3 w-3" /> Refresh QR Code
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Baileys State 4: Connected */}
+            {waSession.status === 'connected' && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                    <Wifi className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-foreground">Perangkat WhatsApp Terhubung</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Nomor: <strong className="text-foreground font-mono">{waSession.number || '-'}</strong>
+                    </p>
+                    {waSession.connected_at && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Terhubung sejak: {new Date(waSession.connected_at).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    await disconnectWaSession();
+                    fetchWaStatus();
+                  }}
+                  disabled={waLoading}
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10 text-xs h-8 shrink-0"
+                >
+                  Putuskan Sesi
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Section: Mekari Qontak Official BSP */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                  <RadioTower className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Mekari Qontak Official BSP</h4>
+                  <p className="text-[11px] text-muted-foreground">WhatsApp Business API resmi via Meta Cloud API / Mekari Qontak.</p>
+                </div>
+              </div>
+
+              <Link href="/settings/integrations?tab=whatsapp">
+                <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1">
+                  <ExternalLink className="h-3 w-3" /> Konfigurasi Token
+                </Button>
+              </Link>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Mekari Qontak menggunakan kredensial API Token resmi. Pesan outbound disalurkan secara stabil dengan SLA enterprise dan verifikasi Centang Hijau (*Official Green Tick*).
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Modal 2: Pesan Baru / Chat Baru (WhatsApp or Email) ── */}
+      <Modal
+        open={isNewChatModalOpen}
+        onOpenChange={setIsNewChatModalOpen}
+        title="Mulai Percakapan / Kirim Pesan Baru"
+        description="Kirim pesan langsung ke nomor WhatsApp atau alamat email prospek."
+        size="lg"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button variant="outline" size="sm" onClick={() => setIsNewChatModalOpen(false)} disabled={isSendingNewChat}>
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSendNewChat}
+              disabled={isSendingNewChat || !newChatRecipient.trim() || !newChatMessage.trim()}
+              className="bg-brand text-white hover:bg-brand/90 gap-1.5"
+            >
+              {isSendingNewChat ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              <span>Kirim Pesan Pertama</span>
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-1">
+          {/* Channel Choice */}
+          <div className="grid grid-cols-2 gap-3">
+            <div
+              onClick={() => setNewChatChannel('whatsapp')}
+              className={cn(
+                "p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-2.5",
+                newChatChannel === 'whatsapp'
+                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
+                  : "border-border bg-card hover:bg-muted/30 text-muted-foreground"
+              )}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <div className="text-xs">
+                <p className="font-bold">WhatsApp</p>
+                <p className="text-[10px] font-normal opacity-80">Baileys / Mekari Qontak</p>
+              </div>
+            </div>
+
+            <div
+              onClick={() => setNewChatChannel('email')}
+              className={cn(
+                "p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-2.5",
+                newChatChannel === 'email'
+                  ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
+                  : "border-border bg-card hover:bg-muted/30 text-muted-foreground"
+              )}
+            >
+              <Mail className="h-4 w-4" />
+              <div className="text-xs">
+                <p className="font-bold">Email Outbound</p>
+                <p className="text-[10px] font-normal opacity-80">Lark Mail / SMTP</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Engine Selector if WhatsApp */}
+          {newChatChannel === 'whatsapp' && (
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">Engine Pengiriman:</label>
+              <select
+                value={newChatEngine}
+                onChange={(e) => setNewChatEngine(e.target.value as any)}
+                className="w-full bg-background text-xs border border-border rounded-lg px-3 py-2 text-foreground focus:outline-hidden"
+              >
+                <option value="whatsapp">Local WhatsApp (Baileys Sidecar)</option>
+                <option value="mekari_qontak">Mekari Qontak Official API</option>
+              </select>
+            </div>
+          )}
+
+          {/* Lead Picker Autocomplete */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">Pilih Dari Database Lead (Opsional):</label>
+            <select
+              value={selectedLeadId}
+              onChange={(e) => handleSelectLeadRecipient(e.target.value)}
+              className="w-full bg-background text-xs border border-border rounded-lg px-3 py-2 text-foreground focus:outline-hidden"
+            >
+              <option value="">Ketik manual atau pilih kontak lead...</option>
+              {leadsList?.map((l: any) => (
+                <option key={l.id} value={l.id}>
+                  {l.company_name || l.name} — {newChatChannel === 'email' ? l.email || l.contact_email : l.phone || l.phone_number}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Recipient Input */}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">
+              {newChatChannel === 'email' ? 'Email Tujuan:' : 'Nomor Handphone / WhatsApp Tujuan:'}
+            </label>
+            <Input
+              type={newChatChannel === 'email' ? 'email' : 'text'}
+              value={newChatRecipient}
+              onChange={(e) => setNewChatRecipient(e.target.value)}
+              placeholder={newChatChannel === 'email' ? 'contoh: nama@perusahaan.com' : 'contoh: 08123456789 atau 628123456789'}
+              className="text-xs bg-background font-mono"
+            />
+          </div>
+
+          {/* Email Subject if Email */}
+          {newChatChannel === 'email' && (
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">Subjek Email:</label>
+              <Input
+                value={newChatSubject}
+                onChange={(e) => setNewChatSubject(e.target.value)}
+                placeholder="Subjek penawaran atau follow-up..."
+                className="text-xs bg-background"
+              />
+            </div>
+          )}
+
+          {/* Message Textarea */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground">Isi Pesan:</label>
+              <select
+                onChange={(e) => {
+                  const idx = Number(e.target.value);
+                  if (!isNaN(idx) && CANNED_REPLIES[idx]) {
+                    setNewChatMessage(CANNED_REPLIES[idx].text);
+                  }
+                }}
+                className="text-[11px] bg-background border border-border rounded-md px-2 py-0.5 text-foreground focus:outline-hidden"
+                defaultValue=""
+              >
+                <option value="" disabled>Gunakan Template Cepat...</option>
+                {CANNED_REPLIES.map((cr, idx) => (
+                  <option key={idx} value={idx}>{cr.title}</option>
+                ))}
+              </select>
+            </div>
+            <Textarea
+              value={newChatMessage}
+              onChange={(e) => setNewChatMessage(e.target.value)}
+              placeholder="Tulis pesan yang ingin disampaikan..."
+              rows={4}
+              className="text-xs bg-background leading-relaxed resize-none"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Modal 3: Broadcast Pesan WhatsApp ── */}
+      <Modal
+        open={isBroadcastModalOpen}
+        onOpenChange={setIsBroadcastModalOpen}
+        title="Broadcast Pesan WhatsApp"
+        description="Kirim pesan kampanye massal ke daftar nomor prospek atau pelanggan."
+        size="lg"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button variant="outline" size="sm" onClick={() => setIsBroadcastModalOpen(false)} disabled={isSendingBroadcast}>
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSendBroadcast}
+              disabled={isSendingBroadcast || !broadcastName.trim() || !broadcastRecipients.trim() || !broadcastMessage.trim()}
+              className="bg-purple-600 hover:bg-purple-700 text-white gap-1.5"
+            >
+              {isSendingBroadcast ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
+              <span>Jadwalkan & Kirim Broadcast</span>
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-1">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">Nama Kampanye Broadcast:</label>
+            <Input
+              value={broadcastName}
+              onChange={(e) => setBroadcastName(e.target.value)}
+              placeholder="contoh: Broadcast Promo Q4 Enterprise Leadsy"
+              className="text-xs bg-background"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">Engine Pengiriman:</label>
+            <select
+              value={broadcastEngine}
+              onChange={(e) => setBroadcastEngine(e.target.value as any)}
+              className="w-full bg-background text-xs border border-border rounded-lg px-3 py-2 text-foreground focus:outline-hidden"
+            >
+              <option value="whatsapp">Local WhatsApp (Baileys Sidecar)</option>
+              <option value="mekari_qontak">Mekari Qontak Official API</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground">Daftar Nomor Penerima:</label>
+              <span className="text-[10px] text-muted-foreground">Pisahkan dengan baris baru atau koma</span>
+            </div>
+            <Textarea
+              value={broadcastRecipients}
+              onChange={(e) => setBroadcastRecipients(e.target.value)}
+              placeholder="081234567890&#10;082198765432&#10;628112233445"
+              rows={4}
+              className="text-xs bg-background font-mono resize-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-foreground">Template Pesan Broadcast:</label>
+            <Textarea
+              value={broadcastMessage}
+              onChange={(e) => setBroadcastMessage(e.target.value)}
+              placeholder="Halo, kami dari Leadsy ingin menginformasikan promo eksklusif..."
+              rows={4}
+              className="text-xs bg-background leading-relaxed resize-none"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Modal 4: Tulis Email Baru (Lark Mail Style) ── */}
       <Modal
         open={isComposeEmailOpen}
         onOpenChange={setIsComposeEmailOpen}
@@ -1360,7 +2045,7 @@ export default function OmnichannelInboxPage() {
         </div>
       </Modal>
 
-      {/* ── Modal 2: Convert to Lead ── */}
+      {/* ── Modal 5: Convert to Lead ── */}
       <Modal
         open={isConvertModalOpen}
         onOpenChange={setIsConvertModalOpen}
@@ -1413,5 +2098,22 @@ export default function OmnichannelInboxPage() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+export default function OmnichannelInboxPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-[calc(100vh-64px)] items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="h-6 w-6 animate-spin text-brand" />
+            <span>Memuat Omnichannel Inbox...</span>
+          </div>
+        </div>
+      }
+    >
+      <OmnichannelInboxContent />
+    </Suspense>
   );
 }
