@@ -716,6 +716,20 @@ class PlatformAdminController extends Controller
                     'default_enabled' => false,
                     'tier_requirement' => 'enterprise',
                 ],
+                [
+                    'key' => 'mekari_sign',
+                    'name' => 'Mekari Sign & e-Meterai',
+                    'description' => 'Tanda tangan digital tersertifikasi dan pembubuhan e-Meterai resmi Peruri via Mekari Sign.',
+                    'default_enabled' => false,
+                    'tier_requirement' => 'enterprise',
+                ],
+                [
+                    'key' => 'mekari_qontak',
+                    'name' => 'Mekari Qontak Omnichannel',
+                    'description' => 'Integrasi WhatsApp Business API resmi, broadcast campaign, dan webhook pesan via Mekari Qontak.',
+                    'default_enabled' => false,
+                    'tier_requirement' => 'enterprise',
+                ],
             ];
 
             $tenants = Tenant::select('id', 'name', 'slug', 'status', 'metadata')
@@ -728,13 +742,15 @@ class PlatformAdminController extends Controller
                         'name' => $t->name,
                         'slug' => $t->slug,
                         'plan' => $metadata['plan'] ?? ($t->status === 'trial' ? 'trial' : 'starter'),
-                        'modules' => $metadata['modules'] ?? [
+                        'modules' => array_merge([
                             'lark_integration' => true,
                             'whatsapp_gateway' => true,
                             'ai_deepsearch' => true,
                             'order_to_cash' => true,
                             'beta_access' => false,
-                        ],
+                            'mekari_sign' => false,
+                            'mekari_qontak' => false,
+                        ], $metadata['modules'] ?? []),
                     ];
                 });
 

@@ -54,6 +54,34 @@ class IntegrationConfigController extends Controller
     }
 
     /**
+     * Return active SaaS packages/modules entitlement for the current workspace.
+     */
+    public function tenantModules(Request $request): JsonResponse
+    {
+        $tenant = $request->user()?->tenant ?? auth('sanctum')->user()?->tenant;
+
+        if (!$tenant) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'lark_integration' => true,
+                    'whatsapp_gateway' => true,
+                    'ai_deepsearch' => true,
+                    'order_to_cash' => true,
+                    'beta_access' => false,
+                    'mekari_sign' => false,
+                    'mekari_qontak' => false,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $tenant->active_modules,
+        ]);
+    }
+
+    /**
      * Public endpoint to grab safe/browser-facing keys (e.g., Google Maps Browser Key).
      * Also returns APP_NAME and APP_ENV for the environment page.
      */
@@ -233,6 +261,13 @@ class IntegrationConfigController extends Controller
                 'is_active' => 'nullable|boolean',
             ]);
 
+            $tenant = $request->user()?->tenant ?? auth('sanctum')->user()?->tenant;
+            if ($tenant && str_starts_with($data['key'], 'MEKARI_QONTAK_') && !$tenant->hasModule('mekari_qontak')) {
+                return response()->json([
+                    'message' => 'Paket integrasi Mekari Qontak belum diaktifkan oleh Administrator SaaS untuk workspace Anda.',
+                ], 403);
+            }
+
             $tenantId = $this->currentTenantId($request);
             $existing = IntegrationConfig::where('key', $data['key'])
                 ->where('tenant_id', $tenantId)
@@ -283,8 +318,15 @@ class IntegrationConfigController extends Controller
 
         $category = $data['category'];
         $updated = [];
+        $tenant = $request->user()?->tenant ?? auth('sanctum')->user()?->tenant;
 
         foreach ($data['configs'] as $conf) {
+            if ($tenant && str_starts_with($conf['key'], 'MEKARI_QONTAK_') && !$tenant->hasModule('mekari_qontak')) {
+                return response()->json([
+                    'message' => 'Paket integrasi Mekari Qontak belum diaktifkan oleh Administrator SaaS untuk workspace Anda.',
+                ], 403);
+            }
+
             $tenantId = $this->currentTenantId($request);
             $existing = IntegrationConfig::where('key', $conf['key'])
                 ->where('tenant_id', $tenantId)

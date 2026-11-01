@@ -731,6 +731,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
 
     // Integration Configurations (settings)
     Route::get('settings/environment-info', [IntegrationConfigController::class, 'environmentInfo'])->middleware('permission:integrations.manage');
+    Route::get('settings/tenant-modules', [IntegrationConfigController::class, 'tenantModules'])->middleware('permission:integrations.manage');
     Route::get('settings/integrations', [IntegrationConfigController::class, 'index'])->middleware('permission:integrations.manage');
     Route::get('settings/integrations/google/permissions', [IntegrationConfigController::class, 'googlePermissions'])->middleware('permission:integrations.manage');
     Route::post('settings/integrations', [IntegrationConfigController::class, 'store'])->middleware('permission:integrations.manage');
@@ -745,6 +746,11 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::post('settings/email', [EmailIntegrationController::class, 'saveConfig'])->middleware('permission:integrations.manage');
     Route::post('settings/email/test', [EmailIntegrationController::class, 'testConnection'])->middleware('permission:integrations.manage');
     Route::post('settings/email/sync', [EmailIntegrationController::class, 'syncEmails'])->middleware('permission:integrations.manage');
+
+    // Mekari Sign & e-Meterai Peruri Tenant Settings
+    Route::get('settings/integrations/mekari-sign', [\App\Http\Controllers\Api\MekariSignSettingController::class, 'getSettings'])->middleware('permission:integrations.manage');
+    Route::put('settings/integrations/mekari-sign', [\App\Http\Controllers\Api\MekariSignSettingController::class, 'updateSettings'])->middleware('permission:integrations.manage');
+    Route::post('settings/integrations/mekari-sign/test', [\App\Http\Controllers\Api\MekariSignSettingController::class, 'testConnection'])->middleware('permission:integrations.manage');
 
     // Database Backups
     Route::get('settings/backups', [BackupController::class, 'index'])->middleware('permission:integrations.manage');

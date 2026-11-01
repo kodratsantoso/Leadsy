@@ -36,6 +36,7 @@ export const navPermissionMap: Record<string, NavPermissionRule | undefined> = {
   "/settings/o2c/withholding-tax-codes": { any: ["integrations.manage"] },
   "/settings/o2c/item-settings": { any: ["integrations.manage"] },
   "/settings/integrations": { any: ["integrations.manage"] },
+  "/settings/integrations/mekari-sign": { any: ["integrations.manage"] },
   "/settings/webhooks": { any: ["integrations.manage"] },
   "/settings/api": { any: ["integrations.manage"] },
   "/settings/notifications": { any: ["integrations.manage"] },

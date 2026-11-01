@@ -110,4 +110,44 @@ class Tenant extends Model
     {
         return $this->hasMany(IntegrationConnection::class);
     }
+
+    /**
+     * Check if a specific module/package is enabled for this tenant.
+     */
+    public function hasModule(string $moduleKey): bool
+    {
+        $modules = $this->metadata['modules'] ?? [];
+        if (isset($modules[$moduleKey])) {
+            return filter_var($modules[$moduleKey], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        $defaults = [
+            'lark_integration' => true,
+            'whatsapp_gateway' => true,
+            'ai_deepsearch' => true,
+            'order_to_cash' => true,
+            'beta_access' => false,
+            'mekari_sign' => false,
+            'mekari_qontak' => false,
+        ];
+
+        return $defaults[$moduleKey] ?? false;
+    }
+
+    /**
+     * Get all active modules/packages for this tenant.
+     */
+    public function getActiveModulesAttribute(): array
+    {
+        $modules = $this->metadata['modules'] ?? [];
+        return array_merge([
+            'lark_integration' => true,
+            'whatsapp_gateway' => true,
+            'ai_deepsearch' => true,
+            'order_to_cash' => true,
+            'beta_access' => false,
+            'mekari_sign' => false,
+            'mekari_qontak' => false,
+        ], $modules);
+    }
 }

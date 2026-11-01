@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ComponentType, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink, Sparkles } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink, Sparkles, FileCheck } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
@@ -670,6 +670,16 @@ export default function IntegrationsSettingsPage() {
     ];
   }, [leadPlatformsConfig]);
 
+  const { data: tenantModulesData } = useQuery<Record<string, boolean>>({
+    queryKey: ["tenant-modules"],
+    queryFn: async () => {
+      const res = await apiFetch("/settings/tenant-modules");
+      if (!res.ok) return { mekari_sign: false, mekari_qontak: false };
+      const json = await res.json();
+      return json.data || {};
+    },
+  });
+
   const { data: activeWaUsersData, refetch: refetchActiveWaUsers, isLoading: loadingActiveWaUsers } = useQuery({
     queryKey: ["active-whatsapp-users"],
     queryFn: async () => {
@@ -1290,10 +1300,39 @@ export default function IntegrationsSettingsPage() {
             </div>
           </Card>
 
+          {/* Mekari Sign Enterprise Package Card */}
+          <Card className="p-5 border-indigo-500/20 bg-indigo-950/10">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  <FileCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-white">Mekari Sign & e-Meterai Peruri</h3>
+                    <Badge variant="outline" className={tenantModulesData?.mekari_sign ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px]" : "border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px]"}>
+                      {tenantModulesData?.mekari_sign ? "Paket Aktif" : "Paket Terkunci"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Integrasi tanda tangan digital tersertifikasi PSrE dan pembubuhan e-Meterai resmi Peruri untuk Quotation, Sales Order, dan Dokumen Komersial.
+                  </p>
+                </div>
+              </div>
+              <Link href="/settings/integrations/mekari-sign" className="shrink-0">
+                <Button size="sm" variant="outline" className="border-indigo-500/30 text-indigo-300 hover:bg-indigo-950/50 text-xs gap-1.5">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Buka Pengaturan Mekari Sign
+                </Button>
+              </Link>
+            </div>
+          </Card>
+
           <div className="grid gap-4 xl:grid-cols-2">
             {LEAD_PLATFORM_DEFINITIONS.map((platform) => {
               const enabledKey = leadPlatformKey(platform.id, "ENABLED");
               const Icon = platform.icon;
+              const isLockedModule = platform.id === "mekari_qontak" && tenantModulesData && tenantModulesData.mekari_qontak === false;
               return (
                 <Card key={platform.id} className="p-5 flex flex-col justify-between">
                   <div>
@@ -1309,12 +1348,20 @@ export default function IntegrationsSettingsPage() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant={leadPlatformsConfig[enabledKey]?.value === "true" ? "success" : "neutral"}>
-                        {leadPlatformsConfig[enabledKey]?.value === "true" ? "Enabled" : "Disabled"}
-                      </Badge>
+                      {isLockedModule ? (
+                        <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs">
+                          Paket Terkunci
+                        </Badge>
+                      ) : (
+                        <Badge variant={leadPlatformsConfig[enabledKey]?.value === "true" ? "success" : "neutral"}>
+                          {leadPlatformsConfig[enabledKey]?.value === "true" ? "Enabled" : "Disabled"}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mb-4">
-                      {leadPlatformsConfig[enabledKey]?.value === "true"
+                      {isLockedModule
+                        ? "Paket integrasi ini belum diaktifkan oleh Administrator SaaS untuk workspace Anda."
+                        : leadPlatformsConfig[enabledKey]?.value === "true"
                         ? `Integration is enabled and actively receiving leads from ${platform.name}.`
                         : `${platform.name} is currently inactive. Configure credentials to enable.`}
                     </p>
@@ -1375,8 +1422,20 @@ export default function IntegrationsSettingsPage() {
           >
             {configuringPlatform && (
               configuringPlatform.id === "mekari_qontak" ? (
-                <div className="grid gap-6 md:grid-cols-2 text-left">
-                  {/* Column 1: Configuration Form */}
+                <div className="space-y-4 text-left">
+                  {tenantModulesData && tenantModulesData.mekari_qontak === false && (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-xs text-amber-300 flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white">Paket Integrasi Mekari Qontak Belum Diaktifkan</p>
+                        <p className="mt-1 text-slate-300">
+                          Workspace Anda belum memiliki privilege paket integrasi ini. Administrator SaaS dapat mengaktifkan paket &ldquo;Mekari Qontak Omnichannel&rdquo; melalui menu Platform Admin &gt; Feature Flags.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid gap-6 md:grid-cols-2 text-left">
+                    {/* Column 1: Configuration Form */}
                   <div className="space-y-4">
                     <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">
                       <span className="text-sm font-medium">Enable Mekari Qontak Integration</span>
@@ -1504,7 +1563,7 @@ export default function IntegrationsSettingsPage() {
                             reloadConfigs();
                           }
                         }}
-                        disabled={saving}
+                        disabled={saving || (tenantModulesData && tenantModulesData.mekari_qontak === false)}
                         className="w-full flex items-center justify-center gap-2"
                       >
                         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -1631,6 +1690,7 @@ export default function IntegrationsSettingsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
               ) : (
                 <div className="space-y-4">
                   <label className="flex items-center justify-between rounded-xl border border-border bg-[color:var(--surface-subtle)] px-3 py-2">

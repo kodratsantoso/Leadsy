@@ -65,6 +65,15 @@ class IntegrationPlatformController extends Controller
             return response()->json(['message' => 'Unknown integration platform.'], 404);
         }
 
+        if ($platform === 'mekari_qontak') {
+            $tenant = $request->user()?->tenant ?? auth('sanctum')->user()?->tenant;
+            if ($tenant && !$tenant->hasModule('mekari_qontak')) {
+                return response()->json([
+                    'message' => 'Paket integrasi Mekari Qontak belum diaktifkan oleh Administrator SaaS untuk workspace Anda.',
+                ], 403);
+            }
+        }
+
         $values = $this->values($request, $platform);
 
         try {

@@ -2,8 +2,10 @@
 
 namespace App\Services\Integration;
 
+use App\Models\IntegrationConfig;
 use App\Models\LeadQuotation;
 use App\Models\LeadSalesOrder;
+use App\Models\Tenant;
 use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -12,27 +14,92 @@ use Illuminate\Support\Facades\Storage;
 
 class MekariSignService
 {
+    protected ?Tenant $tenant = null;
     protected string $baseUrl;
     protected ?string $clientId;
     protected ?string $clientSecret;
-    protected bool $isSandbox;
+    protected bool $isSandbox = true;
+    protected bool $isEnabled = false;
+    protected bool $autoEmeterai = false;
 
-    public function __construct()
+    public function __construct(?Tenant $tenant = null)
     {
-        $this->isSandbox = config('services.mekari_sign.sandbox', true);
-        $this->baseUrl = $this->isSandbox
-            ? 'https://sandbox-api.mekari.com/v2/esign'
-            : 'https://api.mekari.com/v2/esign';
-        $this->clientId = config('services.mekari_sign.client_id', env('MEKARI_SIGN_CLIENT_ID'));
-        $this->clientSecret = config('services.mekari_sign.client_secret', env('MEKARI_SIGN_CLIENT_SECRET'));
+        $this->resolveTenantAndConfig($tenant);
     }
 
     /**
-     * Check if Mekari Sign credentials are configured.
+     * Set tenant context fluently.
+     */
+    public function forTenant(?Tenant $tenant): self
+    {
+        $clone = clone $this;
+        $clone->resolveTenantAndConfig($tenant);
+        return $clone;
+    }
+
+    /**
+     * Resolve tenant and load integration configuration.
+     */
+    protected function resolveTenantAndConfig(?Tenant $tenant = null): void
+    {
+        $this->tenant = $tenant ?? auth()->user()?->tenant ?? auth('sanctum')->user()?->tenant;
+        $tenantId = $this->tenant?->id;
+
+        // Default fallback from config/env
+        $this->isSandbox = config('services.mekari_sign.sandbox', true);
+        $this->clientId = config('services.mekari_sign.client_id', env('MEKARI_SIGN_CLIENT_ID'));
+        $this->clientSecret = config('services.mekari_sign.client_secret', env('MEKARI_SIGN_CLIENT_SECRET'));
+        $this->isEnabled = !empty($this->clientId);
+        $this->autoEmeterai = false;
+
+        // If tenant exists, load per-tenant IntegrationConfig
+        if ($tenantId !== null) {
+            $configs = IntegrationConfig::query()
+                ->where('category', 'mekari_sign')
+                ->where('tenant_id', $tenantId)
+                ->get()
+                ->keyBy('key');
+
+            if ($configs->has('MEKARI_SIGN_ENABLED')) {
+                $this->isEnabled = (bool) $configs->get('MEKARI_SIGN_ENABLED')->value;
+            }
+            if ($configs->has('MEKARI_SIGN_SANDBOX')) {
+                $this->isSandbox = (bool) $configs->get('MEKARI_SIGN_SANDBOX')->value;
+            }
+            if ($configs->has('MEKARI_SIGN_CLIENT_ID') && !empty($configs->get('MEKARI_SIGN_CLIENT_ID')->value)) {
+                $this->clientId = (string) $configs->get('MEKARI_SIGN_CLIENT_ID')->value;
+            }
+            if ($configs->has('MEKARI_SIGN_CLIENT_SECRET') && !empty($configs->get('MEKARI_SIGN_CLIENT_SECRET')->value)) {
+                $this->clientSecret = (string) $configs->get('MEKARI_SIGN_CLIENT_SECRET')->value;
+            }
+            if ($configs->has('MEKARI_SIGN_AUTO_EMETERAI')) {
+                $this->autoEmeterai = (bool) $configs->get('MEKARI_SIGN_AUTO_EMETERAI')->value;
+            }
+        }
+
+        $this->baseUrl = $this->isSandbox
+            ? 'https://sandbox-api.mekari.com/v2/esign'
+            : 'https://api.mekari.com/v2/esign';
+    }
+
+    /**
+     * Check if tenant has entitlement privilege for Mekari Sign.
+     */
+    public function hasPrivilege(): bool
+    {
+        if (!$this->tenant) {
+            return false;
+        }
+
+        return $this->tenant->hasModule('mekari_sign');
+    }
+
+    /**
+     * Check if Mekari Sign is properly configured and enabled.
      */
     public function isConfigured(): bool
     {
-        return !empty($this->clientId) && !empty($this->clientSecret);
+        return $this->hasPrivilege() && $this->isEnabled && !empty($this->clientId) && !empty($this->clientSecret);
     }
 
     /**
@@ -40,16 +107,22 @@ class MekariSignService
      */
     public function getAccessToken(): string
     {
-        if (!$this->isConfigured()) {
-            throw new Exception("Mekari Sign Client ID dan Client Secret belum dikonfigurasi di environment (.env).");
+        if (!$this->hasPrivilege()) {
+            throw new Exception("Paket integrasi Mekari Sign belum diaktifkan oleh Administrator SaaS untuk workspace Anda.");
         }
 
-        return Cache::remember('mekari_sign_access_token', 3500, function () {
+        if (empty($this->clientId) || empty($this->clientSecret)) {
+            throw new Exception("Kredensial Mekari Sign (Client ID & Client Secret) belum dikonfigurasi pada menu Pengaturan Integrasi.");
+        }
+
+        $cacheKey = 'mekari_sign_access_token_' . ($this->tenant ? $this->tenant->id : 'global');
+
+        return Cache::remember($cacheKey, 3500, function () {
             $tokenUrl = $this->isSandbox
                 ? 'https://sandbox-account.mekari.com/auth/oauth/token'
                 : 'https://account.mekari.com/auth/oauth/token';
 
-            $response = Http::asForm()->post($tokenUrl, [
+            $response = Http::asForm()->timeout(15)->post($tokenUrl, [
                 'grant_type' => 'client_credentials',
                 'client_id' => $this->clientId,
                 'client_secret' => $this->clientSecret,
@@ -62,6 +135,57 @@ class MekariSignService
 
             return $response->json('access_token');
         });
+    }
+
+    /**
+     * Test OAuth connection to Mekari Sign API.
+     */
+    public function testConnection(?string $clientId = null, ?string $clientSecret = null, ?bool $isSandbox = null): array
+    {
+        if (!$this->hasPrivilege()) {
+            return [
+                'success' => false,
+                'message' => 'Paket integrasi Mekari Sign belum diaktifkan oleh Administrator SaaS untuk workspace ini.',
+            ];
+        }
+
+        $id = $clientId ?: $this->clientId;
+        $secret = $clientSecret ?: $this->clientSecret;
+        $sandbox = $isSandbox !== null ? $isSandbox : $this->isSandbox;
+
+        if (empty($id) || empty($secret)) {
+            return [
+                'success' => false,
+                'message' => 'Client ID dan Client Secret wajib diisi.',
+            ];
+        }
+
+        $tokenUrl = $sandbox
+            ? 'https://sandbox-account.mekari.com/auth/oauth/token'
+            : 'https://account.mekari.com/auth/oauth/token';
+
+        $response = Http::asForm()->timeout(15)->post($tokenUrl, [
+            'grant_type' => 'client_credentials',
+            'client_id' => $id,
+            'client_secret' => $secret,
+        ]);
+
+        if ($response->failed()) {
+            $error = $response->json('error_description') ?? $response->json('error') ?? $response->body();
+            return [
+                'success' => false,
+                'status' => $response->status(),
+                'message' => "Koneksi ke Mekari Sign gagal ({$response->status()}): {$error}",
+            ];
+        }
+
+        return [
+            'success' => true,
+            'status' => 200,
+            'message' => 'Koneksi ke Mekari Sign OAuth API berhasil diverifikasi.',
+            'expires_in' => $response->json('expires_in'),
+            'token_type' => $response->json('token_type'),
+        ];
     }
 
     /**
