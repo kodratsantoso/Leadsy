@@ -41,7 +41,12 @@ class PsBastService
             $estimation = $plan->estimations()->first();
             $leadId = $estimation ? $estimation->lead_id : null;
             
-            $bastNumber = 'BAST-' . date('Ymd') . '-' . strtoupper(uniqid());
+            $tenantId = $plan->tenant_id ?? auth()->user()?->tenant_id ?? 1;
+            try {
+                $bastNumber = app(\App\Services\Setting\DocumentNumberingService::class)->getNextNumber('bast', $tenantId);
+            } catch (\Throwable $e) {
+                $bastNumber = 'BAST-' . date('Ymd') . '-' . strtoupper(uniqid());
+            }
 
             // Create BAST metadata record
             $bast = PsBastDocument::create([

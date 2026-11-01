@@ -61,8 +61,8 @@ class CommercialInvoiceService
             $invoiceDate = Carbon::now()->toDateString();
             $dueDate = Carbon::now()->addDays(30)->toDateString();
 
-            // Next sequential invoice number
-            $invoiceNumber = $this->generateInvoiceNumber();
+            // Next sequential invoice number using tenant configuration
+            $invoiceNumber = $this->generateInvoiceNumber($lead->tenant_id ?? auth()->user()?->tenant_id);
 
             $invoice = CommercialInvoice::create([
                 'invoice_number' => $invoiceNumber,
@@ -136,7 +136,7 @@ class CommercialInvoiceService
                 throw new Exception("Sales Order atau Lead data tidak ditemukan untuk jadwal termin #{$schedule->id}.");
             }
 
-            $invoiceNumber = $this->generateInvoiceNumber();
+            $invoiceNumber = $this->generateInvoiceNumber($salesOrder->tenant_id ?? $lead->tenant_id ?? auth()->user()?->tenant_id);
             $invoiceDate = $params['invoice_date'] ?? ($schedule->scheduled_date ? Carbon::parse($schedule->scheduled_date)->toDateString() : Carbon::today()->toDateString());
             $dueDate = $params['due_date'] ?? ($schedule->due_date ? Carbon::parse($schedule->due_date)->toDateString() : Carbon::parse($invoiceDate)->addDays(30)->toDateString());
 
@@ -372,22 +372,26 @@ class CommercialInvoiceService
     }
 
     /**
-     * Generate an invoice number: INV-YYYYMM-XXXX
+     * Generate an invoice number using DocumentNumberingService (fallback to INV-YYYYMM-XXXX)
      */
-    protected function generateInvoiceNumber(): string
+    protected function generateInvoiceNumber(?int $tenantId = null): string
     {
-        $prefix = 'INV-' . date('Ym') . '-';
-        $latest = CommercialInvoice::where('invoice_number', 'LIKE', $prefix . '%')
-            ->orderBy('id', 'desc')
-            ->first();
+        try {
+            return app(\App\Services\Setting\DocumentNumberingService::class)->getNextNumber('invoice', $tenantId);
+        } catch (\Throwable $e) {
+            $prefix = 'INV-' . date('Ym') . '-';
+            $latest = CommercialInvoice::where('invoice_number', 'LIKE', $prefix . '%')
+                ->orderBy('id', 'desc')
+                ->first();
 
-        if ($latest && preg_match('/-(\d+)$/', $latest->invoice_number, $matches)) {
-            $next = str_pad(((int) $matches[1]) + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $next = '0001';
+            if ($latest && preg_match('/-(\d+)$/', $latest->invoice_number, $matches)) {
+                $next = str_pad(((int) $matches[1]) + 1, 4, '0', STR_PAD_LEFT);
+            } else {
+                $next = '0001';
+            }
+
+            return $prefix . $next;
         }
-
-        return $prefix . $next;
     }
 
     /**

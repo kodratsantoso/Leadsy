@@ -191,8 +191,10 @@ class LeadOrderToCashController extends Controller
                 }
             }
 
+            $quotationNumber = app(\App\Services\Setting\DocumentNumberingService::class)->getNextNumber('quotation', $tenantId);
+
             $quotation = $lead->quotations()->create([
-                'quotation_number' => 'QT-' . date('Ym') . '-' . sprintf('%04d', mt_rand(1, 9999)),
+                'quotation_number' => $quotationNumber,
                 'quotation_type' => $validated['quotation_type'],
                 'quotation_status' => 'draft',
                 'workflow_state_id' => $entryStateId,
@@ -606,10 +608,13 @@ class LeadOrderToCashController extends Controller
         }
  
         return DB::transaction(function () use ($quotation) {
+            $tenantId = Auth::user()->tenant_id ?? $quotation->lead?->tenant_id ?? 1;
+            $soNumber = app(\App\Services\Setting\DocumentNumberingService::class)->getNextNumber('sales_order', $tenantId);
+
             $order = LeadSalesOrder::create([
                 'lead_id' => $quotation->lead_id,
                 'quotation_id' => $quotation->id,
-                'sales_order_number' => 'SO-' . date('Ym') . '-' . sprintf('%04d', mt_rand(1, 9999)),
+                'sales_order_number' => $soNumber,
                 'order_type' => $quotation->quotation_type,
                 'order_status' => 'draft',
                 'order_date' => now()->toDateString(),
@@ -834,8 +839,11 @@ class LeadOrderToCashController extends Controller
         }
 
         return DB::transaction(function () use ($lead, $validated, $totals, $currency) {
+            $tenantId = Auth::user()->tenant_id ?? $lead->tenant_id ?? 1;
+            $soNumber = app(\App\Services\Setting\DocumentNumberingService::class)->getNextNumber('sales_order', $tenantId);
+
             $order = $lead->salesOrders()->create([
-                'sales_order_number' => 'SO-' . date('Ym') . '-' . sprintf('%04d', mt_rand(1, 9999)),
+                'sales_order_number' => $soNumber,
                 'order_type' => $validated['order_type'],
                 'order_status' => 'draft',
                 'order_date' => $validated['order_date'],

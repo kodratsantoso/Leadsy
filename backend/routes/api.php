@@ -241,8 +241,13 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
     Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');
     Route::get('settings/security', [\App\Http\Controllers\Api\SecuritySettingsController::class, 'index'])->middleware('permission:integrations.manage');
-    Route::put('settings/security', [\App\Http\Controllers\Api\SecuritySettingsController::class, 'update'])->middleware('permission:integrations.manage');
     Route::post('settings/currency/sync-rates', [CurrencySettingController::class, 'syncRates'])->middleware('permission:integrations.manage');
+    
+    // Document Numbering Sequences (Tenant Configurable)
+    Route::get('settings/document-numbering', [\App\Http\Controllers\Api\DocumentNumberingController::class, 'index']);
+    Route::put('settings/document-numbering/{documentType}', [\App\Http\Controllers\Api\DocumentNumberingController::class, 'update']);
+    Route::post('settings/document-numbering/preview', [\App\Http\Controllers\Api\DocumentNumberingController::class, 'preview']);
+
     // Targets
     Route::get('targets/config', [TargetConfigController::class, 'config']);
     

@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity, BookOpen, Mail } from "lucide-react";
+import { Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity, BookOpen, Mail, Hash } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
 import { canAccessPath } from "@/lib/permissions";
@@ -14,6 +14,7 @@ const categories = [
       { icon: Target,    title: "Target Revenue",        desc: "Configure company revenue targets and cascade to Sales and AMs",      href: "/settings/targets/revenue", color: "bg-[color:var(--brand)]" },
       { icon: Activity,  title: "Target KPI",            desc: "Configure role-specific metrics and KPIs for all user levels",        href: "/settings/targets/kpi",   color: "bg-[color:var(--brand)]" },
       { icon: Shield,    title: "Company Settings",      desc: "Configure company brand, logo, NPWP, signatory details, and bank accounts", href: "/settings/company", color: "bg-[color:var(--brand)]" },
+      { icon: Hash,      title: "Document Numbering",    desc: "Format penomoran seri otomatis (Quotation, Sales Order, Invoice, BAST, SOW) per tenant", href: "/settings/document-numbering", color: "bg-[color:var(--brand)]" },
     ]
   },
   {

@@ -38,8 +38,9 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-# ── 2. Storage permissions ────────────────────────────────────────────────────
+# ── 2. Storage permissions & symlink ──────────────────────────────────────────
 chmod -R 775 storage bootstrap/cache 2>/dev/null || true
+php artisan storage:link --force 2>/dev/null || true
 
 # ── 3. App key ────────────────────────────────────────────────────────────────
 # Only generate if APP_KEY is not already injected via Docker environment.

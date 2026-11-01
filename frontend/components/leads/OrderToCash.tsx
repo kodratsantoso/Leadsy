@@ -27,6 +27,8 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [generatingPdfId, setGeneratingPdfId] = useState<number | null>(null);
   const [downloadingPdfId, setDownloadingPdfId] = useState<number | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [loadingPdfPreview, setLoadingPdfPreview] = useState(false);
   const [viewPdfUrl, setViewPdfUrl] = useState<string | null>(null);
   const [viewPdfTitle, setViewPdfTitle] = useState<string>("");
   const [viewPdfMeta, setViewPdfMeta] = useState<{ type: 'quotation' | 'sales_order'; id: number; number: string } | null>(null);
@@ -1017,18 +1019,53 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       qc.invalidateQueries({ queryKey: type === 'quotation' ? ['lead-quotations', leadId] : ['lead-sales-orders', leadId] });
       toast.success(type === 'quotation' ? 'Quotation PDF generated successfully.' : 'Sales Order PDF generated successfully.');
       
-      // Auto-open PDF preview modal
-      if (pdfUrl) {
-        setViewPdfUrl(pdfUrl);
-        setViewPdfTitle(type === 'quotation' ? `Quotation ${docNumber || id} PDF Preview` : `Sales Order ${docNumber || id} PDF Preview`);
-        setViewPdfMeta({ type, id, number: docNumber || `${type}_${id}` });
-      }
+      // Auto-open PDF preview modal with authenticated blob streaming
+      await openPdfPreview(type, id, docNumber || `${type}_${id}`);
     } catch (err) {
       toast.fromError(err, 'Failed to generate PDF');
       setErrorMessage(describeThrown(err).title);
     } finally {
       setGeneratingPdfId(null);
     }
+  };
+
+  const openPdfPreview = async (type: 'quotation' | 'sales_order', id: number, docNumber: string) => {
+    setPreviewModalOpen(true);
+    setLoadingPdfPreview(true);
+    setViewPdfTitle(type === 'quotation' ? `Quotation ${docNumber} PDF Preview` : `Sales Order ${docNumber} PDF Preview`);
+    setViewPdfMeta({ type, id, number: docNumber });
+    try {
+      const endpoint = type === 'quotation' ? `/quotations/${id}/preview-pdf` : `/sales-orders/${id}/preview-pdf`;
+      const res = await apiFetch(endpoint, {
+        headers: {
+          Accept: 'application/pdf',
+        },
+      });
+      if (!res.ok) {
+        throw new Error('Gagal memuat pratinjau dokumen PDF.');
+      }
+      const blob = await res.blob();
+      if (viewPdfUrl && viewPdfUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(viewPdfUrl);
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      setViewPdfUrl(blobUrl);
+    } catch (err: any) {
+      toast.fromError(err, 'Gagal memuat pratinjau PDF');
+      setPreviewModalOpen(false);
+    } finally {
+      setLoadingPdfPreview(false);
+    }
+  };
+
+  const closePdfPreview = () => {
+    if (viewPdfUrl && viewPdfUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(viewPdfUrl);
+    }
+    setViewPdfUrl(null);
+    setViewPdfMeta(null);
+    setPreviewModalOpen(false);
+    setLoadingPdfPreview(false);
   };
 
   const downloadPdfFile = async (type: 'quotation' | 'sales_order', id: number, customFilename?: string) => {
@@ -1701,11 +1738,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                             <Button 
                               size="xs" 
                               variant="secondary" 
-                              onClick={() => {
-                                setViewPdfUrl(q.pdf_url);
-                                setViewPdfTitle(`Quotation ${q.quotation_number} PDF Preview`);
-                                setViewPdfMeta({ type: 'quotation', id: q.id, number: q.quotation_number });
-                              }}
+                              onClick={() => openPdfPreview('quotation', q.id, q.quotation_number)}
                             >
                               <FileText className="h-3 w-3 mr-1" />
                               View PDF
@@ -1944,11 +1977,7 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                             <Button 
                               size="xs" 
                               variant="secondary" 
-                              onClick={() => {
-                                setViewPdfUrl(so.pdf_url);
-                                setViewPdfTitle(`Sales Order ${so.sales_order_number} PDF Preview`);
-                                setViewPdfMeta({ type: 'sales_order', id: so.id, number: so.sales_order_number });
-                              }}
+                              onClick={() => openPdfPreview('sales_order', so.id, so.sales_order_number)}
                             >
                               <FileText className="h-3 w-3 mr-1" />
                               View PDF
@@ -3487,14 +3516,11 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
       })()}
 
       {/* PDF View and Download Modal */}
-      {viewPdfUrl && (
+      {previewModalOpen && (
         <Modal
-          open={!!viewPdfUrl}
+          open={previewModalOpen}
           onOpenChange={(v) => {
-            if (!v) {
-              setViewPdfUrl(null);
-              setViewPdfMeta(null);
-            }
+            if (!v) closePdfPreview();
           }}
           title={viewPdfTitle}
           description="View, print, and download the dynamically generated commercial document."
@@ -3502,17 +3528,18 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
           footer={
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const relativeUrl = viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '');
-                    window.open(`${relativeUrl}?t=${new Date().getTime()}`, '_blank');
-                  }}
-                >
-                  <ExternalLink className="h-4 w-4 mr-1.5" />
-                  Open in New Tab
-                </Button>
+                {viewPdfUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      window.open(viewPdfUrl, '_blank');
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1.5" />
+                    Open in New Tab
+                  </Button>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {viewPdfMeta ? (
@@ -3529,37 +3556,29 @@ export function OrderToCash({ leadId }: { leadId: string | number }) {
                     )}
                     Download PDF
                   </Button>
-                ) : (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => {
-                      const relativeUrl = viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '');
-                      const link = document.createElement('a');
-                      link.href = `${relativeUrl}?t=${new Date().getTime()}`;
-                      link.download = viewPdfTitle.replace(/\s+/g, '_') + '.pdf';
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                  >
-                    <Download className="h-4 w-4 mr-1.5" />
-                    Download PDF
-                  </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={() => { setViewPdfUrl(null); setViewPdfMeta(null); }}>
+                ) : null}
+                <Button variant="outline" size="sm" onClick={closePdfPreview}>
                   Close
                 </Button>
               </div>
             </div>
           }
         >
-          <div className="w-full">
-            <iframe
-              src={`${viewPdfUrl.replace(/^(https?:\/\/[^\/]+)/, '')}?t=${new Date().getTime()}`}
-              className="w-full h-[700px] border border-border rounded-lg bg-muted/20"
-              title="PDF Viewer"
-            />
+          <div className="w-full min-h-[500px] flex items-center justify-center">
+            {loadingPdfPreview ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-[var(--brand)]" />
+                <p className="text-sm text-muted-foreground font-medium">Memuat pratinjau dokumen PDF...</p>
+              </div>
+            ) : viewPdfUrl ? (
+              <iframe
+                src={viewPdfUrl}
+                className="w-full h-[700px] border border-border rounded-lg bg-muted/20"
+                title="PDF Viewer"
+              />
+            ) : (
+              <p className="text-sm text-destructive">Dokumen PDF belum tersedia atau gagal dimuat.</p>
+            )}
           </div>
         </Modal>
       )}
