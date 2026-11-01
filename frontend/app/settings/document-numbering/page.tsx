@@ -5,7 +5,7 @@ import DocumentNumberingView from "@/components/settings/DocumentNumberingView";
 
 export default function DocumentNumberingPage() {
   return (
-    <div className="space-y-6 p-6 w-full max-w-7xl mx-auto">
+    <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="space-y-2">
         <BackToSettings />
         <div>

@@ -226,7 +226,7 @@ export default function DocumentNumberingView() {
                   Tenant Autonomous
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Setiap tenant berhak menyesuaikan format penomoran dokumen resmi perusahaan Anda (Quotation, Sales Order, Invoice, BAST, SOW). Nomor dibuat secara berurutan, aman dari duplikasi, dan otomatis di-reset sesuai kebijakan siklus akuntansi perusahaan Anda.
               </p>
             </div>
@@ -316,13 +316,13 @@ export default function DocumentNumberingView() {
                   key={seq.id}
                   className="border-border/60 hover:border-border transition-all shadow-xs overflow-hidden"
                 >
-                  <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     {/* Left: Info */}
-                    <div className="flex items-start gap-3.5">
+                    <div className="flex items-start gap-3.5 flex-1 min-w-0">
                       <div className={`p-2.5 rounded-xl border shrink-0 ${meta.color}`}>
                         <Icon className="h-5 w-5" />
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h4 className="font-semibold text-sm text-foreground">{meta.label}</h4>
                           <Badge
@@ -334,7 +334,7 @@ export default function DocumentNumberingView() {
                         </div>
                         <p className="text-xs text-muted-foreground">{seq.description || meta.desc}</p>
 
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1 font-mono">
                             <span className="text-muted-foreground/70">Prefix:</span>
                             <strong className="text-foreground">{seq.prefix}</strong>
@@ -364,8 +364,8 @@ export default function DocumentNumberingView() {
                     </div>
 
                     {/* Right: Live Preview & Action */}
-                    <div className="flex items-center justify-between md:justify-end gap-4 border-t md:border-t-0 pt-3 md:pt-0">
-                      <div className="flex flex-col items-start md:items-end gap-1">
+                    <div className="flex items-center justify-between lg:justify-end gap-5 border-t lg:border-t-0 pt-3 lg:pt-0 shrink-0">
+                      <div className="flex flex-col items-start lg:items-end gap-1">
                         <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
                           Contoh Nomor Dokumen
                         </span>
