@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, type ComponentType, useMemo } from "react";
+import { useState, useEffect, type ComponentType, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink, Sparkles, FileCheck } from "lucide-react";
+import { Save, Loader2, Loader, Key, MapPin, MessageSquare, CheckCircle2, Check, X, AlertCircle, Database, Eye, RefreshCw, Share2, Video, Megaphone, Globe2, Download, Lock, Play, XCircle, Info, ExternalLink, Sparkles, FileCheck, Mail } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { downloadTimestampedReport } from "@/lib/utils/download-report";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ import { Modal } from "@/components/ui/modal";
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import Link from "next/link";
 import { describeThrown } from "@/lib/apiError";
+import { EmailIntegrationSubTab } from "@/components/settings/EmailIntegrationSubTab";
 import {
   Table,
   TableBody,
@@ -37,7 +39,7 @@ type IntegrationConfig = {
   value_type: "string" | "boolean" | "number" | "json";
 };
 
-type TabKey = "lead_platforms" | "maps" | "whatsapp" | "lusha" | "webhooks" | "lark" | "linkedin";
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "email" | "lusha" | "webhooks" | "lark" | "linkedin";
 type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
 type GooglePermission = {
   id: string;
@@ -524,8 +526,18 @@ function createDefaultLeadPlatforms(): Record<string, IntegrationConfig> {
   ) as Record<string, IntegrationConfig>;
 }
 
-export default function IntegrationsSettingsPage() {
-  const [tab, setTab] = useState<TabKey>("lead_platforms");
+function IntegrationsSettingsContent() {
+  const searchParams = useSearchParams();
+  const queryTab = searchParams.get("tab") as TabKey | null;
+  const validTabs: TabKey[] = ["lead_platforms", "maps", "whatsapp", "email", "lusha", "webhooks", "lark", "linkedin"];
+  const initialTab = queryTab && validTabs.includes(queryTab) ? queryTab : "lead_platforms";
+  const [tab, setTab] = useState<TabKey>(initialTab);
+
+  useEffect(() => {
+    if (queryTab && validTabs.includes(queryTab) && queryTab !== tab) {
+      setTab(queryTab);
+    }
+  }, [queryTab]);
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -1279,6 +1291,7 @@ export default function IntegrationsSettingsPage() {
           { key: "lead_platforms", label: "Lead Platforms", icon: Share2 },
           { key: "maps", label: "Google", icon: MapPin },
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
+          { key: "email", label: "Email & SMTP", icon: Mail },
           { key: "lusha", label: "Lusha", icon: Key },
           { key: "linkedin", label: "LinkedIn", icon: Linkedin },
           { key: "lark", label: "Lark", icon: Key },
@@ -2476,6 +2489,9 @@ export default function IntegrationsSettingsPage() {
         </div>
       )}
 
+      {/* ── Email & SMTP ── */}
+      {tab === "email" && <EmailIntegrationSubTab />}
+
       {/* ── Lusha ── */}
       {tab === "lusha" && (
         <div className="space-y-4">
@@ -3220,6 +3236,21 @@ export default function IntegrationsSettingsPage() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+export default function IntegrationsSettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-sm text-muted-foreground flex flex-col items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-brand mb-2" />
+          <span>Memuat pengaturan integrasi...</span>
+        </div>
+      }
+    >
+      <IntegrationsSettingsContent />
+    </Suspense>
   );
 }
 
