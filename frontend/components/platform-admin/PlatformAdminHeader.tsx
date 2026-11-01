@@ -16,13 +16,13 @@ export function PlatformAdminHeader({ onRefresh, isRefreshing }: PlatformAdminHe
   const pathname = usePathname();
 
   const tabs = [
-    { href: "/admin/tenants", label: "Tenants Directory", icon: Building2 },
-    { href: "/admin/metrics", label: "SaaS Telemetry", icon: BarChart3 },
-    { href: "/admin/plans", label: "Plans & Billing", icon: Shield },
+    { href: "/admin/tenants", label: "Direktori Tenant", icon: Building2 },
+    { href: "/admin/metrics", label: "Telemetri Platform", icon: BarChart3 },
+    { href: "/admin/plans", label: "Paket & Billing", icon: Shield },
     { href: "/admin/feature-flags", label: "Feature Flags", icon: Zap },
-    { href: "/admin/infrastructure", label: "Infrastructure & Queues", icon: Shield },
-    { href: "/admin/ai-accounting", label: "AI Accounting", icon: Zap },
-    { href: "/admin/audit-logs", label: "Audit Logs", icon: Shield },
+    { href: "/admin/infrastructure", label: "Infrastruktur & Antrean", icon: Shield },
+    { href: "/admin/ai-accounting", label: "Akuntansi AI", icon: Zap },
+    { href: "/admin/audit-logs", label: "Jejak Audit", icon: Shield },
   ];
 
   return (
@@ -45,12 +45,12 @@ export function PlatformAdminHeader({ onRefresh, isRefreshing }: PlatformAdminHe
                 </Badge>
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Platform Administrator Panel
+                Panel Administrator Platform
               </h1>
             </div>
           </div>
           <p className="max-w-2xl text-xs text-muted-foreground sm:text-sm">
-            Isolated tenant orchestration, subscription plans, resource quota enforcement, and cross-organization telemetry.
+            Orkestrasi multi-tenant terisolasi, paket langganan, penegakan kuota sumber daya, dan telemetri platform menyeluruh.
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export function PlatformAdminHeader({ onRefresh, isRefreshing }: PlatformAdminHe
               className="rounded-xl border-border hover:bg-accent"
             >
               <RefreshCw className={cn("mr-2 h-3.5 w-3.5", isRefreshing && "animate-spin text-primary")} />
-              Sync Platform
+              Sinkronkan Platform
             </Button>
           )}
 

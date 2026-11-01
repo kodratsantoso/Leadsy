@@ -262,18 +262,18 @@ export default function PlatformPlansPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              Plans & Packaging Control Center
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Paket Langganan & Pricing SaaS
             </h1>
-            <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold">
-              Dynamic SaaS Packaging
+            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs font-semibold">
+              Packaging & Monetization
             </Badge>
           </div>
-          <p className="mt-1 text-xs text-slate-400 sm:text-sm">
-            Configure dynamic subscription tiers, resource ceilings, module bundles, and live MRR/ARR monetization economics.
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            Konfigurasi tier langganan, batasan kuota sumber daya, bundling modul fitur, dan pantauan metrik MRR/ARR.
           </p>
         </div>
 
@@ -286,19 +286,19 @@ export default function PlatformPlansPage() {
               fetchPlans();
             }}
             disabled={refreshing}
-            className="h-8 gap-1.5 rounded-lg border-slate-700 bg-slate-900/80 text-xs text-slate-200 hover:bg-slate-800 hover:text-white"
+            className="h-8 gap-1.5 rounded-lg border-border bg-card text-xs text-foreground hover:bg-muted"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-emerald-400" : ""}`} />
-            <span>Refresh Financials</span>
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-primary" : ""}`} />
+            <span>Segarkan Finansial</span>
           </Button>
 
           <Button
             size="sm"
             onClick={handleOpenCreate}
-            className="h-8 gap-1.5 rounded-lg bg-emerald-500 text-xs font-semibold text-slate-950 hover:bg-emerald-400"
+            className="h-8 gap-1.5 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>Add Plan Tier</span>
+            <span>Tambah Paket Baru</span>
           </Button>
         </div>
       </div>
@@ -307,15 +307,15 @@ export default function PlatformPlansPage() {
         <div
           className={`flex items-center justify-between rounded-xl border p-3.5 text-xs ${
             notice.type === "success"
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-              : "border-red-500/40 bg-red-500/10 text-red-300"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "border-destructive/40 bg-destructive/10 text-destructive"
           }`}
         >
           <div className="flex items-center gap-2">
             {notice.type === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
             <span>{notice.text}</span>
           </div>
-          <button onClick={() => setNotice(null)} className="text-slate-400 hover:text-white">
+          <button onClick={() => setNotice(null)} className="text-muted-foreground hover:text-foreground">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -323,64 +323,64 @@ export default function PlatformPlansPage() {
 
       {loading ? (
         <div className="flex min-h-[40vh] items-center justify-center">
-          <RefreshCw className="h-6 w-6 animate-spin text-emerald-500" />
+          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
         <>
           {/* Revenue KPIs */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between text-slate-400">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Normalized MRR</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   <DollarSign className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold text-white font-mono">
+              <p className="mt-3 text-2xl font-bold text-foreground font-mono">
                 ${(data?.mrr ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="mt-1 text-xs text-slate-400">Monthly recurring billing volume</p>
+              <p className="mt-1 text-xs text-muted-foreground">Volume tagihan berulang bulanan</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between text-slate-400">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Annual Run Rate (ARR)</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                   <CreditCard className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold text-white font-mono">
+              <p className="mt-3 text-2xl font-bold text-foreground font-mono">
                 ${(data?.arr ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="mt-1 text-xs text-cyan-300">Projected annualized run-rate</p>
+              <p className="mt-1 text-xs text-cyan-600 dark:text-cyan-400">Proyeksi tahunan (Annualized run-rate)</p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between text-slate-400">
-                <span className="text-xs font-medium uppercase tracking-wider">Active Workspaces</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-xs font-medium uppercase tracking-wider">Workspace Aktif</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Building2 className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold text-white font-mono">
+              <p className="mt-3 text-2xl font-bold text-foreground font-mono">
                 {data?.total_tenants ?? 0}
               </p>
-              <p className="mt-1 text-xs text-slate-400">
-                {data?.paying_tenants ?? 0} Paying / {data?.plan_counts?.trial ?? 0} In Trial
+              <p className="mt-1 text-xs text-muted-foreground">
+                {data?.paying_tenants ?? 0} Berbayar / {data?.plan_counts?.trial ?? 0} Trial
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between text-slate-400">
-                <span className="text-xs font-medium uppercase tracking-wider">Tiers Catalog</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-xs font-medium uppercase tracking-wider">Katalog Tier</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
                   <Layers className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold text-white font-mono">
-                {data?.tiers.length ?? 0} Plans
+              <p className="mt-3 text-2xl font-bold text-foreground font-mono">
+                {data?.tiers.length ?? 0} Paket
               </p>
-              <p className="mt-1 text-xs text-purple-300">Configured in Master DB</p>
+              <p className="mt-1 text-xs text-purple-600 dark:text-purple-400">Tersedia di Database Master</p>
             </div>
           </div>
 
@@ -396,16 +396,16 @@ export default function PlatformPlansPage() {
               return (
                 <div
                   key={tier.id}
-                  className={`relative flex flex-col justify-between rounded-2xl border p-6 shadow-sm transition-all duration-200 ${
+                  className={`relative flex flex-col justify-between rounded-2xl border p-6 shadow-xs transition-all duration-200 ${
                     tier.is_popular
-                      ? "border-emerald-500/50 bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/20"
-                      : "border-slate-800/80 bg-slate-900/60"
+                      ? "border-primary bg-primary/5"
+                      : "border-border bg-card"
                   }`}
                 >
                   {tier.is_popular && (
                     <div className="absolute -top-3 right-6">
-                      <Badge className="bg-emerald-500 text-slate-950 text-[10px] font-bold uppercase tracking-wider">
-                        Most Popular
+                      <Badge className="bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider">
+                        Paling Populer
                       </Badge>
                     </div>
                   )}
@@ -413,99 +413,99 @@ export default function PlatformPlansPage() {
                   <div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                           <span>{tier.name}</span>
                           {!tier.is_public && (
-                            <Badge variant="outline" className="border-slate-700 bg-slate-800 text-[9px] text-slate-400">
+                            <Badge variant="outline" className="border-border bg-muted text-[9px] text-muted-foreground">
                               Private / Custom
                             </Badge>
                           )}
                         </h2>
-                        <span className="text-[11px] font-mono text-slate-400">Code: {tier.code}</span>
+                        <span className="text-[11px] font-mono text-muted-foreground">Kode: {tier.code}</span>
                       </div>
-                      <Badge variant="outline" className="border-slate-700 bg-slate-800 text-xs font-mono text-slate-300">
-                        {activeCount} active
+                      <Badge variant="outline" className="border-border bg-muted text-xs font-mono text-foreground">
+                        {activeCount} aktif
                       </Badge>
                     </div>
 
-                    <p className="mt-2 text-xs text-slate-400 line-clamp-2 min-h-[32px]">
-                      {tier.description || "Production tier for sales organizations."}
+                    <p className="mt-2 text-xs text-muted-foreground line-clamp-2 min-h-[32px]">
+                      {tier.description || "Paket produksi untuk organisasi penjualan."}
                     </p>
 
                     {/* Pricing Display */}
-                    <div className="mt-4 flex items-baseline gap-2 border-b border-slate-800/80 pb-4">
-                      <span className="text-3xl font-extrabold text-white font-mono">
+                    <div className="mt-4 flex items-baseline gap-2 border-b border-border pb-4">
+                      <span className="text-3xl font-extrabold text-foreground font-mono">
                         ${tier.price_monthly}
                       </span>
-                      <span className="text-xs text-slate-400">/ month</span>
+                      <span className="text-xs text-muted-foreground">/ bulan</span>
                       {tier.price_annual > 0 && (
-                        <span className="text-xs text-slate-400 ml-auto font-mono">
-                          ${tier.price_annual} / yr {discountAnnual > 0 && <span className="text-emerald-400">(-{discountAnnual}%)</span>}
+                        <span className="text-xs text-muted-foreground ml-auto font-mono">
+                          ${tier.price_annual} / thn {discountAnnual > 0 && <span className="text-emerald-600 dark:text-emerald-400">(-{discountAnnual}%)</span>}
                         </span>
                       )}
                     </div>
 
                     {/* Ceilings & Quotas */}
-                    <div className="mt-4 space-y-2.5 text-xs text-slate-300">
+                    <div className="mt-4 space-y-2.5 text-xs text-muted-foreground">
                       <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2 text-slate-400">
-                          <Users className="h-3.5 w-3.5 text-indigo-400" /> User Seats:
+                        <span className="flex items-center gap-2">
+                          <Users className="h-3.5 w-3.5 text-primary" /> Kuota User (Seats):
                         </span>
-                        <span className="font-semibold text-white font-mono">
+                        <span className="font-semibold text-foreground font-mono">
                           {tier.seats_limit} seats{" "}
                           {tier.price_per_additional_seat > 0 && (
-                            <span className="text-[10px] text-slate-400">(+${tier.price_per_additional_seat}/seat)</span>
+                            <span className="text-[10px] text-muted-foreground">(+${tier.price_per_additional_seat}/seat)</span>
                           )}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2 text-slate-400">
-                          <Layers className="h-3.5 w-3.5 text-cyan-400" /> Leads Storage:
+                        <span className="flex items-center gap-2">
+                          <Layers className="h-3.5 w-3.5 text-cyan-500" /> Kapasitas Leads:
                         </span>
-                        <span className="font-semibold text-white font-mono">
+                        <span className="font-semibold text-foreground font-mono">
                           {tier.leads_limit.toLocaleString()} leads
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2 text-slate-400">
-                          <HardDrive className="h-3.5 w-3.5 text-amber-400" /> Disk Quota:
+                        <span className="flex items-center gap-2">
+                          <HardDrive className="h-3.5 w-3.5 text-amber-500" /> Kuota Disk:
                         </span>
-                        <span className="font-semibold text-white font-mono">
+                        <span className="font-semibold text-foreground font-mono">
                           {tier.disk_limit_gb} GB
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2 text-slate-400">
-                          <Bot className="h-3.5 w-3.5 text-purple-400" /> AI Budget Cap:
+                        <span className="flex items-center gap-2">
+                          <Bot className="h-3.5 w-3.5 text-purple-500" /> Anggaran AI:
                         </span>
-                        <span className="font-semibold text-emerald-400 font-mono">
-                          ${tier.ai_budget_cap_usd} / mo
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                          ${tier.ai_budget_cap_usd} / bln
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2 text-slate-400">
-                          <MessageSquare className="h-3.5 w-3.5 text-emerald-400" /> WhatsApp Channels:
+                        <span className="flex items-center gap-2">
+                          <MessageSquare className="h-3.5 w-3.5 text-emerald-500" /> Kanal WhatsApp:
                         </span>
-                        <span className="font-semibold text-white font-mono">
-                          {tier.whatsapp_channels_limit ?? 1} channel(s)
+                        <span className="font-semibold text-foreground font-mono">
+                          {tier.whatsapp_channels_limit ?? 1} channel
                         </span>
                       </div>
                     </div>
 
                     {/* Features List */}
-                    <div className="mt-5 border-t border-slate-800/80 pt-4">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-2">
-                        Included Entitlements & Features:
+                    <div className="mt-5 border-t border-border pt-4">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block mb-2">
+                        Fitur & Entitlement Termasuk:
                       </span>
-                      <ul className="space-y-1.5 text-xs text-slate-300">
+                      <ul className="space-y-1.5 text-xs text-foreground">
                         {Array.isArray(tier.features) &&
                           tier.features.slice(0, 5).map((feat, idx) => (
                             <li key={idx} className="flex items-center gap-2">
-                              <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                              <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                               <span className="truncate">{feat}</span>
                             </li>
                           ))}
@@ -514,15 +514,15 @@ export default function PlatformPlansPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-6 flex items-center justify-between gap-2 border-t border-slate-800/80 pt-4">
+                  <div className="mt-6 flex items-center justify-between gap-2 border-t border-border pt-4">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleOpenEdit(tier)}
-                      className="w-full gap-1.5 border-slate-700 bg-slate-800/80 text-xs text-slate-200 hover:bg-slate-700 hover:text-white"
+                      className="w-full gap-1.5 border-border bg-card text-xs text-foreground hover:bg-muted"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
-                      <span>Edit Packaging</span>
+                      <span>Edit Paket</span>
                     </Button>
 
                     {activeCount === 0 && tier.code !== "enterprise" && tier.code !== "starter" && (
@@ -530,7 +530,7 @@ export default function PlatformPlansPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDeletePlan(tier)}
-                        className="border-red-500/30 bg-red-500/10 text-xs text-red-400 hover:bg-red-500/20"
+                        className="border-destructive/30 bg-destructive/10 text-xs text-destructive hover:bg-destructive/20"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -547,20 +547,20 @@ export default function PlatformPlansPage() {
       <Modal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        title={formState.id ? `Edit Plan: ${formState.name}` : "Create New SaaS Plan"}
-        description="Configure tier pricing, resource quotas, feature highlights, and module bundle entitlements."
+        title={formState.id ? `Edit Paket: ${formState.name}` : "Buat Paket SaaS Baru"}
+        description="Konfigurasi harga tier, batasan kuota sumber daya, poin fitur, dan bundling modul entitlement."
         size="xl"
         footer={
           <div className="flex items-center justify-end gap-2">
             <Button variant="outline" onClick={() => setModalOpen(false)}>
-              Cancel
+              Batal
             </Button>
             <Button
               disabled={saving}
               onClick={handleSavePlan}
-              className="bg-emerald-500 text-slate-950 font-semibold hover:bg-emerald-400"
+              className="bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
             >
-              {saving ? "Saving Packaging..." : "Save Plan Tier"}
+              {saving ? "Menyimpan Paket..." : "Simpan Paket Tier"}
             </Button>
           </div>
         }
@@ -569,39 +569,39 @@ export default function PlatformPlansPage() {
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300">Plan Display Name</label>
+              <label className="text-xs font-semibold text-foreground">Nama Tampilan Paket</label>
               <Input
                 value={formState.name}
                 onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                placeholder="e.g. Scale Growth Tier"
+                placeholder="Contoh: Scale Growth Tier"
                 className="mt-1"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300">Plan Code (Unique Identifier)</label>
+              <label className="text-xs font-semibold text-foreground">Kode Paket (Identifier Unik)</label>
               <Input
                 value={formState.code}
                 onChange={(e) => setFormState({ ...formState, code: e.target.value })}
-                placeholder="e.g. scale_growth"
+                placeholder="Contoh: scale_growth"
                 className="mt-1 font-mono"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-300">Plan Description</label>
+            <label className="text-xs font-semibold text-foreground">Deskripsi Paket</label>
             <Input
               value={formState.description}
               onChange={(e) => setFormState({ ...formState, description: e.target.value })}
-              placeholder="Short summary of target customer segment and value proposition."
+              placeholder="Ringkasan segmen target pelanggan dan proposisi nilai."
               className="mt-1"
             />
           </div>
 
           {/* Pricing & Billing */}
-          <div className="grid grid-cols-3 gap-4 border-t border-slate-800/80 pt-4">
+          <div className="grid grid-cols-3 gap-4 border-t border-border pt-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300">Monthly Price ($)</label>
+              <label className="text-xs font-semibold text-foreground">Harga Bulanan ($)</label>
               <Input
                 type="number"
                 step="1"
@@ -611,7 +611,7 @@ export default function PlatformPlansPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300">Annual Price ($)</label>
+              <label className="text-xs font-semibold text-foreground">Harga Tahunan ($)</label>
               <Input
                 type="number"
                 step="1"
@@ -621,7 +621,7 @@ export default function PlatformPlansPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300">Price / Extra Seat ($/mo)</label>
+              <label className="text-xs font-semibold text-foreground">Harga / Extra Seat ($/bln)</label>
               <Input
                 type="number"
                 step="1"
@@ -633,9 +633,9 @@ export default function PlatformPlansPage() {
           </div>
 
           {/* Resource Quotas */}
-          <div className="grid grid-cols-4 gap-4 border-t border-slate-800/80 pt-4">
+          <div className="grid grid-cols-4 gap-4 border-t border-border pt-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300">Seats Included</label>
+              <label className="text-xs font-semibold text-foreground">Termasuk User (Seats)</label>
               <Input
                 type="number"
                 value={formState.seats_limit}
@@ -644,7 +644,7 @@ export default function PlatformPlansPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300">Max Leads</label>
+              <label className="text-xs font-semibold text-foreground">Maksimal Leads</label>
               <Input
                 type="number"
                 value={formState.leads_limit}
@@ -653,7 +653,7 @@ export default function PlatformPlansPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300">Disk Quota (GB)</label>
+              <label className="text-xs font-semibold text-foreground">Kuota Disk (GB)</label>
               <Input
                 type="number"
                 value={formState.disk_limit_gb}
@@ -662,7 +662,7 @@ export default function PlatformPlansPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300">AI Cap ($/mo)</label>
+              <label className="text-xs font-semibold text-foreground">Limit AI ($/bln)</label>
               <Input
                 type="number"
                 value={formState.ai_budget_cap_usd}
@@ -673,40 +673,40 @@ export default function PlatformPlansPage() {
           </div>
 
           {/* Feature Highlights */}
-          <div className="border-t border-slate-800/80 pt-4">
-            <label className="text-xs font-semibold text-slate-300">Feature Bullet Points (One per line)</label>
+          <div className="border-t border-border pt-4">
+            <label className="text-xs font-semibold text-foreground">Poin Keunggulan Fitur (Satu per baris)</label>
             <textarea
               rows={4}
               value={formState.featuresText}
               onChange={(e) => setFormState({ ...formState, featuresText: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans"
+              className="mt-1 w-full rounded-xl border border-border bg-background p-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-sans placeholder:text-muted-foreground"
               placeholder="Lead Management&#10;Lark 2-Way Sync&#10;Dedicated Redis Queue"
             />
           </div>
 
           {/* Module Entitlements Checklist */}
-          <div className="border-t border-slate-800/80 pt-4">
-            <label className="text-xs font-semibold text-slate-300 block mb-2">
-              Default Module Entitlements for this Tier
+          <div className="border-t border-border pt-4">
+            <label className="text-xs font-semibold text-foreground block mb-2">
+              Modul Fitur yang Termasuk dalam Tier Ini
             </label>
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-muted/30 p-3">
               {availableModulesCatalog.map((mod) => {
                 const isChecked = Boolean(formState.modules[mod.key]);
                 return (
                   <label
                     key={mod.key}
                     onClick={() => toggleModule(mod.key)}
-                    className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-900 cursor-pointer text-xs"
+                    className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-muted cursor-pointer text-xs"
                   >
                     <input
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => {}}
-                      className="rounded border-slate-700 text-emerald-500 focus:ring-0"
+                      className="rounded border-border text-primary focus:ring-0"
                     />
                     <div className="truncate">
-                      <span className="text-white font-medium block truncate">{mod.label}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">{mod.key}</span>
+                      <span className="text-foreground font-medium block truncate">{mod.label}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{mod.key}</span>
                     </div>
                   </label>
                 );
@@ -715,25 +715,25 @@ export default function PlatformPlansPage() {
           </div>
 
           {/* Toggles */}
-          <div className="flex items-center gap-6 border-t border-slate-800/80 pt-4 text-xs">
-            <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+          <div className="flex items-center gap-6 border-t border-border pt-4 text-xs">
+            <label className="flex items-center gap-2 cursor-pointer text-foreground">
               <input
                 type="checkbox"
                 checked={formState.is_popular}
                 onChange={(e) => setFormState({ ...formState, is_popular: e.target.checked })}
-                className="rounded border-slate-700 text-emerald-500"
+                className="rounded border-border text-primary"
               />
-              <span>Highlight as "Most Popular"</span>
+              <span>Tandai sebagai "Paling Populer"</span>
             </label>
 
-            <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+            <label className="flex items-center gap-2 cursor-pointer text-foreground">
               <input
                 type="checkbox"
                 checked={formState.is_public}
                 onChange={(e) => setFormState({ ...formState, is_public: e.target.checked })}
-                className="rounded border-slate-700 text-emerald-500"
+                className="rounded border-border text-primary"
               />
-              <span>Public Plan (Tampil di self-serve pricing)</span>
+              <span>Paket Publik (Tampil di self-serve pricing)</span>
             </label>
           </div>
         </div>

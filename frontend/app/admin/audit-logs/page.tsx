@@ -60,27 +60,27 @@ export default function PlatformAuditLogsPage() {
   }, [fetchLogs]);
 
   const getActionColor = (action: string) => {
-    if (action.includes("impersonate")) return "border-amber-500/30 bg-amber-500/10 text-amber-300";
-    if (action.includes("provision") || action.includes("created")) return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
-    if (action.includes("delete") || action.includes("suspended")) return "border-red-500/30 bg-red-500/10 text-red-300";
-    return "border-indigo-500/30 bg-indigo-500/10 text-indigo-300";
+    if (action.includes("impersonate")) return "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400";
+    if (action.includes("provision") || action.includes("created")) return "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+    if (action.includes("delete") || action.includes("suspended")) return "border-destructive/30 bg-destructive/10 text-destructive";
+    return "border-primary/30 bg-primary/10 text-primary";
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              Platform Audit Trail & Security
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Jejak Audit & Keamanan Platform
             </h1>
-            <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-semibold">
-              Compliance & Security
+            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs font-semibold">
+              Kepatuhan & Keamanan
             </Badge>
           </div>
-          <p className="mt-1 text-xs text-slate-400 sm:text-sm">
-            Immutable log of all superadmin activities, tenant provisioning, feature modifications, and support impersonations.
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            Catatan log immutable seluruh aktivitas superadmin, provisi tenant, modifikasi fitur, dan impersonasi dukungan.
           </p>
         </div>
 
@@ -93,76 +93,76 @@ export default function PlatformAuditLogsPage() {
               fetchLogs();
             }}
             disabled={refreshing}
-            className="h-8 gap-1.5 rounded-lg border-slate-700 bg-slate-900/80 text-xs text-slate-200 hover:bg-slate-800 hover:text-white"
+            className="h-8 gap-1.5 rounded-lg border-border bg-card text-xs text-foreground hover:bg-muted"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-indigo-400" : ""}`} />
-            <span>Refresh Logs</span>
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-primary" : ""}`} />
+            <span>Segarkan Log</span>
           </Button>
         </div>
       </div>
 
       {/* Search and Table */}
-      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4 text-indigo-400" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">
-              Audit Records ({totalCount})
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
+              Catatan Audit ({totalCount})
             </h2>
           </div>
 
           <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search action or IP..."
+              placeholder="Cari aksi atau alamat IP..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 pl-8 text-xs text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 pl-8 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
           </div>
         </div>
 
         {loading ? (
           <div className="flex min-h-[30vh] items-center justify-center">
-            <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
+            <RefreshCw className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : logs.length > 0 ? (
           <>
-            <div className="overflow-x-auto rounded-xl border border-slate-800">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-semibold uppercase text-slate-400">
+                <thead className="border-b border-border bg-muted/60 text-[11px] font-semibold uppercase text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">Timestamp</th>
-                    <th className="px-4 py-3">Action</th>
+                    <th className="px-4 py-3">Waktu</th>
+                    <th className="px-4 py-3">Aksi</th>
                     <th className="px-4 py-3">Tenant ID</th>
-                    <th className="px-4 py-3">Actor</th>
-                    <th className="px-4 py-3">IP Address</th>
-                    <th className="px-4 py-3">Payload Details</th>
+                    <th className="px-4 py-3">Pelaku (Actor)</th>
+                    <th className="px-4 py-3">Alamat IP</th>
+                    <th className="px-4 py-3">Rincian Payload</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-mono">
+                <tbody className="divide-y divide-border font-mono">
                   {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-800/30">
-                      <td className="px-4 py-3 text-slate-400 text-[11px]">
-                        {new Date(log.created_at).toLocaleString()}
+                    <tr key={log.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3 text-muted-foreground text-[11px]">
+                        {new Date(log.created_at).toLocaleString("id-ID")}
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant="outline" className={`text-[10px] uppercase font-mono ${getActionColor(log.action)}`}>
                           {log.action}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-slate-300">
+                      <td className="px-4 py-3 text-foreground">
                         {log.tenant_id ? `#${log.tenant_id}` : "Global"}
                       </td>
-                      <td className="px-4 py-3 text-slate-300">
+                      <td className="px-4 py-3 text-foreground">
                         {log.user_id ? `User #${log.user_id}` : "System"}
                       </td>
-                      <td className="px-4 py-3 text-slate-400">{log.ip_address || "127.0.0.1"}</td>
-                      <td className="px-4 py-3 max-w-xs truncate text-[11px] text-slate-400">
+                      <td className="px-4 py-3 text-muted-foreground">{log.ip_address || "127.0.0.1"}</td>
+                      <td className="px-4 py-3 max-w-xs truncate text-[11px] text-muted-foreground">
                         {log.after_value ? JSON.stringify(log.after_value) : log.new_values ? JSON.stringify(log.new_values) : "—"}
                       </td>
                     </tr>
@@ -173,9 +173,9 @@ export default function PlatformAuditLogsPage() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
+              <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                  Page {page} of {totalPages}
+                  Halaman {page} dari {totalPages}
                 </span>
                 <div className="flex gap-2">
                   <Button
@@ -183,28 +183,28 @@ export default function PlatformAuditLogsPage() {
                     disabled={page <= 1}
                     size="sm"
                     variant="outline"
-                    className="h-7 border-slate-800 text-xs text-slate-300"
+                    className="h-7 border-border text-xs text-foreground hover:bg-muted"
                   >
-                    Previous
+                    Sebelumnya
                   </Button>
                   <Button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page >= totalPages}
                     size="sm"
                     variant="outline"
-                    className="h-7 border-slate-800 text-xs text-slate-300"
+                    className="h-7 border-border text-xs text-foreground hover:bg-muted"
                   >
-                    Next
+                    Berikutnya
                   </Button>
                 </div>
               </div>
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 py-12 text-center text-slate-400">
-            <Terminal className="h-8 w-8 text-slate-500 mb-2" />
-            <p className="text-sm font-semibold text-slate-300">No Audit Logs Found</p>
-            <p className="mt-1 text-xs">No records matched your search filter.</p>
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground">
+            <Terminal className="h-8 w-8 text-muted-foreground mb-2" />
+            <p className="text-sm font-semibold text-foreground">Tidak Ada Catatan Audit</p>
+            <p className="mt-1 text-xs">Tidak ada data log yang cocok dengan filter pencarian Anda.</p>
           </div>
         )}
       </div>

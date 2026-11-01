@@ -430,10 +430,10 @@ export default function PlatformAiAccountingPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               AI Cost Accounting & LLM Control Center
             </h1>
             <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-semibold">
@@ -443,7 +443,7 @@ export default function PlatformAiAccountingPage() {
               Live Telemetry
             </Badge>
           </div>
-          <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
             Centralized LLM unit economics, provider credentials, model token pricing rates ($/1M), and platform-wide workload routing.
           </p>
         </div>
@@ -457,7 +457,7 @@ export default function PlatformAiAccountingPage() {
               fetchAll();
             }}
             disabled={refreshing}
-            className="h-8 gap-1.5 rounded-lg border-slate-700 bg-slate-900/80 text-xs text-slate-200 hover:bg-slate-800 hover:text-white"
+            className="h-8 gap-1.5 rounded-lg border-border bg-card text-xs text-foreground hover:bg-muted hover:text-foreground"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-cyan-400" : ""}`} />
             <span>Sync Live Telemetry</span>
@@ -469,7 +469,7 @@ export default function PlatformAiAccountingPage() {
               setProviderForm(emptyProviderForm);
               setProviderModalOpen(true);
             }}
-            className="h-8 gap-1.5 rounded-lg bg-cyan-500 text-xs font-semibold text-slate-950 hover:bg-cyan-400"
+            className="h-8 gap-1.5 rounded-lg bg-cyan-500 text-xs font-semibold text-primary-foreground hover:bg-cyan-400"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Add Provider</span>
@@ -478,7 +478,7 @@ export default function PlatformAiAccountingPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-slate-800">
+      <div className="border-b border-border">
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as any)}
@@ -502,7 +502,7 @@ export default function PlatformAiAccountingPage() {
           {activeTab === "telemetry" && (
             <div className="space-y-6">
               {/* Active Engine Card */}
-              <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40 p-6 shadow-sm">
+              <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-card via-card to-primary/5 p-6 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -510,36 +510,36 @@ export default function PlatformAiAccountingPage() {
                       <span className="text-xs font-semibold uppercase tracking-wider text-cyan-300">
                         Active Production AI Engine
                       </span>
-                      <Badge variant="outline" className="border-slate-700 bg-slate-800 text-[10px] text-slate-300">
+                      <Badge variant="outline" className="border-border bg-muted text-[10px] text-foreground">
                         {primaryProvider?.name ?? "BytePlus ModelArk"}
                       </Badge>
                     </div>
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                       <span>Model:</span>
                       <span className="font-mono text-cyan-300">
                         {primaryProvider?.default_model || primaryModel?.model || "deepseek-v4-1-flash-260910"}
                       </span>
                     </h2>
-                    <p className="text-xs text-slate-400">
-                      Base Endpoint: <span className="font-mono text-slate-300">{primaryProvider?.base_url ?? "https://ark.ap-southeast.bytepluses.com/api/v3"}</span>
+                    <p className="text-xs text-muted-foreground">
+                      Base Endpoint: <span className="font-mono text-foreground">{primaryProvider?.base_url ?? "https://ark.ap-southeast.bytepluses.com/api/v3"}</span>
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4">
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2 text-center">
-                      <span className="text-[10px] uppercase text-slate-400">Input Token Rate</span>
+                    <div className="rounded-xl border border-border bg-muted/30 px-4 py-2 text-center">
+                      <span className="text-[10px] uppercase text-muted-foreground">Input Token Rate</span>
                       <p className="font-mono text-sm font-bold text-emerald-400">
                         ${primaryModel?.input_price ?? 0.10} / 1M
                       </p>
                     </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2 text-center">
-                      <span className="text-[10px] uppercase text-slate-400">Output Token Rate</span>
+                    <div className="rounded-xl border border-border bg-muted/30 px-4 py-2 text-center">
+                      <span className="text-[10px] uppercase text-muted-foreground">Output Token Rate</span>
                       <p className="font-mono text-sm font-bold text-cyan-400">
                         ${primaryModel?.output_price ?? 0.60} / 1M
                       </p>
                     </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-2 text-center">
-                      <span className="text-[10px] uppercase text-slate-400">Connection Health</span>
+                    <div className="rounded-xl border border-border bg-muted/30 px-4 py-2 text-center">
+                      <span className="text-[10px] uppercase text-muted-foreground">Connection Health</span>
                       <p className="font-mono text-sm font-bold text-emerald-400 flex items-center justify-center gap-1">
                         <CheckCircle className="h-3.5 w-3.5" />
                         <span>{primaryProvider?.last_test_status === "success" ? "Verified" : "Active"}</span>
@@ -560,30 +560,30 @@ export default function PlatformAiAccountingPage() {
 
               {/* Summary KPI Cards */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-                  <div className="flex items-center justify-between text-slate-400">
+                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur-sm">
+                  <div className="flex items-center justify-between text-muted-foreground">
                     <span className="text-xs font-medium uppercase tracking-wider">Total Tokens Consumed</span>
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
                       <Zap className="h-4 w-4" />
                     </div>
                   </div>
-                  <p className="mt-3 text-2xl font-bold text-white font-mono">
+                  <p className="mt-3 text-2xl font-bold text-foreground font-mono">
                     {formatTokens(data?.summary.total_tokens_consumed ?? 0)}
                   </p>
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground font-mono">
                     <span>In: {formatTokens(data?.summary.prompt_tokens ?? 0)}</span>
                     <span>Out: {formatTokens(data?.summary.completion_tokens ?? 0)}</span>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-                  <div className="flex items-center justify-between text-slate-400">
+                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur-sm">
+                  <div className="flex items-center justify-between text-muted-foreground">
                     <span className="text-xs font-medium uppercase tracking-wider">Platform LLM Spend</span>
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
                       <DollarSign className="h-4 w-4" />
                     </div>
                   </div>
-                  <p className="mt-3 text-2xl font-bold text-white font-mono">
+                  <p className="mt-3 text-2xl font-bold text-foreground font-mono">
                     ${data?.summary.total_cost_usd.toFixed(4) ?? "0.0000"}
                   </p>
                   <p className="mt-1 text-xs text-emerald-400 font-mono">
@@ -591,14 +591,14 @@ export default function PlatformAiAccountingPage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-                  <div className="flex items-center justify-between text-slate-400">
+                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur-sm">
+                  <div className="flex items-center justify-between text-muted-foreground">
                     <span className="text-xs font-medium uppercase tracking-wider">Total Invocations</span>
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
                       <Activity className="h-4 w-4" />
                     </div>
                   </div>
-                  <p className="mt-3 text-2xl font-bold text-white font-mono">
+                  <p className="mt-3 text-2xl font-bold text-foreground font-mono">
                     {data?.summary.total_requests.toLocaleString() ?? 0} calls
                   </p>
                   <p className="mt-1 text-xs text-indigo-300 font-mono">
@@ -606,14 +606,14 @@ export default function PlatformAiAccountingPage() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-                  <div className="flex items-center justify-between text-slate-400">
+                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur-sm">
+                  <div className="flex items-center justify-between text-muted-foreground">
                     <span className="text-xs font-medium uppercase tracking-wider">Response Latency</span>
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
                       <Cpu className="h-4 w-4" />
                     </div>
                   </div>
-                  <p className="mt-3 text-2xl font-bold text-white font-mono">
+                  <p className="mt-3 text-2xl font-bold text-foreground font-mono">
                     {((data?.summary.avg_latency_ms ?? 0) / 1000).toFixed(2)}s avg
                   </p>
                   <p className="mt-1 text-xs text-purple-300">
@@ -623,47 +623,47 @@ export default function PlatformAiAccountingPage() {
               </div>
 
               {/* Models Workload Distribution */}
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground mb-4 flex items-center gap-2">
                   <BarChart2 className="h-4 w-4 text-cyan-400" />
                   LLM Model Workload & Unit Economics
                 </h3>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {data?.models_distribution.map((m) => (
-                    <div key={m.model} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                    <div key={m.model} className="rounded-xl border border-border bg-muted/30 p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-mono font-bold text-white">{m.model}</span>
-                          <span className="block text-[10px] text-slate-400">{m.provider}</span>
+                          <span className="text-xs font-mono font-bold text-foreground">{m.model}</span>
+                          <span className="block text-[10px] text-muted-foreground">{m.provider}</span>
                         </div>
                         <Badge variant="outline" className="border-cyan-500/30 text-cyan-300 text-[10px]">
                           {m.percentage}% share
                         </Badge>
                       </div>
 
-                      <div className="mt-3 h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+                      <div className="mt-3 h-2 w-full rounded-full bg-muted overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 rounded-full"
                           style={{ width: `${Math.max(5, m.percentage)}%` }}
                         />
                       </div>
 
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-400 border-t border-slate-800/60 pt-2">
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] font-mono text-muted-foreground border-t border-border pt-2">
                         <div>
-                          <span className="text-[10px] text-slate-400 block">Tokens:</span>
-                          <span className="text-slate-200 font-semibold">{formatTokens(m.tokens)}</span>
+                          <span className="text-[10px] text-muted-foreground block">Tokens:</span>
+                          <span className="text-foreground font-semibold">{formatTokens(m.tokens)}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-400 block">Total Spend:</span>
+                          <span className="text-[10px] text-muted-foreground block">Total Spend:</span>
                           <span className="text-emerald-400 font-semibold">${m.cost_usd.toFixed(4)}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-400 block">In Rate:</span>
+                          <span className="text-[10px] text-muted-foreground block">In Rate:</span>
                           <span>${m.input_price}/M</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-400 block">Out Rate:</span>
+                          <span className="text-[10px] text-muted-foreground block">Out Rate:</span>
                           <span>${m.output_price}/M</span>
                         </div>
                       </div>
@@ -673,20 +673,20 @@ export default function PlatformAiAccountingPage() {
               </div>
 
               {/* Feature / Capability Token Breakdown */}
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div className="mb-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <Sliders className="h-4 w-4 text-indigo-400" />
                     Capability & System Feature Token Consumption
                   </h3>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Which features in Leadsy (Lead Scoring, BANTC Guide, Meeting Summary, Product Matching) consume the most LLM capacity.
                   </p>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <div className="overflow-x-auto rounded-xl border border-border">
                   <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-semibold uppercase text-slate-400">
+                    <thead className="border-b border-border bg-muted/60 text-[11px] font-semibold uppercase text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3">Feature Name / Action</th>
                         <th className="px-4 py-3">Total Invocations</th>
@@ -695,16 +695,16 @@ export default function PlatformAiAccountingPage() {
                         <th className="px-4 py-3">Avg Latency</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                    <tbody className="divide-y divide-border font-mono">
                       {data?.features_breakdown.map((f) => (
-                        <tr key={f.function_name} className="hover:bg-slate-800/30">
+                        <tr key={f.function_name} className="hover:bg-muted/30">
                           <td className="px-4 py-3 font-sans">
-                            <span className="font-semibold text-white">{f.function_name}</span>
+                            <span className="font-semibold text-foreground">{f.function_name}</span>
                           </td>
-                          <td className="px-4 py-3 text-slate-300">{f.total_calls.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-foreground">{f.total_calls.toLocaleString()}</td>
                           <td className="px-4 py-3 text-cyan-300 font-semibold">{formatTokens(f.total_tokens)}</td>
                           <td className="px-4 py-3 text-emerald-400 font-semibold">${f.total_cost_usd.toFixed(4)}</td>
-                          <td className="px-4 py-3 text-slate-400">{(f.avg_latency / 1000).toFixed(2)}s</td>
+                          <td className="px-4 py-3 text-muted-foreground">{(f.avg_latency / 1000).toFixed(2)}s</td>
                         </tr>
                       ))}
                     </tbody>
@@ -719,8 +719,8 @@ export default function PlatformAiAccountingPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-white">LLM Provider Registry & Vendor Credentials</h2>
-                  <p className="text-xs text-slate-400">
+                  <h2 className="text-base font-bold text-foreground">LLM Provider Registry & Vendor Credentials</h2>
+                  <p className="text-xs text-muted-foreground">
                     Configure upstream API keys, base endpoints, connection testing, and exact pricing rates ($/1M tokens) to reflect vendor costs accurately.
                   </p>
                 </div>
@@ -730,7 +730,7 @@ export default function PlatformAiAccountingPage() {
                     setProviderForm(emptyProviderForm);
                     setProviderModalOpen(true);
                   }}
-                  className="bg-cyan-500 text-xs font-semibold text-slate-950 hover:bg-cyan-400"
+                  className="bg-cyan-500 text-xs font-semibold text-primary-foreground hover:bg-cyan-400"
                 >
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
                   Add Provider
@@ -762,8 +762,8 @@ export default function PlatformAiAccountingPage() {
                   const isTesting = testingProviderId === p.id;
 
                   return (
-                    <div key={p.id} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-sm">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-slate-800/80 pb-4">
+                    <div key={p.id} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border pb-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400">
@@ -771,8 +771,8 @@ export default function PlatformAiAccountingPage() {
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <h3 className="text-base font-bold text-white">{p.name}</h3>
-                                <Badge variant="outline" className="border-slate-700 bg-slate-800 text-[10px] uppercase text-slate-300">
+                                <h3 className="text-base font-bold text-foreground">{p.name}</h3>
+                                <Badge variant="outline" className="border-border bg-muted text-[10px] uppercase text-foreground">
                                   {p.provider_type}
                                 </Badge>
                                 <Badge
@@ -780,13 +780,13 @@ export default function PlatformAiAccountingPage() {
                                   className={`text-[10px] ${
                                     p.status === "active"
                                       ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                                      : "border-slate-700 bg-slate-800 text-slate-400"
+                                      : "border-border bg-muted text-muted-foreground"
                                   }`}
                                 >
                                   {p.status}
                                 </Badge>
                               </div>
-                              <p className="text-xs font-mono text-slate-400">{p.base_url}</p>
+                              <p className="text-xs font-mono text-muted-foreground">{p.base_url}</p>
                             </div>
                           </div>
                         </div>
@@ -797,7 +797,7 @@ export default function PlatformAiAccountingPage() {
                             size="sm"
                             disabled={isTesting}
                             onClick={() => handleTestConnection(p)}
-                            className="h-8 border-slate-700 bg-slate-800/80 text-xs text-slate-200 hover:bg-slate-700 hover:text-white"
+                            className="h-8 border-border bg-muted text-xs text-foreground hover:bg-muted hover:text-foreground"
                           >
                             <Activity className={`mr-1.5 h-3.5 w-3.5 ${isTesting ? "animate-spin text-cyan-400" : ""}`} />
                             <span>{isTesting ? "Testing Ping..." : "Test Health"}</span>
@@ -821,7 +821,7 @@ export default function PlatformAiAccountingPage() {
                               });
                               setProviderModalOpen(true);
                             }}
-                            className="h-8 border-slate-700 bg-slate-800/80 text-xs text-slate-200 hover:bg-slate-700 hover:text-white"
+                            className="h-8 border-border bg-muted text-xs text-foreground hover:bg-muted hover:text-foreground"
                           >
                             <Edit3 className="mr-1.5 h-3.5 w-3.5" />
                             <span>Edit</span>
@@ -839,11 +839,11 @@ export default function PlatformAiAccountingPage() {
                       </div>
 
                       {/* API Key credential banner */}
-                      <div className="my-4 flex flex-col gap-2 rounded-xl border border-slate-800 bg-slate-950/60 p-3 sm:flex-row sm:items-center sm:justify-between text-xs">
+                      <div className="my-4 flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <Key className="h-4 w-4 text-amber-400 shrink-0" />
-                          <span className="text-slate-400">API Key:</span>
-                          <span className="font-mono text-slate-200">
+                          <span className="text-muted-foreground">API Key:</span>
+                          <span className="font-mono text-foreground">
                             {isKeyRevealed ? revealedKey?.key : p.api_key_masked}
                           </span>
                         </div>
@@ -854,7 +854,7 @@ export default function PlatformAiAccountingPage() {
                             size="sm"
                             disabled={revealingKeyId === p.id}
                             onClick={() => handleRevealKey(p.id)}
-                            className="h-7 text-xs text-slate-300 hover:text-white"
+                            className="h-7 text-xs text-foreground hover:text-foreground"
                           >
                             {isKeyRevealed ? <EyeOff className="mr-1 h-3.5 w-3.5" /> : <Eye className="mr-1 h-3.5 w-3.5" />}
                             <span>{isKeyRevealed ? "Hide Key" : "Reveal Key"}</span>
@@ -881,7 +881,7 @@ export default function PlatformAiAccountingPage() {
                       {/* Models List for this provider */}
                       <div className="mt-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
                             Configured Models & Token Pricing Rates ({p.models.length})
                           </h4>
 
@@ -895,16 +895,16 @@ export default function PlatformAiAccountingPage() {
                               });
                               setModelModalOpen(true);
                             }}
-                            className="h-7 border-slate-700 bg-slate-800 text-[11px] text-slate-300 hover:text-white"
+                            className="h-7 border-border bg-muted text-[11px] text-foreground hover:text-foreground"
                           >
                             <Plus className="mr-1 h-3 w-3" />
                             <span>Add Model & Rate</span>
                           </Button>
                         </div>
 
-                        <div className="overflow-x-auto rounded-xl border border-slate-800">
+                        <div className="overflow-x-auto rounded-xl border border-border">
                           <table className="w-full text-left text-xs">
-                            <thead className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-semibold uppercase text-slate-400">
+                            <thead className="border-b border-border bg-muted/60 text-[10px] font-semibold uppercase text-muted-foreground">
                               <tr>
                                 <th className="px-4 py-2.5">Model Name</th>
                                 <th className="px-4 py-2.5">Input Cost / 1M Tokens</th>
@@ -914,10 +914,10 @@ export default function PlatformAiAccountingPage() {
                                 <th className="px-4 py-2.5 text-right">Actions</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-800/60 font-mono">
+                            <tbody className="divide-y divide-border font-mono">
                               {p.models.map((m) => (
-                                <tr key={m.id} className="hover:bg-slate-800/30">
-                                  <td className="px-4 py-2.5 font-bold text-white font-sans flex items-center gap-1.5">
+                                <tr key={m.id} className="hover:bg-muted/30">
+                                  <td className="px-4 py-2.5 font-bold text-foreground font-sans flex items-center gap-1.5">
                                     <span>{m.name}</span>
                                     {p.default_model === m.name && (
                                       <Badge variant="outline" className="border-cyan-500/40 bg-cyan-500/10 text-[9px] text-cyan-300 font-sans">
@@ -931,7 +931,7 @@ export default function PlatformAiAccountingPage() {
                                   <td className="px-4 py-2.5 text-cyan-400 font-semibold">
                                     ${m.cost_per_million_output_tokens ?? 0.60} / 1M
                                   </td>
-                                  <td className="px-4 py-2.5 text-slate-400">
+                                  <td className="px-4 py-2.5 text-muted-foreground">
                                     {m.pricing_source === "manual" ? "Operator Configured" : "Default Rate"}
                                   </td>
                                   <td className="px-4 py-2.5">
@@ -956,7 +956,7 @@ export default function PlatformAiAccountingPage() {
                                           });
                                           setModelModalOpen(true);
                                         }}
-                                        className="h-6 px-2 text-[10px] text-slate-300 hover:text-white"
+                                        className="h-6 px-2 text-[10px] text-foreground hover:text-foreground"
                                       >
                                         Edit Price
                                       </Button>
@@ -987,19 +987,19 @@ export default function PlatformAiAccountingPage() {
           {activeTab === "routing" && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-base font-bold text-white">Capability & Model Routing Policy</h2>
-                <p className="text-xs text-slate-400">
+                <h2 className="text-base font-bold text-foreground">Capability & Model Routing Policy</h2>
+                <p className="text-xs text-muted-foreground">
                   Assign primary and fallback AI engines to each Leadsy workflow module (Lead Qualification, Meeting Summaries, WhatsApp Auto-Reply).
                 </p>
               </div>
 
               <div className="space-y-4">
                 {featureRoutes.map((group) => (
-                  <div key={group.feature_name} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-sm">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-3">
+                  <div key={group.feature_name} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-3">
                       <div>
-                        <h4 className="text-sm font-bold text-white">{group.feature_label || group.feature_name}</h4>
-                        <span className="text-[10px] font-mono text-slate-400">{group.feature_name}</span>
+                        <h4 className="text-sm font-bold text-foreground">{group.feature_label || group.feature_name}</h4>
+                        <span className="text-[10px] font-mono text-muted-foreground">{group.feature_name}</span>
                       </div>
                       <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-[10px]">
                         {group.routes.length} Active Route(s)
@@ -1010,19 +1010,19 @@ export default function PlatformAiAccountingPage() {
                       {group.routes.map((route, idx) => (
                         <div
                           key={route.id || idx}
-                          className="flex items-center justify-between rounded-xl border border-slate-800/80 bg-slate-950/60 px-4 py-2.5 text-xs font-mono"
+                          className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-2.5 text-xs font-mono"
                         >
                           <div className="flex items-center gap-3">
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold text-cyan-400">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-cyan-400">
                               #{route.priority}
                             </span>
                             <div>
-                              <span className="font-bold text-white">{route.model_name || "DeepSeek V4.1 Flash"}</span>
-                              <span className="text-slate-400 ml-2">({route.provider_name || "BytePlus ModelArk"})</span>
+                              <span className="font-bold text-foreground">{route.model_name || "DeepSeek V4.1 Flash"}</span>
+                              <span className="text-muted-foreground ml-2">({route.provider_name || "BytePlus ModelArk"})</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4 text-slate-400 font-sans">
+                          <div className="flex items-center gap-4 text-muted-foreground font-sans">
                             <span>Timeout: {route.timeout_seconds || 30}s</span>
                             <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-400">
                               Primary Engine
@@ -1040,20 +1040,20 @@ export default function PlatformAiAccountingPage() {
           {/* TAB 4: TENANTS & QUOTA MATRIX */}
           {activeTab === "matrix" && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div className="mb-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-indigo-400" />
                     Tenant Token Usage & Budget Ceiling Matrix
                   </h3>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Track AI expenditure per workspace to prevent budget overruns and guarantee healthy gross margins.
                   </p>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <div className="overflow-x-auto rounded-xl border border-border">
                   <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-semibold uppercase text-slate-400">
+                    <thead className="border-b border-border bg-muted/60 text-[11px] font-semibold uppercase text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3">Tenant Workspace</th>
                         <th className="px-4 py-3">Subscription Tier</th>
@@ -1064,31 +1064,31 @@ export default function PlatformAiAccountingPage() {
                         <th className="px-4 py-3">Utilization</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                    <tbody className="divide-y divide-border font-mono">
                       {data?.tenants.map((t) => (
-                        <tr key={t.tenant_id} className="hover:bg-slate-800/30">
+                        <tr key={t.tenant_id} className="hover:bg-muted/30">
                           <td className="px-4 py-3 font-sans">
-                            <div className="font-semibold text-white">{t.tenant_name}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">Tenant #{t.tenant_id}</div>
+                            <div className="font-semibold text-foreground">{t.tenant_name}</div>
+                            <div className="text-[10px] text-muted-foreground font-mono">Tenant #{t.tenant_id}</div>
                           </td>
                           <td className="px-4 py-3">
-                            <Badge variant="outline" className="text-[10px] uppercase border-slate-700 bg-slate-800/50">
+                            <Badge variant="outline" className="text-[10px] uppercase border-border bg-muted">
                               {t.plan}
                             </Badge>
                           </td>
-                          <td className="px-4 py-3 text-slate-300">{t.leads_analyzed}</td>
+                          <td className="px-4 py-3 text-foreground">{t.leads_analyzed}</td>
                           <td className="px-4 py-3 text-cyan-300 font-semibold">
                             {formatTokens(t.tokens_consumed)}
                           </td>
                           <td className="px-4 py-3 text-emerald-400 font-semibold">
                             ${t.estimated_cost_usd.toFixed(4)}
                           </td>
-                          <td className="px-4 py-3 text-slate-400">
+                          <td className="px-4 py-3 text-muted-foreground">
                             ${t.budget_cap_usd.toFixed(2)}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <div className="h-1.5 w-24 rounded-full bg-slate-800 overflow-hidden">
+                              <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
                                 <div
                                   className={`h-full rounded-full ${
                                     t.budget_utilization_percent > 80
@@ -1100,7 +1100,7 @@ export default function PlatformAiAccountingPage() {
                                   style={{ width: `${Math.max(3, t.budget_utilization_percent)}%` }}
                                 />
                               </div>
-                              <span className="text-[10px] text-slate-300">
+                              <span className="text-[10px] text-foreground">
                                 {t.budget_utilization_percent}%
                               </span>
                             </div>
@@ -1117,20 +1117,20 @@ export default function PlatformAiAccountingPage() {
           {/* TAB 5: LIVE LOGS STREAM */}
           {activeTab === "logs" && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div className="mb-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
                     <Zap className="h-4 w-4 text-cyan-400" />
                     Live AI Request Execution Stream
                   </h3>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Latest AI transactions executed across all tenant workspaces with exact tokens and latency.
                   </p>
                 </div>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <div className="overflow-x-auto rounded-xl border border-border">
                   <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-semibold uppercase text-slate-400">
+                    <thead className="border-b border-border bg-muted/60 text-[11px] font-semibold uppercase text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3">Timestamp</th>
                         <th className="px-4 py-3">Action / Feature</th>
@@ -1141,27 +1141,27 @@ export default function PlatformAiAccountingPage() {
                         <th className="px-4 py-3">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                    <tbody className="divide-y divide-border font-mono">
                       {data?.recent_logs.map((log) => (
-                        <tr key={log.id} className="hover:bg-slate-800/30">
-                          <td className="px-4 py-3 text-[11px] text-slate-400 whitespace-nowrap">
+                        <tr key={log.id} className="hover:bg-muted/30">
+                          <td className="px-4 py-3 text-[11px] text-muted-foreground whitespace-nowrap">
                             {new Date(log.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                           </td>
                           <td className="px-4 py-3 font-sans">
-                            <span className="font-semibold text-white block">{log.function_name}</span>
-                            <span className="text-[10px] font-mono text-slate-400">{log.provider_name}</span>
+                            <span className="font-semibold text-foreground block">{log.function_name}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">{log.provider_name}</span>
                           </td>
                           <td className="px-4 py-3 text-cyan-300">{log.model_name}</td>
                           <td className="px-4 py-3">
-                            <span className="font-semibold text-white">{formatTokens(log.total_tokens)}</span>
-                            <span className="text-[10px] text-slate-400 block font-sans">
+                            <span className="font-semibold text-foreground">{formatTokens(log.total_tokens)}</span>
+                            <span className="text-[10px] text-muted-foreground block font-sans">
                               {log.prompt_tokens} in / {log.completion_tokens} out
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-slate-300">{(log.latency_ms / 1000).toFixed(2)}s</td>
+                          <td className="px-4 py-3 text-foreground">{(log.latency_ms / 1000).toFixed(2)}s</td>
                           <td className="px-4 py-3 font-semibold text-emerald-400">
                             ${log.cost_usd.toFixed(6)}
-                            <span className="block text-[10px] text-slate-400">Rp {log.cost_converted}</span>
+                            <span className="block text-[10px] text-muted-foreground">Rp {log.cost_converted}</span>
                           </td>
                           <td className="px-4 py-3">
                             <Badge
@@ -1201,7 +1201,7 @@ export default function PlatformAiAccountingPage() {
             <Button
               disabled={savingProvider}
               onClick={handleSaveProvider}
-              className="bg-cyan-500 text-slate-950 font-semibold hover:bg-cyan-400"
+              className="bg-cyan-500 text-primary-foreground font-semibold hover:bg-cyan-400"
             >
               {savingProvider ? "Saving..." : "Save Provider"}
             </Button>
@@ -1211,7 +1211,7 @@ export default function PlatformAiAccountingPage() {
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300">Provider Display Name</label>
+              <label className="text-xs font-semibold text-foreground">Provider Display Name</label>
               <Input
                 value={providerForm.name}
                 onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
@@ -1220,7 +1220,7 @@ export default function PlatformAiAccountingPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300">Slug</label>
+              <label className="text-xs font-semibold text-foreground">Slug</label>
               <Input
                 value={providerForm.slug}
                 onChange={(e) => setProviderForm({ ...providerForm, slug: e.target.value })}
@@ -1232,7 +1232,7 @@ export default function PlatformAiAccountingPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300">Provider Engine Type</label>
+              <label className="text-xs font-semibold text-foreground">Provider Engine Type</label>
               <Select
                 value={providerForm.provider_type}
                 onChange={(e) => setProviderForm({ ...providerForm, provider_type: e.target.value })}
@@ -1249,7 +1249,7 @@ export default function PlatformAiAccountingPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300">Default Model</label>
+              <label className="text-xs font-semibold text-foreground">Default Model</label>
               <Input
                 value={providerForm.default_model}
                 onChange={(e) => setProviderForm({ ...providerForm, default_model: e.target.value })}
@@ -1260,7 +1260,7 @@ export default function PlatformAiAccountingPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-300">Base API URL</label>
+            <label className="text-xs font-semibold text-foreground">Base API URL</label>
             <Input
               value={providerForm.base_url}
               onChange={(e) => setProviderForm({ ...providerForm, base_url: e.target.value })}
@@ -1270,8 +1270,8 @@ export default function PlatformAiAccountingPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-300">
-              API Key {providerForm.id && <span className="text-slate-400 font-normal">(Leave blank to keep unchanged)</span>}
+            <label className="text-xs font-semibold text-foreground">
+              API Key {providerForm.id && <span className="text-muted-foreground font-normal">(Leave blank to keep unchanged)</span>}
             </label>
             <Input
               type="password"
@@ -1284,7 +1284,7 @@ export default function PlatformAiAccountingPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300">Timeout (Seconds)</label>
+              <label className="text-xs font-semibold text-foreground">Timeout (Seconds)</label>
               <Input
                 type="number"
                 value={providerForm.timeout_seconds}
@@ -1293,7 +1293,7 @@ export default function PlatformAiAccountingPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300">Operational Status</label>
+              <label className="text-xs font-semibold text-foreground">Operational Status</label>
               <Select
                 value={providerForm.status}
                 onChange={(e) => setProviderForm({ ...providerForm, status: e.target.value as any })}
@@ -1322,7 +1322,7 @@ export default function PlatformAiAccountingPage() {
             <Button
               disabled={savingModel}
               onClick={handleSaveModel}
-              className="bg-cyan-500 text-slate-950 font-semibold hover:bg-cyan-400"
+              className="bg-cyan-500 text-primary-foreground font-semibold hover:bg-cyan-400"
             >
               {savingModel ? "Saving..." : "Save Pricing Rate"}
             </Button>
@@ -1331,7 +1331,7 @@ export default function PlatformAiAccountingPage() {
       >
         <div className="space-y-4 py-2">
           <div>
-            <label className="text-xs font-semibold text-slate-300">Model Name / ID</label>
+            <label className="text-xs font-semibold text-foreground">Model Name / ID</label>
             <Input
               value={modelForm.name}
               onChange={(e) => setModelForm({ ...modelForm, name: e.target.value })}
@@ -1342,7 +1342,7 @@ export default function PlatformAiAccountingPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300">Input Cost ($ / 1M Tokens)</label>
+              <label className="text-xs font-semibold text-foreground">Input Cost ($ / 1M Tokens)</label>
               <Input
                 type="number"
                 step="0.01"
@@ -1351,11 +1351,11 @@ export default function PlatformAiAccountingPage() {
                 placeholder="0.10"
                 className="mt-1 font-mono"
               />
-              <span className="text-[10px] text-slate-400">Prompt tokens</span>
+              <span className="text-[10px] text-muted-foreground">Prompt tokens</span>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300">Output Cost ($ / 1M Tokens)</label>
+              <label className="text-xs font-semibold text-foreground">Output Cost ($ / 1M Tokens)</label>
               <Input
                 type="number"
                 step="0.01"
@@ -1364,13 +1364,13 @@ export default function PlatformAiAccountingPage() {
                 placeholder="0.60"
                 className="mt-1 font-mono"
               />
-              <span className="text-[10px] text-slate-400">Completion tokens</span>
+              <span className="text-[10px] text-muted-foreground">Completion tokens</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-300">Cost Tier</label>
+              <label className="text-xs font-semibold text-foreground">Cost Tier</label>
               <Select
                 value={modelForm.cost_tier}
                 onChange={(e) => setModelForm({ ...modelForm, cost_tier: e.target.value })}
@@ -1383,7 +1383,7 @@ export default function PlatformAiAccountingPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300">Status</label>
+              <label className="text-xs font-semibold text-foreground">Status</label>
               <Select
                 value={modelForm.status}
                 onChange={(e) => setModelForm({ ...modelForm, status: e.target.value })}

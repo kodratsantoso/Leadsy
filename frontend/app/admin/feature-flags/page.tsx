@@ -94,18 +94,18 @@ export default function PlatformFeatureFlagsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              Feature Flags & Entitlements
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Feature Flags & Modul Tenant
             </h1>
-            <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-semibold">
+            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs font-semibold">
               Module Gating
             </Badge>
           </div>
-          <p className="mt-1 text-xs text-slate-400 sm:text-sm">
-            Control platform capabilities and selectively enable or disable enterprise modules per tenant.
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            Kontrol kapabilitas platform dan aktifkan atau nonaktifkan modul enterprise untuk setiap tenant.
           </p>
         </div>
 
@@ -114,10 +114,10 @@ export default function PlatformFeatureFlagsPage() {
             variant="outline"
             size="sm"
             onClick={fetchFeatures}
-            className="h-8 gap-1.5 rounded-lg border-slate-700 bg-slate-900/80 text-xs text-slate-200 hover:bg-slate-800 hover:text-white"
+            className="h-8 gap-1.5 rounded-lg border-border bg-card text-xs text-foreground hover:bg-muted"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            <span>Refresh</span>
+            <span>Segarkan</span>
           </Button>
         </div>
       </div>
@@ -126,36 +126,36 @@ export default function PlatformFeatureFlagsPage() {
         <div
           className={`flex items-center justify-between rounded-xl border px-4 py-3 text-xs ${
             notice.type === "success"
-              ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-300"
-              : "border-red-500/30 bg-red-950/30 text-red-300"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "border-destructive/30 bg-destructive/10 text-destructive"
           }`}
         >
           <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} className="text-slate-400 hover:text-white">
+          <button onClick={() => setNotice(null)} className="text-muted-foreground hover:text-foreground">
             ×
           </button>
         </div>
       )}
 
       {/* Global Module Definitions */}
-      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-          <Sliders className="h-4 w-4 text-indigo-400" />
-          Standard Platform Modules ({modules.length})
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-foreground mb-4 flex items-center gap-2">
+          <Sliders className="h-4 w-4 text-primary" />
+          Modul Standar Platform ({modules.length})
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {modules.map((mod) => (
-            <div key={mod.key} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <div key={mod.key} className="rounded-xl border border-border bg-muted/30 p-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-white">{mod.name}</span>
-                <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-[10px] uppercase font-mono">
+                <span className="text-xs font-semibold text-foreground">{mod.name}</span>
+                <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-[10px] uppercase font-mono">
                   {mod.tier_requirement}
                 </Badge>
               </div>
-              <p className="mt-1 text-xs text-slate-400 line-clamp-2">{mod.description}</p>
-              <div className="mt-3 text-[11px] font-mono text-slate-400 border-t border-slate-800/60 pt-2">
-                Key: <span className="text-indigo-400 font-semibold">{mod.key}</span>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{mod.description}</p>
+              <div className="mt-3 text-[11px] font-mono text-muted-foreground border-t border-border pt-2">
+                Key: <span className="text-primary font-semibold">{mod.key}</span>
               </div>
             </div>
           ))}
@@ -163,53 +163,53 @@ export default function PlatformFeatureFlagsPage() {
       </div>
 
       {/* Tenant Matrix Table */}
-      <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-            <Layers className="h-4 w-4 text-cyan-400" />
-            Tenant Entitlements Matrix ({filteredTenants.length})
+          <h2 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" />
+            Matriks Entitlement Tenant ({filteredTenants.length})
           </h2>
 
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Filter tenants..."
+              placeholder="Cari tenant..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 pl-8 text-xs text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 pl-8 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
             />
           </div>
         </div>
 
         {loading ? (
           <div className="flex min-h-[30vh] items-center justify-center">
-            <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
+            <RefreshCw className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-semibold uppercase text-slate-400">
+              <thead className="border-b border-border bg-muted/60 text-[11px] font-semibold uppercase text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Tenant</th>
-                  <th className="px-4 py-3">Plan Tier</th>
+                  <th className="px-4 py-3">Paket Langganan</th>
                   {modules.map((m) => (
                     <th key={m.key} className="px-3 py-3 text-center">
                       {m.name.split(" ")[0]}
                     </th>
                   ))}
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-border">
                 {filteredTenants.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-800/30">
+                  <tr key={t.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-white">{t.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">#{t.id} • {t.slug}</div>
+                      <div className="font-semibold text-foreground">{t.name}</div>
+                      <div className="text-[10px] text-muted-foreground font-mono">#{t.id} • {t.slug}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="outline" className="text-[10px] uppercase font-mono border-slate-700 bg-slate-800/50">
+                      <Badge variant="outline" className="text-[10px] uppercase font-mono border-border bg-muted">
                         {t.plan}
                       </Badge>
                     </td>
@@ -221,11 +221,11 @@ export default function PlatformFeatureFlagsPage() {
                             type="button"
                             onClick={() => handleToggleModule(t.id, m.key)}
                             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                              isEnabled ? "bg-indigo-600" : "bg-slate-800"
+                              isEnabled ? "bg-primary" : "bg-muted-foreground/30"
                             }`}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${
                                 isEnabled ? "translate-x-4" : "translate-x-0"
                               }`}
                             />
@@ -238,10 +238,10 @@ export default function PlatformFeatureFlagsPage() {
                         onClick={() => handleSaveTenantFeatures(t)}
                         disabled={savingId === t.id}
                         size="sm"
-                        className="h-7 gap-1 rounded-lg bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-500 shadow-sm"
+                        className="h-7 gap-1 rounded-lg bg-primary text-xs font-semibold text-primary-foreground hover:bg-primary/90 shadow-xs"
                       >
                         <Save className="h-3 w-3" />
-                        <span>{savingId === t.id ? "Saving..." : "Save"}</span>
+                        <span>{savingId === t.id ? "Menyimpan..." : "Simpan"}</span>
                       </Button>
                     </td>
                   </tr>

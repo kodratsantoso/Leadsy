@@ -167,9 +167,9 @@ export default function PlatformAdminTenantsPage() {
       />
 
       {notice && (
-        <div className="mb-6 flex items-center justify-between rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-4 py-3 text-xs text-cyan-300 shadow-sm backdrop-blur-sm">
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-xs text-cyan-700 dark:text-cyan-300 shadow-xs backdrop-blur-xs">
           <span>{notice}</span>
-          <button onClick={() => setNotice(null)} className="text-slate-400 hover:text-white">
+          <button onClick={() => setNotice(null)} className="text-muted-foreground hover:text-foreground">
             ×
           </button>
         </div>
@@ -481,7 +481,7 @@ export default function PlatformAdminTenantsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleFlushCache(tenant)}
-                            className="h-8 rounded-lg px-2 text-xs hover:bg-muted text-slate-400 hover:text-cyan-400"
+                            className="h-8 rounded-lg px-2 text-xs hover:bg-muted text-muted-foreground hover:text-cyan-500"
                             title="Flush Tenant Memory Cache"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />

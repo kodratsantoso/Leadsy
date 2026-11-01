@@ -222,18 +222,18 @@ export default function PlatformInfrastructurePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
-              Queues, DLQ & Infrastructure Telemetry
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              Antrean Job, DLQ & Telemetri Infrastruktur
             </h1>
-            <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-semibold">
-              Sprint 2 Production Observability
+            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-xs font-semibold">
+              Observabilitas Produksi
             </Badge>
           </div>
-          <p className="mt-1 text-xs text-slate-400 sm:text-sm">
-            Real-time status of K3s pods, Redis background workers, Dead-Letter Queue (DLQ), Semantic Redis Cache, and PostgreSQL PV health.
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            Status real-time node K3s, background worker Redis, Dead-Letter Queue (DLQ), Semantic Redis Cache, dan persistensi volume PostgreSQL.
           </p>
         </div>
 
@@ -246,10 +246,10 @@ export default function PlatformInfrastructurePage() {
               fetchInfrastructure();
             }}
             disabled={refreshing}
-            className="h-8 gap-1.5 rounded-lg border-slate-700 bg-slate-900/80 text-xs text-slate-200 hover:bg-slate-800 hover:text-white"
+            className="h-8 gap-1.5 rounded-lg border-border bg-card text-xs text-foreground hover:bg-muted"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-indigo-400" : ""}`} />
-            <span>Refresh Telemetry</span>
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-primary" : ""}`} />
+            <span>Segarkan Telemetri</span>
           </Button>
         </div>
       </div>
@@ -258,12 +258,12 @@ export default function PlatformInfrastructurePage() {
         <div
           className={`flex items-center justify-between rounded-xl border px-4 py-3 text-xs ${
             message.type === "success"
-              ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-300"
-              : "border-red-500/30 bg-red-950/30 text-red-300"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              : "border-destructive/30 bg-destructive/10 text-destructive"
           }`}
         >
           <span>{message.text}</span>
-          <button onClick={() => setMessage(null)} className="text-slate-400 hover:text-white">
+          <button onClick={() => setMessage(null)} className="text-muted-foreground hover:text-foreground">
             ×
           </button>
         </div>
@@ -271,80 +271,80 @@ export default function PlatformInfrastructurePage() {
 
       {loading ? (
         <div className="flex min-h-[40vh] items-center justify-center">
-          <RefreshCw className="h-6 w-6 animate-spin text-indigo-500" />
+          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
         <>
           {/* Top KPI Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between text-slate-400">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Cluster Pods</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   <Server className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold text-white">3 Nodes</p>
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-emerald-400">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                Zero-Downtime Rollout Configured
+              <p className="mt-3 text-2xl font-bold text-foreground">3 Nodes</p>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Zero-Downtime Rollout Siap
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between text-slate-400">
-                <span className="text-xs font-medium uppercase tracking-wider">Redis Worker Queue</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-xs font-medium uppercase tracking-wider">Antrean Worker Redis</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Layers className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold text-white">
-                {data?.queues.pending_jobs ?? 0} <span className="text-xs text-slate-400 font-normal">pending</span>
+              <p className="mt-3 text-2xl font-bold text-foreground">
+                {data?.queues.pending_jobs ?? 0} <span className="text-xs text-muted-foreground font-normal">tertunda</span>
               </p>
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-indigo-300">
-                Driver: <span className="font-mono">{data?.queues.driver}</span>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                Driver: <span className="font-mono text-foreground font-medium">{data?.queues.driver}</span>
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between text-slate-400">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">Dead-Letter Queue (DLQ)</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
                   <AlertTriangle className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold text-white">
+              <p className="mt-3 text-2xl font-bold text-foreground">
                 {data?.queues.failed_jobs_count ?? 0}
               </p>
-              <p className="mt-1 text-xs text-slate-400">
-                {data?.queues.failed_jobs_count === 0 ? "Zero backlog detected" : "Failed jobs in DLQ"}
+              <p className="mt-1 text-xs text-muted-foreground">
+                {data?.queues.failed_jobs_count === 0 ? "Zero backlog (semua bersih)" : "Job gagal dalam DLQ"}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-sm backdrop-blur-sm">
-              <div className="flex items-center justify-between text-slate-400">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-xs">
+              <div className="flex items-center justify-between text-muted-foreground">
                 <span className="text-xs font-medium uppercase tracking-wider">PostgreSQL PV</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                   <HardDrive className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold text-white">SSOT Persisted</p>
-              <p className="mt-1 text-xs text-cyan-300 truncate">
+              <p className="mt-3 text-2xl font-bold text-foreground">SSOT Persisted</p>
+              <p className="mt-1 text-xs text-muted-foreground truncate">
                 {data?.database.version}
               </p>
             </div>
           </div>
 
           {/* Semantic Cache Performance Section */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-amber-400" />
-                  Semantic Redis Cache & Cost Efficiency
+                <h2 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-500" />
+                  Semantic Redis Cache & Efisiensi Biaya AI
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  Caches scraped URL contents (14-day TTL), company profiles, and duplicate AI inference prompts to optimize external token consumption.
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Menyimpan cache konten web (TTL 14 hari), profil perusahaan, dan inferensi prompt duplikat guna memangkas konsumsi token eksternal.
                 </p>
               </div>
 
@@ -353,58 +353,58 @@ export default function PlatformInfrastructurePage() {
                 disabled={actionLoading === "reset-cache"}
                 variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 rounded-lg border-slate-700 bg-slate-800 text-xs text-slate-300 hover:text-white"
+                className="h-8 gap-1.5 rounded-lg border-border bg-card text-xs text-foreground hover:bg-muted"
               >
                 <RefreshCw className={`h-3 w-3 ${actionLoading === "reset-cache" ? "animate-spin" : ""}`} />
-                <span>Reset Cache Telemetry</span>
+                <span>Reset Telemetri Cache</span>
               </Button>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <span className="text-[11px] font-medium uppercase text-slate-400">Hit Rate</span>
-                <p className="mt-2 text-2xl font-bold text-emerald-400">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Tingkat Hit (Hit Rate)</span>
+                <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                   {data?.semantic_cache?.hit_rate_pct ?? 0}%
                 </p>
-                <p className="mt-1 text-[11px] text-slate-400">
-                  {data?.semantic_cache?.hits ?? 0} hits / {data?.semantic_cache?.total_requests ?? 0} total calls
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {data?.semantic_cache?.hits ?? 0} hit / {data?.semantic_cache?.total_requests ?? 0} total request
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <span className="text-[11px] font-medium uppercase text-slate-400">Bandwidth Saved</span>
-                <p className="mt-2 text-2xl font-bold text-cyan-400">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Bandwidth Dihemat</span>
+                <p className="mt-2 text-2xl font-bold text-cyan-600 dark:text-cyan-400">
                   {formatBytes(data?.semantic_cache?.bytes_saved ?? 0)}
                 </p>
-                <p className="mt-1 text-[11px] text-slate-400">
-                  Scraped websites cached in Redis
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Web scraping yang tersimpan di Redis
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <span className="text-[11px] font-medium uppercase text-slate-400">Est. LLM Tokens Saved</span>
-                <p className="mt-2 text-2xl font-bold text-indigo-400">
-                  {(data?.semantic_cache?.estimated_tokens_saved ?? 0).toLocaleString()} tokens
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Estimasi Token AI Dihemat</span>
+                <p className="mt-2 text-2xl font-bold text-primary">
+                  {(data?.semantic_cache?.estimated_tokens_saved ?? 0).toLocaleString()} token
                 </p>
-                <p className="mt-1 text-[11px] text-slate-400">
-                  Saved via semantic prompt & profile deduplication
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Dihasilkan melalui dedup prompt semantik
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <span className="text-[11px] font-medium uppercase text-slate-400">Category Breakdown</span>
-                <div className="mt-2 space-y-1 text-[11px] text-slate-300">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <span className="text-[11px] font-medium uppercase text-muted-foreground">Rincian Kategori</span>
+                <div className="mt-2 space-y-1 text-[11px] text-foreground">
                   <div className="flex justify-between">
-                    <span>Web Scrape:</span>
-                    <span className="font-mono text-emerald-300">{data?.semantic_cache?.by_category?.scrape.hits ?? 0} hits</span>
+                    <span className="text-muted-foreground">Web Scrape:</span>
+                    <span className="font-mono text-emerald-600 dark:text-emerald-400">{data?.semantic_cache?.by_category?.scrape.hits ?? 0} hits</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Company Profile:</span>
-                    <span className="font-mono text-indigo-300">{data?.semantic_cache?.by_category?.company.hits ?? 0} hits</span>
+                    <span className="text-muted-foreground">Profil Perusahaan:</span>
+                    <span className="font-mono text-primary">{data?.semantic_cache?.by_category?.company.hits ?? 0} hits</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>AI Inference:</span>
-                    <span className="font-mono text-amber-300">{data?.semantic_cache?.by_category?.ai.hits ?? 0} hits</span>
+                    <span className="text-muted-foreground">Inferensi AI:</span>
+                    <span className="font-mono text-amber-600 dark:text-amber-400">{data?.semantic_cache?.by_category?.ai.hits ?? 0} hits</span>
                   </div>
                 </div>
               </div>
@@ -412,25 +412,25 @@ export default function PlatformInfrastructurePage() {
           </div>
 
           {/* Microservices Health Section */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4 flex items-center gap-2">
-              <Radio className="h-4 w-4 text-indigo-400" />
-              Connected Microservices & Gateways
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground mb-4 flex items-center gap-2">
+              <Radio className="h-4 w-4 text-primary" />
+              Microservices & Gateway Terhubung
             </h2>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {data?.services.map((svc, i) => (
-                <div key={i} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <div key={i} className="rounded-xl border border-border bg-muted/30 p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white">{svc.name}</span>
-                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[10px]">
+                    <span className="text-xs font-semibold text-foreground">{svc.name}</span>
+                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px]">
                       {svc.status}
                     </Badge>
                   </div>
-                  <p className="mt-1 text-[11px] text-slate-400">{svc.type}</p>
-                  <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/60 pt-2">
-                    <span>Performance Metric</span>
-                    <span className="font-mono text-slate-300 font-semibold">
+                  <p className="mt-1 text-[11px] text-muted-foreground">{svc.type}</p>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border pt-2">
+                    <span>Metrik Performa</span>
+                    <span className="font-mono text-foreground font-semibold">
                       {svc.latency || svc.rate_limit_remaining || svc.default_model}
                     </span>
                   </div>
@@ -440,15 +440,15 @@ export default function PlatformInfrastructurePage() {
           </div>
 
           {/* Queue Failed Jobs Inspector (DLQ) */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-amber-400" />
-                  Dead-Letter Queue (DLQ) Inspector ({data?.queues.failed_jobs.length ?? 0})
+                <h2 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-amber-500" />
+                  Inspektur Dead-Letter Queue (DLQ) ({data?.queues.failed_jobs.length ?? 0})
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  Inspect background exceptions, view stack traces, and trigger selective or bulk worker retries.
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Periksa exception background, buka stack trace lengkap, dan jalankan retry secara selektif atau massal.
                 </p>
               </div>
 
@@ -458,10 +458,10 @@ export default function PlatformInfrastructurePage() {
                     onClick={handleRetryAllJobs}
                     disabled={actionLoading === "retry-all"}
                     size="sm"
-                    className="h-8 gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs text-white"
+                    className="h-8 gap-1.5 rounded-lg bg-primary hover:bg-primary/90 text-xs text-primary-foreground font-semibold shadow-xs"
                   >
                     <RotateCw className={`h-3.5 w-3.5 ${actionLoading === "retry-all" ? "animate-spin" : ""}`} />
-                    <span>Retry All Jobs</span>
+                    <span>Ulangi Semua Job (Retry All)</span>
                   </Button>
                   <Button
                     onClick={handlePurgeFailedJobs}
@@ -471,46 +471,46 @@ export default function PlatformInfrastructurePage() {
                     className="h-8 gap-1.5 rounded-lg text-xs"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    <span>Purge DLQ</span>
+                    <span>Hapus Bersih DLQ</span>
                   </Button>
                 </div>
               )}
             </div>
 
             {data?.queues.failed_jobs && data.queues.failed_jobs.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-slate-800">
+              <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-semibold uppercase text-slate-400">
+                  <thead className="border-b border-border bg-muted/60 text-[11px] font-semibold uppercase text-muted-foreground">
                     <tr>
                       <th className="px-4 py-3">Job ID</th>
-                      <th className="px-4 py-3">Job Class</th>
-                      <th className="px-4 py-3">Queue</th>
-                      <th className="px-4 py-3">Failed At</th>
-                      <th className="px-4 py-3">Exception Summary</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
+                      <th className="px-4 py-3">Kelas Job</th>
+                      <th className="px-4 py-3">Antrean</th>
+                      <th className="px-4 py-3">Gagal Pada</th>
+                      <th className="px-4 py-3">Ringkasan Exception</th>
+                      <th className="px-4 py-3 text-right">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                  <tbody className="divide-y divide-border font-mono">
                     {data.queues.failed_jobs.map((job) => (
-                      <tr key={job.id} className="hover:bg-slate-800/30">
-                        <td className="px-4 py-3 font-semibold text-white">#{job.id}</td>
+                      <tr key={job.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-foreground">#{job.id}</td>
                         <td className="px-4 py-3">
-                          <span className="font-semibold text-slate-200">{job.name || "Unknown Job"}</span>
+                          <span className="font-semibold text-foreground">{job.name || "Unknown Job"}</span>
                           {job.full_class && job.full_class !== job.name && (
-                            <p className="text-[10px] text-slate-500 truncate max-w-xs">{job.full_class}</p>
+                            <p className="text-[10px] text-muted-foreground truncate max-w-xs">{job.full_class}</p>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-indigo-300 font-sans">
-                          <Badge variant="outline" className="border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-[10px]">
+                        <td className="px-4 py-3 text-primary font-sans">
+                          <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-[10px]">
                             {job.queue}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-slate-400 text-[11px] font-sans">
-                          {new Date(job.failed_at).toLocaleString()}
+                        <td className="px-4 py-3 text-muted-foreground text-[11px] font-sans">
+                          {new Date(job.failed_at).toLocaleString("id-ID")}
                         </td>
                         <td className="px-4 py-3 max-w-md">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-red-300/90 truncate">{job.exception_summary}</span>
+                            <span className="text-destructive truncate">{job.exception_summary}</span>
                             <button
                               onClick={() => setSelectedException({
                                 id: job.id,
@@ -518,8 +518,8 @@ export default function PlatformInfrastructurePage() {
                                 queue: job.queue,
                                 exception: job.full_exception || job.exception_summary,
                               })}
-                              className="text-slate-400 hover:text-white shrink-0 p-0.5"
-                              title="View Full Stack Trace"
+                              className="text-muted-foreground hover:text-foreground shrink-0 p-0.5 cursor-pointer"
+                              title="Lihat Stack Trace Lengkap"
                             >
                               <FileCode className="h-3.5 w-3.5" />
                             </button>
@@ -532,9 +532,9 @@ export default function PlatformInfrastructurePage() {
                               disabled={actionLoading === `retry-${job.id}`}
                               size="sm"
                               variant="outline"
-                              className="h-7 gap-1 border-slate-700 bg-slate-800/80 text-xs text-slate-200 hover:bg-slate-700"
+                              className="h-7 gap-1 border-border bg-card text-xs text-foreground hover:bg-muted"
                             >
-                              <RotateCw className={`h-3 w-3 ${actionLoading === `retry-${job.id}` ? "animate-spin text-indigo-400" : ""}`} />
+                              <RotateCw className={`h-3 w-3 ${actionLoading === `retry-${job.id}` ? "animate-spin text-primary" : ""}`} />
                               <span>Retry</span>
                             </Button>
                             <Button
@@ -542,8 +542,8 @@ export default function PlatformInfrastructurePage() {
                               disabled={actionLoading === `delete-${job.id}`}
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-2 text-slate-400 hover:text-red-400 hover:bg-red-950/20"
-                              title="Dismiss / Delete Job"
+                              className="h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              title="Hapus Job Ini"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -555,12 +555,12 @@ export default function PlatformInfrastructurePage() {
                 </table>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 py-10 text-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 mb-2">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-10 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-2">
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-semibold text-slate-200">Zero Failed Jobs</p>
-                <p className="mt-1 text-xs text-slate-400">The Redis queue worker pipeline is processing smoothly with zero exceptions.</p>
+                <p className="text-sm font-semibold text-foreground">Zero Failed Jobs</p>
+                <p className="mt-1 text-xs text-muted-foreground">Pipeline Redis worker memproses antrean dengan lancar tanpa exception.</p>
               </div>
             )}
           </div>
@@ -569,38 +569,38 @@ export default function PlatformInfrastructurePage() {
 
       {/* Exception Detail Modal */}
       {selectedException && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-3xl rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="relative w-full max-w-3xl rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border pb-4">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-400" />
-                  Exception Detail: #{selectedException.id} ({selectedException.name || "Job"})
+                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Detail Exception: #{selectedException.id} ({selectedException.name || "Job"})
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Queue: <span className="text-indigo-300 font-mono">{selectedException.queue}</span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Antrean: <span className="text-primary font-mono font-medium">{selectedException.queue}</span>
                 </p>
               </div>
               <button
                 onClick={() => setSelectedException(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-4 max-h-[60vh] overflow-y-auto rounded-xl border border-slate-800/80 bg-slate-950 p-4 font-mono text-xs text-red-300/90 leading-relaxed whitespace-pre-wrap">
+            <div className="mt-4 max-h-[60vh] overflow-y-auto rounded-xl border border-border bg-muted/40 p-4 font-mono text-xs text-destructive leading-relaxed whitespace-pre-wrap">
               {selectedException.exception}
             </div>
 
-            <div className="mt-5 flex justify-end gap-2 border-t border-slate-800 pt-4">
+            <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedException(null)}
-                className="border-slate-700 text-xs"
+                className="border-border text-xs"
               >
-                Close
+                Tutup
               </Button>
               <Button
                 size="sm"
@@ -609,10 +609,10 @@ export default function PlatformInfrastructurePage() {
                   setSelectedException(null);
                   handleRetryJob(id);
                 }}
-                className="bg-indigo-600 hover:bg-indigo-500 text-xs text-white gap-1"
+                className="bg-primary hover:bg-primary/90 text-xs text-primary-foreground font-semibold gap-1 shadow-xs"
               >
                 <RotateCw className="h-3 w-3" />
-                <span>Retry This Job</span>
+                <span>Retry Job Ini</span>
               </Button>
             </div>
           </div>
