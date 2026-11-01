@@ -18,6 +18,7 @@ import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import Link from "next/link";
 import { describeThrown } from "@/lib/apiError";
 import { EmailIntegrationSubTab } from "@/components/settings/EmailIntegrationSubTab";
+import { MekariSignIntegrationSubTab } from "@/components/settings/MekariSignIntegrationSubTab";
 import {
   Table,
   TableBody,
@@ -39,7 +40,7 @@ type IntegrationConfig = {
   value_type: "string" | "boolean" | "number" | "json";
 };
 
-type TabKey = "lead_platforms" | "maps" | "whatsapp" | "email" | "lusha" | "webhooks" | "lark" | "linkedin";
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "email" | "mekari_sign" | "lusha" | "webhooks" | "lark" | "linkedin";
 type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
 type GooglePermission = {
   id: string;
@@ -529,7 +530,7 @@ function createDefaultLeadPlatforms(): Record<string, IntegrationConfig> {
 function IntegrationsSettingsContent() {
   const searchParams = useSearchParams();
   const queryTab = searchParams.get("tab") as TabKey | null;
-  const validTabs: TabKey[] = ["lead_platforms", "maps", "whatsapp", "email", "lusha", "webhooks", "lark", "linkedin"];
+  const validTabs: TabKey[] = ["lead_platforms", "maps", "whatsapp", "email", "mekari_sign", "lusha", "webhooks", "lark", "linkedin"];
   const initialTab = queryTab && validTabs.includes(queryTab) ? queryTab : "lead_platforms";
   const [tab, setTab] = useState<TabKey>(initialTab);
 
@@ -1292,6 +1293,7 @@ function IntegrationsSettingsContent() {
           { key: "maps", label: "Google", icon: MapPin },
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
           { key: "email", label: "Email & SMTP", icon: Mail },
+          { key: "mekari_sign", label: "Mekari Sign & e-Meterai", icon: FileCheck },
           { key: "lusha", label: "Lusha", icon: Key },
           { key: "linkedin", label: "LinkedIn", icon: Linkedin },
           { key: "lark", label: "Lark", icon: Key },
@@ -1332,12 +1334,15 @@ function IntegrationsSettingsContent() {
                   </p>
                 </div>
               </div>
-              <Link href="/settings/integrations/mekari-sign" className="shrink-0">
-                <Button size="sm" variant="outline" className="border-indigo-500/30 text-indigo-300 hover:bg-indigo-950/50 text-xs gap-1.5">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Buka Pengaturan Mekari Sign
-                </Button>
-              </Link>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setTab("mekari_sign")}
+                className="border-indigo-500/30 text-indigo-300 hover:bg-indigo-950/50 text-xs gap-1.5 shrink-0"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Buka Pengaturan Mekari Sign
+              </Button>
             </div>
           </Card>
 
@@ -2491,6 +2496,9 @@ function IntegrationsSettingsContent() {
 
       {/* ── Email & SMTP ── */}
       {tab === "email" && <EmailIntegrationSubTab />}
+
+      {/* ── Mekari Sign & e-Meterai ── */}
+      {tab === "mekari_sign" && <MekariSignIntegrationSubTab />}
 
       {/* ── Lusha ── */}
       {tab === "lusha" && (
