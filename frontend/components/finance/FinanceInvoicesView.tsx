@@ -4,10 +4,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { 
   Receipt, Search, RefreshCw, FileText, Download, 
   CheckCircle2, AlertCircle, Clock, 
-  Building2, ArrowUpRight, Play, ShieldCheck, Sparkles
+  Building2, ArrowUpRight, Play, ShieldCheck, Sparkles,
+  Mail, CreditCard, Send, Check
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterBar, FilterBarSearch } from "@/components/ui/filter-bar";
 import { Modal } from "@/components/ui/modal";
@@ -89,6 +91,22 @@ export function FinanceInvoicesView() {
   // Generate Faktur Pajak State
   const [generatingFakturId, setGeneratingFakturId] = useState<number | null>(null);
   const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Payment Recording State
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<InvoiceItem | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentDate, setPaymentDate] = useState<string>("");
+  const [paymentNotes, setPaymentNotes] = useState<string>("");
+  const [recordingPayment, setRecordingPayment] = useState(false);
+
+  // Email Dispatch State
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<InvoiceItem | null>(null);
+  const [emailRecipient, setEmailRecipient] = useState<string>("");
+  const [emailSubject, setEmailSubject] = useState<string>("");
+  const [emailMessage, setEmailMessage] = useState<string>("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -180,6 +198,101 @@ export function FinanceInvoicesView() {
       setActionMessage({ type: "error", text: err.message || "Gagal preview PDF." });
     } finally {
       setLoadingPdf(false);
+    }
+  };
+
+  const handlePreviewFakturPajakPdf = async (fakturId: number, nsfp: string) => {
+    setLoadingPdf(true);
+    setPreviewTitle(`Faktur Pajak #${nsfp}`);
+    setPreviewModalOpen(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(`/api/finance/faktur-pajak/${fakturId}/preview-pdf`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          Accept: "application/pdf",
+        },
+      });
+      if (!res.ok) throw new Error("Gagal memuat PDF Faktur Pajak");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      setPreviewUrl(blobUrl);
+    } catch (err: any) {
+      console.error(err);
+      setActionMessage({ type: "error", text: err.message || "Gagal preview Faktur Pajak PDF." });
+    } finally {
+      setLoadingPdf(false);
+    }
+  };
+
+  const handleOpenPaymentModal = (invoice: InvoiceItem) => {
+    setSelectedInvoiceForPayment(invoice);
+    const unpaid = Math.max(0, invoice.total_amount - (invoice.paid_amount || 0));
+    setPaymentAmount(unpaid);
+    setPaymentDate(new Date().toISOString().split("T")[0]);
+    setPaymentNotes("");
+    setPaymentModalOpen(true);
+  };
+
+  const handleSubmitPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedInvoiceForPayment) return;
+    setRecordingPayment(true);
+    try {
+      const res = await apiFetch(`/finance/invoices/${selectedInvoiceForPayment.id}/payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: paymentAmount,
+          paid_at: paymentDate,
+          notes: paymentNotes,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Gagal mencatat pembayaran.");
+      setActionMessage({ type: "success", text: json.message || "Pembayaran berhasil diverifikasi." });
+      setPaymentModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.message || "Gagal mencatat pembayaran." });
+    } finally {
+      setRecordingPayment(false);
+    }
+  };
+
+  const handleOpenEmailModal = (invoice: InvoiceItem) => {
+    setSelectedInvoiceForEmail(invoice);
+    setEmailRecipient("");
+    setEmailSubject(`Faktur Penagihan #${invoice.invoice_number} - Leadsy Enterprise`);
+    setEmailMessage(
+      `Yth. Tim Finance & Pengadaan,\n\nTerlampir kami sampaikan Faktur Penagihan resmi #${invoice.invoice_number} senilai ${formatCurrency(invoice.total_amount)} atas layanan/produk kami.\n\nMohon lakukan transfer ke rekening bank resmi yang tercantum pada faktur sebelum tanggal jatuh tempo ${invoice.due_date}.\n\nTerima kasih atas kerja samanya.\n\nSalam hormat,\nFinance Team`
+    );
+    setEmailModalOpen(true);
+  };
+
+  const handleSendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedInvoiceForEmail) return;
+    setSendingEmail(true);
+    try {
+      const res = await apiFetch(`/finance/invoices/${selectedInvoiceForEmail.id}/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient_email: emailRecipient,
+          subject: emailSubject,
+          message: emailMessage,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Gagal mengirim email faktur.");
+      setActionMessage({ type: "success", text: json.message || "Email faktur berhasil dikirim!" });
+      setEmailModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.message || "Gagal mengirim email faktur." });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -429,10 +542,24 @@ export function FinanceInvoicesView() {
                     </TableCell>
                     <TableCell>
                       {inv.faktur_pajak?.nsfp_number || inv.nsfp_number ? (
-                        <Badge variant="info" className="font-mono text-[11px]">
-                          <ShieldCheck className="h-3 w-3 mr-1" />
-                          {inv.faktur_pajak?.nsfp_number || inv.nsfp_number}
-                        </Badge>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handlePreviewFakturPajakPdf(
+                                inv.faktur_pajak?.id || 0,
+                                inv.faktur_pajak?.nsfp_number || inv.nsfp_number || ""
+                              )
+                            }
+                            className="inline-flex items-center hover:opacity-80 transition"
+                            title="Klik untuk Pratinjau Faktur Pajak PDF"
+                          >
+                            <Badge variant="info" className="font-mono text-[11px] cursor-pointer">
+                              <ShieldCheck className="h-3 w-3 mr-1" />
+                              {inv.faktur_pajak?.nsfp_number || inv.nsfp_number}
+                            </Badge>
+                          </button>
+                        </div>
                       ) : (
                         <Button
                           size="xs"
@@ -452,6 +579,27 @@ export function FinanceInvoicesView() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {inv.status !== "paid" && (
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={() => handleOpenPaymentModal(inv)}
+                            className="h-7 text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 font-medium"
+                            title="Verifikasi & Catat Pembayaran Klien"
+                          >
+                            <CreditCard className="h-3.5 w-3.5 mr-1" />
+                            Catat Bayar
+                          </Button>
+                        )}
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() => handleOpenEmailModal(inv)}
+                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          title="Kirim Faktur via Email ke Customer"
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                        </Button>
                         <Button
                           size="xs"
                           variant="ghost"
@@ -520,6 +668,141 @@ export function FinanceInvoicesView() {
               <span className="text-xs text-muted-foreground">Gagal memuat pratinjau PDF.</span>
             )}
           </div>
+        </Modal>
+      )}
+
+      {/* Record Payment Modal */}
+      {paymentModalOpen && selectedInvoiceForPayment && (
+        <Modal
+          open={paymentModalOpen}
+          onOpenChange={(open: boolean) => {
+            if (!open) setPaymentModalOpen(false);
+          }}
+          title={`Verifikasi & Catat Pembayaran: #${selectedInvoiceForPayment.invoice_number}`}
+          description={`Klien: ${selectedInvoiceForPayment.lead?.company_name || "-"} | Total Tagihan: ${formatCurrency(selectedInvoiceForPayment.total_amount)}`}
+          size="md"
+          footer={
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" size="sm" onClick={() => setPaymentModalOpen(false)} disabled={recordingPayment}>
+                Batal
+              </Button>
+              <Button variant="default" size="sm" onClick={handleSubmitPayment} disabled={recordingPayment} className="gap-1.5">
+                {recordingPayment ? <Spinner size="xs" /> : <Check className="h-4 w-4" />}
+                Verifikasi & Terima Pelunasan
+              </Button>
+            </div>
+          }
+        >
+          <form onSubmit={handleSubmitPayment} className="space-y-4 py-2">
+            <div className="p-3 bg-muted/30 rounded-xl border border-border text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Tagihan:</span>
+                <span className="font-bold">{formatCurrency(selectedInvoiceForPayment.total_amount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Sudah Dibayar:</span>
+                <span className="text-emerald-600 font-semibold">{formatCurrency(selectedInvoiceForPayment.paid_amount || 0)}</span>
+              </div>
+              <div className="flex justify-between border-t border-border pt-1">
+                <span className="font-semibold">Sisa Tagihan (AR):</span>
+                <span className="font-bold text-foreground">
+                  {formatCurrency(Math.max(0, selectedInvoiceForPayment.total_amount - (selectedInvoiceForPayment.paid_amount || 0)))}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Jumlah Pembayaran Diterima (Rp) *</label>
+              <Input
+                type="number"
+                min="1"
+                max={selectedInvoiceForPayment.total_amount}
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Tanggal Dana Diterima *</label>
+              <Input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Catatan Mutasi Bank / Rekening Tujuan</label>
+              <Input
+                placeholder="Contoh: Transfer BCA Rek. 122-001 atas nama PT Virtuenet"
+                value={paymentNotes}
+                onChange={(e) => setPaymentNotes(e.target.value)}
+              />
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Send Invoice Email Modal */}
+      {emailModalOpen && selectedInvoiceForEmail && (
+        <Modal
+          open={emailModalOpen}
+          onOpenChange={(open: boolean) => {
+            if (!open) setEmailModalOpen(false);
+          }}
+          title={`Kirim Faktur via Email: #${selectedInvoiceForEmail.invoice_number}`}
+          description={`Kirim file PDF faktur resmi dan rincian rekening pembayaran langsung ke email customer.`}
+          size="lg"
+          footer={
+            <div className="flex justify-end gap-2 w-full">
+              <Button variant="outline" size="sm" onClick={() => setEmailModalOpen(false)} disabled={sendingEmail}>
+                Batal
+              </Button>
+              <Button variant="default" size="sm" onClick={handleSendEmail} disabled={sendingEmail} className="gap-1.5">
+                {sendingEmail ? <Spinner size="xs" /> : <Send className="h-4 w-4" />}
+                Kirim Faktur ke Pelanggan
+              </Button>
+            </div>
+          }
+        >
+          <form onSubmit={handleSendEmail} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Email Penerima (Customer / Accounting) *</label>
+              <Input
+                type="email"
+                placeholder="accounting@customer.com"
+                value={emailRecipient}
+                onChange={(e) => setEmailRecipient(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Subjek Email *</label>
+              <Input
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">Pesan Pengantar</label>
+              <textarea
+                rows={5}
+                className="w-full text-xs rounded-xl border border-input bg-background p-3 text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+              />
+            </div>
+
+            <div className="p-3 bg-muted/20 border border-border rounded-xl text-xs text-muted-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4 text-[var(--brand)] shrink-0" />
+              <span>File PDF <strong>Invoice #{selectedInvoiceForEmail.invoice_number}.pdf</strong> akan dilampirkan secara otomatis ke dalam email ini.</span>
+            </div>
+          </form>
         </Modal>
       )}
     </div>

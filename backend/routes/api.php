@@ -394,6 +394,8 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('finance/invoices/{invoice}', [\App\Http\Controllers\Api\FinanceHubController::class, 'getInvoiceDetails']);
     Route::get('finance/invoices/{invoice}/preview-pdf', [\App\Http\Controllers\Api\FinanceHubController::class, 'previewInvoicePdf']);
     Route::post('finance/invoices/{invoice}/generate-faktur', [\App\Http\Controllers\Api\FinanceHubController::class, 'generateFakturPajak'])->middleware('permission:leads.edit');
+    Route::post('finance/invoices/{invoice}/payment', [\App\Http\Controllers\Api\FinanceHubController::class, 'recordPayment'])->middleware('permission:leads.edit');
+    Route::post('finance/invoices/{invoice}/send-email', [\App\Http\Controllers\Api\FinanceHubController::class, 'sendInvoiceEmail'])->middleware('permission:leads.edit');
     Route::get('finance/faktur-pajak', [\App\Http\Controllers\Api\FinanceHubController::class, 'getFakturPajaks']);
     Route::get('finance/faktur-pajak/{faktur}/preview-pdf', [\App\Http\Controllers\Api\FinanceHubController::class, 'previewFakturPajakPdf']);
     Route::get('finance/faktur-pajak-export/djp-csv', [\App\Http\Controllers\Api\FinanceHubController::class, 'exportDjpCsv']);

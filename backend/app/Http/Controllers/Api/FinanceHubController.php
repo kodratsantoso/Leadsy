@@ -339,4 +339,90 @@ class FinanceHubController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Record payment for an invoice directly from Finance Hub.
+     */
+    public function recordPayment(CommercialInvoice $invoice, Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'paid_at' => 'nullable|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $updated = $this->invoiceService->recordPayment(
+            $invoice,
+            (float)$validated['amount'],
+            $validated['paid_at'] ?? null
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Pembayaran sebesar Rp " . number_format($validated['amount'], 0, ',', '.') . " berhasil dicatat dan diverifikasi.",
+            'data' => $updated,
+        ]);
+    }
+
+    /**
+     * Send Commercial Invoice via Email to customer.
+     */
+    public function sendInvoiceEmail(CommercialInvoice $invoice, Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'recipient_email' => 'required|email',
+            'subject' => 'nullable|string|max:200',
+            'message' => 'nullable|string',
+        ]);
+
+        $recipientEmail = trim($validated['recipient_email']);
+        $lead = $invoice->lead;
+        $customerName = $lead?->company_name ?? 'Pelanggan';
+
+        // Ensure PDF is generated
+        $pdfResult = $this->invoiceService->generateInvoicePdf($invoice);
+
+        // Update status to sent
+        if ($invoice->status === 'draft') {
+            $invoice->update(['status' => 'sent']);
+        }
+
+        // Try sending mail via configured mailer
+        try {
+            \Illuminate\Support\Facades\Mail::raw(
+                $validated['message'] ?? "Yth. {$customerName},\n\nTerlampir kami sampaikan Faktur Penagihan resmi #{$invoice->invoice_number} senilai Rp " . number_format($invoice->total_amount, 0, ',', '.') . " dengan tanggal jatuh tempo " . ($invoice->due_date ? Carbon::parse($invoice->due_date)->format('d F Y') : '-') . ".\n\nMohon lakukan pembayaran ke rekening bank yang tertera pada faktur.\n\nTerima kasih,\nFinance & Accounting Team",
+                function ($mail) use ($recipientEmail, $invoice, $validated, $pdfResult) {
+                    $mail->to($recipientEmail)
+                         ->subject($validated['subject'] ?? "Faktur Penagihan #{$invoice->invoice_number} - Leadsy Enterprise");
+
+                    if (!empty($pdfResult['raw_content'])) {
+                        $mail->attachData($pdfResult['raw_content'], $pdfResult['filename'], [
+                            'mime' => 'application/pdf',
+                        ]);
+                    }
+                }
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Invoice email dispatch warning: " . $e->getMessage());
+        }
+
+        \App\Models\LeadActivity::create([
+            'lead_id' => $invoice->lead_id,
+            'user_id' => auth()->id(),
+            'activity_type' => 'invoice_sent_email',
+            'notes' => "[INVOICE SENT] Faktur penagihan #{$invoice->invoice_number} telah dikirim via email ke {$recipientEmail}.",
+            'tenant_id' => $invoice->tenant_id,
+            'metadata' => [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'recipient_email' => $recipientEmail,
+            ],
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Faktur penagihan #{$invoice->invoice_number} berhasil dikirim ke {$recipientEmail}.",
+            'data' => $invoice->fresh(),
+        ]);
+    }
 }
