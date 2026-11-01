@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { apiFetch } from "@/lib/apiFetch";
 import { useAuthStore } from "@/store/useAuthStore";
 import { PlatformAdminHeader } from "@/components/platform-admin/PlatformAdminHeader";
@@ -257,28 +258,30 @@ export default function PlatformAdminTenantsPage() {
             />
           </div>
 
-          <select
-            value={planFilter}
-            onChange={(e) => setPlanFilter(e.target.value)}
-            className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none shadow-sm"
-          >
-            <option value="all">All Plans</option>
-            <option value="enterprise">Enterprise</option>
-            <option value="pro">Professional</option>
-            <option value="starter">Starter</option>
-            <option value="trial">Trial</option>
-          </select>
+          <div className="w-40">
+            <Select
+              value={planFilter}
+              onChange={(e) => setPlanFilter(e.target.value)}
+            >
+              <option value="all">All Plans</option>
+              <option value="enterprise">Enterprise</option>
+              <option value="pro">Professional</option>
+              <option value="starter">Starter</option>
+              <option value="trial">Trial</option>
+            </Select>
+          </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground outline-none shadow-sm"
-          >
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="trial">Trial</option>
-            <option value="suspended">Suspended</option>
-          </select>
+          <div className="w-40">
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="trial">Trial</option>
+              <option value="suspended">Suspended</option>
+            </Select>
+          </div>
         </div>
 
         <Button

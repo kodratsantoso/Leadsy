@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input, Textarea } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { fetchAssignableUsers, type AssignableUser } from '@/lib/api/leads';
@@ -859,25 +860,27 @@ function OmnichannelInboxContent() {
             {/* Sub-Filters: WhatsApp Specific */}
             {selectedChannel === 'whatsapp' && (
               <div className="flex items-center gap-1.5 pt-0.5">
-                <select
+                <Select
+                  size="sm"
                   value={waEngineFilter}
                   onChange={(e) => setWaEngineFilter(e.target.value as any)}
-                  className="flex-1 bg-background text-[11px] font-medium border border-border rounded-md px-2 py-1 text-foreground focus:outline-hidden"
+                  className="flex-1"
                 >
                   <option value="all">Semua Engine WA</option>
                   <option value="whatsapp">Local WhatsApp (Baileys)</option>
                   <option value="mekari_qontak">Mekari Qontak API</option>
-                </select>
+                </Select>
 
-                <select
+                <Select
+                  size="sm"
                   value={waStatusFilter}
                   onChange={(e) => setWaStatusFilter(e.target.value as any)}
-                  className="bg-background text-[11px] font-medium border border-border rounded-md px-2 py-1 text-foreground focus:outline-hidden"
+                  className="w-32"
                 >
                   <option value="all">Semua Status</option>
                   <option value="unassigned">Unassigned</option>
                   <option value="resolved">Resolved</option>
-                </select>
+                </Select>
               </div>
             )}
 
@@ -890,7 +893,7 @@ function OmnichannelInboxContent() {
                     type="button"
                     onClick={() => setEmailFolderFilter(folder)}
                     className={cn(
-                      "flex-1 py-1 rounded-md text-center transition-all capitalize",
+                      "flex-1 h-8 rounded-md text-center transition-all capitalize flex items-center justify-center",
                       emailFolderFilter === folder
                         ? "bg-blue-600 text-white font-semibold"
                         : "bg-muted text-muted-foreground hover:text-foreground"
@@ -904,13 +907,14 @@ function OmnichannelInboxContent() {
 
             {/* Search Bar */}
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
+                size="sm"
                 type="text"
                 placeholder="Cari kontak, nomor, atau isi pesan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs bg-background"
+                className="pl-8"
               />
             </div>
           </div>
@@ -1221,30 +1225,31 @@ function OmnichannelInboxContent() {
                   <div className="flex items-center gap-1.5 flex-1">
                     <span className="text-xs font-medium text-muted-foreground shrink-0">Subjek:</span>
                     <Input
+                      size="sm"
                       type="text"
                       value={replySubject}
                       onChange={(e) => setReplySubject(e.target.value)}
                       placeholder="Subjek balasan..."
-                      className="h-8 text-xs bg-background"
+                      className="flex-1"
                     />
                   </div>
                   {/* Canned Reply Dropdown */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <select
+                  <div className="w-44 shrink-0">
+                    <Select
+                      size="sm"
                       onChange={(e) => {
                         const idx = Number(e.target.value);
                         if (!isNaN(idx) && CANNED_REPLIES[idx]) {
                           setReplyText(CANNED_REPLIES[idx].text);
                         }
                       }}
-                      className="h-8 text-[11px] bg-background border border-border rounded-lg px-2 text-foreground focus:outline-hidden"
                       defaultValue=""
                     >
                       <option value="" disabled>Template Balasan...</option>
                       {CANNED_REPLIES.map((cr, idx) => (
                         <option key={idx} value={idx}>{cr.title}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 </div>
 
@@ -1391,21 +1396,23 @@ function OmnichannelInboxContent() {
                   </div>
 
                   {/* Template Picker */}
-                  <select
-                    onChange={(e) => {
-                      const idx = Number(e.target.value);
-                      if (!isNaN(idx) && CANNED_REPLIES[idx]) {
-                        setReplyText(CANNED_REPLIES[idx].text);
-                      }
-                    }}
-                    className="h-7 text-[11px] bg-background border border-border rounded-lg px-2 text-foreground focus:outline-hidden"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Template Cepat...</option>
-                    {CANNED_REPLIES.map((cr, idx) => (
-                      <option key={idx} value={idx}>{cr.title}</option>
-                    ))}
-                  </select>
+                  <div className="w-44">
+                    <Select
+                      size="sm"
+                      onChange={(e) => {
+                        const idx = Number(e.target.value);
+                        if (!isNaN(idx) && CANNED_REPLIES[idx]) {
+                          setReplyText(CANNED_REPLIES[idx].text);
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Template Cepat...</option>
+                      {CANNED_REPLIES.map((cr, idx) => (
+                        <option key={idx} value={idx}>{cr.title}</option>
+                      ))}
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="relative">
@@ -1523,10 +1530,10 @@ function OmnichannelInboxContent() {
             <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
               <UserCheck className="h-3 w-3 text-brand" /> ASSIGNEE (SALES REP)
             </span>
-            <select
+            <Select
+              size="sm"
               value={activeThread?.assigneeId ?? ''}
               onChange={(e) => handleUpdateAssignee(e.target.value ? Number(e.target.value) : null)}
-              className="w-full bg-background text-xs border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-hidden"
             >
               <option value="">Belum Ditugaskan (Unassigned)</option>
               {assignableUsers.map((u) => (
@@ -1534,7 +1541,7 @@ function OmnichannelInboxContent() {
                   {u.name} ({u.email})
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {/* Quick Actions */}
@@ -1812,24 +1819,22 @@ function OmnichannelInboxContent() {
           {newChatChannel === 'whatsapp' && (
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground">Engine Pengiriman:</label>
-              <select
+              <Select
                 value={newChatEngine}
                 onChange={(e) => setNewChatEngine(e.target.value as any)}
-                className="w-full bg-background text-xs border border-border rounded-lg px-3 py-2 text-foreground focus:outline-hidden"
               >
                 <option value="whatsapp">Local WhatsApp (Baileys Sidecar)</option>
                 <option value="mekari_qontak">Mekari Qontak Official API</option>
-              </select>
+              </Select>
             </div>
           )}
 
           {/* Lead Picker Autocomplete */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-foreground">Pilih Dari Database Lead (Opsional):</label>
-            <select
+            <Select
               value={selectedLeadId}
               onChange={(e) => handleSelectLeadRecipient(e.target.value)}
-              className="w-full bg-background text-xs border border-border rounded-lg px-3 py-2 text-foreground focus:outline-hidden"
             >
               <option value="">Ketik manual atau pilih kontak lead...</option>
               {leadsList?.map((l: any) => (
@@ -1837,7 +1842,7 @@ function OmnichannelInboxContent() {
                   {l.company_name || l.name} — {newChatChannel === 'email' ? l.email || l.contact_email : l.phone || l.phone_number}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {/* Recipient Input */}
@@ -1871,21 +1876,23 @@ function OmnichannelInboxContent() {
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-foreground">Isi Pesan:</label>
-              <select
-                onChange={(e) => {
-                  const idx = Number(e.target.value);
-                  if (!isNaN(idx) && CANNED_REPLIES[idx]) {
-                    setNewChatMessage(CANNED_REPLIES[idx].text);
-                  }
-                }}
-                className="text-[11px] bg-background border border-border rounded-md px-2 py-0.5 text-foreground focus:outline-hidden"
-                defaultValue=""
-              >
-                <option value="" disabled>Gunakan Template Cepat...</option>
-                {CANNED_REPLIES.map((cr, idx) => (
-                  <option key={idx} value={idx}>{cr.title}</option>
-                ))}
-              </select>
+              <div className="w-52">
+                <Select
+                  size="xs"
+                  onChange={(e) => {
+                    const idx = Number(e.target.value);
+                    if (!isNaN(idx) && CANNED_REPLIES[idx]) {
+                      setNewChatMessage(CANNED_REPLIES[idx].text);
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>Gunakan Template Cepat...</option>
+                  {CANNED_REPLIES.map((cr, idx) => (
+                    <option key={idx} value={idx}>{cr.title}</option>
+                  ))}
+                </Select>
+              </div>
             </div>
             <Textarea
               value={newChatMessage}
@@ -1935,14 +1942,13 @@ function OmnichannelInboxContent() {
 
           <div className="space-y-1">
             <label className="text-xs font-semibold text-foreground">Engine Pengiriman:</label>
-            <select
+            <Select
               value={broadcastEngine}
               onChange={(e) => setBroadcastEngine(e.target.value as any)}
-              className="w-full bg-background text-xs border border-border rounded-lg px-3 py-2 text-foreground focus:outline-hidden"
             >
               <option value="whatsapp">Local WhatsApp (Baileys Sidecar)</option>
               <option value="mekari_qontak">Mekari Qontak Official API</option>
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">
@@ -2082,10 +2088,9 @@ function OmnichannelInboxContent() {
 
           <div className="space-y-1">
             <label className="text-xs font-semibold text-foreground">Tahapan Pipeline (Funnel Stage):</label>
-            <select
+            <Select
               value={convertStageId}
               onChange={(e) => setConvertStageId(e.target.value)}
-              className="w-full bg-background text-xs border border-border rounded-lg px-3 py-2 text-foreground focus:outline-hidden"
             >
               <option value="">Pilih Tahapan Pipeline...</option>
               {stages.map((st) => (
@@ -2093,7 +2098,7 @@ function OmnichannelInboxContent() {
                   {st.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
       </Modal>

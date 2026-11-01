@@ -14,19 +14,26 @@ const SelectValue = SelectPrimitive.Value;
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
+    size?: "default" | "sm" | "xs" | "lg" | "xl";
+  }
+>(({ className, children, size = "default", ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 py-2 text-start text-sm text-foreground shadow-sm shadow-black/5 focus:border-ring focus:outline-none focus:ring-[3px] focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground/70 [&>span]:min-w-0",
+      "flex w-full items-center justify-between gap-2 rounded-lg border border-input bg-background text-start text-foreground shadow-xs focus:border-ring focus:outline-none focus:ring-[3px] focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground/70 [&>span]:min-w-0 transition-colors",
+      size === "sm" ? "h-8 px-2.5 py-1.5 text-xs" :
+      size === "xs" ? "h-7 px-2 py-1 text-xs" :
+      size === "lg" ? "h-10 px-3.5 py-2 text-sm" :
+      size === "xl" ? "h-11 px-4 py-2.5 text-base" :
+      "h-9 px-3 py-2 text-sm",
       className,
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDownIcon className="shrink-0 text-muted-foreground/80 h-4 w-4" />
+      <ChevronDownIcon className={cn("shrink-0 text-muted-foreground/80", size === "sm" || size === "xs" ? "h-3.5 w-3.5" : "h-4 w-4")} />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));

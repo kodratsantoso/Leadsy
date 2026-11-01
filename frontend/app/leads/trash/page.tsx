@@ -464,6 +464,7 @@ export default function DeletedLeadsPage() {
       {/* Filter and Search Bar */}
       <FilterBar className="bg-card border border-border/70 rounded-2xl p-4 shadow-xs">
         <FilterBarSearch
+          size="sm"
           placeholder="Cari nama perusahaan, email, atau telepon..."
           value={search}
           onChange={(e) => {
@@ -476,58 +477,64 @@ export default function DeletedLeadsPage() {
         <div className="flex flex-wrap items-center gap-2.5 ml-auto">
           {/* Filter: Retention Status */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Filter className="h-3.5 w-3.5" />
-            <span>Status:</span>
-            <select
-              value={retentionStatus}
-              onChange={(e) => {
-                setRetentionStatus(e.target.value);
-                setPage(1);
-              }}
-              className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-            >
-              <option value="all">Semua Status</option>
-              <option value="active">Dalam Retensi</option>
-              <option value="expiring_soon">Segera Kedaluwarsa (≤14d)</option>
-              <option value="expired">Kedaluwarsa</option>
-            </select>
+            <Filter className="h-3.5 w-3.5 shrink-0" />
+            <span className="shrink-0">Status:</span>
+            <div className="w-44">
+              <Select
+                size="sm"
+                value={retentionStatus}
+                onChange={(e) => {
+                  setRetentionStatus(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="all">Semua Status</option>
+                <option value="active">Dalam Retensi</option>
+                <option value="expiring_soon">Segera Kedaluwarsa (≤14d)</option>
+                <option value="expired">Kedaluwarsa</option>
+              </Select>
+            </div>
           </div>
 
           {/* Filter: Source */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Sumber:</span>
-            <select
-              value={sourceType}
-              onChange={(e) => {
-                setSourceType(e.target.value);
-                setPage(1);
-              }}
-              className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-            >
-              <option value="">Semua Sumber</option>
-              <option value="lark_base">Lark Base</option>
-              <option value="google_maps">Google Maps</option>
-              <option value="website">Website</option>
-              <option value="manual">Manual</option>
-              <option value="lark">Lark</option>
-            </select>
+            <span className="shrink-0">Sumber:</span>
+            <div className="w-36">
+              <Select
+                size="sm"
+                value={sourceType}
+                onChange={(e) => {
+                  setSourceType(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">Semua Sumber</option>
+                <option value="lark_base">Lark Base</option>
+                <option value="google_maps">Google Maps</option>
+                <option value="website">Website</option>
+                <option value="manual">Manual</option>
+                <option value="lark">Lark</option>
+              </Select>
+            </div>
           </div>
 
           {/* Page size */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Baris:</span>
-            <select
-              value={perPage}
-              onChange={(e) => {
-                setPerPage(Number(e.target.value));
-                setPage(1);
-              }}
-              className="bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none cursor-pointer"
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+            <span className="shrink-0">Baris:</span>
+            <div className="w-20">
+              <Select
+                size="sm"
+                value={perPage}
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value));
+                  setPage(1);
+                }}
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </Select>
+            </div>
           </div>
         </div>
       </FilterBar>

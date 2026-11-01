@@ -3,6 +3,7 @@
 import React, { useState, KeyboardEvent, ClipboardEvent } from "react";
 import { X, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export type TagInputProps = {
   value?: string[];
@@ -70,9 +71,11 @@ export function TagInput({
 
   return (
     <div
-      className={`min-h-[42px] w-full rounded-xl border border-border bg-background p-1.5 transition-colors focus-within:border-[color:var(--brand)] focus-within:ring-1 focus-within:ring-[color:var(--brand)] ${
-        disabled ? "opacity-60 cursor-not-allowed" : ""
-      } ${className}`}
+      className={cn(
+        "min-h-9 w-full rounded-lg border border-input bg-background p-1 text-sm transition-colors focus-within:border-[color:var(--brand)] focus-within:ring-3 focus-within:ring-[color:var(--brand)]/15",
+        disabled && "opacity-60 cursor-not-allowed",
+        className
+      )}
     >
       <div className="flex flex-wrap items-center gap-1.5">
         {value.map((tag, idx) => (

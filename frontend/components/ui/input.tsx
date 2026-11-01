@@ -4,13 +4,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const inputVariants = cva(
-  "w-full rounded-xl border border-input bg-background text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15 disabled:cursor-not-allowed disabled:opacity-60",
+  "w-full rounded-lg border border-input bg-background text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15 disabled:cursor-not-allowed disabled:opacity-60",
   {
     variants: {
       size: {
-        default: "h-10 px-3",
-        sm: "h-9 px-3 text-xs",
-        lg: "h-11 px-4",
+        default: "h-9 px-3 text-sm",
+        sm: "h-8 px-2.5 text-xs",
+        xs: "h-7 px-2 text-xs",
+        lg: "h-10 px-3.5 text-sm",
+        xl: "h-11 px-4 text-base",
       },
       hasIcon: {
         true: "pl-9",
@@ -47,7 +49,7 @@ const Textarea = React.forwardRef<
   <textarea
     ref={ref}
     className={cn(
-      "min-h-28 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15 disabled:cursor-not-allowed disabled:opacity-60",
+      "min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-[var(--brand)] focus-visible:ring-3 focus-visible:ring-[color:var(--brand)]/15 disabled:cursor-not-allowed disabled:opacity-60 leading-relaxed",
       className
     )}
     {...props}

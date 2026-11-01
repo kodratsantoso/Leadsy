@@ -18,12 +18,20 @@ function FilterBar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>
 
 function FilterBarSearch({
   className,
+  size,
   ...props
-}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "size">) {
+}: Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> & {
+  size?: "default" | "sm" | "xs" | "lg" | "xl";
+}) {
   return (
     <div className={cn("relative min-w-[240px] flex-1", className)}>
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input hasIcon placeholder="Search..." {...props} />
+      <Search
+        className={cn(
+          "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground",
+          size === "sm" || size === "xs" ? "h-3.5 w-3.5" : "h-4 w-4"
+        )}
+      />
+      <Input hasIcon size={size} placeholder="Search..." {...props} />
     </div>
   );
 }
