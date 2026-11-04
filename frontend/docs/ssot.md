@@ -66,6 +66,7 @@ These pages define the platform consistency benchmark after the UI standardizati
 - `frontend/app/qualification/reviews/page.tsx`
 - `frontend/app/whatsapp/page.tsx`
 - `frontend/app/lead-generator/page.tsx`
+- `frontend/app/lead-generator/newsletter/page.tsx`
 - `frontend/app/lead-generator/platforms/page.tsx`
 - `frontend/app/lead-generator/idx/page.tsx`
 - `frontend/app/admin/page.tsx`
@@ -315,6 +316,7 @@ Source of truth: `frontend/app/lead-generator/`
 **Purpose:** Serves as the central interface and directory for social media, ads, CRM integrations, events, and webhook-based inbound lead ingestion.
 
 **Features & Layout:**
+- **Industry Intelligence Newsletter (`/lead-generator/newsletter`):** DB-cached commercial news aggregator scoped by `Industry` and `SubIndustry`. Initial discovery fetches Google News RSS + configured `WebSearchManager` providers, extracts corporate/brand entities (`industry_news_extraction` AI feature with deterministic regex fallback), cross-checks existing CRM leads via `LeadDuplicateDetectionService`, and permanently archives editions in PostgreSQL (`industry_news_articles`, `industry_news_entities`, `industry_news_sync_logs`) so subsequent reads are instantaneous. Exposes editorial structured telemetry headers, dual `Briefing Wire` and `Detected Entities` views, and 1-click/batch conversion into CRM `Lead` records (`Source: News Intelligence`, `Channel: Industry Newsletter`).
 - **Platforms List (`/platforms`):** Details capability sets for Instagram Graph API, TikTok Business API, YouTube Analytics, LinkedIn Marketing, Google Ads, Mekari Qontak, and external CRM sync partners (HubSpot, Salesforce, Pipedrive).
 - **Inbound Lead Flow Foundation:** Integrates security policies such as AES-256-GCM encrypted credentials vaulting and idempotency-keyed webhook event queues.
 

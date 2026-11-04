@@ -4,7 +4,20 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.42.0** — 2026-10-28
+Current release: **v1.43.0** — 2026-11-04
+
+## What's New in v1.43.0 (Industry Intelligence Newsletter, Entity Radar & SSO/Runtime Hardening)
+
+- **Industry Intelligence Newsletter & Entity Radar (LG-NEWS-001):**
+  - *DB-Cached Industry Editions* (`backend/app/Services/News/IndustryNewsSyncService.php` & `GoogleNewsRssClient.php`) — Mengumpulkan berita bisnis & korporasi berdasarkan sektor `Industry` dan `SubIndustry` melalui kombinasi Google News RSS dan `WebSearchManager`, lalu mengarsipkannya secara permanen ke PostgreSQL (`industry_news_articles`, `industry_news_entities`, `industry_news_sync_logs`) agar akses berikutnya instan tanpa membebani kuota pencarian ulang.
+  - *Hybrid AI & Deterministic Entity Extraction* (`industry_news_extraction`) — Mengekstrak entitas perusahaan (`PT`, `Tbk`, `Group`, `Corp`) dan brand komersial beserta klasifikasi sinyal bisnis (*Expansion, Investment, Partnership, Digital Initiative, Project/Tender, Leadership*) lengkap dengan *fallback* deterministik jika kuota AI sedang tidak tersedia.
+  - *Editorial Anti-"AI Slop" Briefing Workspace* (`frontend/app/lead-generator/newsletter/page.tsx`) — Antarmuka bergaya *market intelligence wire* dengan 4 blok header telemetri terstruktur (*Indexed Coverage, Tagged Entities, Net-New Prospects, Pipeline Mentions*), bar distribusi sinyal pasar interaktif, serta dua mode tampilan (`Briefing Wire` & `Detected Entities` matrix).
+  - *Live CRM Cross-Matching & 1-Click / Batch Convert to Lead* (`backend/app/Services/News/NewsEntityToLeadService.php`) — Mencocokkan entitas berita secara otomatis terhadap database `leads` aktif dan menyediakan konversi langsung (tunggal maupun massal) menjadi Lead baru (`Source: News Intelligence`, `Channel: Industry Newsletter`) lengkap dengan riwayat konteks artikel berita di timeline Lead.
+
+- **Lark SSO Global Email Reconciliation & K3s Stability:**
+  - *Global Email Lookup on Lark SSO* (`backend/app/Services/Lark/LarkSsoService.php`) — Menangani akun user yang sudah terdaftar dengan `tenant_id IS NULL` agar otomatis tertaut saat login via Lark SSO tanpa memicu error PostgreSQL `users_email_unique`.
+  - *Transparent AI Profiling Error Diagnostics* (`frontend/components/leads/AiProfilingPanel.tsx`) — Menampilkan pesan diagnostik asli dari provider AI ketika terjadi kendala kuota/saldo atau koneksi.
+  - *K3s Frontend Pod Memory Allocation* (`k8s/leadsy-prod-frontend.yaml`) — Menaikkan alokasi memori container Next.js SSR ke `1Gi` untuk mencegah terminasi `OOMKilled (ExitCode: 137)`.
  
 ## What's New in v1.42.0 (Help Center & LMS, Motion UI Skill, Enterprise Audit & UAT Matrix)
 

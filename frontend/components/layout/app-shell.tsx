@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
   HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff, LayoutGrid, Mail,
-  Receipt, FileSpreadsheet, Hash, CalendarClock
+  Receipt, FileSpreadsheet, Hash, CalendarClock, Newspaper
 } from "lucide-react";
 import { useOfflineSync } from "@/lib/offline/offlineSyncManager";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
@@ -69,8 +69,9 @@ export const navItems: NavItem[] = [
     label: "Leads Generator",
     children: [
       { href: "/map", icon: Map, label: "Map & Territory" },
-      { href: "/lead-generator/platforms", icon: Share2, label: "Social & Platform Generator" },
+      { href: "/lead-generator/newsletter", icon: Newspaper, label: "Industry Newsletter" },
       { href: "/lead-generator/idx", icon: Building2, label: "IDX Public Companies" },
+      { href: "/lead-generator/platforms", icon: Share2, label: "Social & Platform Generator" },
     ],
   },
   {

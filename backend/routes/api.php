@@ -164,6 +164,15 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
         Route::post('import', [\App\Http\Controllers\Api\LeadGeneratorIdxController::class, 'import']);
     });
 
+    // Lead Generator - Industry Intelligence Newsletter
+    Route::prefix('lead-generator/newsletter')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\LeadGeneratorNewsletterController::class, 'index']);
+        Route::get('/industries', [\App\Http\Controllers\Api\LeadGeneratorNewsletterController::class, 'industries']);
+        Route::post('/sync', [\App\Http\Controllers\Api\LeadGeneratorNewsletterController::class, 'sync']);
+        Route::get('/sync/{id}/status', [\App\Http\Controllers\Api\LeadGeneratorNewsletterController::class, 'syncStatus']);
+        Route::post('/convert', [\App\Http\Controllers\Api\LeadGeneratorNewsletterController::class, 'convert']);
+    });
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/team-performance', [TeamPerformanceDashboardController::class, 'index']);

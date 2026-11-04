@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Map, Share2, Upload, Webhook, Building2 } from "lucide-react";
+import { ArrowRight, Map, Share2, Upload, Webhook, Building2, Newspaper } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,11 +37,18 @@ const generatorModules = [
     badge: "Live",
   },
   {
+    title: "Industry Intelligence Newsletter",
+    description: "Curate DB-cached industry news, monitor brand & corporate buying signals, and convert tagged entities directly into Leads.",
+    href: "/lead-generator/newsletter",
+    icon: Newspaper,
+    badge: "New",
+  },
+  {
     title: "IDX Public Companies",
     description: "Search and import companies from Bursa Efek Indonesia (IDX) directly into Leads.",
     href: "/lead-generator/idx",
     icon: Building2,
-    badge: "New",
+    badge: "Live",
   },
 ];
 

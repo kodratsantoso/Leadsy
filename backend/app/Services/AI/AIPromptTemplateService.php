@@ -525,6 +525,12 @@ G. SOURCES
                 'Analyze scraped text against the current product json. Identify field differences, changes, and update recommendations with confidence score.',
                 'Return ONLY valid JSON with keys: latest_snapshot (object), changes (array of updated/added/removed fields), confidence_score (number), highlights (array).'
             ),
+            'industry_news_extraction' => $this->featureTemplate(
+                'Industry Market Intelligence & Entity Extraction',
+                'Analyze business news articles for a target industry, classify commercial buying signals, summarize factual business impact concisely, and extract real corporate or brand entities mentioned in each article.',
+                'Extract ONLY real commercial companies (PT, Tbk, CV, Group, Corp, enterprises) and commercial brands explicitly named in the article title or snippet. Never extract news publishers/media outlets (e.g. Kontan, Bisnis.com, Detik, CNBC, Tempo, Kompas, Reuters), government ministries, or generic industry terms as commercial entities. Classify signal_type strictly into one of: expansion, investment, partnership, digital_transformation, tender, leadership, market_move. Classify relevance_tier into: high, medium, general.',
+                'Return ONLY valid JSON with key: articles (array of objects: index (integer matching input index), signal_type (string), relevance_tier (string), concise_summary (string max 240 chars in Indonesian), entities (array of objects: entity_name (string), entity_type ("company" or "brand"), parent_company_hint (string|null), website_hint (string|null), role_in_news ("subject"|"partner"|"competitor"), signal_context (string max 140 chars))).'
+            ),
         ];
     }
 

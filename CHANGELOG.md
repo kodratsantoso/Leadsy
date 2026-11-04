@@ -9,6 +9,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.43.0] — 2026-11-04 · Minor Release
+
+### Fitur Baru & Peningkatan Stabilitas
+- **Industry Intelligence Newsletter (`/lead-generator/newsletter`)** — Modul kurasi berita bisnis sektoral berbasis cache PostgreSQL (`industry_news_articles`, `industry_news_entities`, `industry_news_sync_logs`) yang mengumpulkan liputan ekspansi, investasi, proyek, dan kemitraan per industri tanpa membebani resource pada kunjungan berikutnya.
+- **Entity Extraction & Live CRM Lead Matching** — Mengekstrak entitas perusahaan dan brand dari berita (hybrid AI `industry_news_extraction` + fallback deterministik), mencocokkan status duplikat terhadap tabel `leads`, serta menyediakan alur konversi 1-klik maupun *batch* langsung menjadi Lead (`News Intelligence / Industry Newsletter`).
+- **Editorial Market Wire UI** — Tampilan newsletter bersih berstandar desain sistem Leadsy dengan 4 header data telemetri terstruktur, filter distribusi sinyal pasar, mode *Briefing Wire*, dan tabel *Detected Entities*.
+- **Lark SSO & K3s Runtime Hardening** — Perbaikan bentrok `users_email_unique` lintas-tenant pada login Lark SSO, transparansi pesan error AI Lead Profiler, dan peningkatan limit memori pod frontend K3s menjadi `1Gi`.
+
 ## [1.31.0] — 2026-10-23 · Minor Release
 
 ### Fitur Baru & Penyempurnaan Map & Territory UX

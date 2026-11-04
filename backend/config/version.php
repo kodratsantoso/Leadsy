@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.42.0',
-    'released_at' => '2026-10-28',
+    'version' => '1.43.0',
+    'released_at' => '2026-11-04',
     'type' => 'minor',
-    'notes' => 'Added Motion UI skill (.agents/skills/motion-ui), interactive Help Center & Learning Management System (/help), updated Landing Page with LMS CTAs, enterprise functional audit report, and complete 32-case User Acceptance Testing (UAT) matrix.',
+    'notes' => 'Added DB-cached Industry Intelligence Newsletter (/lead-generator/newsletter) with corporate/brand entity extraction, structured editorial telemetry headers, live CRM lead cross-matching, and 1-click/batch Convert to Lead workflow; hardened Lark SSO global email reconciliation and K3s frontend pod memory limits.',
 ];
