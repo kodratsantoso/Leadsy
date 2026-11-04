@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import { LeadBantcQuestionGuide } from "@/components/leads/LeadBantcQuestionGuide";
+import { AiDeepProfileSection } from "@/components/leads/AiDeepProfileSection";
 import { apiFetch } from "@/lib/apiFetch";
 import { runAiScreening } from "@/lib/aiScreeningPipeline";
 import { safeJsonArray, safeRender } from "@/lib/utils";
@@ -107,6 +108,7 @@ export function IntelligenceTab({
     });
 
   const aiEnrichMutation = useAiActionMutation('/enrich/retry', 'Firmographic Enrichment');
+  const aiDeepProfilingMutation = useAiActionMutation('/ai-profiling/run', 'AI Deep Profiling');
   const aiVerificationMutation = useAiActionMutation('/verification/run', 'Company Verification');
   const aiRescoreMutation = useAiActionMutation('/rescore', 'Scoring + ICP + Qualification');
   const aiAnalysisMutation = useAiActionMutation('/analyze', 'Lead Analysis');
@@ -278,6 +280,10 @@ export function IntelligenceTab({
                   <div className="space-y-2 border-t border-[var(--brand)]/10 pt-3">
                     <p className="text-xs font-medium text-muted-foreground">Advanced: re-run a single stage of the screening pipeline</p>
                     <div className="grid gap-2 sm:grid-cols-2">
+                      <Button variant="outline" size="sm" onClick={() => aiDeepProfilingMutation.mutate()} disabled={aiDeepProfilingMutation.isPending} className="justify-start">
+                        {aiDeepProfilingMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BrainCircuit className="h-3.5 w-3.5 text-[var(--brand)]" />}
+                        Run AI Deep Company Profiling
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => aiEnrichMutation.mutate()} disabled={aiEnrichMutation.isPending} className="justify-start">
                         {aiEnrichMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                         Re-run Firmographic Enrichment (queued)
@@ -631,6 +637,13 @@ export function IntelligenceTab({
               </div>
             )}
           </div>
+
+          {/* ── AI DEEP COMPANY PROFILE & PRESALES PLAYBOOK ── */}
+          <AiDeepProfileSection
+            leadId={leadId}
+            leadData={leadData}
+            onLeadChanged={onLeadChanged}
+          />
 
           {/* ── COMPANY INTELLIGENCE & VERIFICATION SECTION ── */}
           <div className="grid gap-6 lg:grid-cols-2">

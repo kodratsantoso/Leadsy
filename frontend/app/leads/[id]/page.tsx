@@ -2039,7 +2039,7 @@ export default function LeadDetailPage() {
 
       {/* ── PRE-MEETING BRIEF TAB ── */}
       {activeTab === 'pre-meeting brief' && (
-        <PreMeetingBriefTab leadId={leadId} />
+        <PreMeetingBriefTab leadId={leadId} leadData={leadData} />
       )}
 
       {/* ── PRESALES DISCOVERY TAB ── */}

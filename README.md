@@ -4,7 +4,19 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.43.0** — 2026-11-04
+Current release: **v1.44.0** — 2026-11-04
+
+## What's New in v1.44.0 (AI Deep Profile Persistence, Relational Multi-Site Locations & Presales Playbook UI)
+
+- **Firmographic Scalar Schema & Relational Multi-Site Footprint (AI-PROF-002):**
+  - *5 New Scalar Columns on `leads`* (`2026_11_04_212500_add_profiling_fields_and_office_locations_to_leads.php`) — Menambahkan kolom `legal_name`, `ownership_type`, `year_established`, `operational_scope`, dan `whatsapp` ke tabel `leads` agar atribut korporasi dapat dicari dan diedit langsung tanpa membongkar JSON.
+  - *Relational `lead_office_locations` Table* (`backend/app/Models/LeadOfficeLocation.php`) — Menyimpan daftar Kantor Pusat (HQ), Cabang, Pabrik (*Plant/Factory*), dan Gudang secara relasional per Lead, memisahkan entri `ai_profiling` dari entri `manual` agar data input tim Sales tidak pernah tertimpa saat riset ulang.
+  - *Unified Hydration Engine* (`AiLeadProfilingService::hydrateLeadFromProfile`) — Menjamin hasil klik *Apply Profiling Data* pada Create/Edit Lead maupun *Background Enrichment* menyimpan `ai_profile_json`, `customer_story`, `branch_count`, menautkan `ai_generated_outputs.entity_id`, serta meng-hydrate hipotesis awal (`ai_suggested`) ke `lead_discovery_records` dan `lead_bantc_question_guides` tanpa menimpa fakta tervalidasi.
+
+- **Contextual Lead Detail Intelligence UI (`/leads/[id]`):**
+  - *Overview Tab Upgrade* (`frontend/components/leads/tabs/OverviewTab.tsx`) — Menampilkan atribut legalitas/kepemilikan, kartu *Business Operations & Multi-Site Footprint*, serta manajemen tambah/hapus lokasi kantor & pabrik secara interaktif.
+  - *AI Deep Profile & Presales Playbook Card* (`frontend/components/leads/AiDeepProfileSection.tsx` pada `IntelligenceTab.tsx`) — Menyajikan *Presales Solution Architecture Perspective*, 4 kuadran taktis (*Departments to Approach, Pain Points, Potential Needs & Solution Angles, Discovery Questions*), panel *Discrepancies & Verified Web Sources*, serta tombol 1-klik *Run/Refresh AI Deep Profiling* dan *Sync to Discovery & BANTC*.
+  - *Pre-Meeting Brief Auto-Prefill & Prompt Enrichment* (`PreMeetingBriefTab.tsx` & `PreMeetingBriefService.php`) — Menyediakan tombol *Prefill from AI Profile* pada form pembuatan brief dan menyuntikkan konteks `ai_profile_json` + `officeLocations` ke prompt generator AI.
 
 ## What's New in v1.43.0 (Industry Intelligence Newsletter, Entity Radar & SSO/Runtime Hardening)
 

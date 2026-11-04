@@ -124,7 +124,16 @@ class PreMeetingAiScreeningOrchestratorService
             // =========================================================================
             $this->updateProgress($lead, 'profiling_and_enrichment', 'Entity Legitimacy & Deep Profiling', 1, 8);
             try {
-                $this->profilingService->profileAndEnrichLead($lead);
+                if (
+                    !empty($lead->ai_profile_json)
+                    && is_array($lead->ai_profile_json)
+                    && $lead->created_at
+                    && $lead->created_at->diffInMinutes(now()) < 10
+                ) {
+                    $this->profilingService->hydrateLeadFromProfile($lead, $lead->ai_profile_json);
+                } else {
+                    $this->profilingService->profileAndEnrichLead($lead);
+                }
                 $lead = $lead->fresh();
                 $stagesExecuted[] = 'profiling_and_enrichment';
             } catch (\Throwable $e) {

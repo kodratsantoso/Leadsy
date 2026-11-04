@@ -14,21 +14,44 @@
  *    optional. `industry?: Industry | null` means "not loaded" and "loaded as null" both.
  */
 
+export type LeadOfficeLocation = {
+  id: number;
+  tenant_id?: number | null;
+  lead_id: number;
+  location_type?: string | null;
+  label?: string | null;
+  address?: string | null;
+  city?: string | null;
+  province?: string | null;
+  country?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  source?: "ai_profiling" | "manual" | string | null;
+  is_primary?: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type Lead = {
   id: number;
   company_name: string;
+  legal_name?: string | null;
   brand?: string | null;
+  ownership_type?: string | null;
+  year_established?: string | null;
   address?: string | null;
   lat?: number | null;
   lng?: number | null;
   website?: string | null;
   website_domain?: string | null;
   phone?: string | null;
+  whatsapp?: string | null;
   email?: string | null;
   industry_id?: number | null;
   sub_industry_id?: number | null;
   business_category?: string | null;
   company_size_estimate?: string | null;
+  operational_scope?: string | null;
   lead_score?: number | null;
   qualification_status?: QualificationStatus | null;
   ai_explanation?: string | null;
@@ -50,6 +73,8 @@ export type Lead = {
   operating_hours?: string | null;
   social_profiles?: Record<string, string> | null;
   customer_story?: string | null;
+  ai_profile_json?: Record<string, any> | null;
+  office_locations?: LeadOfficeLocation[] | null;
   meeting_link?: string | null;
   parent_lead_id?: number | null;
   external_id?: string | null;

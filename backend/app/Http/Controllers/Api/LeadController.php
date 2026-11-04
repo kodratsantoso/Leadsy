@@ -186,6 +186,8 @@ class LeadController extends Controller
             $s = '%'.$request->search.'%';
             $query->where(function ($q) use ($s) {
                 $q->where('company_name', 'ilike', $s)
+                    ->orWhere('legal_name', 'ilike', $s)
+                    ->orWhere('brand', 'ilike', $s)
                     ->orWhere('address', 'ilike', $s)
                     ->orWhere('email', 'ilike', $s);
             });
@@ -296,6 +298,7 @@ class LeadController extends Controller
             'parentLead:id,company_name',
             'subsidiaries:id,company_name,address,qualification_status,lead_score',
             'discoveryRecord',
+            'officeLocations',
         ]);
 
         return response()->json(['data' => $lead]);
@@ -401,8 +404,9 @@ class LeadController extends Controller
         $data = $request->validated();
         $sourceType = $data['source_type'] ?? 'manual';
         $channelTypeId = $data['channel_type_id'] ?? null;
-        unset($data['source_type']);
-        unset($data['channel_type_id']);
+        $officeLocations = $data['office_locations'] ?? null;
+        $aiProfilingOutputId = isset($data['ai_profiling_output_id']) ? (int) $data['ai_profiling_output_id'] : null;
+        unset($data['source_type'], $data['channel_type_id'], $data['office_locations'], $data['ai_profiling_output_id']);
 
         // Extract website domain for dedup
         if (! empty($data['website'])) {
@@ -437,6 +441,17 @@ class LeadController extends Controller
 
         $lead = Lead::create($data);
         $this->syncLeadSource($lead, $sourceType, $channelTypeId);
+
+        if (! empty($data['ai_profile_json']) || ! empty($officeLocations) || $aiProfilingOutputId) {
+            app(\App\Services\Lead\AiLeadProfilingService::class)->hydrateLeadFromProfile(
+                $lead,
+                is_array($data['ai_profile_json'] ?? null) ? $data['ai_profile_json'] : [],
+                $aiProfilingOutputId,
+                $request->user()?->id,
+                false,
+                is_array($officeLocations) ? $officeLocations : null
+            );
+        }
 
         AuditService::logCreated('leads', $lead);
 
@@ -491,8 +506,9 @@ class LeadController extends Controller
         $data = $request->validated();
         $sourceType = $data['source_type'] ?? null;
         $channelTypeId = $data['channel_type_id'] ?? null;
-        unset($data['source_type']);
-        unset($data['channel_type_id']);
+        $officeLocations = $data['office_locations'] ?? null;
+        $aiProfilingOutputId = isset($data['ai_profiling_output_id']) ? (int) $data['ai_profiling_output_id'] : null;
+        unset($data['source_type'], $data['channel_type_id'], $data['office_locations'], $data['ai_profiling_output_id']);
 
         if (isset($data['website'])) {
             $data['website_domain'] = parse_url($data['website'], PHP_URL_HOST);
@@ -517,7 +533,7 @@ class LeadController extends Controller
         //
         // Now the save either happens completely or not at all, which is also what the
         // 500 copy in ApiErrorTranslator promises.
-        DB::transaction(function () use ($request, $lead, $data, $original, $sourceType, $channelTypeId) {
+        DB::transaction(function () use ($request, $lead, $data, $original, $sourceType, $channelTypeId, $officeLocations, $aiProfilingOutputId) {
             if (isset($data['funnel_stage_id']) && $data['funnel_stage_id'] != $lead->funnel_stage_id) {
                 $lead->funnelHistory()->create([
                     'from_stage_id' => $lead->funnel_stage_id,
@@ -529,10 +545,21 @@ class LeadController extends Controller
             $lead->update($data);
             $this->syncLeadSource($lead, $sourceType, $channelTypeId);
 
+            if (! empty($data['ai_profile_json']) || ! empty($officeLocations) || $aiProfilingOutputId) {
+                app(\App\Services\Lead\AiLeadProfilingService::class)->hydrateLeadFromProfile(
+                    $lead,
+                    is_array($data['ai_profile_json'] ?? null) ? $data['ai_profile_json'] : (is_array($lead->ai_profile_json) ? $lead->ai_profile_json : []),
+                    $aiProfilingOutputId,
+                    $request->user()?->id,
+                    false,
+                    is_array($officeLocations) ? $officeLocations : null
+                );
+            }
+
             AuditService::logUpdated('leads', $lead, $original);
         });
 
-        return response()->json(['data' => $lead->fresh(['industry', 'funnelStage', 'sources.channelType'])]);
+        return response()->json(['data' => $lead->fresh(['industry', 'funnelStage', 'sources.channelType', 'officeLocations'])]);
     }
 
     public function claim(Request $request, Lead $lead): JsonResponse

@@ -34,6 +34,7 @@ class PreMeetingBriefService
             'financialSnapshots',
             'intelligenceSignals',
             'verifications.evidences',
+            'officeLocations',
         ]);
         
         // Load WhatsApp Conversations (through WhatsappContact)
@@ -85,7 +86,31 @@ class PreMeetingBriefService
                 'Sub-Industry' => $lead->subIndustry?->name,
                 'Business Category' => $lead->businessCategory?->name ?? $lead->business_category,
                 'Business Type' => $lead->business_type,
+                'Legal Name' => $lead->legal_name,
+                'Ownership Type' => $lead->ownership_type,
+                'Year Established' => $lead->year_established,
+                'Operational Scope' => $lead->operational_scope,
+                'Branch Count' => $lead->branch_count,
+                'Customer Story' => $lead->customer_story,
             ],
+            'AI Deep Company Profile & Presales Playbook' => !empty($lead->ai_profile_json) ? [
+                'Core Product' => $lead->ai_profile_json['core_product'] ?? null,
+                'Specialization' => $lead->ai_profile_json['specialization'] ?? null,
+                'Business Model' => $lead->ai_profile_json['business_model'] ?? null,
+                'Target Market' => $lead->ai_profile_json['target_market'] ?? null,
+                'Corporate Structure' => $lead->ai_profile_json['corporate_structure'] ?? null,
+                'Manufacturing / Ops Capability' => $lead->ai_profile_json['manufacturing_capability'] ?? null,
+                'Certifications' => $lead->ai_profile_json['certifications_or_registrations'] ?? null,
+                'Presales Perspective' => $lead->ai_profile_json['presales_perspective'] ?? null,
+                'Sales & Presales Notes' => $lead->ai_profile_json['sales_notes'] ?? null,
+                'Office & Plant Locations' => $lead->officeLocations->map(fn ($loc) => array_filter([
+                    'type' => $loc->location_type,
+                    'label' => $loc->label,
+                    'city' => $loc->city,
+                    'province' => $loc->province,
+                    'address' => $loc->address,
+                ]))->values()->toArray(),
+            ] : null,
             'Company Intelligence & Verification' => [
                 'Verification Status' => $lead->verifications->first()?->legal_status ?? 'UNVERIFIED',
                 'Legal Name Resolved' => $lead->verifications->first()?->legal_name_resolved,

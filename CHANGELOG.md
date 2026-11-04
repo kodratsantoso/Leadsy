@@ -9,6 +9,14 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.44.0] — 2026-11-04 · Minor Release
+
+### Fitur Baru & Unifikasi AI Deep Profiling ke Lead Detail
+- **5 Kolom Skalar Firmografis Baru di Tabel `leads`** — Menambahkan `legal_name`, `ownership_type`, `year_established`, `operational_scope`, dan `whatsapp` secara backward-compatible serta terindeks pada pencarian Leads.
+- **Tabel Relasional `lead_office_locations` Multi-Site** — Menyimpan daftar lokasi kantor pusat (HQ), cabang, pabrik (*plant/factory*), dan gudang secara relasional dengan pembeda sumber `ai_profiling` vs `manual` serta dukungan tambah/hapus lokasi dari tab Overview.
+- **Full Hydration Pipeline (Manual Apply & Auto-Enrich)** — Menyatukan jalur *Apply Profiling Data* (Create & Edit Lead) dan *Background Screening* agar menyimpan `ai_profile_json` utuh, menautkan `ai_generated_outputs.entity_id` dari `0` ke `lead.id`, serta men-*seed* bagian kosong pada `lead_discovery_records` (`ai_suggested`) dan `lead_bantc_question_guides` tanpa menimpa data terkonfirmasi user.
+- **AI Deep Profile & Presales Playbook di UI Lead Detail (`/leads/[id]`)** — Merender konteks bisnis & lokasi multi-site di `OverviewTab`, 4-kuadran *Presales Playbook* + validasi sumber web di `IntelligenceTab` (`AiDeepProfileSection`), serta tombol *Prefill from AI Profile* dan pengayaan prompt di `PreMeetingBriefTab`.
+
 ## [1.43.0] — 2026-11-04 · Minor Release
 
 ### Fitur Baru & Peningkatan Stabilitas

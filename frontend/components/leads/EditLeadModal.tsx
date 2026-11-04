@@ -64,6 +64,7 @@ type LeadUpdatePayload = Partial<
   qualification_status?: string | null;
   source_type?: string | null;
   channel_type_id?: number | null;
+  ai_profiling_output_id?: number | null;
 };
 
 export function EditLeadModal({
@@ -81,9 +82,11 @@ export function EditLeadModal({
   const toast = useToast();
 
   const [companyForm, setCompanyForm] = useState({
-    company_name: '', brand: '', address: '', lat: '', lng: '',
-    industry_id: '', sub_industry_id: '', phone: '', email: '', website: '',
-    company_size_estimate: '', business_category_id: '', product_id: '',
+    company_name: '', legal_name: '', brand: '', ownership_type: '', year_established: '',
+    address: '', lat: '', lng: '',
+    industry_id: '', sub_industry_id: '', phone: '', whatsapp: '', email: '', website: '',
+    company_size_estimate: '', operational_scope: '', branch_count: '', customer_story: '',
+    business_category_id: '', product_id: '',
     estimated_closing_amount: '', realized_closing_amount: '',
     source_type: '', channel_type_id: '', funnel_stage_id: '',
     qualification_status: '', parent_lead_id: '',
@@ -104,6 +107,8 @@ export function EditLeadModal({
   const [locationCenter, setLocationCenter] = useState({ lat: -6.2088, lng: 106.8456 });
   const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout" | "applied">("idle");
   const [profilingData, setProfilingData] = useState<ProfilingData | null>(null);
+  const [profilingOutputId, setProfilingOutputId] = useState<number | null>(null);
+  const [appliedProfileJson, setAppliedProfileJson] = useState<ProfilingData | null>(null);
   const [profilingRetrying, setProfilingRetrying] = useState(false);
   const [profilingElapsed, setProfilingElapsed] = useState(0);
   const [profilingFailureReason, setProfilingFailureReason] = useState<"ai" | "unreachable">("ai");
@@ -126,6 +131,7 @@ export function EditLeadModal({
       const json = await res.json();
       if (json.success && json.data?.status === "ready_for_review") {
         setProfilingStatus("ready_for_review");
+        setProfilingOutputId(json.data.id ?? null);
         setProfilingData(json.data.current_output_json);
         setProfilingErrorMessage(null);
       } else {
@@ -150,16 +156,23 @@ export function EditLeadModal({
     if (open && lead) {
       setCompanyForm({
         company_name: lead.company_name || '',
+        legal_name: lead.legal_name || '',
         brand: lead.brand || '',
+        ownership_type: lead.ownership_type || '',
+        year_established: lead.year_established || '',
         address: lead.address || '',
         lat: lead.lat?.toString() || '',
         lng: lead.lng?.toString() || '',
         industry_id: lead.industry_id?.toString() || '',
         sub_industry_id: lead.sub_industry_id?.toString() || '',
         phone: lead.phone || '',
+        whatsapp: lead.whatsapp || '',
         email: lead.email || '',
         website: lead.website || '',
         company_size_estimate: lead.company_size_estimate || '',
+        operational_scope: lead.operational_scope || '',
+        branch_count: lead.branch_count != null ? String(lead.branch_count) : '',
+        customer_story: lead.customer_story || '',
         business_category_id: lead.business_category_id?.toString() || '',
         product_id: lead.product_id?.toString() || '',
         estimated_closing_amount: lead.estimated_closing_amount?.toString() || '',
@@ -174,6 +187,8 @@ export function EditLeadModal({
         am_owner_id: lead.am_owner_id?.toString() || '',
         csm_owner_id: lead.csm_owner_id?.toString() || ''
       });
+      setAppliedProfileJson(null);
+      setProfilingOutputId(null);
       setLocationSearch("");
       setLocationFeedback("");
       setParentLeadSearch(lead?.parent_lead?.company_name || "");
@@ -290,16 +305,25 @@ export function EditLeadModal({
     }
     updateLeadMutation.mutate({
       company_name: companyForm.company_name.trim(),
+      legal_name: companyForm.legal_name.trim() || null,
       brand: companyForm.brand.trim() || null,
+      ownership_type: companyForm.ownership_type.trim() || null,
+      year_established: companyForm.year_established.trim() || null,
       address: companyForm.address.trim() || null,
       lat: companyForm.lat ? Number(companyForm.lat) : null,
       lng: companyForm.lng ? Number(companyForm.lng) : null,
       industry_id: companyForm.industry_id ? Number(companyForm.industry_id) : null,
       sub_industry_id: companyForm.sub_industry_id ? Number(companyForm.sub_industry_id) : null,
       phone: companyForm.phone.trim() || null,
+      whatsapp: companyForm.whatsapp.trim() || null,
       email: companyForm.email.trim() || null,
       website: companyForm.website.trim() ? (companyForm.website.trim().startsWith('http') ? companyForm.website.trim() : `https://${companyForm.website.trim()}`) : null,
       company_size_estimate: companyForm.company_size_estimate || null,
+      operational_scope: companyForm.operational_scope.trim() || null,
+      branch_count: companyForm.branch_count ? Number(companyForm.branch_count) : null,
+      customer_story: companyForm.customer_story.trim() || null,
+      ...(appliedProfileJson ? { ai_profile_json: appliedProfileJson as Record<string, unknown> } : {}),
+      ...(profilingOutputId ? { ai_profiling_output_id: profilingOutputId } : {}),
       business_category_id: companyForm.business_category_id || null,
       product_id: companyForm.product_id ? Number(companyForm.product_id) : null,
       estimated_closing_amount: companyForm.estimated_closing_amount ? Number(companyForm.estimated_closing_amount) : null,
@@ -417,6 +441,7 @@ export function EditLeadModal({
                         const json = await res.json();
                         if (json.success && json.data) {
                           let currentData = json.data;
+                          setProfilingOutputId(currentData.id ?? null);
                           // Poll for as long as the job itself is allowed to run.
                           //
                           // This used to give up after 40s (20 x 2s) — shorter than the
@@ -534,12 +559,28 @@ export function EditLeadModal({
                     const resolvedSubId = resolveSubIndustryId(resolvedIndId);
                     const resolvedCatId = resolveBusinessCategoryId();
 
+                    const parsedBranches = (() => {
+                      if (typeof pData.branch_count === "number") return String(pData.branch_count);
+                      if (typeof pData.branch_count === "string") {
+                        const m = pData.branch_count.match(/\d+/);
+                        if (m) return m[0];
+                      }
+                      if (Array.isArray(pData.office_locations) && pData.office_locations.length > 0) {
+                        return String(pData.office_locations.length);
+                      }
+                      return companyForm.branch_count;
+                    })();
+
                     const updatedForm = {
                       ...companyForm,
                       company_name: pData.company_name || companyForm.company_name,
+                      legal_name: pData.legal_name || pData.company_name || companyForm.legal_name,
                       brand: pData.brand || companyForm.brand,
+                      ownership_type: pData.ownership_type || companyForm.ownership_type,
+                      year_established: pData.year_established ? String(pData.year_established) : companyForm.year_established,
                       address: pData.address || companyForm.address,
                       phone: pData.phone || companyForm.phone,
+                      whatsapp: pData.whatsapp || companyForm.whatsapp,
                       email: pData.email || companyForm.email,
                       website: pData.website || companyForm.website,
                       lat: pData.lat ? String(pData.lat) : companyForm.lat,
@@ -547,9 +588,13 @@ export function EditLeadModal({
                       industry_id: resolvedIndId,
                       sub_industry_id: resolvedSubId,
                       business_category_id: resolvedCatId,
-                      company_size_estimate: pData.company_size || companyForm.company_size_estimate,
+                      company_size_estimate: pData.company_size || pData.company_size_estimate || companyForm.company_size_estimate,
+                      operational_scope: pData.operational_area_type || companyForm.operational_scope,
+                      branch_count: parsedBranches,
+                      customer_story: pData.customer_story || companyForm.customer_story,
                     };
 
+                    setAppliedProfileJson(pData);
                     setCompanyForm(updatedForm);
 
                     if (pData.lat && pData.lng) {
@@ -561,16 +606,25 @@ export function EditLeadModal({
                       try {
                         const payload = {
                           company_name: updatedForm.company_name.trim(),
+                          legal_name: updatedForm.legal_name.trim() || null,
                           brand: updatedForm.brand.trim() || null,
+                          ownership_type: updatedForm.ownership_type.trim() || null,
+                          year_established: updatedForm.year_established.trim() || null,
                           address: updatedForm.address.trim() || null,
                           lat: updatedForm.lat ? Number(updatedForm.lat) : null,
                           lng: updatedForm.lng ? Number(updatedForm.lng) : null,
                           industry_id: updatedForm.industry_id ? Number(updatedForm.industry_id) : null,
                           sub_industry_id: updatedForm.sub_industry_id ? Number(updatedForm.sub_industry_id) : null,
                           phone: updatedForm.phone.trim() || null,
+                          whatsapp: updatedForm.whatsapp.trim() || null,
                           email: updatedForm.email.trim() || null,
                           website: updatedForm.website.trim() ? (updatedForm.website.trim().startsWith('http') ? updatedForm.website.trim() : `https://${updatedForm.website.trim()}`) : null,
                           company_size_estimate: updatedForm.company_size_estimate || null,
+                          operational_scope: updatedForm.operational_scope.trim() || null,
+                          branch_count: updatedForm.branch_count ? Number(updatedForm.branch_count) : null,
+                          customer_story: updatedForm.customer_story.trim() || null,
+                          ai_profile_json: pData,
+                          ai_profiling_output_id: profilingOutputId,
                           business_category_id: updatedForm.business_category_id || null,
                           product_id: updatedForm.product_id ? Number(updatedForm.product_id) : null,
                           estimated_closing_amount: updatedForm.estimated_closing_amount ? Number(updatedForm.estimated_closing_amount) : null,
@@ -595,7 +649,8 @@ export function EditLeadModal({
                         if (res.ok) {
                           qc.invalidateQueries({ queryKey: ['leads'] });
                           qc.invalidateQueries({ queryKey: ['lead', lead.id] });
-                          toast.success("AI profiling data applied and saved to lead successfully!");
+                          qc.invalidateQueries({ queryKey: ['lead', String(lead.id)] });
+                          toast.success("AI Deep Profile, lokasi cabang, & Presales Playbook berhasil disimpan!");
                           setProfilingStatus("applied");
                           return;
                         }
@@ -609,7 +664,17 @@ export function EditLeadModal({
                   }}
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Legal Entity Name
+                </label>
+                <Input
+                  value={companyForm.legal_name}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, legal_name: e.target.value }))}
+                  placeholder="e.g. PT Asahimas Flat Glass Tbk"
+                />
+              </div>
+              <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   Brand
                 </label>
@@ -618,6 +683,38 @@ export function EditLeadModal({
                   onChange={(e) => setCompanyForm((f) => ({ ...f, brand: e.target.value }))}
                   placeholder="e.g. Asahimas"
                 />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                  Ownership Type
+                </label>
+                <Input
+                  value={companyForm.ownership_type}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, ownership_type: e.target.value }))}
+                  placeholder="Swasta / BUMN / PMA / Tbk"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Year Est.
+                  </label>
+                  <Input
+                    value={companyForm.year_established}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, year_established: e.target.value }))}
+                    placeholder="e.g. 1971"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Operational Scope
+                  </label>
+                  <Input
+                    value={companyForm.operational_scope}
+                    onChange={(e) => setCompanyForm((f) => ({ ...f, operational_scope: e.target.value }))}
+                    placeholder="Nasional / Regional"
+                  />
+                </div>
               </div>
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Address</label>
@@ -785,7 +882,7 @@ export function EditLeadModal({
           
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">2. Contact Info</p>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Company Phone</label>
                 <Input
@@ -793,6 +890,16 @@ export function EditLeadModal({
                   value={companyForm.phone}
                   onChange={(e) => setCompanyForm((f) => ({ ...f, phone: e.target.value }))}
                   placeholder="+62 31 7882383"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">WhatsApp</label>
+                <Input
+                  type="tel"
+                  value={companyForm.whatsapp}
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, whatsapp: e.target.value }))}
+                  placeholder="+62 811 9876 543"
                 />
               </div>
 

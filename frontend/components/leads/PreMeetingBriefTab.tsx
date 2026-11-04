@@ -50,13 +50,44 @@ export type PreMeetingBriefType = {
   generated_at: string;
 };
 
-export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
+export function PreMeetingBriefTab({ leadId, leadData }: { leadId: string; leadData?: any }) {
   const toast = useToast();
   const qc = useQueryClient();
   const [mode, setMode] = useState<'view' | 'form'>('view');
   const [activeTab, setActiveTab] = useState('overview');
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const [wasProcessing, setWasProcessing] = useState(false);
+
+  const aiProfile =
+    leadData?.ai_profile_json && typeof leadData.ai_profile_json === 'object'
+      ? leadData.ai_profile_json
+      : null;
+  const salesNotes = aiProfile?.sales_notes ?? {};
+  const hasProfilePlaybook = Boolean(
+    aiProfile &&
+      (aiProfile.presales_perspective ||
+        (Array.isArray(salesNotes.potential_needs) && salesNotes.potential_needs.length > 0) ||
+        (Array.isArray(salesNotes.pain_points) && salesNotes.pain_points.length > 0) ||
+        (Array.isArray(salesNotes.solution_angles) && salesNotes.solution_angles.length > 0))
+  );
+
+  const prefillFromAiProfile = () => {
+    if (!aiProfile) return;
+    const needsList = Array.isArray(salesNotes.potential_needs) ? salesNotes.potential_needs : [];
+    const painList = Array.isArray(salesNotes.pain_points) ? salesNotes.pain_points : [];
+    const angleList = Array.isArray(salesNotes.solution_angles) ? salesNotes.solution_angles : [];
+
+    setForm((prev) => ({
+      ...prev,
+      initial_needs: needsList.length > 0 ? needsList.map((x: string) => `• ${x}`).join('\n') : prev.initial_needs,
+      pain_point: painList.length > 0 ? painList.map((x: string) => `• ${x}`).join('\n') : prev.pain_point,
+      customer_objective:
+        angleList.length > 0
+          ? angleList.map((x: string) => `• ${x}`).join('\n')
+          : aiProfile.presales_perspective || prev.customer_objective,
+    }));
+    toast.success('Konteks dari AI Deep Profile berhasil dimasukkan ke form Pre-Meeting Brief!');
+  };
   
   const [form, setForm] = useState({
     meeting_type: 'First Discovery Meeting',
@@ -155,6 +186,22 @@ export function PreMeetingBriefTab({ leadId }: { leadId: string }) {
 
         <Card>
           <CardContent className="p-6 space-y-4">
+            {hasProfilePlaybook && (
+              <div className="rounded-xl border border-[color:var(--brand)]/25 bg-[color:var(--brand)]/5 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Zap className="h-3.5 w-3.5 text-[var(--brand)]" />
+                    <span>AI Deep Profile Insights Tersedia</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Gunakan hasil riset pain points, kebutuhan potensial, dan sudut masuk solusi dari AI Profiling sebagai konteks awal brief.
+                  </p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={prefillFromAiProfile} className="shrink-0">
+                  Prefill from AI Profile
+                </Button>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Meeting Type</label>

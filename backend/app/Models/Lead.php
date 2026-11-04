@@ -249,10 +249,10 @@ class Lead extends Model
     use \App\Models\Traits\BelongsToTenant;
 
     protected $fillable = [
-        'company_name', 'brand', 'address', 'lat', 'lng',
-        'website', 'website_domain', 'phone', 'email',
+        'company_name', 'legal_name', 'brand', 'ownership_type', 'year_established', 'address', 'lat', 'lng',
+        'website', 'website_domain', 'phone', 'whatsapp', 'email',
         'industry_id', 'sub_industry_id', 'business_category', 'business_category_id',
-        'company_size_estimate', 'branch_count', 'operating_hours',
+        'company_size_estimate', 'operational_scope', 'branch_count', 'operating_hours',
         'social_profiles',
         'lead_score', 'estimated_closing_amount', 'realized_closing_amount',
         'qualification_status', 'ai_explanation', 'customer_story', 'ai_profile_json', 'meeting_link',
@@ -566,6 +566,11 @@ class Lead extends Model
     public function discoveryRecord(): HasOne
     {
         return $this->hasOne(LeadDiscoveryRecord::class);
+    }
+
+    public function officeLocations(): HasMany
+    {
+        return $this->hasMany(LeadOfficeLocation::class)->orderByDesc('is_primary')->orderBy('id');
     }
 
     public function qualificationWorkflowReviews(): HasMany

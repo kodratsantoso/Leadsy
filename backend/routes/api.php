@@ -219,6 +219,10 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::delete('leads/{id}/force-delete', [LeadTrashController::class, 'forceDelete'])->middleware('permission:leads.edit');
     Route::post('leads/ai-profiling/start', [AiLeadProfilingController::class, 'start'])->middleware('permission:leads.ai_profiling');
     Route::get('leads/ai-profiling/{id}/status', [AiLeadProfilingController::class, 'status'])->middleware('permission:leads.ai_profiling');
+    Route::post('leads/{lead}/ai-profiling/run', [AiLeadProfilingController::class, 'runForLead'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/ai-profiling/sync-playbook', [AiLeadProfilingController::class, 'syncPlaybook'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/office-locations', [AiLeadProfilingController::class, 'storeOfficeLocation'])->middleware('permission:leads.edit');
+    Route::delete('leads/{lead}/office-locations/{location}', [AiLeadProfilingController::class, 'destroyOfficeLocation'])->middleware('permission:leads.edit');
     Route::get('leads/assignable-users', [LeadController::class, 'assignableUsers'])->middleware('permission:leads.edit');
     Route::get('leads/industry-summary', [LeadController::class, 'industrySummary'])->middleware('permission:leads.view');
     // Split from Route::apiResource() so each verb carries its own permission —

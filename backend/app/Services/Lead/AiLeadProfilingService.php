@@ -4,11 +4,17 @@ namespace App\Services\Lead;
 
 use App\Models\AiGeneratedOutput;
 use App\Models\Industry;
+use App\Models\Lead;
+use App\Models\LeadBantcQuestionGuide;
+use App\Models\LeadDiscoveryRecord;
+use App\Models\LeadOfficeLocation;
 use App\Models\SubIndustry;
 use App\Models\BusinessCategory;
 use App\Services\AI\AiOrchestrationService;
 use App\Services\Enrichment\LeadMasterDataMapperService;
+use App\Services\Presales\DiscoveryCompletenessService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class AiLeadProfilingService
@@ -396,12 +402,23 @@ class AiLeadProfilingService
             }
         }
 
-        $companySize = !empty($profileData['company_size']) ? (string) $profileData['company_size'] : $lead->company_size_estimate;
+        $companySize = !empty($profileData['company_size'])
+            ? (string) $profileData['company_size']
+            : (!empty($profileData['company_size_estimate']) ? (string) $profileData['company_size_estimate'] : $lead->company_size_estimate);
+
+        $parsedBranchCount = $this->parseBranchCount(
+            $profileData['branch_count'] ?? null,
+            is_array($profileData['office_locations'] ?? null) ? $profileData['office_locations'] : []
+        );
 
         $lead->update([
+            'legal_name' => !empty($profileData['legal_name']) ? mb_substr((string) $profileData['legal_name'], 0, 255) : ($lead->legal_name ?: null),
             'brand' => !empty($profileData['brand']) ? $profileData['brand'] : ($lead->brand ?: null),
+            'ownership_type' => !empty($profileData['ownership_type']) ? mb_substr((string) $profileData['ownership_type'], 0, 120) : ($lead->ownership_type ?: null),
+            'year_established' => !empty($profileData['year_established']) ? mb_substr((string) $profileData['year_established'], 0, 16) : ($lead->year_established ?: null),
             'website' => !empty($profileData['website']) ? $profileData['website'] : ($lead->website ?: null),
             'phone' => !empty($profileData['phone']) ? $profileData['phone'] : ($lead->phone ?: null),
+            'whatsapp' => !empty($profileData['whatsapp']) ? mb_substr((string) $profileData['whatsapp'], 0, 40) : ($lead->whatsapp ?: null),
             'email' => !empty($profileData['email']) ? $profileData['email'] : ($lead->email ?: null),
             'address' => !empty($profileData['address']) ? $profileData['address'] : ($lead->address ?: null),
             'industry_id' => $industryId,
@@ -409,6 +426,10 @@ class AiLeadProfilingService
             'business_category_id' => $businessCategoryId,
             'business_category' => $businessCategoryName,
             'company_size_estimate' => $companySize,
+            'operational_scope' => !empty($profileData['operational_area_type'])
+                ? mb_substr((string) $profileData['operational_area_type'], 0, 120)
+                : ($lead->operational_scope ?: null),
+            'branch_count' => $parsedBranchCount ?? $lead->branch_count,
             'customer_story' => !empty($profileData['customer_story']) ? $profileData['customer_story'] : ($lead->customer_story ?: null),
             'ai_profile_json' => $profileData,
             'lat' => $profileData['lat'] ?? $lead->lat,
@@ -418,6 +439,346 @@ class AiLeadProfilingService
             'last_enriched_at' => now(),
         ]);
 
+        $this->hydrateLeadFromProfile($lead, $profileData);
+
         return $profileData;
+    }
+
+    /**
+     * Hydrate relational office locations, link standalone AiGeneratedOutput records,
+     * and non-destructively seed Presales Discovery & BANTC questions from AI Profiling data.
+     *
+     * @return array{office_locations_synced: int, discovery_sections_seeded: array<int, string>, questions_seeded: int}
+     */
+    public function hydrateLeadFromProfile(
+        Lead $lead,
+        array $profileData,
+        ?int $aiOutputId = null,
+        ?int $userId = null,
+        bool $forcePlaybookSync = false,
+        ?array $explicitLocations = null
+    ): array {
+        $summary = [
+            'office_locations_synced' => 0,
+            'discovery_sections_seeded' => [],
+            'questions_seeded' => 0,
+        ];
+
+        // 1. Link standalone AiGeneratedOutput (created when lead_id was 0 during New Lead modal)
+        if ($aiOutputId) {
+            AiGeneratedOutput::whereKey($aiOutputId)
+                ->where('feature_key', 'lead_ai_profiling')
+                ->whereIn('entity_id', [0, $lead->id])
+                ->update([
+                    'entity_id' => $lead->id,
+                    'status' => 'applied',
+                ]);
+        }
+
+        // 2. Sync scalar fields on Lead if missing on the model when applied manually
+        $scalarUpdates = [];
+        if (empty($lead->legal_name) && !empty($profileData['legal_name'])) {
+            $scalarUpdates['legal_name'] = mb_substr((string) $profileData['legal_name'], 0, 255);
+        }
+        if (empty($lead->ownership_type) && !empty($profileData['ownership_type'])) {
+            $scalarUpdates['ownership_type'] = mb_substr((string) $profileData['ownership_type'], 0, 120);
+        }
+        if (empty($lead->year_established) && !empty($profileData['year_established'])) {
+            $scalarUpdates['year_established'] = mb_substr((string) $profileData['year_established'], 0, 16);
+        }
+        if (empty($lead->operational_scope) && !empty($profileData['operational_area_type'])) {
+            $scalarUpdates['operational_scope'] = mb_substr((string) $profileData['operational_area_type'], 0, 120);
+        }
+        if (empty($lead->whatsapp) && !empty($profileData['whatsapp'])) {
+            $scalarUpdates['whatsapp'] = mb_substr((string) $profileData['whatsapp'], 0, 40);
+        }
+        if (empty($lead->customer_story) && !empty($profileData['customer_story'])) {
+            $scalarUpdates['customer_story'] = (string) $profileData['customer_story'];
+        }
+
+        $locationsInput = $explicitLocations ?? (is_array($profileData['office_locations'] ?? null) ? $profileData['office_locations'] : []);
+        $parsedBranch = $this->parseBranchCount($profileData['branch_count'] ?? null, $locationsInput);
+        if ($lead->branch_count === null && $parsedBranch !== null) {
+            $scalarUpdates['branch_count'] = $parsedBranch;
+        }
+
+        if (!empty($scalarUpdates)) {
+            $lead->update($scalarUpdates);
+        }
+
+        // 3. Sync relational lead_office_locations (preserving any manual entries)
+        if (!empty($locationsInput) && Schema::hasTable('lead_office_locations')) {
+            $summary['office_locations_synced'] = $this->syncOfficeLocations($lead, $locationsInput);
+        }
+
+        // 4. Non-destructively hydrate Presales Discovery & BANTC Question Guide
+        $salesNotes = is_array($profileData['sales_notes'] ?? null) ? $profileData['sales_notes'] : [];
+        if (!empty($salesNotes)) {
+            $summary['discovery_sections_seeded'] = $this->seedDiscoveryRecord($lead, $salesNotes, $profileData, $userId, $forcePlaybookSync);
+            $summary['questions_seeded'] = $this->seedDiscoveryQuestions($lead, $salesNotes['discovery_questions'] ?? [], $userId, $forcePlaybookSync);
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Sync AI-discovered office/plant/branch locations into relational `lead_office_locations`
+     * without touching user-created (`source = 'manual'`) records.
+     */
+    public function syncOfficeLocations(Lead $lead, array $locations): int
+    {
+        if (!Schema::hasTable('lead_office_locations')) {
+            return 0;
+        }
+
+        LeadOfficeLocation::withoutGlobalScopes()
+            ->where('lead_id', $lead->id)
+            ->where('source', 'ai_profiling')
+            ->delete();
+
+        $inserted = 0;
+        $seenKeys = [];
+
+        foreach ($locations as $idx => $loc) {
+            if (is_string($loc)) {
+                $loc = ['address' => $loc];
+            }
+            if (!is_array($loc)) {
+                continue;
+            }
+
+            $city = trim((string) ($loc['city'] ?? ''));
+            $province = trim((string) ($loc['province'] ?? ''));
+            $country = trim((string) ($loc['country'] ?? 'Indonesia')) ?: 'Indonesia';
+            $address = trim((string) ($loc['address'] ?? ''));
+            $type = trim((string) ($loc['location_type'] ?? $loc['type'] ?? ''));
+            $label = trim((string) ($loc['label'] ?? $loc['name'] ?? ''));
+
+            if ($city === '' && $address === '' && $label === '') {
+                continue;
+            }
+
+            $dedupKey = mb_strtolower("{$type}|{$city}|{$address}|{$label}");
+            if (isset($seenKeys[$dedupKey])) {
+                continue;
+            }
+            $seenKeys[$dedupKey] = true;
+
+            $isHq = $idx === 0 || preg_match('/\b(hq|headquarter|pusat|head office)\b/i', $type . ' ' . $label) === 1;
+
+            LeadOfficeLocation::create([
+                'tenant_id' => $lead->tenant_id,
+                'lead_id' => $lead->id,
+                'location_type' => $type !== '' ? mb_substr($type, 0, 80) : ($idx === 0 ? 'Headquarters' : 'Branch / Site'),
+                'label' => $label !== '' ? mb_substr($label, 0, 180) : ($city !== '' ? "{$city} Office" : null),
+                'address' => $address !== '' ? $address : null,
+                'city' => $city !== '' ? mb_substr($city, 0, 120) : null,
+                'province' => $province !== '' ? mb_substr($province, 0, 120) : null,
+                'country' => mb_substr($country, 0, 100),
+                'lat' => isset($loc['lat']) && is_numeric($loc['lat']) ? (float) $loc['lat'] : null,
+                'lng' => isset($loc['lng']) && is_numeric($loc['lng']) ? (float) $loc['lng'] : null,
+                'source' => 'ai_profiling',
+                'is_primary' => $isHq && $inserted === 0,
+            ]);
+
+            $inserted++;
+        }
+
+        return $inserted;
+    }
+
+    /**
+     * Seed empty sections in `lead_discovery_records` with `ai_suggested` provenance.
+     * Never overwrites human `confirmed` sections.
+     *
+     * @return array<int, string>
+     */
+    private function seedDiscoveryRecord(
+        Lead $lead,
+        array $salesNotes,
+        array $profileData,
+        ?int $userId,
+        bool $forceRefreshAiSuggested
+    ): array {
+        if (!Schema::hasTable('lead_discovery_records')) {
+            return [];
+        }
+
+        $record = LeadDiscoveryRecord::firstOrNew(['lead_id' => $lead->id]);
+        $sections = is_array($record->sections) ? $record->sections : [];
+        $fieldSources = is_array($record->field_sources) ? $record->field_sources : [];
+
+        $candidates = [
+            'pain_points' => $this->formatBulletText($salesNotes['pain_points'] ?? []),
+            'stakeholders' => $this->formatBulletText($salesNotes['departments_to_approach'] ?? []),
+            'business_objectives' => $this->formatBulletText($salesNotes['potential_needs'] ?? []),
+            'functional_requirements' => $this->formatBulletText($salesNotes['solution_angles'] ?? []),
+        ];
+
+        if (!empty($profileData['manufacturing_capability']) || !empty($profileData['core_product'])) {
+            $opsLines = array_filter([
+                !empty($profileData['core_product']) ? 'Core Product/Service: ' . $profileData['core_product'] : null,
+                !empty($profileData['manufacturing_capability']) ? 'Operational Capability: ' . $profileData['manufacturing_capability'] : null,
+                !empty($profileData['corporate_structure']) ? 'Corporate Structure: ' . $profileData['corporate_structure'] : null,
+            ]);
+            if (!empty($opsLines)) {
+                $candidates['current_process'] = implode("\n", array_map(fn ($l) => "• {$l}", $opsLines));
+            }
+        }
+
+        $seededKeys = [];
+        foreach ($candidates as $sectionKey => $text) {
+            if ($text === '') {
+                continue;
+            }
+            $currentVal = isset($sections[$sectionKey]) && is_string($sections[$sectionKey])
+                ? trim($sections[$sectionKey])
+                : '';
+            $currentSource = $fieldSources[$sectionKey] ?? null;
+
+            $canWrite = $currentVal === '' || ($forceRefreshAiSuggested && $currentSource === 'ai_suggested');
+            if ($canWrite) {
+                $sections[$sectionKey] = $text;
+                $fieldSources[$sectionKey] = 'ai_suggested';
+                $seededKeys[] = $sectionKey;
+            }
+        }
+
+        if (!empty($seededKeys)) {
+            if (!$record->exists && $userId) {
+                $record->created_by = $userId;
+            }
+            if ($userId) {
+                $record->updated_by = $userId;
+            }
+            $record->sections = $sections;
+            $record->field_sources = $fieldSources;
+            if (empty($record->qualification_status)) {
+                $record->qualification_status = 'in_progress';
+            }
+            $record->save();
+
+            app(DiscoveryCompletenessService::class)->applyEvaluation($record);
+        }
+
+        return $seededKeys;
+    }
+
+    /**
+     * Seed initial discovery questions into `lead_bantc_question_guides` if none exist yet
+     * (or append unique questions when explicitly triggered via Playbook Sync).
+     */
+    private function seedDiscoveryQuestions(Lead $lead, mixed $rawQuestions, ?int $userId, bool $appendIfExisting): int
+    {
+        if (!is_array($rawQuestions) || empty($rawQuestions) || !Schema::hasTable('lead_bantc_question_guides')) {
+            return 0;
+        }
+
+        $cleanQuestions = array_values(array_filter(
+            array_map(fn ($q) => is_string($q) ? trim($q) : '', $rawQuestions),
+            fn ($q) => $q !== ''
+        ));
+
+        if (empty($cleanQuestions)) {
+            return 0;
+        }
+
+        $guide = LeadBantcQuestionGuide::firstOrNew(['lead_id' => $lead->id]);
+        $existing = is_array($guide->questions) ? $guide->questions : [];
+
+        if (!empty($existing) && !$appendIfExisting) {
+            return 0;
+        }
+
+        $existingTexts = array_map(
+            fn ($item) => mb_strtolower(trim((string) ($item['text'] ?? ''))),
+            $existing
+        );
+
+        $added = 0;
+        $nextOrder = count($existing) + 1;
+        foreach ($cleanQuestions as $qText) {
+            $norm = mb_strtolower($qText);
+            if (in_array($norm, $existingTexts, true)) {
+                continue;
+            }
+            $existing[] = [
+                'id' => 'prof-q-' . substr(md5($norm), 0, 8),
+                'text' => mb_substr($qText, 0, 1000),
+                'category' => $this->inferQuestionCategory($qText),
+                'order' => $nextOrder++,
+            ];
+            $existingTexts[] = $norm;
+            $added++;
+        }
+
+        if ($added > 0) {
+            $guide->questions = $existing;
+            $guide->ai_generated = true;
+            $guide->ai_model = $guide->ai_model ?: 'ai_lead_profiling';
+            if ($userId) {
+                $guide->updated_by = $userId;
+            }
+            $guide->save();
+        }
+
+        return $added;
+    }
+
+    private function inferQuestionCategory(string $question): string
+    {
+        $lower = mb_strtolower($question);
+        if (preg_match('/\b(budget|anggaran|investasi|capex|opex|biaya)\b/', $lower)) {
+            return 'Budget';
+        }
+        if (preg_match('/\b(keputusan|direktur|manajemen|approval|stakeholder|pic|departemen)\b/', $lower)) {
+            return 'Authority';
+        }
+        if (preg_match('/\b(target|jadwal|kuartal|tahun ini|go-live|timeline|kapan)\b/', $lower)) {
+            return 'Timeline';
+        }
+        if (preg_match('/\b(vendor|kompetitor|eksisting|sistem saat ini|erp|software)\b/', $lower)) {
+            return 'Competition';
+        }
+
+        return 'Need';
+    }
+
+    private function formatBulletText(mixed $items): string
+    {
+        if (is_string($items)) {
+            return trim($items);
+        }
+        if (!is_array($items)) {
+            return '';
+        }
+
+        $lines = array_values(array_filter(
+            array_map(fn ($item) => is_string($item) ? trim($item) : '', $items),
+            fn ($line) => $line !== ''
+        ));
+
+        if (empty($lines)) {
+            return '';
+        }
+
+        return implode("\n", array_map(fn ($line) => "• {$line}", $lines));
+    }
+
+    private function parseBranchCount(mixed $rawBranchCount, array $locations = []): ?int
+    {
+        if (is_int($rawBranchCount) && $rawBranchCount >= 0) {
+            return $rawBranchCount;
+        }
+        if (is_string($rawBranchCount) || is_float($rawBranchCount)) {
+            if (preg_match('/\d+/', (string) $rawBranchCount, $matches)) {
+                return (int) $matches[0];
+            }
+        }
+        if (!empty($locations)) {
+            return count($locations);
+        }
+
+        return null;
     }
 }

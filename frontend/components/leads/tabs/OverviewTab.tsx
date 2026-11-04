@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
   Pencil,
@@ -15,12 +16,24 @@ import {
   Activity,
   CornerDownRight,
   MapPin,
+  Factory,
+  Layers,
+  Loader2,
+  Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Modal } from '@/components/ui/modal';
+import { useToast } from '@/components/ui/toast';
+import { apiFetch } from '@/lib/apiFetch';
+import { describeThrown, readApiError } from '@/lib/apiError';
 import { SalesCadenceStatusCard } from '@/components/leads/SalesCadenceStatusCard';
 import { NextBestActionPanel } from '@/components/leads/NextBestActionPanel';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
+import type { LeadOfficeLocation } from '@/types/api';
 
 export interface OverviewTabProps {
   leadId: string | number;
@@ -59,6 +72,94 @@ export function OverviewTab({
   mapCenter,
   geocodeFeedback,
 }: OverviewTabProps) {
+  const qc = useQueryClient();
+  const toast = useToast();
+
+  const [showAddSiteModal, setShowAddSiteModal] = useState(false);
+  const [deletingSite, setDeletingSite] = useState<LeadOfficeLocation | null>(null);
+  const [siteForm, setSiteForm] = useState({
+    location_type: 'Branch / Site',
+    label: '',
+    city: '',
+    province: '',
+    address: '',
+    is_primary: false,
+  });
+
+  const aiProfile =
+    leadData?.ai_profile_json && typeof leadData.ai_profile_json === 'object'
+      ? leadData.ai_profile_json
+      : null;
+
+  const relationalLocations: LeadOfficeLocation[] = Array.isArray(leadData?.office_locations)
+    ? leadData.office_locations
+    : [];
+
+  const productBrands: string[] = Array.isArray(aiProfile?.product_brands)
+    ? aiProfile.product_brands.filter((b: unknown) => typeof b === 'string' && b.trim() !== '')
+    : [];
+
+  const invalidateLeadQueries = () => {
+    qc.invalidateQueries({ queryKey: ['lead', leadId] });
+    qc.invalidateQueries({ queryKey: ['lead', String(leadId)] });
+    qc.invalidateQueries({ queryKey: ['leads', leadId] });
+    qc.invalidateQueries({ queryKey: ['leads', String(leadId)] });
+    qc.invalidateQueries({ queryKey: ['leads'] });
+  };
+
+  const addSiteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch(`/leads/${leadId}/office-locations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(siteForm),
+      });
+      if (!res.ok) {
+        const err = await readApiError(res, 'Gagal menambahkan lokasi.');
+        throw new Error(err.detail ? `${err.title}: ${err.detail}` : err.title);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Lokasi kantor/cabang berhasil ditambahkan.');
+      setShowAddSiteModal(false);
+      setSiteForm({
+        location_type: 'Branch / Site',
+        label: '',
+        city: '',
+        province: '',
+        address: '',
+        is_primary: false,
+      });
+      invalidateLeadQueries();
+    },
+    onError: (err: unknown) => toast.error(describeThrown(err).title),
+  });
+
+  const deleteSiteMutation = useMutation({
+    mutationFn: async (locationId: number) => {
+      const res = await apiFetch(`/leads/${leadId}/office-locations/${locationId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const err = await readApiError(res, 'Gagal menghapus lokasi.');
+        throw new Error(err.title);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Lokasi berhasil dihapus.');
+      setDeletingSite(null);
+      invalidateLeadQueries();
+    },
+    onError: (err: unknown) => toast.error(describeThrown(err).title),
+  });
+
+  const provCounts =
+    leadData?.discoveryRecord?.completeness_details?.provenance_counts ??
+    leadData?.discoveryRecord?.provenance_counts ??
+    {};
+
   return (
     <div className="space-y-6">
       {/* Sales Cadence Multi-Touch Status Card */}
@@ -91,16 +192,51 @@ export function OverviewTab({
             </Button>
           </div>
           <div className="space-y-3 text-sm">
+            {leadData.legal_name && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-muted-foreground">Legal Entity:</span>
+                <span className="font-semibold text-foreground">{leadData.legal_name}</span>
+                {leadData.ownership_type && (
+                  <Badge variant="brand">{leadData.ownership_type}</Badge>
+                )}
+              </div>
+            )}
+            {!leadData.legal_name && leadData.ownership_type && (
+              <div>
+                <span className="text-muted-foreground">Ownership:</span>{' '}
+                <Badge variant="brand">{leadData.ownership_type}</Badge>
+              </div>
+            )}
             <div><span className="text-muted-foreground">Industry:</span> <span className="font-medium">{leadData.industry?.name || '—'}</span></div>
-            {leadData.subIndustry?.name && (
-              <div><span className="text-muted-foreground">Sub-Industry:</span> <span className="font-medium">{leadData.subIndustry.name}</span></div>
+            {(leadData.subIndustry?.name || leadData.sub_industry?.name) && (
+              <div><span className="text-muted-foreground">Sub-Industry:</span> <span className="font-medium">{leadData.subIndustry?.name || leadData.sub_industry?.name}</span></div>
             )}
-            {leadData.businessCategory && (
-              <div><span className="text-muted-foreground">Business Category:</span> <span className="font-medium">{leadData.businessCategory.name}</span></div>
+            {(leadData.businessCategory || leadData.business_category) && (
+              <div><span className="text-muted-foreground">Business Category:</span> <span className="font-medium">{leadData.businessCategory?.name || leadData.business_category}</span></div>
             )}
-            <div><span className="text-muted-foreground">Company Size:</span> <span className="font-medium">{leadData.company_size_estimate || '—'}</span></div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span><span className="text-muted-foreground">Company Size:</span> <span className="font-medium">{leadData.company_size_estimate || '—'}</span></span>
+              {leadData.year_established && (
+                <span><span className="text-muted-foreground">Est.:</span> <span className="font-medium">{leadData.year_established}</span></span>
+              )}
+            </div>
+            {(leadData.operational_scope || leadData.branch_count != null) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                {leadData.operational_scope && (
+                  <span><span className="text-muted-foreground">Operational Scope:</span> <span className="font-medium">{leadData.operational_scope}</span></span>
+                )}
+                {leadData.branch_count != null && (
+                  <span><span className="text-muted-foreground">Branches / Sites:</span> <span className="font-medium">{leadData.branch_count}</span></span>
+                )}
+              </div>
+            )}
             <div><span className="text-muted-foreground">Company Email:</span> <span className="font-medium">{leadData.email || '—'}</span></div>
-            <div><span className="text-muted-foreground">Company Phone:</span> <span className="font-medium">{leadData.phone || '—'}</span></div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span><span className="text-muted-foreground">Company Phone:</span> <span className="font-medium">{leadData.phone || '—'}</span></span>
+              {leadData.whatsapp && (
+                <span><span className="text-muted-foreground">WhatsApp:</span> <span className="font-medium">{leadData.whatsapp}</span></span>
+              )}
+            </div>
             <div>
               <span className="text-muted-foreground">Website:</span>{' '}
               {leadData.website ? (
@@ -112,6 +248,12 @@ export function OverviewTab({
             <div><span className="text-muted-foreground">Initial Product:</span> <span className="font-medium">{leadData.product?.name || '—'}</span></div>
             {leadData.address && (
               <div><span className="text-muted-foreground">Address:</span> <span className="font-medium">{leadData.address}</span></div>
+            )}
+            {aiProfile?.certifications_or_registrations && (
+              <div>
+                <span className="text-muted-foreground">Certifications:</span>{' '}
+                <span className="font-medium">{aiProfile.certifications_or_registrations}</span>
+              </div>
             )}
           </div>
         </div>
@@ -170,6 +312,162 @@ export function OverviewTab({
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Row 1.5: Business Operations, Customer Story & Relational Office / Plant Locations */}
+      <div className="rounded-lg border border-border bg-card p-6 space-y-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-[var(--brand)]" />
+            <div>
+              <h3 className="font-semibold">Business Operations & Multi-Site Footprint</h3>
+              <p className="text-xs text-muted-foreground">
+                Ringkasan narasi bisnis, struktur korporasi, kapabilitas operasional, serta daftar kantor pusat, cabang, dan pabrik.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => setShowAddSiteModal(true)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Site / Branch</span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-[var(--brand)] gap-1"
+              onClick={() => setActiveTab('intelligence')}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Full Presales Playbook →</span>
+            </Button>
+          </div>
+        </div>
+
+        {(leadData.customer_story || aiProfile?.customer_story) && (
+          <div className="rounded-xl border border-border/60 bg-muted/15 p-4">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
+              Customer Story & Business Summary
+            </span>
+            <p className="text-sm leading-relaxed text-foreground">
+              {leadData.customer_story || aiProfile?.customer_story}
+            </p>
+          </div>
+        )}
+
+        {aiProfile && (aiProfile.core_product || aiProfile.business_model || aiProfile.corporate_structure || aiProfile.manufacturing_capability) && (
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 text-xs">
+            {(aiProfile.core_product || aiProfile.specialization) && (
+              <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
+                <span className="font-semibold uppercase tracking-wider text-muted-foreground block">
+                  Core Product & Focus
+                </span>
+                <p className="font-medium text-foreground">{aiProfile.core_product || aiProfile.specialization}</p>
+                {aiProfile.core_product && aiProfile.specialization && (
+                  <p className="text-muted-foreground">{aiProfile.specialization}</p>
+                )}
+              </div>
+            )}
+            {(aiProfile.business_model || aiProfile.target_market) && (
+              <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
+                <span className="font-semibold uppercase tracking-wider text-muted-foreground block">
+                  Business Model & Market
+                </span>
+                {aiProfile.business_model && <p className="font-medium text-foreground">{aiProfile.business_model}</p>}
+                {aiProfile.target_market && <p className="text-muted-foreground">{aiProfile.target_market}</p>}
+              </div>
+            )}
+            {aiProfile.corporate_structure && (
+              <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
+                <span className="font-semibold uppercase tracking-wider text-muted-foreground block">
+                  Corporate Structure
+                </span>
+                <p className="text-foreground leading-relaxed">{aiProfile.corporate_structure}</p>
+              </div>
+            )}
+            {aiProfile.manufacturing_capability && (
+              <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
+                <span className="font-semibold uppercase tracking-wider text-muted-foreground block">
+                  Ops & Plant Capability
+                </span>
+                <p className="text-foreground leading-relaxed">{aiProfile.manufacturing_capability}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {productBrands.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Product Brands:</span>
+            {productBrands.map((brandName, idx) => (
+              <Badge key={idx} variant="brand">{brandName}</Badge>
+            ))}
+          </div>
+        )}
+
+        {/* Relational Office, Branch & Plant Locations Table/Grid */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Factory className="h-3.5 w-3.5 text-[var(--brand)]" />
+              <span>Office, Plant & Branch Locations ({relationalLocations.length})</span>
+            </span>
+          </div>
+
+          {relationalLocations.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {relationalLocations.map((loc) => (
+                <article
+                  key={loc.id}
+                  className="rounded-xl border border-border/60 bg-muted/15 p-3.5 flex flex-col justify-between gap-2 text-xs"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant={loc.is_primary ? 'brand' : 'outline'}>
+                          {loc.location_type || 'Site'}
+                        </Badge>
+                        {loc.source === 'ai_profiling' && (
+                          <Badge variant="info">AI</Badge>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setDeletingSite(loc)}
+                        title="Hapus lokasi"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-[color:var(--danger)]" />
+                      </Button>
+                    </div>
+                    {loc.label && (
+                      <p className="font-semibold text-foreground">{loc.label}</p>
+                    )}
+                    {(loc.city || loc.province) && (
+                      <p className="text-muted-foreground font-medium">
+                        {[loc.city, loc.province, loc.country].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                    {loc.address && (
+                      <p className="text-muted-foreground leading-relaxed">{loc.address}</p>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-border bg-muted/10 px-4 py-5 text-center text-xs text-muted-foreground">
+              Belum ada daftar lokasi cabang/pabrik tercatat. Jalankan <strong>AI Deep Profiling</strong> di tab Intelligence atau klik <strong>Add Site / Branch</strong> untuk menambahkannya.
+            </div>
+          )}
         </div>
       </div>
 
@@ -283,19 +581,19 @@ export function OverviewTab({
                   <div className="rounded-lg bg-muted/30 p-2">
                     <span className="block text-xs text-muted-foreground">Facts</span>
                     <span className="font-bold text-[var(--status-success)]">
-                      {leadData.discoveryRecord.provenance_counts?.fact ?? 0}
+                      {provCounts.confirmed ?? provCounts.fact ?? 0}
                     </span>
                   </div>
                   <div className="rounded-lg bg-muted/30 p-2">
                     <span className="block text-xs text-muted-foreground">Assumptions</span>
                     <span className="font-bold text-[var(--status-warning)]">
-                      {leadData.discoveryRecord.provenance_counts?.assumption ?? 0}
+                      {provCounts.assumption ?? 0}
                     </span>
                   </div>
                   <div className="rounded-lg bg-muted/30 p-2">
                     <span className="block text-xs text-muted-foreground">AI Extracted</span>
                     <span className="font-bold text-[var(--status-info)]">
-                      {leadData.discoveryRecord.provenance_counts?.ai_extracted ?? 0}
+                      {provCounts.ai_suggested ?? provCounts.ai_extracted ?? 0}
                     </span>
                   </div>
                 </div>
@@ -567,6 +865,118 @@ export function OverviewTab({
           )}
         </div>
       </div>
+
+      {/* Add Relational Office / Plant Location Modal */}
+      <Modal
+        open={showAddSiteModal}
+        onOpenChange={setShowAddSiteModal}
+        title="Add Office, Plant, or Branch Location"
+        description="Tambahkan lokasi kantor pusat, cabang, pabrik, atau gudang ke daftar lokasi perusahaan ini."
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowAddSiteModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => addSiteMutation.mutate()}
+              disabled={addSiteMutation.isPending || (!siteForm.city.trim() && !siteForm.address.trim() && !siteForm.label.trim())}
+            >
+              {addSiteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+              Save Location
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Location Type</label>
+              <Select
+                value={siteForm.location_type}
+                onChange={(e) => setSiteForm((f) => ({ ...f, location_type: e.target.value }))}
+              >
+                <option value="Headquarters">Headquarters (Kantor Pusat)</option>
+                <option value="Branch / Site">Branch Office (Cabang)</option>
+                <option value="Plant / Factory">Plant / Factory (Pabrik)</option>
+                <option value="Warehouse">Warehouse / Distribution Center</option>
+                <option value="Representative Office">Representative Office</option>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Site Label / Name</label>
+              <Input
+                value={siteForm.label}
+                onChange={(e) => setSiteForm((f) => ({ ...f, label: e.target.value }))}
+                placeholder="e.g. Pabrik Cikampek"
+              />
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">City</label>
+              <Input
+                value={siteForm.city}
+                onChange={(e) => setSiteForm((f) => ({ ...f, city: e.target.value }))}
+                placeholder="e.g. Karawang"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Province</label>
+              <Input
+                value={siteForm.province}
+                onChange={(e) => setSiteForm((f) => ({ ...f, province: e.target.value }))}
+                placeholder="e.g. Jawa Barat"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Full Address</label>
+            <Input
+              value={siteForm.address}
+              onChange={(e) => setSiteForm((f) => ({ ...f, address: e.target.value }))}
+              placeholder="Kawasan Industri Indotaisei Blok ..."
+            />
+          </div>
+          <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={siteForm.is_primary}
+              onChange={(e) => setSiteForm((f) => ({ ...f, is_primary: e.target.checked }))}
+              className="rounded border-border"
+            />
+            <span>Set as Primary Location (HQ)</span>
+          </label>
+        </div>
+      </Modal>
+
+      {/* Delete Location Confirmation Modal */}
+      <Modal
+        open={Boolean(deletingSite)}
+        onOpenChange={(open) => !open && setDeletingSite(null)}
+        title="Hapus Lokasi Kantor / Cabang?"
+        description={`Lokasi "${deletingSite?.label || deletingSite?.city || deletingSite?.location_type || 'Site'}" akan dihapus dari daftar cabang perusahaan ini.`}
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeletingSite(null)}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deletingSite && deleteSiteMutation.mutate(deletingSite.id)}
+              disabled={deleteSiteMutation.isPending}
+            >
+              {deleteSiteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+              Hapus Lokasi
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Tindakan ini hanya menghapus entri lokasi terkait dan tidak menghapus data utama Lead.
+        </p>
+      </Modal>
     </div>
   );
 }

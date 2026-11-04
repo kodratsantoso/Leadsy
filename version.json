@@ -1,7 +1,7 @@
 {
-  "version": "1.43.0",
-  "codename": "industry-intelligence-newsletter-and-sso-stability",
+  "version": "1.44.0",
+  "codename": "ai-deep-profile-persistence-and-presales-playbook",
   "last_updated": "2026-11-04",
   "type": "minor",
-  "notes": "Added DB-cached Industry Intelligence Newsletter (/lead-generator/newsletter) with corporate/brand entity extraction, structured editorial telemetry headers, live CRM lead cross-matching, and 1-click/batch Convert to Lead workflow; hardened Lark SSO global email reconciliation and K3s frontend pod memory limits."
+  "notes": "Full AI Deep Company Profiling persistence & Lead Detail UI unification: added 5 firmographic scalar columns on leads (legal_name, ownership_type, year_established, operational_scope, whatsapp), created relational lead_office_locations table with manual/AI multi-site management, wired full manual/auto profiling hydration into Presales Discovery & BANTC Question Guides, and rendered AI Deep Profile & Presales Playbook across Overview, Intelligence, and Pre-Meeting Brief tabs."
 }

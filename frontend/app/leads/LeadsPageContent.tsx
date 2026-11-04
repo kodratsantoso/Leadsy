@@ -115,16 +115,23 @@ type AssignableUser = {
 
 type LeadFormState = {
   company_name: string;
+  legal_name: string;
   brand: string;
+  ownership_type: string;
+  year_established: string;
   address: string;
   email: string;
   phone: string;
+  whatsapp: string;
   website: string;
   lat: string;
   lng: string;
   industry_id: string;
   sub_industry_id: string;
   company_size_estimate: string;
+  operational_scope: string;
+  branch_count: string;
+  customer_story: string;
   meeting_link: string;
   lead_score: string;
   business_category_id: string;
@@ -190,16 +197,23 @@ type ImportMappingTarget = {
 
 const emptyForm: LeadFormState = {
   company_name: "",
+  legal_name: "",
   brand: "",
+  ownership_type: "",
+  year_established: "",
   address: "",
   email: "",
   phone: "",
+  whatsapp: "",
   website: "",
   lat: "",
   lng: "",
   industry_id: "",
   sub_industry_id: "",
   company_size_estimate: "",
+  operational_scope: "",
+  branch_count: "",
+  customer_story: "",
   meeting_link: "",
   lead_score: "",
   business_category_id: "",
@@ -692,6 +706,8 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [createOpen, setCreateOpen] = useState(false);
   const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout" | "applied">("idle");
   const [profilingData, setProfilingData] = useState<any>(null);
+  const [profilingOutputId, setProfilingOutputId] = useState<number | null>(null);
+  const [appliedProfileJson, setAppliedProfileJson] = useState<any>(null);
   const [profilingRetrying, setProfilingRetrying] = useState(false);
   const [profilingErrorMessage, setProfilingErrorMessage] = useState<string | null>(null);
 
@@ -711,6 +727,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
       const json = await res.json();
       if (json.success && json.data?.status === "ready_for_review") {
         setProfilingStatus("ready_for_review");
+        setProfilingOutputId(json.data.id ?? null);
         setProfilingData(json.data.current_output_json);
         setProfilingErrorMessage(null);
       } else {
@@ -981,6 +998,11 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     setFormState(emptyForm);
     setLocationSearch("");
     setLocationFeedback("");
+    setProfilingStatus("idle");
+    setProfilingData(null);
+    setProfilingOutputId(null);
+    setAppliedProfileJson(null);
+    setProfilingErrorMessage(null);
   };
 
   const resetImport = () => {
@@ -1175,16 +1197,23 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
     setLocationFeedback("");
     setFormState({
       company_name:          lead.company_name || "",
+      legal_name:            lead.legal_name || "",
       brand:                 lead.brand || "",
+      ownership_type:        lead.ownership_type || "",
+      year_established:      lead.year_established || "",
       address:               lead.address || "",
       lat:                   lead.lat != null ? String(lead.lat) : "",
       lng:                   lead.lng != null ? String(lead.lng) : "",
       email:                 lead.email || "",
       phone:                 lead.phone || "",
+      whatsapp:              lead.whatsapp || "",
       website:               lead.website || "",
       industry_id:           lead.industry_id != null ? String(lead.industry_id) : "",
       sub_industry_id:       lead.sub_industry_id != null ? String(lead.sub_industry_id) : "",
       company_size_estimate: lead.company_size_estimate || "",
+      operational_scope:     lead.operational_scope || "",
+      branch_count:          lead.branch_count != null ? String(lead.branch_count) : "",
+      customer_story:        lead.customer_story || "",
       meeting_link:          lead.meeting_link || "",
       lead_score:            lead.lead_score != null ? String(lead.lead_score) : "",
       business_category_id:  lead.business_category_id?.toString() || "",
@@ -1224,16 +1253,25 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
 
     createMutation.mutate({
       company_name:          formState.company_name.trim(),
+      legal_name:            formState.legal_name.trim() || undefined,
       brand:                 formState.brand.trim() || undefined,
+      ownership_type:        formState.ownership_type.trim() || undefined,
+      year_established:      formState.year_established.trim() || undefined,
       address:               formState.address.trim() || undefined,
       lat:                   formState.lat ? Number(formState.lat) : undefined,
       lng:                   formState.lng ? Number(formState.lng) : undefined,
       email:                 formState.email.trim() || undefined,
       phone:                 formState.phone.trim() || undefined,
+      whatsapp:              formState.whatsapp.trim() || undefined,
       website:               website || undefined,
       industry_id:           formState.industry_id ? Number(formState.industry_id) : undefined,
       sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : undefined,
       company_size_estimate: formState.company_size_estimate.trim() || undefined,
+      operational_scope:     formState.operational_scope.trim() || undefined,
+      branch_count:          formState.branch_count ? Number(formState.branch_count) : undefined,
+      customer_story:        formState.customer_story.trim() || undefined,
+      ai_profile_json:       appliedProfileJson || undefined,
+      ai_profiling_output_id: profilingOutputId || undefined,
       business_category_id:  formState.business_category_id || undefined,
       product_id:            formState.product_id ? Number(formState.product_id) : undefined,
       estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : undefined,
@@ -1253,16 +1291,23 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
       id: editLead.id,
       payload: {
         company_name:          formState.company_name.trim(),
+        legal_name:            formState.legal_name.trim() || null,
         brand:                 formState.brand.trim() || null,
+        ownership_type:        formState.ownership_type.trim() || null,
+        year_established:      formState.year_established.trim() || null,
         address:               formState.address.trim() || null,
         lat:                   formState.lat ? Number(formState.lat) : null,
         lng:                   formState.lng ? Number(formState.lng) : null,
         email:                 formState.email.trim() || null,
         phone:                 formState.phone.trim() || null,
+        whatsapp:              formState.whatsapp.trim() || null,
         website:               website || null,
         industry_id:           formState.industry_id ? Number(formState.industry_id) : null,
         sub_industry_id:       formState.sub_industry_id ? Number(formState.sub_industry_id) : null,
         company_size_estimate: formState.company_size_estimate.trim() || null,
+        operational_scope:     formState.operational_scope.trim() || null,
+        branch_count:          formState.branch_count ? Number(formState.branch_count) : null,
+        customer_story:        formState.customer_story.trim() || null,
         business_category_id:  formState.business_category_id || null,
         product_id:            formState.product_id ? Number(formState.product_id) : null,
         estimated_closing_amount: formState.estimated_closing_amount ? Number(formState.estimated_closing_amount) : null,
@@ -2539,6 +2584,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                     const json = await res.json();
                     if (json.success && json.data) {
                       let currentData = json.data;
+                      setProfilingOutputId(currentData.id ?? null);
                       // Poll status — the queue can be slow or stuck, so give
                       // up after 40s and offer a manual no-queue retry instead
                       // of polling forever with no feedback.
@@ -2632,12 +2678,29 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
               const resolvedSubId = resolveSubIndustryId(resolvedIndId);
               const resolvedCatId = resolveBusinessCategoryId();
 
+              const parsedBranches = (() => {
+                if (typeof pData.branch_count === "number") return String(pData.branch_count);
+                if (typeof pData.branch_count === "string") {
+                  const m = pData.branch_count.match(/\d+/);
+                  if (m) return m[0];
+                }
+                if (Array.isArray(pData.office_locations) && pData.office_locations.length > 0) {
+                  return String(pData.office_locations.length);
+                }
+                return formState.branch_count;
+              })();
+
+              setAppliedProfileJson(pData);
               setFormState((s) => ({
                 ...s,
                 company_name: pData.company_name || s.company_name,
+                legal_name: pData.legal_name || pData.company_name || s.legal_name,
                 brand: pData.brand || s.brand,
+                ownership_type: pData.ownership_type || s.ownership_type,
+                year_established: pData.year_established ? String(pData.year_established) : s.year_established,
                 address: pData.address || s.address,
                 phone: pData.phone || s.phone,
+                whatsapp: pData.whatsapp || s.whatsapp,
                 email: pData.email || s.email,
                 website: pData.website || s.website,
                 lat: pData.lat ? String(pData.lat) : s.lat,
@@ -2645,19 +2708,58 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                 industry_id: resolvedIndId,
                 sub_industry_id: resolvedSubId,
                 business_category_id: resolvedCatId,
-                company_size_estimate: pData.company_size || s.company_size_estimate,
+                company_size_estimate: pData.company_size || pData.company_size_estimate || s.company_size_estimate,
+                operational_scope: pData.operational_area_type || s.operational_scope,
+                branch_count: parsedBranches,
+                customer_story: pData.customer_story || s.customer_story,
               }));
               setProfilingStatus("applied");
-              toast.success("AI profiling applied to form! Click 'Create Lead' below to save.");
+              toast.success("Seluruh profil AI, lokasi cabang, & playbook Presales siap disimpan saat klik 'Create Lead'!");
             }}
           />
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Brand</label>
-            <Input
-              value={formState.brand}
-              onChange={(e) => setFormState((s) => ({ ...s, brand: e.target.value }))}
-              placeholder="e.g. Artha"
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Legal Entity Name</label>
+              <Input
+                value={formState.legal_name}
+                onChange={(e) => setFormState((s) => ({ ...s, legal_name: e.target.value }))}
+                placeholder="e.g. PT Artha Graha Internasional Tbk"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Brand</label>
+              <Input
+                value={formState.brand}
+                onChange={(e) => setFormState((s) => ({ ...s, brand: e.target.value }))}
+                placeholder="e.g. Artha"
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Ownership Type</label>
+              <Input
+                value={formState.ownership_type}
+                onChange={(e) => setFormState((s) => ({ ...s, ownership_type: e.target.value }))}
+                placeholder="Swasta / BUMN / PMA / Tbk"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Year Established</label>
+              <Input
+                value={formState.year_established}
+                onChange={(e) => setFormState((s) => ({ ...s, year_established: e.target.value }))}
+                placeholder="e.g. 1989"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Operational Scope</label>
+              <Input
+                value={formState.operational_scope}
+                onChange={(e) => setFormState((s) => ({ ...s, operational_scope: e.target.value }))}
+                placeholder="Lokal / Nasional / Regional"
+              />
+            </div>
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Address</label>
@@ -2727,12 +2829,20 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
               </Select>
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="grid gap-2">
               <label className="text-sm font-medium">Company Phone</label>
               <Input
                 value={formState.phone}
                 onChange={(e) => setFormState((s) => ({ ...s, phone: e.target.value }))}
+                placeholder="e.g. 021-5551234"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">WhatsApp</label>
+              <Input
+                value={formState.whatsapp}
+                onChange={(e) => setFormState((s) => ({ ...s, whatsapp: e.target.value }))}
                 placeholder="e.g. 6281234567890"
               />
             </div>
