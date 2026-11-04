@@ -107,9 +107,11 @@ export function EditLeadModal({
   const [profilingRetrying, setProfilingRetrying] = useState(false);
   const [profilingElapsed, setProfilingElapsed] = useState(0);
   const [profilingFailureReason, setProfilingFailureReason] = useState<"ai" | "unreachable">("ai");
+  const [profilingErrorMessage, setProfilingErrorMessage] = useState<string | null>(null);
 
   const retryAiProfilingSync = async () => {
     setProfilingRetrying(true);
+    setProfilingErrorMessage(null);
     try {
       const res = await apiFetch("/leads/ai-profiling/start", {
         method: "POST",
@@ -125,11 +127,14 @@ export function EditLeadModal({
       if (json.success && json.data?.status === "ready_for_review") {
         setProfilingStatus("ready_for_review");
         setProfilingData(json.data.current_output_json);
+        setProfilingErrorMessage(null);
       } else {
         setProfilingStatus("failed");
+        setProfilingErrorMessage(json.data?.current_output_json?.error || json.data?.error || json.message || "Gagal menjalankan profiling.");
       }
-    } catch {
+    } catch (err: any) {
       setProfilingStatus("failed");
+      setProfilingErrorMessage(err?.message || "Koneksi ke server terputus.");
     } finally {
       setProfilingRetrying(false);
     }
@@ -396,6 +401,7 @@ export function EditLeadModal({
                     onClick={async () => {
                       setProfilingStatus("researching");
                       setProfilingData(null);
+                      setProfilingErrorMessage(null);
                       setProfilingElapsed(0);
                       setProfilingFailureReason("ai");
                       try {
@@ -435,10 +441,12 @@ export function EditLeadModal({
                                 clearInterval(interval);
                                 setProfilingStatus("ready_for_review");
                                 setProfilingData(currentData.current_output_json);
+                                setProfilingErrorMessage(null);
                               } else if (currentData.status === "failed") {
                                 clearInterval(interval);
                                 setProfilingFailureReason("ai");
                                 setProfilingStatus("failed");
+                                setProfilingErrorMessage(currentData.current_output_json?.error || currentData.error || null);
                               } else if (attempts >= maxAttempts) {
                                 clearInterval(interval);
                                 setProfilingStatus("timeout");
@@ -454,16 +462,19 @@ export function EditLeadModal({
                                 clearInterval(interval);
                                 setProfilingFailureReason("unreachable");
                                 setProfilingStatus("failed");
+                                setProfilingErrorMessage(statusJson?.message || "Koneksi ke server terputus.");
                               }
                             }
                           }, AI_PROFILING_POLL_MS);
                         } else {
                           setProfilingFailureReason("unreachable");
                           setProfilingStatus("failed");
+                          setProfilingErrorMessage(json?.message || "Gagal memulai request profiling.");
                         }
-                      } catch {
+                      } catch (err: any) {
                         setProfilingFailureReason("unreachable");
                         setProfilingStatus("failed");
+                        setProfilingErrorMessage(err?.message || "Koneksi ke server terputus.");
                       }
                     }}
                   >
@@ -476,12 +487,15 @@ export function EditLeadModal({
                   status={profilingStatus}
                   elapsedSeconds={profilingElapsed}
                   failureReason={profilingFailureReason}
+                  errorMessage={profilingErrorMessage}
                   slow={profilingElapsed >= AI_PROFILING_SLOW_AFTER_SECONDS}
                   data={profilingData}
                   retryingSync={profilingRetrying}
+                  onRetrySync={retryAiProfilingSync}
                   onClose={() => {
                     setProfilingStatus("idle");
                     setProfilingData(null);
+                    setProfilingErrorMessage(null);
                   }}
                   onApply={async (pData) => {
                     const resolveIndustryId = () => {

@@ -221,22 +221,33 @@ class LarkSsoService
             throw new Exception('Email not provided by Lark');
         }
 
+        $email = strtolower(trim($email));
+
         $roleModel = $role ? Role::where('name', $role)->first() : null;
 
-        // Find or create user. The default role is only applied during first SSO provisioning;
-        // later admin-managed role changes must remain authoritative.
-        $user = User::firstOrCreate(
-            [
+        // Find existing user by email globally (bypass TenantScope).
+        // Since `users_email_unique` is a global database constraint, a user's email
+        // is unique across the entire system. Searching strictly by ['email', 'tenant_id']
+        // causes duplicate key exceptions whenever a user was pre-registered or imported
+        // with tenant_id IS NULL or another tenant context.
+        $user = User::withoutGlobalScopes()->where('email', $email)->first();
+
+        if ($user) {
+            // Associate with the authenticating tenant if the user has no tenant assigned
+            if (empty($user->tenant_id)) {
+                $user->update(['tenant_id' => $tenant->id]);
+            }
+        } else {
+            // Provision new user
+            $user = User::create([
+                'name' => $name,
                 'email' => $email,
                 'tenant_id' => $tenant->id,
-            ],
-            [
-                'name' => $name,
                 'password' => bcrypt(bin2hex(random_bytes(16))), // Random password
                 'email_verified_at' => now(),
                 'role_id' => $roleModel?->id,
-            ]
-        );
+            ]);
+        }
 
         $updates = [];
 

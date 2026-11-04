@@ -93,6 +93,8 @@ interface AiProfilingPanelProps {
   slow?: boolean;
   /** Why the run ended: the AI came back empty, or we could not reach the server. */
   failureReason?: "ai" | "unreachable";
+  /** Specific error message returned by backend or AI provider */
+  errorMessage?: string | null;
 }
 
 const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, icon, children, defaultOpen = true }) => {
@@ -157,8 +159,11 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
   elapsedSeconds = 0,
   slow = false,
   failureReason = "ai",
+  errorMessage,
 }) => {
   if (status === "idle") return null;
+
+  const rawError = errorMessage || (data as any)?.error;
 
   return (
     <div className="border border-[var(--brand)]/30 rounded-xl bg-[var(--brand)]/5 my-2 overflow-hidden">
@@ -233,14 +238,25 @@ export const AiProfilingPanel: React.FC<AiProfilingPanelProps> = ({
             ) : (
               <div>
                 <p className="font-semibold">Research Failed</p>
-                <p className="text-xs text-muted-foreground">
-                  AI tidak menemukan cukup informasi publik untuk nama perusahaan ini. Coba nama
-                  yang lebih spesifik atau tambahkan lokasi.
-                </p>
+                {rawError ? (
+                  <div className="space-y-1 mt-0.5">
+                    <p className="text-xs text-destructive/90 font-medium break-words">
+                      {rawError}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Terjadi kendala pada integrasi/provider AI atau kuota token. Periksa balance provider AI (BytePlus/DeepSeek) atau coba ulangi.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    AI tidak menemukan cukup informasi publik untuk nama perusahaan ini. Coba nama
+                    yang lebih spesifik atau tambahkan lokasi.
+                  </p>
+                )}
               </div>
             )}
           </div>
-          {failureReason === "unreachable" && onRetrySync && (
+          {(failureReason === "unreachable" || !!rawError) && onRetrySync && (
             <Button size="sm" variant="outline" onClick={onRetrySync} disabled={retryingSync} className="self-start gap-2">
               {retryingSync ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               {retryingSync ? "Menjalankan langsung..." : "Coba lagi sekarang"}

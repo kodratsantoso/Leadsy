@@ -693,9 +693,11 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [profilingStatus, setProfilingStatus] = useState<"idle" | "researching" | "ready_for_review" | "failed" | "timeout" | "applied">("idle");
   const [profilingData, setProfilingData] = useState<any>(null);
   const [profilingRetrying, setProfilingRetrying] = useState(false);
+  const [profilingErrorMessage, setProfilingErrorMessage] = useState<string | null>(null);
 
   const retryAiProfilingSync = async () => {
     setProfilingRetrying(true);
+    setProfilingErrorMessage(null);
     try {
       const res = await apiFetch("/leads/ai-profiling/start", {
         method: "POST",
@@ -710,11 +712,14 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
       if (json.success && json.data?.status === "ready_for_review") {
         setProfilingStatus("ready_for_review");
         setProfilingData(json.data.current_output_json);
+        setProfilingErrorMessage(null);
       } else {
         setProfilingStatus("failed");
+        setProfilingErrorMessage(json.data?.current_output_json?.error || json.data?.error || json.message || "Gagal menjalankan profiling.");
       }
-    } catch {
+    } catch (err: any) {
       setProfilingStatus("failed");
+      setProfilingErrorMessage(err?.message || "Koneksi ke server terputus.");
     } finally {
       setProfilingRetrying(false);
     }
@@ -2521,6 +2526,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                 onClick={async () => {
                   setProfilingStatus("researching");
                   setProfilingData(null);
+                  setProfilingErrorMessage(null);
                   try {
                     const res = await apiFetch("/leads/ai-profiling/start", {
                       method: "POST",
@@ -2548,9 +2554,11 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                             clearInterval(interval);
                             setProfilingStatus("ready_for_review");
                             setProfilingData(currentData.current_output_json);
+                            setProfilingErrorMessage(null);
                           } else if (currentData.status === "failed") {
                             clearInterval(interval);
                             setProfilingStatus("failed");
+                            setProfilingErrorMessage(currentData.current_output_json?.error || currentData.error || null);
                           } else if (attempts >= maxAttempts) {
                             clearInterval(interval);
                             setProfilingStatus("timeout");
@@ -2558,13 +2566,16 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                         } else {
                           clearInterval(interval);
                           setProfilingStatus("failed");
+                          setProfilingErrorMessage(statusJson?.message || null);
                         }
                       }, 2000);
                     } else {
                       setProfilingStatus("failed");
+                      setProfilingErrorMessage(json?.message || "Gagal memulai profiling.");
                     }
-                  } catch {
+                  } catch (err: any) {
                     setProfilingStatus("failed");
+                    setProfilingErrorMessage(err?.message || "Koneksi ke server terputus.");
                   }
                 }}
               >
@@ -2576,11 +2587,13 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
           <AiProfilingPanel
             status={profilingStatus}
             data={profilingData}
+            errorMessage={profilingErrorMessage}
             onRetrySync={retryAiProfilingSync}
             retryingSync={profilingRetrying}
             onClose={() => {
               setProfilingStatus("idle");
               setProfilingData(null);
+              setProfilingErrorMessage(null);
             }}
             onApply={(pData: any) => {
               const resolveIndustryId = () => {
