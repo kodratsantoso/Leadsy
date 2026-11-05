@@ -548,10 +548,18 @@ export function EditLeadModal({
 
                     const resolveBusinessCategoryId = () => {
                       if (pData.business_category_id) return String(pData.business_category_id);
-                      const name = (pData.business_category_name || pData.business_category || "").toLowerCase().trim();
-                      if (!name) return companyForm.business_category_id;
+                      const raw = String(pData.business_category_name || pData.business_category || "").trim();
+                      if (!raw) return companyForm.business_category_id;
+                      const codeMatch = raw.match(/^\[?([A-Za-z0-9_-]{2,15})\]?\s*(.*)$/);
+                      const name = raw.toLowerCase();
+                      const cleanAfterCode = codeMatch?.[2]?.trim().toLowerCase() || "";
+                      const codeCandidate = codeMatch?.[1]?.trim().toLowerCase() || "";
                       const found = businessCategories.find(
-                        (c) => c.name.toLowerCase() === name || (c as any).slug?.toLowerCase() === name
+                        (c) =>
+                          c.name.toLowerCase() === name ||
+                          (cleanAfterCode && c.name.toLowerCase() === cleanAfterCode) ||
+                          (codeCandidate && (c.code || "").toLowerCase() === codeCandidate) ||
+                          (c as any).slug?.toLowerCase() === name
                       );
                       return found ? String(found.id) : companyForm.business_category_id;
                     };
@@ -851,7 +859,7 @@ export function EditLeadModal({
               </div>
               
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category</label>
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Business Category / #LOB</label>
                 <Select
                   value={companyForm.business_category_id}
                   onChange={(e) => {
@@ -860,6 +868,9 @@ export function EditLeadModal({
                         isOpen: true,
                         title: 'Create New Business Category',
                         endpoint: '/business-categories',
+                        additionalPayload: companyForm.industry_id
+                          ? { industry_id: Number(companyForm.industry_id) }
+                          : undefined,
                         onSuccess: (newItem) => {
                           qc.invalidateQueries({ queryKey: ['business-categories'] });
                           setCompanyForm((f) => ({ ...f, business_category_id: String(newItem.id) }));
@@ -871,11 +882,49 @@ export function EditLeadModal({
                   }}
                   placeholder="— Select category —"
                 >
-                  {businessCategories.map((cat) => (
-                    <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
-                  ))}
+                  {businessCategories
+                    .filter(
+                      (cat) =>
+                        !companyForm.industry_id ||
+                        !cat.industry_id ||
+                        String(cat.industry_id) === String(companyForm.industry_id) ||
+                        String(cat.id) === String(companyForm.business_category_id)
+                    )
+                    .map((cat) => (
+                      <option key={cat.id} value={String(cat.id)}>
+                        {cat.code ? `[${cat.code}] ` : ''}{cat.name}
+                      </option>
+                    ))}
                   <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
                 </Select>
+                {(() => {
+                  const activeCat = businessCategories.find(
+                    (c) => String(c.id) === String(companyForm.business_category_id)
+                  );
+                  if (!activeCat) return null;
+                  if (activeCat.channel_role === 'direct_b2c') {
+                    return (
+                      <p className="mt-1.5 text-xs text-[color:var(--info)]">
+                        Segmen B2C / Private Client — Nama klien individu atau kediaman pribadi diperbolehkan.
+                      </p>
+                    );
+                  }
+                  if (activeCat.channel_role === 'partner_influencer') {
+                    return (
+                      <p className="mt-1.5 text-xs text-[color:var(--brand)]">
+                        Business Partner / Influencer — Membuka peluang spesifikasi proyek lintas segmen.
+                      </p>
+                    );
+                  }
+                  if (activeCat.channel_role === 'indirect_contract') {
+                    return (
+                      <p className="mt-1.5 text-xs text-[color:var(--warning)]">
+                        Indirect Contract / Leasing — Penjualan melalui manajemen kontrak atau lembaga pembiayaan.
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
           </div>

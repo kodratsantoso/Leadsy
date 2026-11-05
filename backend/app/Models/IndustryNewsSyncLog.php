@@ -14,6 +14,7 @@ class IndustryNewsSyncLog extends Model
         'tenant_id',
         'industry_id',
         'sub_industry_id',
+        'business_category_id',
         'region_scope',
         'status',
         'articles_fetched',
@@ -40,6 +41,11 @@ class IndustryNewsSyncLog extends Model
     public function subIndustry(): BelongsTo
     {
         return $this->belongsTo(SubIndustry::class);
+    }
+
+    public function businessCategory(): BelongsTo
+    {
+        return $this->belongsTo(BusinessCategory::class);
     }
 
     public function triggeredByUser(): BelongsTo

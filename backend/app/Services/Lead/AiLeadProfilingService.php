@@ -100,28 +100,46 @@ class AiLeadProfilingService
      */
     public function performProfiling(AiGeneratedOutput $output, string $companyName, ?string $website = null, ?int $leadId = null): void
     {
-        if (empty($website) && !empty($leadId)) {
-            $lead = \App\Models\Lead::find($leadId);
-            $website = $lead?->website ?: $lead?->website_domain;
+        $lead = null;
+        if (!empty($leadId)) {
+            $lead = \App\Models\Lead::with('businessCategory')->find($leadId);
+            if (empty($website)) {
+                $website = $lead?->website ?: $lead?->website_domain;
+            }
         }
 
-        $industries = Industry::where('is_active', true)->pluck('name')->toArray();
-        $subIndustries = SubIndustry::where('is_active', true)->pluck('name')->toArray();
-        $businessCategories = BusinessCategory::where('is_active', true)->pluck('name')->toArray();
+        $tenantId = $output->tenant_id ?? $lead?->tenant_id ?? Industry::resolveActiveTenantId();
+
+        $industries = Industry::forTenantOrDefault($tenantId)->where('is_active', true)->pluck('name')->toArray();
+        $subIndustries = SubIndustry::forTenantOrDefault($tenantId)->where('is_active', true)->pluck('name')->toArray();
+        $businessCategories = BusinessCategory::forTenantOrDefault($tenantId)
+            ->where('is_active', true)
+            ->get(['code', 'name', 'channel_role'])
+            ->map(fn ($c) => $c->code ? "[{$c->code}] {$c->name}" : $c->name)
+            ->toArray();
 
         // Search and crawl official site first, then ask AI. Leadsy fetches the official
         // homepage, about, and service pages directly so the model receives real facts.
         $research = $this->webResearch->research($companyName, $website);
+
+        $roleGuidance = '';
+        $existingRole = $lead?->businessCategory?->channel_role;
+        if ($existingRole === 'direct_b2c') {
+            $roleGuidance = "\n[SEGMENT CONTEXT: Private / Residential / HNWI Client (direct_b2c) — entity may be an individual homeowner, villa, or penthouse project rather than a registered corporate PT. Do not penalize absence of corporate registry.]";
+        } elseif ($existingRole === 'partner_influencer') {
+            $roleGuidance = "\n[SEGMENT CONTEXT: Business Partner / Specifier / Influencer (e.g. Architecture Firm, Interior Designer, or Trainer/Reseller) — focus sales_notes on partnership & multi-project specification opportunities.]";
+        }
 
         $response = $this->ai->call('lead_ai_profiling', '', [
             'company_name' => $companyName,
             'available_industries' => implode(', ', $industries),
             'available_sub_industries' => implode(', ', $subIndustries),
             'available_business_categories' => implode(', ', $businessCategories),
-            'web_research' => $research['available']
+            'web_research' => ($research['available']
                 ? $research['findings']
                 : 'No web research is available for this company ('.($research['reason'] ?? 'unknown').'). '
-                    .'Return null for anything you cannot verify — do not fill gaps from memory.',
+                    .'Return null for anything you cannot verify — do not fill gaps from memory.')
+                .$roleGuidance,
             'web_search' => true,
         ]);
 
@@ -188,11 +206,12 @@ class AiLeadProfilingService
             $profileData['website'] = $research['official_website'];
         }
 
+        $matchedInd = null;
         if (!empty($profileData['industry'])) {
             $industryInput = is_array($profileData['industry'])
                 ? implode(', ', $profileData['industry'])
                 : (string) $profileData['industry'];
-            $matchedInd = $this->mapper->mapIndustry($industryInput);
+            $matchedInd = $this->mapper->mapIndustry($industryInput, $tenantId);
             if ($matchedInd) {
                 $profileData['industry_id'] = $matchedInd->id;
                 $profileData['industry_name'] = $matchedInd->name;
@@ -201,7 +220,7 @@ class AiLeadProfilingService
                     $subIndustryInput = is_array($profileData['sub_industry'])
                         ? implode(', ', $profileData['sub_industry'])
                         : (string) $profileData['sub_industry'];
-                    $matchedSub = $this->mapper->mapSubIndustry($subIndustryInput, $matchedInd->id);
+                    $matchedSub = $this->mapper->mapSubIndustry($subIndustryInput, $matchedInd->id, $tenantId);
                     if ($matchedSub) {
                         $profileData['sub_industry_id'] = $matchedSub->id;
                         $profileData['sub_industry_name'] = $matchedSub->name;
@@ -214,10 +233,11 @@ class AiLeadProfilingService
             $catInput = is_array($profileData['business_category']) 
                 ? implode(', ', $profileData['business_category']) 
                 : (string) $profileData['business_category'];
-            $matchedCat = $this->mapper->mapBusinessCategory($catInput);
+            $matchedCat = $this->mapper->mapBusinessCategory($catInput, $matchedInd?->id ?? $lead?->industry_id, $tenantId);
             if ($matchedCat) {
                 $profileData['business_category_id'] = $matchedCat->id;
                 $profileData['business_category_name'] = $matchedCat->name;
+                $profileData['business_category_code'] = $matchedCat->code;
             }
         }
 
@@ -308,25 +328,40 @@ class AiLeadProfilingService
     public function profileAndEnrichLead(\App\Models\Lead $lead): array
     {
         $companyName = $lead->company_name;
+        $tenantId = $lead->tenant_id ?? Industry::resolveActiveTenantId();
 
-        $industries = Industry::where('is_active', true)->pluck('name')->toArray();
-        $subIndustries = SubIndustry::where('is_active', true)->pluck('name')->toArray();
-        $businessCategories = BusinessCategory::where('is_active', true)->pluck('name')->toArray();
+        $industries = Industry::forTenantOrDefault($tenantId)->where('is_active', true)->pluck('name')->toArray();
+        $subIndustries = SubIndustry::forTenantOrDefault($tenantId)->where('is_active', true)->pluck('name')->toArray();
+        $businessCategories = BusinessCategory::forTenantOrDefault($tenantId)
+            ->where('is_active', true)
+            ->get(['code', 'name'])
+            ->map(fn ($c) => $c->code ? "[{$c->code}] {$c->name}" : $c->name)
+            ->toArray();
 
         // Stage 1 of the screening pipeline runs this path, so it needs the same real
         // sources as the standalone profiler — otherwise every automatically screened
         // lead is profiled from the model's memory alone.
         $research = $this->webResearch->research($companyName, $lead->tenant_id);
 
+        $lead->loadMissing('businessCategory');
+        $roleGuidance = '';
+        $existingRole = $lead->businessCategory?->channel_role;
+        if ($existingRole === 'direct_b2c') {
+            $roleGuidance = "\n[SEGMENT CONTEXT: Private / Residential / HNWI Client (direct_b2c) — entity may be an individual homeowner, villa, or penthouse project rather than a registered corporate PT. Do not penalize absence of corporate registry.]";
+        } elseif ($existingRole === 'partner_influencer') {
+            $roleGuidance = "\n[SEGMENT CONTEXT: Business Partner / Specifier / Influencer (e.g. Architecture Firm, Interior Designer, or Trainer/Reseller) — focus sales_notes on partnership & multi-project specification opportunities.]";
+        }
+
         $response = $this->ai->call('lead_ai_profiling', '', [
             'company_name' => $companyName,
             'available_industries' => implode(', ', $industries),
             'available_sub_industries' => implode(', ', $subIndustries),
             'available_business_categories' => implode(', ', $businessCategories),
-            'web_research' => $research['available']
+            'web_research' => ($research['available']
                 ? $research['findings']
                 : 'No web research is available for this company ('.($research['reason'] ?? 'unknown').'). '
-                    .'Return null for anything you cannot verify — do not fill gaps from memory.',
+                    .'Return null for anything you cannot verify — do not fill gaps from memory.')
+                .$roleGuidance,
             'web_search' => true,
         ]);
 
@@ -375,7 +410,7 @@ class AiLeadProfilingService
             $industryInput = is_array($profileData['industry'])
                 ? implode(', ', $profileData['industry'])
                 : (string) $profileData['industry'];
-            $matchedInd = $this->mapper->mapIndustry($industryInput);
+            $matchedInd = $this->mapper->mapIndustry($industryInput, $tenantId);
             if ($matchedInd) {
                 $industryId = $matchedInd->id;
                 
@@ -383,7 +418,7 @@ class AiLeadProfilingService
                     $subIndustryInput = is_array($profileData['sub_industry'])
                         ? implode(', ', $profileData['sub_industry'])
                         : (string) $profileData['sub_industry'];
-                    $matchedSub = $this->mapper->mapSubIndustry($subIndustryInput, $matchedInd->id);
+                    $matchedSub = $this->mapper->mapSubIndustry($subIndustryInput, $matchedInd->id, $tenantId);
                     if ($matchedSub) {
                         $subIndustryId = $matchedSub->id;
                     }
@@ -395,7 +430,7 @@ class AiLeadProfilingService
             $catInput = is_array($profileData['business_category']) 
                 ? implode(', ', $profileData['business_category']) 
                 : (string) $profileData['business_category'];
-            $matchedCat = $this->mapper->mapBusinessCategory($catInput);
+            $matchedCat = $this->mapper->mapBusinessCategory($catInput, $industryId, $tenantId);
             if ($matchedCat) {
                 $businessCategoryId = $matchedCat->id;
                 $businessCategoryName = $matchedCat->name;

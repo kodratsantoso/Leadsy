@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BusinessCategory;
 use App\Models\Industry;
 use App\Models\IndustryNewsArticle;
 use App\Models\IndustryNewsEntity;
@@ -23,16 +24,25 @@ class LeadGeneratorNewsletterController extends Controller
 
     /**
      * GET /api/lead-generator/newsletter/industries
-     * Returns active industries annotated with cached article counts and last sync timestamps.
+     * Returns active tenant-scoped industries annotated with sub-industries, linked/universal business categories,
+     * cached article counts, and last sync timestamps.
      */
     public function industries(Request $request): JsonResponse
     {
         $tenantId = (int) ($request->user()?->tenant_id ?? 1);
 
-        $industries = Industry::where('is_active', true)
+        $industries = Industry::forTenantOrDefault($tenantId)
+            ->where('is_active', true)
             ->with(['subIndustries' => fn ($q) => $q->where('is_active', true)->orderBy('name')])
             ->orderBy('name')
-            ->get(['id', 'name', 'synonyms']);
+            ->get(['id', 'tenant_id', 'name', 'synonyms']);
+
+        $allCategories = BusinessCategory::forTenantOrDefault($tenantId)
+            ->where('is_active', true)
+            ->orderByRaw('CASE WHEN industry_id IS NOT NULL THEN 0 ELSE 1 END')
+            ->orderBy('code')
+            ->orderBy('name')
+            ->get(['id', 'industry_id', 'code', 'name', 'channel_role']);
 
         $articleCounts = IndustryNewsArticle::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
@@ -47,16 +57,29 @@ class LeadGeneratorNewsletterController extends Controller
             ->groupBy('industry_id')
             ->pluck('last_synced_at', 'industry_id');
 
-        $items = $industries->map(fn (Industry $ind) => [
-            'id' => $ind->id,
-            'name' => $ind->name,
-            'cached_articles_count' => (int) ($articleCounts[$ind->id] ?? 0),
-            'last_synced_at' => $lastSyncs[$ind->id] ?? null,
-            'sub_industries' => $ind->subIndustries->map(fn ($sub) => [
-                'id' => $sub->id,
-                'name' => $sub->name,
-            ])->values(),
-        ])->values();
+        $items = $industries->map(function (Industry $ind) use ($articleCounts, $lastSyncs, $allCategories) {
+            $applicableCategories = $allCategories->filter(
+                fn (BusinessCategory $cat) => $cat->industry_id === null || (int) $cat->industry_id === (int) $ind->id
+            );
+
+            return [
+                'id' => $ind->id,
+                'name' => $ind->name,
+                'cached_articles_count' => (int) ($articleCounts[$ind->id] ?? 0),
+                'last_synced_at' => $lastSyncs[$ind->id] ?? null,
+                'sub_industries' => $ind->subIndustries->map(fn ($sub) => [
+                    'id' => $sub->id,
+                    'name' => $sub->name,
+                ])->values(),
+                'business_categories' => $applicableCategories->map(fn (BusinessCategory $cat) => [
+                    'id' => $cat->id,
+                    'industry_id' => $cat->industry_id,
+                    'code' => $cat->code,
+                    'name' => $cat->name,
+                    'channel_role' => $cat->channel_role ?? 'direct_b2b',
+                ])->values(),
+            ];
+        })->values();
 
         return response()->json([
             'success' => true,
@@ -66,22 +89,27 @@ class LeadGeneratorNewsletterController extends Controller
 
     /**
      * GET /api/lead-generator/newsletter
-     * DB-first read of stored industry news, structured header telemetry, and entity directory.
+     * DB-first read of stored industry news filtered by Industry, Sub-Industry, and Business Category.
      */
     public function index(Request $request): JsonResponse
     {
         $tenantId = (int) ($request->user()?->tenant_id ?? 1);
         $requestedIndustryId = $request->integer('industry_id');
 
-        if ($requestedIndustryId <= 0) {
-            // Default to the most recently synced industry with cached articles, or first active industry
+        $tenantIndustryIds = Industry::forTenantOrDefault($tenantId)
+            ->where('is_active', true)
+            ->pluck('id')
+            ->all();
+
+        if ($requestedIndustryId <= 0 || ! in_array($requestedIndustryId, $tenantIndustryIds, true)) {
             $cachedIndustryId = IndustryNewsArticle::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
+                ->when($tenantIndustryIds !== [], fn ($q) => $q->whereIn('industry_id', $tenantIndustryIds))
                 ->latest('created_at')
                 ->value('industry_id');
 
             $requestedIndustryId = $cachedIndustryId
-                ?: (int) Industry::where('is_active', true)->orderBy('name')->value('id');
+                ?: (int) (Industry::forTenantOrDefault($tenantId)->where('is_active', true)->orderBy('name')->value('id') ?? 0);
         }
 
         if ($requestedIndustryId <= 0) {
@@ -105,22 +133,23 @@ class LeadGeneratorNewsletterController extends Controller
             ], 404);
         }
 
-        // Fast O(N) reconciliation so newly created leads elsewhere in CRM reflect immediately
         $this->syncService->reconcileMatchedLeads($tenantId, $industry->id);
 
         $subIndustryId = $request->filled('sub_industry_id') ? $request->integer('sub_industry_id') : null;
+        $businessCategoryId = $request->filled('business_category_id') ? $request->integer('business_category_id') : null;
         $signalType = trim((string) $request->query('signal_type', 'all'));
-        $entityStatus = trim((string) $request->query('entity_status', 'all')); // all | prospects | in_leads
+        $entityStatus = trim((string) $request->query('entity_status', 'all'));
         $search = trim((string) $request->query('search', ''));
         $perPage = min(max((int) $request->query('per_page', 24), 6), 60);
 
-        // 1. Build Structured Telemetry Headers for the selected industry
-        $telemetry = $this->buildIndustryTelemetry($tenantId, $industry->id, $subIndustryId);
+        // 1. Build Structured Telemetry Headers for the selected 3D taxonomy slice
+        $telemetry = $this->buildIndustryTelemetry($tenantId, $industry->id, $subIndustryId, $businessCategoryId);
 
         // 2. Build Filtered Articles Query
         $articlesQuery = IndustryNewsArticle::withoutGlobalScopes()
             ->with([
                 'subIndustry:id,name',
+                'businessCategory:id,code,name,channel_role',
                 'entities' => fn ($q) => $q->withoutGlobalScopes()->with('matchedLead:id,company_name'),
             ])
             ->where('tenant_id', $tenantId)
@@ -128,6 +157,10 @@ class LeadGeneratorNewsletterController extends Controller
 
         if ($subIndustryId) {
             $articlesQuery->where('sub_industry_id', $subIndustryId);
+        }
+
+        if ($businessCategoryId) {
+            $articlesQuery->where('business_category_id', $businessCategoryId);
         }
 
         if ($signalType !== '' && $signalType !== 'all') {
@@ -155,8 +188,15 @@ class LeadGeneratorNewsletterController extends Controller
             ->orderByDesc('id')
             ->paginate($perPage);
 
-        // 3. Build Aggregated Entity Directory for this industry
-        $entityDirectory = $this->buildEntityDirectory($tenantId, $industry->id, $subIndustryId, $entityStatus, $search);
+        // 3. Build Aggregated Entity Directory for this 3D taxonomy slice
+        $entityDirectory = $this->buildEntityDirectory(
+            $tenantId,
+            $industry->id,
+            $subIndustryId,
+            $businessCategoryId,
+            $entityStatus,
+            $search
+        );
 
         return response()->json([
             'success' => true,
@@ -180,6 +220,12 @@ class LeadGeneratorNewsletterController extends Controller
                     'sub_industry' => $art->subIndustry ? [
                         'id' => $art->subIndustry->id,
                         'name' => $art->subIndustry->name,
+                    ] : null,
+                    'business_category' => $art->businessCategory ? [
+                        'id' => $art->businessCategory->id,
+                        'code' => $art->businessCategory->code,
+                        'name' => $art->businessCategory->name,
+                        'channel_role' => $art->businessCategory->channel_role ?? 'direct_b2b',
                     ] : null,
                     'entities' => $art->entities->map(fn (IndustryNewsEntity $ent) => [
                         'id' => $ent->id,
@@ -214,6 +260,7 @@ class LeadGeneratorNewsletterController extends Controller
         $validated = $request->validate([
             'industry_id' => 'required|integer|exists:industries,id',
             'sub_industry_id' => 'nullable|integer|exists:sub_industries,id',
+            'business_category_id' => 'nullable|integer|exists:business_categories,id',
             'region_scope' => 'nullable|string|in:id,global',
             'focus_keyword' => 'nullable|string|max:100',
             'sync' => 'nullable|boolean',
@@ -224,13 +271,16 @@ class LeadGeneratorNewsletterController extends Controller
         $userId = $request->user()?->id;
         $industryId = (int) $validated['industry_id'];
         $subIndustryId = ! empty($validated['sub_industry_id']) ? (int) $validated['sub_industry_id'] : null;
+        $businessCategoryId = ! empty($validated['business_category_id']) ? (int) $validated['business_category_id'] : null;
         $regionScope = $validated['region_scope'] ?? 'id';
         $focusKeyword = $validated['focus_keyword'] ?? null;
 
-        // Prevent duplicate concurrent runs on the same industry
+        // Prevent duplicate concurrent runs on the exact same taxonomy slice
         $activeRun = IndustryNewsSyncLog::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('industry_id', $industryId)
+            ->when($subIndustryId, fn ($q) => $q->where('sub_industry_id', $subIndustryId), fn ($q) => $q->whereNull('sub_industry_id'))
+            ->when($businessCategoryId, fn ($q) => $q->where('business_category_id', $businessCategoryId), fn ($q) => $q->whereNull('business_category_id'))
             ->whereIn('status', ['queued', 'running'])
             ->where('created_at', '>=', now()->subMinutes(3))
             ->latest('id')
@@ -239,7 +289,7 @@ class LeadGeneratorNewsletterController extends Controller
         if ($activeRun && ! $request->boolean('sync')) {
             return response()->json([
                 'success' => true,
-                'message' => 'A sync for this industry is already in progress.',
+                'message' => 'A sync for this industry filter is already in progress.',
                 'data' => $activeRun,
             ]);
         }
@@ -252,7 +302,8 @@ class LeadGeneratorNewsletterController extends Controller
                 $subIndustryId,
                 $regionScope,
                 $userId,
-                $focusKeyword
+                $focusKeyword,
+                $businessCategoryId
             );
         } else {
             $log = $this->syncService->dispatchSync(
@@ -261,7 +312,8 @@ class LeadGeneratorNewsletterController extends Controller
                 $subIndustryId,
                 $regionScope,
                 $userId,
-                $focusKeyword
+                $focusKeyword,
+                $businessCategoryId
             );
         }
 
@@ -273,6 +325,7 @@ class LeadGeneratorNewsletterController extends Controller
             [
                 'industry_id' => $industryId,
                 'sub_industry_id' => $subIndustryId,
+                'business_category_id' => $businessCategoryId,
                 'region_scope' => $regionScope,
                 'mode' => $request->boolean('sync') ? 'inline' : 'queued',
             ],
@@ -317,6 +370,7 @@ class LeadGeneratorNewsletterController extends Controller
             'items.*.brand' => 'nullable|string|max:255',
             'items.*.website' => 'nullable|string|max:255',
             'items.*.sub_industry_id' => 'nullable|integer|exists:sub_industries,id',
+            'items.*.business_category_id' => 'nullable|integer|exists:business_categories,id',
             'trigger_ai_enrichment' => 'nullable|boolean',
         ]);
 
@@ -345,14 +399,22 @@ class LeadGeneratorNewsletterController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildIndustryTelemetry(int $tenantId, int $industryId, ?int $subIndustryId): array
-    {
+    private function buildIndustryTelemetry(
+        int $tenantId,
+        int $industryId,
+        ?int $subIndustryId,
+        ?int $businessCategoryId = null
+    ): array {
         $baseArticles = IndustryNewsArticle::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('industry_id', $industryId);
 
         if ($subIndustryId) {
             $baseArticles->where('sub_industry_id', $subIndustryId);
+        }
+
+        if ($businessCategoryId) {
+            $baseArticles->where('business_category_id', $businessCategoryId);
         }
 
         $totalArticles = (clone $baseArticles)->count();
@@ -376,8 +438,16 @@ class LeadGeneratorNewsletterController extends Controller
         $entityRows = IndustryNewsEntity::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('industry_id', $industryId)
-            ->when($subIndustryId, function ($q) use ($subIndustryId) {
-                $q->whereHas('article', fn ($aq) => $aq->withoutGlobalScopes()->where('sub_industry_id', $subIndustryId));
+            ->when($subIndustryId || $businessCategoryId, function ($q) use ($subIndustryId, $businessCategoryId) {
+                $q->whereHas('article', function ($aq) use ($subIndustryId, $businessCategoryId) {
+                    $aq->withoutGlobalScopes();
+                    if ($subIndustryId) {
+                        $aq->where('sub_industry_id', $subIndustryId);
+                    }
+                    if ($businessCategoryId) {
+                        $aq->where('business_category_id', $businessCategoryId);
+                    }
+                });
             })
             ->get(['normalized_name', 'matched_lead_id']);
 
@@ -434,15 +504,24 @@ class LeadGeneratorNewsletterController extends Controller
         int $tenantId,
         int $industryId,
         ?int $subIndustryId,
+        ?int $businessCategoryId,
         string $entityStatus,
         string $search
     ): array {
         $rows = IndustryNewsEntity::withoutGlobalScopes()
-            ->with(['article:id,title,url,source_name,signal_type,published_at,sub_industry_id', 'matchedLead:id,company_name'])
+            ->with(['article:id,title,url,source_name,signal_type,published_at,sub_industry_id,business_category_id', 'matchedLead:id,company_name'])
             ->where('tenant_id', $tenantId)
             ->where('industry_id', $industryId)
-            ->when($subIndustryId, function ($q) use ($subIndustryId) {
-                $q->whereHas('article', fn ($aq) => $aq->withoutGlobalScopes()->where('sub_industry_id', $subIndustryId));
+            ->when($subIndustryId || $businessCategoryId, function ($q) use ($subIndustryId, $businessCategoryId) {
+                $q->whereHas('article', function ($aq) use ($subIndustryId, $businessCategoryId) {
+                    $aq->withoutGlobalScopes();
+                    if ($subIndustryId) {
+                        $aq->where('sub_industry_id', $subIndustryId);
+                    }
+                    if ($businessCategoryId) {
+                        $aq->where('business_category_id', $businessCategoryId);
+                    }
+                });
             })
             ->orderByDesc('id')
             ->get();
@@ -484,6 +563,8 @@ class LeadGeneratorNewsletterController extends Controller
                 'latest_article_url' => $primary->article?->url,
                 'latest_source_name' => $primary->article?->source_name,
                 'latest_published_at' => $primary->article?->published_at?->toIso8601String(),
+                'latest_sub_industry_id' => $primary->article?->sub_industry_id,
+                'latest_business_category_id' => $primary->article?->business_category_id,
                 'signal_context' => $primary->signal_context,
                 'matched_lead_id' => $matchedLeadId,
                 'matched_lead_name' => $matchedLeadName,
@@ -491,7 +572,6 @@ class LeadGeneratorNewsletterController extends Controller
         }
 
         usort($directory, function (array $a, array $b) {
-            // Sort by mention_count DESC, then net-new prospects first
             if ($a['mention_count'] !== $b['mention_count']) {
                 return $b['mention_count'] <=> $a['mention_count'];
             }

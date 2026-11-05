@@ -2,6 +2,7 @@
 
 namespace App\Services\News;
 
+use App\Models\BusinessCategory;
 use App\Models\FunnelStage;
 use App\Models\IndustryNewsEntity;
 use App\Models\Lead;
@@ -25,7 +26,7 @@ class NewsEntityToLeadService
     /**
      * Convert one or multiple extracted news entities into Leadsy CRM leads.
      *
-     * @param  list<array{entity_id: int, company_name?: string|null, brand?: string|null, website?: string|null, sub_industry_id?: int|null}>  $items
+     * @param  list<array{entity_id: int, company_name?: string|null, brand?: string|null, website?: string|null, sub_industry_id?: int|null, business_category_id?: int|null}>  $items
      * @return array{converted: int, linked_existing: int, leads: list<array<string, mixed>>}
      */
     public function convertBatch(
@@ -84,7 +85,6 @@ class NewsEntityToLeadService
                 $initialStage,
                 $triggerAiEnrichment
             ) {
-                // Determine company_name & brand cleanly
                 $overrideName = trim((string) ($payload['company_name'] ?? ''));
                 $overrideBrand = trim((string) ($payload['brand'] ?? ''));
                 $overrideWebsite = trim((string) ($payload['website'] ?? ''));
@@ -105,7 +105,6 @@ class NewsEntityToLeadService
                 $website = $overrideWebsite !== '' ? $overrideWebsite : $entity->website_hint;
                 $cleanDomain = LeadDuplicateDetectionService::cleanDomain($website);
 
-                // Check duplicate before inserting
                 $existingLead = $this->duplicateDetector->findDuplicate('', $companyName, $website, $tenantId);
                 if (! $existingLead && $brand) {
                     $existingLead = $this->duplicateDetector->findDuplicate('', $brand, null, $tenantId);
@@ -124,6 +123,14 @@ class NewsEntityToLeadService
                 $subIndustryId = ! empty($payload['sub_industry_id'])
                     ? (int) $payload['sub_industry_id']
                     : $article?->sub_industry_id;
+
+                $businessCategoryId = ! empty($payload['business_category_id'])
+                    ? (int) $payload['business_category_id']
+                    : $article?->business_category_id;
+
+                $businessCategoryModel = $businessCategoryId
+                    ? BusinessCategory::withoutGlobalScopes()->find($businessCategoryId)
+                    : null;
 
                 $storyLines = [];
                 if ($article) {
@@ -146,6 +153,8 @@ class NewsEntityToLeadService
                     'website_domain' => $cleanDomain,
                     'industry_id' => $entity->industry_id,
                     'sub_industry_id' => $subIndustryId ?: null,
+                    'business_category_id' => $businessCategoryModel?->id,
+                    'business_category' => $businessCategoryModel?->name,
                     'funnel_stage_id' => $initialStage?->id,
                     'owner_user_id' => $userId,
                     'created_by' => $userId,
@@ -172,6 +181,8 @@ class NewsEntityToLeadService
                         'signal_type' => $article?->signal_type,
                         'entity_name' => $entity->entity_name,
                         'entity_type' => $entity->entity_type,
+                        'business_category_id' => $businessCategoryModel?->id,
+                        'business_category_code' => $businessCategoryModel?->code,
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
 
@@ -182,8 +193,9 @@ class NewsEntityToLeadService
                         'activity_type' => 'note',
                         'activity_date' => now(),
                         'description' => sprintf(
-                            "Prospek dikonversi dari Industry Newsletter (%s).\nHeadline: %s\nSinyal: %s\nSumber: %s — %s",
+                            "Prospek dikonversi dari Industry Newsletter (%s%s).\nHeadline: %s\nSinyal: %s\nSumber: %s — %s",
                             $entity->industry?->name ?? 'Industry',
+                            $businessCategoryModel ? ' · '.($businessCategoryModel->code ? "[{$businessCategoryModel->code}] " : '').$businessCategoryModel->name : '',
                             $article->title,
                             strtoupper(str_replace('_', ' ', (string) $article->signal_type)),
                             $article->source_name ?? 'Media',
@@ -204,6 +216,7 @@ class NewsEntityToLeadService
                         'entity_id' => $entity->id,
                         'entity_name' => $entity->entity_name,
                         'article_id' => $article?->id,
+                        'business_category_id' => $businessCategoryModel?->id,
                     ],
                     'success',
                     null,

@@ -49,7 +49,18 @@ export type Lead = {
   email?: string | null;
   industry_id?: number | null;
   sub_industry_id?: number | null;
-  business_category?: { id: number; name: string; slug?: string } | string | null;
+  business_category?:
+    | {
+        id: number;
+        code?: string | null;
+        name: string;
+        slug?: string;
+        industry_id?: number | null;
+        channel_role?: "direct_b2b" | "direct_b2c" | "partner_influencer" | "indirect_contract" | string | null;
+        description?: string | null;
+      }
+    | string
+    | null;
   company_size_estimate?: string | null;
   operational_scope?: string | null;
   lead_score?: number | null;
@@ -204,10 +215,20 @@ export type Product = {
 
 export type Industry = {
   id: number;
+  tenant_id?: number | null;
   name: string;
-  synonyms?: string[];
+  synonyms?: string[] | null;
+  scoring_hints?: string | null;
   is_active?: boolean;
-  sub_industries?: { id: number; name: string }[];
+  sub_industries?: {
+    id: number;
+    industry_id?: number;
+    name: string;
+    synonyms?: string[] | null;
+    scoring_hints?: string | null;
+    is_active?: boolean;
+  }[];
+  business_categories?: BusinessCategory[];
 };
 
 /** Where a lead came from — the top level of the source/channel pair. */
@@ -234,16 +255,60 @@ export type LeadChannelType = {
   source_type?: LeadSourceType | null;
 };
 
+export type BusinessCategoryChannelRole =
+  | "direct_b2b"
+  | "direct_b2c"
+  | "partner_influencer"
+  | "indirect_contract";
+
 export type BusinessCategory = {
   id: number;
-  code: string;
+  tenant_id?: number | null;
+  industry_id?: number | null;
+  code?: string | null;
   name: string;
+  channel_role?: BusinessCategoryChannelRole | string | null;
+  description?: string | null;
   synonyms?: string[] | null;
-  scoring_hints?: Record<string, unknown> | null;
+  scoring_hints?: Record<string, unknown> | string | null;
   is_active: boolean;
+  industry?: { id: number; name: string } | null;
 };
 
-export type SubIndustry = { id: number; name: string };
+export type SubIndustry = {
+  id: number;
+  industry_id?: number;
+  name: string;
+  synonyms?: string[] | null;
+  scoring_hints?: string | null;
+};
+
+export type TaxonomyPresetSummary = {
+  key: string;
+  name: string;
+  vertical_label: string;
+  description: string;
+  counts: {
+    industries: number;
+    sub_industries: number;
+    business_categories: number;
+    products: number;
+  };
+  supports_products: boolean;
+};
+
+export type TaxonomyPresetListResponse = {
+  success: boolean;
+  data: {
+    tenant_status: {
+      tenant_id: number | null;
+      is_isolated: boolean;
+      industries_count: number;
+      business_categories_count: number;
+    };
+    presets: TaxonomyPresetSummary[];
+  };
+};
 
 export type FunnelStage = {
   id: number;

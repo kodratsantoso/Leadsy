@@ -15,6 +15,7 @@ class IndustryNewsArticle extends Model
         'tenant_id',
         'industry_id',
         'sub_industry_id',
+        'business_category_id',
         'region_scope',
         'url_hash',
         'title',
@@ -40,6 +41,11 @@ class IndustryNewsArticle extends Model
     public function subIndustry(): BelongsTo
     {
         return $this->belongsTo(SubIndustry::class);
+    }
+
+    public function businessCategory(): BelongsTo
+    {
+        return $this->belongsTo(BusinessCategory::class);
     }
 
     public function entities(): HasMany

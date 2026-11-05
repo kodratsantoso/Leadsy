@@ -9,6 +9,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.45.0] — 2026-11-05 · Minor Release
+
+### Multi-Tenant Vertical Taxonomy, Technogym #LOB Blueprint & 3D Industry Newsletter
+- **Multi-Tenant Taxonomy Isolation (`ScopesTaxonomyToTenant`)** — Mengembangkan tabel `industries`, `sub_industries`, dan `business_categories` agar mendukung `tenant_id` secara aditif dan *zero-disruption*. Tenant yang belum memprovision taksonomi khusus tetap menggunakan *Global Default* (`tenant_id IS NULL`), sedangkan tenant baru (mis. Technogym) mendapatkan taksonomi dan katalog produk yang sepenuhnya terisolasi.
+- **3-Tier Segment · Sub-Industry · Business Category (`#LOB`) Architecture** — Menambahkan relasi `industry_id`, `channel_role` (`direct_b2b`, `direct_b2c`, `partner_influencer`, `indirect_contract`), dan `description` pada `business_categories`, sehingga kategori bisnis dapat dikaitkan langsung ke Segmen Utama maupun bersifat lintas-industri (*Universal*).
+- **Vertical Taxonomy & Product Preset Engine (`VerticalTaxonomyPresetService`)** — Menyediakan endpoint `GET /api/settings/taxonomy-presets` & `POST /api/settings/taxonomy-presets/apply` serta modal UI **Apply Vertical Preset** dengan cetak biru lengkap **Wellness, Fitness & Commercial Equipment (Technogym Matrix)** (5 Segmen Utama: `H&R`, `HCP`, `CLUBS`, `HOME`, `OTHER`; 24 Sub-Industri Spesifik; 19 `#LOB` kode `100`–`906`; serta opsional 9 lini produk peralatan & solusi digital Technogym) dan **Enterprise B2B & Technology**.
+- **Adaptive AI Enrichment & Cascading CRM Forms** — Mengadaptasi `AiLeadProfilingService`, `LeadEnrichmentAiOrchestrator`, dan `LeadMasterDataMapperService` agar membaca taksonomi sesuai `tenant_id`, mengekstrak kode `[#LOB]`, serta menyesuaikan kualifikasi untuk segmen *Private/B2C* (`#100`) dan *Partner/Specifier* (`#905`, `#906`). Dropdown Business Category pada Create/Edit Lead otomatis memfilter kategori berdasarkan Industry aktif.
+- **3D Industry Intelligence Newsletter (`/lead-generator/newsletter`)** — Mengembangkan pencarian, sinkronisasi berita, telemetri edisi, pemfilteran artikel/entitas, dan konversi Lead pada modul Newsletter agar bekerja spesifik pada kombinasi 3 dimensi: **Industry + Sub-Industry + Business Category (`#LOB`)**.
+
 ## [1.44.1] — 2026-11-05 · Patch Release
 
 ### Bug Fix — Lead Detail Crash (React Error #31)

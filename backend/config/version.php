@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.44.1',
+    'version' => '1.45.0',
     'released_at' => '2026-11-05',
-    'type' => 'patch',
-    'notes' => 'Hotfix React Error #31 on Lead Detail (/leads/[id]): safely extract display labels from Eloquent snake_case relation objects (business_category, industry, sub_industry, product) and harden AI profile JSON rendering across OverviewTab, AiDeepProfileSection, IntelligenceTab, and PreMeetingBriefTab.',
+    'type' => 'minor',
+    'notes' => 'Multi-tenant Vertical Taxonomy & Product Preset Engine (Wellness / Technogym #LOB 100-906 & Enterprise B2B), parent Industry-linked Business Categories with channel roles (B2B, Private B2C, Partner/Specifier, Contract), cascading CRM taxonomy selectors, and 3D Industry + Sub-Industry + Business Category (#LOB) Intelligence Newsletter search, sync, filtering, and Lead conversion.',
 ];

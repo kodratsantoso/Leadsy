@@ -56,10 +56,11 @@ class LeadEnrichmentAiOrchestrator
             }
         }
 
-        // We prepare master data context
-        $masterDataIndustries = \App\Models\Industry::pluck('name')->toArray();
-        $masterDataSubIndustries = \App\Models\SubIndustry::pluck('name')->toArray();
-        $masterDataCategories = \App\Models\BusinessCategory::pluck('name')->toArray();
+        // We prepare tenant-scoped master data context
+        $tenantId = $lead->tenant_id;
+        $masterDataIndustries = \App\Models\Industry::forTenantOrDefault($tenantId)->where('is_active', true)->pluck('name')->toArray();
+        $masterDataSubIndustries = \App\Models\SubIndustry::forTenantOrDefault($tenantId)->where('is_active', true)->pluck('name')->toArray();
+        $masterDataCategories = \App\Models\BusinessCategory::forTenantOrDefault($tenantId)->where('is_active', true)->pluck('name')->toArray();
         $companySizes = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1001-5000', '5000+'];
 
         // 2. Industry Classification
@@ -72,13 +73,16 @@ class LeadEnrichmentAiOrchestrator
             ]);
 
             if ($industryRes && !empty($industryRes['industry'])) {
-                $industry = \App\Models\Industry::where('name', $industryRes['industry'])->first();
+                $industry = \App\Models\Industry::forTenantOrDefault($tenantId)->where('name', $industryRes['industry'])->first();
                 if ($industry) {
                     $updates['industry_id'] = $industry->id;
                     $mappedFields[] = 'industry_id';
                     
                     if (!empty($industryRes['sub_industry'])) {
-                        $subIndustry = \App\Models\SubIndustry::where('name', $industryRes['sub_industry'])->first();
+                        $subIndustry = \App\Models\SubIndustry::forTenantOrDefault($tenantId)
+                            ->where('industry_id', $industry->id)
+                            ->where('name', $industryRes['sub_industry'])
+                            ->first();
                         if ($subIndustry) {
                             $updates['sub_industry_id'] = $subIndustry->id;
                         }
@@ -103,7 +107,7 @@ class LeadEnrichmentAiOrchestrator
             ]);
 
             if ($catRes && !empty($catRes['business_category'])) {
-                $cat = \App\Models\BusinessCategory::where('name', $catRes['business_category'])->first();
+                $cat = \App\Models\BusinessCategory::forTenantOrDefault($tenantId)->where('name', $catRes['business_category'])->first();
                 if ($cat) {
                     $updates['business_category_id'] = $cat->id;
                     $updates['business_category'] = $cat->name;

@@ -175,3 +175,4 @@ XML;
         $this->assertNotNull($kinoEntity->fresh()->converted_at);
     }
 }
+

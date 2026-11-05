@@ -102,7 +102,16 @@ export function OverviewTab({
   const ownershipLabel = toDisplayText(leadData?.ownership_type);
   const industryLabel = toDisplayText(leadData?.industry);
   const subIndustryLabel = toDisplayText(leadData?.subIndustry ?? leadData?.sub_industry);
-  const businessCategoryLabel = toDisplayText(leadData?.businessCategory ?? leadData?.business_category);
+  const rawBusinessCategory = leadData?.businessCategory ?? leadData?.business_category;
+  const businessCategoryLabel = toDisplayText(rawBusinessCategory);
+  const businessCategoryCode =
+    rawBusinessCategory && typeof rawBusinessCategory === 'object'
+      ? toDisplayText((rawBusinessCategory as Record<string, unknown>).code)
+      : '';
+  const businessCategoryRole =
+    rawBusinessCategory && typeof rawBusinessCategory === 'object'
+      ? toDisplayText((rawBusinessCategory as Record<string, unknown>).channel_role)
+      : '';
   const companySizeLabel = toDisplayText(leadData?.company_size_estimate);
   const yearEstablishedLabel = toDisplayText(leadData?.year_established);
   const operationalScopeLabel = toDisplayText(leadData?.operational_scope);
@@ -230,7 +239,24 @@ export function OverviewTab({
               <div><span className="text-muted-foreground">Sub-Industry:</span> <span className="font-medium">{subIndustryLabel}</span></div>
             )}
             {businessCategoryLabel && (
-              <div><span className="text-muted-foreground">Business Category:</span> <span className="font-medium">{businessCategoryLabel}</span></div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-muted-foreground">Business Category:</span>
+                {businessCategoryCode && (
+                  <Badge variant="brand" className="font-mono">
+                    #{businessCategoryCode}
+                  </Badge>
+                )}
+                <span className="font-medium">{businessCategoryLabel}</span>
+                {businessCategoryRole === 'direct_b2c' && (
+                  <Badge variant="info">Private / B2C</Badge>
+                )}
+                {businessCategoryRole === 'partner_influencer' && (
+                  <Badge variant="brand">Partner / Specifier</Badge>
+                )}
+                {businessCategoryRole === 'indirect_contract' && (
+                  <Badge variant="warning">Contract / Leasing</Badge>
+                )}
+              </div>
             )}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               <span><span className="text-muted-foreground">Company Size:</span> <span className="font-medium">{companySizeLabel || '—'}</span></span>

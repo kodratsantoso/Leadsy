@@ -139,6 +139,7 @@ type ConvertDraftItem = {
   brand: string;
   website: string;
   sub_industry_id: string;
+  business_category_id: string;
   headline: string | null;
   source_name: string | null;
   signal_type: string | null;
@@ -151,6 +152,7 @@ export default function IndustryNewsletterPage() {
   // Selection & Filters
   const [selectedIndustryId, setSelectedIndustryId] = useState<string>("");
   const [selectedSubIndustryId, setSelectedSubIndustryId] = useState<string>("");
+  const [selectedBusinessCategoryId, setSelectedBusinessCategoryId] = useState<string>("");
   const [regionScope, setRegionScope] = useState<"id" | "global">("id");
   const [signalFilter, setSignalFilter] = useState<string>("all");
   const [entityStatusFilter, setEntityStatusFilter] = useState<"all" | "prospects" | "in_leads">("all");
@@ -213,17 +215,28 @@ export default function IndustryNewsletterPage() {
     [currentIndustryOption]
   );
 
+  const businessCategories = useMemo(
+    () => (Array.isArray(currentIndustryOption?.business_categories) ? currentIndustryOption.business_categories : []),
+    [currentIndustryOption]
+  );
+
+  const selectedBusinessCategoryOption = useMemo(
+    () => businessCategories.find((cat) => String(cat.id) === selectedBusinessCategoryId) || null,
+    [businessCategories, selectedBusinessCategoryId]
+  );
+
   const cachedIndustries = useMemo(
     () => industries.filter((ind) => ind.cached_articles_count > 0),
     [industries]
   );
 
-  // 2. Load DB-cached Newsletter Edition for the selected Industry
+  // 2. Load DB-cached Newsletter Edition for the selected 3D Industry + Sub-Industry + Business Category slice
   const newsletterQuery = useQuery({
     queryKey: [
       "industry-newsletter",
       selectedIndustryId,
       selectedSubIndustryId,
+      selectedBusinessCategoryId,
       signalFilter,
       entityStatusFilter,
       activeSearch,
@@ -236,6 +249,7 @@ export default function IndustryNewsletterPage() {
       params.set("page", String(page));
       params.set("per_page", "24");
       if (selectedSubIndustryId) params.set("sub_industry_id", selectedSubIndustryId);
+      if (selectedBusinessCategoryId) params.set("business_category_id", selectedBusinessCategoryId);
       if (signalFilter !== "all") params.set("signal_type", signalFilter);
       if (entityStatusFilter !== "all") params.set("entity_status", entityStatusFilter);
       if (activeSearch) params.set("search", activeSearch);
@@ -280,6 +294,7 @@ export default function IndustryNewsletterPage() {
         body: JSON.stringify({
           industry_id: Number(selectedIndustryId),
           sub_industry_id: selectedSubIndustryId ? Number(selectedSubIndustryId) : undefined,
+          business_category_id: selectedBusinessCategoryId ? Number(selectedBusinessCategoryId) : undefined,
           region_scope: regionScope,
           focus_keyword: focusKeyword.trim() || undefined,
           sync: forceInline,
@@ -360,6 +375,7 @@ export default function IndustryNewsletterPage() {
         brand?: string;
         website?: string;
         sub_industry_id?: number;
+        business_category_id?: number;
       }>;
       trigger_ai_enrichment: boolean;
     }) => {
@@ -391,7 +407,10 @@ export default function IndustryNewsletterPage() {
 
   const openSingleConvertModal = (
     entity: NewsletterEntityTag,
-    article: Pick<NewsletterArticle, "title" | "source_name" | "signal_type" | "sub_industry">
+    article: Pick<
+      NewsletterArticle,
+      "title" | "source_name" | "signal_type" | "sub_industry" | "business_category"
+    >
   ) => {
     const resolvedCompany =
       entity.entity_type === "brand" && entity.parent_company_hint
@@ -411,6 +430,9 @@ export default function IndustryNewsletterPage() {
         sub_industry_id: article.sub_industry?.id
           ? String(article.sub_industry.id)
           : selectedSubIndustryId,
+        business_category_id: article.business_category?.id
+          ? String(article.business_category.id)
+          : selectedBusinessCategoryId,
         headline: article.title,
         source_name: article.source_name,
         signal_type: article.signal_type,
@@ -430,7 +452,12 @@ export default function IndustryNewsletterPage() {
           : item.entity_name,
       brand: item.entity_type === "brand" ? item.entity_name : "",
       website: item.website_hint || "",
-      sub_industry_id: selectedSubIndustryId,
+      sub_industry_id: item.latest_sub_industry_id
+        ? String(item.latest_sub_industry_id)
+        : selectedSubIndustryId,
+      business_category_id: item.latest_business_category_id
+        ? String(item.latest_business_category_id)
+        : selectedBusinessCategoryId,
       headline: item.latest_headline,
       source_name: item.latest_source_name,
       signal_type: item.latest_signal_type,
@@ -448,6 +475,7 @@ export default function IndustryNewsletterPage() {
       brand: d.brand.trim() || undefined,
       website: d.website.trim() || undefined,
       sub_industry_id: d.sub_industry_id ? Number(d.sub_industry_id) : undefined,
+      business_category_id: d.business_category_id ? Number(d.business_category_id) : undefined,
     }));
 
     convertMutation.mutate({
@@ -464,6 +492,7 @@ export default function IndustryNewsletterPage() {
 
   const handleResetFilters = () => {
     setSelectedSubIndustryId("");
+    setSelectedBusinessCategoryId("");
     setSignalFilter("all");
     setEntityStatusFilter("all");
     setSearchInput("");
@@ -472,7 +501,11 @@ export default function IndustryNewsletterPage() {
   };
 
   const hasActiveFilters = Boolean(
-    selectedSubIndustryId || signalFilter !== "all" || entityStatusFilter !== "all" || activeSearch
+    selectedSubIndustryId ||
+      selectedBusinessCategoryId ||
+      signalFilter !== "all" ||
+      entityStatusFilter !== "all" ||
+      activeSearch
   );
 
   const convertibleDirectoryRows = useMemo(
@@ -594,8 +627,8 @@ export default function IndustryNewsletterPage() {
             </div>
           </div>
 
-          {/* Industry Selector + Quick-Switch Cached Editions Rail */}
-          <div className="flex flex-col gap-3 pt-4 border-t border-border sm:flex-row sm:items-center sm:justify-between">
+          {/* Industry Selector + Sub-Industry + Business Category (#LOB) + Cached Editions Rail */}
+          <div className="flex flex-col gap-3 pt-4 border-t border-border xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Target Sector:
@@ -605,10 +638,11 @@ export default function IndustryNewsletterPage() {
                 onChange={(e) => {
                   setSelectedIndustryId(e.target.value);
                   setSelectedSubIndustryId("");
+                  setSelectedBusinessCategoryId("");
                   setSelectedDirectoryIds([]);
                   setPage(1);
                 }}
-                className="w-64 font-medium"
+                className="w-60 font-medium"
                 aria-label="Select industry"
               >
                 {industries.map((ind) => (
@@ -625,13 +659,33 @@ export default function IndustryNewsletterPage() {
                     setSelectedSubIndustryId(e.target.value);
                     setPage(1);
                   }}
-                  className="w-56"
+                  className="w-52"
                   aria-label="Filter sub-industry"
                 >
                   <option value="">All Sub-Industries</option>
                   {subIndustries.map((sub) => (
                     <option key={sub.id} value={String(sub.id)}>
                       {sub.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+
+              {businessCategories.length > 0 && (
+                <Select
+                  value={selectedBusinessCategoryId}
+                  onChange={(e) => {
+                    setSelectedBusinessCategoryId(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-60"
+                  aria-label="Filter business category or LOB"
+                >
+                  <option value="">All Business Categories / #LOB</option>
+                  {businessCategories.map((cat) => (
+                    <option key={cat.id} value={String(cat.id)}>
+                      {cat.code ? `[${cat.code}] ` : ""}
+                      {cat.name}
                     </option>
                   ))}
                 </Select>
@@ -652,6 +706,7 @@ export default function IndustryNewsletterPage() {
                       onClick={() => {
                         setSelectedIndustryId(String(ind.id));
                         setSelectedSubIndustryId("");
+                        setSelectedBusinessCategoryId("");
                         setSelectedDirectoryIds([]);
                         setPage(1);
                       }}
@@ -970,10 +1025,17 @@ export default function IndustryNewsletterPage() {
             </div>
             <div className="space-y-1.5 max-w-lg">
               <h2 className="text-lg font-semibold text-foreground">
-                No Cached Edition Yet for {currentIndustryOption?.name || "This Industry"}
+                No Cached Edition Yet for{" "}
+                {selectedBusinessCategoryOption
+                  ? `${currentIndustryOption?.name || "Sector"} · ${
+                      selectedBusinessCategoryOption.code
+                        ? `[${selectedBusinessCategoryOption.code}] `
+                        : ""
+                    }${selectedBusinessCategoryOption.name}`
+                  : currentIndustryOption?.name || "This Industry"}
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                To keep Leadsy fast and lightweight, industry news is fetched on demand during the first scan and permanently stored in PostgreSQL. Click below to build the first edition and extract corporate & brand entities.
+                To keep Leadsy fast and lightweight, industry news is fetched on demand during the first scan and permanently stored in PostgreSQL. Click below to build a targeted edition for your selected Industry, Sub-Industry, and Business Category (#LOB).
               </p>
             </div>
             <Button onClick={() => handleRunSync(true)} disabled={isSyncing} className="gap-2">
@@ -1017,6 +1079,14 @@ export default function IndustryNewsletterPage() {
                               {article.sub_industry && (
                                 <Badge variant="outline" className="text-[10px] py-0.5">
                                   {article.sub_industry.name}
+                                </Badge>
+                              )}
+                              {article.business_category && (
+                                <Badge variant="info" className="text-[10px] py-0.5 font-mono">
+                                  {article.business_category.code
+                                    ? `#${article.business_category.code} `
+                                    : ""}
+                                  {article.business_category.name}
                                 </Badge>
                               )}
                             </div>
@@ -1158,6 +1228,14 @@ export default function IndustryNewsletterPage() {
                                     {article.sub_industry.name}
                                   </span>
                                 </>
+                              )}
+                              {article.business_category && (
+                                <Badge variant="info" className="font-mono text-[10px] py-0">
+                                  {article.business_category.code
+                                    ? `#${article.business_category.code} `
+                                    : ""}
+                                  {article.business_category.name}
+                                </Badge>
                               )}
                             </div>
 
@@ -1522,6 +1600,34 @@ export default function IndustryNewsletterPage() {
                     ))}
                   </Select>
                 </div>
+
+                {businessCategories.length > 0 && (
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label htmlFor="conv-biz-cat" className="text-xs font-semibold text-foreground">
+                      Business Category / #LOB (Optional)
+                    </label>
+                    <Select
+                      id="conv-biz-cat"
+                      value={convertDrafts[0].business_category_id}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setConvertDrafts((prev) =>
+                          prev.map((item, idx) =>
+                            idx === 0 ? { ...item, business_category_id: val } : item
+                          )
+                        );
+                      }}
+                    >
+                      <option value="">Auto-detect via AI / Unassigned</option>
+                      {businessCategories.map((cat) => (
+                        <option key={cat.id} value={String(cat.id)}>
+                          {cat.code ? `[${cat.code}] ` : ""}
+                          {cat.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -1586,3 +1692,4 @@ export default function IndustryNewsletterPage() {
     </div>
   );
 }
+

@@ -4,7 +4,19 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.44.0** — 2026-11-04
+Current release: **v1.45.0** — 2026-11-05
+
+## What's New in v1.45.0 (Multi-Tenant Vertical Taxonomy, Technogym #LOB Matrix & 3D Industry Newsletter)
+
+- **Multi-Tenant Taxonomy & Vertical Blueprint Engine (TAX-001):**
+  - *Zero-Disruption Tenant Isolation* (`ScopesTaxonomyToTenant` & `2026_11_05_101500_upgrade_taxonomy_multi_tenant_and_newsletter_category.php`) — Menambahkan dukungan `tenant_id` pada `industries`, `sub_industries`, dan `business_categories` tanpa mengubah ID data operasional existing (`tenant_id IS NULL`), memungkinkan setiap tenant menjalankan struktur market masing-masing secara independen.
+  - *Parent-Linked Business Categories & Channel Roles* (`BusinessCategory`) — Menghubungkan `business_categories` ke `industry_id` (atau *Universal*) lengkap dengan kode resmi `#LOB` (`code`), definisi (`description`), serta `channel_role` (`direct_b2b`, `direct_b2c`, `partner_influencer`, `indirect_contract`).
+  - *Vertical Preset Provisioner (`VerticalTaxonomyPresetService` & `TaxonomyPresetModal`)* — Menyediakan preset siap pakai untuk **Wellness, Fitness & Commercial Equipment (Technogym Matrix)** (5 Segmen `H&R`, `HCP`, `CLUBS`, `HOME`, `OTHER`, 24 Sub-Industri proyek, 19 `#LOB` kode `100`–`906`, serta opsional 9 lini produk *Artis, Excite Live, Skill Line, Biostrength/REV, Selection, Pure Strength, Personal Line, Home Wellness, MyWellness Digital*) maupun **Enterprise B2B & Technology**.
+  - *Cascading CRM Forms & Adaptive AI Qualification* — Dropdown Business Category pada Create/Edit Lead otomatis menyaring `#LOB` sesuai Industry terpilih dan menampilkan panduan kontekstual untuk segmen *Private / B2C* maupun *Partner / Influencer* (Arsitek, Desainer Interior, Personal Trainer).
+
+- **3D Industry · Sub-Industry · Business Category Intelligence Newsletter (LG-NEWS-002):**
+  - *3-Dimensional News Discovery & Caching* (`IndustryNewsSyncService` & `LeadGeneratorNewsletterController`) — Memungkinkan pencarian, sinkronisasi RSS/Web, pemfilteran telemetri, dan direktori entitas pada `/lead-generator/newsletter` secara spesifik berdasarkan kombinasi **Industry + Sub-Industry + Business Category (`#LOB`)**.
+  - *Precision Lead Conversion* (`NewsEntityToLeadService`) — Menyertakan `industry_id`, `sub_industry_id`, dan `business_category_id` secara otomatis saat mengonversi entitas berita menjadi Lead baru di CRM.
 
 ## What's New in v1.44.0 (AI Deep Profile Persistence, Relational Multi-Site Locations & Presales Playbook UI)
 

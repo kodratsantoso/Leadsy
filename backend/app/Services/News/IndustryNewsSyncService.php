@@ -3,6 +3,7 @@
 namespace App\Services\News;
 
 use App\Jobs\SyncIndustryNewsJob;
+use App\Models\BusinessCategory;
 use App\Models\Industry;
 use App\Models\IndustryNewsArticle;
 use App\Models\IndustryNewsEntity;
@@ -52,11 +53,13 @@ class IndustryNewsSyncService
         string $regionScope = 'id',
         ?int $userId = null,
         ?string $focusKeyword = null,
+        ?int $businessCategoryId = null,
     ): IndustryNewsSyncLog {
         $syncLog = IndustryNewsSyncLog::withoutGlobalScopes()->create([
             'tenant_id' => $tenantId,
             'industry_id' => $industryId,
             'sub_industry_id' => $subIndustryId,
+            'business_category_id' => $businessCategoryId,
             'region_scope' => in_array($regionScope, ['id', 'global'], true) ? $regionScope : 'id',
             'status' => 'queued',
             'triggered_by' => $userId,
@@ -74,11 +77,13 @@ class IndustryNewsSyncService
         string $regionScope = 'id',
         ?int $userId = null,
         ?string $focusKeyword = null,
+        ?int $businessCategoryId = null,
     ): IndustryNewsSyncLog {
         $syncLog = IndustryNewsSyncLog::withoutGlobalScopes()->create([
             'tenant_id' => $tenantId,
             'industry_id' => $industryId,
             'sub_industry_id' => $subIndustryId,
+            'business_category_id' => $businessCategoryId,
             'region_scope' => in_array($regionScope, ['id', 'global'], true) ? $regionScope : 'id',
             'status' => 'running',
             'started_at' => now(),
@@ -116,9 +121,12 @@ class IndustryNewsSyncService
         $subIndustry = $syncLog->sub_industry_id
             ? SubIndustry::withoutGlobalScopes()->find($syncLog->sub_industry_id)
             : null;
+        $businessCategory = $syncLog->business_category_id
+            ? BusinessCategory::withoutGlobalScopes()->find($syncLog->business_category_id)
+            : null;
 
         $regionScope = $syncLog->region_scope ?: 'id';
-        $queries = $this->buildSearchQueries($industry, $subIndustry, $regionScope, $focusKeyword);
+        $queries = $this->buildSearchQueries($industry, $subIndustry, $businessCategory, $regionScope, $focusKeyword);
 
         $rawCandidates = [];
         $providersUsed = [];
@@ -154,13 +162,12 @@ class IndustryNewsSyncService
             }
         }
 
-        // Deduplicate candidates by normalized URL hash & skip URLs already persisted in DB
-        $existingHashes = IndustryNewsArticle::withoutGlobalScopes()
+        // Deduplicate candidates by normalized URL hash & backfill taxonomy tags if already cached
+        $existingArticlesByHash = IndustryNewsArticle::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('industry_id', $industry->id)
-            ->pluck('url_hash')
-            ->flip()
-            ->all();
+            ->get(['id', 'url_hash', 'sub_industry_id', 'business_category_id'])
+            ->keyBy('url_hash');
 
         $seenHashes = [];
         $freshCandidates = [];
@@ -175,7 +182,20 @@ class IndustryNewsSyncService
             }
             $seenHashes[$hash] = true;
 
-            if (isset($existingHashes[$hash])) {
+            if ($existingArticlesByHash->has($hash)) {
+                /** @var IndustryNewsArticle $existingArt */
+                $existingArt = $existingArticlesByHash->get($hash);
+                $tagUpdates = [];
+                if ($subIndustry && empty($existingArt->sub_industry_id)) {
+                    $tagUpdates['sub_industry_id'] = $subIndustry->id;
+                }
+                if ($businessCategory && empty($existingArt->business_category_id)) {
+                    $tagUpdates['business_category_id'] = $businessCategory->id;
+                }
+                if ($tagUpdates !== []) {
+                    $existingArt->update($tagUpdates);
+                }
+
                 continue;
             }
 
@@ -190,7 +210,6 @@ class IndustryNewsSyncService
         $totalFetched = count($seenHashes);
 
         if ($freshCandidates === []) {
-            // Reconcile any newly added CRM leads even if no new articles arrived
             $this->reconcileMatchedLeads($tenantId, $industry->id);
 
             $syncLog->update([
@@ -206,7 +225,7 @@ class IndustryNewsSyncService
         }
 
         // 3. Batch AI entity & signal extraction (1 structured call for the batch, with deterministic fallback)
-        $aiEnrichments = $this->extractViaAiBatch($industry, $subIndustry, $freshCandidates);
+        $aiEnrichments = $this->extractViaAiBatch($industry, $subIndustry, $businessCategory, $freshCandidates);
 
         $savedArticlesCount = 0;
         $savedEntitiesCount = 0;
@@ -238,6 +257,7 @@ class IndustryNewsSyncService
                 ],
                 [
                     'sub_industry_id' => $subIndustry?->id,
+                    'business_category_id' => $businessCategory?->id,
                     'region_scope' => $regionScope,
                     'title' => $cand['title'],
                     'url' => $cand['url'],
@@ -384,55 +404,106 @@ class IndustryNewsSyncService
     }
 
     /**
+     * Build precision 3D search queries combining Industry, SubIndustry, and BusinessCategory (+ synonyms & channel_role).
+     *
      * @return array{rss: list<string>, web: string}
      */
     private function buildSearchQueries(
         Industry $industry,
         ?SubIndustry $subIndustry,
+        ?BusinessCategory $businessCategory,
         string $regionScope,
         ?string $focusKeyword
     ): array {
-        $terms = [$industry->name];
-        if ($subIndustry) {
-            $terms[] = $subIndustry->name;
-        } elseif (is_array($industry->synonyms) && ! empty($industry->synonyms)) {
-            $firstSyn = trim((string) ($industry->synonyms[0] ?? ''));
-            if ($firstSyn !== '') {
-                $terms[] = $firstSyn;
+        $terms = [];
+
+        // Prioritize the most granular selected dimensions so search is razor-specific
+        if ($businessCategory) {
+            $terms[] = $this->cleanTaxonomyPhrase($businessCategory->name);
+            foreach (array_slice((array) ($businessCategory->synonyms ?? []), 0, 2) as $syn) {
+                if (is_string($syn) && trim($syn) !== '') {
+                    $terms[] = trim($syn);
+                }
             }
         }
 
-        $subjectClause = count($terms) > 1
-            ? '("'.implode('" OR "', array_slice($terms, 0, 2)).'")'
-            : '"'.$industry->name.'"';
+        if ($subIndustry) {
+            $terms[] = $this->cleanTaxonomyPhrase($subIndustry->name);
+            foreach (array_slice((array) ($subIndustry->synonyms ?? []), 0, 2) as $syn) {
+                if (is_string($syn) && trim($syn) !== '') {
+                    $terms[] = trim($syn);
+                }
+            }
+        }
+
+        if ($terms === []) {
+            $terms[] = $this->cleanTaxonomyPhrase($industry->name);
+            foreach (array_slice((array) ($industry->synonyms ?? []), 0, 2) as $syn) {
+                if (is_string($syn) && trim($syn) !== '') {
+                    $terms[] = trim($syn);
+                }
+            }
+        }
+
+        $uniqueTerms = array_values(array_unique(array_filter($terms, fn ($t) => $t !== '')));
+        $subjectClause = count($uniqueTerms) > 1
+            ? '("'.implode('" OR "', array_slice($uniqueTerms, 0, 3)).'")'
+            : '"'.($uniqueTerms[0] ?? $industry->name).'"';
 
         $focus = $focusKeyword ? ' "'.trim($focusKeyword).'"' : '';
+        $channelRole = $businessCategory?->channel_role ?? 'direct_b2b';
+        $webPrimaryTerm = $uniqueTerms[0] ?? $this->cleanTaxonomyPhrase($industry->name);
 
         if ($regionScope === 'global') {
+            $roleAction = $channelRole === 'partner_influencer'
+                ? '(project OR luxury design OR hospitality project OR partnership OR award)'
+                : '(expansion OR new opening OR investment OR development OR partnership OR launch)';
+
             return [
                 'rss' => [
-                    "{$subjectClause}{$focus} (company OR brand OR Corp OR Group) (expansion OR investment OR partnership OR launch)",
-                    "{$subjectClause}{$focus} (acquisition OR project OR contract OR digital transformation)",
+                    "{$subjectClause}{$focus} {$roleAction}",
+                    "{$subjectClause}{$focus} (acquisition OR project OR contract OR facility OR flagship)",
                 ],
-                'web' => "{$industry->name} {$focus} company expansion investment news",
+                'web' => "{$webPrimaryTerm}{$focus} new project expansion investment news",
+            ];
+        }
+
+        if ($channelRole === 'partner_influencer' || $channelRole === 'direct_b2c') {
+            return [
+                'rss' => [
+                    "{$subjectClause}{$focus} (proyek OR hunian mewah OR hotel OR desain OR kolaborasi OR peluncuran)",
+                    "{$subjectClause}{$focus} (ekspansi OR pembukaan OR investasi OR kemitraan) Indonesia",
+                ],
+                'web' => "berita proyek {$webPrimaryTerm}{$focus} ekspansi kolaborasi terbaru Indonesia",
             ];
         }
 
         return [
             'rss' => [
-                "{$subjectClause}{$focus} (PT OR Tbk OR perusahaan OR grup) (ekspansi OR investasi OR pabrik OR proyek OR bisnis)",
-                "{$subjectClause}{$focus} (kerjasama OR kemitraan OR akuisisi OR transformasi OR peluncuran)",
+                "{$subjectClause}{$focus} (ekspansi OR investasi OR pembangunan OR pembukaan OR proyek baru OR cabang baru)",
+                "{$subjectClause}{$focus} (PT OR Tbk OR grup OR jaringan) (kerjasama OR kemitraan OR akuisisi OR fasilitas baru)",
             ],
-            'web' => "berita bisnis perusahaan PT {$industry->name}{$focus} ekspansi investasi terbaru Indonesia",
+            'web' => "berita bisnis {$webPrimaryTerm}{$focus} ekspansi investasi proyek terbaru Indonesia",
         ];
+    }
+
+    private function cleanTaxonomyPhrase(string $raw): string
+    {
+        $stripped = preg_replace('/\s*\([^)]*\)\s*/u', ' ', $raw) ?? $raw;
+
+        return trim(preg_replace('/\s+/', ' ', $stripped) ?? $stripped);
     }
 
     /**
      * @param  list<array<string, mixed>>  $candidates
      * @return array<int, array<string, mixed>>
      */
-    private function extractViaAiBatch(Industry $industry, ?SubIndustry $subIndustry, array $candidates): array
-    {
+    private function extractViaAiBatch(
+        Industry $industry,
+        ?SubIndustry $subIndustry,
+        ?BusinessCategory $businessCategory,
+        array $candidates
+    ): array {
         $batchPayload = [];
         foreach ($candidates as $idx => $cand) {
             $batchPayload[] = [
@@ -446,6 +517,9 @@ class IndustryNewsSyncService
         $inputJson = json_encode([
             'target_industry' => $industry->name,
             'target_sub_industry' => $subIndustry?->name,
+            'target_business_category' => $businessCategory
+                ? ($businessCategory->code ? "[{$businessCategory->code}] {$businessCategory->name}" : $businessCategory->name)
+                : null,
             'articles' => $batchPayload,
         ], JSON_UNESCAPED_UNICODE);
 
@@ -487,7 +561,7 @@ class IndustryNewsSyncService
     }
 
     /**
-     * Deterministic corporate & brand extractor when AI routing is unavailable or returns empty.
+     * Deterministic corporate, hospitality,医疗, studio & brand extractor when AI routing is unavailable.
      *
      * @return list<array<string, mixed>>
      */
@@ -496,22 +570,22 @@ class IndustryNewsSyncService
         $text = $title.' . '.$snippet;
         $found = [];
 
-        // Pattern 1: Explicit Indonesian legal entities (PT ..., CV ..., Perum ...)
-        if (preg_match_all('/\b((?:PT|CV|Perum)\s+[A-Z][A-Za-z0-9&\.\-]*(?:\s+(?:[A-Z][A-Za-z0-9&\.\-]*|\(Persero\)|Persero|Tbk\.?)){1,6})\b/u', $text, $ptMatches)) {
+        // Pattern 1: Explicit Indonesian legal entities (PT ..., CV ..., Perum ..., RS / Rumah Sakit ...)
+        if (preg_match_all('/\b((?:PT|CV|Perum|RS|RSUD|RSUP|Rumah Sakit|Hotel|Resort)\s+[A-Z][A-Za-z0-9&\.\-]*(?:\s+(?:[A-Z][A-Za-z0-9&\.\-]*|\(Persero\)|Persero|Tbk\.?)){1,6})\b/u', $text, $ptMatches)) {
             foreach ($ptMatches[1] as $match) {
-                $clean = trim(preg_replace('/\s+(dan|dengan|untuk|dalam|pada|di|ke|dari|yang|resmi|bakal|siap|targetkan|catat|raih|gelontorkan|bangun|gandeng).*$/iu', '', $match) ?? $match);
+                $clean = trim(preg_replace('/\s+(dan|dengan|untuk|dalam|pada|di|ke|dari|yang|resmi|bakal|siap|targetkan|catat|raih|gelontorkan|bangun|gandeng|buka|hadirkan).*$/iu', '', $match) ?? $match);
                 if (mb_strlen($clean) >= 6) {
                     $found[$clean] = [
                         'entity_name' => $clean,
-                        'entity_type' => 'company',
+                        'entity_type' => str_starts_with($clean, 'Hotel ') || str_starts_with($clean, 'Resort ') ? 'brand' : 'company',
                         'role_in_news' => 'subject',
                     ];
                 }
             }
         }
 
-        // Pattern 2: "[Capitalized Name] Tbk" or "[Capitalized Name] Group / Corp / Holdings / Indonesia"
-        if (preg_match_all('/\b([A-Z][A-Za-z0-9&\-]+(?:\s+[A-Z][A-Za-z0-9&\-]+){0,3}\s+(?:Tbk|Group|Grup|Corp|Corporation|Holdings|Ventures))\b/u', $text, $corpMatches)) {
+        // Pattern 2: "[Capitalized Name] Tbk / Group / Corp / Holdings / Resort / Residence / Hospital / Clinic / Studio / Club"
+        if (preg_match_all('/\b([A-Z][A-Za-z0-9&\-]+(?:\s+[A-Z][A-Za-z0-9&\-]+){0,3}\s+(?:Tbk|Group|Grup|Corp|Corporation|Holdings|Ventures|Resort|Resorts|Residence|Residences|Hospital|Hospitals|Clinic|Fitness|Gym|Studio|Club))\b/u', $text, $corpMatches)) {
             foreach ($corpMatches[1] as $match) {
                 $clean = trim($match);
                 if (! isset($found[$clean]) && mb_strlen($clean) >= 5) {
@@ -524,8 +598,8 @@ class IndustryNewsSyncService
             }
         }
 
-        // Pattern 3: Leading capitalized proper subject at start of headline before active B2B verbs
-        if ($found === [] && preg_match('/^([A-Z][A-Za-z0-9&\.\-]+(?:\s+[A-Z][A-Za-z0-9&\.\-]+){0,3})\s+(?:Ekspansi|Investasi|Bangun|Gandeng|Akuisisi|Luncurkan|Resmikan|Siapkan|Targetkan| Bidik|Suntik|Kucurkan|Raih|Teken)\b/u', trim($title), $leadMatch)) {
+        // Pattern 3: Leading capitalized proper subject at start of headline before active B2B/project verbs
+        if ($found === [] && preg_match('/^([A-Z][A-Za-z0-9&\.\-]+(?:\s+[A-Z][A-Za-z0-9&\.\-]+){0,3})\s+(?:Ekspansi|Investasi|Bangun|Gandeng|Akuisisi|Luncurkan|Resmikan|Siapkan|Targetkan|Bidik|Suntik|Kucurkan|Raih|Teken|Buka|Hadirkan)\b/u', trim($title), $leadMatch)) {
             $candidate = trim($leadMatch[1]);
             if (! in_array(mb_strtolower($candidate), ['pemerintah', 'kementerian', 'menteri', 'presiden', 'indonesia', 'investor', 'emiten', 'industri', 'pasar', 'sektor'], true)) {
                 $found[$candidate] = [
@@ -536,7 +610,6 @@ class IndustryNewsSyncService
             }
         }
 
-        // Filter out source publisher name if accidentally matched
         return array_values(array_filter($found, function (array $ent) use ($sourceName) {
             if ($sourceName && mb_strtolower($ent['entity_name']) === mb_strtolower(trim($sourceName))) {
                 return false;
@@ -550,7 +623,7 @@ class IndustryNewsSyncService
     {
         $lower = mb_strtolower($text);
 
-        if (preg_match('/\b(ekspansi|pabrik baru|cabang baru|perluas|buka gerai|kapasitas produksi|expansion|new plant|new branch)\b/u', $lower)) {
+        if (preg_match('/\b(ekspansi|pabrik baru|cabang baru|hotel baru|buka gerai|perluas|groundbreaking|topping off|kapasitas|expansion|new opening|new resort|new branch)\b/u', $lower)) {
             return 'expansion';
         }
         if (preg_match('/\b(investasi|capex|belanja modal|pendanaan|suntikan modal|akuisisi|rights issue|ipo|investment|funding|acquisition)\b/u', $lower)) {
@@ -559,13 +632,13 @@ class IndustryNewsSyncService
         if (preg_match('/\b(kerjasama|kerja sama|kemitraan|kolaborasi|gandeng|mou|sinergi|partnership|joint venture)\b/u', $lower)) {
             return 'partnership';
         }
-        if (preg_match('/\b(transformasi digital|cloud|erp| otomasi|ai |artificial intelligence|sistem informasi|digitalisasi|cyber|data center)\b/u', $lower)) {
+        if (preg_match('/\b(transformasi digital|cloud|erp|otomasi|ai |artificial intelligence|sistem informasi|digitalisasi|cyber|data center|smart wellness)\b/u', $lower)) {
             return 'digital_transformation';
         }
         if (preg_match('/\b(tender|kontrak baru|proyek strategis|pengadaan|menang proyek|garap proyek)\b/u', $lower)) {
             return 'tender';
         }
-        if (preg_match('/\b(direktur|ceo|komisaris|manajemen baru|pergantian pimpinan|rups)\b/u', $lower)) {
+        if (preg_match('/\b(direktur|ceo|komisaris|general manager|manajemen baru|pergantian pimpinan|rups)\b/u', $lower)) {
             return 'leadership';
         }
 
@@ -594,7 +667,7 @@ class IndustryNewsSyncService
         }
 
         $genericTerms = [
-            'indonesia', 'jakarta', 'pemerintah', 'kementerian', 'bank indonesia',
+            'indonesia', 'jakarta', 'bali', 'pemerintah', 'kementerian', 'bank indonesia',
             'ojk', 'bursa efek indonesia', 'bei', 'idx', 'kadin', 'apindo',
         ];
 
@@ -608,7 +681,6 @@ class IndustryNewsSyncService
             return hash('sha256', mb_strtolower(trim($fallbackTitle)));
         }
 
-        // Strip UTM tracking query params for cleaner deduplication
         $parts = parse_url($trimmed);
         $base = ($parts['scheme'] ?? 'https').'://'.strtolower($parts['host'] ?? '').($parts['path'] ?? '');
         if (! empty($parts['query'])) {

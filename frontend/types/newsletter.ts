@@ -7,6 +7,20 @@ export type NewsSignalType =
   | "leadership"
   | "market_move";
 
+export type TaxonomyChannelRole =
+  | "direct_b2b"
+  | "direct_b2c"
+  | "partner_influencer"
+  | "indirect_contract";
+
+export interface NewsletterBusinessCategoryOption {
+  id: number;
+  industry_id?: number | null;
+  code?: string | null;
+  name: string;
+  channel_role?: TaxonomyChannelRole | string;
+}
+
 export interface NewsletterIndustryOption {
   id: number;
   name: string;
@@ -16,6 +30,7 @@ export interface NewsletterIndustryOption {
     id: number;
     name: string;
   }>;
+  business_categories?: NewsletterBusinessCategoryOption[];
 }
 
 export interface NewsletterEntityTag {
@@ -47,6 +62,12 @@ export interface NewsletterArticle {
     id: number;
     name: string;
   } | null;
+  business_category?: {
+    id: number;
+    code?: string | null;
+    name: string;
+    channel_role?: TaxonomyChannelRole | string;
+  } | null;
   entities: NewsletterEntityTag[];
 }
 
@@ -63,6 +84,8 @@ export interface NewsletterDirectoryEntity {
   latest_article_url: string | null;
   latest_source_name: string | null;
   latest_published_at: string | null;
+  latest_sub_industry_id?: number | null;
+  latest_business_category_id?: number | null;
   signal_context: string | null;
   matched_lead_id: number | null;
   matched_lead_name: string | null;

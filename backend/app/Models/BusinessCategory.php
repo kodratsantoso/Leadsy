@@ -2,35 +2,28 @@
 
 namespace App\Models;
 
+use App\Models\Traits\ScopesTaxonomyToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/**
- * @property int $id
- * @property string $name
- * @property array<array-key, mixed>|null $synonyms
- * @property string|null $scoring_hints
- * @property bool $is_active
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property string|null $code
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory newModelQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory newQuery()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory query()
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory whereCode($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory whereCreatedAt($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory whereId($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory whereIsActive($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory whereName($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory whereScoringHints($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory whereSynonyms($value)
- * @method static \Illuminate\Database\Eloquent\Builder<static>|BusinessCategory whereUpdatedAt($value)
- * @mixin \Eloquent
- */
 class BusinessCategory extends Model
 {
+    use ScopesTaxonomyToTenant;
+
+    public const CHANNEL_ROLES = [
+        'direct_b2b',
+        'direct_b2c',
+        'partner_influencer',
+        'indirect_contract',
+    ];
+
     protected $fillable = [
+        'tenant_id',
+        'industry_id',
         'code',
         'name',
+        'channel_role',
+        'description',
         'synonyms',
         'scoring_hints',
         'is_active',
@@ -40,4 +33,9 @@ class BusinessCategory extends Model
         'synonyms' => 'array',
         'is_active' => 'boolean',
     ];
+
+    public function industry(): BelongsTo
+    {
+        return $this->belongsTo(Industry::class);
+    }
 }

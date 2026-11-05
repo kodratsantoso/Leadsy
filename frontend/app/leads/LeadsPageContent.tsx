@@ -2667,10 +2667,18 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
 
               const resolveBusinessCategoryId = () => {
                 if (pData.business_category_id) return String(pData.business_category_id);
-                const name = (pData.business_category_name || pData.business_category || "").toLowerCase().trim();
-                if (!name) return formState.business_category_id;
+                const raw = String(pData.business_category_name || pData.business_category || "").trim();
+                if (!raw) return formState.business_category_id;
+                const codeMatch = raw.match(/^\[?([A-Za-z0-9_-]{2,15})\]?\s*(.*)$/);
+                const name = raw.toLowerCase();
+                const cleanAfterCode = codeMatch?.[2]?.trim().toLowerCase() || "";
+                const codeCandidate = codeMatch?.[1]?.trim().toLowerCase() || "";
                 const found = (businessCategories as any[])?.find(
-                  (c) => c.name?.toLowerCase() === name || c.slug?.toLowerCase() === name
+                  (c) =>
+                    c.name?.toLowerCase() === name ||
+                    (cleanAfterCode && c.name?.toLowerCase() === cleanAfterCode) ||
+                    (codeCandidate && String(c.code || "").toLowerCase() === codeCandidate) ||
+                    c.slug?.toLowerCase() === name
                 );
                 return found ? String(found.id) : formState.business_category_id;
               };
@@ -2892,7 +2900,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
             </div>
           </div>
           <div className="grid gap-2">
-            <label className="text-sm font-medium">Business Category</label>
+            <label className="text-sm font-medium">Business Category / #LOB</label>
             <Select
               value={formState.business_category_id}
               onChange={(e) => {
@@ -2901,6 +2909,9 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
                     isOpen: true,
                     title: 'Create New Business Category',
                     endpoint: '/business-categories',
+                    additionalPayload: formState.industry_id
+                      ? { industry_id: Number(formState.industry_id) }
+                      : undefined,
                     onSuccess: (newItem) => {
                       queryClient.invalidateQueries({ queryKey: ['business-categories'] });
                       setFormState((s) => ({ ...s, business_category_id: String(newItem.id) }));
@@ -2912,11 +2923,49 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
               }}
             >
               <option value="">Select Business Category</option>
-              {(Array.isArray(businessCategories) ? businessCategories : []).map((bc: any) => (
-                <option key={bc.id} value={bc.id.toString()}>{bc.code ? `[${bc.code}] ` : ''}{bc.name}</option>
-              ))}
+              {(Array.isArray(businessCategories) ? businessCategories : [])
+                .filter(
+                  (bc: any) =>
+                    !formState.industry_id ||
+                    !bc.industry_id ||
+                    String(bc.industry_id) === String(formState.industry_id) ||
+                    String(bc.id) === String(formState.business_category_id)
+                )
+                .map((bc: any) => (
+                  <option key={bc.id} value={bc.id.toString()}>
+                    {bc.code ? `[${bc.code}] ` : ''}{bc.name}
+                  </option>
+                ))}
               <option value="__CREATE_NEW__" className="font-bold text-[var(--brand)]">+ Create New...</option>
             </Select>
+            {(() => {
+              const activeCat = (Array.isArray(businessCategories) ? businessCategories : []).find(
+                (bc: any) => String(bc.id) === String(formState.business_category_id)
+              );
+              if (!activeCat) return null;
+              if (activeCat.channel_role === 'direct_b2c') {
+                return (
+                  <p className="text-xs text-[color:var(--info)]">
+                    Segmen B2C / Private Client — Nama klien individu atau kediaman pribadi diperbolehkan.
+                  </p>
+                );
+              }
+              if (activeCat.channel_role === 'partner_influencer') {
+                return (
+                  <p className="text-xs text-[color:var(--brand)]">
+                    Business Partner / Influencer — Membuka peluang spesifikasi proyek lintas segmen.
+                  </p>
+                );
+              }
+              if (activeCat.channel_role === 'indirect_contract') {
+                return (
+                  <p className="text-xs text-[color:var(--warning)]">
+                    Indirect Contract / Leasing — Penjualan melalui manajemen kontrak atau lembaga pembiayaan.
+                  </p>
+                );
+              }
+              return null;
+            })()}
           </div>
           <div className="grid gap-2">
             <label className="text-sm font-medium">Initial Product</label>
