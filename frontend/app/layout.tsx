@@ -1,9 +1,19 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { leadsyLinkPreviewMetadata } from "@/lib/link-preview-metadata";
 import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = leadsyLinkPreviewMetadata();
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#171717" },
+  ],
+};
 
 // Runs synchronously before React hydration to prevent flash of wrong theme
 const themeScript = `(function(){try{var t=localStorage.getItem('leadsy-theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');else document.documentElement.classList.remove('dark');}catch(e){}})()`;

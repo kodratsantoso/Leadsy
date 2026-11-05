@@ -83,3 +83,4 @@ class TaxonomyPresetController extends Controller
         return (int) ($user?->tenant_id ?? 1);
     }
 }
+

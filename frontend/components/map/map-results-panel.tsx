@@ -137,7 +137,7 @@ export function MapResultsPanel({
 
   if (isCollapsed) {
     return (
-      <div className="flex h-full w-12 shrink-0 flex-col items-center justify-between border-l border-border bg-background py-4">
+      <div className="hidden h-full w-12 shrink-0 flex-col items-center justify-between border-l border-border bg-background py-4 lg:flex">
         <div className="flex flex-col items-center gap-3">
           <Button
             type="button"
@@ -206,7 +206,7 @@ export function MapResultsPanel({
   };
 
   return (
-    <div className="relative flex w-full shrink-0 flex-col border-l border-border bg-background p-4 sm:w-[420px] lg:w-[440px]">
+    <div className="absolute inset-y-0 right-0 z-40 flex w-full shrink-0 flex-col border-l border-border bg-background p-2 shadow-2xl sm:w-[420px] sm:p-4 lg:relative lg:inset-auto lg:z-auto lg:w-[440px] lg:shadow-none">
       <Card className="flex h-full flex-col">
         <CardHeader className="space-y-3 pb-3">
           <div className="flex items-center justify-between gap-2">

@@ -11,7 +11,7 @@ import {
   ChevronRight, Bot, Zap, ArrowRight, ShieldCheck, RefreshCw, 
   Plus, MoreVertical, Calendar, DollarSign, CheckCircle2,
   Tag, UserCheck, Check, RotateCcw, FileText, Layers, X,
-  PenSquare, CornerUpLeft, Paperclip, ChevronDown, CheckSquare,
+  PenSquare, CornerUpLeft, Paperclip, ChevronDown, ChevronLeft, CheckSquare,
   QrCode, Wifi, WifiOff, Radio, RadioTower, AlertCircle, Copy,
   Smile, ShieldAlert, SlidersHorizontal
 } from 'lucide-react';
@@ -145,7 +145,9 @@ function OmnichannelInboxContent() {
     return () => clearInterval(interval);
   }, [fetchWaStatus]);
 
-  // ── Modals State ──
+  // ── Modals & Mobile Master-Detail State ──
+  const [mobilePane, setMobilePane] = useState<'list' | 'chat'>('list');
+  const [isCrmContextModalOpen, setIsCrmContextModalOpen] = useState(false);
   const [isWaDeviceModalOpen, setIsWaDeviceModalOpen] = useState(initialActionParam === 'connect');
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [isComposeEmailOpen, setIsComposeEmailOpen] = useState(false);
@@ -716,36 +718,40 @@ function OmnichannelInboxContent() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-background">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden bg-background">
       {/* ── Top Header Bar ── */}
-      <div className="h-14 border-b border-border bg-card px-5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center font-bold">
+      <div className="h-14 border-b border-border bg-card px-3 sm:px-5 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <div className="hidden sm:flex h-9 w-9 shrink-0 rounded-xl bg-brand/10 text-brand items-center justify-center font-bold">
             <Inbox className="h-4.5 w-4.5" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-foreground">Omnichannel Inbox & Communications Suite</h1>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted font-medium text-muted-foreground border border-border">
+              <h1 className="truncate text-sm font-bold text-foreground">
+                <span className="lg:hidden">Omnichannel Inbox</span>
+                <span className="hidden lg:inline">Omnichannel Inbox &amp; Communications Suite</span>
+              </h1>
+              <span className="hidden xl:inline text-[10px] px-2 py-0.5 rounded-full bg-muted font-medium text-muted-foreground border border-border">
                 Unified Channel Hub
               </span>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              WhatsApp (Local Baileys & Mekari Qontak Official) & Lark-Style Enterprise Mailbox
+            <p className="hidden md:block truncate text-[11px] text-muted-foreground">
+              WhatsApp (Local Baileys &amp; Mekari Qontak Official) &amp; Lark-Style Enterprise Mailbox
             </p>
           </div>
         </div>
 
         {/* Header Right Action Group */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           {/* Quick Action: Chat Baru */}
           <Button
             size="sm"
             onClick={() => setIsNewChatModalOpen(true)}
             className="h-8 text-xs gap-1.5 bg-brand hover:bg-brand/90 text-white shadow-xs cursor-pointer"
+            aria-label="Pesan Baru"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>Pesan Baru</span>
+            <span className="hidden sm:inline">Pesan Baru</span>
           </Button>
 
           {/* Quick Action: Tulis Email Baru */}
@@ -810,7 +816,7 @@ function OmnichannelInboxContent() {
               )}
             />
             <MessageSquare className="h-3.5 w-3.5" />
-            <span>
+            <span className="hidden sm:inline">
               {waSession.status === 'connected'
                 ? `WA: ${waSession.number || 'Terhubung'}`
                 : waSession.status === 'qr_ready'
@@ -821,10 +827,15 @@ function OmnichannelInboxContent() {
         </div>
       </div>
 
-      {/* ── 3-Column Container ── */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* ── 3-Column Container (Master-Detail on mobile) ── */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* ── Column 1: Threads Sidebar ── */}
-        <div className="w-80 md:w-96 border-r border-border bg-card/40 flex flex-col shrink-0">
+        <div
+          className={cn(
+            "w-full md:w-80 lg:w-96 md:border-r border-border bg-card/40 flex-col shrink-0 min-h-0",
+            mobilePane === 'chat' ? "hidden md:flex" : "flex"
+          )}
+        >
           {/* Primary Channel Filter Tabs */}
           <div className="p-3 border-b border-border space-y-2.5">
             <div className="flex rounded-lg bg-muted p-0.5 text-xs font-medium">
@@ -1008,7 +1019,7 @@ function OmnichannelInboxContent() {
                   return (
                     <div
                       key={thread.id}
-                      onClick={() => setActiveThreadId(thread.id)}
+                      onClick={() => { setActiveThreadId(thread.id); setMobilePane('chat'); }}
                       className={cn(
                         "p-3.5 cursor-pointer transition-all hover:bg-muted/40 relative",
                         isSelected && "bg-blue-500/5 border-l-4 border-l-blue-600"
@@ -1052,7 +1063,7 @@ function OmnichannelInboxContent() {
                 return (
                   <div
                     key={thread.id}
-                    onClick={() => setActiveThreadId(thread.id)}
+                    onClick={() => { setActiveThreadId(thread.id); setMobilePane('chat'); }}
                     className={cn(
                       "p-3.5 cursor-pointer transition-all hover:bg-muted/40 relative",
                       isSelected && "bg-emerald-500/5 border-l-4 border-l-emerald-600"
@@ -1108,7 +1119,12 @@ function OmnichannelInboxContent() {
         </div>
 
         {/* ── Column 2: Adaptive Message Stream & Reader ── */}
-        <div className="flex-1 flex flex-col bg-background overflow-hidden">
+        <div
+          className={cn(
+            "flex-1 min-w-0 min-h-0 flex-col bg-background overflow-hidden",
+            mobilePane === 'list' ? "hidden md:flex" : "flex"
+          )}
+        >
           {!activeThread ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-muted-foreground space-y-4">
               <div className="h-16 w-16 rounded-2xl bg-muted/60 border border-border flex items-center justify-center">
@@ -1120,7 +1136,10 @@ function OmnichannelInboxContent() {
                   Pilih thread dari daftar di sebelah kiri untuk membaca pesan, mengirim balasan langsung, atau menyinkronkan data CRM.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => setMobilePane('list')} className="md:hidden text-xs gap-1.5">
+                  <ChevronLeft className="h-3.5 w-3.5" /> Daftar Percakapan
+                </Button>
                 <Button size="sm" onClick={() => setIsNewChatModalOpen(true)} className="text-xs gap-1.5 bg-brand text-white hover:bg-brand/90">
                   <Plus className="h-3.5 w-3.5" /> Pesan Baru
                 </Button>
@@ -1135,25 +1154,45 @@ function OmnichannelInboxContent() {
              * ─────────────────────────────────────────────────────────── */
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               {/* Email Subject Header Banner */}
-              <div className="px-6 py-4 border-b border-border bg-card/60 flex items-start justify-between gap-4 shrink-0">
+              <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-border bg-card/60 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 shrink-0">
+                <div className="flex min-w-0 items-start gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setMobilePane('list')}
+                    className="md:hidden shrink-0 -ml-1"
+                    aria-label="Kembali ke daftar percakapan"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
                 <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                       Lark Suite IMAP • SSL
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">{activeThread.phone}</span>
+                    <span className="truncate text-xs text-muted-foreground font-mono">{activeThread.phone}</span>
                   </div>
-                  <h2 className="text-base font-bold text-foreground leading-snug">
+                  <h2 className="text-sm sm:text-base font-bold text-foreground leading-snug break-words">
                     {activeThread.subject || 'Percakapan Email Tanpa Subjek'}
                   </h2>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground pt-0.5">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground pt-0.5">
                     <span>Dari: <strong className="text-foreground">{activeThread.contactName}</strong></span>
-                    <span>•</span>
+                    <span className="hidden sm:inline">•</span>
                     <span>Perusahaan: <strong className="text-foreground">{activeThread.companyName}</strong></span>
                   </div>
                 </div>
+                </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCrmContextModalOpen(true)}
+                    className="xl:hidden h-8 text-xs gap-1.5"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    <span>CRM</span>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1178,7 +1217,7 @@ function OmnichannelInboxContent() {
               </div>
 
               {/* Email Thread Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
                 {messagesToDisplay.length === 0 ? (
                   <div className="p-8 text-center text-xs text-muted-foreground">
                     Tidak ada pesan email untuk ditampilkan.
@@ -1187,10 +1226,10 @@ function OmnichannelInboxContent() {
                   messagesToDisplay.map((msg) => (
                     <div
                       key={msg.id}
-                      className="rounded-xl border border-border bg-card p-5 shadow-xs space-y-3"
+                      className="rounded-xl border border-border bg-card p-3.5 sm:p-5 shadow-xs space-y-3"
                     >
-                      <div className="flex items-start justify-between border-b border-border/60 pb-3">
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-start justify-between gap-2 border-b border-border/60 pb-3">
+                        <div className="flex min-w-0 items-center gap-3">
                           <div className={cn(
                             "h-9 w-9 rounded-full flex items-center justify-center font-bold text-xs",
                             msg.sender === 'sales'
@@ -1220,9 +1259,9 @@ function OmnichannelInboxContent() {
               </div>
 
               {/* Email Quick Reply Composer */}
-              <div className="p-4 border-t border-border bg-card/60 space-y-3 shrink-0">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 flex-1">
+              <div className="p-3 sm:p-4 border-t border-border bg-card/60 space-y-3 shrink-0">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
                     <span className="text-xs font-medium text-muted-foreground shrink-0">Subjek:</span>
                     <Input
                       size="sm"
@@ -1234,7 +1273,7 @@ function OmnichannelInboxContent() {
                     />
                   </div>
                   {/* Canned Reply Dropdown */}
-                  <div className="w-44 shrink-0">
+                  <div className="w-full sm:w-44 shrink-0">
                     <Select
                       size="sm"
                       onChange={(e) => {
@@ -1279,16 +1318,25 @@ function OmnichannelInboxContent() {
              * ─────────────────────────────────────────────────────────── */
             <div className="flex-1 flex flex-col h-full overflow-hidden">
               {/* WhatsApp Thread Header */}
-              <div className="px-5 py-3 border-b border-border bg-card/60 flex items-center justify-between gap-4 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+              <div className="px-3 py-2.5 sm:px-5 sm:py-3 border-b border-border bg-card/60 flex items-center justify-between gap-2 sm:gap-4 shrink-0">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setMobilePane('list')}
+                    className="md:hidden shrink-0 -ml-1"
+                    aria-label="Kembali ke daftar percakapan"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <div className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
                     {activeThread.contactName.slice(0, 2).toUpperCase()}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-sm font-bold text-foreground">{activeThread.companyName}</h2>
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <h2 className="truncate text-sm font-bold text-foreground">{activeThread.companyName}</h2>
                       <span className={cn(
-                        "text-[10px] font-semibold px-2 py-0.2 rounded-full",
+                        "hidden sm:inline shrink-0 text-[10px] font-semibold px-2 py-0.2 rounded-full",
                         activeThread.rawPlatform === 'mekari_qontak'
                           ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
                           : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
@@ -1296,13 +1344,13 @@ function OmnichannelInboxContent() {
                         {activeThread.rawPlatform === 'mekari_qontak' ? 'Mekari Qontak Official' : 'Local Baileys Sidecar'}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="truncate text-xs text-muted-foreground">
                       {activeThread.contactName} • <span className="font-mono">{activeThread.phone}</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -1310,9 +1358,10 @@ function OmnichannelInboxContent() {
                     disabled={isAnalyzing}
                     className="h-8 text-xs gap-1.5 border-purple-500/30 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
                     title="Analisis AI untuk mendeteksi intent deal"
+                    aria-label="AI Insights"
                   >
                     <Sparkles className={cn("h-3.5 w-3.5", isAnalyzing && "animate-spin")} />
-                    <span>AI Insights</span>
+                    <span className="hidden lg:inline">AI Insights</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -1322,23 +1371,34 @@ function OmnichannelInboxContent() {
                       "h-8 text-xs gap-1.5",
                       activeThread.isResolved && "text-emerald-600 border-emerald-500/30"
                     )}
+                    aria-label={activeThread.isResolved ? 'Resolved' : 'Tandai Selesai'}
                   >
                     <CheckSquare className="h-3.5 w-3.5" />
-                    <span>{activeThread.isResolved ? 'Resolved' : 'Selesai'}</span>
+                    <span className="hidden lg:inline">{activeThread.isResolved ? 'Resolved' : 'Selesai'}</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCrmContextModalOpen(true)}
+                    className="xl:hidden h-8 text-xs gap-1.5"
+                    aria-label="Konteks CRM"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     size="sm"
                     onClick={handleOpenConvertModal}
                     className="h-8 text-xs gap-1.5 bg-brand text-white hover:bg-brand/90"
+                    aria-label="Konversi Lead"
                   >
                     <Building2 className="h-3.5 w-3.5" />
-                    <span>Konversi Lead</span>
+                    <span className="hidden sm:inline">Konversi Lead</span>
                   </Button>
                 </div>
               </div>
 
               {/* Chat Stream Messages */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-muted/20">
+              <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 space-y-3 bg-muted/20">
                 {messagesToDisplay.length === 0 ? (
                   <div className="p-8 text-center text-xs text-muted-foreground">
                     Belum ada riwayat pesan percakapan ini.
@@ -1351,7 +1411,7 @@ function OmnichannelInboxContent() {
                       <div
                         key={msg.id}
                         className={cn(
-                          "flex flex-col max-w-[75%]",
+                          "flex flex-col max-w-[88%] sm:max-w-[75%]",
                           isOutbound ? "ml-auto items-end" : "mr-auto items-start"
                         )}
                       >
@@ -1388,15 +1448,15 @@ function OmnichannelInboxContent() {
               </div>
 
               {/* Chat Composer */}
-              <div className="p-4 border-t border-border bg-card/60 space-y-2 shrink-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span>Mengirim via: <strong>{activeThread.rawPlatform === 'mekari_qontak' ? 'Mekari Qontak API' : 'Local Baileys'}</strong></span>
+              <div className="p-3 sm:p-4 border-t border-border bg-card/60 space-y-2 shrink-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="hidden sm:flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                    <span className="truncate">Mengirim via: <strong>{activeThread.rawPlatform === 'mekari_qontak' ? 'Mekari Qontak API' : 'Local Baileys'}</strong></span>
                   </div>
 
                   {/* Template Picker */}
-                  <div className="w-44">
+                  <div className="w-full sm:w-44">
                     <Select
                       size="sm"
                       onChange={(e) => {
@@ -1438,15 +1498,40 @@ function OmnichannelInboxContent() {
           )}
         </div>
 
-        {/* ── Column 3: CRM Context & Intelligence Drawer ── */}
-        <div className="w-80 border-l border-border bg-card/20 p-4 overflow-y-auto space-y-4 shrink-0 hidden xl:block">
-          <div className="space-y-1 pb-3 border-b border-border">
+        {/* ── Column 3: CRM Context & Intelligence Drawer (slide-over on < xl) ── */}
+        {isCrmContextModalOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs xl:hidden"
+            onClick={() => setIsCrmContextModalOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+        <div
+          className={cn(
+            "border-l border-border p-4 overflow-y-auto space-y-4 shrink-0",
+            "fixed inset-y-0 right-0 z-50 w-[min(22rem,92vw)] bg-card shadow-2xl pt-safe pb-safe transition-transform duration-300",
+            isCrmContextModalOpen ? "translate-x-0" : "translate-x-full",
+            "xl:static xl:z-auto xl:w-80 xl:translate-x-0 xl:bg-card/20 xl:shadow-none xl:transition-none"
+          )}
+        >
+          <div className="flex items-start justify-between gap-2 space-y-1 pb-3 border-b border-border">
+            <div className="space-y-1">
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
               CRM Intelligence & Context
             </h3>
             <p className="text-[11px] text-muted-foreground">
               Data terintegrasi ke Leadsy Pipeline & Scoring Model
             </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setIsCrmContextModalOpen(false)}
+              className="xl:hidden shrink-0"
+              aria-label="Tutup panel CRM"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
 
           {/* Contact Details Card */}

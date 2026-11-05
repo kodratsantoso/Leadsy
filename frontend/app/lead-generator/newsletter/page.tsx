@@ -537,7 +537,7 @@ export default function IndustryNewsletterPage() {
   );
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Editorial Top Breadcrumb & Masthead */}
       <div className="rounded-3xl border border-border bg-card shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-3 bg-[color:var(--surface-subtle)] rounded-t-3xl">
@@ -571,7 +571,7 @@ export default function IndustryNewsletterPage() {
           </div>
         </div>
 
-        <div className="p-6 space-y-5">
+        <div className="p-4 sm:p-6 space-y-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-1.5 max-w-2xl">
               <div className="inline-flex items-center gap-2 text-xs font-semibold text-[color:var(--brand)]">
@@ -642,7 +642,7 @@ export default function IndustryNewsletterPage() {
                   setSelectedDirectoryIds([]);
                   setPage(1);
                 }}
-                className="w-60 font-medium"
+                className="w-full font-medium sm:w-60"
                 aria-label="Select industry"
               >
                 {industries.map((ind) => (
@@ -678,7 +678,7 @@ export default function IndustryNewsletterPage() {
                     setSelectedBusinessCategoryId(e.target.value);
                     setPage(1);
                   }}
-                  className="w-60"
+                  className="w-full sm:w-60"
                   aria-label="Filter business category or LOB"
                 >
                   <option value="">All Business Categories / #LOB</option>

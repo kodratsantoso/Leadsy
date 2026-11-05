@@ -6,13 +6,14 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Map, Building2, Package,
-  MessageSquare, Settings, ClipboardCheck,
-  ChevronLeft, ChevronRight, Search, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
+  Settings, ClipboardCheck,
+  ChevronLeft, ChevronRight, LogOut, ChevronDown, HelpCircle, RadioTower, Share2,
   Globe, Key, Bell, Shield, Database, Users, Bot, Webhook, Target, Tags, GitBranch, Coins, Layers, FileText, Briefcase, Activity,
   HeartPulse, ArrowRightLeft, TestTube2, Trash2, BookOpen, Inbox, Wifi, WifiOff, LayoutGrid, Mail,
-  Receipt, FileSpreadsheet, Hash, CalendarClock, Newspaper
+  Receipt, FileSpreadsheet, Hash, CalendarClock, Newspaper, Menu, X, Download
 } from "lucide-react";
 import { useOfflineSync } from "@/lib/offline/offlineSyncManager";
+import { usePwaInstall } from "@/lib/pwa/pwa-context";
 import { useState, useRef, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTheme } from "@/lib/theme-context";
@@ -34,32 +35,6 @@ export type NavItem = {
     group?: string;
   }>;
 };
-
-function WhatsAppLogoIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.758.459 3.473 1.332 4.986l-1.354 4.957 5.075-1.331a9.924 9.924 0 004.933 1.314h.005c5.505 0 9.988-4.482 9.988-9.988 0-2.668-1.039-5.176-2.928-7.065A9.92 9.92 0 0012.012 2zm6.066 14.152c-.27.76-1.572 1.393-2.146 1.488-.513.085-1.186.155-3.32-.727-2.73-1.127-4.49-3.905-4.627-4.087-.136-.182-1.103-1.468-1.103-2.798 0-1.33.696-1.986.945-2.253.25-.267.545-.333.727-.333h.52c.16 0 .376.012.545.419.182.437.625 1.52.68 1.633.056.113.092.245.018.396-.074.15-.16.326-.26.447-.1.121-.21.254-.3.354-.1.108-.204.225-.088.423.117.198.519.854 1.11 1.382.76.678 1.402.888 1.602.987.2.1.316.084.437-.054.12-.138.52-.605.66-.811.14-.207.28-.174.47-.104.192.07 1.213.572 1.423.677.21.104.35.155.4.243.05.088.05.512-.17.962z" />
-    </svg>
-  );
-}
-
-function MekariLogoIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 35 32"
-      fill="currentColor"
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M32.3779 14.0522L24.5141 12.5087L27.0954 4.91097C27.5532 3.58796 27.2296 2.25057 26.0672 1.57947C24.9048 0.908378 23.5722 1.3326 22.6686 2.35602L17.3789 8.38868L12.0893 2.35602C11.1617 1.31822 9.84351 0.920361 8.69067 1.57947C7.52584 2.24577 7.20228 3.60234 7.66246 4.91097L10.2414 12.5087L2.37759 14.0546C1.00185 14.3159 0.00240094 15.3009 4.17184e-06 16.6407C-0.00239259 17.9829 1.02822 18.9272 2.36561 19.2029L10.2414 20.7464L7.66246 28.3441C7.20468 29.6671 7.52824 31.0045 8.69067 31.6756C9.8531 32.3467 11.1857 31.9225 12.0893 30.8991L17.3789 24.8664L22.6686 30.8991C23.5961 31.9369 24.9144 32.3347 26.0672 31.6756C27.232 31.0093 27.5556 29.6528 27.0954 28.3441L24.5165 20.7464L32.3923 19.2005C33.7297 18.9248 34.7603 17.9805 34.7579 16.6383C34.7555 15.2961 33.756 14.3135 32.3803 14.0522H32.3779Z" />
-    </svg>
-  );
-}
 
 export const navItems: NavItem[] = [
   { href: "/dashboard",               icon: LayoutDashboard, label: "Dashboard" },
@@ -163,12 +138,14 @@ function OfflineStatusPill() {
 
   if (!isOnline) {
     return (
-      <div 
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px] font-semibold animate-pulse"
+      <div
+        className="flex items-center gap-1.5 rounded-full border border-[var(--warning)]/30 bg-[var(--warning-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--warning)] animate-pulse sm:px-2.5 sm:py-1"
         title="Jaringan terputus. Data kunjungan akan disimpan offline."
       >
-        <WifiOff className="h-3 w-3" />
-        <span>Offline {pendingCount > 0 ? `(${pendingCount} pending)` : ''}</span>
+        <WifiOff className="h-3 w-3 shrink-0" />
+        <span>
+          Offline{pendingCount > 0 ? ` (${pendingCount})` : ""}
+        </span>
       </div>
     );
   }
@@ -179,33 +156,33 @@ function OfflineStatusPill() {
         type="button"
         onClick={() => syncNow()}
         disabled={isSyncing}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[11px] font-semibold hover:bg-blue-500/20 transition-colors"
+        className="flex items-center gap-1.5 rounded-full border border-[var(--info)]/30 bg-[var(--info-soft)] px-2 py-0.5 text-[11px] font-semibold text-[var(--info)] transition-colors hover:opacity-90 sm:px-2.5 sm:py-1"
         title="Klik untuk menyinkronkan data offline sekarang"
       >
-        <Wifi className="h-3 w-3" />
-        <span>{isSyncing ? 'Sinkronisasi...' : `Sinkron (${pendingCount})`}</span>
+        <Wifi className="h-3 w-3 shrink-0" />
+        <span>{isSyncing ? "Sync..." : `Sync (${pendingCount})`}</span>
       </button>
     );
   }
 
   return (
-    <div 
-      className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-medium"
+    <div
+      className="hidden items-center gap-1 rounded-full border border-[var(--success)]/30 bg-[var(--success-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--success)] md:flex"
       title="Sistem terhubung secara online"
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
       <span>Online</span>
     </div>
   );
 }
 
-function ThemedLogo({ collapsed }: { collapsed: boolean }) {
+function ThemedLogo({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const { resolved } = useTheme();
   const src = resolved === "dark" ? "/Leadsy_logo_dark.png" : "/Leadsy_logo_light.png";
 
   if (collapsed) {
     return (
-      <Link href="/dashboard" className="mx-auto">
+      <Link href="/dashboard" onClick={onNavigate} className="mx-auto">
         <Image
           src={src}
           alt="Leadsy"
@@ -219,13 +196,13 @@ function ThemedLogo({ collapsed }: { collapsed: boolean }) {
   }
 
   return (
-    <Link href="/dashboard" className="flex items-center min-w-0">
+    <Link href="/dashboard" onClick={onNavigate} className="flex min-w-0 items-center">
       <Image
         src={src}
         alt="Leadsy"
         width={320}
         height={80}
-        className="h-20 w-auto object-contain"
+        className="h-14 w-auto object-contain lg:h-20"
         priority
       />
     </Link>
@@ -235,12 +212,17 @@ function ThemedLogo({ collapsed }: { collapsed: boolean }) {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [appVersion, setAppVersion] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const setUser = useAuthStore((s) => s.setUser);
+  const { canOfferInstall, requestInstall } = usePwaInstall();
+
+  // In mobile drawer, always render expanded labels regardless of desktop collapsed toggle
+  const isCompact = collapsed && !mobileMenuOpen;
 
   const visibleNavItems = useMemo(() => {
     return navItems
@@ -252,6 +234,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [user]);
 
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+
+  // Close mobile drawer automatically on route transitions
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   // Auto-expand active sub-menus on pathname changes
   useEffect(() => {
@@ -265,18 +252,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
   }, [pathname, visibleNavItems]);
 
-  /**
-   * One group open at a time.
-   *
-   * Groups used to accumulate: every one ever opened stayed open, so after a few clicks
-   * the sidebar was a wall of links and the item you wanted had scrolled out of view.
-   * Opening a group now closes the rest, and clicking the open one still closes it.
-   */
   const toggleMenu = (href: string) => {
-    if (collapsed) {
+    if (isCompact) {
       setCollapsed(false);
       setExpandedMenus({ [href]: true });
-
       return;
     }
 
@@ -300,10 +279,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       .catch(() => {/* silently ignore */});
   }, []);
 
-  // The logged-in user's role/permissions are cached in localStorage at login
-  // time and never updated after that — if an admin changes this user's role
-  // elsewhere, the sidebar/permission checks kept using the stale snapshot
-  // until the next full login. Re-sync from the server on every app load.
   useEffect(() => {
     apiFetch("/auth/me")
       .then((res) => (res.ok ? res.json() : null))
@@ -314,36 +289,123 @@ export function AppShell({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Active section label for compact mobile topbar orientation
+  const mobileSectionTitle = useMemo(() => {
+    if (pathname === "/dashboard") return "Dashboard";
+    if (pathname.startsWith("/leads")) return "Leads";
+    if (pathname.startsWith("/map")) return "Field Map";
+    if (pathname.startsWith("/inbox")) return "Inbox";
+    if (pathname.startsWith("/lead-generator/newsletter")) return "Newsletter";
+    if (pathname.startsWith("/lead-generator")) return "Lead Gen";
+    if (pathname.startsWith("/products")) return "Products";
+    if (pathname.startsWith("/professional-services")) return "Services";
+    if (pathname.startsWith("/finance")) return "Finance";
+    if (pathname.startsWith("/customer-success")) return "CS Hub";
+    if (pathname.startsWith("/settings")) return "Settings";
+    return "Leadsy";
+  }, [pathname]);
+
+  const bottomTabs = useMemo(() => {
+    const tabs: Array<{
+      key: string;
+      label: string;
+      href?: string;
+      icon: ComponentType<{ className?: string }>;
+      active: boolean;
+      allowed: boolean;
+    }> = [
+      {
+        key: "dashboard",
+        label: "Dashboard",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+        active: pathname === "/dashboard" && !mobileMenuOpen,
+        allowed: true,
+      },
+      {
+        key: "leads",
+        label: "Leads",
+        href: "/leads",
+        icon: Building2,
+        active: pathname.startsWith("/leads") && !mobileMenuOpen,
+        allowed: canAccessPath("/leads", user),
+      },
+      {
+        key: "map",
+        label: "Map",
+        href: "/map",
+        icon: Map,
+        active: pathname.startsWith("/map") && !mobileMenuOpen,
+        allowed: canAccessPath("/map", user),
+      },
+      {
+        key: "inbox",
+        label: "Inbox",
+        href: "/inbox",
+        icon: Inbox,
+        active: pathname.startsWith("/inbox") && !mobileMenuOpen,
+        allowed: canAccessPath("/inbox", user),
+      },
+    ];
+    return tabs.filter((t) => t.allowed);
+  }, [pathname, mobileMenuOpen, user]);
+
+  const isSecondaryRouteActive =
+    mobileMenuOpen ||
+    (pathname !== "/dashboard" &&
+      !pathname.startsWith("/leads") &&
+      !pathname.startsWith("/map") &&
+      !pathname.startsWith("/inbox"));
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar */}
+    <div className="flex h-[100dvh] overflow-hidden bg-background">
+      {/* Mobile Slide-Over Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar (Slide-over Drawer on < lg, Collapsible Static Rail on lg+) */}
       <aside
         data-tour="sidebar"
         className={cn(
-          "flex flex-col border-r border-border bg-sidebar transition-all duration-300",
-          collapsed ? "w-16" : "w-60",
+          "fixed inset-y-0 left-0 z-50 flex h-full w-72 shrink-0 flex-col border-r border-border bg-sidebar pt-safe pb-safe transition-transform duration-300 lg:static lg:z-auto lg:translate-x-0 lg:transition-all",
+          collapsed ? "lg:w-16" : "lg:w-60",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Logo area */}
-        <div className="flex h-20 items-center justify-between border-b border-sidebar-border px-3">
-          <ThemedLogo collapsed={collapsed} />
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-3 lg:h-20">
+          <ThemedLogo collapsed={isCompact} onNavigate={() => setMobileMenuOpen(false)} />
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground lg:hidden"
+            aria-label="Tutup menu navigasi"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2" data-tour="sidebar-nav">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2" data-tour="sidebar-nav">
           {visibleNavItems.map((item) => {
             const hasChildren = Boolean(item.children?.length);
             const isExpanded = expandedMenus[item.href] ?? false;
             const isActive =
               item.href === "/dashboard"
                 ? pathname === "/dashboard"
-                : pathname.startsWith(item.href) || Boolean(item.children?.some((child) => pathname.startsWith(child.href)));
-            
+                : pathname.startsWith(item.href) ||
+                  Boolean(item.children?.some((child) => pathname.startsWith(child.href)));
+
             const itemContent = (
               <>
                 <item.icon className="h-4 w-4 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-                {!collapsed && hasChildren && (
+                {!isCompact && <span className="truncate">{item.label}</span>}
+                {!isCompact && hasChildren && (
                   <ChevronDown
                     className={cn(
                       "ml-auto h-4 w-4 shrink-0 transition-transform duration-200",
@@ -358,35 +420,39 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div key={item.href} className="space-y-1">
                 {hasChildren ? (
                   <button
+                    type="button"
                     onClick={() => toggleMenu(item.href)}
                     data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
                     className={cn(
-                      "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+                      "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
                       isActive
                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                      isCompact && "justify-center px-0"
                     )}
-                    title={collapsed ? item.label : undefined}
+                    title={isCompact ? item.label : undefined}
                   >
                     {itemContent}
                   </button>
                 ) : (
                   <Link
                     href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
                     data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`}
                     className={cn(
                       "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                      isCompact && "justify-center px-0"
                     )}
-                    title={collapsed ? item.label : undefined}
+                    title={isCompact ? item.label : undefined}
                   >
                     {itemContent}
                   </Link>
                 )}
 
-                {!collapsed && isExpanded && item.children ? (
+                {!isCompact && isExpanded && item.children ? (
                   <div className="ml-4 space-y-1 border-l border-sidebar-border pl-2">
                     {(() => {
                       let lastGroup: string | undefined = undefined;
@@ -395,34 +461,39 @@ export function AppShell({ children }: { children: ReactNode }) {
                         if (child.group) {
                           lastGroup = child.group;
                         }
-                        
-                        // Find the most specific match among children
-                        const activeChildHref = item.children?.reduce((acc, c) => 
-                          pathname.startsWith(c.href) && c.href.length > acc.length ? c.href : acc
-                        , "") || "";
+
+                        const activeChildHref =
+                          item.children?.reduce(
+                            (acc, c) =>
+                              pathname.startsWith(c.href) && c.href.length > acc.length ? c.href : acc,
+                            ""
+                          ) || "";
                         const childActive = child.href === activeChildHref;
-                        
+
                         return (
                           <div key={child.href} className="space-y-0.5">
                             {showGroupHeader && (
-                              <div className={cn(
-                                "px-2 pb-1 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/45",
-                                index === 0 ? "pt-1.5" : "pt-4 border-t border-sidebar-border/30 mt-2"
-                              )}>
+                              <div
+                                className={cn(
+                                  "px-2 pb-1 text-[9px] font-bold uppercase tracking-wider text-sidebar-foreground/45",
+                                  index === 0 ? "pt-1.5" : "mt-2 border-t border-sidebar-border/30 pt-4"
+                                )}
+                              >
                                 {child.group}
                               </div>
                             )}
                             <Link
                               href={child.href}
+                              onClick={() => setMobileMenuOpen(false)}
                               className={cn(
                                 "group flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
                                 childActive
                                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                               )}
                             >
                               <child.icon className="h-3.5 w-3.5 shrink-0" />
-                              <span>{child.label}</span>
+                              <span className="truncate">{child.label}</span>
                             </Link>
                           </div>
                         );
@@ -435,19 +506,41 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
+        {/* Install PWA CTA inside Sidebar / Mobile Drawer */}
+        {canOfferInstall && (
+          <div className="border-t border-sidebar-border p-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                void requestInstall();
+              }}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-xl border border-[var(--brand)]/25 bg-[var(--brand)]/10 px-2.5 py-2 text-xs font-semibold text-[var(--brand)] transition-colors hover:bg-[var(--brand)]/15",
+                isCompact && "justify-center px-0"
+              )}
+              title={isCompact ? "Install Aplikasi Leadsy" : undefined}
+            >
+              <Download className="h-4 w-4 shrink-0" />
+              {!isCompact && <span className="truncate">Install Aplikasi (PWA)</span>}
+            </button>
+          </div>
+        )}
+
         {/* SaaS Platform Admin Quick Launcher for Superadmins */}
         {isSuperAdminUser(user) && (
           <div className="border-t border-sidebar-border p-2">
             <Link
               href="/admin/tenants"
+              onClick={() => setMobileMenuOpen(false)}
               className={cn(
-                "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all border border-primary/25 bg-primary/10 text-primary shadow-sm hover:bg-primary/20",
-                collapsed && "justify-center px-0"
+                "flex items-center gap-2.5 rounded-xl border border-primary/25 bg-primary/10 px-2.5 py-2 text-xs font-semibold text-primary shadow-sm transition-all hover:bg-primary/20",
+                isCompact && "justify-center px-0"
               )}
-              title={collapsed ? "SaaS Platform Admin" : undefined}
+              title={isCompact ? "SaaS Platform Admin" : undefined}
             >
               <Shield className="h-4 w-4 shrink-0 text-primary" />
-              {!collapsed && <span className="truncate">SaaS Platform Admin</span>}
+              {!isCompact && <span className="truncate">SaaS Platform Admin</span>}
             </Link>
           </div>
         )}
@@ -456,29 +549,32 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="border-t border-sidebar-border p-2">
           <Link
             href="/settings/system-playbook"
+            onClick={() => setMobileMenuOpen(false)}
             data-tour="nav-system-playbook"
             className={cn(
               "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors",
               pathname === "/settings/system-playbook"
                 ? "bg-sidebar-accent text-sidebar-accent-foreground"
                 : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-              collapsed && "justify-center px-0"
+              isCompact && "justify-center px-0"
             )}
-            title={collapsed ? "System & AI Playbook" : undefined}
+            title={isCompact ? "System & AI Playbook" : undefined}
           >
             <BookOpen className="h-4 w-4 shrink-0 text-[color:var(--brand)]" />
-            {!collapsed && <span className="truncate">System & AI Playbook</span>}
+            {!isCompact && <span className="truncate">System & AI Playbook</span>}
           </Link>
         </div>
 
         {/* Version badge */}
         {appVersion && (
-          <div className={cn(
-            "flex items-center border-t border-sidebar-border px-3 py-2",
-            collapsed ? "justify-center" : "justify-between"
-          )}>
-            {!collapsed && (
-              <span className="text-[10px] text-sidebar-foreground/40 font-medium tracking-wide">
+          <div
+            className={cn(
+              "flex items-center border-t border-sidebar-border px-3 py-2",
+              isCompact ? "justify-center" : "justify-between"
+            )}
+          >
+            {!isCompact && (
+              <span className="text-[10px] font-medium tracking-wide text-sidebar-foreground/40">
                 Leadsy
               </span>
             )}
@@ -488,29 +584,64 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        {/* Collapse toggle */}
+        {/* Collapse toggle (Desktop only) */}
         <button
+          type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="flex h-10 items-center justify-center border-t border-sidebar-border text-sidebar-foreground/50 hover:text-sidebar-foreground"
+          className="hidden h-10 items-center justify-center border-t border-sidebar-border text-sidebar-foreground/50 hover:text-sidebar-foreground lg:flex"
+          aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
       </aside>
 
-      {/* Main */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Main Column */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-6">
-          <div className="flex items-center gap-3">
-            <GlobalSearch />
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 px-3 py-2 pt-safe backdrop-blur-md sm:h-14 sm:px-6 sm:py-0">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0 rounded-lg lg:hidden"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Buka menu navigasi"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+
+            <Link
+              href="/dashboard"
+              className="flex min-w-0 items-center gap-2 lg:hidden"
+            >
+              <img
+                src="/icons/icon-192.png"
+                alt="Leadsy"
+                className="h-7 w-7 shrink-0 rounded-lg border border-border bg-card object-contain p-0.5"
+              />
+              <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+                {mobileSectionTitle}
+              </span>
+            </Link>
+
+            <div className="hidden sm:block">
+              <GlobalSearch />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {/* Mobile search trigger placed cleanly on the right cluster */}
+            <div className="sm:hidden">
+              <GlobalSearch />
+            </div>
+
             {PRODUCT_TOUR_ENABLED && (
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
+                className="hidden md:inline-flex"
                 data-tour="tour-trigger"
                 tooltip="Take a tour"
                 onClick={() => window.dispatchEvent(new Event("leadsy:start-tour"))}
@@ -521,11 +652,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             {/* SaaS Platform Admin Top Launcher for Superadmins */}
             {user?.role?.name === "super_admin" && (
-              <Link href="/admin/tenants">
+              <Link href="/admin/tenants" className="hidden md:block">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="hidden sm:flex items-center gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/10 font-semibold text-xs h-8 shadow-sm"
+                  className="flex h-8 items-center gap-1.5 rounded-xl border-primary/30 text-xs font-semibold text-primary shadow-sm hover:bg-primary/10"
                 >
                   <Shield className="h-3.5 w-3.5" />
                   <span>SaaS Admin</span>
@@ -536,8 +667,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* Offline PWA Status indicator */}
             <OfflineStatusPill />
 
-            {/* Settings Quick Access Button */}
-            <Link href="/settings" title="Settings Hub & Overview">
+            {/* Settings Quick Access Button (sm+) */}
+            <Link href="/settings" title="Settings Hub & Overview" className="hidden sm:block">
               <Button
                 variant="ghost"
                 size="icon"
@@ -553,32 +684,46 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/* User dropdown */}
             <div className="relative" ref={menuRef}>
               <button
+                type="button"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent"
+                className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-accent sm:gap-2 sm:px-2 sm:py-1.5"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--brand)] text-xs font-bold text-[color:var(--brand-foreground)]">
                   {user?.name?.charAt(0)?.toUpperCase() ?? "?"}
                 </div>
                 {user && (
-                  <div className="hidden sm:block text-left">
+                  <div className="hidden text-left md:block">
                     <p className="text-xs font-medium leading-none">{user.name}</p>
                     <p className="text-[10px] text-muted-foreground">{user.role?.name ?? "User"}</p>
                   </div>
                 )}
-                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                <ChevronDown className="hidden h-3 w-3 text-muted-foreground sm:block" />
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-border bg-card shadow-xl z-50 p-1">
+                <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-border bg-card p-1 shadow-xl">
                   <div className="border-b border-border px-3 py-2.5">
-                    <p className="text-xs font-medium">{user?.name ?? "User"}</p>
-                    <p className="text-[10px] text-muted-foreground">{user?.email}</p>
+                    <p className="truncate text-xs font-medium">{user?.name ?? "User"}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{user?.email}</p>
                   </div>
                   <div className="p-1">
+                    {canOfferInstall && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          void requestInstall();
+                        }}
+                        className="mb-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-[var(--brand)] transition-colors hover:bg-accent"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Install Aplikasi Leadsy
+                      </button>
+                    )}
                     <Link
                       href="/settings"
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent mb-0.5"
+                      className="mb-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                     >
                       <Settings className="h-3.5 w-3.5 text-muted-foreground" />
                       Settings & Governance
@@ -587,14 +732,18 @@ export function AppShell({ children }: { children: ReactNode }) {
                       <Link
                         href="/admin/tenants"
                         onClick={() => setUserMenuOpen(false)}
-                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 border-t border-border/50 my-1"
+                        className="my-1 flex w-full items-center gap-2 rounded-md border-t border-border/50 px-2.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                       >
                         <Shield className="h-3.5 w-3.5" />
                         SaaS Platform Admin
                       </Link>
                     )}
                     <button
-                      onClick={() => { setUserMenuOpen(false); logout(); }}
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        logout();
+                      }}
                       className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs font-medium text-[color:var(--status-danger)] transition-colors hover:bg-[color:var(--status-danger-soft)]"
                     >
                       <LogOut className="h-3.5 w-3.5" />
@@ -608,9 +757,57 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto">
           {children}
         </main>
+
+        {/* Hybrid Native Mobile Bottom Navigation Bar (< lg) */}
+        <nav
+          aria-label="Navigasi Utama Mobile"
+          className="shrink-0 border-t border-border bg-card/95 backdrop-blur-xl pb-safe lg:hidden"
+        >
+          <div className="flex h-14 items-stretch justify-around px-1">
+            {bottomTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <Link
+                  key={tab.key}
+                  href={tab.href!}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-medium transition-colors",
+                    tab.active
+                      ? "font-semibold text-[var(--brand)]"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {tab.active && (
+                    <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-[var(--brand)]" />
+                  )}
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span className="truncate">{tab.label}</span>
+                </Link>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className={cn(
+                "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-medium transition-colors",
+                isSecondaryRouteActive
+                  ? "font-semibold text-[var(--brand)]"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {isSecondaryRouteActive && (
+                <span className="absolute top-0 h-0.5 w-8 rounded-b-full bg-[var(--brand)]" />
+              )}
+              <LayoutGrid className="h-5 w-5 shrink-0" />
+              <span className="truncate">Menu</span>
+            </button>
+          </div>
+        </nav>
       </div>
       <ProductTour />
     </div>

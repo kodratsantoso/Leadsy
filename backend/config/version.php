@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.45.0',
+    'version' => '1.46.0',
     'released_at' => '2026-11-05',
     'type' => 'minor',
-    'notes' => 'Multi-tenant Vertical Taxonomy & Product Preset Engine (Wellness / Technogym #LOB 100-906 & Enterprise B2B), parent Industry-linked Business Categories with channel roles (B2B, Private B2C, Partner/Specifier, Contract), cascading CRM taxonomy selectors, and 3D Industry + Sub-Industry + Business Category (#LOB) Intelligence Newsletter search, sync, filtering, and Lead conversion.',
+    'notes' => 'Full Installable Progressive Web App (PWA) with tenant-safe Service Worker, web manifest, offline sync fallback, and comprehensive mobile ergonomics for Customer Workspace (AppShell 5-item bottom tab navigation, slide-over drawer, mobile search modal, Omnichannel Inbox master-detail flow, Leads mobile cards, and Map discovery overlay drawer).',
 ];

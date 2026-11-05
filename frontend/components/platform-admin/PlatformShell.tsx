@@ -19,8 +19,10 @@ import {
   Menu,
   X,
   ExternalLink,
+  Download,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { usePwaInstall } from "@/lib/pwa/pwa-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -74,9 +76,10 @@ export function PlatformShell({ children }: PlatformShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const { canOfferInstall, requestInstall } = usePwaInstall();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground font-sans">
+    <div className="flex h-[100dvh] overflow-hidden bg-background text-foreground font-sans">
       {/* Mobile Drawer Backdrop */}
       {mobileMenuOpen && (
         <div
@@ -88,7 +91,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
       {/* Sidebar Desktop & Mobile */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col h-full border-r border-sidebar-border bg-sidebar transition-all duration-300 lg:static lg:z-auto shrink-0",
+          "fixed inset-y-0 left-0 z-50 flex flex-col h-full border-r border-sidebar-border bg-sidebar pt-safe pb-safe transition-all duration-300 lg:static lg:z-auto shrink-0",
           collapsed ? "w-20" : "w-72",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
@@ -188,6 +191,23 @@ export function PlatformShell({ children }: PlatformShellProps) {
 
         {/* Pinned Bottom Actions & Profile — NEVER scrolls away */}
         <div className="shrink-0 mt-auto border-t border-sidebar-border p-3 space-y-2">
+          {canOfferInstall && (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                void requestInstall();
+              }}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand)]/10 px-3 py-2 text-xs font-semibold text-[var(--brand)] transition-all hover:bg-[var(--brand)]/15",
+                collapsed && "justify-center px-0"
+              )}
+              title={collapsed ? "Install Aplikasi Leadsy" : undefined}
+            >
+              <Download className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>Install Aplikasi (PWA)</span>}
+            </button>
+          )}
           {/* Switch to Customer Workspace */}
           <Link
             href="/dashboard"

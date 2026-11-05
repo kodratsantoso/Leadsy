@@ -1494,14 +1494,14 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   ].filter(Boolean).length;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-col items-start gap-3 lg:flex-row lg:items-center">
           <div>
             <CardTitle>Leads</CardTitle>
             <CardDescription>Discovered and enriched leads with one standardized admin workflow.</CardDescription>
           </div>
-          <div className="flex items-center gap-2" data-tour="leads-actions">
+          <div className="flex flex-wrap items-center gap-2" data-tour="leads-actions">
             <Button
               variant="outline"
               onClick={() => setIsDedupConsoleOpen(true)}
@@ -2015,7 +2015,94 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
       </div>
 
       <div data-tour="leads-table" className="overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
-        <div className="overflow-x-auto">
+        {/* Mobile Prospect Card List (< md) */}
+        <div className="divide-y divide-border md:hidden">
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Memuat data prospek...
+            </div>
+          ) : leads.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No leads found.</div>
+          ) : (
+            leads.map((lead) => {
+              const industryName =
+                lead.industry?.name ?? allIndustries.find((i) => i.id === lead.industry_id)?.name ?? null;
+              const location = extractLocation(lead.address);
+              const stageName = lead.funnel_stage?.name ?? lead.current_funnel_stage?.name ?? null;
+              return (
+                <div key={lead.id} className="flex items-start gap-3 p-4">
+                  {user?.role?.name === "super_admin" && (
+                    <input
+                      type="checkbox"
+                      aria-label={`Pilih ${lead.company_name}`}
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-border text-brand focus:ring-brand"
+                      checked={selectedLeads.includes(lead.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLeads((prev) => [...prev, lead.id]);
+                        } else {
+                          setSelectedLeads((prev) => prev.filter((id) => id !== lead.id));
+                        }
+                      }}
+                    />
+                  )}
+                  <Link href={`/leads/${lead.id}`} className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 break-words text-sm font-semibold text-foreground">
+                        {lead.company_name}
+                      </p>
+                      {lead.lead_score !== null && lead.lead_score !== undefined ? (
+                        <Badge variant={scoreVariant(lead.lead_score)} className="shrink-0">
+                          {lead.lead_score}
+                        </Badge>
+                      ) : (
+                        <Badge variant="warning" className="shrink-0 text-[10px]">Unassessed</Badge>
+                      )}
+                    </div>
+                    {(industryName || location) && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        {industryName && <span className="truncate">{industryName}</span>}
+                        {location && (
+                          <span className="flex min-w-0 items-center gap-1">
+                            <MapPin className="h-3 w-3 shrink-0 text-[color:var(--brand)]" />
+                            <span className="truncate">{location}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant={qualificationVariant(lead.qualification_status)} className="text-[10px]">
+                        {lead.qualification_status === "pending" || !lead.qualification_status
+                          ? "Unassessed"
+                          : lead.qualification_status.replace("_", " ")}
+                      </Badge>
+                      {stageName && (
+                        <Badge variant="outline" className="text-[10px]">{stageName}</Badge>
+                      )}
+                      {lead.owner ? (
+                        <span className="truncate text-[11px] text-muted-foreground">• {lead.owner.name}</span>
+                      ) : (
+                        <Badge variant="warning" className="text-[10px]">Lead Pool</Badge>
+                      )}
+                    </div>
+                  </Link>
+                  <div className="flex shrink-0 flex-col gap-1">
+                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(lead)} aria-label="Edit lead">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteLead(lead)} aria-label="Delete lead">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop Table (md+) */}
+        <div className="hidden overflow-x-auto md:block">
           <Table>
             <TableHead>
               <tr>
@@ -2160,7 +2247,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
           </Table>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border px-5 py-3 gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border px-3 py-3 sm:px-5 gap-3 sm:gap-4">
           <div className="flex items-center gap-4 flex-wrap">
             <p className="text-xs text-muted-foreground">
               Showing page {page} of {lastPage} ({total} total)

@@ -323,7 +323,7 @@ export function MapSearchPanel({
 
   if (isCollapsed) {
     return (
-      <div className="flex h-full w-12 shrink-0 flex-col items-center justify-between border-r border-border bg-background py-4">
+      <div className="hidden h-full w-12 shrink-0 flex-col items-center justify-between border-r border-border bg-background py-4 lg:flex">
         <div className="flex flex-col items-center gap-3">
           <Button
             type="button"
@@ -375,7 +375,7 @@ export function MapSearchPanel({
   }
 
   return (
-    <div className="flex w-[340px] lg:w-[360px] shrink-0 flex-col border-r border-border bg-background">
+    <div className="absolute inset-y-0 left-0 z-40 flex w-full shrink-0 flex-col border-r border-border bg-background shadow-2xl sm:w-[340px] lg:static lg:z-auto lg:w-[360px] lg:shadow-none">
       {/* ── Top Header Bar ── */}
       <div className="flex items-center justify-between border-b border-border/80 px-4 py-3 bg-[color:var(--surface-subtle)]/50">
         <div className="flex items-center gap-2">

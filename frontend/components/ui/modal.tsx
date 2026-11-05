@@ -17,13 +17,13 @@ type ModalProps = {
 };
 
 const sizeClasses = {
-  sm: "max-w-sm",
-  md: "max-w-md",
-  lg: "max-w-2xl",
-  xl: "max-w-4xl",
-  "5xl": "max-w-6xl",
-  "7xl": "max-w-7xl",
-  full: "max-w-[95vw]",
+  sm: "sm:max-w-sm",
+  md: "sm:max-w-md",
+  lg: "sm:max-w-2xl",
+  xl: "sm:max-w-4xl",
+  "5xl": "sm:max-w-6xl",
+  "7xl": "sm:max-w-7xl",
+  full: "sm:max-w-[95vw]",
 };
 
 function Modal({
@@ -48,7 +48,7 @@ function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:px-4 sm:py-8">
       <div
         className="absolute inset-0"
         onClick={() => !preventClose && onOpenChange(false)}
@@ -56,14 +56,15 @@ function Modal({
       />
       <div
         className={cn(
-          "relative z-10 max-h-[90vh] w-full overflow-y-auto rounded-3xl border border-border bg-card shadow-2xl",
+          "relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-card shadow-2xl sm:max-h-[90vh] sm:rounded-3xl",
           sizeClasses[size]
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-            {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+        <div className="mx-auto mt-2.5 h-1.5 w-10 shrink-0 rounded-full bg-border sm:hidden" aria-hidden="true" />
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
+          <div className="min-w-0 space-y-1">
+            <h2 className="text-lg font-semibold tracking-tight sm:text-xl">{title}</h2>
+            {description ? <p className="text-xs text-muted-foreground sm:text-sm">{description}</p> : null}
           </div>
           {!preventClose && (
             <Button
@@ -71,13 +72,20 @@ function Modal({
               size="icon-sm"
               onClick={() => onOpenChange(false)}
               aria-label="Close modal"
+              className="shrink-0"
             >
               <X className="h-4 w-4" />
             </Button>
           )}
         </div>
-        <div className="px-6 py-5">{children}</div>
-        {footer ? <div className="flex justify-end gap-2 border-t border-border px-6 py-4">{footer}</div> : null}
+        <div className={cn("min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5", !footer && "pb-safe")}>
+          {children}
+        </div>
+        {footer ? (
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border px-4 py-3 pb-safe sm:px-6 sm:py-4">
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   );

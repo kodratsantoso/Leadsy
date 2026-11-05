@@ -147,6 +147,10 @@ export default function MapPage() {
     setCenter({ lat: params.lat, lng: params.lng });
     setZoom(params.radius > 10000 ? 11 : params.radius > 5000 ? 13 : 14);
     setIsResultsCollapsed(false);
+    // On phones & tablets the search panel overlays the map — tuck it away once results arrive
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setIsSearchCollapsed(true);
+    }
   };
 
   const handleSelect = async (placeId: string | null) => {
@@ -298,24 +302,24 @@ export default function MapPage() {
   });
 
   return (
-    <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
+    <div className="flex h-full flex-col gap-2 p-2 sm:gap-3 sm:p-4">
       {/* ── Page Header Bar ── */}
-      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[color:var(--brand)] text-[color:var(--brand-foreground)] shadow-xs">
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[color:var(--brand)] text-[color:var(--brand-foreground)] shadow-xs">
             <MapPin className="h-5 w-5" />
           </div>
-          <div>
-            <h1 className="text-base font-bold text-foreground">Map & Territory Discovery</h1>
-            <p className="text-xs text-muted-foreground">
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-bold text-foreground sm:text-base">Map & Territory Discovery</h1>
+            <p className="hidden text-xs text-muted-foreground sm:block">
               Geospatial prospecting, radius scanning, and AI product-fit matching.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {feedback ? (
-            <Badge variant="info" className="shrink-0 max-w-sm truncate text-xs">
+            <Badge variant="info" className="max-w-full truncate text-xs sm:max-w-sm">
               {feedback}
             </Badge>
           ) : null}
@@ -360,9 +364,9 @@ export default function MapPage() {
         />
 
         {/* ── Map Canvas ── */}
-        <div className="relative flex-1 bg-[color:var(--surface-subtle)]">
+        <div className="relative min-w-0 flex-1 bg-[color:var(--surface-subtle)]">
           {/* Floating Map Utility Bar */}
-          <div className="absolute top-3 left-3 z-30 flex items-center gap-2">
+          <div className="absolute top-3 left-3 z-30 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2">
             <Button
               variant={isPinModeActive ? "default" : "secondary"}
               size="sm"

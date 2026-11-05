@@ -9,6 +9,17 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.46.0] — 2026-11-05 · Minor Release
+
+### Full Installable PWA & Customer Workspace Mobile Ergonomics
+- **Full Installable Progressive Web App (PWA) Engine** — Menambahkan Web App Manifest terstandarisasi (`manifest.ts`), icons resolusi tinggi (192x192, 512x512, 512x512 maskable, dan 180x180 apple-touch-icon), viewport cover & metadata theme-color light/dark, serta header Service Worker di `next.config.ts`.
+- **Tenant-Safe Service Worker (`public/sw.js`) & Offline Fallback (`/offline`)** — Service Worker mandiri yang mencache shell aset statis dan navigasi dokumen HTML secara *network-first* dengan fallback ke layar offline informatif. Secara ketat **tidak pernah** mencache request `/api/*` maupun `/storage/*` demi menjaga isolasi data multi-tenant.
+- **In-App PWA Install Context & Platform Prompts (`PwaProvider`)** — Menyediakan tombol *Install Aplikasi (PWA)* pada menu profil dan drawer navigasi dengan dukungan `beforeinstallprompt` (Chrome/Android/Edge) dan modal panduan 3-langkah Safari iOS (*Share → Add to Home Screen*).
+- **Hybrid Native Mobile Navigation on Customer Workspace (`AppShell`)** — Menghadirkan navigasi 5-item Bottom Tab Bar (*Dashboard, Leads, Map, Inbox, Menu*) dengan penanganan safe area perangkat mobile (`pb-safe`) serta Slide-Over Mobile Drawer responsif, menggantikan sidebar desktop yang sebelumnya menghabiskan layar ponsel.
+- **Mobile-First Omnichannel Inbox Master-Detail Flow (`/inbox`)** — Merestrukturisasi antarmuka 3-kolom menjadi alur master-detail responsif (daftar thread ↔ tampilan chat/email satu layar penuh lengkap dengan tombol kembali dan slide-over panel konteks CRM intelligence).
+- **Leads Mobile Card Matrix (`LeadsPageContent.tsx`) & Responsive Detail (`/leads/[id]`)** — Menghadirkan ringkasan kartu prospek khusus mobile (`md:hidden`) agar sales lapangan tidak perlu menggeser tabel 9 kolom pada layar kecil, serta melipat tombol aksi header detail secara fleksibel (`flex-wrap`).
+- **Map & Territory Mobile Overlay Ergonomics (`/map`)** — Mengubah panel pencarian dan hasil pemetaan radius menjadi slide-over overlay drawer pada layar `< lg`, memberikan kebebasan navigasi peta layar penuh dengan satu tangan.
+
 ## [1.45.0] — 2026-11-05 · Minor Release
 
 ### Multi-Tenant Vertical Taxonomy, Technogym #LOB Blueprint & 3D Industry Newsletter

@@ -17,8 +17,9 @@ export default function Template({ children }: { children: React.ReactNode }) {
   const setAuth = useAuthStore((state) => state.setAuth);
   const [mounted, setMounted] = useState(false);
   const isLandingRoute = pathname === "/";
+  const isOfflineRoute = pathname === "/offline";
   const isPublicAuthRoute = pathname === "/login" || pathname.startsWith("/auth/");
-  const isPublicRoute = isLandingRoute || isPublicAuthRoute;
+  const isPublicRoute = isLandingRoute || isOfflineRoute || isPublicAuthRoute;
 
   useEffect(() => {
     setMounted(true);
@@ -33,7 +34,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
   }, [mounted, token, isPublicRoute, isPublicAuthRoute, router]);
 
   useEffect(() => {
-    if (!mounted || !token || isPublicAuthRoute) return;
+    if (!mounted || !token || isPublicAuthRoute || isOfflineRoute) return;
     if (user?.role?.permissions?.length) return;
 
     let cancelled = false;
@@ -54,20 +55,20 @@ export default function Template({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [mounted, token, isPublicAuthRoute, user?.role?.permissions?.length, setAuth]);
+  }, [mounted, token, isPublicAuthRoute, isOfflineRoute, user?.role?.permissions?.length, setAuth]);
 
   if (!mounted) {
     return <div className="min-h-screen bg-background" />; // Stop hydration mismatch visually
   }
 
-  // Bypass the app shell for public routes (landing page & login/auth)
+  // Bypass the app shell for public & offline fallback routes
   if (isPublicRoute) {
     return <>{children}</>;
   }
 
   // Prevent flashing secured content
   if (!token) {
-    return <div className="min-h-screen bg-background" />; 
+    return <div className="min-h-screen bg-background" />;
   }
 
   if (user && pathname !== "/dashboard" && !canAccessPath(pathname, user)) {

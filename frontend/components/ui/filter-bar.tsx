@@ -8,7 +8,7 @@ function FilterBar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-xs",
+        "flex flex-wrap items-center gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-xs sm:gap-3 sm:p-4",
         className
       )}
       {...props}
@@ -24,7 +24,7 @@ function FilterBarSearch({
   size?: "default" | "sm" | "xs" | "lg" | "xl";
 }) {
   return (
-    <div className={cn("relative min-w-[240px] flex-1", className)}>
+    <div className={cn("relative min-w-0 w-full sm:min-w-[240px] sm:w-auto sm:flex-1", className)}>
       <Search
         className={cn(
           "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground",

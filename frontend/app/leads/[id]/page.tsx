@@ -1540,18 +1540,18 @@ export default function LeadDetailPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/leads">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-4">
+          <Link href="/leads" className="shrink-0">
             <span className={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }))}>
               <ArrowLeft className="h-4 w-4" />
             </span>
           </Link>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-3xl font-bold">{leadData.company_name}</h1>
+              <h1 className="text-xl font-bold break-words sm:text-3xl">{leadData.company_name}</h1>
               {leadData.brand && (
                 <Badge variant="outline" className="text-xs bg-slate-100 text-slate-800 border-slate-300">
                   {leadData.brand}
@@ -1574,10 +1574,10 @@ export default function LeadDetailPage() {
                 Eligibility: {formatQualificationStatus(leadData.qualification_status)}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{leadData.address}</p>
+            <p className="text-xs text-muted-foreground sm:text-sm">{leadData.address}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {larkBaseFeedback && (
              <span className={`text-xs ${larkBaseFeedback.type === 'error' ? 'text-[var(--status-danger)]' : 'text-[var(--status-success)]'}`}>
                {larkBaseFeedback.msg}

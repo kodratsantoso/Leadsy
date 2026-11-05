@@ -4,7 +4,21 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.45.0** — 2026-11-05
+Current release: **v1.46.0** — 2026-11-05
+
+## What's New in v1.46.0 (Full Installable PWA & Customer Workspace Mobile Ergonomics)
+
+- **Full Installable Progressive Web App (PWA) Engine:**
+  - *Standardized Web App Manifest* (`frontend/app/manifest.ts`) — Konfigurasi PWA standalone dengan 4 shortcut cepat (*Dashboard, Leads, Map, Inbox*), orientasi *portrait-primary*, dan ikon aplikasi multi-resolusi.
+  - *Tenant-Safe Service Worker* (`frontend/public/sw.js`) — Caching shell statis dan dokumen navigasi secara *network-first* dengan fallback layar offline (`/offline`). Request `/api/*` dan `/storage/*` secara mutlak di-bypass untuk mencegah cross-tenant auth data leak.
+  - *Unified PWA Installation Flow* (`frontend/lib/pwa/pwa-context.tsx`) — Modal panduan instalasi native di Chromium/Android dan instruksi 3 langkah Safari iOS (*Add to Home Screen*) yang dapat diakses langsung dari drawer mobile maupun user menu.
+
+- **Customer Workspace Mobile Architecture & Ergonomics (AppShell & Core Modules):**
+  - *Hybrid Native Mobile Navigation* (`frontend/components/layout/app-shell.tsx`) — 5-item Bottom Tab Bar (*Dashboard, Leads, Map, Inbox, Menu*) dengan dukungan safe area (`pb-safe`) dan Slide-Over Drawer pada layar `< lg`.
+  - *Responsive Global Command Search* (`frontend/components/layout/GlobalSearch.tsx`) — Menggantikan search bar desktop yang lebar dengan modal command palette ringkas satu sentuhan di layar ponsel.
+  - *Omnichannel Inbox Mobile Master-Detail* (`frontend/app/inbox/page.tsx`) — Memisahkan daftar percakapan dan stream chat/email menjadi alur satu layar penuh dengan tombol kembali (`←`) serta slide-over drawer intelijen CRM.
+  - *Leads Mobile Card Matrix* (`frontend/app/leads/LeadsPageContent.tsx` & `/leads/[id]`) — Menampilkan kartu prospek mobile yang efisien tanpa horizontal scrolling tabel, serta header detail yang adaptif.
+  - *Map & Territory Discovery Drawer Overlay* (`frontend/app/map/page.tsx`) — Panel pencarian radius dan hasil prospek kini menjadi overlay drawer di layar sentuh ponsel/tablet, membebaskan kanvas Google Maps.
 
 ## What's New in v1.45.0 (Multi-Tenant Vertical Taxonomy, Technogym #LOB Matrix & 3D Industry Newsletter)
 
