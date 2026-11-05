@@ -49,7 +49,7 @@ export type Lead = {
   email?: string | null;
   industry_id?: number | null;
   sub_industry_id?: number | null;
-  business_category?: string | null;
+  business_category?: { id: number; name: string; slug?: string } | string | null;
   company_size_estimate?: string | null;
   operational_scope?: string | null;
   lead_score?: number | null;

@@ -11,7 +11,7 @@ import { ProgressiveFluxLoader } from '@/components/ui/progressive-flux-loader';
 import {
   Plus, Target, CheckCircle, AlertTriangle, AlertCircle, RefreshCw, Printer, User, BrainCircuit, Activity, Info, FileText, Check, ShieldAlert, MonitorPlay, Zap
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, toDisplayList, toDisplayText } from '@/lib/utils';
 import { useToast } from "@/components/ui/toast";
 
 export type PreMeetingBriefType = {
@@ -73,18 +73,19 @@ export function PreMeetingBriefTab({ leadId, leadData }: { leadId: string; leadD
 
   const prefillFromAiProfile = () => {
     if (!aiProfile) return;
-    const needsList = Array.isArray(salesNotes.potential_needs) ? salesNotes.potential_needs : [];
-    const painList = Array.isArray(salesNotes.pain_points) ? salesNotes.pain_points : [];
-    const angleList = Array.isArray(salesNotes.solution_angles) ? salesNotes.solution_angles : [];
+    const needsList = toDisplayList(salesNotes.potential_needs);
+    const painList = toDisplayList(salesNotes.pain_points);
+    const angleList = toDisplayList(salesNotes.solution_angles);
+    const presalesPerspective = toDisplayText(aiProfile.presales_perspective);
 
     setForm((prev) => ({
       ...prev,
-      initial_needs: needsList.length > 0 ? needsList.map((x: string) => `• ${x}`).join('\n') : prev.initial_needs,
-      pain_point: painList.length > 0 ? painList.map((x: string) => `• ${x}`).join('\n') : prev.pain_point,
+      initial_needs: needsList.length > 0 ? needsList.map((x) => `• ${x}`).join('\n') : prev.initial_needs,
+      pain_point: painList.length > 0 ? painList.map((x) => `• ${x}`).join('\n') : prev.pain_point,
       customer_objective:
         angleList.length > 0
-          ? angleList.map((x: string) => `• ${x}`).join('\n')
-          : aiProfile.presales_perspective || prev.customer_objective,
+          ? angleList.map((x) => `• ${x}`).join('\n')
+          : presalesPerspective || prev.customer_objective,
     }));
     toast.success('Konteks dari AI Deep Profile berhasil dimasukkan ke form Pre-Meeting Brief!');
   };

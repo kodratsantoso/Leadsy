@@ -9,6 +9,12 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.44.1] — 2026-11-05 · Patch Release
+
+### Bug Fix — Lead Detail Crash (React Error #31)
+- **Perbaikan Serialisasi Relasi `business_category` di `OverviewTab`** — Memperbaiki crash `Minified React error #31 (object with keys {id, name, slug, ...})` ketika membuka halaman detail lead yang memiliki relasi Eloquent `businessCategory()` (diserialisasi Laravel dalam format *snake_case* `leadData.business_category` berupa objek `{ id, name, slug, ... }`).
+- **Defensive Display Formatter (`toDisplayText` & `toDisplayList`)** — Menambahkan utilitas normalisasi terpusat di `frontend/lib/utils.ts` untuk melindungi seluruh atribut relasi maupun output dinamis `ai_profile_json` pada `OverviewTab`, `AiDeepProfileSection`, `IntelligenceTab`, dan `PreMeetingBriefTab` agar objek/array bersarang tidak pernah merusak render React.
+
 ## [1.44.0] — 2026-11-04 · Minor Release
 
 ### Fitur Baru & Unifikasi AI Deep Profiling ke Lead Detail

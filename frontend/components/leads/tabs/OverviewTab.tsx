@@ -30,6 +30,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import { apiFetch } from '@/lib/apiFetch';
 import { describeThrown, readApiError } from '@/lib/apiError';
+import { toDisplayList, toDisplayText } from '@/lib/utils';
 import { SalesCadenceStatusCard } from '@/components/leads/SalesCadenceStatusCard';
 import { NextBestActionPanel } from '@/components/leads/NextBestActionPanel';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
@@ -95,9 +96,26 @@ export function OverviewTab({
     ? leadData.office_locations
     : [];
 
-  const productBrands: string[] = Array.isArray(aiProfile?.product_brands)
-    ? aiProfile.product_brands.filter((b: unknown) => typeof b === 'string' && b.trim() !== '')
-    : [];
+  const productBrands: string[] = toDisplayList(aiProfile?.product_brands);
+
+  const legalNameLabel = toDisplayText(leadData?.legal_name);
+  const ownershipLabel = toDisplayText(leadData?.ownership_type);
+  const industryLabel = toDisplayText(leadData?.industry);
+  const subIndustryLabel = toDisplayText(leadData?.subIndustry ?? leadData?.sub_industry);
+  const businessCategoryLabel = toDisplayText(leadData?.businessCategory ?? leadData?.business_category);
+  const companySizeLabel = toDisplayText(leadData?.company_size_estimate);
+  const yearEstablishedLabel = toDisplayText(leadData?.year_established);
+  const operationalScopeLabel = toDisplayText(leadData?.operational_scope);
+  const whatsappLabel = toDisplayText(leadData?.whatsapp);
+  const productLabel = toDisplayText(leadData?.product);
+  const certificationsLabel = toDisplayText(aiProfile?.certifications_or_registrations);
+  const customerStoryText = toDisplayText(leadData?.customer_story) || toDisplayText(aiProfile?.customer_story);
+  const coreProductText = toDisplayText(aiProfile?.core_product);
+  const specializationText = toDisplayText(aiProfile?.specialization);
+  const businessModelText = toDisplayText(aiProfile?.business_model);
+  const targetMarketText = toDisplayText(aiProfile?.target_market);
+  const corporateStructureText = toDisplayText(aiProfile?.corporate_structure);
+  const manufacturingCapabilityText = toDisplayText(aiProfile?.manufacturing_capability);
 
   const invalidateLeadQueries = () => {
     qc.invalidateQueries({ queryKey: ['lead', leadId] });
@@ -192,67 +210,67 @@ export function OverviewTab({
             </Button>
           </div>
           <div className="space-y-3 text-sm">
-            {leadData.legal_name && (
+            {legalNameLabel && (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-muted-foreground">Legal Entity:</span>
-                <span className="font-semibold text-foreground">{leadData.legal_name}</span>
-                {leadData.ownership_type && (
-                  <Badge variant="brand">{leadData.ownership_type}</Badge>
+                <span className="font-semibold text-foreground">{legalNameLabel}</span>
+                {ownershipLabel && (
+                  <Badge variant="brand">{ownershipLabel}</Badge>
                 )}
               </div>
             )}
-            {!leadData.legal_name && leadData.ownership_type && (
+            {!legalNameLabel && ownershipLabel && (
               <div>
                 <span className="text-muted-foreground">Ownership:</span>{' '}
-                <Badge variant="brand">{leadData.ownership_type}</Badge>
+                <Badge variant="brand">{ownershipLabel}</Badge>
               </div>
             )}
-            <div><span className="text-muted-foreground">Industry:</span> <span className="font-medium">{leadData.industry?.name || '—'}</span></div>
-            {(leadData.subIndustry?.name || leadData.sub_industry?.name) && (
-              <div><span className="text-muted-foreground">Sub-Industry:</span> <span className="font-medium">{leadData.subIndustry?.name || leadData.sub_industry?.name}</span></div>
+            <div><span className="text-muted-foreground">Industry:</span> <span className="font-medium">{industryLabel || '—'}</span></div>
+            {subIndustryLabel && (
+              <div><span className="text-muted-foreground">Sub-Industry:</span> <span className="font-medium">{subIndustryLabel}</span></div>
             )}
-            {(leadData.businessCategory || leadData.business_category) && (
-              <div><span className="text-muted-foreground">Business Category:</span> <span className="font-medium">{leadData.businessCategory?.name || leadData.business_category}</span></div>
+            {businessCategoryLabel && (
+              <div><span className="text-muted-foreground">Business Category:</span> <span className="font-medium">{businessCategoryLabel}</span></div>
             )}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span><span className="text-muted-foreground">Company Size:</span> <span className="font-medium">{leadData.company_size_estimate || '—'}</span></span>
-              {leadData.year_established && (
-                <span><span className="text-muted-foreground">Est.:</span> <span className="font-medium">{leadData.year_established}</span></span>
+              <span><span className="text-muted-foreground">Company Size:</span> <span className="font-medium">{companySizeLabel || '—'}</span></span>
+              {yearEstablishedLabel && (
+                <span><span className="text-muted-foreground">Est.:</span> <span className="font-medium">{yearEstablishedLabel}</span></span>
               )}
             </div>
-            {(leadData.operational_scope || leadData.branch_count != null) && (
+            {(operationalScopeLabel || leadData.branch_count != null) && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                {leadData.operational_scope && (
-                  <span><span className="text-muted-foreground">Operational Scope:</span> <span className="font-medium">{leadData.operational_scope}</span></span>
+                {operationalScopeLabel && (
+                  <span><span className="text-muted-foreground">Operational Scope:</span> <span className="font-medium">{operationalScopeLabel}</span></span>
                 )}
                 {leadData.branch_count != null && (
-                  <span><span className="text-muted-foreground">Branches / Sites:</span> <span className="font-medium">{leadData.branch_count}</span></span>
+                  <span><span className="text-muted-foreground">Branches / Sites:</span> <span className="font-medium">{toDisplayText(leadData.branch_count)}</span></span>
                 )}
               </div>
             )}
-            <div><span className="text-muted-foreground">Company Email:</span> <span className="font-medium">{leadData.email || '—'}</span></div>
+            <div><span className="text-muted-foreground">Company Email:</span> <span className="font-medium">{toDisplayText(leadData.email) || '—'}</span></div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <span><span className="text-muted-foreground">Company Phone:</span> <span className="font-medium">{leadData.phone || '—'}</span></span>
-              {leadData.whatsapp && (
-                <span><span className="text-muted-foreground">WhatsApp:</span> <span className="font-medium">{leadData.whatsapp}</span></span>
+              <span><span className="text-muted-foreground">Company Phone:</span> <span className="font-medium">{toDisplayText(leadData.phone) || '—'}</span></span>
+              {whatsappLabel && (
+                <span><span className="text-muted-foreground">WhatsApp:</span> <span className="font-medium">{whatsappLabel}</span></span>
               )}
             </div>
             <div>
               <span className="text-muted-foreground">Website:</span>{' '}
-              {leadData.website ? (
-                <a href={leadData.website} target="_blank" rel="noreferrer" className="text-[var(--brand)] hover:underline inline-flex items-center gap-1">
-                  {leadData.website} <ExternalLink className="h-3 w-3 inline" />
+              {toDisplayText(leadData.website) ? (
+                <a href={toDisplayText(leadData.website)} target="_blank" rel="noreferrer" className="text-[var(--brand)] hover:underline inline-flex items-center gap-1">
+                  {toDisplayText(leadData.website)} <ExternalLink className="h-3 w-3 inline" />
                 </a>
               ) : '—'}
             </div>
-            <div><span className="text-muted-foreground">Initial Product:</span> <span className="font-medium">{leadData.product?.name || '—'}</span></div>
-            {leadData.address && (
-              <div><span className="text-muted-foreground">Address:</span> <span className="font-medium">{leadData.address}</span></div>
+            <div><span className="text-muted-foreground">Initial Product:</span> <span className="font-medium">{productLabel || '—'}</span></div>
+            {toDisplayText(leadData.address) && (
+              <div><span className="text-muted-foreground">Address:</span> <span className="font-medium">{toDisplayText(leadData.address)}</span></div>
             )}
-            {aiProfile?.certifications_or_registrations && (
+            {certificationsLabel && (
               <div>
                 <span className="text-muted-foreground">Certifications:</span>{' '}
-                <span className="font-medium">{aiProfile.certifications_or_registrations}</span>
+                <span className="font-medium">{certificationsLabel}</span>
               </div>
             )}
           </div>
@@ -351,53 +369,53 @@ export function OverviewTab({
           </div>
         </div>
 
-        {(leadData.customer_story || aiProfile?.customer_story) && (
+        {customerStoryText && (
           <div className="rounded-xl border border-border/60 bg-muted/15 p-4">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
               Customer Story & Business Summary
             </span>
             <p className="text-sm leading-relaxed text-foreground">
-              {leadData.customer_story || aiProfile?.customer_story}
+              {customerStoryText}
             </p>
           </div>
         )}
 
-        {aiProfile && (aiProfile.core_product || aiProfile.business_model || aiProfile.corporate_structure || aiProfile.manufacturing_capability) && (
+        {aiProfile && (coreProductText || specializationText || businessModelText || targetMarketText || corporateStructureText || manufacturingCapabilityText) && (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 text-xs">
-            {(aiProfile.core_product || aiProfile.specialization) && (
+            {(coreProductText || specializationText) && (
               <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
                 <span className="font-semibold uppercase tracking-wider text-muted-foreground block">
                   Core Product & Focus
                 </span>
-                <p className="font-medium text-foreground">{aiProfile.core_product || aiProfile.specialization}</p>
-                {aiProfile.core_product && aiProfile.specialization && (
-                  <p className="text-muted-foreground">{aiProfile.specialization}</p>
+                <p className="font-medium text-foreground">{coreProductText || specializationText}</p>
+                {coreProductText && specializationText && (
+                  <p className="text-muted-foreground">{specializationText}</p>
                 )}
               </div>
             )}
-            {(aiProfile.business_model || aiProfile.target_market) && (
+            {(businessModelText || targetMarketText) && (
               <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
                 <span className="font-semibold uppercase tracking-wider text-muted-foreground block">
                   Business Model & Market
                 </span>
-                {aiProfile.business_model && <p className="font-medium text-foreground">{aiProfile.business_model}</p>}
-                {aiProfile.target_market && <p className="text-muted-foreground">{aiProfile.target_market}</p>}
+                {businessModelText && <p className="font-medium text-foreground">{businessModelText}</p>}
+                {targetMarketText && <p className="text-muted-foreground">{targetMarketText}</p>}
               </div>
             )}
-            {aiProfile.corporate_structure && (
+            {corporateStructureText && (
               <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
                 <span className="font-semibold uppercase tracking-wider text-muted-foreground block">
                   Corporate Structure
                 </span>
-                <p className="text-foreground leading-relaxed">{aiProfile.corporate_structure}</p>
+                <p className="text-foreground leading-relaxed">{corporateStructureText}</p>
               </div>
             )}
-            {aiProfile.manufacturing_capability && (
+            {manufacturingCapabilityText && (
               <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-1">
                 <span className="font-semibold uppercase tracking-wider text-muted-foreground block">
                   Ops & Plant Capability
                 </span>
-                <p className="text-foreground leading-relaxed">{aiProfile.manufacturing_capability}</p>
+                <p className="text-foreground leading-relaxed">{manufacturingCapabilityText}</p>
               </div>
             )}
           </div>

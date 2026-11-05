@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/apiFetch";
 import { describeThrown, readApiError } from "@/lib/apiError";
+import { toDisplayList, toDisplayText } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import type { ProfilingData } from "@/components/leads/AiProfilingPanel";
 
@@ -32,19 +33,6 @@ export interface AiDeepProfileSectionProps {
   leadId: string;
   leadData: any;
   onLeadChanged: () => void;
-}
-
-function normalizeStringList(raw: unknown): string[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) {
-    return raw
-      .map((item) => (typeof item === "string" ? item.trim() : ""))
-      .filter((item) => item.length > 0);
-  }
-  if (typeof raw === "string" && raw.trim().length > 0) {
-    return [raw.trim()];
-  }
-  return [];
 }
 
 export function AiDeepProfileSection({
@@ -61,25 +49,36 @@ export function AiDeepProfileSection({
       : null;
 
   const salesNotes = profile?.sales_notes ?? {};
-  const departments = normalizeStringList(salesNotes.departments_to_approach);
-  const painPoints = normalizeStringList(salesNotes.pain_points);
-  const potentialNeeds = normalizeStringList(salesNotes.potential_needs);
-  const solutionAngles = normalizeStringList(salesNotes.solution_angles);
-  const discoveryQuestions = normalizeStringList(salesNotes.discovery_questions);
-  const secondaryIndustries = normalizeStringList(profile?.secondary_industries);
-  const productBrands = normalizeStringList(profile?.product_brands);
+  const departments = toDisplayList(salesNotes.departments_to_approach);
+  const painPoints = toDisplayList(salesNotes.pain_points);
+  const potentialNeeds = toDisplayList(salesNotes.potential_needs);
+  const solutionAngles = toDisplayList(salesNotes.solution_angles);
+  const discoveryQuestions = toDisplayList(salesNotes.discovery_questions);
+  const secondaryIndustries = toDisplayList(profile?.secondary_industries);
+  const productBrands = toDisplayList(profile?.product_brands);
 
   const discrepancies = Array.isArray(profile?.discrepancies) ? profile!.discrepancies : [];
   const sourceValidation = Array.isArray(profile?.source_validation) ? profile!.source_validation : [];
   const rawSources = Array.from(
     new Set([
-      ...normalizeStringList(profile?.sources),
-      ...normalizeStringList(profile?.evidence?.website_sources),
+      ...toDisplayList(profile?.sources),
+      ...toDisplayList(profile?.evidence?.website_sources),
     ])
   );
 
+  const entitySelectionNote = toDisplayText(profile?.entity_selection_note);
+  const primarySector = toDisplayText(profile?.primary_sector);
+  const verticalText = toDisplayText(profile?.vertical);
+  const businessModelText = toDisplayText(profile?.business_model);
+  const presalesPerspectiveText = toDisplayText(profile?.presales_perspective);
+  const coreProductText = toDisplayText(profile?.core_product);
+  const specializationText = toDisplayText(profile?.specialization);
+  const corporateStructureText = toDisplayText(profile?.corporate_structure);
+  const manufacturingCapabilityText = toDisplayText(profile?.manufacturing_capability);
+  const certificationsText = toDisplayText(profile?.certifications_or_registrations);
+
   const hasPlaybook =
-    Boolean(profile?.presales_perspective) ||
+    Boolean(presalesPerspectiveText) ||
     departments.length > 0 ||
     painPoints.length > 0 ||
     potentialNeeds.length > 0 ||
@@ -141,10 +140,11 @@ export function AiDeepProfileSection({
     },
   });
 
+  const confidenceLabel = toDisplayText(profile?.confidence);
   const confidenceVariant =
-    profile?.confidence === "high"
+    confidenceLabel === "high"
       ? "success"
-      : profile?.confidence === "medium"
+      : confidenceLabel === "medium"
       ? "warning"
       : "neutral";
 
@@ -156,15 +156,20 @@ export function AiDeepProfileSection({
             <CardTitle className="flex flex-wrap items-center gap-2 text-lg font-semibold">
               <BrainCircuit className="h-5 w-5 text-[var(--brand)]" />
               <span>AI Deep Company Profile & Presales Playbook</span>
-              {profile?.confidence && (
+              {confidenceLabel && (
                 <Badge variant={confidenceVariant} className="uppercase">
-                  {profile.confidence} confidence
+                  {confidenceLabel} confidence
                 </Badge>
               )}
               {profile?.research_status?.available && (
                 <Badge variant="info">
                   <Globe className="h-3 w-3" />
-                  {profile.research_status.pages_read ?? profile.research_status.source_count ?? rawSources.length} sumber web dibaca
+                  {toDisplayText(
+                    profile.research_status.pages_read ??
+                      profile.research_status.source_count ??
+                      rawSources.length
+                  )}{" "}
+                  sumber web dibaca
                 </Badge>
               )}
             </CardTitle>
@@ -257,27 +262,27 @@ export function AiDeepProfileSection({
         ) : (
           <>
             {/* Entity Selection Note & Sector Metadata */}
-            {(profile.entity_selection_note ||
-              profile.primary_sector ||
-              profile.vertical ||
+            {(entitySelectionNote ||
+              primarySector ||
+              verticalText ||
               secondaryIndustries.length > 0 ||
               productBrands.length > 0) && (
               <div className="rounded-xl border border-border/60 bg-muted/15 p-4 space-y-3">
-                {profile.entity_selection_note && (
+                {entitySelectionNote && (
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     <strong className="text-foreground">Catatan Identifikasi Entitas:</strong>{" "}
-                    {profile.entity_selection_note}
+                    {entitySelectionNote}
                   </p>
                 )}
                 <div className="flex flex-wrap items-center gap-2">
-                  {profile.primary_sector && (
-                    <Badge variant="brand">Sektor: {profile.primary_sector}</Badge>
+                  {primarySector && (
+                    <Badge variant="brand">Sektor: {primarySector}</Badge>
                   )}
-                  {profile.vertical && (
-                    <Badge variant="outline">Vertikal: {profile.vertical}</Badge>
+                  {verticalText && (
+                    <Badge variant="outline">Vertikal: {verticalText}</Badge>
                   )}
-                  {profile.business_model && (
-                    <Badge variant="neutral">Model: {profile.business_model}</Badge>
+                  {businessModelText && (
+                    <Badge variant="neutral">Model: {businessModelText}</Badge>
                   )}
                   {secondaryIndustries.map((sec, idx) => (
                     <Badge key={`sec-${idx}`} variant="outline">
@@ -294,73 +299,74 @@ export function AiDeepProfileSection({
             )}
 
             {/* Presales Perspective Highlight */}
-            {profile.presales_perspective && (
+            {presalesPerspectiveText && (
               <article className="rounded-xl border border-[color:var(--brand)]/25 bg-[color:var(--brand)]/5 p-4 space-y-1.5">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[color:var(--brand)]">
                   <Target className="h-4 w-4" />
                   <span>Presales Solution Architecture Perspective</span>
                 </div>
                 <p className="text-sm leading-relaxed text-foreground">
-                  {profile.presales_perspective}
+                  {presalesPerspectiveText}
                 </p>
               </article>
             )}
 
             {/* Corporate & Operational Footprint Summary */}
-            {(profile.corporate_structure ||
-              profile.manufacturing_capability ||
-              profile.core_product ||
-              profile.certifications_or_registrations) && (
+            {(corporateStructureText ||
+              manufacturingCapabilityText ||
+              coreProductText ||
+              specializationText ||
+              certificationsText) && (
               <div className="grid gap-4 md:grid-cols-2">
-                {(profile.core_product || profile.specialization) && (
+                {(coreProductText || specializationText) && (
                   <article className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       <Layers className="h-3.5 w-3.5 text-[var(--brand)]" />
                       <span>Core Product & Specialization</span>
                     </div>
-                    {profile.core_product && (
-                      <p className="text-sm font-medium text-foreground">{profile.core_product}</p>
+                    {coreProductText && (
+                      <p className="text-sm font-medium text-foreground">{coreProductText}</p>
                     )}
-                    {profile.specialization && (
+                    {specializationText && (
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        {profile.specialization}
+                        {specializationText}
                       </p>
                     )}
                   </article>
                 )}
 
-                {profile.corporate_structure && (
+                {corporateStructureText && (
                   <article className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       <Building2 className="h-3.5 w-3.5 text-[var(--brand)]" />
                       <span>Corporate Group & Ownership Structure</span>
                     </div>
                     <p className="text-xs leading-relaxed text-foreground">
-                      {profile.corporate_structure}
+                      {corporateStructureText}
                     </p>
                   </article>
                 )}
 
-                {profile.manufacturing_capability && (
+                {manufacturingCapabilityText && (
                   <article className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       <Factory className="h-3.5 w-3.5 text-[var(--brand)]" />
                       <span>Operational & Manufacturing Capability</span>
                     </div>
                     <p className="text-xs leading-relaxed text-foreground">
-                      {profile.manufacturing_capability}
+                      {manufacturingCapabilityText}
                     </p>
                   </article>
                 )}
 
-                {profile.certifications_or_registrations && (
+                {certificationsText && (
                   <article className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-1.5">
                     <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       <FileCheck2 className="h-3.5 w-3.5 text-[var(--success)]" />
                       <span>Certifications & Regulatory Compliance</span>
                     </div>
                     <p className="text-xs leading-relaxed text-foreground">
-                      {profile.certifications_or_registrations}
+                      {certificationsText}
                     </p>
                   </article>
                 )}
@@ -497,11 +503,15 @@ export function AiDeepProfileSection({
                             key={idx}
                             className="rounded-lg border border-[color:var(--warning)]/30 bg-[color:var(--warning-soft)] p-3 space-y-1"
                           >
-                            {d.topic && <p className="font-semibold text-foreground">{d.topic}</p>}
-                            {d.detail && <p className="text-muted-foreground">{d.detail}</p>}
-                            {d.recommendation && (
+                            {toDisplayText(d?.topic) && (
+                              <p className="font-semibold text-foreground">{toDisplayText(d.topic)}</p>
+                            )}
+                            {toDisplayText(d?.detail) && (
+                              <p className="text-muted-foreground">{toDisplayText(d.detail)}</p>
+                            )}
+                            {toDisplayText(d?.recommendation) && (
                               <p className="text-foreground">
-                                <strong>Saran Verifikasi:</strong> {d.recommendation}
+                                <strong>Saran Verifikasi:</strong> {toDisplayText(d.recommendation)}
                               </p>
                             )}
                           </div>
@@ -522,23 +532,27 @@ export function AiDeepProfileSection({
                             className="rounded-lg border border-border bg-background p-2.5 flex items-start justify-between gap-2"
                           >
                             <div className="min-w-0">
-                              <p className="font-medium text-foreground">{sv.field || "Field"}</p>
-                              {sv.note && <p className="text-muted-foreground mt-0.5">{sv.note}</p>}
-                              {sv.source_url && (
+                              <p className="font-medium text-foreground">
+                                {toDisplayText(sv?.field) || "Field"}
+                              </p>
+                              {toDisplayText(sv?.note) && (
+                                <p className="text-muted-foreground mt-0.5">{toDisplayText(sv.note)}</p>
+                              )}
+                              {toDisplayText(sv?.source_url) && (
                                 <a
-                                  href={sv.source_url}
+                                  href={toDisplayText(sv.source_url)}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="mt-1 inline-flex items-center gap-1 text-[var(--brand)] hover:underline truncate max-w-full"
                                 >
-                                  <span className="truncate">{sv.source_url}</span>
+                                  <span className="truncate">{toDisplayText(sv.source_url)}</span>
                                   <ExternalLink className="h-3 w-3 shrink-0" />
                                 </a>
                               )}
                             </div>
-                            {sv.status && (
+                            {toDisplayText(sv?.status) && (
                               <Badge variant="outline" className="shrink-0 capitalize">
-                                {sv.status}
+                                {toDisplayText(sv.status)}
                               </Badge>
                             )}
                           </div>

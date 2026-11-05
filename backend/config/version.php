@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.44.0',
-    'released_at' => '2026-11-04',
-    'type' => 'minor',
-    'notes' => 'Full AI Deep Company Profiling persistence & Lead Detail UI unification: added 5 firmographic scalar columns on leads (legal_name, ownership_type, year_established, operational_scope, whatsapp), created relational lead_office_locations table with manual/AI multi-site management, wired full manual/auto profiling hydration into Presales Discovery & BANTC Question Guides, and rendered AI Deep Profile & Presales Playbook across Overview, Intelligence, and Pre-Meeting Brief tabs.',
+    'version' => '1.44.1',
+    'released_at' => '2026-11-05',
+    'type' => 'patch',
+    'notes' => 'Hotfix React Error #31 on Lead Detail (/leads/[id]): safely extract display labels from Eloquent snake_case relation objects (business_category, industry, sub_industry, product) and harden AI profile JSON rendering across OverviewTab, AiDeepProfileSection, IntelligenceTab, and PreMeetingBriefTab.',
 ];

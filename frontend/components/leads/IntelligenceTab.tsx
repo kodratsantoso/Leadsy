@@ -33,6 +33,7 @@ import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
 import { LeadBantcQuestionGuide } from "@/components/leads/LeadBantcQuestionGuide";
 import { AiDeepProfileSection } from "@/components/leads/AiDeepProfileSection";
 import { apiFetch } from "@/lib/apiFetch";
+import { toDisplayText } from "@/lib/utils";
 import { runAiScreening } from "@/lib/aiScreeningPipeline";
 import { safeJsonArray, safeRender } from "@/lib/utils";
 import { useNumberFormat } from "@/lib/hooks/use-number-format";
@@ -492,10 +493,10 @@ export function IntelligenceTab({
               <div className="bg-muted/20 p-3 rounded-lg border border-border/40">
                 <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Klasifikasi Bisnis</span>
                 <span className="text-base font-bold text-foreground mt-0.5 block">
-                  {latestQual?.business_type || leadData.business_category?.name || 'B2B Enterprise'}
+                  {latestQual?.business_type || toDisplayText(leadData.businessCategory ?? leadData.business_category) || 'B2B Enterprise'}
                 </span>
                 <span className="text-[11px] text-muted-foreground">
-                  Ukuran: {latestQual?.company_size_band || leadData.company_size || 'Enterprise / Mid-Market'}
+                  Ukuran: {latestQual?.company_size_band || leadData.company_size_estimate || leadData.company_size || 'Enterprise / Mid-Market'}
                 </span>
               </div>
 

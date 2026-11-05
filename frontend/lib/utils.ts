@@ -38,3 +38,63 @@ export function safeRender(val: any): string {
   if (typeof val === 'object') return JSON.stringify(val);
   return String(val);
 }
+
+/**
+ * Safely converts any Eloquent relation object, AI JSON scalar/array/object, or primitive
+ * into a human-readable string so React never throws Error #31 ("Objects are not valid as a React child").
+ */
+export function toDisplayText(val: unknown): string {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val.trim();
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (Array.isArray(val)) {
+    return val
+      .map((item) => toDisplayText(item))
+      .filter((s) => s.length > 0)
+      .join(', ');
+  }
+  if (typeof val === 'object') {
+    const rec = val as Record<string, unknown>;
+    const preferredKeys = [
+      'name',
+      'label',
+      'title',
+      'text',
+      'detail',
+      'question',
+      'url',
+      'source_url',
+      'value',
+      'slug',
+    ];
+    for (const key of preferredKeys) {
+      const candidate = rec[key];
+      if (typeof candidate === 'string' && candidate.trim().length > 0) {
+        return candidate.trim();
+      }
+      if (typeof candidate === 'number') {
+        return String(candidate);
+      }
+    }
+    const parts = Object.entries(rec)
+      .filter(([k, v]) => k !== 'id' && v !== null && v !== undefined && v !== '')
+      .map(([k, v]) => {
+        const rendered = typeof v === 'object' ? JSON.stringify(v) : String(v).trim();
+        return rendered ? `${k.replace(/_/g, ' ')}: ${rendered}` : '';
+      })
+      .filter(Boolean);
+    return parts.join(' • ');
+  }
+  return String(val);
+}
+
+export function toDisplayList(val: unknown): string[] {
+  if (val === null || val === undefined) return [];
+  if (Array.isArray(val)) {
+    return val
+      .map((item) => toDisplayText(item))
+      .filter((item) => item.length > 0);
+  }
+  const single = toDisplayText(val);
+  return single.length > 0 ? [single] : [];
+}
