@@ -254,7 +254,7 @@ services:
     restart: always
     init: true
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'schedule:work' > /dev/null || exit 1"]
+      test: ["CMD-SHELL", "grep -qa 'schedule:work' /proc/1/cmdline || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

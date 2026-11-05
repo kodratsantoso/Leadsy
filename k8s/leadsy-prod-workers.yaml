@@ -168,7 +168,11 @@ spec:
               memory: 512Mi
           livenessProbe:
             exec:
-              command: ["sh", "-c", "pgrep -f 'schedule:work' || exit 1"]
+              # `pgrep` is not present in the runtime image, so the probe could
+              # never succeed and the kubelet killed a healthy container on a
+              # timer (exit 137, restart count climbing). /proc/1/cmdline keeps
+              # the same intent without an extra binary dependency.
+              command: ["sh", "-c", "grep -qa 'schedule:work' /proc/1/cmdline || exit 1"]
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 10
