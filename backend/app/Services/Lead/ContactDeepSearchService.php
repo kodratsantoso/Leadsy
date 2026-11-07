@@ -52,14 +52,17 @@ class ContactDeepSearchService
             ];
         }
 
-        $domain = $lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST);
+        $domain = $this->sanitizeDomain($lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST));
         $rawResults = [];
         $queries = [];
 
         // Step 1: Attempt AI Web Search using global search engines (Google, Bing, Yahoo)
         try {
+            $brandTokens = $this->extractBrandTokens($lead);
+            $searchSubject = !empty($brandTokens) ? implode(' / ', array_slice($brandTokens, 0, 2)) : $lead->company_name;
+
             $ai = app(\App\Services\AI\AiOrchestrationService::class);
-            $userPrompt = "Find as many public LinkedIn profile pages or contact information as possible (aim for at least 25 candidates) for any staff, employees, or decision-makers working at \"{$lead->company_name}\" (domain: \"{$domain}\").
+            $userPrompt = "Find as many public LinkedIn profile pages or contact information as possible (aim for at least 25 candidates) for any staff, employees, or decision-makers working at \"{$searchSubject}\" (legal entity: \"{$lead->company_name}\", domain: \"{$domain}\").
 Include ALL organizational levels: executives, managers, directors, engineers, IT staff, operations, sales, marketing, procurement, HR, finance, admin, and general staff or PICs.
 You MUST search exhaustively using Google, Bing, Yahoo, and LinkedIn directory via Web Search. Do not stop at the top results; scan deeply to list up to 30 people if found.
 Return a JSON array containing candidates under the \"candidates\" key. Format each candidate precisely as:
@@ -67,7 +70,7 @@ Return a JSON array containing candidates under the \"candidates\" key. Format e
   \"name\": \"Full Name\",
   \"title\": \"Job Title / Designation\",
   \"linkedin_url\": \"https://www.linkedin.com/in/profile-id\",
-  \"snippet\": \"Short context/evidence snippet showing they work at {$lead->company_name}\"
+  \"snippet\": \"Short context/evidence snippet showing they work at {$searchSubject}\"
 }
 If no profiles are found, return { \"candidates\": [] }.";
 
@@ -112,7 +115,7 @@ If no profiles are found, return { \"candidates\": [] }.";
 
         // Step 2: Fallback to Yahoo scraping if AI returned empty results
         if (empty($rawResults)) {
-            $queries = $this->buildQueries($lead->company_name, $domain);
+            $queries = $this->buildQueries($lead);
             foreach ($queries as $query) {
                 $html = $this->scrapeYahoo($query);
                 if ($html !== null) {
@@ -239,27 +242,127 @@ If no profiles are found, return { \"candidates\": [] }.";
     }
 
     /**
-     * Build 3 search queries for a lead.
+     * Sanitize domain and filter out generic platforms/portals.
      */
-    private function buildQueries(string $companyName, ?string $domain): array
+    private function sanitizeDomain(?string $domain): ?string
     {
-        $escapedName = addcslashes($companyName, '"');
+        if (! $domain) {
+            return null;
+        }
+
+        $domain = strtolower(trim($domain));
+        $domain = preg_replace('/^www\./', '', $domain);
+
+        $generic = [
+            'indonesia.go.id', 'go.id', 'instagram.com', 'facebook.com',
+            'linktr.ee', 'google.com', 'linkedin.com', 'tokopedia.com',
+            'shopee.co.id', 'tiktok.com', 'youtube.com', 'wa.me',
+            'whatsapp.com', 'twitter.com', 'x.com', 'bit.ly',
+        ];
+
+        foreach ($generic as $g) {
+            if ($domain === $g || str_ends_with($domain, '.' . $g)) {
+                return null;
+            }
+        }
+
+        return $domain;
+    }
+
+    /**
+     * Extract recognizable brand/entity tokens from lead data.
+     *
+     * @return string[]
+     */
+    private function extractBrandTokens(Lead $lead): array
+    {
+        $tokens = [];
+
+        // 1. Explicit brand field
+        if (! empty($lead->brand)) {
+            $cleanBrand = trim((string) $lead->brand);
+            $tokens[] = $cleanBrand;
+            $stripped = trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $cleanBrand));
+            if ($stripped !== '' && strcasecmp($stripped, $cleanBrand) !== 0) {
+                $tokens[] = $stripped;
+            }
+        }
+
+        // 2. Company name decomposition
+        $companyName = (string) $lead->company_name;
+        // Split compound company names by delimiters: / | & dan + ( )
+        $parts = preg_split('/[\/|&+]|\bdan\b|\(|\)/i', $companyName) ?: [];
+        foreach ($parts as $part) {
+            $clean = trim($part);
+            if ($clean === '') {
+                continue;
+            }
+
+            // Remove Indonesian/global corporate prefixes (PT, CV, UD, etc.)
+            $clean = preg_replace('/(^|\s+)(PT|CV|UD|PD|Perum|Yayasan|Koperasi|Firma|Persero)\.?\s+/i', '$1', $clean);
+            // Remove corporate suffixes (Tbk, Ltd, Inc, Corp, Pte Ltd, etc.)
+            $clean = preg_replace('/\s+(Tbk|Ltd|LLC|Inc|Corp|Pte|Co)\.?(\s+|$)/i', '$2', $clean);
+            $clean = trim(preg_replace('/^[.,\-\s]+|[.,\-\s]+$/u', '', $clean));
+            $clean = trim(preg_replace('/\s+/', ' ', $clean));
+
+            if (mb_strlen($clean) >= 2) {
+                $tokens[] = $clean;
+                $withoutId = trim(preg_replace('/\bIndonesia\b/i', '', $clean));
+                $withoutId = trim(preg_replace('/\s+/', ' ', $withoutId));
+                if (mb_strlen($withoutId) >= 2 && ! in_array(strtolower($withoutId), array_map('strtolower', $tokens))) {
+                    $tokens[] = $withoutId;
+                }
+            }
+        }
+
+        // Deduplicate while preserving case of first occurrence
+        $unique = [];
+        foreach ($tokens as $t) {
+            $t = trim($t);
+            if ($t !== '' && ! in_array(strtolower($t), array_map('strtolower', $unique))) {
+                $unique[] = $t;
+            }
+        }
+
+        return $unique;
+    }
+
+    /**
+     * Build high-yield search queries for a lead using smart brand tokens.
+     *
+     * @return string[]
+     */
+    private function buildQueries(Lead $lead): array
+    {
+        $tokens = $this->extractBrandTokens($lead);
+        $domain = $this->sanitizeDomain($lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST));
         $queries = [];
 
-        // Query 1: LinkedIn profile search (simple company match)
-        $queries[] = "site:linkedin.com/in \"{$escapedName}\"";
+        $primary = $tokens[0] ?? $lead->company_name;
+        $cleanPrimary = trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $primary));
 
-        // Query 2: Company contact/team page
-        if ($domain) {
-            $queries[] = "\"{$escapedName}\" {$domain} contact team";
+        // Primary token: exact phrase search and localized unquoted search
+        $queries[] = "site:linkedin.com/in \"{$primary}\"";
+        $idSuffix = preg_match('/\bindonesia\b/i', $cleanPrimary) ? '' : ' Indonesia';
+        $queries[] = 'site:linkedin.com/in ' . trim($cleanPrimary . $idSuffix);
+
+        // Secondary token query if available (e.g. Aeris Beaute in compound name)
+        if (isset($tokens[1])) {
+            $second = $tokens[1];
+            $cleanSecond = trim(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $second));
+            $secondSuffix = preg_match('/\bindonesia\b/i', $cleanSecond) ? '' : ' Indonesia';
+            $queries[] = 'site:linkedin.com/in ' . trim($cleanSecond . $secondSuffix);
         }
 
-        // Query 3: Email pattern discovery
+        // Domain contact query if valid custom domain exists
         if ($domain) {
-            $queries[] = "\"{$escapedName}\" \"@{$domain}\" email";
+            $queries[] = "\"{$cleanPrimary}\" {$domain} contact team";
+        } else {
+            // Decision maker role search fallback
+            $queries[] = "site:linkedin.com/in \"{$cleanPrimary}\" (manager OR director OR founder OR head OR CEO)";
         }
 
-        return $queries;
+        return array_values(array_unique($queries));
     }
 
     /**
@@ -435,7 +538,8 @@ If no profiles are found, return { \"candidates\": [] }.";
         $clean = preg_replace('/\s*[-|]\s*LinkedIn\s*$/i', '', $clean) ?? $clean;
         $clean = preg_replace('/\s*\|\s*LinkedIn.*$/i', '', $clean) ?? $clean;
 
-        $parts = array_values(array_filter(array_map('trim', preg_split('/\s+-\s+/', $clean) ?: [])));
+        // Split by standard dash, en-dash, em-dash, or vertical bar
+        $parts = array_values(array_filter(array_map('trim', preg_split('/\s+[-–—|]\s+/', $clean) ?: [])));
         $name = $parts[0] ?? $clean;
         $jobTitle = $parts[1] ?? null;
 
@@ -592,58 +696,78 @@ If no profiles are found, return { \"candidates\": [] }.";
     {
         $score = 0;
 
-        // Company name appears in snippet/title (normalized)
-        $companyName = (string) $lead->company_name;
-        $snippet = strtolower((string) ($result['snippet'] ?? '') . ' ' . ($result['title'] ?? ''));
+        $rawSnippet = (string) ($result['snippet'] ?? '') . ' ' . ($result['title'] ?? '');
+        $snippetLower = strtolower($rawSnippet);
+        // Normalize transliterated accents (e.g. Beauté -> Beaute)
+        $cleanSnippet = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $snippetLower) ?: $snippetLower;
+        $combinedText = $snippetLower . ' ' . $cleanSnippet;
 
-        // Normalize company name (remove PT, CV, Tbk, Indonesia, Ltd, Inc, dots, commas)
-        $normalizedCompany = strtolower(trim(preg_replace('/\b(PT|CV|Tbk|Indonesia|Ltd|Inc|Group|Co|Corporation|Persero)\b/i', '', $companyName)));
-        $normalizedCompany = trim(preg_replace('/[^a-z0-9]/', ' ', $normalizedCompany));
-        $normalizedCompany = preg_replace('/\s+/', ' ', $normalizedCompany) ?? $normalizedCompany;
+        $brandTokens = $this->extractBrandTokens($lead);
 
-        if ($normalizedCompany !== '' && str_contains($snippet, $normalizedCompany)) {
+        // 1. Brand token match (primary identifier)
+        $matchedBrand = false;
+        foreach ($brandTokens as $token) {
+            $norm = strtolower(trim($token));
+            $cleanNorm = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $norm) ?: $norm;
+
+            if ($norm !== '' && (str_contains($combinedText, $norm) || str_contains($combinedText, $cleanNorm))) {
+                $matchedBrand = true;
+                break;
+            }
+        }
+
+        $matchedCompanyWord = false;
+        if ($matchedBrand) {
+            $score += 25;
+        } else {
+            // Check individual words of company name (length >= 4)
+            $compWords = array_filter(
+                explode(' ', strtolower(preg_replace('/[^a-z0-9]/', ' ', (string) $lead->company_name))),
+                fn ($w) => strlen($w) >= 4 && ! in_array($w, ['indonesia', 'persero', 'group', 'company', 'bisnis', 'nusantara', 'sentosa'])
+            );
+            foreach ($compWords as $w) {
+                if (str_contains($combinedText, $w)) {
+                    $matchedCompanyWord = true;
+                    $score += 15;
+                    break;
+                }
+            }
+        }
+
+        // If neither brand nor company keyword matches, penalty to avoid random noise passing threshold
+        if (! $matchedBrand && ! $matchedCompanyWord) {
+            return 15; // Below MIN_CONFIDENCE (25)
+        }
+
+        // 2. Company domain matches
+        $domain = $this->sanitizeDomain($lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST));
+        if ($domain && str_contains($combinedText, $domain)) {
+            $score += 15;
+        }
+
+        // 3. LinkedIn profile URL found
+        if (! empty($result['linkedin_url'])) {
             $score += 20;
         }
 
-        // Company domain matches
-        $domain = strtolower((string) ($lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST)));
-        if ($domain !== '' && str_contains($snippet, $domain)) {
-            $score += 15;
-        }
-
-        // LinkedIn profile URL found
-        if (! empty($result['linkedin_url'])) {
-            $score += 15;
-        }
-
-        // Title/role extracted
+        // 4. Title/role extracted
         if (! empty($result['title'])) {
+            $score += 15;
+        }
+
+        // 5. Seniority bonus (c-level, director, manager)
+        if (! empty($result['seniority_level']) && $result['seniority_level'] !== 'staff') {
             $score += 10;
         }
 
-        // Email domain MX verified
+        // 6. Email domain MX verified
         if (! empty($result['email_verified'])) {
             $score += 15;
         }
 
-        // Email found in snippet (not inferred)
+        // 7. Email found in snippet (not inferred)
         if (! empty($result['snippet_emails'])) {
             $score += 10;
-        }
-
-        // Multiple evidence sources (linkedin + email + snippet)
-        $evidenceSources = 0;
-        if (! empty($result['linkedin_url'])) {
-            $evidenceSources++;
-        }
-        if (! empty($result['email'])) {
-            $evidenceSources++;
-        }
-        if (! empty($result['title'])) {
-            $evidenceSources++;
-        }
-        if ($evidenceSources >= 3) {
-            $score += 15;
         }
 
         return min(100, $score);
