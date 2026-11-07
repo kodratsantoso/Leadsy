@@ -4,7 +4,15 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.47.0** — 2026-11-07
+Current release: **v1.48.0** — 2026-11-07
+
+## What's New in v1.48.0 (First-Time Lead AI Analyzing Screen & Live Worker Telemetry)
+
+- **AI Intelligence Processing Suite on Lead Detail (`/leads/[id]`):**
+  - *Dedicated First-Time AI Processing Screen* (`frontend/components/leads/AiLeadAnalyzingScreen.tsx`) — Menggantikan spinner loading generik dengan layar analisis komprehensif saat worker sedang memproses intelijen lead pertama kali (`enrichment_status === 'running'`).
+  - *4-Stage Stepper Pipeline* — Menampilkan 4 tahapan eksekusi: Verifikasi Geospasial, Taksonomi Sektoral (#LOB), ICP Product-Fit Matching, dan Kalkulasi Skor Kualifikasi BANTC.
+  - *Live Telemetry Terminal Stream* — Panel konsol miniatur bergaya dark terminal yang memvisualisasikan log eksekusi worker antrean secara transparan.
+  - *Background Auto-Polling (2.5s)* — Sinkronisasi otomatis data terbaru dari server hingga proses selesai dengan transisi halus ke halaman utama profil lead, serta tombol darurat *"Lihat Data Mentah"* untuk kebutuhan mendesak.
 
 ## What's New in v1.47.0 (Enterprise Security Hardening & Client Data Privacy Shield)
 

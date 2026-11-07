@@ -48,6 +48,7 @@ import { useToast } from "@/components/ui/toast";
 import { InContextSalesCopilotDrawer } from '@/components/leads/InContextSalesCopilotDrawer';
 import { EnrollCadenceModal } from '@/components/leads/EnrollCadenceModal';
 import { SalesCadenceStatusCard } from '@/components/leads/SalesCadenceStatusCard';
+import { AiLeadAnalyzingScreen } from '@/components/leads/AiLeadAnalyzingScreen';
 import { FieldSalesCheckinModal } from '@/components/leads/FieldSalesCheckinModal';
 import { RolePerspectiveSwitcher, DepartmentPerspective } from '@/components/leads/RolePerspectiveSwitcher';
 
@@ -559,12 +560,21 @@ export default function LeadDetailPage() {
   const [expandedEvalId, setExpandedEvalId]       = useState<number | null>(null);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
   const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
+  const [forceBypassAnalyzing, setForceBypassAnalyzing] = useState<boolean>(false);
 
   // Fetch lead details (includes contacts)
   const { data: lead, isLoading: leadLoading, refetch: refetchLead } = useQuery({
     queryKey: ['lead', leadId],
     queryFn: () => apiFetch(`/leads/${leadId}`).then((r) => r.json()),
     enabled: !!leadId && leadId !== 'undefined',
+    refetchInterval: (query) => {
+      // Auto-poll worker progress every 2.5s while analyzing
+      const data = query.state.data?.data;
+      if (data && (data.enrichment_status === 'running' || data.enrichment_status === 'pending')) {
+        return 2500;
+      }
+      return false;
+    },
   });
 
   // Google Maps setup
@@ -1419,6 +1429,22 @@ export default function LeadDetailPage() {
 
   const leadData      = lead?.data || {};
   const contacts      = leadData.contacts || [];
+
+  // Show First-Time AI Worker Analyzing Screen if background worker is currently executing
+  const isAnalyzingUnderway =
+    !forceBypassAnalyzing &&
+    (leadData.enrichment_status === 'running' || leadData.enrichment_status === 'pending');
+
+  if (isAnalyzingUnderway) {
+    return (
+      <AiLeadAnalyzingScreen
+        companyName={leadData.company_name}
+        leadId={leadData.id || leadId}
+        status={leadData.enrichment_status}
+        onSkip={() => setForceBypassAnalyzing(true)}
+      />
+    );
+  }
   const leadOutcomes = Array.isArray(leadData?.outcomes) ? leadData.outcomes : [];
   const defaultOutcomeSaleType = leadOutcomes.some((outcome: any) => outcome.outcome === 'won') ? 'upsales' : 'new_sales';
   const latestScore   = intelligence?.latest_score;

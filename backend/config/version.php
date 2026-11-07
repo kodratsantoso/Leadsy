@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.47.0',
+    'version' => '1.48.0',
     'released_at' => '2026-11-07',
     'type' => 'minor',
-    'notes' => 'Enterprise security posture hardening based on SecureScope Pen-Test findings (Strict-Transport-Security, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, server header masking via Laravel middleware) and Client-Side Privacy & Data Loss Prevention Shield (Dynamic Forensics Watermark with user identity/timestamp, inspect shortcuts deterrent, context menu lock, and CSS print-to-PDF blocking).',
+    'notes' => 'First-time lead AI analyzing screen on Lead Detail view with holographic AI centerpiece, 4-stage pipeline stepper (geospatial, sector taxonomy, ICP product-fit, qualification scoring), live worker telemetry console, auto-polling (2.5s), and smooth transition upon worker completion.',
 ];

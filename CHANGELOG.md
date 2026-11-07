@@ -9,6 +9,15 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.48.0] — 2026-11-07 · Minor Release
+
+### First-Time Lead AI Analyzing Screen & Live Worker Telemetry
+- **Interactive AI Lead Analyzing Screen (`AiLeadAnalyzingScreen.tsx`)** — Menghadirkan antarmuka pemrosesan AI tingkat lanjut pada detail prospek (`frontend/app/leads/[id]/page.tsx`) yang aktif otomatis ketika worker latar belakang sedang menganalisis lead untuk pertama kali (`enrichment_status === 'running' || enrichment_status === 'pending'`).
+- **4-Stage Progressive Pipeline Stepper** — Visualisasi tahapan analisis sekuensial real-time: (1) *Geospatial & Entity Verification*, (2) *Deep Firmographic & Sector Taxonomy (#LOB)*, (3) *Product-Fit & ICP Matching Engine*, dan (4) *Qualification Scoring & Presales Playbook*.
+- **Holographic AI Centerpiece & Pulse Bar** — Visualisasi avatar orba AI futuristik dengan efek *cyber-glow* dan indikator progres persentase yang dinamis.
+- **Live Worker Telemetry Console** — Menampilkan aliran log terminal miniatur berpenampilan monospace gelap (*Live Worker Telemetry*) yang mengindikasikan langkah-langkah komputasi worker yang sedang dieksekusi di antrean `enrichment`.
+- **Intelligent Auto-Polling & Smooth Handoff** — Mengintegrasikan `refetchInterval` (2.5 detik) pada hook `useQuery(['lead', leadId])` selama status analisis aktif, dan otomatis bertransisi mulus ke dashboard detail lead begitu worker selesai (`enrichment_status === 'completed'`), lengkap dengan tombol *Lihat Data Mentah* (*escape hatch*).
+
 ## [1.47.0] — 2026-11-07 · Minor Release
 
 ### Enterprise Security Posture Hardening & Client Data Privacy Shield
