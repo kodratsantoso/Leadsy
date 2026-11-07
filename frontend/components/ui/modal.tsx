@@ -78,11 +78,11 @@ function Modal({
             </Button>
           )}
         </div>
-        <div className={cn("min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5", !footer && "pb-safe")}>
+        <div className={cn("min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5", !footer && "pb-[max(1rem,calc(1rem+env(safe-area-inset-bottom,0px)))] sm:pb-5")}>
           {children}
         </div>
         {footer ? (
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border px-4 py-3 pb-safe sm:px-6 sm:py-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t border-border bg-card px-4 pt-3.5 pb-[max(0.875rem,calc(0.875rem+env(safe-area-inset-bottom,0px)))] sm:px-6 sm:py-4 sm:pb-4">
             {footer}
           </div>
         ) : null}
