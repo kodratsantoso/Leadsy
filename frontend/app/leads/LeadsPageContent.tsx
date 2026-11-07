@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GlobalDuplicateConsoleModal } from "@/components/leads/modals/GlobalDuplicateConsoleModal";
+import { ExportLeadsModal } from "@/components/leads/modals/ExportLeadsModal";
 
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -747,6 +748,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
   const [mapsEnabled, setMapsEnabled] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
   const [isDedupConsoleOpen, setIsDedupConsoleOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [importLeads, setImportLeads] = useState<ImportLead[]>([]);
   const [importRows, setImportRows] = useState<Record<string, unknown>[]>([]);
   const [importHeaders, setImportHeaders] = useState<string[]>([]);
@@ -1512,7 +1514,7 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
               Konsol Duplikat
             </Button>
             {isSuperAdmin && (
-              <Button variant="outline" onClick={handleExport}>
+              <Button variant="outline" onClick={() => setIsExportModalOpen(true)}>
                 <Download className="h-4 w-4" />
                 Export
               </Button>
@@ -3312,6 +3314,16 @@ export function LeadsPageContent({ initialIndustryId }: { initialIndustryId?: st
         onMergedSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["leads"] });
         }}
+      />
+
+      <ExportLeadsModal
+        open={isExportModalOpen}
+        onOpenChange={setIsExportModalOpen}
+        filteredCount={data?.total ?? leads.length}
+        totalCount={schedulerHeartbeat?.total_leads_count ?? 1073}
+        activeFilterParams={Object.fromEntries(buildLeadFilterParams().entries())}
+        onSuccess={(msg) => setFeedback(msg)}
+        onError={(msg) => setFeedback(msg)}
       />
 
     </div>

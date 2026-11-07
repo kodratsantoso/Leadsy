@@ -4,7 +4,20 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.48.0** — 2026-11-07
+Current release: **v1.49.0** — 2026-11-07
+
+## What's New in v1.49.0 (Multi-Sheet Excel & AI Intelligence Export Engine)
+
+- **Enterprise Leads Export Console & Multi-Sheet Architecture:**
+  - *Interactive Export Modal (`frontend/components/leads/modals/ExportLeadsModal.tsx`)* — Dialog ekspor data leads pada `/leads` dengan selektor cakupan (Data Sesuai Filter vs Semua Data Leads tanpa filter) dan selektor format berkas.
+  - *Multi-Sheet Excel Workbook (.xlsx)* — Ekspor 1 file Excel komprehensif yang membagi data menjadi 4 tab terstruktur:
+    - `Master Leads`: Identitas perusahaan, brand, industri, kategori, alamat, kontak kantor, owner, finansial, status stage & duplikasi.
+    - `AI Intelligence`: Lead score (0-100), grade kualifikasi BANT, detail budget/authority/needs/timeline, AI profiling model bisnis, product fit %, rekomendasi pendekatan, risiko, dan pertanyaan BANTC AI.
+    - `Contact Persons`: Seluruh PIC, title jabatan, departemen, no. WA/HP, email terverifikasi, status primary & decision maker.
+    - `Riwayat Notulen`: Log aktivitas meeting/kunjungan lengkap dengan intisari rangkuman AI dari transkrip rapat.
+  - *Customizable Entity Checkboxes* — Fleksibilitas memilih sheet yang ingin disertakan sebelum berkas dibuat.
+  - *Enhanced CSV Flat Stream* — Pilihan ekspor CSV dengan agregasi primary contact dan metrik BANTC AI untuk kompatibilitas integrasi BI.
+  - *Search Filter Database Fix* — Mengeliminasi referensi kolom `legal_name` pada PostgreSQL `leads` table query filter.
 
 ## What's New in v1.48.0 (First-Time Lead AI Analyzing Screen & Live Worker Telemetry)
 

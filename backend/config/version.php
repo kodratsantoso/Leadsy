@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.48.0',
+    'version' => '1.49.0',
     'released_at' => '2026-11-07',
     'type' => 'minor',
-    'notes' => 'First-time lead AI analyzing screen on Lead Detail view with holographic AI centerpiece, 4-stage pipeline stepper (geospatial, sector taxonomy, ICP product-fit, qualification scoring), live worker telemetry console, auto-polling (2.5s), and smooth transition upon worker completion.',
+    'notes' => 'Full-spectrum enterprise data export engine for All Leads, featuring interactive Export Modal, Scope selector (Filtered View vs All Leads), Multi-Sheet Excel (.xlsx) with 4 structured tabs (Master Leads, AI Intelligence & Scoring, Contact Persons & Decision Makers, Interaction & AI Minutes History), and enhanced CSV flat stream.',
 ];

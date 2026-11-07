@@ -9,6 +9,20 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.49.0] — 2026-11-07 · Minor Release
+
+### Multi-Sheet Excel & AI Intelligence Export Engine
+- **Interactive Leads Export Console (`ExportLeadsModal.tsx`)** — Menghadirkan dialog ekspor data cerdas pada halaman utama Leads (`/leads`) yang memberikan fleksibilitas penuh kepada admin dan tim bisnis untuk menentukan cakupan data serta format berkas.
+- **Dual Export Scope (Filtered View vs. All Leads)** — Mendukung dua mode ekspor: (1) *Sesuai Filter di Layar* (mengekspor data prospek yang cocok dengan filter aktif di browser seperti industri, stage, kualifikasi, skor, atau kata kunci pencarian), dan (2) *Semua Data Leads (All Leads)* (mengekspor seluruh data prospek di database tanpa terhalang filter layar).
+- **Multi-Sheet Excel Workbook (`.xlsx`) via SheetJS** — Menghasilkan berkas Excel terstruktur dalam satu file yang terbagi menjadi 4 tab sheet:
+  - *Sheet 1: Master Leads* — Berisi profil perusahaan lengkap, brand, industri, sub-industri, kategori bisnis, alamat, kota/wilayah, website, telepon/email kantor, status komersial, sales owner, presales, AM, CSM, estimasi & realisasi nilai closing, dan tanggal registrasi.
+  - *Sheet 2: AI Intelligence & Scoring* — Memuat penilaian AI prediktif, Lead Score (0–100), Grade (Hot/Warm/Cold), status kualifikasi BANT, rincian anggaran (Budget), otoritas (Authority), kebutuhan (Needs), timeline, kompetitor yang disebut klien, profil model bisnis & target pasar hasil AI profiling, top matched product & fit percentage, rekomendasi pendekatan, insight risiko, level urgensi, serta panduan pertanyaan BANTC khusus.
+  - *Sheet 3: Contact Persons* — Daftar seluruh kontak person dan decision maker (nama lengkap, jabatan, departemen, level senioritas, email kantor/pribadi, no. HP/WhatsApp, status primary contact, verifikasi email, LinkedIn URL, dan confidence score).
+  - *Sheet 4: Aktivitas & Notulen AI* — Riwayat lengkap interaksi (meeting, call, sales visit, WhatsApp), tanggal, notulen, serta intisari rangkuman rapat yang dihasilkan AI dari transkrip rapat.
+- **Customizable Sheet Entity Selection** — Pengguna dapat memilih sheet mana saja yang ingin disertakan ke dalam berkas Excel melalui checkbox interaktif sebelum mengunduh.
+- **Enhanced Single Flat CSV Stream** — Memperkaya format CSV tradisional dengan kolom-kolom kontak utama (*Primary Contact*), metrik skor AI, BANTC, dan ringkasan intelijen tanpa memecah backward compatibility.
+- **Database Query & Search Bugfix** — Memperbaiki kueri pencarian teks pada `applyLeadFilters` di `LeadController.php` dengan menghapus referensi kolom non-existent `legal_name` pada tabel `leads` PostgreSQL dan menggantikannya dengan pencarian `phone`.
+
 ## [1.48.0] — 2026-11-07 · Minor Release
 
 ### First-Time Lead AI Analyzing Screen & Live Worker Telemetry

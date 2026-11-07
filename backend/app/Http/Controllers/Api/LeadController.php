@@ -186,10 +186,10 @@ class LeadController extends Controller
             $s = '%'.$request->search.'%';
             $query->where(function ($q) use ($s) {
                 $q->where('company_name', 'ilike', $s)
-                    ->orWhere('legal_name', 'ilike', $s)
                     ->orWhere('brand', 'ilike', $s)
                     ->orWhere('address', 'ilike', $s)
-                    ->orWhere('email', 'ilike', $s);
+                    ->orWhere('email', 'ilike', $s)
+                    ->orWhere('phone', 'ilike', $s);
             });
         }
     }
@@ -965,22 +965,194 @@ class LeadController extends Controller
         ], 201);
     }
 
-    /** GET /api/leads/export — CSV export */
-    public function export(Request $request): StreamedResponse
+    /** GET /api/leads/export — CSV or Full JSON Dataset for Multi-Sheet Excel */
+    public function export(Request $request): StreamedResponse|JsonResponse
     {
-        // Same visibility scoping + filters as the list view, so "Export"
-        // downloads exactly what's currently on screen — it used to ignore
-        // most filters (and everyone's tenant/role visibility scope) and
-        // just dump every lead in the database.
-        $query = Lead::visibleTo($request->user())
-            ->with(['industry', 'funnelStage', 'product', 'owner', 'sources.channelType']);
+        $scope = $request->get('scope', 'filtered');
+        $format = $request->get('format', 'csv');
 
-        $this->applyLeadFilters($query, $request);
+        $query = Lead::visibleTo($request->user());
+
+        if ($format === 'json') {
+            $query->with([
+                'industry', 'subIndustry', 'businessCategory', 'funnelStage', 'product',
+                'owner', 'presalesOwner', 'amOwner', 'csmOwner', 'sources.channelType',
+                'contacts', 'scores', 'qualifications', 'productMatches.product',
+                'aiAnalyses', 'bantcQuestionGuide', 'activities'
+            ]);
+        } else {
+            $query->with([
+                'industry', 'subIndustry', 'businessCategory', 'funnelStage', 'product',
+                'owner', 'presalesOwner', 'amOwner', 'csmOwner', 'sources.channelType',
+                'contacts', 'aiAnalyses', 'productMatches.product'
+            ]);
+        }
+
+        // Apply filters only if scope is not 'all'
+        if ($scope !== 'all' && ! $request->boolean('all')) {
+            $this->applyLeadFilters($query, $request);
+        }
 
         $leads = $query->orderBy('lead_score', 'desc')->get();
 
-        AuditService::log('export', 'leads', null, null, ['count' => $leads->count()]);
+        AuditService::log('export', 'leads', null, null, [
+            'count' => $leads->count(),
+            'scope' => $scope,
+            'format' => $format,
+        ]);
 
+        if ($format === 'json') {
+            return $this->exportJsonDataset($leads, $scope);
+        }
+
+        return $this->exportCsvStream($leads);
+    }
+
+    /**
+     * Builds structured data arrays for Multi-Sheet Excel export:
+     * Sheet 1: Master Leads Detail
+     * Sheet 2: AI Intelligence & Scoring
+     * Sheet 3: Contact Persons
+     * Sheet 4: Activity & Interaction History
+     */
+    private function exportJsonDataset($leads, string $scope): JsonResponse
+    {
+        $sheetLeads = [];
+        $sheetAi = [];
+        $sheetContacts = [];
+        $sheetActivities = [];
+
+        foreach ($leads as $lead) {
+            $primarySource = $lead->sources->first();
+            $topMatch = $lead->productMatches->sortByDesc('match_score')->first();
+            $aiAnalysis = $lead->aiAnalyses->last();
+            $aiProfile = is_array($lead->ai_profile_json) ? $lead->ai_profile_json : (json_decode($lead->ai_profile_json ?? '[]', true) ?: []);
+            
+            $bantcQuestions = $lead->bantcQuestionGuide?->questions ?? [];
+            if (is_string($bantcQuestions)) {
+                $bantcQuestions = json_decode($bantcQuestions, true) ?: [];
+            }
+
+            // 1. Master Leads Sheet
+            $sheetLeads[] = [
+                'Lead ID' => $lead->id,
+                'Nama Perusahaan' => $lead->company_name,
+                'Brand / Merek' => $lead->brand ?: '-',
+                'Industri' => $lead->industry?->name ?: 'Unassigned',
+                'Sub Industri' => $lead->subIndustry?->name ?: '-',
+                'Kategori Bisnis' => $lead->businessCategory?->name ?: '-',
+                'Lokasi / Wilayah' => $this->extractLocationForExport($lead->address) ?: '-',
+                'Alamat Lengkap' => $lead->address ?: '-',
+                'Website' => $lead->website ?: '-',
+                'Telepon Kantor' => $lead->phone ?: '-',
+                'Email Kantor' => $lead->email ?: '-',
+                'Skor Lead (0-100)' => $lead->lead_score ?? 0,
+                'Grade' => self::gradeForScoreExport($lead->lead_score),
+                'Status Kualifikasi' => $lead->qualification_status ?: 'unassessed',
+                'Funnel Stage' => $lead->funnelStage?->name ?: 'Discovery',
+                'Produk Tertarik' => $lead->product?->name ?: 'General',
+                'Sales Owner' => $lead->owner?->name ?: 'Unassigned',
+                'Sales Owner Email' => $lead->owner?->email ?: '-',
+                'Presales Owner' => $lead->presalesOwner?->name ?: '-',
+                'Account Manager (AM)' => $lead->amOwner?->name ?: '-',
+                'CSM Owner' => $lead->csmOwner?->name ?: '-',
+                'Estimasi Closing (IDR)' => $lead->estimated_closing_amount ? (float) $lead->estimated_closing_amount : 0,
+                'Realisasi Closing (IDR)' => $lead->realized_closing_amount ? (float) $lead->realized_closing_amount : 0,
+                'Sumber Prospek' => $primarySource?->source_type ?: '-',
+                'Kanal Sumber' => $primarySource?->channelType?->name ?: '-',
+                'Status Duplikasi' => $lead->duplicate_status ?: 'clean',
+                'Jumlah Kontak Terdaftar' => $lead->contacts->count(),
+                'Tanggal Dibuat' => $lead->created_at?->format('Y-m-d H:i:s') ?: '-',
+            ];
+
+            // 2. AI Intelligence Sheet
+            $q1 = isset($bantcQuestions[0]) ? (is_array($bantcQuestions[0]) ? ($bantcQuestions[0]['question'] ?? '') : $bantcQuestions[0]) : '-';
+            $q2 = isset($bantcQuestions[1]) ? (is_array($bantcQuestions[1]) ? ($bantcQuestions[1]['question'] ?? '') : $bantcQuestions[1]) : '-';
+            $q3 = isset($bantcQuestions[2]) ? (is_array($bantcQuestions[2]) ? ($bantcQuestions[2]['question'] ?? '') : $bantcQuestions[2]) : '-';
+
+            $sheetAi[] = [
+                'Lead ID' => $lead->id,
+                'Nama Perusahaan' => $lead->company_name,
+                'Lead Score' => $lead->lead_score ?? 0,
+                'Grade' => self::gradeForScoreExport($lead->lead_score),
+                'Status Kualifikasi' => $lead->qualification_status ?: 'unassessed',
+                'BANT - Anggaran (Budget)' => $lead->budget ?: '-',
+                'BANT - Otoritas (Authority)' => $lead->authority ?: '-',
+                'BANT - Kebutuhan (Needs)' => $lead->needs ?: '-',
+                'BANT - Timeline' => $lead->timeline ?: '-',
+                'Kompetitor Disebut' => $lead->competitor ?: '-',
+                'AI Profiling - Model Bisnis' => $aiProfile['business_model'] ?? $aiAnalysis?->company_summary ?? '-',
+                'AI Profiling - Target Pasar' => $aiProfile['target_market'] ?? $aiAnalysis?->potential_use_case ?? '-',
+                'AI Profiling - Skala Karyawan' => $lead->company_size_estimate ?: ($aiProfile['company_size'] ?? '-'),
+                'Produk Fit (Top Match)' => $topMatch?->product?->name ?: ($lead->product?->name ?: '-'),
+                'Skor Fit Produk (%)' => $topMatch?->match_score ? "{$topMatch->match_score}%" : '-',
+                'Level Kecocokan' => $topMatch?->match_level ?: '-',
+                'Alasan Kecocokan Produk' => $topMatch?->match_reason ?: '-',
+                'AI Rekomendasi Pendekatan' => $aiAnalysis?->suggested_approach ?: ($topMatch?->recommended_approach ?: '-'),
+                'AI Risiko Insight' => $aiAnalysis?->risk_insight ?: '-',
+                'AI Urgensi' => $aiAnalysis?->urgency_level ?: '-',
+                'AI Question Guide 1' => $q1 ?: '-',
+                'AI Question Guide 2' => $q2 ?: '-',
+                'AI Question Guide 3' => $q3 ?: '-',
+                'AI Penjelasan Kualifikasi' => $lead->ai_explanation ?: '-',
+                'AI Processing Status' => $lead->ai_processing_status ?: 'ready',
+            ];
+
+            // 3. Contacts Sheet
+            foreach ($lead->contacts as $contact) {
+                $sheetContacts[] = [
+                    'Lead ID' => $lead->id,
+                    'Nama Perusahaan' => $lead->company_name,
+                    'Nama Lengkap PIC' => $contact->name ?: '-',
+                    'Jabatan / Title' => $contact->title ?: '-',
+                    'Departemen' => $contact->department ?: '-',
+                    'Seniority Level' => $contact->seniority_level ?: '-',
+                    'Email' => $contact->email ?: '-',
+                    'No. Telepon / WhatsApp' => $contact->phone ?: '-',
+                    'Primary Contact' => $contact->is_primary ? 'Ya' : 'Tidak',
+                    'Email Verified' => $contact->email_verified ? 'Verified' : 'Unverified',
+                    'LinkedIn URL' => $contact->linkedin_url ?: '-',
+                    'Confidence Score' => $contact->confidence_score ? "{$contact->confidence_score}%" : '-',
+                    'Do Not Contact' => $contact->do_not_contact ? 'Ya' : 'Tidak',
+                    'Tanggal Didaftarkan' => $contact->created_at?->format('Y-m-d H:i:s') ?: '-',
+                ];
+            }
+
+            // 4. Activities Sheet
+            foreach ($lead->activities as $activity) {
+                $sheetActivities[] = [
+                    'Lead ID' => $lead->id,
+                    'Nama Perusahaan' => $lead->company_name,
+                    'Tipe Aktivitas' => ucfirst($activity->type ?: 'Activity'),
+                    'Judul / Subjek' => $activity->title ?: '-',
+                    'Status' => ucfirst($activity->status ?: 'Planned'),
+                    'Tanggal Aktivitas' => $activity->activity_date ? (string) $activity->activity_date : ($activity->created_at?->format('Y-m-d') ?: '-'),
+                    'Catatan Notulen' => $activity->notes ?: '-',
+                    'Rangkuman Rapat AI' => $lead->general_meeting_summary ?: ($lead->discovery_meeting_summary ?: ($lead->demo_meeting_summary ?: '-')),
+                    'Waktu Input' => $activity->created_at?->format('Y-m-d H:i:s') ?: '-',
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'total_leads' => count($leads),
+            'scope' => $scope,
+            'exported_at' => now()->format('Y-m-d H:i:s'),
+            'data' => [
+                'leads' => $sheetLeads,
+                'ai_intelligence' => $sheetAi,
+                'contacts' => $sheetContacts,
+                'activities' => $sheetActivities,
+            ],
+        ]);
+    }
+
+    /**
+     * Enhanced Streamed CSV export with consolidated primary contact and AI intelligence columns
+     */
+    private function exportCsvStream($leads): StreamedResponse
+    {
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="leads_export_'.now()->format('Ymd_His').'.csv"',
@@ -989,21 +1161,29 @@ class LeadController extends Controller
         return response()->stream(function () use ($leads) {
             $out = fopen('php://output', 'w');
             fputcsv($out, [
-                'ID', 'Company', 'Brand', 'Industry', 'Location', 'Address',
-                'Website', 'Phone', 'Email', 'Score', 'Grade', 'Qualification Status',
-                'Funnel Stage', 'Product', 'Owner Name', 'Owner Email',
+                'ID', 'Company', 'Brand', 'Industry', 'Sub Industry', 'Business Category',
+                'Location', 'Address', 'Website', 'Phone', 'Email',
+                'Score', 'Grade', 'Qualification Status',
+                'BANT Budget', 'BANT Authority', 'BANT Needs', 'BANT Timeline',
+                'Funnel Stage', 'Product', 'Top Matched Product', 'Product Match Score',
+                'Owner Name', 'Owner Email', 'Presales Owner', 'AM Owner', 'CSM Owner',
+                'Primary Contact Name', 'Primary Contact Title', 'Primary Contact Phone', 'Primary Contact Email',
                 'Source', 'Channel', 'Duplicate Status',
                 'Estimated Closing Amount', 'Realized Closing Amount', 'Created',
             ]);
 
             foreach ($leads as $lead) {
                 $primarySource = $lead->sources->first();
+                $primaryContact = $lead->contacts->firstWhere('is_primary', true) ?: $lead->contacts->first();
+                $topMatch = $lead->productMatches->sortByDesc('match_score')->first();
 
                 fputcsv($out, [
                     $lead->id,
                     $lead->company_name,
                     $lead->brand,
                     $lead->industry?->name,
+                    $lead->subIndustry?->name,
+                    $lead->businessCategory?->name,
                     $this->extractLocationForExport($lead->address),
                     $lead->address,
                     $lead->website,
@@ -1012,10 +1192,23 @@ class LeadController extends Controller
                     $lead->lead_score,
                     self::gradeForScoreExport($lead->lead_score),
                     $lead->qualification_status,
+                    $lead->budget,
+                    $lead->authority,
+                    $lead->needs,
+                    $lead->timeline,
                     $lead->funnelStage?->name,
                     $lead->product?->name,
+                    $topMatch?->product?->name,
+                    $topMatch?->match_score ? "{$topMatch->match_score}%" : null,
                     $lead->owner?->name,
                     $lead->owner?->email,
+                    $lead->presalesOwner?->name,
+                    $lead->amOwner?->name,
+                    $lead->csmOwner?->name,
+                    $primaryContact?->name,
+                    $primaryContact?->title,
+                    $primaryContact?->phone,
+                    $primaryContact?->email,
                     $primarySource?->source_type,
                     $primarySource?->channelType?->name,
                     $lead->duplicate_status,
