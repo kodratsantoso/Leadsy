@@ -1463,6 +1463,9 @@ export default function LeadDetailPage() {
   const transcriptsList   = transcriptsData?.data || [];
   const evaluationsList   = evaluationsData?.data || [];
   const funnelStages      = funnelStagesData?.data || [];
+  const currentStageId    = leadData?.funnelStage?.id || leadData?.funnel_stage_id || leadData?.current_funnel_stage?.id;
+  const currentStageObj   = funnelStages.find((s: any) => s.id === currentStageId) || leadData?.funnelStage || leadData?.funnel_stage;
+  const currentStageName  = currentStageObj?.name || 'Discovery';
   const meetingActivities = activitiesList.filter((activity: any) => activity.activity_type === 'Meeting');
   const latestMeetingBantc = meetingActivities.find((activity: any) =>
     activity.budget || activity.authority || activity.needs || activity.timeline || activity.competitor
@@ -1713,12 +1716,15 @@ export default function LeadDetailPage() {
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <Badge variant={qualificationVariant(leadData.qualification_status)}>
                 {leadData.qualification_status === 'eligible'
-                  ? 'Funnel: Qualified (SQL)'
+                  ? 'Qualified (SQL)'
                   : leadData.qualification_status === 'potential'
-                    ? 'Funnel: Contacted'
+                    ? 'Potential Prospect'
                     : leadData.qualification_status === 'not_eligible' || leadData.qualification_status === 'disqualified'
-                      ? 'Funnel: Nurture / Hold'
+                      ? 'Not Eligible'
                       : 'Awaiting Assessment'}
+              </Badge>
+              <Badge variant="outline" className="text-[11px] font-normal border-border/70 bg-muted/30">
+                Funnel: {currentStageName}
               </Badge>
               {latestQual?.business_type && (
                 <span className="text-[11px] text-muted-foreground font-medium uppercase bg-muted/50 px-1.5 py-0.5 rounded">
