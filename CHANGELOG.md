@@ -9,6 +9,16 @@ Format: [Semantic Versioning](https://semver.org/)
 
 ---
 
+## [1.47.0] — 2026-11-07 · Minor Release
+
+### Enterprise Security Posture Hardening & Client Data Privacy Shield
+- **Content Security Policy (CSP) & Perimeter Hardening** — Menerapkan header CSP ketat pada Next.js (`frontend/next.config.ts`) dan backend API Laravel yang membatasi eksekusi skrip, style, frame-ancestors ('self'), dan koneksi jaringan hanya ke origin yang sah, mengeliminasi vektor eksploitasi XSS dan data exfiltration (remediasi temuan SecureScope Pen-Test `SS-002`).
+- **Strict-Transport-Security (HSTS), Framing & MIME Guard** — Memperkuat penegakan HSTS (`max-age=63072000; includeSubDomains; preload`), `X-Frame-Options: SAMEORIGIN` (anti-clickjacking), `X-Content-Type-Options: nosniff` (anti-MIME sniffing), serta `Referrer-Policy: strict-origin-when-cross-origin`.
+- **Server Information Disclosure Masking Middleware** — Middleware `ApplySecurityHeaders` di backend Laravel (`backend/app/Http/Middleware/ApplySecurityHeaders.php`) yang menyuntikkan seluruh standard enterprise headers dan menghapus token header `X-Powered-By` dan `Server` pada setiap respons API (remediasi temuan SecureScope `SS-006`).
+- **Dynamic Forensics Watermark Pattern (`PrivacyShield.tsx`)** — Menghadirkan lapisan watermark forensik transparan di seluruh layar Customer Workspace (`AppShell`) dan Platform Admin (`PlatformShell`) yang memuat nama user login, email, dan timestamp dinamis, sehingga setiap tangkapan layar atau foto fisik kamera HP terlacak ke identitas pengguna pembocor data.
+- **Anti-Inspect Shortcuts & Context Menu Deterrent** — Memblokir shortcut inspect element browser (`F12`, `Ctrl+Shift+I` / `Cmd+Option+I`, `Ctrl+Shift+J`, `Ctrl+Shift+C`, `Ctrl+U`) serta klik kanan konteks menu pada antarmuka operasional (dengan pengecualian alami untuk input form dan textarea).
+- **Anti-Print to PDF Shield** — Menambahkan aturan CSS print `@media print { html, body { display: none !important; } }` di `frontend/app/globals.css` yang memblokir percobaan ekspor atau cetak halaman dokumen Leadsy ke PDF.
+
 ## [1.46.0] — 2026-11-05 · Minor Release
 
 ### Full Installable PWA & Customer Workspace Mobile Ergonomics

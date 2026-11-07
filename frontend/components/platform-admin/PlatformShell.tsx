@@ -26,6 +26,7 @@ import { usePwaInstall } from "@/lib/pwa/pwa-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PrivacyShield } from "@/components/security/PrivacyShield";
 
 interface PlatformShellProps {
   children: ReactNode;
@@ -314,6 +315,7 @@ export function PlatformShell({ children }: PlatformShellProps) {
           {children}
         </main>
       </div>
+      <PrivacyShield />
     </div>
   );
 }

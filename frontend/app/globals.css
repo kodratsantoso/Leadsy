@@ -374,4 +374,29 @@ html {
   }
 }
 
+/* ── Enterprise Client Privacy & Data Loss Prevention (DLP) ── */
+@media print {
+  /* Prevent full document print export to PDF / hardcopy */
+  html,
+  body {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+.privacy-watermark-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+  opacity: 0.045;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dark .privacy-watermark-layer {
+  opacity: 0.065;
+}
+
+
 

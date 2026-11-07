@@ -12,8 +12,8 @@
 */
 
 return [
-    'version' => '1.46.0',
-    'released_at' => '2026-11-05',
+    'version' => '1.47.0',
+    'released_at' => '2026-11-07',
     'type' => 'minor',
-    'notes' => 'Full Installable Progressive Web App (PWA) with tenant-safe Service Worker, web manifest, offline sync fallback, and comprehensive mobile ergonomics for Customer Workspace (AppShell 5-item bottom tab navigation, slide-over drawer, mobile search modal, Omnichannel Inbox master-detail flow, Leads mobile cards, and Map discovery overlay drawer).',
+    'notes' => 'Enterprise security posture hardening based on SecureScope Pen-Test findings (Strict-Transport-Security, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, server header masking via Laravel middleware) and Client-Side Privacy & Data Loss Prevention Shield (Dynamic Forensics Watermark with user identity/timestamp, inspect shortcuts deterrent, context menu lock, and CSS print-to-PDF blocking).',
 ];

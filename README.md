@@ -4,7 +4,18 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.46.0** — 2026-11-05
+Current release: **v1.47.0** — 2026-11-07
+
+## What's New in v1.47.0 (Enterprise Security Hardening & Client Data Privacy Shield)
+
+- **Enterprise Security Hardening & Perimeter Defense (SecureScope Pen-Test Remediation):**
+  - *Hardened Content Security Policy (CSP)* (`frontend/next.config.ts` & Laravel Middleware) — Menegakkan batas eksekusi origin skrip, aset visual, koneksi API, dan melarang framing dari domain eksternal (`frame-ancestors 'self'`) guna mengeliminasi celah XSS dan pembocoran data.
+  - *HSTS Preload, Clickjacking & MIME Guards* — Header `Strict-Transport-Security` (2 tahun + preload), `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, serta `Referrer-Policy: strict-origin-when-cross-origin`.
+  - *Server Identity Token Masking* (`backend/app/Http/Middleware/ApplySecurityHeaders.php`) — Menyuntikkan enterprise headers secara seragam pada seluruh respons HTTP/API serta menyembunyikan header `X-Powered-By` dan versi server.
+- **Client-Side Privacy & Data Loss Prevention Shield (SEC-DLP-001):**
+  - *Dynamic Forensics Watermark* (`frontend/components/security/PrivacyShield.tsx`) — Menampilkan watermark transparan di layar `AppShell` dan `PlatformShell` yang mencantumkan nama user, email, dan timestamp dinamis untuk melacak asal screenshot maupun foto ponsel.
+  - *Anti-Inspect & Developer Tools Deterrent* — Menghalangi kombinasi tombol pintas inspect element (`F12`, `Cmd+Opt+I`, `Ctrl+Shift+I`, `Ctrl+U`) dan klik kanan pada layout aplikasi.
+  - *Anti-Print Document Protection* (`frontend/app/globals.css`) — Mematikan kemampuan cetak/ekspor halaman web ke format PDF (*Print to PDF*).
 
 ## What's New in v1.46.0 (Full Installable PWA & Customer Workspace Mobile Ergonomics)
 

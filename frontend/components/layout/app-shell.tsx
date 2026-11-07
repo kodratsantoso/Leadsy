@@ -23,6 +23,7 @@ import { apiFetch } from "@/lib/apiFetch";
 import { ProductTour, PRODUCT_TOUR_ENABLED } from "@/components/ProductTour/ProductTour";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "./GlobalSearch";
+import { PrivacyShield } from "@/components/security/PrivacyShield";
 
 export type NavItem = {
   href: string;
@@ -809,6 +810,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </nav>
       </div>
+      <PrivacyShield />
       <ProductTour />
     </div>
   );

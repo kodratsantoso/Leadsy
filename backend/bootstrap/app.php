@@ -22,7 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->api(append: [
+            \App\Http\Middleware\ApplySecurityHeaders::class,
             \App\Http\Middleware\IdentifyTenant::class,
+        ]);
+        $middleware->web(append: [
+            \App\Http\Middleware\ApplySecurityHeaders::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
