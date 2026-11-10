@@ -222,6 +222,96 @@ class LushaProvider implements ContactEnrichmentProviderInterface
         ];
     }
 
+    public function searchAndEnrichPhoneForContact(Lead $lead, LeadContact $contact, ?int $tenantId = null): array
+    {
+        $this->assertEnabled($tenantId);
+
+        [$firstName, $lastName] = $this->splitCleanName($contact->name);
+
+        $clientReferenceId = 'lead-'.$lead->id.'-c-'.$contact->id.'-'.now()->format('YmdHis');
+
+        $contactPayload = array_filter([
+            'clientReferenceId' => $clientReferenceId,
+            'firstName' => $firstName,
+            'lastName' => $lastName,
+            'companyName' => $lead->company_name,
+            'companyDomain' => $this->cleanDomain($lead->website_domain),
+            'linkedinUrl' => $this->normalizeLinkedinUrl($contact->linkedin_url),
+            'email' => $contact->email ? trim(strtolower($contact->email)) : null,
+        ], fn ($val) => $val !== null && $val !== '');
+
+        $payload = [
+            'contacts' => [$contactPayload],
+            'reveal' => ['phones'],
+        ];
+
+        try {
+            $response = $this->client($tenantId)->post('https://api.lusha.com/v3/contacts/search-and-enrich', $payload);
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'status' => 500,
+                'error_code' => 'CONNECTION_ERROR',
+                'message' => 'Gagal terhubung ke Lusha API: ' . $e->getMessage(),
+                'lusha_response' => ['exception' => $e->getMessage()],
+                'request_sent' => $payload,
+            ];
+        }
+
+        $status = $response->status();
+        $json = $response->json() ?? [];
+
+        if (! $response->successful()) {
+            $msg = $json['message'] ?? $json['error'] ?? "Lusha API request failed with HTTP {$status}";
+            return [
+                'success' => false,
+                'status' => $status,
+                'error_code' => 'LUSHA_HTTP_ERROR',
+                'message' => $msg,
+                'lusha_response' => $json,
+                'request_sent' => $payload,
+            ];
+        }
+
+        $result = $json['results'][0] ?? [];
+        $resultStatus = strtoupper((string) ($result['status'] ?? ''));
+
+        if ($resultStatus === 'NOT_FOUND' || (empty($result['phones']) && empty($result['phone']))) {
+            return [
+                'success' => false,
+                'status' => 200,
+                'error_code' => 'CONTACT_NOT_FOUND',
+                'message' => 'Lusha tidak menemukan data nomor telepon untuk profil kontak ini di databasenya.',
+                'lusha_response' => $json,
+                'request_sent' => $payload,
+            ];
+        }
+
+        $normalized = $this->normalizeRevealedContact($result);
+
+        if (empty($normalized['phone'])) {
+            return [
+                'success' => false,
+                'status' => 200,
+                'error_code' => 'PHONE_UNAVAILABLE',
+                'message' => 'Lusha mengembalikan profil kontak, namun nomor telepon tidak tersedia atau dibatasi kebijakan privasi.',
+                'lusha_response' => $json,
+                'request_sent' => $payload,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'status' => 200,
+            'phone' => $normalized['phone'],
+            'contact_data' => $normalized,
+            'billing' => $json['billing'] ?? [],
+            'rate_limits' => $this->rateLimitHeaders($response->headers()),
+            'raw' => $result,
+            'request_sent' => $payload,
+        ];
+    }
+
     public function accountUsage(?int $tenantId = null): array
     {
         $this->assertEnabled($tenantId);

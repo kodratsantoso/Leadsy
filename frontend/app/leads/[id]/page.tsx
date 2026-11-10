@@ -522,6 +522,15 @@ export default function LeadDetailPage() {
   const [showEnrichModal, setShowEnrichModal]     = useState(false);
   const [lushaContact, setLushaContact]           = useState<any | null>(null);
   const [confirmingLushaCandidate, setConfirmingLushaCandidate] = useState<LushaCandidate | null>(null);
+  const [directLushaTarget, setDirectLushaTarget] = useState<any | null>(null);
+  const [lushaErrorPopup, setLushaErrorPopup] = useState<{
+    open: boolean;
+    contactName: string;
+    status?: number;
+    errorCode?: string;
+    message: string;
+    details?: any;
+  } | null>(null);
   const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   // Activity form state (controlled)
@@ -1139,6 +1148,43 @@ export default function LeadDetailPage() {
     },
     onError: (error: any) => {
       setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to reveal Lusha phone' });
+    },
+  });
+
+  const directLushaPhoneMutation = useMutation({
+    mutationFn: async (contact: any) => {
+      const res = await apiFetch(`/leads/${leadId}/contacts/${contact.id}/lusha-reveal-phone`, {
+        method: 'POST',
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err: any = new Error(json?.message || 'Gagal mengambil nomor telepon dari Lusha');
+        err.status = res.status;
+        err.error_details = json?.error_details || json;
+        err.contactName = contact.name;
+        throw err;
+      }
+      return json;
+    },
+    onSuccess: (data) => {
+      invalidateLead();
+      setDirectLushaTarget(null);
+      setEnrichmentFeedback({
+        type: 'success',
+        msg: data?.message || 'Nomor telepon Lusha berhasil disimpan ke kontak.',
+      });
+    },
+    onError: (error: any) => {
+      const targetName = error?.contactName || directLushaTarget?.name || 'Kontak';
+      setDirectLushaTarget(null);
+      setLushaErrorPopup({
+        open: true,
+        contactName: targetName,
+        status: error?.status || error?.error_details?.status,
+        errorCode: error?.error_details?.error_code,
+        message: error?.message || 'Lusha API mengembalikan respon gagal.',
+        details: error?.error_details,
+      });
     },
   });
 
@@ -1988,6 +2034,9 @@ export default function LeadDetailPage() {
             searchLushaMutation.reset();
             setShowEnrichModal(true);
           }}
+          onDirectLushaReveal={(contact) => {
+            setDirectLushaTarget(contact);
+          }}
           onSetPrimary={(id) => setPrimaryMutation.mutate(id)}
           isSetPrimaryPending={setPrimaryMutation.isPending}
           onEditContact={(contact) => setEditingContact(contact)}
@@ -2509,6 +2558,147 @@ export default function LeadDetailPage() {
             </div>
           </div>
         ) : null}
+      </Modal>
+
+      {/* ── DIRECT LUSHA REVEAL CONFIRMATION MODAL ── */}
+      <Modal
+        open={Boolean(directLushaTarget)}
+        onOpenChange={(open) => {
+          if (!open && !directLushaPhoneMutation.isPending) {
+            setDirectLushaTarget(null);
+          }
+        }}
+        title="Konfirmasi Pengambilan Nomor Telepon (Lusha)"
+        description="Jalankan Lusha API untuk mencari & mengekstrak nomor telepon langsung untuk kontak ini."
+        size="md"
+        preventClose={directLushaPhoneMutation.isPending}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setDirectLushaTarget(null)}
+              disabled={directLushaPhoneMutation.isPending}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={() => directLushaTarget && directLushaPhoneMutation.mutate(directLushaTarget)}
+              disabled={!directLushaTarget || directLushaPhoneMutation.isPending}
+              className="gap-1.5 bg-[color:var(--brand)] text-white hover:opacity-90"
+            >
+              {directLushaPhoneMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Menghubungi Lusha API...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4 fill-white" />
+                  <span>Konfirmasi & Ambil Nomor HP</span>
+                </>
+              )}
+            </Button>
+          </>
+        }
+      >
+        {directLushaTarget && (
+          <div className="space-y-4 py-1">
+            <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground">{directLushaTarget.name}</p>
+                  <p className="text-xs text-muted-foreground">{directLushaTarget.title || 'Role/Jabatan belum tercatat'}</p>
+                </div>
+                <Badge variant="brand" className="gap-1 text-xs">
+                  <Zap className="h-3 w-3" />
+                  1 Phone Credit
+                </Badge>
+              </div>
+
+              <div className="pt-2 border-t border-border/50 text-xs text-muted-foreground space-y-1">
+                <p><span className="font-medium text-foreground">Perusahaan:</span> {leadData.company_name || '—'}</p>
+                {directLushaTarget.linkedin_url && (
+                  <p className="truncate"><span className="font-medium text-foreground">LinkedIn:</span> {directLushaTarget.linkedin_url}</p>
+                )}
+                {directLushaTarget.email && (
+                  <p><span className="font-medium text-foreground">Email:</span> {directLushaTarget.email}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[color:var(--status-info)]/30 bg-[color-mix(in_oklch,var(--status-info)_10%,transparent)] p-3 text-xs text-muted-foreground leading-relaxed">
+              <p className="text-foreground font-medium flex items-center gap-1.5 mb-1">
+                <Info className="h-3.5 w-3.5 text-[color:var(--status-info)]" />
+                Ketentuan Penggunaan Kredit Lusha
+              </p>
+              <p>
+                Sistem akan memanggil API resmi Lusha (<code>POST /v3/contacts/search-and-enrich</code>).
+                Kredit Lusha Anda <strong>hanya akan terpotong 1 credit</strong> jika Lusha berhasil menemukan nomor telepon valid untuk PIC ini.
+              </p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── LUSHA API ERROR POPUP MODAL ── */}
+      <Modal
+        open={Boolean(lushaErrorPopup?.open)}
+        onOpenChange={(open) => {
+          if (!open) setLushaErrorPopup(null);
+        }}
+        title="Gagal Mendapatkan Nomor Telepon Lusha"
+        description="Lusha API mengembalikan respon gagal saat mencoba mengambil nomor telepon."
+        size="lg"
+        footer={
+          <Button onClick={() => setLushaErrorPopup(null)} className="w-full sm:w-auto">
+            Tutup
+          </Button>
+        }
+      >
+        {lushaErrorPopup && (
+          <div className="space-y-4 py-1">
+            <div className="flex items-start gap-3 rounded-xl border border-[color:var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] p-4 text-[color:var(--status-danger)]">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">
+                  {lushaErrorPopup.message}
+                </p>
+                <p className="text-xs opacity-90">
+                  Target Kontak: <span className="font-medium">{lushaErrorPopup.contactName}</span>
+                </p>
+                {lushaErrorPopup.status && (
+                  <Badge variant="outline" className="mt-1 text-[11px] border-[color:var(--status-danger)]/40 text-[color:var(--status-danger)] font-mono">
+                    HTTP Status: {lushaErrorPopup.status} {lushaErrorPopup.errorCode ? `(${lushaErrorPopup.errorCode})` : ''}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-foreground">Detail Respons Teknis Lusha API:</p>
+              <div className="rounded-xl border border-border bg-neutral-950 p-3 font-mono text-xs text-neutral-300 max-h-60 overflow-y-auto space-y-2">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold mb-1">Response Data:</p>
+                  <pre className="text-[11px] leading-relaxed whitespace-pre-wrap break-all text-neutral-300">
+                    {JSON.stringify(lushaErrorPopup.details?.lusha_response || lushaErrorPopup.details || { message: lushaErrorPopup.message }, null, 2)}
+                  </pre>
+                </div>
+
+                {lushaErrorPopup.details?.request_sent && (
+                  <div className="pt-2 border-t border-neutral-800">
+                    <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold mb-1">Request Payload Terkirim:</p>
+                    <pre className="text-[11px] leading-relaxed whitespace-pre-wrap break-all text-neutral-400">
+                      {JSON.stringify(lushaErrorPopup.details.request_sent, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Gunakan detail teknis di atas untuk memeriksa apakah API Key valid, kuota kredit mencukupi, atau profil kontak tidak tersedia di database Lusha.
+              </p>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* ── Delete Contact Confirmation ── */}

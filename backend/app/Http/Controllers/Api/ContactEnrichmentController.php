@@ -435,6 +435,81 @@ class ContactEnrichmentController extends Controller
         ]);
     }
 
+    public function directRevealContactPhone(
+        Request $request,
+        Lead $lead,
+        LeadContact $contact,
+        LushaProvider $provider
+    ): JsonResponse {
+        if ((int) $contact->lead_id !== (int) $lead->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact does not belong to this lead.',
+            ], 404);
+        }
+
+        $tenantId = $this->currentTenantId($request);
+        $this->authorizeLushaGate($tenantId);
+
+        $result = $provider->searchAndEnrichPhoneForContact($lead, $contact, $tenantId);
+
+        if (! $result['success']) {
+            AuditService::log('lusha_direct_reveal_failed', 'lead_contacts', $contact, null, [
+                'lead_id' => $lead->id,
+                'contact_id' => $contact->id,
+                'error' => $result['message'],
+                'status' => $result['status'],
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'error_details' => [
+                    'status' => $result['status'],
+                    'error_code' => $result['error_code'] ?? 'UNKNOWN',
+                    'message' => $result['message'],
+                    'lusha_response' => $result['lusha_response'] ?? null,
+                    'request_sent' => $result['request_sent'] ?? null,
+                ],
+            ], 422);
+        }
+
+        $contactPayload = $result['contact_data'];
+        $phone = $result['phone'];
+
+        $contact->update(array_filter([
+            'phone' => $phone,
+            'email' => $contact->email ?: ($contactPayload['email'] ?? null),
+            'title' => $contact->title ?: ($contactPayload['title'] ?? null),
+            'linkedin_url' => $contact->linkedin_url ?: ($contactPayload['linkedin_url'] ?? null),
+            'confidence_score' => max((int) $contact->confidence_score, 90),
+            'confidence' => 'high',
+            'source' => $contact->source ?: 'LUSHA',
+        ], fn ($val) => $val !== null));
+
+        $contact->payloads()->create([
+            'source_type' => 'LUSHA',
+            'raw_payload' => $result['raw'] ?? [],
+        ]);
+
+        AuditService::log('lusha_direct_reveal_success', 'lead_contacts', $contact, null, [
+            'lead_id' => $lead->id,
+            'contact_id' => $contact->id,
+            'phone' => $phone,
+            'billing' => $result['billing'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Nomor telepon berhasil ditemukan dan disimpan: {$phone}",
+            'data' => [
+                'contact' => $contact->fresh('payloads'),
+                'phone' => $phone,
+                'billing' => $result['billing'] ?? [],
+            ],
+        ]);
+    }
+
     public function revealLushaPhone(
         Request $request,
         Lead $lead,

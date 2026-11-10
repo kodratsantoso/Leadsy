@@ -193,6 +193,76 @@ class LushaContactRevealFlowTest extends TestCase
         $this->assertSame(90, (int) $existingContact->fresh()->confidence_score);
     }
 
+    public function test_direct_contact_lusha_reveal_success(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+        Http::fake([
+            'api.lusha.com/v3/contacts/search-and-enrich' => Http::response([
+                'requestId' => 'direct-reveal-1',
+                'results' => [[
+                    'id' => 'lusha-789',
+                    'status' => 'success',
+                    'fullName' => 'Budi Santoso',
+                    'jobTitle' => 'Chief Financial Officer',
+                    'phones' => [['number' => '+62811223344', 'type' => 'direct_dial', 'doNotCall' => false]],
+                    'emails' => [['email' => 'budi@acme.co.id', 'type' => 'work']],
+                ]],
+                'billing' => ['creditsCharged' => 1],
+            ]),
+        ]);
+
+        $user = $this->makeUser();
+        $this->configureLusha($user);
+        $lead = $this->makeEligibleLead($user);
+
+        $contact = $lead->contacts()->create([
+            'name' => 'Budi Santoso',
+            'title' => 'Chief Financial Officer',
+            'linkedin_url' => 'https://www.linkedin.com/in/budi-santoso',
+            'phone' => null,
+            'source' => 'GOOGLE_SEARCH',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson("/api/leads/{$lead->id}/contacts/{$contact->id}/lusha-reveal-phone")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.phone', '+62811223344');
+
+        $this->assertSame('+62811223344', $contact->fresh()->phone);
+        $this->assertSame('GOOGLE_SEARCH', $contact->fresh()->source);
+        $this->assertDatabaseHas('lead_contact_payloads', [
+            'contact_id' => $contact->id,
+            'source_type' => 'LUSHA',
+        ]);
+    }
+
+    public function test_direct_contact_lusha_reveal_returns_detailed_error_when_lusha_fails(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+        Http::fake([
+            'api.lusha.com/v3/contacts/search-and-enrich' => Http::response([
+                'message' => 'Invalid API key or insufficient credits',
+                'error' => 'UNAUTHORIZED',
+            ], 401),
+        ]);
+
+        $user = $this->makeUser();
+        $this->configureLusha($user);
+        $lead = $this->makeEligibleLead($user);
+
+        $contact = $lead->contacts()->create([
+            'name' => 'Budi Santoso',
+            'phone' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->postJson("/api/leads/{$lead->id}/contacts/{$contact->id}/lusha-reveal-phone")
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error_details.status', 401);
+    }
+
     private function makeEligibleLead(User $user): Lead
     {
         return Lead::create([

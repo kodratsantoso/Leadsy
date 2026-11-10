@@ -235,10 +235,10 @@ class AiOrchestrationService
                 'system_instruction' => ['parts' => [['text' => $systemPrompt]]],
                 'contents' => [['parts' => [['text' => $userPrompt]]]],
                 'tools' => ($context['web_search'] ?? false) ? [['googleSearch' => new \stdClass()]] : null,
-                'generationConfig' => [
-                    'responseMimeType' => 'application/json',
+                'generationConfig' => array_filter([
+                    'responseMimeType' => ($context['web_search'] ?? false) ? null : 'application/json',
                     'maxOutputTokens' => $maxTokens ?? 4096,
-                ],
+                ]),
             ], fn ($value) => $value !== null),
             default => array_filter([ // openai-compatible
                 'model' => $modelName,

@@ -83,8 +83,15 @@ If no profiles are found, return { \"candidates\": [] }.";
             ]);
 
             if ($aiResult['success'] && !empty($aiResult['content'])) {
-                // Parse AI response content
-                $parsedContent = json_decode($aiResult['content'], true);
+                // Parse AI response content with markdown and JSON block cleaning
+                $rawText = trim((string) $aiResult['content']);
+                if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/', $rawText, $match)) {
+                    $rawText = trim($match[1]);
+                } elseif (preg_match('/\{[\s\S]*\}/', $rawText, $match)) {
+                    $rawText = trim($match[0]);
+                }
+
+                $parsedContent = json_decode($rawText, true);
                 if (isset($parsedContent['candidates']) && is_array($parsedContent['candidates'])) {
                     foreach ($parsedContent['candidates'] as $candidate) {
                         if (!empty($candidate['name']) && !empty($candidate['linkedin_url'])) {
@@ -110,10 +117,34 @@ If no profiles are found, return { \"candidates\": [] }.";
                 }
             }
         } catch (\Throwable $e) {
-            Log::warning("[DeepSearch] AI Web Search failed: {$e->getMessage()}. Falling back to scraping.");
+            Log::warning("[DeepSearch] AI Web Search failed: {$e->getMessage()}. Falling back to search services.");
         }
 
-        // Step 2: Fallback to Yahoo scraping if AI returned empty results
+        // Step 2: Fallback to Google Custom Search API if AI returned empty results
+        if (empty($rawResults)) {
+            try {
+                $googleSearchService = app(LeadContactGoogleSearchService::class);
+                $googleResult = $googleSearchService->search($lead);
+                if ($googleResult['success'] && ! empty($googleResult['candidates'])) {
+                    foreach ($googleResult['candidates'] as $gc) {
+                        $rawResults[] = [
+                            'name' => $gc['name'],
+                            'title' => $gc['title'] ?? null,
+                            'linkedin_url' => $gc['linkedin_url'] ?? null,
+                            'linkedin_id' => $gc['linkedin_id'] ?? hash('sha256', strtolower($gc['linkedin_url'] ?? $gc['name'])),
+                            'snippet' => $gc['raw_preview']['snippet'] ?? '',
+                            'snippet_emails' => [],
+                            'source_query' => 'Google Search API fallback',
+                            'source_type' => 'linkedin',
+                        ];
+                    }
+                }
+            } catch (\Throwable $ge) {
+                Log::warning("[DeepSearch] Google Search fallback error: {$ge->getMessage()}");
+            }
+        }
+
+        // Step 3: Fallback to Yahoo scraping if previous steps returned empty
         if (empty($rawResults)) {
             $queries = $this->buildQueries($lead);
             foreach ($queries as $query) {

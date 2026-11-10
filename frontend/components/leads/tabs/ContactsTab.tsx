@@ -64,6 +64,7 @@ interface ContactsTabProps {
   lushaContactOptions: any[];
   onAddContact: () => void;
   onOpenLusha: (contact?: any) => void;
+  onDirectLushaReveal: (contact: any) => void;
   onSetPrimary: (id: number) => void;
   isSetPrimaryPending?: boolean;
   onEditContact: (contact: any) => void;
@@ -76,6 +77,7 @@ export function ContactsTab({
   lushaContactOptions,
   onAddContact,
   onOpenLusha,
+  onDirectLushaReveal,
   onSetPrimary,
   isSetPrimaryPending,
   onEditContact,
@@ -166,11 +168,11 @@ export function ContactsTab({
                     ) : (
                       <button
                         type="button"
-                        onClick={() => onOpenLusha(contact)}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-[color:var(--brand)] hover:underline"
-                        title="Cari nomor HP menggunakan Lusha"
+                        onClick={() => onDirectLushaReveal(contact)}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-amber-500 hover:underline"
+                        title="Ambil nomor telepon via Lusha (1 Credit)"
                       >
-                        <Zap className="h-3 w-3" /> Cari No. HP (Lusha)
+                        <Zap className="h-3 w-3 fill-amber-500 text-amber-500" /> Cari No. HP (Lusha)
                       </button>
                     )}
                   </div>
@@ -182,15 +184,16 @@ export function ContactsTab({
 
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-1">
-                  {!contact.phone && (
-                    <button
-                      onClick={() => onOpenLusha(contact)}
-                      title="Cari nomor HP dengan Lusha"
-                      className="rounded-md p-1.5 text-muted-foreground hover:bg-[color:var(--brand)]/10 hover:text-[color:var(--brand)]"
-                    >
-                      <Zap className="h-3.5 w-3.5 text-[color:var(--brand)]" />
-                    </button>
-                  )}
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    onClick={() => onDirectLushaReveal(contact)}
+                    className="gap-1 text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/10 hover:text-amber-400 font-medium"
+                    title="Ambil nomor telepon via Lusha (1 Credit)"
+                  >
+                    <Zap className="h-3 w-3 fill-amber-500 text-amber-500" />
+                    <span>Lusha Phone</span>
+                  </Button>
                   {!contact.is_primary && (
                     <button
                       onClick={() => onSetPrimary(contact.id)}

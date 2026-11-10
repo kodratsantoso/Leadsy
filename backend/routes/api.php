@@ -343,6 +343,7 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('leads/{lead}/contact-enrichment/lusha/candidates', [ContactEnrichmentController::class, 'lushaCandidates'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/contact-enrichment/lusha/search', [ContactEnrichmentController::class, 'searchLusha'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contact-enrichment/lusha/candidates/{candidate}/reveal-phone', [ContactEnrichmentController::class, 'revealLushaPhone'])->middleware('permission:leads.edit');
+    Route::post('leads/{lead}/contacts/{contact}/lusha-reveal-phone', [ContactEnrichmentController::class, 'directRevealContactPhone'])->middleware('permission:leads.edit');
     Route::get('leads/{lead}/contact-enrichment/linkedin/candidates', [ContactEnrichmentController::class, 'linkedinCandidates'])->middleware('permission:leads.view');
     Route::post('leads/{lead}/contact-enrichment/linkedin/search', [ContactEnrichmentController::class, 'searchLinkedin'])->middleware('permission:leads.edit');
     Route::post('leads/{lead}/contact-enrichment/linkedin/candidates/{candidate}/add-contact', [ContactEnrichmentController::class, 'addLinkedinCandidateToContact'])->middleware('permission:leads.edit');
