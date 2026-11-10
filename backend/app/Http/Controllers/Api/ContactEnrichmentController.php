@@ -252,7 +252,8 @@ class ContactEnrichmentController extends Controller
             return response()->json(['message' => 'Lead company name is required before deep search.'], 422);
         }
 
-        $result = $service->search($lead);
+        $tenantId = $this->currentTenantId($request);
+        $result = $service->search($lead, $tenantId);
         if (! $result['success']) {
             return response()->json(['message' => $result['error'] ?? 'Deep search failed.'], 422);
         }

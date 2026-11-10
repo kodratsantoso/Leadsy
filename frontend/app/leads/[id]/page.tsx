@@ -315,7 +315,7 @@ function AddContactModal({
             <Button variant="outline" onClick={onClose}>Close</Button>
             <Button onClick={onSearch} disabled={searching}>
               {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              {mode === 'google' ? 'Search by Google' : (mode === 'linkedin' ? 'LinkedIn Search' : 'Deep Search (Yahoo/AI)')}
+              {mode === 'google' ? 'Search by Google' : (mode === 'linkedin' ? 'LinkedIn Search' : 'Deep Search (PIC Discovery)')}
             </Button>
           </>
         )
@@ -328,7 +328,7 @@ function AddContactModal({
             <option value="manual">Manual Add</option>
             <option value="google">Search by Google</option>
             <option value="linkedin">LinkedIn Search</option>
-            <option value="deep">Deep Search (Yahoo/AI)</option>
+            <option value="deep">Deep Search (PIC Discovery)</option>
           </Select>
         </div>
 
@@ -363,7 +363,7 @@ function AddContactModal({
               ) : mode === 'linkedin' ? (
                 <>LinkedIn search discovers matching public profiles scoped under the LINKEDIN provider using Google search engine scoped to site:linkedin.com/in.</>
               ) : (
-                <>Deep Search scans global search engines (Google, Bing, Yahoo) using AI Web Search to discover decision-maker LinkedIn profiles and PIC names.</>
+                <>Deep Search menjalankan pipeline sekuensial multi-engine (Serper.dev, Custom Endpoint, Google CSE, Tavily, Lusha) sesuai prioritas di Integrations untuk menemukan profil LinkedIn PIC &amp; pengambil keputusan.</>
               )}
             </div>
 
@@ -435,7 +435,7 @@ function AddContactModal({
                   ? 'Run Search by Google to find public LinkedIn profile results by company name and role keywords.'
                   : mode === 'linkedin'
                   ? 'Run LinkedIn Search to discover PIC profiles using the LinkedIn integration.'
-                  : 'Run Deep Search (Yahoo/AI) to find PIC profiles across global search engines.'}
+                  : 'Jalankan Deep Search untuk menemukan profil PIC secara sekuensial lintas mesin pencari terkonfigurasi.'}
               </p>
             )}
           </div>

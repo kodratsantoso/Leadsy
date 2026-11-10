@@ -34,14 +34,17 @@ class ContactDeepSearchService
 
     public function __construct(
         private EmailMxValidationService $mxValidator,
-    ) {}
+        private ?\App\Services\Lead\SearchEngines\SearchEnginePipelineManager $pipelineManager = null,
+    ) {
+        $this->pipelineManager = $pipelineManager ?: app(\App\Services\Lead\SearchEngines\SearchEnginePipelineManager::class);
+    }
 
     /**
      * Execute the deep search pipeline for a lead.
      *
      * @return array{success: bool, candidates: array, queries: string[], message?: string, error?: string}
      */
-    public function search(Lead $lead): array
+    public function search(Lead $lead, ?int $tenantId = null): array
     {
         if (empty($lead->company_name)) {
             return [
@@ -55,14 +58,28 @@ class ContactDeepSearchService
         $domain = $this->sanitizeDomain($lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST));
         $rawResults = [];
         $queries = [];
+        $successEngine = null;
 
-        // Step 1: Attempt AI Web Search using global search engines (Google, Bing, Yahoo)
+        // Step 1: Execute configurable multi-engine sequential priority pipeline (P1 -> P2 -> P3 -> P4 -> P5)
         try {
-            $brandTokens = $this->extractBrandTokens($lead);
-            $searchSubject = !empty($brandTokens) ? implode(' / ', array_slice($brandTokens, 0, 2)) : $lead->company_name;
+            $pipelineResult = $this->pipelineManager->executeSequentialSearch($lead, $tenantId);
+            if ($pipelineResult['success'] && !empty($pipelineResult['candidates'])) {
+                $rawResults = $pipelineResult['candidates'];
+                $queries = $pipelineResult['queries'];
+                $successEngine = $pipelineResult['provider_name'] ?? $pipelineResult['provider_key'] ?? null;
+            }
+        } catch (\Throwable $pe) {
+            Log::warning("[DeepSearch] Pipeline manager error: {$pe->getMessage()}");
+        }
 
-            $ai = app(\App\Services\AI\AiOrchestrationService::class);
-            $userPrompt = "Find as many public LinkedIn profile pages or contact information as possible (aim for at least 25 candidates) for any staff, employees, or decision-makers working at \"{$searchSubject}\" (legal entity: \"{$lead->company_name}\", domain: \"{$domain}\").
+        // Step 2: Fallback to AI Web Search if pipeline returned no results
+        if (empty($rawResults)) {
+            try {
+                $brandTokens = $this->extractBrandTokens($lead);
+                $searchSubject = !empty($brandTokens) ? implode(' / ', array_slice($brandTokens, 0, 2)) : $lead->company_name;
+
+                $ai = app(\App\Services\AI\AiOrchestrationService::class);
+                $userPrompt = "Find as many public LinkedIn profile pages or contact information as possible (aim for at least 25 candidates) for any staff, employees, or decision-makers working at \"{$searchSubject}\" (legal entity: \"{$lead->company_name}\", domain: \"{$domain}\").
 Include ALL organizational levels: executives, managers, directors, engineers, IT staff, operations, sales, marketing, procurement, HR, finance, admin, and general staff or PICs.
 You MUST search exhaustively using Google, Bing, Yahoo, and LinkedIn directory via Web Search. Do not stop at the top results; scan deeply to list up to 30 people if found.
 Return a JSON array containing candidates under the \"candidates\" key. Format each candidate precisely as:
@@ -74,57 +91,58 @@ Return a JSON array containing candidates under the \"candidates\" key. Format e
 }
 If no profiles are found, return { \"candidates\": [] }.";
 
-            $aiResult = $ai->call('lead_contact_google_search_keyword', $userPrompt, [
-                'web_search' => true,
-                'company_name' => $lead->company_name,
-                'company_domain' => $domain,
-                'website' => $lead->website,
-                'industry' => $lead->industry?->name,
-            ]);
+                $aiResult = $ai->call('lead_contact_google_search_keyword', $userPrompt, [
+                    'web_search' => true,
+                    'company_name' => $lead->company_name,
+                    'company_domain' => $domain,
+                    'website' => $lead->website,
+                    'industry' => $lead->industry?->name,
+                ]);
 
-            if ($aiResult['success'] && !empty($aiResult['content'])) {
-                // Parse AI response content with markdown and JSON block cleaning
-                $rawText = trim((string) $aiResult['content']);
-                if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/', $rawText, $match)) {
-                    $rawText = trim($match[1]);
-                } elseif (preg_match('/\{[\s\S]*\}/', $rawText, $match)) {
-                    $rawText = trim($match[0]);
-                }
+                if ($aiResult['success'] && !empty($aiResult['content'])) {
+                    // Parse AI response content with markdown and JSON block cleaning
+                    $rawText = trim((string) $aiResult['content']);
+                    if (preg_match('/```(?:json)?\s*([\s\S]*?)\s*```/', $rawText, $match)) {
+                        $rawText = trim($match[1]);
+                    } elseif (preg_match('/\{[\s\S]*\}/', $rawText, $match)) {
+                        $rawText = trim($match[0]);
+                    }
 
-                $parsedContent = json_decode($rawText, true);
-                if (isset($parsedContent['candidates']) && is_array($parsedContent['candidates'])) {
-                    foreach ($parsedContent['candidates'] as $candidate) {
-                        if (!empty($candidate['name']) && !empty($candidate['linkedin_url'])) {
-                            // Extract LinkedIn ID
-                            $path = parse_url($candidate['linkedin_url'], PHP_URL_PATH) ?: '';
-                            $linkedinId = '';
-                            if (preg_match('#^/in/([A-Za-z0-9._%-]+)/?$#', $path, $idMatch)) {
-                                $linkedinId = strtolower($idMatch[1]);
+                    $parsedContent = json_decode($rawText, true);
+                    if (isset($parsedContent['candidates']) && is_array($parsedContent['candidates'])) {
+                        foreach ($parsedContent['candidates'] as $candidate) {
+                            if (!empty($candidate['name']) && !empty($candidate['linkedin_url'])) {
+                                // Extract LinkedIn ID
+                                $path = parse_url($candidate['linkedin_url'], PHP_URL_PATH) ?: '';
+                                $linkedinId = '';
+                                if (preg_match('#^/in/([A-Za-z0-9._%-]+)/?$#', $path, $idMatch)) {
+                                    $linkedinId = strtolower($idMatch[1]);
+                                }
+
+                                $rawResults[] = [
+                                    'name' => $candidate['name'],
+                                    'title' => $candidate['title'] ?? null,
+                                    'linkedin_url' => $candidate['linkedin_url'],
+                                    'linkedin_id' => $linkedinId ?: hash('sha256', strtolower($candidate['linkedin_url'])),
+                                    'snippet' => $candidate['snippet'] ?? '',
+                                    'snippet_emails' => [],
+                                    'source_query' => 'AI Web Search (Google/Bing/Yahoo)',
+                                    'source_type' => 'linkedin',
+                                ];
                             }
-
-                            $rawResults[] = [
-                                'name' => $candidate['name'],
-                                'title' => $candidate['title'] ?? null,
-                                'linkedin_url' => $candidate['linkedin_url'],
-                                'linkedin_id' => $linkedinId ?: hash('sha256', strtolower($candidate['linkedin_url'])),
-                                'snippet' => $candidate['snippet'] ?? '',
-                                'snippet_emails' => [],
-                                'source_query' => 'AI Web Search (Google/Bing/Yahoo)',
-                                'source_type' => 'linkedin',
-                            ];
                         }
                     }
                 }
+            } catch (\Throwable $e) {
+                Log::warning("[DeepSearch] AI Web Search failed: {$e->getMessage()}. Falling back to search services.");
             }
-        } catch (\Throwable $e) {
-            Log::warning("[DeepSearch] AI Web Search failed: {$e->getMessage()}. Falling back to search services.");
         }
 
-        // Step 2: Fallback to Google Custom Search API if AI returned empty results
+        // Step 3: Fallback to Google Custom Search API if previous steps returned empty
         if (empty($rawResults)) {
             try {
                 $googleSearchService = app(LeadContactGoogleSearchService::class);
-                $googleResult = $googleSearchService->search($lead);
+                $googleResult = $googleSearchService->search($lead, $tenantId);
                 if ($googleResult['success'] && ! empty($googleResult['candidates'])) {
                     foreach ($googleResult['candidates'] as $gc) {
                         $rawResults[] = [
@@ -144,7 +162,7 @@ If no profiles are found, return { \"candidates\": [] }.";
             }
         }
 
-        // Step 3: Fallback to Yahoo scraping if previous steps returned empty
+        // Step 4: Fallback to Yahoo scraping if previous steps returned empty
         if (empty($rawResults)) {
             $queries = $this->buildQueries($lead);
             foreach ($queries as $query) {

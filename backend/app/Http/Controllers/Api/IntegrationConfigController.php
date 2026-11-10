@@ -691,4 +691,27 @@ class IntegrationConfigController extends Controller
             return null;
         }
     }
+
+    /**
+     * Test connection for a configured or provided search engine.
+     */
+    public function testSearchEngine(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'provider' => 'required|string|in:serper,custom,google_cse,tavily,lusha',
+            'credentials' => 'nullable|array',
+        ]);
+
+        $tenantId = $this->currentTenantId($request);
+        $pipeline = app(\App\Services\Lead\SearchEngines\SearchEnginePipelineManager::class);
+        $provider = $pipeline->getProvider($data['provider']);
+
+        if (!$provider) {
+            return response()->json(['success' => false, 'message' => 'Provider not recognized.'], 404);
+        }
+
+        $res = $provider->testConnection($data['credentials'] ?? [], $tenantId);
+
+        return response()->json($res, $res['success'] ? 200 : 422);
+    }
 }

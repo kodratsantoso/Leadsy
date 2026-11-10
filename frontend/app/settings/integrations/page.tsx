@@ -19,6 +19,7 @@ import Link from "next/link";
 import { describeThrown } from "@/lib/apiError";
 import { EmailIntegrationSubTab } from "@/components/settings/EmailIntegrationSubTab";
 import { MekariSignIntegrationSubTab } from "@/components/settings/MekariSignIntegrationSubTab";
+import { SearchEnginesIntegrationSubTab } from "@/components/settings/SearchEnginesIntegrationSubTab";
 import {
   Table,
   TableBody,
@@ -40,7 +41,7 @@ type IntegrationConfig = {
   value_type: "string" | "boolean" | "number" | "json";
 };
 
-type TabKey = "lead_platforms" | "maps" | "whatsapp" | "email" | "mekari_sign" | "lusha" | "webhooks" | "lark" | "linkedin";
+type TabKey = "lead_platforms" | "maps" | "whatsapp" | "email" | "mekari_sign" | "lusha" | "webhooks" | "lark" | "linkedin" | "search_engines";
 type GooglePermissionStatus = "available" | "restricted" | "not_enabled" | "invalid_key" | "not_configured" | "not_available" | "unknown";
 type GooglePermission = {
   id: string;
@@ -530,7 +531,7 @@ function createDefaultLeadPlatforms(): Record<string, IntegrationConfig> {
 function IntegrationsSettingsContent() {
   const searchParams = useSearchParams();
   const queryTab = searchParams.get("tab") as TabKey | null;
-  const validTabs: TabKey[] = ["lead_platforms", "maps", "whatsapp", "email", "mekari_sign", "lusha", "webhooks", "lark", "linkedin"];
+  const validTabs: TabKey[] = ["lead_platforms", "maps", "whatsapp", "email", "mekari_sign", "lusha", "webhooks", "lark", "linkedin", "search_engines"];
   const initialTab = queryTab && validTabs.includes(queryTab) ? queryTab : "lead_platforms";
   const [tab, setTab] = useState<TabKey>(initialTab);
 
@@ -1290,6 +1291,7 @@ function IntegrationsSettingsContent() {
         onValueChange={setTab}
         items={[
           { key: "lead_platforms", label: "Lead Platforms", icon: Share2 },
+          { key: "search_engines", label: "Search & PIC Discovery", icon: Globe2 },
           { key: "maps", label: "Google", icon: MapPin },
           { key: "whatsapp", label: "WhatsApp", icon: MessageSquare },
           { key: "email", label: "Email & SMTP", icon: Mail },
@@ -3127,6 +3129,8 @@ function IntegrationsSettingsContent() {
           </a>
         </div>
       )}
+
+      {tab === "search_engines" && <SearchEnginesIntegrationSubTab />}
 
       <Modal
         open={baseSyncDialog.open}
