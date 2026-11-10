@@ -236,3 +236,4 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
         }
     }
 }
+

@@ -36,3 +36,4 @@ interface SearchEngineProviderInterface
      */
     public function testConnection(array $credentials = [], ?int $tenantId = null): array;
 }
+

@@ -178,3 +178,4 @@ class LushaSearchProvider implements SearchEngineProviderInterface
         }
     }
 }
+

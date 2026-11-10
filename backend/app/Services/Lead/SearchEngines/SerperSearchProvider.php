@@ -164,3 +164,4 @@ class SerperSearchProvider implements SearchEngineProviderInterface
         }
     }
 }
+

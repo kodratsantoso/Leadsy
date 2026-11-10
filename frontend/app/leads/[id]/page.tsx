@@ -18,7 +18,7 @@ import {
   Phone, Mail, MapPin, Star, StarOff, Pencil, Trash2, X, Shield, ChevronDown, ChevronUp,
   Target, DollarSign, BrainCircuit, ShieldCheck, ThumbsUp, ThumbsDown,
   Building2, ClipboardList, Sparkles, CornerDownRight, ChevronRight,
-  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, GitBranch, GitMerge, Link as LinkIcon
+  Activity, Info, Search, ExternalLink, Printer, RefreshCw, Bot, FileDown, GitBranch, GitMerge, Link as LinkIcon, Globe2
 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
@@ -281,7 +281,7 @@ function AddContactModal({
   mode: 'manual' | 'google' | 'linkedin' | 'deep';
   setMode: (mode: 'manual' | 'google' | 'linkedin' | 'deep') => void;
   candidates: GoogleContactCandidate[];
-  feedback: { type: 'success' | 'error'; msg: string } | null;
+  feedback: { type: 'success' | 'error'; msg: string; not_configured?: boolean } | null;
   searching: boolean;
   adding: boolean;
   saving: boolean;
@@ -363,18 +363,44 @@ function AddContactModal({
               ) : mode === 'linkedin' ? (
                 <>LinkedIn search discovers matching public profiles scoped under the LINKEDIN provider using Google search engine scoped to site:linkedin.com/in.</>
               ) : (
-                <>Deep Search menjalankan pipeline sekuensial multi-engine (Serper.dev, Custom Endpoint, Google CSE, Tavily, Lusha) sesuai prioritas di Integrations untuk menemukan profil LinkedIn PIC &amp; pengambil keputusan.</>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground flex items-center gap-1.5">
+                      <Globe2 className="h-3.5 w-3.5 text-indigo-500" /> Deep Search (PIC Discovery)
+                    </span>
+                    <Link href="/settings/integrations?tab=search_engines" className="text-[11px] text-indigo-500 hover:underline inline-flex items-center gap-1 font-medium">
+                      Pengaturan Engine <ExternalLink className="h-2.5 w-2.5" />
+                    </Link>
+                  </div>
+                  <p>
+                    Deep Search menjalankan pipeline sekuensial multi-engine (Serper.dev, Custom Endpoint, Google CSE, Tavily, Lusha) sesuai prioritas di Integrations untuk menemukan profil LinkedIn PIC &amp; pengambil keputusan.
+                  </p>
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                    *Pastikan minimal satu Search Engine telah aktif di Settings &gt; Integrations &gt; Search &amp; PIC Discovery (misal: Serper.dev gratis 2.500 pencarian) agar pencarian berjalan lancar tanpa blokir bot.
+                  </p>
+                </div>
               )}
             </div>
 
             {feedback ? (
               <div className={cn(
-                'rounded-xl border p-3 text-xs',
+                'rounded-xl border p-3 text-xs space-y-2',
                 feedback.type === 'success'
                   ? 'border-[var(--status-success)]/30 bg-[color-mix(in_oklch,var(--status-success)_10%,transparent)] text-[var(--status-success)]'
                   : 'border-[var(--status-danger)]/30 bg-[color-mix(in_oklch,var(--status-danger)_10%,transparent)] text-[var(--status-danger)]'
               )}>
-                {feedback.msg}
+                <p>{feedback.msg}</p>
+                {feedback.not_configured && (
+                  <div className="pt-2 border-t border-border/40">
+                    <Link
+                      href="/settings/integrations?tab=search_engines"
+                      className="inline-flex items-center gap-1.5 font-semibold text-indigo-500 hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Buka Pengaturan Search &amp; PIC Discovery (Settings &gt; Integrations) ➔
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : null}
 
@@ -531,7 +557,7 @@ export default function LeadDetailPage() {
     message: string;
     details?: any;
   } | null>(null);
-  const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [enrichmentFeedback, setEnrichmentFeedback] = useState<{ type: 'success' | 'error'; msg: string; not_configured?: boolean } | null>(null);
 
   // Activity form state (controlled)
   const [showActivityModal, setShowActivityModal] = useState(false);
@@ -1066,15 +1092,27 @@ export default function LeadDetailPage() {
     mutationFn: async () => {
       const res = await apiFetch(`/leads/${leadId}/contact-enrichment/google-deep/search`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.message || 'Failed to perform deep search');
+      if (!res.ok) {
+        const err = new Error(json?.message || 'Failed to perform deep search') as any;
+        err.not_configured = json?.not_configured ?? false;
+        throw err;
+      }
       return json;
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['lead-deep-contact-candidates', leadId] });
-      setEnrichmentFeedback({ type: 'success', msg: data?.message || 'Deep search candidates loaded' });
+      setEnrichmentFeedback({
+        type: (data?.data?.length || 0) > 0 ? 'success' : 'error',
+        msg: data?.message || 'Deep search candidates loaded',
+        not_configured: data?.not_configured ?? false,
+      });
     },
     onError: (error: any) => {
-      setEnrichmentFeedback({ type: 'error', msg: error?.message || 'Failed to perform deep search' });
+      setEnrichmentFeedback({
+        type: 'error',
+        msg: error?.message || 'Failed to perform deep search',
+        not_configured: error?.not_configured ?? false,
+      });
     },
   });
 

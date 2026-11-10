@@ -206,3 +206,4 @@ trait SearchEngineResultParserTrait
         return array_values(array_unique($queries));
     }
 }
+

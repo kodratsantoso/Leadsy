@@ -255,7 +255,10 @@ class ContactEnrichmentController extends Controller
         $tenantId = $this->currentTenantId($request);
         $result = $service->search($lead, $tenantId);
         if (! $result['success']) {
-            return response()->json(['message' => $result['error'] ?? 'Deep search failed.'], 422);
+            return response()->json([
+                'message' => $result['message'] ?? $result['error'] ?? 'Deep search failed.',
+                'not_configured' => $result['not_configured'] ?? false,
+            ], 422);
         }
 
         $candidates = collect($result['candidates'] ?? [])->map(function (array $candidate) use ($lead, $request) {

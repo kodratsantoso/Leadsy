@@ -261,4 +261,20 @@ class SearchEnginesDiscoveryFlowTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('success', true);
     }
+
+    public function test_deep_search_returns_clear_actionable_error_when_no_engine_configured(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+
+        $user = $this->makeUser();
+        $lead = $this->makeLead($user);
+
+        // No engines configured
+        $response = $this->actingAs($user)
+            ->postJson("/api/leads/{$lead->id}/contact-enrichment/google-deep/search");
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('not_configured', true);
+        $this->assertStringContainsString('Settings > Integrations > Search & PIC Discovery', $response->json('message'));
+    }
 }

@@ -59,10 +59,12 @@ class ContactDeepSearchService
         $rawResults = [];
         $queries = [];
         $successEngine = null;
+        $pipelineTried = [];
 
         // Step 1: Execute configurable multi-engine sequential priority pipeline (P1 -> P2 -> P3 -> P4 -> P5)
         try {
             $pipelineResult = $this->pipelineManager->executeSequentialSearch($lead, $tenantId);
+            $pipelineTried = $pipelineResult['tried_engines'] ?? [];
             if ($pipelineResult['success'] && !empty($pipelineResult['candidates'])) {
                 $rawResults = $pipelineResult['candidates'];
                 $queries = $pipelineResult['queries'];
@@ -70,6 +72,19 @@ class ContactDeepSearchService
             }
         } catch (\Throwable $pe) {
             Log::warning("[DeepSearch] Pipeline manager error: {$pe->getMessage()}");
+        }
+
+        // If no engine was configured in the pipeline, fail fast with actionable guidance
+        $allSkipped = !empty($pipelineTried) && collect($pipelineTried)->every(fn ($e) => ($e['status'] ?? '') === 'skipped_not_configured');
+        if (empty($rawResults) && $allSkipped) {
+            return [
+                'success' => false,
+                'not_configured' => true,
+                'candidates' => [],
+                'queries' => [],
+                'message' => 'Belum ada Mesin Pencari (Search Engine) yang dikonfigurasi di Settings > Integrations > Search & PIC Discovery. Silakan isi API Key (misal: Serper.dev gratis 2.500 pencarian atau Custom Endpoint) agar pencarian PIC dapat berjalan tanpa terblokir.',
+                'error' => 'Belum ada Mesin Pencari (Search Engine) yang dikonfigurasi di Settings > Integrations > Search & PIC Discovery. Silakan isi API Key (misal: Serper.dev gratis 2.500 pencarian atau Custom Endpoint) agar pencarian PIC dapat berjalan tanpa terblokir.',
+            ];
         }
 
         // Step 2: Fallback to AI Web Search if pipeline returned no results
@@ -176,11 +191,20 @@ If no profiles are found, return { \"candidates\": [] }.";
         }
 
         if (empty($rawResults)) {
+            $configuredNames = collect($pipelineTried)
+                ->filter(fn ($e) => ($e['status'] ?? '') !== 'skipped_not_configured')
+                ->pluck('name')
+                ->join(', ');
+
+            $msg = $configuredNames
+                ? "Pencarian PIC via {$configuredNames} tidak menemukan profil yang cocok untuk \"{$lead->company_name}\". Coba periksa kembali ejaan nama perusahaan atau sesuaikan kata kunci pencarian."
+                : 'Deep search did not discover any contact candidates. Global search engines returned no profiles or blocked the request.';
+
             return [
                 'success' => true,
                 'candidates' => [],
-                'queries' => $queries ?: ['AI Web Search'],
-                'message' => 'Deep search did not discover any contact candidates. Global search engines returned no profiles or blocked the request.',
+                'queries' => $queries ?: ['Pipeline Search'],
+                'message' => $msg,
             ];
         }
 

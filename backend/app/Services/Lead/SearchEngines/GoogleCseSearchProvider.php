@@ -140,3 +140,4 @@ class GoogleCseSearchProvider implements SearchEngineProviderInterface
         }
     }
 }
+
