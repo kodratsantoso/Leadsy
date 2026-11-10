@@ -92,6 +92,7 @@ class IntegrationConfigController extends Controller
             'GOOGLE_MAPS_BROWSER_API_KEY',
             'GOOGLE_MAPS_DEFAULT_CENTER_LAT',
             'GOOGLE_MAPS_DEFAULT_CENTER_LNG',
+            'LUSHA_ENABLED',
         ];
 
         $tenantId = $this->currentTenantId($request);

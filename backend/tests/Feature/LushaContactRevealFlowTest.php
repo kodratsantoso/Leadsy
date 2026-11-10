@@ -16,13 +16,12 @@ class LushaContactRevealFlowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_lusha_preview_is_blocked_until_initial_score_reaches_sixty(): void
+    public function test_lusha_preview_is_blocked_when_lusha_is_disabled(): void
     {
         $this->withoutMiddleware(CheckPermission::class);
         Http::fake();
 
         $user = $this->makeUser();
-        $this->configureLusha($user);
         $lead = Lead::create([
             'tenant_id' => $user->tenant_id,
             'company_name' => 'Acme Indonesia',
@@ -34,7 +33,7 @@ class LushaContactRevealFlowTest extends TestCase
         $this->actingAs($user)
             ->postJson("/api/leads/{$lead->id}/contact-enrichment/lusha/search")
             ->assertStatus(422)
-            ->assertJsonPath('message', 'Lusha enrichment is available after the lead reaches an initial score of 60.');
+            ->assertJsonPath('message', 'Lusha integration is not enabled. Please enable it in Settings > Integration.');
 
         Http::assertNothingSent();
     }

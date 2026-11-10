@@ -60,7 +60,7 @@ function ConfidenceDot({ score }: { score?: number | null }) {
 
 interface ContactsTabProps {
   contacts: any[];
-  lushaEligible: boolean;
+  lushaEligible?: boolean;
   lushaContactOptions: any[];
   onAddContact: () => void;
   onOpenLusha: () => void;
@@ -90,16 +90,9 @@ export function ContactsTab({
         </Button>
         <Button
           onClick={onOpenLusha}
-          disabled={!lushaEligible || lushaContactOptions.length === 0}
           variant="outline"
           size="sm"
-          tooltip={
-            !lushaEligible
-              ? 'Requires initial lead score of 60+'
-              : lushaContactOptions.length === 0
-                ? 'Add a contact with LinkedIn, email, or full name first'
-                : 'Search Lusha for hidden email and phone data'
-          }
+          tooltip="Search Lusha to enrich contacts & reveal phone numbers"
         >
           <Zap className="h-3.5 w-3.5" /> Lusha
         </Button>

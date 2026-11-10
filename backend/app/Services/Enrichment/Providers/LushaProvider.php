@@ -24,7 +24,17 @@ class LushaProvider implements ContactEnrichmentProviderInterface
 
     public function isEnabled(): bool
     {
-        return $this->enabled;
+        return $this->enabled(null);
+    }
+
+    public function isEnabledForTenant(?int $tenantId = null): bool
+    {
+        return $this->enabled($tenantId);
+    }
+
+    public function isConfigured(?int $tenantId = null): bool
+    {
+        return $this->enabled($tenantId) && $this->apiKey($tenantId) !== '';
     }
 
     public function getIdentifier(): string
@@ -219,11 +229,11 @@ class LushaProvider implements ContactEnrichmentProviderInterface
     private function assertEnabled(?int $tenantId): void
     {
         if (! $this->enabled($tenantId)) {
-            throw new \RuntimeException('Lusha Contact Discovery is disabled.');
+            throw new \RuntimeException('Lusha integration is not enabled. Please enable it in Settings > Integration.');
         }
 
         if ($this->apiKey($tenantId) === '') {
-            throw new \RuntimeException('Lusha API key is not configured.');
+            throw new \RuntimeException('Lusha API key is not configured. Please set your Lusha API Key in Settings > Integration.');
         }
     }
 

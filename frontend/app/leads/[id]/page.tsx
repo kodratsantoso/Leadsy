@@ -1487,7 +1487,7 @@ export default function LeadDetailPage() {
   };
 
   const leadInitialScore = Number(latestScore?.score ?? leadData.lead_score ?? 0);
-  const lushaEligible = leadInitialScore >= 60;
+  const lushaEligible = true;
   const lushaCandidates: LushaCandidate[] =
     (Array.isArray(lushaCandidatesData?.data) && lushaCandidatesData.data.length > 0)
       ? lushaCandidatesData.data
@@ -2324,14 +2324,14 @@ export default function LeadDetailPage() {
           }
         }}
         title="Lusha Contact Enrichment"
-        description="Pick a saved contact, preview Lusha matches, then confirm before spending reveal credits."
+        description="Search Lusha to discover decision-maker candidates or reveal verified phone numbers."
         size="sm"
         footer={
           <>
             <Button variant="outline" onClick={() => setShowEnrichModal(false)}>Cancel</Button>
             <Button
               onClick={() => searchLushaMutation.mutate(lushaContact?.id)}
-              disabled={searchLushaMutation.isPending || !lushaEligible || !lushaContact}
+              disabled={searchLushaMutation.isPending}
             >
               {searchLushaMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Search Lusha
@@ -2341,34 +2341,33 @@ export default function LeadDetailPage() {
       >
         <div className="space-y-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Contact to enrich</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Search Target</label>
             <Select
               value={lushaContact?.id ? String(lushaContact.id) : ''}
               onChange={(event) => {
-                const nextContact = lushaContactOptions.find((contact: any) => String(contact.id) === event.target.value) ?? null;
+                const val = event.target.value;
+                const nextContact = val ? (lushaContactOptions.find((contact: any) => String(contact.id) === val) ?? null) : null;
                 setLushaContact(nextContact);
                 setEnrichmentFeedback(null);
                 searchLushaMutation.reset();
                 qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
               }}
-              placeholder="Select contact"
-              disabled={lushaContactOptions.length === 0}
             >
+              <option value="">Search by company identity ({leadData.company_name})</option>
               {lushaContactOptions.map((contact: any) => (
                 <option key={contact.id} value={String(contact.id)}>
-                  {contact.name}{contact.title ? ` — ${contact.title}` : ''}
+                  Enrich contact: {contact.name}{contact.title ? ` — ${contact.title}` : ''}
                 </option>
               ))}
             </Select>
-            {lushaContact ? (
-              <p className="mt-1 truncate text-xs text-muted-foreground">
-                {lushaContact.linkedin_url || lushaContact.email || 'Using full name + company identity'}
-              </p>
-            ) : null}
+            <p className="mt-1 truncate text-xs text-muted-foreground">
+              {lushaContact
+                ? (lushaContact.linkedin_url || lushaContact.email || `Enriching ${lushaContact.name}`)
+                : `Discovering all matching staff at ${leadData.company_name}`}
+            </p>
           </div>
           <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-            <p>Lead score: <strong>{leadInitialScore}</strong>. Lusha is available when the initial score reaches 60.</p>
-            <p className="mt-1">Search previews matching candidates and availability only. Phone/email values stay hidden until you confirm Reveal & Save.</p>
+            <p>Search previews matching candidates and phone/email availability. Revealing phone data requires confirmation.</p>
           </div>
 
           {enrichmentFeedback ? (

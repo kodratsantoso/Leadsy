@@ -16,8 +16,6 @@ use Illuminate\Http\Request;
 
 class ContactEnrichmentController extends Controller
 {
-    private const MIN_LUSHA_SCORE = 60;
-
     public function googleCandidates(Request $request, Lead $lead): JsonResponse
     {
         $candidates = $lead->contactEnrichmentCandidates()
@@ -339,10 +337,9 @@ class ContactEnrichmentController extends Controller
         ]);
     }
 
-    public function lushaCandidates(Request $request, Lead $lead): JsonResponse
+    public function lushaCandidates(Request $request, Lead $lead, LushaProvider $provider): JsonResponse
     {
-        $this->authorizeLushaGate($lead);
-
+        $tenantId = $this->currentTenantId($request);
         $candidates = $lead->contactEnrichmentCandidates()
             ->where('provider', 'LUSHA')
             ->whereIn('status', ['previewed', 'revealed'])
@@ -353,13 +350,17 @@ class ContactEnrichmentController extends Controller
 
         return response()->json([
             'data' => $candidates,
-            'meta' => ['min_score' => self::MIN_LUSHA_SCORE, 'current_score' => $this->currentScore($lead)],
+            'meta' => [
+                'is_enabled' => $provider->isEnabledForTenant($tenantId),
+                'is_configured' => $provider->isConfigured($tenantId),
+                'current_score' => $this->currentScore($lead),
+            ],
         ]);
     }
 
     public function searchLusha(Request $request, Lead $lead, LushaProvider $provider): JsonResponse
     {
-        $this->authorizeLushaGate($lead);
+        $this->authorizeLushaGate($this->currentTenantId($request));
 
         if (empty($lead->company_name)) {
             return response()->json(['message' => 'Lead company name is required before Lusha search.'], 422);
@@ -433,7 +434,7 @@ class ContactEnrichmentController extends Controller
         ContactEnrichmentCandidate $candidate,
         LushaProvider $provider
     ): JsonResponse {
-        $this->authorizeLushaGate($lead);
+        $this->authorizeLushaGate($this->currentTenantId($request));
 
         if ((int) $candidate->lead_id !== (int) $lead->id || $candidate->provider !== 'LUSHA') {
             return response()->json(['message' => 'Contact candidate does not belong to this lead.'], 404);
@@ -654,9 +655,14 @@ class ContactEnrichmentController extends Controller
         return $contact;
     }
 
-    private function authorizeLushaGate(Lead $lead): void
+    private function authorizeLushaGate(?int $tenantId): void
     {
-        abort_if($this->currentScore($lead) < self::MIN_LUSHA_SCORE, 422, 'Lusha enrichment is available after the lead reaches an initial score of 60.');
+        $provider = app(LushaProvider::class);
+        abort_unless(
+            $provider->isEnabledForTenant($tenantId),
+            422,
+            'Lusha integration is not enabled. Please enable it in Settings > Integration.'
+        );
     }
 
     private function currentScore(Lead $lead): int
