@@ -131,6 +131,68 @@ class LushaContactRevealFlowTest extends TestCase
         ]);
     }
 
+    public function test_lusha_reveal_phone_updates_existing_contact_without_duplicate(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+        Http::fake([
+            'api.lusha.com/v3/contacts/enrich' => Http::response([
+                'requestId' => 'reveal-request-2',
+                'results' => [[
+                    'id' => 'lusha-456',
+                    'fullName' => 'Ir. Budi Santoso, M.M.',
+                    'jobTitle' => ['title' => 'Chief Financial Officer'],
+                    'phones' => [['number' => '+62899887766', 'type' => 'mobile', 'doNotCall' => false]],
+                    'socialLinks' => ['linkedin' => 'https://www.linkedin.com/in/budi-santoso'],
+                ]],
+                'billing' => ['creditsCharged' => 1, 'resultsReturned' => 1],
+            ]),
+        ]);
+
+        $user = $this->makeUser();
+        $this->configureLusha($user);
+        $lead = $this->makeEligibleLead($user);
+
+        // Pre-existing contact discovered from Google/LinkedIn with no phone number yet
+        $existingContact = $lead->contacts()->create([
+            'name' => 'Budi Santoso',
+            'title' => 'Chief Financial Officer',
+            'linkedin_url' => 'https://id.linkedin.com/in/budi-santoso',
+            'phone' => null,
+            'source' => 'GOOGLE_SEARCH',
+            'is_primary' => true,
+        ]);
+
+        $candidate = ContactEnrichmentCandidate::create([
+            'lead_id' => $lead->id,
+            'created_by' => $user->id,
+            'provider' => 'LUSHA',
+            'provider_candidate_id' => 'lusha-456',
+            'name' => 'Budi Santoso',
+            'title' => 'Chief Financial Officer',
+            'company_name' => 'Acme Indonesia',
+            'company_domain' => 'acme.co.id',
+            'has_phone' => true,
+            'reveal_phone_credits' => 1,
+            'raw_preview' => [
+                'id' => 'lusha-456',
+                'target_contact_id' => $existingContact->id,
+            ],
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $this->actingAs($user)
+            ->postJson("/api/leads/{$lead->id}/contact-enrichment/lusha/candidates/{$candidate->id}/reveal-phone", [
+                'contact_id' => $existingContact->id,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.contact.phone', '+62899887766');
+
+        // MUST NOT create duplicate contact: count remains exactly 1!
+        $this->assertSame(1, $lead->contacts()->count());
+        $this->assertSame('+62899887766', $existingContact->fresh()->phone);
+        $this->assertSame(90, (int) $existingContact->fresh()->confidence_score);
+    }
+
     private function makeEligibleLead(User $user): Lead
     {
         return Lead::create([

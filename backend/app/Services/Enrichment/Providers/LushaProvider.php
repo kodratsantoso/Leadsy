@@ -60,22 +60,63 @@ class LushaProvider implements ContactEnrichmentProviderInterface
     {
         $this->assertEnabled($tenantId);
 
-        $clientReferenceId = 'lead-'.$lead->id.'-'.Str::slug($lead->company_name).'-'.now()->format('YmdHis');
-        $contactPayload = [
-            'clientReferenceId' => $clientReferenceId,
-            'companyName' => $lead->company_name,
-        ];
-
-        if (! empty($lead->website_domain)) {
-            $contactPayload['companyDomain'] = $lead->website_domain;
-        }
+        $contactPayloads = [];
 
         if ($contact) {
-            $contactPayload = array_filter($contactPayload + $this->contactSearchIdentity($contact), fn ($value) => $value !== null && $value !== '');
+            $clientReferenceId = 'lead-'.$lead->id.'-c-'.$contact->id.'-'.now()->format('YmdHis');
+            $contactPayload = [
+                'clientReferenceId' => $clientReferenceId,
+                'companyName' => $lead->company_name,
+            ];
+
+            if (! empty($lead->website_domain)) {
+                $contactPayload['companyDomain'] = $this->cleanDomain($lead->website_domain);
+            }
+
+            $contactPayload = array_filter(
+                $contactPayload + $this->contactSearchIdentity($contact),
+                fn ($value) => $value !== null && $value !== ''
+            );
+
+            $contactPayloads[] = $contactPayload;
+        } else {
+            // If lead already has contacts, search Lusha in bulk for all existing contacts
+            $existingContacts = $lead->contacts()->get();
+
+            if ($existingContacts->isNotEmpty()) {
+                foreach ($existingContacts as $ec) {
+                    $identity = $this->contactSearchIdentity($ec);
+                    if (! empty($identity['linkedinUrl']) || ! empty($identity['email']) || ! empty($identity['firstName'])) {
+                        $clientRef = 'lead-'.$lead->id.'-c-'.$ec->id.'-'.now()->format('YmdHis');
+                        $item = array_filter([
+                            'clientReferenceId' => $clientRef,
+                            'companyName' => $lead->company_name,
+                            'companyDomain' => $this->cleanDomain($lead->website_domain),
+                        ] + $identity, fn ($v) => $v !== null && $v !== '');
+
+                        $contactPayloads[] = $item;
+                    }
+                }
+            }
+
+            // If no existing contacts, or none had identifiers, search by company identity
+            if (empty($contactPayloads)) {
+                $clientReferenceId = 'lead-'.$lead->id.'-'.Str::slug($lead->company_name).'-'.now()->format('YmdHis');
+                $contactPayload = [
+                    'clientReferenceId' => $clientReferenceId,
+                    'companyName' => $lead->company_name,
+                ];
+
+                if (! empty($lead->website_domain)) {
+                    $contactPayload['companyDomain'] = $this->cleanDomain($lead->website_domain);
+                }
+
+                $contactPayloads[] = $contactPayload;
+            }
         }
 
         $payload = [
-            'contacts' => [$contactPayload],
+            'contacts' => array_values($contactPayloads),
         ];
 
         $response = $this->client($tenantId)->post('https://api.lusha.com/v3/contacts/search', $payload);
@@ -83,15 +124,77 @@ class LushaProvider implements ContactEnrichmentProviderInterface
             $this->throwProviderException($response->status(), $response->json('message') ?? 'Lusha contact search failed.');
         }
 
+        $candidates = collect($response->json('results') ?? [])
+            ->map(fn (array $candidate): array => $this->normalizePreviewCandidate($candidate))
+            ->filter(fn (array $candidate): bool => ! empty($candidate['provider_candidate_id']) && ! empty($candidate['name']))
+            ->values()
+            ->all();
+
+        // If contact search returned no candidates and company has domain/name, try prospecting
+        if (empty($candidates) && ! $contact) {
+            $prospectResult = $this->prospectCandidatesByCompany($lead, $tenantId);
+            if (! empty($prospectResult['candidates'])) {
+                return $prospectResult;
+            }
+        }
+
         return [
             'request_id' => $response->json('requestId'),
             'billing' => $response->json('billing') ?? [],
             'rate_limits' => $this->rateLimitHeaders($response->headers()),
-            'candidates' => collect($response->json('results') ?? [])
-                ->map(fn (array $candidate): array => $this->normalizePreviewCandidate($candidate))
-                ->filter(fn (array $candidate): bool => ! empty($candidate['provider_candidate_id']) && ! empty($candidate['name']))
-                ->values()
-                ->all(),
+            'candidates' => $candidates,
+        ];
+    }
+
+    private function prospectCandidatesByCompany(Lead $lead, ?int $tenantId = null): array
+    {
+        $domain = $this->cleanDomain($lead->website_domain);
+        $companyName = trim((string) $lead->company_name);
+
+        // Try Lusha prospecting API if domain or company name exists
+        if (! empty($domain) || ! empty($companyName)) {
+            $filterCompanies = [];
+            if (! empty($domain)) {
+                $filterCompanies['domains'] = [$domain];
+            }
+            if (! empty($companyName)) {
+                $filterCompanies['names'] = [$companyName];
+            }
+
+            try {
+                $prospectResponse = $this->client($tenantId)->post('https://api.lusha.com/v3/contacts/prospecting', [
+                    'pagination' => ['page' => 0, 'size' => 15],
+                    'filters' => [
+                        'companies' => $filterCompanies,
+                    ],
+                ]);
+
+                if ($prospectResponse->successful()) {
+                    $results = $prospectResponse->json('results') ?? $prospectResponse->json('data') ?? [];
+                    if (! empty($results)) {
+                        return [
+                            'request_id' => $prospectResponse->json('requestId'),
+                            'billing' => $prospectResponse->json('billing') ?? [],
+                            'rate_limits' => $this->rateLimitHeaders($prospectResponse->headers()),
+                            'candidates' => collect($results)
+                                ->map(fn (array $candidate): array => $this->normalizePreviewCandidate($candidate))
+                                ->filter(fn (array $candidate): bool => ! empty($candidate['provider_candidate_id']))
+                                ->values()
+                                ->all(),
+                        ];
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[LushaProvider] Prospecting fallback error: '.$e->getMessage());
+            }
+        }
+
+        // If no contacts existed and prospecting didn't find results, explain clearly
+        return [
+            'request_id' => null,
+            'billing' => ['resultsReturned' => 0, 'creditsCharged' => 0],
+            'rate_limits' => [],
+            'candidates' => [],
         ];
     }
 
@@ -134,35 +237,45 @@ class LushaProvider implements ContactEnrichmentProviderInterface
     private function normalizePreviewCandidate(array $candidate): array
     {
         $canReveal = collect($candidate['canReveal'] ?? []);
-        $emailReveal = $canReveal->firstWhere('field', 'emails');
-        $phoneReveal = $canReveal->firstWhere('field', 'phones');
+        $emailReveal = $canReveal->first(fn ($r) => in_array($r['field'] ?? '', ['emails', 'email'], true));
+        $phoneReveal = $canReveal->first(fn ($r) => in_array($r['field'] ?? '', ['phones', 'phone', 'phoneNumbers'], true));
         $has = collect($candidate['has'] ?? []);
+
         $firstName = $candidate['firstName'] ?? '';
         $lastName = $candidate['lastName'] ?? '';
-        $name = trim($firstName.' '.$lastName);
+        $name = $candidate['fullName'] ?? $candidate['name'] ?? trim($firstName.' '.$lastName);
+        if (empty($name)) {
+            $name = 'Lusha Contact';
+        }
+
+        $targetContactId = null;
+        if (! empty($candidate['clientReferenceId']) && preg_match('/-c-(\d+)-/', (string) $candidate['clientReferenceId'], $matches)) {
+            $targetContactId = (int) $matches[1];
+        }
 
         return [
             'provider_candidate_id' => (string) ($candidate['id'] ?? ''),
             'name' => $name,
-            'title' => $candidate['jobTitle']['title'] ?? null,
+            'title' => $candidate['jobTitle']['title'] ?? $candidate['jobTitle'] ?? null,
             'company_name' => $candidate['company']['name'] ?? null,
             'company_domain' => $candidate['company']['domain'] ?? null,
-            'has_email' => $has->contains('emails') || $emailReveal !== null,
-            'has_phone' => $has->contains('phones') || $phoneReveal !== null,
+            'has_email' => $has->contains('emails') || $has->contains('email') || $emailReveal !== null,
+            'has_phone' => $has->contains('phones') || $has->contains('phone') || $has->contains('phoneNumbers') || $phoneReveal !== null,
             'reveal_email_credits' => (int) ($emailReveal['credits'] ?? 0),
             'reveal_phone_credits' => (int) ($phoneReveal['credits'] ?? 0),
-            'raw_preview' => $candidate,
+            'target_contact_id' => $targetContactId,
+            'raw_preview' => $candidate + ($targetContactId ? ['target_contact_id' => $targetContactId] : []),
         ];
     }
 
     private function contactSearchIdentity(LeadContact $contact): array
     {
-        [$firstName, $lastName] = $this->splitName($contact->name);
+        [$firstName, $lastName] = $this->splitCleanName($contact->name);
 
         return [
             'id' => $this->lushaPersonId($contact),
-            'linkedinUrl' => $contact->linkedin_url,
-            'email' => $contact->email,
+            'linkedinUrl' => $this->normalizeLinkedinUrl($contact->linkedin_url),
+            'email' => $contact->email ? trim(strtolower($contact->email)) : null,
             'firstName' => $firstName,
             'lastName' => $lastName,
         ];
@@ -185,35 +298,152 @@ class LushaProvider implements ContactEnrichmentProviderInterface
             ?? null;
     }
 
-    private function splitName(?string $name): array
+    private function splitCleanName(?string $name): array
     {
-        $parts = preg_split('/\s+/', trim((string) $name), 2, PREG_SPLIT_NO_EMPTY);
+        if (empty($name)) {
+            return [null, null];
+        }
 
-        return [
-            $parts[0] ?? null,
-            $parts[1] ?? null,
+        // 1. Remove bracketed notes like (Director) or (PT Acme)
+        $clean = preg_replace('/\s*[\(\[\{].*?[\)\]\}]\s*/', ' ', $name);
+
+        // 2. Remove title suffixes after comma or dash (e.g. "Budi Santoso, S.Kom, M.M.")
+        $clean = preg_replace('/,.*$/', '', $clean);
+        $clean = preg_replace('/\s+-\s+.*$/', '', $clean);
+
+        // 3. Remove common academic / professional prefixes
+        $prefixes = [
+            'dr\.', 'dr', 'drs\.', 'drs', 'dra\.', 'dra', 'ir\.', 'ir', 'prof\.', 'prof',
+            'h\.', 'hj\.', 'bpk\.', 'bpk', 'bapak', 'ibu', 'mr\.', 'mr', 'ms\.', 'ms', 'mrs\.', 'mrs',
         ];
+        $prefixPattern = '/\b('.implode('|', $prefixes).')\b\.?\s*/i';
+        $clean = preg_replace($prefixPattern, '', $clean);
+
+        // 4. Remove common degrees / suffixes at word boundaries
+        $suffixes = [
+            's\.kom', 's\.t', 's\.e', 's\.h', 's\.si', 's\.sos', 's\.ked',
+            'm\.m', 'm\.kom', 'm\.t', 'm\.ba', 'mba', 'ph\.d', 'phd', 'msc', 'bsc', 'cpa', 'cfa',
+        ];
+        $suffixPattern = '/\b('.implode('|', $suffixes).')\b\.?/i';
+        $clean = preg_replace($suffixPattern, '', $clean);
+
+        $parts = preg_split('/\s+/', trim((string) $clean), 2, PREG_SPLIT_NO_EMPTY);
+        $firstName = $parts[0] ?? null;
+        $lastName = $parts[1] ?? null;
+
+        // If single name (very common in Indonesia, e.g. "Budi"), Lusha requires both firstName and lastName
+        // when matching by name with company, so we replicate the single name for lastName.
+        if (! empty($firstName) && empty($lastName)) {
+            $lastName = $firstName;
+        }
+
+        return [$firstName, $lastName];
+    }
+
+    private function cleanDomain(?string $domain): ?string
+    {
+        if (empty($domain)) {
+            return null;
+        }
+
+        $clean = trim(strtolower($domain));
+        $clean = preg_replace('#^https?://#i', '', $clean);
+        $clean = preg_replace('#^www\.#i', '', $clean);
+        $clean = preg_replace('#/.*$#', '', $clean);
+
+        return $clean ?: null;
+    }
+
+    private function normalizeLinkedinUrl(?string $url): ?string
+    {
+        if (empty($url)) {
+            return null;
+        }
+
+        $url = trim($url);
+        // Normalize regional subdomains like id.linkedin.com to www.linkedin.com
+        $url = preg_replace('#^(https?://)?[a-z]{2}\.linkedin\.com#i', 'https://www.linkedin.com', $url);
+        if (! preg_match('#^https?://#i', $url)) {
+            $url = 'https://' . ltrim($url, '/');
+        }
+
+        // Strip query strings and trailing slashes
+        $parts = parse_url($url);
+        if (! empty($parts['path'])) {
+            $cleanPath = rtrim($parts['path'], '/');
+            return 'https://www.linkedin.com' . $cleanPath;
+        }
+
+        return $url;
     }
 
     private function normalizeRevealedContact(array $contact): array
     {
         $firstName = $contact['firstName'] ?? '';
         $lastName = $contact['lastName'] ?? '';
-        $name = $contact['fullName'] ?? trim($firstName.' '.$lastName);
-        $phone = collect($contact['phones'] ?? [])
-            ->first(fn ($phone): bool => empty($phone['doNotCall']) && ! empty($phone['number']));
-        $email = collect($contact['emails'] ?? [])
-            ->first(fn ($email): bool => ($email['type'] ?? null) === 'work' && ! empty($email['email']))
-            ?? collect($contact['emails'] ?? [])->first(fn ($email): bool => ! empty($email['email']));
+        $name = $contact['fullName'] ?? $contact['name'] ?? trim($firstName.' '.$lastName);
+        if (empty($name)) {
+            $name = 'Lusha Contact';
+        }
+
+        // Robust phone extraction: handle array of phone objects or scalar numbers
+        $rawPhones = collect($contact['phones'] ?? $contact['phoneNumbers'] ?? []);
+        if ($rawPhones->isEmpty() && ! empty($contact['phone'])) {
+            $rawPhones = collect([['number' => $contact['phone'], 'type' => 'DIRECT']]);
+        }
+
+        // Prefer mobile/direct line without DNC, then any non-DNC, then any line (so credit is never wasted)
+        $selectedPhoneObj = $rawPhones->first(function ($p): bool {
+            $num = is_array($p) ? ($p['number'] ?? $p['internationalNumber'] ?? $p['phone'] ?? '') : (string) $p;
+            $type = is_array($p) ? strtoupper((string) ($p['type'] ?? '')) : '';
+            $dnc = is_array($p) ? ! empty($p['doNotCall']) : false;
+            return ! empty($num) && ! $dnc && in_array($type, ['MOBILE', 'DIRECT', 'WORK'], true);
+        })
+        ?? $rawPhones->first(function ($p): bool {
+            $num = is_array($p) ? ($p['number'] ?? $p['internationalNumber'] ?? $p['phone'] ?? '') : (string) $p;
+            $dnc = is_array($p) ? ! empty($p['doNotCall']) : false;
+            return ! empty($num) && ! $dnc;
+        })
+        ?? $rawPhones->first(function ($p): bool {
+            $num = is_array($p) ? ($p['number'] ?? $p['internationalNumber'] ?? $p['phone'] ?? '') : (string) $p;
+            return ! empty($num);
+        });
+
+        $phoneNumber = null;
+        if (is_array($selectedPhoneObj)) {
+            $phoneNumber = $selectedPhoneObj['number'] ?? $selectedPhoneObj['internationalNumber'] ?? $selectedPhoneObj['phone'] ?? null;
+        } elseif (is_string($selectedPhoneObj)) {
+            $phoneNumber = $selectedPhoneObj;
+        }
+
+        if (! empty($phoneNumber)) {
+            $phoneNumber = trim((string) $phoneNumber);
+        }
+
+        // Extract email
+        $emails = collect($contact['emails'] ?? $contact['emailAddresses'] ?? []);
+        if ($emails->isEmpty() && ! empty($contact['email'])) {
+            $emails = collect([['email' => $contact['email'], 'type' => 'work']]);
+        }
+
+        $emailObj = $emails->first(fn ($e): bool => is_array($e) && ($e['type'] ?? '') === 'work' && ! empty($e['email']))
+            ?? $emails->first(fn ($e): bool => (is_array($e) && ! empty($e['email'])) || is_string($e));
+
+        $emailAddress = null;
+        if (is_array($emailObj)) {
+            $emailAddress = $emailObj['email'] ?? null;
+        } elseif (is_string($emailObj)) {
+            $emailAddress = $emailObj;
+        }
 
         return [
             'provider_candidate_id' => (string) ($contact['id'] ?? ''),
             'name' => $name,
-            'title' => $contact['jobTitle']['title'] ?? null,
-            'email' => $email['email'] ?? null,
-            'phone' => $phone['number'] ?? null,
-            'linkedin_url' => $contact['socialLinks']['linkedin'] ?? null,
-            'confidence_score' => ! empty($phone['number']) ? 90 : 70,
+            'title' => $contact['jobTitle']['title'] ?? $contact['jobTitle'] ?? null,
+            'email' => $emailAddress ? trim($emailAddress) : null,
+            'phone' => $phoneNumber,
+            'linkedin_url' => $this->normalizeLinkedinUrl($contact['socialLinks']['linkedin'] ?? $contact['linkedinUrl'] ?? null),
+            'confidence_score' => ! empty($phoneNumber) ? 90 : 70,
         ];
     }
 

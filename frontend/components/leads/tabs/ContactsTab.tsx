@@ -63,7 +63,7 @@ interface ContactsTabProps {
   lushaEligible?: boolean;
   lushaContactOptions: any[];
   onAddContact: () => void;
-  onOpenLusha: () => void;
+  onOpenLusha: (contact?: any) => void;
   onSetPrimary: (id: number) => void;
   isSetPrimaryPending?: boolean;
   onEditContact: (contact: any) => void;
@@ -156,23 +156,41 @@ export function ContactsTab({
                         <Mail className="h-3 w-3" /> PIC Email: {contact.email}
                       </a>
                     )}
-                    {contact.phone && (
+                    {contact.phone ? (
                       <a
                         href={`tel:${contact.phone}`}
                         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                       >
-                        <Phone className="h-3 w-3" /> PIC Phone: {contact.phone}
+                        <Phone className="h-3 w-3 text-emerald-500" /> PIC Phone: {contact.phone}
                       </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onOpenLusha(contact)}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-[color:var(--brand)] hover:underline"
+                        title="Cari nomor HP menggunakan Lusha"
+                      >
+                        <Zap className="h-3 w-3" /> Cari No. HP (Lusha)
+                      </button>
                     )}
                   </div>
 
-                  <div className="mt-2">
+                  <div className="mt-2 flex items-center justify-between">
                     <ConfidenceDot score={contact.confidence_score} />
                   </div>
                 </div>
 
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-1">
+                  {!contact.phone && (
+                    <button
+                      onClick={() => onOpenLusha(contact)}
+                      title="Cari nomor HP dengan Lusha"
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-[color:var(--brand)]/10 hover:text-[color:var(--brand)]"
+                    >
+                      <Zap className="h-3.5 w-3.5 text-[color:var(--brand)]" />
+                    </button>
+                  )}
                   {!contact.is_primary && (
                     <button
                       onClick={() => onSetPrimary(contact.id)}

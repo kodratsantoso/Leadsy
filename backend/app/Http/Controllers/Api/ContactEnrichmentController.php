@@ -384,7 +384,14 @@ class ContactEnrichmentController extends Controller
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        $candidates = collect($result['candidates'] ?? [])->map(function (array $candidate) use ($lead, $request) {
+        $candidates = collect($result['candidates'] ?? [])->map(function (array $candidate) use ($lead, $request, $contact) {
+            $rawPreview = $candidate['raw_preview'] ?? $candidate;
+            if ($contact) {
+                $rawPreview['target_contact_id'] = $contact->id;
+            } elseif (! empty($candidate['target_contact_id'])) {
+                $rawPreview['target_contact_id'] = $candidate['target_contact_id'];
+            }
+
             $model = ContactEnrichmentCandidate::updateOrCreate(
                 [
                     'lead_id' => $lead->id,
@@ -402,7 +409,7 @@ class ContactEnrichmentController extends Controller
                     'reveal_email_credits' => $candidate['reveal_email_credits'],
                     'reveal_phone_credits' => $candidate['reveal_phone_credits'],
                     'status' => 'previewed',
-                    'raw_preview' => $candidate['raw_preview'],
+                    'raw_preview' => $rawPreview,
                     'expires_at' => now()->addDays(7),
                 ]
             );
@@ -459,7 +466,16 @@ class ContactEnrichmentController extends Controller
             return response()->json(['message' => 'Lusha did not return a callable phone number for this candidate.'], 422);
         }
 
-        $contact = $this->mergeRevealedContact($lead, $contactPayload, $result['raw'] ?? []);
+        $targetContactId = $request->input('contact_id')
+            ?? ($candidate->raw_preview['target_contact_id'] ?? null);
+
+        $contact = $this->mergeRevealedContact(
+            $lead,
+            $contactPayload,
+            $result['raw'] ?? [],
+            $targetContactId ? (int) $targetContactId : null
+        );
+
         $candidate->update([
             'status' => 'revealed',
             'raw_reveal' => $result['raw'] ?? [],
@@ -486,35 +502,66 @@ class ContactEnrichmentController extends Controller
         ]);
     }
 
-    private function mergeRevealedContact(Lead $lead, array $payload, array $raw): LeadContact
+    private function mergeRevealedContact(Lead $lead, array $payload, array $raw, ?int $targetContactId = null): LeadContact
     {
-        $query = $lead->contacts();
-        if (! empty($payload['phone'])) {
-            $query->where('phone', $payload['phone']);
-        } elseif (! empty($payload['email'])) {
-            $query->where('email', $payload['email']);
-        } else {
-            $query->where('name', $payload['name']);
+        $contact = null;
+
+        // 1. Target contact explicitly designated
+        if ($targetContactId) {
+            $contact = $lead->contacts()->whereKey($targetContactId)->first();
         }
 
-        $contact = $query->first();
-        $values = [
-            'name' => $payload['name'],
-            'title' => $payload['title'] ?? null,
-            'email' => $payload['email'] ?? null,
-            'phone' => $payload['phone'] ?? null,
-            'linkedin_url' => $payload['linkedin_url'] ?? null,
-            'confidence_score' => $payload['confidence_score'] ?? 90,
-            'confidence' => 'high',
-            'source' => 'LUSHA',
-        ];
+        // 2. Match by normalized LinkedIn URL
+        if (! $contact && ! empty($payload['linkedin_url'])) {
+            $targetLinkedin = preg_replace('#^https?://(www\.)?#i', '', rtrim(strtolower($payload['linkedin_url']), '/'));
+            $contact = $lead->contacts()->get()->first(function (LeadContact $c) use ($targetLinkedin) {
+                if (empty($c->linkedin_url)) {
+                    return false;
+                }
+                $cLinkedin = preg_replace('#^https?://(www\.)?#i', '', rtrim(strtolower($c->linkedin_url), '/'));
+                return $cLinkedin === $targetLinkedin;
+            });
+        }
+
+        // 3. Match by email
+        if (! $contact && ! empty($payload['email'])) {
+            $contact = $lead->contacts()->where('email', strtolower(trim($payload['email'])))->first();
+        }
+
+        // 4. Match by name (case-insensitive)
+        if (! $contact && ! empty($payload['name'])) {
+            $targetName = strtolower(trim($payload['name']));
+            $contact = $lead->contacts()->get()->first(function (LeadContact $c) use ($targetName) {
+                return strtolower(trim((string) $c->name)) === $targetName;
+            });
+        }
+
+        // 5. Match by existing phone
+        if (! $contact && ! empty($payload['phone'])) {
+            $contact = $lead->contacts()->where('phone', $payload['phone'])->first();
+        }
 
         if ($contact) {
-            $contact->update(collect($values)
-                ->filter(fn ($value, string $key): bool => $value !== null && empty($contact->{$key}))
-                ->all());
+            $updateData = [
+                'phone' => $payload['phone'] ?? $contact->phone,
+                'email' => $contact->email ?: ($payload['email'] ?? null),
+                'title' => $contact->title ?: ($payload['title'] ?? null),
+                'linkedin_url' => $contact->linkedin_url ?: ($payload['linkedin_url'] ?? null),
+                'confidence_score' => max((int) $contact->confidence_score, (int) ($payload['confidence_score'] ?? 90)),
+                'confidence' => 'high',
+                'source' => $contact->source ?: 'LUSHA',
+            ];
+            $contact->update(array_filter($updateData, fn ($v) => $v !== null));
         } else {
-            $contact = $lead->contacts()->create($values + [
+            $contact = $lead->contacts()->create([
+                'name' => $payload['name'],
+                'title' => $payload['title'] ?? null,
+                'email' => $payload['email'] ?? null,
+                'phone' => $payload['phone'] ?? null,
+                'linkedin_url' => $payload['linkedin_url'] ?? null,
+                'confidence_score' => $payload['confidence_score'] ?? 90,
+                'confidence' => 'high',
+                'source' => 'LUSHA',
                 'is_primary' => ! $lead->contacts()->where('is_primary', true)->exists(),
             ]);
         }

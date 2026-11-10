@@ -1121,8 +1121,12 @@ export default function LeadDetailPage() {
   });
 
   const revealLushaPhoneMutation = useMutation({
-    mutationFn: async (candidateId: number) => {
-      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/lusha/candidates/${candidateId}/reveal-phone`, { method: 'POST' });
+    mutationFn: async ({ candidateId, contactId }: { candidateId: number; contactId?: number }) => {
+      const res = await apiFetch(`/leads/${leadId}/contact-enrichment/lusha/candidates/${candidateId}/reveal-phone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact_id: contactId }),
+      });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.message || 'Failed to reveal Lusha phone');
       return json;
@@ -1495,7 +1499,7 @@ export default function LeadDetailPage() {
   const googleContactCandidates: GoogleContactCandidate[] = googleContactCandidatesData?.data || [];
   const linkedinContactCandidates: GoogleContactCandidate[] = linkedinContactCandidatesData?.data || [];
   const lushaContactOptions = contacts.filter((contact: any) =>
-    Boolean(contact.linkedin_url || contact.email || String(contact.name ?? '').trim().split(/\s+/).length > 1)
+    Boolean(contact.linkedin_url || contact.email || String(contact.name ?? '').trim().length > 0)
   );
 
   function openActivityModal(existing?: any) {
@@ -1976,8 +1980,9 @@ export default function LeadDetailPage() {
             setEnrichmentFeedback(null);
             setShowAddContact(true);
           }}
-          onOpenLusha={() => {
-            setLushaContact(lushaContactOptions[0] ?? null);
+          onOpenLusha={(targetContact?: any) => {
+            const chosen = targetContact ?? lushaContactOptions[0] ?? null;
+            setLushaContact(chosen);
             setEnrichmentFeedback(null);
             qc.setQueryData(['lead-lusha-candidates', leadId], { data: [] });
             searchLushaMutation.reset();
@@ -2471,7 +2476,13 @@ export default function LeadDetailPage() {
               Cancel
             </Button>
             <Button
-              onClick={() => confirmingLushaCandidate && revealLushaPhoneMutation.mutate(confirmingLushaCandidate.id)}
+              onClick={() =>
+                confirmingLushaCandidate &&
+                revealLushaPhoneMutation.mutate({
+                  candidateId: confirmingLushaCandidate.id,
+                  contactId: lushaContact?.id,
+                })
+              }
               disabled={!confirmingLushaCandidate || revealLushaPhoneMutation.isPending}
             >
               {revealLushaPhoneMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
