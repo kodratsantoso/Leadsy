@@ -30,6 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProgressiveFluxLoader } from "@/components/ui/progressive-flux-loader";
+import { AiLeadAnalyzingScreen } from "@/components/leads/AiLeadAnalyzingScreen";
 import { LeadBantcQuestionGuide } from "@/components/leads/LeadBantcQuestionGuide";
 import { AiDeepProfileSection } from "@/components/leads/AiDeepProfileSection";
 import { apiFetch } from "@/lib/apiFetch";
@@ -228,6 +229,16 @@ export function IntelligenceTab({
 
   return (
         <div className="space-y-6">
+
+          {/* ── AI WORKER PIPELINE & TELEMETRY CARD ── */}
+          <AiLeadAnalyzingScreen
+            companyName={leadData?.company_name}
+            leadId={leadData?.id || leadId}
+            status={aiPipelineRunning || aiSyncPipelineRunning ? 'running' : (leadData?.enrichment_status || 'completed')}
+            embedded={true}
+            onRerun={isSuperAdmin ? runAiFullPipeline : undefined}
+            isRerunning={aiPipelineRunning || aiSyncPipelineRunning}
+          />
 
           {/* ── AI ACTIONS BAR (superadmin-only) ── */}
           {isSuperAdmin && (
