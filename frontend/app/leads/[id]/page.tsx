@@ -271,7 +271,7 @@ function AddContactModal({
   candidates,
   feedback,
   searching,
-  adding,
+  addingCandidateId,
   saving,
   onSearch,
   onAddCandidate,
@@ -283,7 +283,7 @@ function AddContactModal({
   candidates: GoogleContactCandidate[];
   feedback: { type: 'success' | 'error'; msg: string; not_configured?: boolean } | null;
   searching: boolean;
-  adding: boolean;
+  addingCandidateId: number | null;
   saving: boolean;
   onSearch: () => void;
   onAddCandidate: (candidateId: number) => void;
@@ -410,50 +410,55 @@ function AddContactModal({
                   <p className="text-xs font-medium text-muted-foreground">PIC Candidates</p>
                   <Badge variant="neutral">{candidates.length} found</Badge>
                 </div>
-                {candidates.map((candidate) => (
-                  <div key={candidate.id} className="rounded-xl border border-border p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-medium">{candidate.name || 'Unnamed contact'}</p>
-                          <Badge variant={candidate.status === 'added' ? 'success' : 'info'}>
-                            {candidate.status === 'added' ? 'Added' : `${candidate.confidence_score ?? 0}%`}
-                          </Badge>
+                {candidates.map((candidate) => {
+                  const isThisCandidateAdding = addingCandidateId === candidate.id;
+                  const isAnyAdding = addingCandidateId !== null;
+
+                  return (
+                    <div key={candidate.id} className="rounded-xl border border-border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-medium">{candidate.name || 'Unnamed contact'}</p>
+                            <Badge variant={candidate.status === 'added' ? 'success' : 'info'}>
+                              {candidate.status === 'added' ? 'Added' : `${candidate.confidence_score ?? 0}%`}
+                            </Badge>
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{candidate.title || 'Role unavailable'}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {candidate.company_name || 'Company unavailable'}
+                            {candidate.linkedin_id ? ` · ${candidate.linkedin_id}` : ''}
+                          </p>
+                          {candidate.relevance_reason && (
+                            <p className="mt-2 text-xs text-muted-foreground">{candidate.relevance_reason}</p>
+                          )}
                         </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{candidate.title || 'Role unavailable'}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {candidate.company_name || 'Company unavailable'}
-                          {candidate.linkedin_id ? ` · ${candidate.linkedin_id}` : ''}
-                        </p>
-                        {candidate.relevance_reason && (
-                          <p className="mt-2 text-xs text-muted-foreground">{candidate.relevance_reason}</p>
-                        )}
+                        {candidate.linkedin_url ? (
+                          <a
+                            href={candidate.linkedin_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }))}
+                            aria-label="Open LinkedIn profile"
+                            title="Open LinkedIn profile"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        ) : null}
                       </div>
-                      {candidate.linkedin_url ? (
-                        <a
-                          href={candidate.linkedin_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={cn(buttonVariants({ variant: 'outline', size: 'icon-sm' }))}
-                          aria-label="Open LinkedIn profile"
-                          title="Open LinkedIn profile"
+                      <div className="mt-3 flex justify-end">
+                        <Button
+                          size="sm"
+                          disabled={candidate.status === 'added' || isAnyAdding}
+                          onClick={() => onAddCandidate(candidate.id)}
                         >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      ) : null}
+                          {isThisCandidateAdding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          {isThisCandidateAdding ? 'Adding...' : 'Add to Contact'}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="mt-3 flex justify-end">
-                      <Button
-                        size="sm"
-                        disabled={candidate.status === 'added' || adding}
-                        onClick={() => onAddCandidate(candidate.id)}
-                      >
-                        {adding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                        Add to Contact
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
@@ -2198,14 +2203,14 @@ export default function LeadDetailPage() {
               ? searchDeepContactsMutation.isPending
               : false
           }
-          adding={
+          addingCandidateId={
             addContactMode === 'google'
-              ? addGoogleCandidateMutation.isPending
+              ? (addGoogleCandidateMutation.isPending ? (addGoogleCandidateMutation.variables ?? null) : null)
               : addContactMode === 'linkedin'
-              ? addLinkedinCandidateMutation.isPending
+              ? (addLinkedinCandidateMutation.isPending ? (addLinkedinCandidateMutation.variables ?? null) : null)
               : addContactMode === 'deep'
-              ? addDeepCandidateMutation.isPending
-              : false
+              ? (addDeepCandidateMutation.isPending ? (addDeepCandidateMutation.variables ?? null) : null)
+              : null
           }
           saving={addContactMutation.isPending}
           onSearch={() => {

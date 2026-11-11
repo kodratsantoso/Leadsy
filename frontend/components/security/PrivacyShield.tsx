@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useTheme } from "@/lib/theme-context";
 
 interface PrivacyShieldProps {
   /** If true, renders a subtle dynamic watermark pattern across the screen. Defaults to true. */
@@ -105,10 +106,13 @@ export function PrivacyShield({
     };
   }, [enableInspectGuard]);
 
+  const { resolved } = useTheme();
+
   // Construct SVG Data URI for dynamic forensics watermark
   const watermarkSvgUri = useMemo(() => {
     if (!enableWatermark || !user?.email) return null;
 
+    const fillColor = resolved === "dark" ? "#ffffff" : "#000000";
     const label = `${user.name || "User"} • ${user.email} • ${timestamp || "VERIFIED"}`;
     const svgText = `
       <svg xmlns="http://www.w3.org/2000/svg" width="360" height="180">
@@ -119,7 +123,7 @@ export function PrivacyShield({
           font-family="system-ui, -apple-system, sans-serif" 
           font-size="11" 
           font-weight="600" 
-          fill="currentColor" 
+          fill="${fillColor}" 
           letter-spacing="0.5">
           ${label}
         </text>
@@ -127,7 +131,7 @@ export function PrivacyShield({
     `.trim();
 
     return `url("data:image/svg+xml;utf8,${encodeURIComponent(svgText)}")`;
-  }, [enableWatermark, user?.email, user?.name, timestamp]);
+  }, [enableWatermark, user?.email, user?.name, timestamp, resolved]);
 
   return (
     <>
