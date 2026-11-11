@@ -67,15 +67,22 @@ class LushaSearchProvider implements SearchEngineProviderInterface
             $executedQueries[] = $queryUsed;
 
             try {
-                // Lusha V3 search endpoint
+                // Lusha V3 Prospecting API for discovering contacts by company
                 $payload = [
-                    'filters' => array_filter([
-                        'companyName' => $term,
-                        'companyDomain' => $domain ?: null,
-                    ]),
                     'pagination' => [
-                        'page' => 1,
-                        'pageSize' => 15,
+                        'page' => 0,
+                        'size' => 15,
+                    ],
+                    'filters' => [
+                        'companies' => [
+                            'include' => array_filter([
+                                'companyNames' => [$term],
+                                'companyDomains' => $domain ? [$domain] : null,
+                            ]),
+                        ],
+                    ],
+                    'options' => [
+                        'includePartialProfiles' => true,
                     ],
                 ];
 
@@ -84,7 +91,7 @@ class LushaSearchProvider implements SearchEngineProviderInterface
                     'Content-Type' => 'application/json',
                 ])
                     ->timeout(15)
-                    ->post('https://api.lusha.com/v3/contacts/search', $payload);
+                    ->post('https://api.lusha.com/v3/contacts/prospecting', $payload);
 
                 if ($response->successful()) {
                     $contacts = $response->json('contacts') ?? $response->json('data') ?? [];
@@ -189,9 +196,13 @@ class LushaSearchProvider implements SearchEngineProviderInterface
                 'Content-Type' => 'application/json',
             ])
                 ->timeout(10)
-                ->post('https://api.lusha.com/v3/contacts/search', [
-                    'filters' => ['companyName' => 'Google'],
-                    'pagination' => ['pageSize' => 1],
+                ->post('https://api.lusha.com/v3/contacts/prospecting', [
+                    'pagination' => ['page' => 0, 'size' => 1],
+                    'filters' => [
+                        'companies' => [
+                            'include' => ['companyNames' => ['Google']],
+                        ],
+                    ],
                 ]);
 
             if ($responseFallback->successful() || $responseFallback->status() === 200) {

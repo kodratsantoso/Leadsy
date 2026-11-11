@@ -50,6 +50,9 @@ class SerperSearchProvider implements SearchEngineProviderInterface
         $executedQueries = [];
         $lastError = null;
 
+        $tokens = $this->extractBrandTokens($lead);
+        $primaryBrand = !empty($tokens) ? $tokens[0] : $lead->company_name;
+
         foreach ($queries as $query) {
             $executedQueries[] = $query;
             try {
@@ -60,9 +63,25 @@ class SerperSearchProvider implements SearchEngineProviderInterface
                     ->timeout(15)
                     ->post('https://google.serper.dev/search', [
                         'q' => $query,
-                        'num' => 20,
+                        'num' => 10,
                         'gl' => 'id',
                     ]);
+
+                // Free-tier safety: if Serper rejects complex query patterns, instantly fallback to a clean natural search
+                if ($response->status() === 400 && str_contains($response->body(), 'Query pattern not allowed')) {
+                    $cleanQuery = "linkedin {$primaryBrand} director manager";
+                    Log::info("[SerperSearchProvider] Query pattern rejected by free tier, retrying with natural query: {$cleanQuery}");
+                    $response = Http::withHeaders([
+                        'X-API-KEY' => $apiKey,
+                        'Content-Type' => 'application/json',
+                    ])
+                        ->timeout(15)
+                        ->post('https://google.serper.dev/search', [
+                            'q' => $cleanQuery,
+                            'num' => 10,
+                            'gl' => 'id',
+                        ]);
+                }
 
                 if (!$response->successful()) {
                     $status = $response->status();

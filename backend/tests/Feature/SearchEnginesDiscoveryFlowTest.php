@@ -390,4 +390,60 @@ class SearchEnginesDiscoveryFlowTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('success', true);
     }
+
+    public function test_serper_automatically_retries_with_clean_query_when_free_tier_pattern_rejected(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+
+        $user = $this->makeUser();
+        $lead = $this->makeLead($user);
+
+        // Configure Serper
+        IntegrationConfig::create([
+            'tenant_id' => $user->tenant_id,
+            'category' => 'search_engines',
+            'key' => 'SERPER_ENABLED',
+            'value' => 'true',
+            'is_secret' => false,
+            'is_active' => true,
+        ]);
+        IntegrationConfig::create([
+            'tenant_id' => $user->tenant_id,
+            'category' => 'search_engines',
+            'key' => 'SERPER_API_KEY',
+            'value' => 'test-serper-key',
+            'is_secret' => true,
+            'is_active' => true,
+        ]);
+
+        $callCount = 0;
+        Http::fake([
+            'https://google.serper.dev/search*' => function (\Illuminate\Http\Client\Request $request) use (&$callCount) {
+                $callCount++;
+                if ($callCount === 1) {
+                    return Http::response([
+                        'statusCode' => 400,
+                        'message' => 'Query pattern not allowed for free accounts.',
+                    ], 400);
+                }
+
+                return Http::response([
+                    'organic' => [
+                        [
+                            'title' => 'Budi Santoso - General Manager - PT Holycow | LinkedIn',
+                            'link' => 'https://id.linkedin.com/in/budisantoso',
+                            'snippet' => 'General Manager at PT Holycow Danadipa Indonesia.',
+                        ],
+                    ],
+                ]);
+            },
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/leads/{$lead->id}/contact-enrichment/google-deep/search");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.name', 'Budi Santoso');
+        $this->assertGreaterThanOrEqual(2, $callCount);
+    }
 }

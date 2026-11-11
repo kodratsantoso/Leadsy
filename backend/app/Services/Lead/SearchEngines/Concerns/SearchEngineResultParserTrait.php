@@ -220,11 +220,9 @@ trait SearchEngineResultParserTrait
 
     /**
      * Build standard LinkedIn discovery queries for lead.
-     * Creates:
-     * 1. Exact quoted core brand query with executive & leadership keywords
-     * 2. High-yield loose/unquoted core brand query (critical for catching variants like "PT. Prasetia Dwidharma")
-     * 3. Secondary / clean full name query
-     * 4. Full legal entity query (if different)
+     * Engineered specifically to be 100% compatible with Serper.dev free tier,
+     * Google CSE, Tavily, and standard SERP search engines.
+     * Avoids complex nested boolean chains and parentheses that trigger free-tier query restrictions.
      *
      * @return string[]
      */
@@ -233,26 +231,24 @@ trait SearchEngineResultParserTrait
         $tokens = $this->extractBrandTokens($lead);
         $primaryBrand = !empty($tokens) ? $tokens[0] : $lead->company_name;
 
-        // Balanced role keywords to catch C-levels, heads, managers, founders, leads
-        $roleKeywords = '("director" OR "manager" OR "head" OR "lead" OR "chief" OR "founder" OR "owner" OR "finance" OR "procurement" OR "operations" OR "sales" OR "general manager" OR "IT" OR "CEO" OR "COO" OR "CTO")';
-
         $queries = [];
 
-        // 1. Exact quoted core brand with executive/leadership keywords
-        $queries[] = "site:linkedin.com/in \"{$primaryBrand}\" {$roleKeywords}";
+        // 1. Natural Google search for LinkedIn profiles (100% free-tier safe, high recall on executives)
+        $queries[] = "linkedin {$primaryBrand} director CEO manager";
 
-        // 2. High-yield loose / unquoted core brand query (essential for high-recall profile discovery)
-        $queries[] = "site:linkedin.com/in {$primaryBrand} (\"director\" OR \"manager\" OR \"head\" OR \"lead\" OR \"founder\" OR \"CEO\")";
+        // 2. Clean site search on core brand without complex boolean operators
+        $queries[] = "site:linkedin.com/in \"{$primaryBrand}\"";
 
-        // 3. Secondary token (e.g. full clean name if different from core brand)
-        if (count($tokens) > 1 && strcasecmp($tokens[1], $primaryBrand) !== 0) {
-            $queries[] = "site:linkedin.com/in \"{$tokens[1]}\" {$roleKeywords}";
-        }
+        // 3. Natural search for operational leaders & founders
+        $queries[] = "linkedin {$primaryBrand} founder head lead operations";
 
-        // 4. Exact legal entity name if different from brand
+        // 4. Loose site query for broad profile matching
+        $queries[] = "site:linkedin.com/in {$primaryBrand}";
+
+        // 5. Full legal name query if different from core brand
         $cleanLegal = trim(preg_replace('/\s+/', ' ', (string) $lead->company_name));
         if ($cleanLegal !== '' && strcasecmp($cleanLegal, $primaryBrand) !== 0) {
-            $queries[] = "site:linkedin.com/in \"{$cleanLegal}\"";
+            $queries[] = "linkedin {$cleanLegal} director manager";
         }
 
         return array_values(array_unique($queries));
