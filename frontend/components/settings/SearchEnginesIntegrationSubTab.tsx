@@ -204,20 +204,20 @@ export function SearchEnginesIntegrationSubTab() {
     try {
       const credentials: Record<string, string> = {};
       if (provider === "serper") {
-        credentials.SERPER_API_KEY = config.SERPER_API_KEY;
+        credentials.SERPER_API_KEY = config.SERPER_API_KEY.trim();
       } else if (provider === "custom") {
-        credentials.CUSTOM_SEARCH_ENDPOINT = config.CUSTOM_SEARCH_ENDPOINT;
-        credentials.CUSTOM_SEARCH_API_KEY = config.CUSTOM_SEARCH_API_KEY;
-        credentials.CUSTOM_SEARCH_HEADER_NAME = config.CUSTOM_SEARCH_HEADER_NAME;
+        credentials.CUSTOM_SEARCH_ENDPOINT = config.CUSTOM_SEARCH_ENDPOINT.trim();
+        credentials.CUSTOM_SEARCH_API_KEY = config.CUSTOM_SEARCH_API_KEY.trim();
+        credentials.CUSTOM_SEARCH_HEADER_NAME = config.CUSTOM_SEARCH_HEADER_NAME.trim();
         credentials.CUSTOM_SEARCH_AUTH_TYPE = config.CUSTOM_SEARCH_AUTH_TYPE;
         credentials.CUSTOM_SEARCH_METHOD = config.CUSTOM_SEARCH_METHOD;
       } else if (provider === "google_cse") {
-        credentials.GOOGLE_CUSTOM_SEARCH_API_KEY = config.GOOGLE_CUSTOM_SEARCH_API_KEY;
-        credentials.GOOGLE_CUSTOM_SEARCH_ENGINE_ID = config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID;
+        credentials.GOOGLE_CUSTOM_SEARCH_API_KEY = config.GOOGLE_CUSTOM_SEARCH_API_KEY.trim();
+        credentials.GOOGLE_CUSTOM_SEARCH_ENGINE_ID = config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim();
       } else if (provider === "tavily") {
-        credentials.TAVILY_API_KEY = config.TAVILY_API_KEY;
+        credentials.TAVILY_API_KEY = config.TAVILY_API_KEY.trim();
       } else if (provider === "lusha") {
-        credentials.LUSHA_API_KEY = config.LUSHA_API_KEY;
+        credentials.LUSHA_API_KEY = config.LUSHA_API_KEY.trim();
       }
 
       const res = await apiFetch("/settings/integrations/search-engines/test", {
@@ -256,24 +256,24 @@ export function SearchEnginesIntegrationSubTab() {
       category: "search_engines",
       configs: [
         { key: "SERPER_ENABLED", value: config.SERPER_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "SERPER_API_KEY", value: config.SERPER_API_KEY, is_secret: true, value_type: "string" },
+        { key: "SERPER_API_KEY", value: config.SERPER_API_KEY.trim(), is_secret: true, value_type: "string" },
 
         { key: "CUSTOM_SEARCH_ENABLED", value: config.CUSTOM_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "CUSTOM_SEARCH_ENDPOINT", value: config.CUSTOM_SEARCH_ENDPOINT, is_secret: false, value_type: "string" },
-        { key: "CUSTOM_SEARCH_API_KEY", value: config.CUSTOM_SEARCH_API_KEY, is_secret: true, value_type: "string" },
-        { key: "CUSTOM_SEARCH_HEADER_NAME", value: config.CUSTOM_SEARCH_HEADER_NAME, is_secret: false, value_type: "string" },
+        { key: "CUSTOM_SEARCH_ENDPOINT", value: config.CUSTOM_SEARCH_ENDPOINT.trim(), is_secret: false, value_type: "string" },
+        { key: "CUSTOM_SEARCH_API_KEY", value: config.CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "CUSTOM_SEARCH_HEADER_NAME", value: config.CUSTOM_SEARCH_HEADER_NAME.trim(), is_secret: false, value_type: "string" },
         { key: "CUSTOM_SEARCH_AUTH_TYPE", value: config.CUSTOM_SEARCH_AUTH_TYPE, is_secret: false, value_type: "string" },
         { key: "CUSTOM_SEARCH_METHOD", value: config.CUSTOM_SEARCH_METHOD, is_secret: false, value_type: "string" },
 
         { key: "GOOGLE_CSE_ENABLED", value: config.GOOGLE_CSE_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "GOOGLE_CUSTOM_SEARCH_API_KEY", value: config.GOOGLE_CUSTOM_SEARCH_API_KEY, is_secret: true, value_type: "string" },
-        { key: "GOOGLE_CUSTOM_SEARCH_ENGINE_ID", value: config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID, is_secret: false, value_type: "string" },
+        { key: "GOOGLE_CUSTOM_SEARCH_API_KEY", value: config.GOOGLE_CUSTOM_SEARCH_API_KEY.trim(), is_secret: true, value_type: "string" },
+        { key: "GOOGLE_CUSTOM_SEARCH_ENGINE_ID", value: config.GOOGLE_CUSTOM_SEARCH_ENGINE_ID.trim(), is_secret: false, value_type: "string" },
 
         { key: "TAVILY_ENABLED", value: config.TAVILY_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "TAVILY_API_KEY", value: config.TAVILY_API_KEY, is_secret: true, value_type: "string" },
+        { key: "TAVILY_API_KEY", value: config.TAVILY_API_KEY.trim(), is_secret: true, value_type: "string" },
 
         { key: "LUSHA_SEARCH_ENABLED", value: config.LUSHA_SEARCH_ENABLED ? "true" : "false", is_secret: false, value_type: "boolean" },
-        { key: "LUSHA_API_KEY", value: config.LUSHA_API_KEY, is_secret: true, value_type: "string" },
+        { key: "LUSHA_API_KEY", value: config.LUSHA_API_KEY.trim(), is_secret: true, value_type: "string" },
 
         { key: "SEARCH_ENGINE_PRIORITY", value: JSON.stringify(config.SEARCH_ENGINE_PRIORITY), is_secret: false, value_type: "json" },
       ],

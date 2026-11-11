@@ -30,24 +30,25 @@ class SerperSearchProvider implements SearchEngineProviderInterface
 
     public function getApiKey(?int $tenantId = null): string
     {
-        return (string) $this->getConfigValue(['SERPER_API_KEY'], $tenantId, '');
+        return trim((string) $this->getConfigValue(['SERPER_API_KEY'], $tenantId, ''));
     }
 
     public function search(Lead $lead, ?int $tenantId = null): array
     {
         $apiKey = $this->getApiKey($tenantId);
-        if (empty($apiKey)) {
+        if (empty($apiKey) || str_starts_with($apiKey, '••••')) {
             return [
                 'success' => false,
                 'candidates' => [],
                 'queries' => [],
-                'error' => 'Serper API Key is not configured.',
+                'error' => 'Serper API Key is not configured or masked.',
             ];
         }
 
         $queries = $this->buildSearchQueries($lead);
         $candidates = [];
         $executedQueries = [];
+        $lastError = null;
 
         foreach ($queries as $query) {
             $executedQueries[] = $query;
@@ -61,11 +62,19 @@ class SerperSearchProvider implements SearchEngineProviderInterface
                         'q' => $query,
                         'num' => 20,
                         'gl' => 'id',
-                        'hl' => 'id',
                     ]);
 
                 if (!$response->successful()) {
-                    Log::warning("[SerperSearchProvider] Query failed HTTP {$response->status()}: {$response->body()}");
+                    $status = $response->status();
+                    $body = substr($response->body(), 0, 300);
+                    Log::warning("[SerperSearchProvider] Query failed HTTP {$status}: {$body}", ['query' => $query]);
+                    $lastError = "Serper HTTP {$status}: {$body}";
+
+                    // If unauthorized or forbidden, do not continue trying subsequent queries with invalid key
+                    if ($status === 401 || $status === 403) {
+                        break;
+                    }
+
                     continue;
                 }
 
@@ -103,13 +112,24 @@ class SerperSearchProvider implements SearchEngineProviderInterface
                     ];
                 }
 
-                // If this primary query returned at least 5 candidates, stop to avoid eating excess quota
-                if (count($candidates) >= 15) {
+                // If this primary query returned at least 10 candidates, stop to avoid eating excess quota
+                if (count($candidates) >= 10) {
                     break;
                 }
             } catch (\Throwable $e) {
                 Log::error("[SerperSearchProvider] Exception: {$e->getMessage()}", ['query' => $query]);
+                $lastError = "Connection error: {$e->getMessage()}";
             }
+        }
+
+        // If no candidates discovered and an explicit HTTP error occurred, return error
+        if (empty($candidates) && $lastError !== null) {
+            return [
+                'success' => false,
+                'candidates' => [],
+                'queries' => $executedQueries,
+                'error' => $lastError,
+            ];
         }
 
         return [
@@ -122,7 +142,11 @@ class SerperSearchProvider implements SearchEngineProviderInterface
 
     public function testConnection(array $credentials = [], ?int $tenantId = null): array
     {
-        $apiKey = $credentials['SERPER_API_KEY'] ?? $this->getApiKey($tenantId);
+        $apiKey = trim((string) ($credentials['SERPER_API_KEY'] ?? ''));
+        if (empty($apiKey) || str_starts_with($apiKey, '••••')) {
+            $apiKey = $this->getApiKey($tenantId);
+        }
+
         if (empty($apiKey)) {
             return [
                 'success' => false,
@@ -139,6 +163,7 @@ class SerperSearchProvider implements SearchEngineProviderInterface
                 ->post('https://google.serper.dev/search', [
                     'q' => 'site:linkedin.com/in "Google"',
                     'num' => 2,
+                    'gl' => 'id',
                 ]);
 
             if ($response->successful()) {

@@ -40,20 +40,20 @@ class GoogleCseSearchProvider implements SearchEngineProviderInterface
 
     public function getApiKey(?int $tenantId = null): string
     {
-        return (string) $this->getConfigValue([
+        return trim((string) $this->getConfigValue([
             'GOOGLE_CUSTOM_SEARCH_API_KEY',
             'GOOGLE_SEARCH_API_KEY',
             'GOOGLE_MAPS_BROWSER_API_KEY',
-        ], $tenantId, '');
+        ], $tenantId, ''));
     }
 
     public function getSearchEngineId(?int $tenantId = null): string
     {
-        return (string) $this->getConfigValue([
+        return trim((string) $this->getConfigValue([
             'GOOGLE_CUSTOM_SEARCH_ENGINE_ID',
             'GOOGLE_SEARCH_ENGINE_ID',
             'GOOGLE_CSE_ID',
-        ], $tenantId, '');
+        ], $tenantId, ''));
     }
 
     public function search(Lead $lead, ?int $tenantId = null): array
@@ -102,8 +102,15 @@ class GoogleCseSearchProvider implements SearchEngineProviderInterface
 
     public function testConnection(array $credentials = [], ?int $tenantId = null): array
     {
-        $apiKey = $credentials['GOOGLE_CUSTOM_SEARCH_API_KEY'] ?? $this->getApiKey($tenantId);
-        $cx = $credentials['GOOGLE_CUSTOM_SEARCH_ENGINE_ID'] ?? $this->getSearchEngineId($tenantId);
+        $apiKey = trim((string) ($credentials['GOOGLE_CUSTOM_SEARCH_API_KEY'] ?? ''));
+        if (empty($apiKey) || str_starts_with($apiKey, '••••')) {
+            $apiKey = $this->getApiKey($tenantId);
+        }
+
+        $cx = trim((string) ($credentials['GOOGLE_CUSTOM_SEARCH_ENGINE_ID'] ?? ''));
+        if (empty($cx) || str_starts_with($cx, '••••')) {
+            $cx = $this->getSearchEngineId($tenantId);
+        }
 
         if (empty($apiKey) || empty($cx)) {
             return [

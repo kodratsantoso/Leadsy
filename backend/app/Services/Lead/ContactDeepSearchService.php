@@ -196,8 +196,18 @@ If no profiles are found, return { \"candidates\": [] }.";
                 ->pluck('name')
                 ->join(', ');
 
+            // Check if any configured engine had an explicit API error (e.g. 401 Unauthorized or network drop)
+            $engineErrors = collect($pipelineTried)
+                ->filter(fn ($e) => !empty($e['error']) && ($e['status'] ?? '') === 'failed')
+                ->map(fn ($e) => "{$e['name']}: {$e['error']}")
+                ->values();
+
+            $errorDetail = $engineErrors->isNotEmpty()
+                ? " (Detail error: " . $engineErrors->join('; ') . ")"
+                : '';
+
             $msg = $configuredNames
-                ? "Pencarian PIC via {$configuredNames} tidak menemukan profil yang cocok untuk \"{$lead->company_name}\". Coba periksa kembali ejaan nama perusahaan atau sesuaikan kata kunci pencarian."
+                ? "Pencarian PIC via {$configuredNames} tidak menemukan profil yang cocok untuk \"{$lead->company_name}\"{$errorDetail}. Coba periksa kembali ejaan nama perusahaan atau sesuaikan kata kunci pencarian."
                 : 'Deep search did not discover any contact candidates. Global search engines returned no profiles or blocked the request.';
 
             return [
@@ -361,10 +371,24 @@ If no profiles are found, return { \"candidates\": [] }.";
             }
         }
 
+        // Generic sector/industry words to strip when discovering core brand
+        $genericWords = [
+            'Teknologi', 'Technology', 'Technologies', 'Tech',
+            'Solusi', 'Solution', 'Solutions',
+            'Nusantara', 'Utama', 'Global', 'Internasional', 'International',
+            'Mandiri', 'Jaya', 'Abadi', 'Makmur', 'Karya', 'Sejahtera', 'Sentosa',
+            'Group', 'Grup', 'Holdings', 'Holding', 'Mitra',
+            'Sistem', 'Systems', 'System', 'Digital', 'Media',
+            'Informatika', 'Komunika', 'Telekomunikasi', 'Telecommunication',
+            'Logistik', 'Logistics', 'Indonesia', 'Asia', 'Pratama', 'Dinamika',
+            'Persada', 'Semesta', 'Megah', 'Agung', 'Cemerlang',
+        ];
+        $genericPattern = '/\b(' . implode('|', $genericWords) . ')\b/iu';
+
         // 2. Company name decomposition
         $companyName = (string) $lead->company_name;
         // Split compound company names by delimiters: / | & dan + ( )
-        $parts = preg_split('/[\/|&+]|\bdan\b|\(|\)/i', $companyName) ?: [];
+        $parts = preg_split('/[\/|&+]|\bdan\b|\(|\)/iu', $companyName) ?: [];
         foreach ($parts as $part) {
             $clean = trim($part);
             if ($clean === '') {
@@ -372,19 +396,35 @@ If no profiles are found, return { \"candidates\": [] }.";
             }
 
             // Remove Indonesian/global corporate prefixes (PT, CV, UD, etc.)
-            $clean = preg_replace('/(^|\s+)(PT|CV|UD|PD|Perum|Yayasan|Koperasi|Firma|Persero)\.?\s+/i', '$1', $clean);
+            $clean = preg_replace('/(^|\s+)(PT|CV|UD|PD|Perum|Yayasan|Koperasi|Firma|Persero)\.?\s+/iu', '$1', $clean);
             // Remove corporate suffixes (Tbk, Ltd, Inc, Corp, Pte Ltd, etc.)
-            $clean = preg_replace('/\s+(Tbk|Ltd|LLC|Inc|Corp|Pte|Co)\.?(\s+|$)/i', '$2', $clean);
+            $clean = preg_replace('/\s+(Tbk|Ltd|LLC|Inc|Corp|Pte|Co|Bhd|GmbH)\.?(\s+|$)/iu', '$2', $clean);
             $clean = trim(preg_replace('/^[.,\-\s]+|[.,\-\s]+$/u', '', $clean));
             $clean = trim(preg_replace('/\s+/', ' ', $clean));
 
             if (mb_strlen($clean) >= 2) {
-                $tokens[] = $clean;
-                $withoutId = trim(preg_replace('/\bIndonesia\b/i', '', $clean));
-                $withoutId = trim(preg_replace('/\s+/', ' ', $withoutId));
-                if (mb_strlen($withoutId) >= 2 && ! in_array(strtolower($withoutId), array_map('strtolower', $tokens))) {
-                    $tokens[] = $withoutId;
+                // Core brand without generic sector/industry words (e.g. "Prasetia Dwidharma")
+                $core = trim(preg_replace($genericPattern, '', $clean));
+                $core = trim(preg_replace('/^[.,\-\s]+|[.,\-\s]+$/u', '', $core));
+                $core = trim(preg_replace('/\s+/', ' ', $core));
+
+                if (mb_strlen($core) >= 2) {
+                    $tokens[] = $core;
                 }
+
+                $tokens[] = $clean;
+            }
+        }
+
+        // 3. Domain-based brand hint (e.g. prasetia.co.id -> Prasetia)
+        $domain = $lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST);
+        if ($domain) {
+            $domain = preg_replace('/^www\./i', '', strtolower(trim($domain)));
+            $domainParts = explode('.', $domain);
+            $rootDomain = $domainParts[0] ?? '';
+            $excludeHosts = ['gmail', 'yahoo', 'hotmail', 'outlook', 'google', 'linktr', 'instagram', 'facebook', 'tokopedia', 'shopee', 'tiktok'];
+            if (mb_strlen($rootDomain) >= 3 && ! in_array($rootDomain, $excludeHosts)) {
+                $tokens[] = ucfirst($rootDomain);
             }
         }
 

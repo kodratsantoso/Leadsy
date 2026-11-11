@@ -30,18 +30,18 @@ class TavilySearchProvider implements SearchEngineProviderInterface
 
     public function getApiKey(?int $tenantId = null): string
     {
-        return (string) $this->getConfigValue(['TAVILY_API_KEY'], $tenantId, '');
+        return trim((string) $this->getConfigValue(['TAVILY_API_KEY'], $tenantId, ''));
     }
 
     public function search(Lead $lead, ?int $tenantId = null): array
     {
         $apiKey = $this->getApiKey($tenantId);
-        if (empty($apiKey)) {
+        if (empty($apiKey) || str_starts_with($apiKey, '••••')) {
             return [
                 'success' => false,
                 'candidates' => [],
                 'queries' => [],
-                'error' => 'Tavily API Key is not configured.',
+                'error' => 'Tavily API Key is not configured or masked.',
             ];
         }
 
@@ -118,7 +118,11 @@ class TavilySearchProvider implements SearchEngineProviderInterface
 
     public function testConnection(array $credentials = [], ?int $tenantId = null): array
     {
-        $apiKey = $credentials['TAVILY_API_KEY'] ?? $this->getApiKey($tenantId);
+        $apiKey = trim((string) ($credentials['TAVILY_API_KEY'] ?? ''));
+        if (empty($apiKey) || str_starts_with($apiKey, '••••')) {
+            $apiKey = $this->getApiKey($tenantId);
+        }
+
         if (empty($apiKey)) {
             return [
                 'success' => false,

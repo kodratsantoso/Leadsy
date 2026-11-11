@@ -35,7 +35,7 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
 
     public function getApiKey(?int $tenantId = null): string
     {
-        return (string) $this->getConfigValue(['CUSTOM_SEARCH_API_KEY'], $tenantId, '');
+        return trim((string) $this->getConfigValue(['CUSTOM_SEARCH_API_KEY'], $tenantId, ''));
     }
 
     public function getHeaderName(?int $tenantId = null): string
@@ -190,7 +190,10 @@ class CustomEndpointSearchProvider implements SearchEngineProviderInterface
             ];
         }
 
-        $apiKey = $credentials['CUSTOM_SEARCH_API_KEY'] ?? $this->getApiKey($tenantId);
+        $apiKey = trim((string) ($credentials['CUSTOM_SEARCH_API_KEY'] ?? ''));
+        if (empty($apiKey) || str_starts_with($apiKey, '••••')) {
+            $apiKey = $this->getApiKey($tenantId);
+        }
         $headerName = $credentials['CUSTOM_SEARCH_HEADER_NAME'] ?? $this->getHeaderName($tenantId);
         $authType = $credentials['CUSTOM_SEARCH_AUTH_TYPE'] ?? $this->getAuthType($tenantId);
         $method = strtoupper($credentials['CUSTOM_SEARCH_METHOD'] ?? $this->getHttpMethod($tenantId));

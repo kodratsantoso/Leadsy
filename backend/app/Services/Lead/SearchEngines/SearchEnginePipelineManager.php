@@ -151,15 +151,16 @@ class SearchEnginePipelineManager
                 ];
             }
 
+            $isSuccessZero = $result['success'] && empty($candidates);
             $triedEngines[] = [
                 'rank' => $rank,
                 'key' => $key,
                 'name' => $providerName,
-                'status' => 'zero_results_or_failed',
+                'status' => $isSuccessZero ? 'zero_results' : 'failed',
                 'error' => $result['error'] ?? null,
             ];
 
-            Log::warning("[SearchEnginePipeline] Priority {$rank} ({$providerName}) returned 0 results or failed. Cascading to next priority...");
+            Log::warning("[SearchEnginePipeline] Priority {$rank} ({$providerName}) returned 0 results or failed (" . ($result['error'] ?? 'no error') . "). Cascading to next priority...");
         }
 
         return [

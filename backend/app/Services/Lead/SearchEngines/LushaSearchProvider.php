@@ -37,92 +37,127 @@ class LushaSearchProvider implements SearchEngineProviderInterface
 
     public function getApiKey(?int $tenantId = null): string
     {
-        return (string) $this->getConfigValue(['LUSHA_API_KEY'], $tenantId, '');
+        return trim((string) $this->getConfigValue(['LUSHA_API_KEY'], $tenantId, ''));
     }
 
     public function search(Lead $lead, ?int $tenantId = null): array
     {
         $apiKey = $this->getApiKey($tenantId);
-        if (empty($apiKey)) {
+        if (empty($apiKey) || str_starts_with($apiKey, '••••')) {
             return [
                 'success' => false,
                 'candidates' => [],
                 'queries' => [],
-                'error' => 'Lusha API Key is not configured.',
+                'error' => 'Lusha API Key is not configured or masked.',
             ];
         }
 
         $domain = $lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST);
+        $tokens = $this->extractBrandTokens($lead);
+        $primaryBrand = !empty($tokens) ? $tokens[0] : $lead->company_name;
+
+        // Try searching by company name first, then core brand if different
+        $searchTerms = array_unique(array_filter([$lead->company_name, $primaryBrand]));
         $candidates = [];
-        $queryUsed = $lead->company_name . ($domain ? " ({$domain})" : '');
+        $executedQueries = [];
+        $lastError = null;
 
-        try {
-            // Lusha V3 search endpoint
-            $payload = [
-                'filters' => array_filter([
-                    'companyName' => $lead->company_name,
-                    'companyDomain' => $domain ?: null,
-                ]),
-                'pagination' => [
-                    'page' => 1,
-                    'pageSize' => 15,
-                ],
-            ];
+        foreach ($searchTerms as $term) {
+            $queryUsed = $term . ($domain ? " ({$domain})" : '');
+            $executedQueries[] = $queryUsed;
 
-            $response = Http::withHeaders([
-                'api_key' => $apiKey,
-                'Content-Type' => 'application/json',
-            ])
-                ->timeout(15)
-                ->post('https://api.lusha.com/v3/contacts/search', $payload);
+            try {
+                // Lusha V3 search endpoint
+                $payload = [
+                    'filters' => array_filter([
+                        'companyName' => $term,
+                        'companyDomain' => $domain ?: null,
+                    ]),
+                    'pagination' => [
+                        'page' => 1,
+                        'pageSize' => 15,
+                    ],
+                ];
 
-            if ($response->successful()) {
-                $contacts = $response->json('contacts') ?? $response->json('data') ?? [];
-                foreach ($contacts as $c) {
-                    $fullName = trim(($c['firstName'] ?? '') . ' ' . ($c['lastName'] ?? ''));
-                    if (empty($fullName)) {
-                        $fullName = $c['fullName'] ?? $c['name'] ?? '';
+                $response = Http::withHeaders([
+                    'api_key' => $apiKey,
+                    'Content-Type' => 'application/json',
+                ])
+                    ->timeout(15)
+                    ->post('https://api.lusha.com/v3/contacts/search', $payload);
+
+                if ($response->successful()) {
+                    $contacts = $response->json('contacts') ?? $response->json('data') ?? [];
+                    foreach ($contacts as $c) {
+                        $fullName = trim(($c['firstName'] ?? '') . ' ' . ($c['lastName'] ?? ''));
+                        if (empty($fullName)) {
+                            $fullName = $c['fullName'] ?? $c['name'] ?? '';
+                        }
+
+                        if (empty($fullName)) {
+                            continue;
+                        }
+
+                        $linkedinUrl = $c['linkedinUrl'] ?? $c['linkedin_url'] ?? null;
+                        if ($linkedinUrl) {
+                            $linkedinUrl = $this->normalizeLinkedinUrl($linkedinUrl);
+                        }
+
+                        $candidates[] = [
+                            'name' => $fullName,
+                            'title' => $c['jobTitle'] ?? $c['title'] ?? null,
+                            'linkedin_url' => $linkedinUrl,
+                            'linkedin_id' => $linkedinUrl ? $this->extractLinkedinId($linkedinUrl) : hash('sha256', strtolower($fullName)),
+                            'snippet' => 'Discovered via Lusha B2B directory for ' . $lead->company_name,
+                            'snippet_emails' => [],
+                            'source_query' => $queryUsed,
+                            'source_engine' => 'Lusha B2B Discovery',
+                            'source_type' => 'lusha',
+                        ];
                     }
 
-                    if (empty($fullName)) {
-                        continue;
+                    if (!empty($candidates)) {
+                        break;
                     }
-
-                    $linkedinUrl = $c['linkedinUrl'] ?? $c['linkedin_url'] ?? null;
-                    if ($linkedinUrl) {
-                        $linkedinUrl = $this->normalizeLinkedinUrl($linkedinUrl);
+                } else {
+                    $status = $response->status();
+                    $body = substr($response->body(), 0, 250);
+                    Log::info("[LushaSearchProvider] Lusha search returned HTTP {$status}: {$body}");
+                    $lastError = "Lusha HTTP {$status}: {$body}";
+                    if ($status === 401 || $status === 403) {
+                        break;
                     }
-
-                    $candidates[] = [
-                        'name' => $fullName,
-                        'title' => $c['jobTitle'] ?? $c['title'] ?? null,
-                        'linkedin_url' => $linkedinUrl,
-                        'linkedin_id' => $linkedinUrl ? $this->extractLinkedinId($linkedinUrl) : hash('sha256', strtolower($fullName)),
-                        'snippet' => 'Discovered via Lusha B2B directory for ' . $lead->company_name,
-                        'snippet_emails' => [],
-                        'source_query' => $queryUsed,
-                        'source_engine' => 'Lusha B2B Discovery',
-                        'source_type' => 'lusha',
-                    ];
                 }
-            } else {
-                Log::info("[LushaSearchProvider] Lusha search returned HTTP {$response->status()}: " . substr($response->body(), 0, 200));
+            } catch (\Throwable $e) {
+                Log::warning("[LushaSearchProvider] Exception: {$e->getMessage()}");
+                $lastError = "Connection error: {$e->getMessage()}";
             }
-        } catch (\Throwable $e) {
-            Log::warning("[LushaSearchProvider] Exception: {$e->getMessage()}");
+        }
+
+        if (empty($candidates) && $lastError !== null) {
+            return [
+                'success' => false,
+                'candidates' => [],
+                'queries' => $executedQueries,
+                'error' => $lastError,
+            ];
         }
 
         return [
             'success' => true,
             'candidates' => $candidates,
-            'queries' => [$queryUsed],
+            'queries' => $executedQueries,
             'error' => empty($candidates) ? 'No candidates discovered via Lusha.' : null,
         ];
     }
 
     public function testConnection(array $credentials = [], ?int $tenantId = null): array
     {
-        $apiKey = $credentials['LUSHA_API_KEY'] ?? $this->getApiKey($tenantId);
+        $apiKey = trim((string) ($credentials['LUSHA_API_KEY'] ?? ''));
+        if (empty($apiKey) || str_starts_with($apiKey, '••••')) {
+            $apiKey = $this->getApiKey($tenantId);
+        }
+
         if (empty($apiKey)) {
             return [
                 'success' => false,

@@ -129,6 +129,11 @@ trait SearchEngineResultParserTrait
 
     /**
      * Extract recognizable brand/entity tokens from lead data.
+     * Extracts:
+     * 1. Explicit brand field (if specified)
+     * 2. Core brand without generic sector/industry words (e.g. "PT Prasetia Dwidharma Teknologi" -> "Prasetia Dwidharma")
+     * 3. Clean full company name without legal prefix/suffix ("Prasetia Dwidharma Teknologi")
+     * 4. Domain-based root label hint (e.g. prasetia.co.id -> "Prasetia")
      *
      * @return string[]
      */
@@ -136,6 +141,7 @@ trait SearchEngineResultParserTrait
     {
         $tokens = [];
 
+        // 1. Explicit brand field
         if (!empty($lead->brand)) {
             $cleanBrand = trim((string) $lead->brand);
             $tokens[] = $cleanBrand;
@@ -145,26 +151,59 @@ trait SearchEngineResultParserTrait
             }
         }
 
+        // Generic sector/industry words to strip when discovering core brand
+        $genericWords = [
+            'Teknologi', 'Technology', 'Technologies', 'Tech',
+            'Solusi', 'Solution', 'Solutions',
+            'Nusantara', 'Utama', 'Global', 'Internasional', 'International',
+            'Mandiri', 'Jaya', 'Abadi', 'Makmur', 'Karya', 'Sejahtera', 'Sentosa',
+            'Group', 'Grup', 'Holdings', 'Holding', 'Mitra',
+            'Sistem', 'Systems', 'System', 'Digital', 'Media',
+            'Informatika', 'Komunika', 'Telekomunikasi', 'Telecommunication',
+            'Logistik', 'Logistics', 'Indonesia', 'Asia', 'Pratama', 'Dinamika',
+            'Persada', 'Semesta', 'Megah', 'Agung', 'Cemerlang',
+        ];
+        $genericPattern = '/\b(' . implode('|', $genericWords) . ')\b/iu';
+
+        // 2. Company name decomposition
         $companyName = (string) $lead->company_name;
-        $parts = preg_split('/[\/|&+]|\bdan\b|\(|\)/i', $companyName) ?: [];
+        $parts = preg_split('/[\/|&+]|\bdan\b|\(|\)/iu', $companyName) ?: [];
         foreach ($parts as $part) {
             $clean = trim($part);
             if ($clean === '') {
                 continue;
             }
 
-            $clean = preg_replace('/(^|\s+)(PT|CV|UD|PD|Perum|Yayasan|Koperasi|Firma|Persero)\.?\s+/i', '$1', $clean);
-            $clean = preg_replace('/\s+(Tbk|Ltd|LLC|Inc|Corp|Pte|Co)\.?(\s+|$)/i', '$2', $clean);
+            // Remove Indonesian/global corporate prefixes (PT, CV, UD, etc.)
+            $clean = preg_replace('/(^|\s+)(PT|CV|UD|PD|Perum|Yayasan|Koperasi|Firma|Persero)\.?\s+/iu', '$1', $clean);
+            // Remove corporate suffixes (Tbk, Ltd, Inc, Corp, Pte Ltd, etc.)
+            $clean = preg_replace('/\s+(Tbk|Ltd|LLC|Inc|Corp|Pte|Co|Bhd|GmbH)\.?(\s+|$)/iu', '$2', $clean);
             $clean = trim(preg_replace('/^[.,\-\s]+|[.,\-\s]+$/u', '', $clean));
             $clean = trim(preg_replace('/\s+/', ' ', $clean));
 
             if (mb_strlen($clean) >= 2) {
-                $tokens[] = $clean;
-                $withoutId = trim(preg_replace('/\bIndonesia\b/i', '', $clean));
-                $withoutId = trim(preg_replace('/\s+/', ' ', $withoutId));
-                if (mb_strlen($withoutId) >= 2 && !in_array(strtolower($withoutId), array_map('strtolower', $tokens))) {
-                    $tokens[] = $withoutId;
+                // Core brand without generic sector/industry words (e.g. "Prasetia Dwidharma")
+                $core = trim(preg_replace($genericPattern, '', $clean));
+                $core = trim(preg_replace('/^[.,\-\s]+|[.,\-\s]+$/u', '', $core));
+                $core = trim(preg_replace('/\s+/', ' ', $core));
+
+                if (mb_strlen($core) >= 2) {
+                    $tokens[] = $core;
                 }
+
+                $tokens[] = $clean;
+            }
+        }
+
+        // 3. Domain-based brand hint (e.g. prasetia.co.id -> Prasetia)
+        $domain = $lead->website_domain ?: parse_url((string) $lead->website, PHP_URL_HOST);
+        if ($domain) {
+            $domain = preg_replace('/^www\./i', '', strtolower(trim($domain)));
+            $domainParts = explode('.', $domain);
+            $rootDomain = $domainParts[0] ?? '';
+            $excludeHosts = ['gmail', 'yahoo', 'hotmail', 'outlook', 'google', 'linktr', 'instagram', 'facebook', 'tokopedia', 'shopee', 'tiktok'];
+            if (mb_strlen($rootDomain) >= 3 && !in_array($rootDomain, $excludeHosts)) {
+                $tokens[] = ucfirst($rootDomain);
             }
         }
 
@@ -181,6 +220,11 @@ trait SearchEngineResultParserTrait
 
     /**
      * Build standard LinkedIn discovery queries for lead.
+     * Creates:
+     * 1. Exact quoted core brand query with executive & leadership keywords
+     * 2. High-yield loose/unquoted core brand query (critical for catching variants like "PT. Prasetia Dwidharma")
+     * 3. Secondary / clean full name query
+     * 4. Full legal entity query (if different)
      *
      * @return string[]
      */
@@ -188,19 +232,27 @@ trait SearchEngineResultParserTrait
     {
         $tokens = $this->extractBrandTokens($lead);
         $primaryBrand = !empty($tokens) ? $tokens[0] : $lead->company_name;
-        $roleKeywords = '("director" OR "manager" OR "head" OR "lead" OR "chief" OR "founder" OR "owner" OR "finance" OR "procurement" OR "operations" OR "sales" OR "general manager" OR "IT")';
 
-        $queries = [
-            "site:linkedin.com/in \"{$primaryBrand}\" {$roleKeywords}",
-        ];
+        // Balanced role keywords to catch C-levels, heads, managers, founders, leads
+        $roleKeywords = '("director" OR "manager" OR "head" OR "lead" OR "chief" OR "founder" OR "owner" OR "finance" OR "procurement" OR "operations" OR "sales" OR "general manager" OR "IT" OR "CEO" OR "COO" OR "CTO")';
 
-        if (count($tokens) > 1 && $tokens[1] !== $primaryBrand) {
+        $queries = [];
+
+        // 1. Exact quoted core brand with executive/leadership keywords
+        $queries[] = "site:linkedin.com/in \"{$primaryBrand}\" {$roleKeywords}";
+
+        // 2. High-yield loose / unquoted core brand query (essential for high-recall profile discovery)
+        $queries[] = "site:linkedin.com/in {$primaryBrand} (\"director\" OR \"manager\" OR \"head\" OR \"lead\" OR \"founder\" OR \"CEO\")";
+
+        // 3. Secondary token (e.g. full clean name if different from core brand)
+        if (count($tokens) > 1 && strcasecmp($tokens[1], $primaryBrand) !== 0) {
             $queries[] = "site:linkedin.com/in \"{$tokens[1]}\" {$roleKeywords}";
         }
 
-        // Full legal entity if different from brand
-        if (strcasecmp($lead->company_name, $primaryBrand) !== 0) {
-            $queries[] = "site:linkedin.com/in \"{$lead->company_name}\" {$roleKeywords}";
+        // 4. Exact legal entity name if different from brand
+        $cleanLegal = trim(preg_replace('/\s+/', ' ', (string) $lead->company_name));
+        if ($cleanLegal !== '' && strcasecmp($cleanLegal, $primaryBrand) !== 0) {
+            $queries[] = "site:linkedin.com/in \"{$cleanLegal}\"";
         }
 
         return array_values(array_unique($queries));

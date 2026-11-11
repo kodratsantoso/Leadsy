@@ -277,4 +277,117 @@ class SearchEnginesDiscoveryFlowTest extends TestCase
         $response->assertJsonPath('not_configured', true);
         $this->assertStringContainsString('Settings > Integrations > Search & PIC Discovery', $response->json('message'));
     }
+
+    public function test_deep_search_finds_pic_for_compound_company_name_like_pt_prasetia_dwidharma_teknologi(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+
+        $user = $this->makeUser();
+        $lead = Lead::create([
+            'tenant_id' => $user->tenant_id,
+            'company_name' => 'PT Prasetia Dwidharma Teknologi',
+            'website' => 'https://prasetia.co.id',
+            'website_domain' => 'prasetia.co.id',
+            'status' => 'new',
+            'created_by' => $user->id,
+        ]);
+
+        // Configure Serper
+        IntegrationConfig::create([
+            'tenant_id' => $user->tenant_id,
+            'category' => 'search_engines',
+            'key' => 'SERPER_ENABLED',
+            'value' => 'true',
+            'is_secret' => false,
+            'is_active' => true,
+        ]);
+        IntegrationConfig::create([
+            'tenant_id' => $user->tenant_id,
+            'category' => 'search_engines',
+            'key' => 'SERPER_API_KEY',
+            'value' => 'test-serper-key',
+            'is_secret' => true,
+            'is_active' => true,
+        ]);
+
+        Http::fake([
+            'https://google.serper.dev/search*' => function (\Illuminate\Http\Client\Request $request) {
+                $payload = json_decode($request->body(), true);
+                $query = $payload['q'] ?? '';
+
+                // The query MUST search for the core brand "Prasetia Dwidharma"
+                $this->assertStringContainsString('Prasetia Dwidharma', $query);
+
+                return Http::response([
+                    'organic' => [
+                        [
+                            'title' => 'Arya Setiadharma - CEO - Prasetia Dwidharma | LinkedIn',
+                            'link' => 'https://id.linkedin.com/in/aryasetiadharma',
+                            'snippet' => 'CEO at Prasetia Dwidharma. Driving early-stage investments and tech ventures.',
+                        ],
+                        [
+                            'title' => 'Ardi Setiadharma - Director - Prasetia Dwidharma | LinkedIn',
+                            'link' => 'https://id.linkedin.com/in/ardisetiadharma',
+                            'snippet' => 'Director at PT Prasetia Dwidharma. Telecom & IT infrastructure.',
+                        ],
+                    ],
+                ]);
+            },
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/leads/{$lead->id}/contact-enrichment/google-deep/search");
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.name', 'Arya Setiadharma');
+        $response->assertJsonPath('data.0.title', 'CEO');
+        $response->assertJsonPath('data.1.name', 'Ardi Setiadharma');
+
+        $this->assertDatabaseHas('contact_enrichment_candidates', [
+            'lead_id' => $lead->id,
+            'provider' => 'GOOGLE_DEEP_SEARCH',
+            'name' => 'Arya Setiadharma',
+        ]);
+    }
+
+    public function test_serper_masked_key_fallback_in_test_connection(): void
+    {
+        $this->withoutMiddleware(CheckPermission::class);
+
+        $user = $this->makeUser();
+
+        IntegrationConfig::create([
+            'tenant_id' => $user->tenant_id,
+            'category' => 'search_engines',
+            'key' => 'SERPER_API_KEY',
+            'value' => 'real-saved-serper-key',
+            'is_secret' => true,
+            'is_active' => true,
+        ]);
+
+        Http::fake([
+            'https://google.serper.dev/search*' => function (\Illuminate\Http\Client\Request $request) {
+                // Must have retrieved the real saved key instead of using the masked string
+                $this->assertEquals('real-saved-serper-key', $request->header('X-API-KEY')[0]);
+
+                return Http::response([
+                    'organic' => [
+                        ['title' => 'Google CEO | LinkedIn', 'link' => 'https://linkedin.com/in/sundarpichai'],
+                    ],
+                ]);
+            },
+        ]);
+
+        // Client sends masked dots as often populated in password inputs
+        $response = $this->actingAs($user)
+            ->postJson('/api/settings/integrations/search-engines/test', [
+                'provider' => 'serper',
+                'credentials' => [
+                    'SERPER_API_KEY' => '••••••••••••••••••••••••••••••••••••••',
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+    }
 }
