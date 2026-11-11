@@ -157,8 +157,18 @@ jobs:
           render k8s/leadsy-prod-workers.yaml | kubectl apply -n "${NAMESPACE}" -f -
           kubectl set image deployment/leadsy-worker worker="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
           kubectl set image deployment/leadsy-scheduler scheduler="${REGISTRY}/leadsy-backend:${TAG}" -n "${NAMESPACE}"
-          kubectl rollout status deployment/leadsy-worker -n "${NAMESPACE}" --timeout=300s
-          kubectl rollout status deployment/leadsy-scheduler -n "${NAMESPACE}" --timeout=300s
+          kubectl rollout status deployment/leadsy-worker -n "${NAMESPACE}" --timeout=300s || {
+            echo "::error::leadsy-worker rollout timed out or failed. Dumping diagnostics:"
+            kubectl describe pods -l app=leadsy-worker -n "${NAMESPACE}" || true
+            kubectl logs -l app=leadsy-worker -n "${NAMESPACE}" --tail=50 || true
+            exit 1
+          }
+          kubectl rollout status deployment/leadsy-scheduler -n "${NAMESPACE}" --timeout=300s || {
+            echo "::error::leadsy-scheduler rollout timed out or failed. Dumping diagnostics:"
+            kubectl describe pods -l app=leadsy-scheduler -n "${NAMESPACE}" || true
+            kubectl logs -l app=leadsy-scheduler -n "${NAMESPACE}" --tail=50 || true
+            exit 1
+          }
 
           echo "Applying frontend runtime and ingress (leadsy.tech)..."
           render k8s/leadsy-prod-frontend.yaml | kubectl apply -n "${NAMESPACE}" -f -

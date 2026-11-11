@@ -80,10 +80,15 @@ spec:
               memory: 1Gi
           livenessProbe:
             exec:
-              command: ["php", "artisan", "horizon:status"]
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            timeoutSeconds: 10
+              # `php artisan horizon:status` requires a full Laravel bootstrap and Redis
+              # connection on every probe. If Redis is momentarily busy or during startup
+              # before the master heartbeat registers, it exits with 2 ("Horizon is inactive"),
+              # causing kubelet to kill healthy worker containers in a restart loop.
+              # Checking /proc/1/cmdline ensures the Horizon master supervisor process is alive.
+              command: ["sh", "-c", "grep -qa 'horizon' /proc/1/cmdline || exit 1"]
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
             failureThreshold: 3
 ---
 apiVersion: apps/v1
