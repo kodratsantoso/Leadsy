@@ -4,7 +4,25 @@ Web application for map-based lead discovery, AI-assisted qualification, funnel 
 
 ## Version
 
-Current release: **v1.49.0** — 2026-11-07
+Current release: **v1.50.0** — 2026-11-12
+
+## What's New in v1.50.0 (Enterprise Audit Trail & Live Active Sessions Management)
+
+- **Comprehensive Multi-Tenant & SaaS Platform Audit Trail (`/audit-logs` & `/admin/audit-logs`):**
+  - *Strict Multi-Tenant Isolation* — Memisahkan jejak audit organisasi/tenant (`/audit-logs` dan `/settings/audit-logs`) dengan platform SaaS Superadmin (`/admin/audit-logs`). Tenant hanya dapat melihat aktivitas organisasinya sendiri, sementara Superadmin dapat memantau jejak lintas tenant secara global lengkap dengan filter dropdown per tenant.
+  - *Enriched Actor & Telemetry Capture* — Menangkap detail lengkap pelaku (`actor_name`, `actor_email`, `actor_role`, avatar, organisasi), telemetri perangkat (`device_type`, `browser`, `os`), serta endpoint HTTP route dan request method.
+  - *Cloudflare Edge GeoIP Integration* — Menangkap lokasi geografis pengguna secara akurat (Kota, Negara, Kode ISO, Bendera emoji, dan Alamat IP) dari header Cloudflare edge (`CF-Connecting-IP`, `CF-IPCountry`, `CF-IPCity`, `CF-Region`) dengan fallback cerdas untuk lingkungan lokal/dev.
+  - *Risk Assessment Engine* — Mengklasifikasikan setiap aksi ke dalam 4 tingkat risiko: `Critical` 🔴 (kegagalan login, akses ditolak, terminasi sesi, impersonasi), `High` 🟠 (ubah password, reset 2FA, perubahan role, ekspor data), `Medium` 🟡 (update user, konfigurasi integrasi), dan `Low` ⚪ (operasi rutin).
+  - *Interactive Payload Changes Inspector* — Dialog modal inspektur payload audit untuk membandingkan secara visual nilai data sebelum (*Before*) dan sesudah (*After*) perubahan terjadi.
+  - *Export Audit Trail Enriched* — Unduh jejak audit berformat TXT dan XLSX/CSV lengkap dengan kolom metadata aktor, risiko, dan telemetri lokasi.
+
+- **Active Sessions & Live Device Governance (`/settings/sessions`):**
+  - *Live Session Monitoring* — Konsol interaktif bagi Administrator Tenant untuk melihat siapa saja anggota tim yang saat ini sedang login atau memiliki sesi berjalan ke Leadsy.
+  - *Active vs. Idle State Detection* — Indikator status live sesi dengan pulse visual: 🟢 Aktif (&lt; 15 menit aktivitas) atau 🟡 Idle (&ge; 15 menit tanpa aktivitas) dengan perhitungan menit inaktif yang akurat.
+  - *Current Device Protection* — Penanda otomatis *"Perangkat Ini"* pada sesi browser saat ini untuk mencegah pemutusan sesi sendiri secara tidak sengaja.
+  - *Remote Force Logout* — Opsi terminasi langsung (*remote logout*) untuk sesi spesifik yang mencurigakan atau perangkat yang tertinggal.
+  - *Bulk Purge Idle Sessions* — Tombol *"Logout Sesi Idle"* untuk membersihkan seluruh sesi tim yang tertidur secara massal dengan konfirmasi dialog aman.
+  - *Sanctum Session Telemetry Engine* — Integrasi mulus pada model `PersonalAccessToken` dan middleware `EnforceSessionTimeout` yang mencatat telemetri login awal serta memperbarui waktu keaktifan secara periodik tanpa membebani performa database.
 
 ## What's New in v1.49.0 (Multi-Sheet Excel & AI Intelligence Export Engine)
 

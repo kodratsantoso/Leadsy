@@ -38,6 +38,23 @@ class EnforceSessionTimeout
             return $next($request);
         }
 
+        // Touch last_active_at and refresh client telemetry periodically (at most once every 2 mins to avoid DB churn)
+        $lastTouch = $accessToken->last_active_at;
+        if (! $lastTouch || $lastTouch->diffInMinutes(now()) >= 2 || ! $accessToken->ip_address) {
+            $telemetry = app(\App\Services\Security\ClientTelemetryService::class)->captureFromRequest($request);
+            $accessToken->forceFill([
+                'last_active_at' => now(),
+                'ip_address' => $telemetry['ip_address'],
+                'user_agent' => $telemetry['user_agent'],
+                'device_type' => $telemetry['device_type'],
+                'browser' => $telemetry['browser'],
+                'os' => $telemetry['os'],
+                'city' => $telemetry['city'],
+                'country_code' => $telemetry['country_code'],
+                'country_name' => $telemetry['country_name'],
+            ])->save();
+        }
+
         $user = $accessToken->tokenable;
         $setting = SecuritySetting::resolve($user?->tenant_id);
 

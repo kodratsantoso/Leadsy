@@ -10,6 +10,8 @@ use App\Models\LeadFollowUp;
 use App\Observers\LeadAiEvaluationObserver;
 use App\Observers\LeadFollowUpObserver;
 use App\Observers\LeadObserver;
+use App\Models\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 use App\Services\Enrichment\ContactEnrichmentOrchestrator;
 use App\Services\Enrichment\Providers\LushaProvider;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Enforce custom Sanctum token model with session telemetry
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
         // Register RBAC middleware alias
         Route::aliasMiddleware('permission', CheckPermission::class);
         Route::aliasMiddleware('session.timeout', EnforceSessionTimeout::class);

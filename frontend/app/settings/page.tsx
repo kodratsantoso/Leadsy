@@ -66,6 +66,7 @@ const categories = [
     items: [
       { icon: BookOpen,  title: "System & AI Playbook",  desc: "Panduan alur operasional Leadsy, direktori 33 kapabilitas AI, workflow & output", href: "/settings/system-playbook", color: "bg-[color:var(--brand)]" },
       { icon: Shield,    title: "Security",              desc: "Session timeout, password policy, auth settings",                   href: "/settings/security",      color: "bg-[color:var(--status-danger)]" },
+      { icon: Users,     title: "Active Sessions",       desc: "Sesi pengguna aktif, telemetri perangkat, lokasi, dan opsi logout idle", href: "/settings/sessions", color: "bg-[color:var(--brand)]" },
       { icon: Globe,     title: "Environment",           desc: "Runtime environment overview and configuration",                     href: "/settings/environment",   color: "bg-[color:var(--status-info)]" },
       { icon: Bell,      title: "Notifications",         desc: "In-app, email, and integration alert preferences",                  href: "/settings/notifications", color: "bg-[color:var(--brand)]" },
       { icon: Database,  title: "Backup & Recovery",     desc: "Scheduled backups, retention, and restore controls",                href: "/settings/backup",        color: "bg-[color:var(--status-success)]" },

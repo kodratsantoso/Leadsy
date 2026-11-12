@@ -50,9 +50,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AuditLog extends Model
 {
     protected $fillable = [
-        'tenant_id', 'user_id', 'action', 'module', 'record_type', 'record_id',
+        'tenant_id', 'tenant_name', 'user_id', 'actor_name', 'actor_email', 'actor_role',
+        'action', 'module', 'event_category', 'record_type', 'record_id',
         'before_value', 'after_value', 'ip_address', 'user_agent',
-        'request_method', 'route_path', 'status', 'metadata_json',
+        'city', 'country_code', 'country_name', 'region',
+        'device_type', 'browser', 'os',
+        'request_method', 'route_path', 'status', 'risk_level', 'metadata_json',
     ];
 
     protected $casts = [
@@ -60,6 +63,19 @@ class AuditLog extends Model
         'after_value' => 'array',
         'metadata_json' => 'array',
     ];
+
+    protected $appends = [
+        'flag_emoji',
+    ];
+
+    public function getFlagEmojiAttribute(): string
+    {
+        if (! $this->country_code) {
+            return '🌐';
+        }
+
+        return app(\App\Services\Security\ClientTelemetryService::class)->countryCodeToEmoji($this->country_code);
+    }
 
     public function user(): BelongsTo
     {

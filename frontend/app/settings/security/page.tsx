@@ -1,5 +1,6 @@
 "use client";
-import { Shield } from "lucide-react";
+import { Shield, Users, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 import { BackToSettings } from "@/app/settings/_components/back-to-settings";
 import { TwoFactorAuthSettings } from "@/app/settings/_components/TwoFactorAuthSettings";
@@ -29,6 +30,26 @@ export default function SecurityPage() {
         <div className="rounded-xl border border-border bg-card p-5 shadow-xs">
           <div className="flex items-center gap-2 mb-3"><Shield className="h-4 w-4 text-emerald-500" /><h3 className="text-sm font-semibold">Data Encryption &amp; UU PDP</h3></div>
           <p className="text-xs text-muted-foreground">TLS/HTTPS enforced for all API traffic. Sensitive PII keys masked and stored encrypted in database vault.</p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-5 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold">Active Sessions &amp; Devices</h3>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Pantau siapa saja yang saat ini sedang login atau sesi aktif ke Leadsy, telemetri lokasi, dan opsi logout untuk sesi idle.
+            </p>
+          </div>
+          <div className="pt-3">
+            <Link
+              href="/settings/sessions"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+            >
+              Kelola Sesi Aktif <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </div>
 

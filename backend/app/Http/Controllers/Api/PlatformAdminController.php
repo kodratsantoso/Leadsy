@@ -1487,18 +1487,48 @@ class PlatformAdminController extends Controller
     public function platformAuditLogs(Request $request): JsonResponse
     {
         return TenantContext::withoutTenantScope(function () use ($request) {
-            $query = AuditLog::query()->latest('created_at');
+            $query = AuditLog::with(['user.role', 'tenant'])->latest('created_at');
+
+            if ($request->filled('tenant_id') && $request->tenant_id !== 'all') {
+                $query->where('tenant_id', (int) $request->tenant_id);
+            }
+
+            if ($request->filled('risk_level') && $request->risk_level !== 'all') {
+                $query->where('risk_level', $request->risk_level);
+            }
+
+            if ($request->filled('event_category') && $request->event_category !== 'all') {
+                $query->where('event_category', $request->event_category);
+            }
 
             if ($request->filled('search')) {
-                $search = $request->input('search');
+                $search = trim($request->input('search'));
                 $query->where(function ($q) use ($search) {
                     $q->where('action', 'ilike', "%{$search}%")
-                      ->orWhere('ip_address', 'ilike', "%{$search}%");
+                        ->orWhere('actor_name', 'ilike', "%{$search}%")
+                        ->orWhere('actor_email', 'ilike', "%{$search}%")
+                        ->orWhere('tenant_name', 'ilike', "%{$search}%")
+                        ->orWhere('city', 'ilike', "%{$search}%")
+                        ->orWhere('ip_address', 'ilike', "%{$search}%");
                 });
             }
 
-            $perPage = min(50, max(10, (int) $request->input('per_page', 25)));
+            if ($request->filled('date_from')) {
+                $query->where('created_at', '>=', $request->date_from . ' 00:00:00');
+            }
+
+            if ($request->filled('date_to')) {
+                $query->where('created_at', '<=', $request->date_to . ' 23:59:59');
+            }
+
+            $perPage = min(100, max(10, (int) $request->input('per_page', 25)));
             $logs = $query->paginate($perPage);
+
+            $criticalCount = AuditLog::query()->whereIn('risk_level', ['critical', 'high'])->count();
+            $activeTenantsCount = AuditLog::query()->whereNotNull('tenant_id')->distinct('tenant_id')->count('tenant_id');
+            $countriesCount = AuditLog::query()->whereNotNull('country_code')->distinct('country_code')->count('country_code');
+
+            $tenants = \App\Models\Tenant::select('id', 'name')->orderBy('name')->get();
 
             return response()->json([
                 'success' => true,
@@ -1509,6 +1539,13 @@ class PlatformAdminController extends Controller
                     'total' => $logs->total(),
                     'per_page' => $logs->perPage(),
                 ],
+                'summary' => [
+                    'total_events' => $logs->total(),
+                    'critical_events' => $criticalCount,
+                    'active_tenants' => max(1, $activeTenantsCount),
+                    'unique_countries' => max(1, $countriesCount),
+                ],
+                'tenants' => $tenants,
             ]);
         });
     }

@@ -256,7 +256,13 @@ Route::middleware(['session.timeout', 'auth:sanctum'])->group(function () {
     Route::get('settings/currency', [CurrencySettingController::class, 'index'])->middleware('permission:integrations.manage');
     Route::put('settings/currency', [CurrencySettingController::class, 'update'])->middleware('permission:integrations.manage');
     Route::get('settings/security', [\App\Http\Controllers\Api\SecuritySettingsController::class, 'index'])->middleware('permission:integrations.manage');
+    Route::put('settings/security', [\App\Http\Controllers\Api\SecuritySettingsController::class, 'update'])->middleware('permission:integrations.manage');
     Route::post('settings/currency/sync-rates', [CurrencySettingController::class, 'syncRates'])->middleware('permission:integrations.manage');
+
+    // Active Sessions & Remote Device Management
+    Route::get('settings/sessions', [\App\Http\Controllers\Api\SessionManagementController::class, 'index']);
+    Route::delete('settings/sessions/{id}', [\App\Http\Controllers\Api\SessionManagementController::class, 'destroy'])->middleware('permission:users.manage');
+    Route::post('settings/sessions/terminate-idle', [\App\Http\Controllers\Api\SessionManagementController::class, 'terminateIdle'])->middleware('permission:users.manage');
     
     // Document Numbering Sequences (Tenant Configurable)
     Route::get('settings/document-numbering', [\App\Http\Controllers\Api\DocumentNumberingController::class, 'index']);

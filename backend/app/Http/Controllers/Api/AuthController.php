@@ -51,7 +51,9 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('api')->plainTextToken;
+        $newAccessToken = $user->createToken('api');
+        $token = $newAccessToken->plainTextToken;
+        $this->recordSessionTelemetry($newAccessToken->accessToken, $request);
 
         AuditService::log('login', 'auth', $user);
 
@@ -142,7 +144,9 @@ class AuthController extends Controller
             'email_verified_at' => now(),
         ]);
 
-        $token = $user->createToken('api')->plainTextToken;
+        $newAccessToken = $user->createToken('api');
+        $token = $newAccessToken->plainTextToken;
+        $this->recordSessionTelemetry($newAccessToken->accessToken, $request);
 
         AuditService::logCreated('users', $user);
 
@@ -309,7 +313,9 @@ class AuthController extends Controller
             $user = $ssoService->createOrUpdateUserFromLark($userInfo, $tenant, 'sales_exec');
 
             // Generate token
-            $token = $user->createToken('api')->plainTextToken;
+            $newAccessToken = $user->createToken('api');
+        $token = $newAccessToken->plainTextToken;
+        $this->recordSessionTelemetry($newAccessToken->accessToken, $request);
 
             AuditService::log('login_via_lark_sso', 'auth', $user);
 
@@ -364,5 +370,28 @@ class AuthController extends Controller
                 'last_used_at' => $token->last_used_at,
             ]
         ]);
+    }
+
+    private function recordSessionTelemetry($tokenModel, ?Request $request = null): void
+    {
+        if (! $tokenModel) {
+            return;
+        }
+
+        /** @var \App\Services\Security\ClientTelemetryService $telemetryService */
+        $telemetryService = app(\App\Services\Security\ClientTelemetryService::class);
+        $telemetry = $telemetryService->captureFromRequest($request);
+
+        $tokenModel->forceFill([
+            'ip_address' => $telemetry['ip_address'],
+            'user_agent' => $telemetry['user_agent'],
+            'device_type' => $telemetry['device_type'],
+            'browser' => $telemetry['browser'],
+            'os' => $telemetry['os'],
+            'city' => $telemetry['city'],
+            'country_code' => $telemetry['country_code'],
+            'country_name' => $telemetry['country_name'],
+            'last_active_at' => now(),
+        ])->save();
     }
 }
