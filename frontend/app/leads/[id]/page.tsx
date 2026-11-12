@@ -608,9 +608,14 @@ export default function LeadDetailPage() {
     queryFn: () => apiFetch(`/leads/${leadId}`).then((r) => r.json()),
     enabled: !!leadId && leadId !== 'undefined',
     refetchInterval: (query) => {
-      // Auto-poll worker progress every 2.5s while analyzing
+      // Auto-poll worker progress every 2.5s while actively analyzing an unassessed lead
       const data = query.state.data?.data;
-      if (data && (data.enrichment_status === 'running' || data.enrichment_status === 'pending')) {
+      const isLeadAssessed =
+        data?.lead_score !== null &&
+        data?.lead_score !== undefined &&
+        !['pending', 'unassessed'].includes(data?.qualification_status);
+
+      if (data && (data.enrichment_status === 'running' || data.enrichment_status === 'pending') && !isLeadAssessed) {
         return 2500;
       }
       return false;
@@ -1523,10 +1528,16 @@ export default function LeadDetailPage() {
   const leadData      = lead?.data || {};
   const contacts      = leadData.contacts || [];
 
-  // Show First-Time AI Worker Analyzing Screen if background worker is currently executing
+  const isLeadAssessed =
+    leadData.lead_score !== null &&
+    leadData.lead_score !== undefined &&
+    !['pending', 'unassessed'].includes(leadData.qualification_status);
+
+  // Show First-Time AI Worker Analyzing Screen if background worker is currently executing and lead is not yet assessed
   const isAnalyzingUnderway =
     !forceBypassAnalyzing &&
-    (leadData.enrichment_status === 'running' || leadData.enrichment_status === 'pending');
+    (leadData.enrichment_status === 'running' || leadData.enrichment_status === 'pending') &&
+    !isLeadAssessed;
 
   if (isAnalyzingUnderway) {
     return (

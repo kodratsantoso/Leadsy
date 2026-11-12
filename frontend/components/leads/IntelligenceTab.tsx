@@ -227,6 +227,18 @@ export function IntelligenceTab({
   const isSlipping = slippageFactors?.is_slipping ?? false;
   const slippageReasons = Array.isArray(slippageFactors?.reasons) ? slippageFactors.reasons : [];
 
+  const isLeadAssessed =
+    leadData?.lead_score !== null &&
+    leadData?.lead_score !== undefined &&
+    !['pending', 'unassessed'].includes(leadData?.qualification_status);
+
+  const isActuallyRunning =
+    aiPipelineRunning ||
+    aiSyncPipelineRunning ||
+    (leadData?.enrichment_status === 'running' && !isLeadAssessed);
+
+  const pipelineStatus = isActuallyRunning ? 'running' : 'completed';
+
   return (
         <div className="space-y-6">
 
@@ -234,7 +246,7 @@ export function IntelligenceTab({
           <AiLeadAnalyzingScreen
             companyName={leadData?.company_name}
             leadId={leadData?.id || leadId}
-            status={aiPipelineRunning || aiSyncPipelineRunning ? 'running' : (leadData?.enrichment_status || 'completed')}
+            status={pipelineStatus}
             embedded={true}
             onRerun={isSuperAdmin ? runAiFullPipeline : undefined}
             isRerunning={aiPipelineRunning || aiSyncPipelineRunning}

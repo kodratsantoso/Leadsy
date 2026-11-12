@@ -298,6 +298,12 @@ class PreMeetingAiScreeningOrchestratorService
 
             $this->recordRun($lead, $stagesExecuted, $lead->lead_score, $qualificationStatus, $triggeredBy, $elapsedSeconds, null);
 
+            $lead->update([
+                'enrichment_status' => 'completed',
+                'ai_processing_status' => 'completed',
+                'last_enriched_at' => $lead->last_enriched_at ?: now(),
+            ]);
+
             return [
                 'success' => true,
                 'lead_id' => $lead->id,

@@ -347,6 +347,7 @@ class AiPreMeetingScreeningController extends Controller
      */
     public function screenSingle(Request $request, Lead $lead): JsonResponse
     {
+        abort_unless($request->user()->isSuperAdmin(), 403, 'Unauthorized. Superadmin only.');
         $this->authorizeLeadAccess($request, $lead);
 
         if ($request->boolean('async')) {
