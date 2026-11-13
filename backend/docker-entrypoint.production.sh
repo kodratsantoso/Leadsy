@@ -106,6 +106,40 @@ try {
 done
 log "Database is ready."
 
+# ── 4b. Wait for Redis ────────────────────────────────────────────────────────
+REDIS_HOST="${REDIS_HOST:-}"
+REDIS_PORT="${REDIS_PORT:-6379}"
+
+if [ -n "${REDIS_HOST}" ] && [ "${REDIS_HOST}" != "127.0.0.1" ] && [ "${REDIS_HOST}" != "localhost" ]; then
+    REDIS_MAX_RETRIES=30
+    REDIS_RETRY_COUNT=0
+
+    log "Waiting for Redis at ${REDIS_HOST}:${REDIS_PORT}..."
+    until php -r "
+    try {
+        \$fp = @fsockopen('${REDIS_HOST}', (int) '${REDIS_PORT}', \$errno, \$errstr, 2);
+        if (\$fp) {
+            fclose(\$fp);
+            exit(0);
+        }
+        exit(1);
+    } catch (Throwable \$e) {
+        exit(1);
+    }
+    " 2>/dev/null; do
+        REDIS_RETRY_COUNT=$((REDIS_RETRY_COUNT + 1))
+        if [ "$REDIS_RETRY_COUNT" -ge "$REDIS_MAX_RETRIES" ]; then
+            log "WARNING: Redis not reachable after ${REDIS_MAX_RETRIES} attempts. Proceeding anyway..."
+            break
+        fi
+        log "  Redis not ready — attempt ${REDIS_RETRY_COUNT}/${REDIS_MAX_RETRIES}, retrying in 2s..."
+        sleep 2
+    done
+    if [ "$REDIS_RETRY_COUNT" -lt "$REDIS_MAX_RETRIES" ]; then
+        log "Redis is ready."
+    fi
+fi
+
 # ── 5. Migrations ─────────────────────────────────────────────────────────────
 AUTO_MIGRATE="${AUTO_MIGRATE:-true}"
 if [ "$AUTO_MIGRATE" = "true" ]; then
